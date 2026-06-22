@@ -4,19 +4,25 @@ extends CharacterBody2D
 const _WeaponComp = preload("res://scripts/components/weapon_component.gd")
 const _MoverComp = preload("res://scripts/components/movement_component.gd")
 
+signal player_damaged(amount: float, current_hp: float, max_hp: float)
+
 @onready var state: StateComponent = $StateComponent
 @onready var weapon: WeaponComponent = $WeaponComponent
 @onready var mover: MovementComponent = $MovementComponent
 @onready var _sprite: Sprite2D = $Sprite2D
+
+var walk_speed: float = 200.0
+var sprint_speed: float = 350.0
+var _flash_timer: float = 0.0
 
 func _ready():
 	GameManager.register_player(self)
 	add_to_group("players")
 	_generate_placeholder_texture()
 	mover.speed = walk_speed
-
-var walk_speed: float = 200.0
-var sprint_speed: float = 350.0
+	state.max_hp = 200.0
+	state.hp = 200.0
+	state.died.connect(_on_died)
 
 func _generate_placeholder_texture():
 	var image = Image.create(32, 32, false, Image.FORMAT_RGBA8)
@@ -38,11 +44,30 @@ func _generate_placeholder_texture():
 func init_weapons(weapon_list: Array[WeaponBase]):
 	weapon.init_weapons(weapon_list)
 
+func take_damage(amount: float, damage_type: int) -> Dictionary:
+	var result = state.take_damage(amount, damage_type)
+	_flash_timer = 0.1
+	player_damaged.emit(result.final_damage, state.hp, state.max_hp)
+	print("玩家受伤: %.0f (剩余HP: %.0f/%.0f)" % [result.final_damage, state.hp, state.max_hp])
+	if result.is_critical:
+		print("  ! 暴击! (%.1fx)" % result.breakdown.get("crit_damage", 1.5))
+	return result
+
+func _on_died():
+	print("玩家死亡!")
+	get_tree().reload_current_scene()
+
 func _unhandled_input(event: InputEvent):
 	if event.is_action_pressed("attack"):
 		weapon.attack()
 
 func _physics_process(delta: float):
+	if _flash_timer > 0:
+		_flash_timer -= delta
+		_sprite.modulate = Color(1, 1 - _flash_timer * 10, 1 - _flash_timer * 10)
+		if _flash_timer <= 0:
+			_sprite.modulate = Color(1, 1, 1)
+
 	mover.direction = _get_input_direction()
 	mover.speed = sprint_speed if Input.is_action_pressed("dodge") else walk_speed
 	weapon.tick_cooldown(delta)

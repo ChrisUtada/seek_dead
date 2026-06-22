@@ -11,6 +11,7 @@ const _MoverComp = preload("res://scripts/components/movement_component.gd")
 @onready var _sprite: Sprite2D = $Sprite2D
 
 var _flash_timer: float = 0.0
+var _attack_color_timer: float = 0.0
 
 func _ready():
 	var hp_val = randi_range(50, 150)
@@ -27,6 +28,7 @@ func _ready():
 	effects.tick_damage.connect(_on_tick_damage)
 	effects.effect_applied.connect(_on_effect_applied)
 	effects.effect_expired.connect(_on_effect_expired)
+	ai.attack_performed.connect(_on_ai_attack)
 	mover.speed = 50.0
 
 func take_damage(amount: float, damage_type: int):
@@ -40,6 +42,14 @@ func take_damage(amount: float, damage_type: int):
 func apply_status(effect_type: int, damage: float, duration: float):
 	effects.apply(effect_type, damage, duration)
 
+func _on_ai_attack(target: Node2D, damage: float):
+	if not is_instance_valid(target):
+		return
+	if target.has_method("take_damage"):
+		target.take_damage(damage, state.innate_type)
+	print("敌人攻击! 造成 %.0f 伤害" % damage)
+	_attack_color_timer = 0.15
+
 func _on_tick_damage(dmg: float, dmg_type: int):
 	take_damage(dmg, dmg_type)
 
@@ -52,6 +62,8 @@ func _on_effect_expired(_et: int, name_str: String):
 	print("  状态结束: %s" % name_str)
 
 func _update_tint():
+	if _attack_color_timer > 0:
+		return
 	var c = effects.get_last_color() if effects.has_any() else Color(1, 1, 1)
 	if _flash_timer <= 0:
 		_sprite.modulate = c
@@ -66,6 +78,12 @@ func _physics_process(delta):
 		if _flash_timer <= 0:
 			_update_tint()
 
+	if _attack_color_timer > 0:
+		_attack_color_timer -= delta
+		_sprite.modulate = Color(1, 0.4, 0.4)
+		if _attack_color_timer <= 0:
+			_update_tint()
+
 	effects.update(delta)
 	ai.process_ai(delta)
 
@@ -74,7 +92,7 @@ func _physics_process(delta):
 	else:
 		mover.reset_speed_multiplier()
 
-	if ai.get_target() == null or ai.is_player_in_attack_range():
+	if ai.current_state == AIComponent.AIState.ATTACK:
 		mover.direction = Vector2.ZERO
 	else:
 		mover.direction = ai.get_move_direction()
