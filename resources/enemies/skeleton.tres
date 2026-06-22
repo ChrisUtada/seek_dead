@@ -10,6 +10,7 @@ hp_max = 120.0
 speed = 45.0
 damage = 12.0
 innate_type = 1
+scene_path = "res://scenes/enemies/skeleton.tscn"
 defenses = {
 "puncture_defense": 0.1,
 "slash_defense": 0.2,

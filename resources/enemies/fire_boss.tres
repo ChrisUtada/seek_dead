@@ -10,6 +10,19 @@ hp_max = 600.0
 speed = 40.0
 innate_type = 3
 scene_path = "res://scenes/battle/boss_enemy.tscn"
+defenses = {
+"puncture_defense": 0.15,
+"slash_defense": 0.15,
+"smash_defense": 0.05,
+"fire_defense": 0.3,
+}
+color = Color(0.9, 0.3, 0.1, 1.0)
 phase_hp_ratios = [0.6, 0.3]
-attack_damages = [25.0, 35.0, 50.0]
+slam_damages = [25.0, 35.0, 50.0]
+slam_ranges = [70.0, 80.0, 90.0]
+charge_speeds = [350.0, 400.0, 500.0]
+charge_durations = [0.4, 0.5, 0.6]
+burst_counts = [2, 3, 4]
+burst_damages = [15.0, 20.0, 25.0]
 attack_cooldowns = [1.2, 0.9, 0.6]
+bullet_speed = 400.0

@@ -63,30 +63,60 @@ func _spawn_enemies_from_configs():
 		enemy.position = positions[i]
 		add_child(enemy)
 		enemy.apply_config(cfg)
-		_generate_enemy_texture(enemy, cfg.color)
 		print("敌人%d: %s HP=%.0f 属性=%s" % [i + 1, cfg.display_name, enemy.state.max_hp, innate_names[enemy.state.innate_type]])
 
-func _generate_enemy_texture(enemy: Node2D, color: Color):
-	var img = Image.create(32, 32, false, Image.FORMAT_RGBA8)
-	img.fill(Color(0, 0, 0, 0))
-	var darker = Color(color.r * 0.6, color.g * 0.6, color.b * 0.6)
-	for x in range(32):
-		for y in range(32):
-			var dx = x - 16
-			var dy = y - 16
-			if abs(dx) < 12 and abs(dy) < 12:
-				img.set_pixel(x, y, color)
-			if abs(dx) < 4 and abs(dy) < 4:
-				img.set_pixel(x, y, darker)
-	var sprite = enemy.get_node("Sprite2D")
-	sprite.texture = ImageTexture.create_from_image(img)
-	sprite.centered = true
-
 func _spawn_boss():
-	var boss = load("res://scenes/battle/boss_enemy.tscn").instantiate()
+	var cfg = load("res://resources/enemies/fire_boss.tres") as BossConfig
+	var scene = load(cfg.scene_path)
+	var boss = scene.instantiate()
 	boss.position = Vector2(800, 200)
 	add_child(boss)
+	boss.apply_config(cfg)
 	print("Boss: HP=%.0f 属性=火焰" % boss.state.max_hp)
+
+func _input(event):
+	if event.is_action_pressed("save_game"):
+		_save_game()
+	if event.is_action_pressed("load_game"):
+		_load_game()
+
+func _save_game():
+	var player = $Player
+	if not player:
+		return
+	var data = {
+		"hp": player.state.hp,
+		"max_hp": player.state.max_hp,
+		"energy": player.state.energy,
+		"stamina": player.state.stamina,
+		"heat": player.state.heat,
+		"position_x": player.position.x,
+		"position_y": player.position.y,
+		"weapon_index": player.weapon.current_index,
+		"timestamp": Time.get_datetime_string_from_system(),
+	}
+	if SaveSystem.save_game(data):
+		print("存档成功")
+	else:
+		push_error("存档失败")
+
+func _load_game():
+	var data = SaveSystem.load_game()
+	if data.is_empty():
+		print("没有存档")
+		return
+	var player = $Player
+	if not player:
+		return
+	player.state.hp = data.get("hp", player.state.max_hp)
+	player.state.energy = data.get("energy", player.state.max_energy)
+	player.state.stamina = data.get("stamina", player.state.max_stamina)
+	player.state.heat = data.get("heat", 0.0)
+	player.position = Vector2(data.get("position_x", 400.0), data.get("position_y", 300.0))
+	var wi = data.get("weapon_index", 0)
+	if wi < player.weapon.get_weapon_count():
+		player.weapon.switch_weapon(wi)
+	print("读档成功")
 
 func _init_player_weapons():
 	var player = $Player

@@ -142,6 +142,10 @@ func _change_state(new_state: int):
 			_decision_timer = 0.4
 
 func _get_attack_cooldown() -> float:
+	var parent = get_parent()
+	if parent.has_method("get_attack_cooldown"):
+		return parent.get_attack_cooldown()
+	
 	match phase:
 		3: return 0.6
 		2: return 0.9

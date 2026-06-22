@@ -16,6 +16,27 @@ func _enemy_ready():
 	state.died.connect(_on_died)
 	EntityRegistry.register_enemy(self)
 	add_to_group("enemies")
+	_add_hp_bar()
+
+func _add_hp_bar():
+	var bar = load("res://scripts/ui/enemy_hp_bar.gd").new()
+	add_child(bar)
+
+func _generate_texture(color: Color, size: int = 32):
+	var img = Image.create(size, size, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0, 0, 0, 0))
+	var darker = Color(color.r * 0.6, color.g * 0.6, color.b * 0.6)
+	var half = size / 2
+	for x in range(size):
+		for y in range(size):
+			var dx = x - half
+			var dy = y - half
+			if abs(dx) < half * 0.75 and abs(dy) < half * 0.75:
+				img.set_pixel(x, y, color)
+			if abs(dx) < half * 0.25 and abs(dy) < half * 0.25:
+				img.set_pixel(x, y, darker)
+	_sprite.texture = ImageTexture.create_from_image(img)
+	_sprite.centered = true
 
 func take_damage(amount: float, damage_type: int):
 	var result = state.take_damage(amount, damage_type)

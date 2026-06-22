@@ -50,14 +50,30 @@ func take_damage(amount: float, damage_type: int) -> Dictionary:
 	_flash_timer = 0.1
 	EventManager.damage_dealt.emit(null, self, result.final_damage, damage_type)
 	player_damaged.emit(result.final_damage, state.hp, state.max_hp)
+	_shake_camera(4.0 if result.is_critical else 2.0, 0.15)
 	print("玩家受伤: %.0f (剩余HP: %.0f/%.0f)" % [result.final_damage, state.hp, state.max_hp])
 	if result.is_critical:
 		print("  ! 暴击! (%.1fx)" % result.breakdown.get("crit_damage", 1.5))
 	return result
 
+func _shake_camera(intensity: float, duration: float):
+	var cam = $Camera2D
+	if not cam:
+		return
+	var original = cam.position
+	var tween = create_tween()
+	var steps = int(duration * 30)
+	tween.tween_method(_apply_shake.bind(cam, original, intensity), 0.0, 1.0, duration).set_trans(Tween.TRANS_LINEAR)
+	tween.tween_callback(func(): cam.position = original)
+
+func _apply_shake(_t: float, cam: Camera2D, original: Vector2, intensity: float):
+	cam.position = original + Vector2(randf_range(-intensity, intensity), randf_range(-intensity, intensity))
+
 func _on_died():
 	print("玩家死亡!")
-	get_tree().reload_current_scene()
+	set_physics_process(false)
+	mover.direction = Vector2.ZERO
+	mover.speed = 0.0
 
 func _unhandled_input(event: InputEvent):
 	if event.is_action_pressed("attack"):
