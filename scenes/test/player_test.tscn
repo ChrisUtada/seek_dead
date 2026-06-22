@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3 uid="uid://player_test"]
+[gd_scene load_steps=10 format=3 uid="uid://player_test"]
 
 [ext_resource type="Script" path="res://scenes/test/player_test.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2"]
@@ -15,6 +15,10 @@ size = Vector2(1600, 20)
 
 [sub_resource type="RectangleShape2D" id="4"]
 size = Vector2(20, 1200)
+
+[sub_resource type="NavigationPolygon" id="5"]
+vertices = PackedVector2Array(10, 10, 1590, 10, 1590, 1190, 10, 1190)
+polygons = [PackedInt32Array(0, 1, 2, 3)]
 
 [node name="PlayerTest" type="Node2D"]
 script = ExtResource("1")
@@ -49,5 +53,8 @@ position = Vector2(1610, 0)
 
 [node name="Player" parent="." instance=ExtResource("2")]
 position = Vector2(400, 300)
+
+[node name="NavigationRegion2D" type="NavigationRegion2D" parent="."]
+navigation_polygon = SubResource("5")
 
 [node name="HUD" parent="." instance=ExtResource("3")]

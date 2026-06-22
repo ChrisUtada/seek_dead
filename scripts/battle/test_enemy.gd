@@ -2,6 +2,7 @@ extends CharacterBody2D
 
 @onready var state: StateComponent = $StateComponent
 @onready var _sprite: Sprite2D = $Sprite2D
+@onready var _nav: NavigationAgent2D = $NavigationAgent2D
 
 var _flash_timer: float = 0.0
 var _effects: Array[StatusEffect] = []
@@ -99,11 +100,25 @@ func _physics_process(delta):
 		i -= 1
 
 	var target = _find_nearest_player()
-	if target and global_position.distance_to(target.global_position) > 30:
-		var speed = 20.0 if _has_status(StatusEffect.EffectType.FREEZE) else 50.0
-		var dir = global_position.direction_to(target.global_position)
-		velocity = dir * speed
+	if not target:
+		return
+
+	if global_position.distance_squared_to(target.global_position) < 50 * 50:
+		velocity = Vector2.ZERO
 		move_and_slide()
+		return
+
+	_nav.target_position = target.global_position
+
+	if _nav.is_navigation_finished():
+		velocity = Vector2.ZERO
+	else:
+		var next = _nav.get_next_path_position()
+		var dir = global_position.direction_to(next)
+		var speed = 20.0 if _has_status(StatusEffect.EffectType.FREEZE) else 50.0
+		velocity = dir * speed
+
+	move_and_slide()
 
 func _has_status(et: int) -> bool:
 	for e in _effects:

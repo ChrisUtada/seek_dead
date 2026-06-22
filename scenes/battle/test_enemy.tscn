@@ -19,3 +19,5 @@ position = Vector2(0, -4)
 
 [node name="StateComponent" type="Node" parent="."]
 script = ExtResource("2")
+
+[node name="NavigationAgent2D" type="NavigationAgent2D" parent="."]
