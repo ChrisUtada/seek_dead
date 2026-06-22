@@ -13,7 +13,7 @@ config_version=5
 config/name="Seek Dead Prototype"
 config/description="Seek Dead Godot 迁移可行性验证原型 (2D)"
 run/main_scene="res://scenes/test/player_test.tscn"
-config/features=PackedStringArray("4.7")
+config/features=PackedStringArray("4.4")
 
 [autoload]
 
@@ -25,8 +25,6 @@ ResourceManager="*res://autoload/resource_manager.gd"
 
 window/size/viewport_width=800
 window/size/viewport_height=600
-window/stretch/mode="disabled"
-window/size/mode=0
 window/size/initial_position_type=0
 
 [input]

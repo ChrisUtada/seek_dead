@@ -98,7 +98,7 @@ func _melee_attack():
 	shape.radius = current_weapon.range
 	query.shape = shape
 	query.transform = global_transform
-	query.collision_mask = 2
+	query.collision_mask = CollisionSystem.bit(CollisionSystem.LAYER_ENEMY)
 	query.exclude = [self]
 
 	var results = space.intersect_shape(query)
