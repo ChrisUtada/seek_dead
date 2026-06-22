@@ -4,10 +4,10 @@ extends CanvasLayer
 
 func _ready():
 	var player = get_node("/root/PlayerTest/Player")
-	if player and player.has_signal("weapon_changed"):
-		player.weapon_changed.connect(_on_weapon_changed)
-		if player.current_weapon:
-			_on_weapon_changed(player.current_weapon)
+	if player and player.weapon.has_signal("weapon_changed"):
+		player.weapon.weapon_changed.connect(_on_weapon_changed)
+		if player.weapon.current_weapon:
+			_on_weapon_changed(player.weapon.current_weapon)
 
 func _on_weapon_changed(weapon: WeaponBase):
 	var color = DamageSystem.get_color(weapon.damage_type)

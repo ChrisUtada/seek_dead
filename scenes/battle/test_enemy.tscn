@@ -1,7 +1,10 @@
-[gd_scene load_steps=5 format=3 uid="uid://test_enemy"]
+[gd_scene load_steps=8 format=3 uid="uid://test_enemy"]
 
 [ext_resource type="Script" path="res://scripts/battle/test_enemy.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/battle/state_component.gd" id="2"]
+[ext_resource type="Script" path="res://scripts/components/movement_component.gd" id="3"]
+[ext_resource type="Script" path="res://scripts/components/status_effect_component.gd" id="4"]
+[ext_resource type="Script" path="res://scripts/components/ai_component.gd" id="5"]
 
 [sub_resource type="RectangleShape2D" id="1"]
 size = Vector2(32, 32)
@@ -20,6 +23,14 @@ position = Vector2(0, -4)
 [node name="StateComponent" type="Node" parent="."]
 script = ExtResource("2")
 
+[node name="StatusEffectComponent" type="Node" parent="."]
+script = ExtResource("4")
+
+[node name="AIComponent" type="Node" parent="."]
+script = ExtResource("5")
+
+[node name="MovementComponent" type="Node" parent="."]
+script = ExtResource("3")
+speed = 50.0
+
 [node name="NavigationAgent2D" type="NavigationAgent2D" parent="."]
-avoidance_enabled = true
-radius = 16.0

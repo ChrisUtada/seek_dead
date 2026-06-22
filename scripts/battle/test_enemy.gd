@@ -1,12 +1,12 @@
 extends CharacterBody2D
 
 @onready var state: StateComponent = $StateComponent
+@onready var effects: StatusEffectComponent = $StatusEffectComponent
+@onready var ai: AIComponent = $AIComponent
+@onready var mover: MovementComponent = $MovementComponent
 @onready var _sprite: Sprite2D = $Sprite2D
-@onready var _nav: NavigationAgent2D = $NavigationAgent2D
 
 var _flash_timer: float = 0.0
-var _effects: Array[StatusEffect] = []
-var _current_tint: Color = Color(1, 1, 1)
 
 func _ready():
 	var hp_val = randi_range(50, 150)
@@ -20,6 +20,10 @@ func _ready():
 		"fire_defense": randf_range(0.0, 0.3),
 	}
 	state.died.connect(_on_died)
+	effects.tick_damage.connect(_on_tick_damage)
+	effects.effect_applied.connect(_on_effect_applied)
+	effects.effect_expired.connect(_on_effect_expired)
+	mover.speed = 50.0
 
 func take_damage(amount: float, damage_type: int):
 	var result = state.take_damage(amount, damage_type)
@@ -30,51 +34,23 @@ func take_damage(amount: float, damage_type: int):
 	return result
 
 func apply_status(effect_type: int, damage: float, duration: float):
-	if effect_type < 0 or effect_type >= StatusEffect.EffectType.size():
-		return
+	effects.apply(effect_type, damage, duration)
 
-	for e in _effects:
-		if e.effect_type == effect_type:
-			e.remaining = max(e.remaining, duration)
-			return
+func _on_tick_damage(dmg: float, dmg_type: int):
+	take_damage(dmg, dmg_type)
 
-	var effect = StatusEffect.new()
-	effect.effect_type = effect_type
-	effect.damage_per_tick = damage
-	effect.duration = duration
-	effect.remaining = duration
-	effect.tick_timer = 1.0
-	effect.damage_type = _effect_type_to_damage_type(effect_type)
-	_effects.append(effect)
-
-	print("  状态施加: %s (%.1f秒, 每跳%.0f伤害)" % [_effect_name(effect_type), duration, damage])
+func _on_effect_applied(_et: int, name_str: String):
 	_update_tint()
+	print("  状态施加: %s" % name_str)
 
-func _effect_type_to_damage_type(et: int) -> int:
-	match et:
-		StatusEffect.EffectType.POISON: return DamageSystem.DamageType.POISON
-		StatusEffect.EffectType.BURN: return DamageSystem.DamageType.FIRE
-		StatusEffect.EffectType.BLEED: return DamageSystem.DamageType.SLASH
-		_: return -1
-
-func _effect_name(et: int) -> String:
-	match et:
-		StatusEffect.EffectType.POISON: return "中毒"
-		StatusEffect.EffectType.BURN: return "燃烧"
-		StatusEffect.EffectType.FREEZE: return "冰冻"
-		StatusEffect.EffectType.STUN: return "眩晕"
-		StatusEffect.EffectType.SLOW: return "减速"
-		StatusEffect.EffectType.BLEED: return "流血"
-		StatusEffect.EffectType.REGEN: return "再生"
-	return "未知"
+func _on_effect_expired(_et: int, name_str: String):
+	_update_tint()
+	print("  状态结束: %s" % name_str)
 
 func _update_tint():
-	if _effects.is_empty():
-		_current_tint = Color(1, 1, 1)
-	else:
-		_current_tint = _effects[-1].get_color()
+	var c = effects.get_last_color() if effects.has_any() else Color(1, 1, 1)
 	if _flash_timer <= 0:
-		_sprite.modulate = _current_tint
+		_sprite.modulate = c
 
 func _on_died():
 	print("敌人死亡!")
@@ -84,50 +60,17 @@ func _physics_process(delta):
 	if _flash_timer > 0:
 		_flash_timer -= delta
 		if _flash_timer <= 0:
-			_sprite.modulate = _current_tint
-
-	var i = _effects.size() - 1
-	while i >= 0:
-		if not _effects[i].update(delta):
-			var name_str = _effect_name(_effects[i].effect_type)
-			_effects.remove_at(i)
-			print("  状态结束: %s" % name_str)
 			_update_tint()
-		elif _effects[i].is_tick_ready():
-			var dmg = _effects[i].get_tick_damage()
-			_effects[i].reset_tick()
-			take_damage(dmg, _effects[i].damage_type)
-		i -= 1
 
-	var target = _find_nearest_player()
-	if not target:
-		return
+	effects.update(delta)
+	ai.process_ai(delta)
 
-	if global_position.distance_squared_to(target.global_position) < 50 * 50:
-		velocity = Vector2.ZERO
-		move_and_slide()
-		return
-
-	_nav.target_position = target.global_position
-
-	if _nav.is_navigation_finished():
-		velocity = Vector2.ZERO
+	if effects.has_effect(StatusEffect.EffectType.FREEZE):
+		mover.apply_slow(0.4)
 	else:
-		var next = _nav.get_next_path_position()
-		var dir = global_position.direction_to(next)
-		var speed = 20.0 if _has_status(StatusEffect.EffectType.FREEZE) else 50.0
-		velocity = dir * speed
+		mover.reset_speed_multiplier()
 
-	move_and_slide()
-
-func _has_status(et: int) -> bool:
-	for e in _effects:
-		if e.effect_type == et:
-			return true
-	return false
-
-func _find_nearest_player():
-	var players = get_tree().get_nodes_in_group("players")
-	if players.is_empty():
-		return null
-	return players[0]
+	if ai.get_target() == null or ai.is_player_in_attack_range():
+		mover.direction = Vector2.ZERO
+	else:
+		mover.direction = ai.get_move_direction()

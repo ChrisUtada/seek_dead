@@ -15,6 +15,24 @@ func _ready():
 	_spawn_enemies()
 	_init_player_weapons()
 
+func _create_obstacle():
+	var block = StaticBody2D.new()
+	block.name = "Obstacle"
+	block.collision_layer = 1 << 2
+	add_child(block)
+	var shape = CollisionShape2D.new()
+	shape.shape = RectangleShape2D.new()
+	shape.shape.size = Vector2(80, 80)
+	block.add_child(shape)
+	var sprite = Sprite2D.new()
+	var img = Image.create(80, 80, false, Image.FORMAT_RGBA8)
+	for x in range(80):
+		for y in range(80):
+			img.set_pixel(x, y, Color(0.5, 0.25, 0.05))
+	sprite.texture = ImageTexture.create_from_image(img)
+	block.add_child(sprite)
+	block.position = Vector2(800, 600)
+
 func _create_background():
 	for x in range(-200, 1800, 50):
 		var line = Line2D.new()
@@ -28,36 +46,6 @@ func _create_background():
 		line.default_color = Color(0.2, 0.2, 0.2, 0.3)
 		line.width = 1
 		add_child(line)
-
-func _create_obstacle():
-	var block = StaticBody2D.new()
-	block.name = "Obstacle"
-	block.collision_layer = 1 << 2
-	add_child(block)
-
-	var shape = CollisionShape2D.new()
-	shape.shape = RectangleShape2D.new()
-	shape.shape.size = Vector2(80, 80)
-	block.add_child(shape)
-
-	var sprite = Sprite2D.new()
-	sprite.texture = _make_checker_texture(80, 80, Color(0.6, 0.3, 0.1), Color(0.4, 0.2, 0.05))
-	block.add_child(sprite)
-
-	var nav_obs = NavigationObstacle2D.new()
-	nav_obs.radius = 50
-	nav_obs.avoidance_enabled = true
-	block.add_child(nav_obs)
-
-	block.position = Vector2(800, 600)
-
-func _make_checker_texture(w: int, h: int, c1: Color, c2: Color) -> Texture2D:
-	var img = Image.create(w, h, false, Image.FORMAT_RGBA8)
-	for x in range(w):
-		for y in range(h):
-			var c = c1 if (x / 10 + y / 10) % 2 == 0 else c2
-			img.set_pixel(x, y, c)
-	return ImageTexture.create_from_image(img)
 
 func _spawn_enemies():
 	for i in range(4):
