@@ -1,0 +1,13 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/ranged_weapon.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+weapon_name = "冰霜枪"
+weapon_type = 1
+damage = 30.0
+damage_type = 5
+attack_speed = 1.5
+range = 500.0
+bullet_speed = 500.0

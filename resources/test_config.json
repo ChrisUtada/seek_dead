@@ -1,0 +1,38 @@
+{
+	"weapons": [
+		{
+			"name": "1HSword",
+			"damage": 50,
+			"type": "slash",
+			"speed": 1.2
+		},
+		{
+			"name": "G36",
+			"damage": 30,
+			"type": "puncture",
+			"speed": 3.0
+		}
+	],
+	"enemies": {
+		"slime": {
+			"hp": 100,
+			"speed": 2.0,
+			"attack_damage": 10
+		},
+		"bat": {
+			"hp": 50,
+			"speed": 4.0,
+			"attack_damage": 8
+		}
+	},
+	"damage_types": {
+		"puncture": 0,
+		"slash": 1,
+		"smash": 2,
+		"fire": 3,
+		"lightning": 4,
+		"ice": 5,
+		"poison": 6,
+		"wind": 7
+	}
+}

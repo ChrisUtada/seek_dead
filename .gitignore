@@ -1,0 +1,17 @@
+# Godot editor cache
+.godot/
+import/
+*.translation
+*.import
+*.md5
+*.meta
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+Thumbs.db
+.DS_Store
