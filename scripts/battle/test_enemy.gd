@@ -42,9 +42,8 @@ func apply_status(effect_type: int, damage: float, duration: float):
 	effect.damage_per_tick = damage
 	effect.duration = duration
 	effect.remaining = duration
+	effect.tick_timer = 1.0
 	effect.damage_type = _effect_type_to_damage_type(effect_type)
-	effect.target_node = self
-	add_child(effect)
 	_effects.append(effect)
 
 	print("  状态施加: %s (%.1f秒, 每跳%.0f伤害)" % [_effect_name(effect_type), duration, damage])
@@ -56,13 +55,6 @@ func _effect_type_to_damage_type(et: int) -> int:
 		StatusEffect.EffectType.BURN: return DamageSystem.DamageType.FIRE
 		StatusEffect.EffectType.BLEED: return DamageSystem.DamageType.SLASH
 		_: return -1
-
-func _remove_effect(idx: int):
-	var name_str = _effect_name(_effects[idx].effect_type)
-	_effects[idx].queue_free()
-	_effects.remove_at(idx)
-	print("  状态结束: %s" % name_str)
-	_update_tint()
 
 func _effect_name(et: int) -> String:
 	match et:
@@ -95,8 +87,15 @@ func _physics_process(delta):
 
 	var i = _effects.size() - 1
 	while i >= 0:
-		if not _effects[i].process(delta):
-			_remove_effect(i)
+		if not _effects[i].update(delta):
+			var name_str = _effect_name(_effects[i].effect_type)
+			_effects.remove_at(i)
+			print("  状态结束: %s" % name_str)
+			_update_tint()
+		elif _effects[i].is_tick_ready():
+			var dmg = _effects[i].get_tick_damage()
+			_effects[i].reset_tick()
+			take_damage(dmg, _effects[i].damage_type)
 		i -= 1
 
 	var target = _find_nearest_player()

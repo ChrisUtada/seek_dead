@@ -1,5 +1,5 @@
 class_name StatusEffect
-extends Node
+extends RefCounted
 
 enum EffectType {
 	POISON,
@@ -11,17 +11,13 @@ enum EffectType {
 	REGEN
 }
 
-signal expired(effect_type: int, target: Node)
-
 var effect_type: int
 var damage_per_tick: float = 0.0
 var tick_interval: float = 1.0
 var duration: float = 3.0
 var remaining: float = 0.0
 var tick_timer: float = 0.0
-var slow_amount: float = 0.0
-var target_node: Node = null
-var damage_type: int = -1
+var damage_type: int
 
 static func create_poison(damage: float, dur: float = 4.0) -> StatusEffect:
 	var e = StatusEffect.new()
@@ -29,6 +25,7 @@ static func create_poison(damage: float, dur: float = 4.0) -> StatusEffect:
 	e.damage_per_tick = damage
 	e.duration = dur
 	e.remaining = dur
+	e.tick_timer = 1.0
 	e.damage_type = DamageSystem.DamageType.POISON
 	return e
 
@@ -38,6 +35,7 @@ static func create_burn(damage: float, dur: float = 3.0) -> StatusEffect:
 	e.damage_per_tick = damage
 	e.duration = dur
 	e.remaining = dur
+	e.tick_timer = 1.0
 	e.damage_type = DamageSystem.DamageType.FIRE
 	return e
 
@@ -47,6 +45,7 @@ static func create_bleed(damage: float, dur: float = 5.0) -> StatusEffect:
 	e.damage_per_tick = damage
 	e.duration = dur
 	e.remaining = dur
+	e.tick_timer = 1.0
 	e.damage_type = DamageSystem.DamageType.SLASH
 	return e
 
@@ -55,29 +54,25 @@ static func create_stun(dur: float = 2.0) -> StatusEffect:
 	e.effect_type = EffectType.STUN
 	e.duration = dur
 	e.remaining = dur
+	e.tick_timer = 1.0
+	e.damage_type = -1
 	return e
 
-func _ready():
-	tick_timer = tick_interval
-
-func process(delta: float) -> bool:
+func update(delta: float) -> bool:
 	if remaining <= 0:
 		return false
-
 	remaining -= delta
 	tick_timer -= delta
-
-	if tick_timer <= 0 and target_node != null and damage_per_tick > 0:
-		tick_timer = tick_interval
-		if target_node.has_method("take_damage"):
-			var dmg = DamageSystem.calculate_simple(damage_per_tick, damage_type)
-			target_node.take_damage(dmg, damage_type)
-
-	if remaining <= 0:
-		expired.emit(effect_type, target_node)
-		return false
-
 	return true
+
+func is_tick_ready() -> bool:
+	return tick_timer <= 0 and damage_per_tick > 0
+
+func reset_tick():
+	tick_timer = tick_interval
+
+func get_tick_damage() -> float:
+	return DamageSystem.calculate_simple(damage_per_tick, damage_type)
 
 func get_display_name() -> String:
 	match effect_type:
