@@ -48,6 +48,7 @@ func init_weapons(weapon_list: Array[WeaponBase]):
 func take_damage(amount: float, damage_type: int) -> Dictionary:
 	var result = state.take_damage(amount, damage_type)
 	_flash_timer = 0.1
+	EventManager.damage_dealt.emit(null, self, result.final_damage, damage_type)
 	player_damaged.emit(result.final_damage, state.hp, state.max_hp)
 	print("玩家受伤: %.0f (剩余HP: %.0f/%.0f)" % [result.final_damage, state.hp, state.max_hp])
 	if result.is_critical:

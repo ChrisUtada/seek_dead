@@ -20,6 +20,7 @@ func _enemy_ready():
 func take_damage(amount: float, damage_type: int):
 	var result = state.take_damage(amount, damage_type)
 	_flash_timer = 0.1
+	EventManager.damage_dealt.emit(null, self, result.final_damage, damage_type)
 	return result
 
 func apply_status(effect_type: int, damage: float, duration: float):
