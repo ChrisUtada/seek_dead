@@ -1,5 +1,9 @@
 extends CharacterBody2D
 
+const _SEComp = preload("res://scripts/components/status_effect_component.gd")
+const _AIComp = preload("res://scripts/components/ai_component.gd")
+const _MoverComp = preload("res://scripts/components/movement_component.gd")
+
 @onready var state: StateComponent = $StateComponent
 @onready var effects: StatusEffectComponent = $StatusEffectComponent
 @onready var ai: AIComponent = $AIComponent

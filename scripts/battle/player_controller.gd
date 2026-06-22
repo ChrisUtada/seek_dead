@@ -1,6 +1,9 @@
 class_name PlayerController
 extends CharacterBody2D
 
+const _WeaponComp = preload("res://scripts/components/weapon_component.gd")
+const _MoverComp = preload("res://scripts/components/movement_component.gd")
+
 @onready var state: StateComponent = $StateComponent
 @onready var weapon: WeaponComponent = $WeaponComponent
 @onready var mover: MovementComponent = $MovementComponent
