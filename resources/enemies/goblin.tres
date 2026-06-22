@@ -1,0 +1,19 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_config.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+display_name = "哥布林"
+hp_min = 40.0
+hp_max = 80.0
+speed = 65.0
+damage = 10.0
+innate_type = 0
+defenses = {
+"puncture_defense": 0.0,
+"slash_defense": 0.0,
+"smash_defense": 0.2,
+"fire_defense": 0.1,
+}
+color = Color(0.2, 0.6, 0.2, 1.0)

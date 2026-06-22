@@ -157,7 +157,4 @@ func _get_distance_to(target: Node2D) -> float:
 	return sqrt(get_parent().global_position.distance_squared_to(target.global_position))
 
 func _find_nearest_player():
-	var players = get_tree().get_nodes_in_group("players")
-	if players.is_empty():
-		return null
-	return players[0]
+	return EntityRegistry.get_nearest_player(get_parent().global_position)

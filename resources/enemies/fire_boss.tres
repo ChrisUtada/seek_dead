@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/boss_config.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+display_name = "火焰领主"
+hp_min = 600.0
+hp_max = 600.0
+speed = 40.0
+innate_type = 3
+scene_path = "res://scenes/battle/boss_enemy.tscn"
+phase_hp_ratios = [0.6, 0.3]
+attack_damages = [25.0, 35.0, 50.0]
+attack_cooldowns = [1.2, 0.9, 0.6]

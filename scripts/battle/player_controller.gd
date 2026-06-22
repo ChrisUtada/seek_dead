@@ -17,6 +17,7 @@ var _flash_timer: float = 0.0
 
 func _ready():
 	GameManager.register_player(self)
+	EntityRegistry.register_player(self)
 	add_to_group("players")
 	_generate_placeholder_texture()
 	mover.speed = walk_speed

@@ -20,6 +20,7 @@ config/features=PackedStringArray("4.4")
 GameManager="*res://autoload/game_manager.gd"
 EventManager="*res://autoload/event_manager.gd"
 ResourceManager="*res://autoload/resource_manager.gd"
+EntityRegistry="*res://scripts/systems/entity_registry.gd"
 
 [display]
 

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_config.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+display_name = "骷髅兵"
+hp_min = 60.0
+hp_max = 120.0
+speed = 45.0
+damage = 12.0
+innate_type = 1
+defenses = {
+"puncture_defense": 0.1,
+"slash_defense": 0.2,
+"smash_defense": 0.0,
+"fire_defense": 0.0,
+}
+color = Color(0.85, 0.2, 0.2, 1.0)
