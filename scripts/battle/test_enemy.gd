@@ -32,7 +32,6 @@ func apply_status(effect_type: int, damage: float, duration: float):
 	if effect_type < 0 or effect_type >= StatusEffect.EffectType.size():
 		return
 
-	# 不叠加同类效果，刷新持续时间
 	for e in _effects:
 		if e.effect_type == effect_type:
 			e.remaining = max(e.remaining, duration)
@@ -45,11 +44,10 @@ func apply_status(effect_type: int, damage: float, duration: float):
 	effect.remaining = duration
 	effect.damage_type = _effect_type_to_damage_type(effect_type)
 	effect.target_node = self
-	effect.expired.connect(_on_effect_expired)
 	add_child(effect)
 	_effects.append(effect)
 
-	print("  状态施加: %s (%.1f秒, 每跳%.0f伤害)" % [effect.get_display_name(), duration, damage])
+	print("  状态施加: %s (%.1f秒, 每跳%.0f伤害)" % [_effect_name(effect_type), duration, damage])
 	_update_tint()
 
 func _effect_type_to_damage_type(et: int) -> int:
@@ -59,14 +57,11 @@ func _effect_type_to_damage_type(et: int) -> int:
 		StatusEffect.EffectType.BLEED: return DamageSystem.DamageType.SLASH
 		_: return -1
 
-func _on_effect_expired(effect_type: int, _target: Node):
-	var name_str = _effect_name(effect_type)
-	for i in range(_effects.size() - 1, -1, -1):
-		if _effects[i].effect_type == effect_type:
-			_effects[i].queue_free()
-			_effects.remove_at(i)
-			print("  状态结束: %s" % name_str)
-			break
+func _remove_effect(idx: int):
+	var name_str = _effect_name(_effects[idx].effect_type)
+	_effects[idx].queue_free()
+	_effects.remove_at(idx)
+	print("  状态结束: %s" % name_str)
 	_update_tint()
 
 func _effect_name(et: int) -> String:
@@ -84,8 +79,7 @@ func _update_tint():
 	if _effects.is_empty():
 		_current_tint = Color(1, 1, 1)
 	else:
-		var c = _effects[-1].get_color()
-		_current_tint = c
+		_current_tint = _effects[-1].get_color()
 	if _flash_timer <= 0:
 		_sprite.modulate = _current_tint
 
@@ -99,20 +93,20 @@ func _physics_process(delta):
 		if _flash_timer <= 0:
 			_sprite.modulate = _current_tint
 
-	for i in range(_effects.size() - 1, -1, -1):
+	var i = _effects.size() - 1
+	while i >= 0:
 		if not _effects[i].process(delta):
-			_on_effect_expired(_effects[i].effect_type, self)
+			_remove_effect(i)
+		i -= 1
 
 	var target = _find_nearest_player()
 	if target and global_position.distance_to(target.global_position) > 30:
-		var speed = 50.0
-		if _has_effect(StatusEffect.EffectType.FREEZE) or _has_effect(StatusEffect.EffectType.SLOW):
-			speed = 20.0
+		var speed = 20.0 if _has_status(StatusEffect.EffectType.FREEZE) else 50.0
 		var dir = global_position.direction_to(target.global_position)
 		velocity = dir * speed
 		move_and_slide()
 
-func _has_effect(et: int) -> bool:
+func _has_status(et: int) -> bool:
 	for e in _effects:
 		if e.effect_type == et:
 			return true
