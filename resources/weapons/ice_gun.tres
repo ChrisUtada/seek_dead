@@ -11,3 +11,6 @@ damage_type = 5
 attack_speed = 1.5
 range = 500.0
 bullet_speed = 500.0
+status_effect_type = 2
+status_effect_damage = 0.0
+status_effect_duration = 2.0

@@ -110,6 +110,9 @@ func _melee_attack():
 			var damage_result = body.take_damage(current_weapon.damage, current_weapon.damage_type)
 			hit_count += 1
 
+			if current_weapon.status_effect_type >= 0 and body.has_method("apply_status"):
+				body.apply_status(current_weapon.status_effect_type, current_weapon.status_effect_damage, current_weapon.status_effect_duration)
+
 			if damage_result.hit_result == DamageSystem.HitResult.CRITICAL:
 				print("! 暴击! %.0f 伤害 (%.1fx)" % [damage_result.final_damage, damage_result.breakdown.get("crit_damage", 1.5)])
 			elif damage_result.is_weakness:
@@ -129,6 +132,9 @@ func _ranged_attack():
 	bullet.damage = current_weapon.damage
 	bullet.damage_type = current_weapon.damage_type
 	bullet.shooter = self
+	bullet.status_effect_type = current_weapon.status_effect_type
+	bullet.status_effect_damage = current_weapon.status_effect_damage
+	bullet.status_effect_duration = current_weapon.status_effect_duration
 	get_parent().add_child(bullet)
 
 	var color = DamageSystem.get_color(current_weapon.damage_type)

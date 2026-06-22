@@ -9,3 +9,6 @@ damage = 25.0
 damage_type = 6
 attack_speed = 2.0
 range = 30.0
+status_effect_type = 0
+status_effect_damage = 5.0
+status_effect_duration = 5.0
