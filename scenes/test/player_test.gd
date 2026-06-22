@@ -13,6 +13,7 @@ func _ready():
 	_create_background()
 	_create_obstacle()
 	_spawn_enemies()
+	_spawn_boss()
 	_init_player_weapons()
 
 func _create_obstacle():
@@ -68,6 +69,12 @@ func _spawn_enemies():
 
 		var innate_names = ["穿刺", "斩击", "打击", "火焰", "雷电", "冰霜", "毒素", "风系"]
 		print("敌人%d: HP=%.0f 属性=%s" % [i + 1, enemy.state.max_hp, innate_names[enemy.state.innate_type]])
+
+func _spawn_boss():
+	var boss = load("res://scenes/battle/boss_enemy.tscn").instantiate()
+	boss.position = Vector2(800, 200)
+	add_child(boss)
+	print("Boss: HP=%.0f 属性=火焰" % boss.state.max_hp)
 
 func _init_player_weapons():
 	var player = $Player
