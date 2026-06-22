@@ -1,4 +1,3 @@
-class_name EnemyBase
 extends CharacterBody2D
 
 signal died()
