@@ -8,4 +8,5 @@ script = ExtResource("1")
 
 [node name="WeaponSprite" type="Sprite2D" parent="."]
 texture = ExtResource("2")
+rotation = -1.5708
 centered = true

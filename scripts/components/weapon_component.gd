@@ -24,7 +24,6 @@ func set_aim_direction(dir: Vector2):
 		aim_direction = dir
 		for w in weapons:
 			w.aim_direction = dir
-		rotation = dir.angle()
 
 func init_weapons(weapon_list: Array[WeaponBase]):
 	for w in weapon_list:

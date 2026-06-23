@@ -7,11 +7,17 @@ signal hit_landed(hit_pos: Vector2, hit_dir: Vector2, damage_type: int, body: No
 signal attack_finished(weapon_node: WeaponNode, hit_count: int)
 
 @export var stats: WeaponBase
+@export var weapon_offset: float = 24.0
 
 var shooter: Node2D = null
-var aim_direction: Vector2 = Vector2.RIGHT
 var weapon_color: Color = Color.WHITE
 var cooldown: float = 0.0
+
+var aim_direction: Vector2 = Vector2.RIGHT:
+	set(v):
+		aim_direction = v
+		if not _is_swinging:
+			_update_transform()
 
 var _flash_timer: float = 0.0
 var _swing_progress: float = 0.0
@@ -22,7 +28,13 @@ var _trail_lifetime: float = 0.15
 
 func _process(delta):
 	cooldown = max(0, cooldown - delta)
+	if not _is_swinging:
+		_update_transform()
 	_update_visual(delta)
+
+func _update_transform():
+	rotation = aim_direction.angle()
+	position = aim_direction * weapon_offset
 
 func _update_visual(delta):
 	if not stats:
