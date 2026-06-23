@@ -125,18 +125,4 @@ func _init_player_weapons():
 	var player = $Player
 	if not player:
 		return
-	var weapon_files = [
-		"res://resources/weapons/iron_sword.tres",
-		"res://resources/weapons/fire_sword.tres",
-		"res://resources/weapons/poison_dagger.tres",
-		"res://resources/weapons/pistol.tres",
-		"res://resources/weapons/ice_gun.tres",
-	]
-	var weapons: Array[WeaponBase] = []
-	for path in weapon_files:
-		var w = load(path) as WeaponBase
-		if w:
-			weapons.append(w)
-		else:
-			push_error("武器加载失败: " + path)
-	player.init_weapons(weapons)
+	player.init_weapons(WeaponRegistry.get_all())

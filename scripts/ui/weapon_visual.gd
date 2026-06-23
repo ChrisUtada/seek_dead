@@ -10,10 +10,14 @@ var _trail_angles: Array[float] = []
 var _trail_alphas: Array[float] = []
 var _trail_lifetime: float = 0.15
 
-func set_weapon(color: Color, weapon_range: float, is_melee: bool):
+func set_weapon(color: Color, weapon_range: float, is_melee: bool, texture: Texture2D = null, offset: Vector2 = Vector2.ZERO):
 	_color = color
 	_range = weapon_range
 	_is_melee = is_melee
+	var sprite = get_node_or_null("WeaponSprite")
+	if sprite:
+		sprite.texture = texture
+		sprite.offset = offset
 	queue_redraw()
 
 func flash_range():
@@ -48,9 +52,7 @@ func _process(delta):
 
 func _draw():
 	if _is_melee:
-		_draw_melee()
-	else:
-		_draw_ranged()
+		_draw_range_indicator()
 
 	if _flash_timer > 0:
 		var alpha = _flash_timer / 0.15
@@ -67,16 +69,6 @@ func _draw():
 		var angle = _swing_progress * PI * 0.8 - PI * 0.4
 		draw_arc(Vector2.ZERO, _range * 0.5, -PI * 0.4, angle, 16, Color(_color.r, _color.g, _color.b, 0.6), 4.0, true)
 
-func _draw_melee():
-	var len = _range * 0.7
-	var tip = Vector2(len, 0)
-	var cross = Vector2(len * 0.15, 0)
-	var handle_end = Vector2(-8, 0)
-	draw_line(handle_end, Vector2.ZERO, Color(0.4, 0.25, 0.1), 3.0)
-	draw_line(cross + Vector2(0, -5), cross + Vector2(0, 5), Color(0.6, 0.6, 0.6), 2.0)
-	draw_line(Vector2.ZERO, tip, _color, 4.0)
-
-func _draw_ranged():
-	draw_circle(Vector2.ZERO, 3, _color)
-	var len = 6.0
-	draw_line(Vector2.ZERO, Vector2(len, 0), _color, 2.0)
+func _draw_range_indicator():
+	var tip = Vector2(_range * 0.7, 0)
+	draw_circle(tip, 4, Color(_color.r, _color.g, _color.b, 0.3))

@@ -1,7 +1,8 @@
-[gd_resource type="Resource" load_steps=3 format=3]
+[gd_resource type="Resource" load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/battle/ranged_weapon.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/battle/projectile.tscn" id="2"]
+[ext_resource type="Texture2D" path="res://assets/weapons/pistol.png" id="3"]
 
 [resource]
 script = ExtResource("1")
@@ -14,3 +15,4 @@ range = 500.0
 bullet_speed = 700.0
 max_ammo = 30
 bullet_scene = ExtResource("2")
+texture = ExtResource("3")

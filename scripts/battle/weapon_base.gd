@@ -10,6 +10,9 @@ enum WeaponType { MELEE, RANGED }
 @export var attack_speed: float = 1.0
 @export var range: float = 40.0
 
+@export var texture: Texture2D
+@export var visual_offset: Vector2 = Vector2.ZERO
+
 @export var status_effect_type: int = -1
 @export var status_effect_damage: float = 0.0
 @export var status_effect_duration: float = 3.0
