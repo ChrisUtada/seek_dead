@@ -1,0 +1,13 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/player_config.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+display_name = "战士"
+max_hp = 250.0
+max_energy = 80.0
+max_stamina = 120.0
+walk_speed = 180.0
+body_color = Color(0.3, 0.6, 1.0, 1.0)
+eye_color = Color(1, 1, 1, 1.0)

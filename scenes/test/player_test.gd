@@ -3,10 +3,13 @@ extends Node2D
 func _ready():
 	print("")
 	print("*".repeat(70))
-	print("  Seek Dead - 伤害系统验证")
+	print("  Seek Dead - 战斗系统验证")
 	print("  WASD移动 | 鼠标瞄准 | 左键攻击")
-	print("  1铁剑(斩击) | 2火剑(火焰) | 3毒匕(毒素) | 4手枪(穿刺) | 5冰枪(冰霜)")
-	print("  近战范围伤害 | 远程子弹 | 属性克制 | 暴击 | 敌人自动追踪玩家")
+	print("  1铁剑 | 2火剑 | 3毒匕 | 4手枪 | 5冰枪")
+	print("  Shift闪避(-15热) | Ctrl冲刺 | R装弹 | Q治疗 | E护盾 | F冲刺")
+	print("  F5存档 | F9读档 | Esc暂停 | F2重开")
+	print("  超载(100%热): 远程攻速x2自伤5/不耗弹, 近战范围x1.5必暴/-30%移速")
+	print("  骑士: Idle/Run/Death 动画")
 	print("*".repeat(70))
 	print("")
 

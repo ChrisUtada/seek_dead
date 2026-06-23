@@ -1,7 +1,7 @@
 [gd_scene load_steps=9 format=3 uid="uid://player_test"]
 
 [ext_resource type="Script" path="res://scenes/test/player_test.gd" id="1"]
-[ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://scenes/player/knight.tscn" id="2"]
 [ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="3"]
 
 [sub_resource type="RectangleShape2D" id="1"]

@@ -21,6 +21,8 @@ func _ready():
 	_build_bars()
 	_build_crosshair()
 	_build_overlay()
+	_build_ammo_display()
+	_build_skill_bar()
 	_connect_player()
 	EventManager.damage_dealt.connect(_on_damage_dealt)
 
@@ -107,6 +109,11 @@ func _connect_player():
 	st.stamina_changed.connect(_update_stamina)
 	st.heat_changed.connect(_update_heat)
 	st.died.connect(_on_player_died)
+	st.stamina_low.connect(_on_stamina_low)
+	st.stamina_depleted.connect(_on_stamina_depleted)
+	st.heat_warning.connect(_on_heat_warning)
+	st.meltdown_triggered.connect(_on_meltdown_triggered)
+	st.meltdown_ended.connect(_on_meltdown_ended)
 	_update_hp(st.hp, st.max_hp, 0)
 	_update_energy(st.energy, st.max_energy, 0)
 	_update_stamina(st.stamina, st.max_stamina, 0)
@@ -115,6 +122,17 @@ func _connect_player():
 	player.weapon.weapon_changed.connect(_on_weapon_changed)
 	if player.weapon.current_weapon:
 		_on_weapon_changed(player.weapon.current_weapon)
+
+	var ammo_node = player.get_node_or_null("AmmoSystem")
+	if ammo_node:
+		ammo_node.ammo_changed.connect(_on_ammo_changed)
+		ammo_node.reload_started.connect(_on_reload_started)
+		ammo_node.reload_finished.connect(_on_reload_finished)
+		_on_ammo_changed(ammo_node.current_ammo, ammo_node.max_ammo)
+
+	var skill_node = player.get_node_or_null("SkillManager")
+	if skill_node:
+		skill_node.skill_used.connect(_on_skill_used)
 
 func _update_hp(current: float, max_v: float, _delta: float):
 	_apply_bar_ratio("hp", current / max_v if max_v > 0 else 0)
@@ -128,6 +146,37 @@ func _update_stamina(current: float, max_v: float, _delta: float):
 	_apply_bar_ratio("stamina", current / max_v if max_v > 0 else 0)
 	_bars.stamina.label.text = "体力: %.0f/%.0f" % [current, max_v]
 
+func _on_stamina_low():
+	var fill = _bars.stamina.fill
+	var tween = create_tween().set_loops(4)
+	tween.tween_property(fill, "color", Color(1, 0, 0), 0.15)
+	tween.tween_property(fill, "color", Color(0.15, 0.7, 0.15), 0.15)
+
+func _on_stamina_depleted():
+	var fill = _bars.stamina.fill
+	var tween = create_tween()
+	tween.tween_property(fill, "color", Color(1, 0.3, 0.3), 0.2)
+	tween.tween_property(fill, "color", Color(0.15, 0.7, 0.15), 0.5)
+
+func _on_heat_warning():
+	var fill = _bars.heat.fill
+	var tween = create_tween().set_loops(6)
+	tween.tween_property(fill, "color", Color(1, 0.8, 0.1), 0.15)
+	tween.tween_property(fill, "color", Color(0.9, 0.6, 0.1), 0.15)
+
+func _on_meltdown_triggered():
+	var fill = _bars.heat.fill
+	fill.color = Color(1, 0.9, 0.1)
+	_bars.heat.label.text = "热量: 超载中!"
+	var pulse = create_tween().set_loops()
+	pulse.tween_property(fill, "color", Color(1, 0.4, 0.1), 0.3)
+	pulse.tween_property(fill, "color", Color(1, 0.9, 0.1), 0.3)
+
+func _on_meltdown_ended():
+	var fill = _bars.heat.fill
+	fill.color = Color(0.9, 0.6, 0.1)
+	_bars.heat.label.text = "热量: 0%"
+
 func _update_heat(current: float, max_v: float, _delta: float):
 	_apply_bar_ratio("heat", current / max_v if max_v > 0 else 0)
 	_bars.heat.label.text = "热量: %.0f/%.0f" % [current, max_v]
@@ -140,13 +189,80 @@ func _apply_bar_ratio(key: String, ratio: float):
 	var tween = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
 	tween.tween_property(bar, "size:x", target_w, 0.25)
 
+func _build_skill_bar():
+	var skill_bar = Control.new()
+	skill_bar.name = "SkillBar"
+	skill_bar.position = Vector2(300, 550)
+	skill_bar.size = Vector2(200, 40)
+	add_child(skill_bar)
+	var keys = ["Q", "E", "F", "C"]
+	for i in range(4):
+		var slot = ColorRect.new()
+		slot.name = "SkillSlot%d" % i
+		slot.position = Vector2(i * 50, 0)
+		slot.size = Vector2(40, 40)
+		slot.color = Color(0.3, 0.3, 0.3, 0.8)
+		skill_bar.add_child(slot)
+		var key_label = Label.new()
+		key_label.text = keys[i]
+		key_label.position = Vector2(14, 24)
+		key_label.add_theme_color_override("font_color", Color(1, 1, 1))
+		key_label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+		key_label.add_theme_constant_override("outline_size", 1)
+		slot.add_child(key_label)
+		var cd_overlay = ColorRect.new()
+		cd_overlay.name = "Cooldown"
+		cd_overlay.position = Vector2(0, 0)
+		cd_overlay.size = Vector2(40, 0)
+		cd_overlay.color = Color(0, 0, 0, 0.7)
+		slot.add_child(cd_overlay)
+
+func _build_ammo_display():
+	var label = Label.new()
+	label.name = "AmmoLabel"
+	label.position = Vector2(10, 110)
+	label.add_theme_color_override("font_color", Color(1, 1, 1))
+	label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	label.add_theme_constant_override("outline_size", 1)
+	label.text = "弹药: --/--"
+	add_child(label)
+	_bars["ammo"] = {label = label}
+
+func _on_ammo_changed(current: int, max_cap: int):
+	if not _bars.has("ammo"):
+		return
+	_bars.ammo.label.text = "弹药: %d/%d" % [current, max_cap]
+	if max_cap > 0 and float(current) / float(max_cap) < 0.25:
+		_bars.ammo.label.add_theme_color_override("font_color", Color(1, 0.3, 0.3))
+	else:
+		_bars.ammo.label.add_theme_color_override("font_color", Color(1, 1, 1))
+
+func _on_reload_started():
+	if _bars.has("ammo"):
+		_bars.ammo.label.text = "弹药: 装弹中..."
+
+func _on_skill_used(index: int, _skill: SkillBase):
+	var slot = get_node_or_null("SkillBar/SkillSlot%d" % index)
+	if not slot:
+		return
+	var cd = slot.get_node_or_null("Cooldown")
+	if not cd:
+		return
+	var tween = create_tween()
+	cd.size.y = 40
+	tween.tween_property(cd, "size:y", 0, _skill.cooldown)
+
+func _on_reload_finished():
+	if _bars.has("ammo"):
+		_bars.ammo.label.text = "弹药: 已装填"
+
 func _on_weapon_changed(weapon: WeaponBase):
 	var color = DamageSystem.get_color(weapon.damage_type)
 	weapon_label.text = "武器: %s | 伤害: %.0f | 类型: %s" % [weapon.weapon_name, weapon.damage, DamageSystem.damage_type_to_string(weapon.damage_type)]
 	weapon_label.add_theme_color_override("font_color", color)
 
 func _on_player_died():
-	_show_overlay("你死了", "按 R 重新开始", Color(0.6, 0.1, 0.1, 0.7))
+	_show_overlay("你死了", "按 F2 重新开始", Color(0.6, 0.1, 0.1, 0.7))
 
 func _show_overlay(title: String, button_text: String, bg_color: Color):
 	_overlay.color = bg_color
