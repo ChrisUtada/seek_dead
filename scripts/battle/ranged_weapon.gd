@@ -3,3 +3,4 @@ extends WeaponBase
 
 @export var bullet_speed: float = 600.0
 @export var bullet_count: int = 1
+@export var bullet_scene: PackedScene

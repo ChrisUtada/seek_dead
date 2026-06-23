@@ -14,6 +14,7 @@ func use_skill(index: int, user: Node2D) -> bool:
 	var skill = skills[index]
 	if skill.use(user):
 		skill_used.emit(index, skill)
+		EventManager.skill_used.emit({"skill_name": skill.skill_name})
 		return true
 	return false
 

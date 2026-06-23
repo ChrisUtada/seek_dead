@@ -26,6 +26,7 @@ func try_dodge(direction: Vector2):
 	is_dodging = true
 	_cooldown_timer = dodge_cooldown
 	parent.is_invincible = true
+	AudioManager.play_sfx(AudioManager.SfxType.PLAYER_DODGE)
 	if not state.in_meltdown() and state.heat > 0:
 		state.heat -= heat_reduction
 	var start_pos = parent.global_position

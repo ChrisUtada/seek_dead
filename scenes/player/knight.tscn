@@ -10,10 +10,11 @@
 [ext_resource type="Script" uid="uid://b5yukeonfgiv4" path="res://scripts/components/sprint_component.gd" id="6"]
 [ext_resource type="Script" uid="uid://ddx2ff3dfsbis" path="res://scripts/battle/ammo_system.gd" id="7"]
 [ext_resource type="Script" uid="uid://cpyarsdklh28t" path="res://scripts/battle/skill_manager.gd" id="8"]
-[ext_resource type="Resource" path="res://resources/players/knight.tres" id="9"]
+[ext_resource type="Resource" uid="uid://dcheib4eqysy2" path="res://resources/players/knight.tres" id="9"]
+[ext_resource type="Script" uid="uid://qjvq1fr7aq82" path="res://scripts/ui/shadow.gd" id="10"]
 
 [sub_resource type="CircleShape2D" id="1"]
-radius = 14.0
+radius = 17.0
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_tdo2s"]
 atlas = ExtResource("4_52gso")
@@ -103,6 +104,12 @@ animations = [{
 collision_mask = 4
 script = ExtResource("1")
 config = ExtResource("9")
+
+[node name="Shadow" type="Node2D" parent="." unique_id=1556536490]
+script = ExtResource("10")
+shadow_scale = Vector2(2, 0.7)
+shadow_offset = Vector2(-4, 16)
+texture_size = 25
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1318900054]
 shape = SubResource("1")

@@ -45,11 +45,10 @@ func _ready():
 
 func _on_weapon_changed(w: WeaponBase):
 	if w.max_ammo > 0:
-		ammo.max_ammo = w.max_ammo
-		if ammo.current_ammo > ammo.max_ammo:
-			ammo.current_ammo = ammo.max_ammo
+		ammo.switch_to_weapon(w.resource_path, w.max_ammo)
 
 func _on_meltdown():
+	AudioManager.play_sfx(AudioManager.SfxType.PLAYER_MELTDOWN)
 	walk_speed = _base_walk_speed * 0.7
 	if _sprite and _sprite is CanvasItem:
 		(_sprite as CanvasItem).modulate = Color(1, 0.7, 0.2)
@@ -61,8 +60,7 @@ func _on_meltdown_end():
 
 func _init_skills():
 	skill_manager.add_skill(HealSkill.new())
-	skill_manager.add_skill(ShieldSkill.new())
-	skill_manager.add_skill(DashSkill.new())
+	skill_manager.add_skill(ShockwaveSkill.new())
 
 func _generate_placeholder_texture():
 	if not _sprite or _sprite is AnimatedSprite2D:
@@ -96,26 +94,29 @@ func take_damage(amount: float, damage_type: int) -> Dictionary:
 	_flash_timer = 0.1
 	EventManager.damage_dealt.emit(null, self, result.final_damage, damage_type)
 	player_damaged.emit(result.final_damage, state.hp, state.max_hp)
-	_shake_camera(4.0 if result.is_critical else 2.0, 0.15)
+	_shake_camera(Vector2(2.0, 1.5) if result.is_critical else Vector2(1.0, 0.8), 0.15)
 	print("玩家受伤: %.0f (剩余HP: %.0f/%.0f)" % [result.final_damage, state.hp, state.max_hp])
 	if result.is_critical:
 		print("  ! 暴击! (%.1fx)" % result.breakdown.get("crit_damage", 1.5))
 	return result
 
-func _shake_camera(intensity: float, duration: float):
+func _shake_camera(intensity: Vector2, duration: float):
 	var cam = $Camera2D
 	if not cam:
 		return
 	var original = cam.position
 	var tween = create_tween()
-	var steps = int(duration * 30)
 	tween.tween_method(_apply_shake.bind(cam, original, intensity), 0.0, 1.0, duration).set_trans(Tween.TRANS_LINEAR)
 	tween.tween_callback(func(): cam.position = original)
 
-func _apply_shake(_t: float, cam: Camera2D, original: Vector2, intensity: float):
-	cam.position = original + Vector2(randf_range(-intensity, intensity), randf_range(-intensity, intensity))
+func _apply_shake(_t: float, cam: Camera2D, original: Vector2, intensity: Vector2):
+	cam.position = original + Vector2(randf_range(-intensity.x, intensity.x), randf_range(-intensity.y, intensity.y))
+
+func knockback(velocity: Vector2):
+	mover.push(velocity, 0.12)
 
 func _on_died():
+	AudioManager.play_sfx(AudioManager.SfxType.PLAYER_HURT)
 	print("玩家死亡!")
 	set_physics_process(false)
 	mover.direction = Vector2.ZERO
@@ -135,9 +136,8 @@ func _unhandled_input(event: InputEvent):
 		sprint.stop_sprint()
 	if event.is_action_pressed("reload"):
 		ammo.start_reload()
-	var skill_actions = ["skill_1", "skill_2", "skill_3", "skill_4"]
-	for i in skill_actions.size():
-		if event.is_action_pressed(skill_actions[i]):
+	for i in range(2):
+		if event.is_action_pressed("skill_%d" % (i + 1)):
 			skill_manager.use_skill(i, self)
 			break
 

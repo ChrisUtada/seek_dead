@@ -15,3 +15,12 @@ import/
 # OS
 Thumbs.db
 .DS_Store
+
+# Old project copies
+ssz/
+SeekDeadLocal/
+System Volume Information/
+
+# Asset source packs
+Pixel Crawler - Free Pack 2.09/
+Pixel Crawler - Free Pack 2.09.zip

@@ -113,7 +113,23 @@ func _on_melee_slam(_target: Node2D):
 		var body = result.collider
 		if body.has_method("take_damage"):
 			body.take_damage(get_slam_damage(), state.innate_type)
+		if body.has_method("knockback"):
+			var dir = (body.global_position - global_position).normalized()
+			body.knockback(dir * 300.0)
+	_spawn_slam_ring()
+	AudioManager.play_sfx(AudioManager.SfxType.BOSS_SLAM)
 	print("Boss 猛击! 阶段 %d" % ai.phase)
+
+func _spawn_slam_ring():
+	var ring = ColorRect.new()
+	ring.size = Vector2(4, 4)
+	ring.color = Color(1, 0.4, 0.1, 0.6)
+	ring.global_position = global_position - Vector2(2, 2)
+	get_parent().add_child(ring)
+	var tween = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUINT)
+	tween.tween_property(ring, "size", Vector2(get_slam_range() * 2, get_slam_range() * 2), 0.2)
+	tween.parallel().tween_property(ring, "modulate", Color(1, 0.4, 0.1, 0), 0.2)
+	tween.tween_callback(ring.queue_free)
 
 func _on_charge(_target: Node2D):
 	if not _target:
@@ -122,6 +138,7 @@ func _on_charge(_target: Node2D):
 	var dir = global_position.direction_to(_target.global_position)
 	_charge_velocity = dir * get_charge_speed()
 	_charge_duration = get_charge_duration()
+	AudioManager.play_sfx(AudioManager.SfxType.BOSS_CHARGE)
 	print("Boss 冲锋!")
 
 func _on_ranged_burst(_target: Node2D):
@@ -141,6 +158,7 @@ func _on_ranged_burst(_target: Node2D):
 		bullet.speed = get_bullet_speed()
 		get_parent().add_child(bullet)
 		_bullet_visual(bullet)
+	AudioManager.play_sfx(AudioManager.SfxType.BOSS_BURST)
 	print("Boss 远程爆发! %d发" % count)
 
 func _bullet_visual(bullet):

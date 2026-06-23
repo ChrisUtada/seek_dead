@@ -17,7 +17,6 @@ func _enemy_ready():
 	EntityRegistry.register_enemy(self)
 	add_to_group("enemies")
 	_add_hp_bar()
-
 func _add_hp_bar():
 	var bar = load("res://scripts/ui/enemy_hp_bar.gd").new()
 	add_child(bar)
@@ -61,6 +60,7 @@ func _tint_from_effects():
 		_sprite.modulate = effects.get_last_color() if effects.has_any() else Color(1, 1, 1)
 
 func _on_died():
+	AudioManager.play_sfx(AudioManager.SfxType.ENEMY_DIE)
 	EntityRegistry.unregister_enemy(self)
 	queue_free()
 
@@ -69,6 +69,9 @@ func _enemy_physics(delta):
 		_flash_timer -= delta
 		if _flash_timer <= 0:
 			_tint_from_effects()
+
+func knockback(velocity: Vector2):
+	mover.push(velocity, 0.15)
 
 func get_hp_ratio() -> float:
 	return state.hp / state.max_hp if state.max_hp > 0 else 0.0

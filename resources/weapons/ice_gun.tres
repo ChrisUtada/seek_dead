@@ -1,6 +1,7 @@
-[gd_resource type="Resource" load_steps=2 format=3]
+[gd_resource type="Resource" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/battle/ranged_weapon.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/battle/projectile.tscn" id="2"]
 
 [resource]
 script = ExtResource("1")
@@ -11,6 +12,8 @@ damage_type = 5
 attack_speed = 1.5
 range = 500.0
 bullet_speed = 500.0
+max_ammo = 30
 status_effect_type = 2
 status_effect_damage = 0.0
 status_effect_duration = 2.0
+bullet_scene = ExtResource("2")

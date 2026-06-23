@@ -22,6 +22,8 @@ func _physics_process(delta):
 		return
 	if mover.direction.length() > 0.1:
 		if anim.animation != "run":
+			anim.offset = Vector2(0, -16)
 			anim.play("run")
 	elif anim.animation != "idle":
+		anim.offset = Vector2(0, 0)
 		anim.play("idle")

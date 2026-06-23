@@ -9,7 +9,12 @@ func _ready():
 	_enemy_ready()
 	_apply_random_config()
 	ai.attack_performed.connect(_on_ai_attack)
+	ai.alerted.connect(_on_ai_alerted)
+	ai.set_home(global_position, 600.0)
 	mover.speed = 50.0
+
+func _on_ai_alerted(_target: Node2D):
+	pass
 
 func _apply_random_config():
 	var hp_val = randi_range(50, 150)
@@ -36,6 +41,10 @@ func _on_ai_attack(target: Node2D, damage: float):
 		return
 	if target.has_method("take_damage"):
 		target.take_damage(damage, state.innate_type)
+	if target.has_method("knockback"):
+		var dir = (target.global_position - global_position).normalized()
+		target.knockback(dir * 120.0)
+	AudioManager.play_sfx(AudioManager.SfxType.ENEMY_ATTACK)
 	print("敌人攻击! 造成 %.0f 伤害" % damage)
 
 func _on_died():

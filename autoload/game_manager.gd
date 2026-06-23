@@ -39,6 +39,20 @@ func register_player(p: Node):
 	player = p
 	print("[GameManager] Player registered: %s" % p.name)
 
+var _hitstop_timer: float = 0.0
+
+func _process(delta):
+	if _hitstop_timer > 0:
+		_hitstop_timer -= delta
+		if _hitstop_timer <= 0:
+			get_tree().paused = false
+
+func hit_stop(duration: float = 0.04):
+	if _hitstop_timer > 0:
+		return
+	_hitstop_timer = duration
+	get_tree().paused = true
+
 func reset():
 	player_data = {}
 	current_level = 1

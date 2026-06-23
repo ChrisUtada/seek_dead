@@ -12,6 +12,7 @@ var _bar_config = {
 }
 var _crosshair: ColorRect
 var _overlay: ColorRect
+var _flash_overlay: ColorRect
 var _overlay_label: Label
 var _overlay_button: Label
 var _is_paused: bool = false
@@ -21,6 +22,7 @@ func _ready():
 	_build_bars()
 	_build_crosshair()
 	_build_overlay()
+	_build_hit_flash()
 	_build_ammo_display()
 	_build_skill_bar()
 	_connect_player()
@@ -83,6 +85,13 @@ func _build_overlay():
 	_overlay_label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
 	_overlay_label.add_theme_constant_override("outline_size", 3)
 	add_child(_overlay_label)
+
+	_flash_overlay = ColorRect.new()
+	_flash_overlay.name = "FlashOverlay"
+	_flash_overlay.size = Vector2(800, 600)
+	_flash_overlay.color = Color(0, 0, 0, 0)
+	_flash_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_flash_overlay)
 
 	_overlay_button = Label.new()
 	_overlay_button.name = "OverlayButton"
@@ -192,11 +201,11 @@ func _apply_bar_ratio(key: String, ratio: float):
 func _build_skill_bar():
 	var skill_bar = Control.new()
 	skill_bar.name = "SkillBar"
-	skill_bar.position = Vector2(300, 550)
-	skill_bar.size = Vector2(200, 40)
+	skill_bar.position = Vector2(350, 550)
+	skill_bar.size = Vector2(100, 40)
 	add_child(skill_bar)
-	var keys = ["Q", "E", "F", "C"]
-	for i in range(4):
+	var keys = ["Q", "E"]
+	for i in range(2):
 		var slot = ColorRect.new()
 		slot.name = "SkillSlot%d" % i
 		slot.position = Vector2(i * 50, 0)
@@ -279,13 +288,19 @@ func _hide_overlay():
 func _input(event):
 	if event.is_action_pressed("pause"):
 		_toggle_pause()
-	if event.is_action_pressed("restart") and _overlay.color.a > 0.5:
-		get_tree().reload_current_scene()
+	if event.is_action_pressed("restart"):
+		call_deferred("_restart_game")
+
+func _restart_game():
+	var path = get_tree().current_scene.scene_file_path
+	if path != "":
+		get_tree().change_scene_to_file(path)
 
 func _toggle_pause():
 	_is_paused = not _is_paused
 	get_tree().paused = _is_paused
 	if _is_paused:
+		AudioManager.play_sfx(AudioManager.SfxType.UI_PAUSE)
 		_show_overlay("暂停", "按 Esc 继续", Color(0, 0, 0, 0.5))
 	else:
 		_hide_overlay()
@@ -305,17 +320,33 @@ func spawn_damage_number(world_pos: Vector2, amount: float, is_critical: bool = 
 	label.position -= Vector2(20, 0)
 	label.add_theme_color_override("font_color", Color(1, 0.8, 0.2) if is_critical else Color(1, 1, 1))
 	label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
-	label.add_theme_constant_override("outline_size", 2)
+	label.add_theme_constant_override("outline_size", 3)
 	label.text = "%.0f" % amount
 	if is_critical:
 		label.text = "暴击! " + label.text
 	add_child(label)
 	var tween = create_tween()
-	tween.tween_property(label, "position", label.position + Vector2(0, -40), 0.8)
+	var end_pos = label.position + Vector2(0, -50)
+	if is_critical:
+		tween.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BOUNCE)
+		end_pos = label.position + Vector2(0, -60)
+	tween.tween_property(label, "position", end_pos, 0.8)
 	tween.parallel().tween_property(label, "modulate", Color(1, 1, 1, 0), 0.8)
 	tween.tween_callback(label.queue_free)
 
-func _on_damage_dealt(_attacker: Node2D, defender: Node2D, amount: float, _damage_type: int):
+func _build_hit_flash():
+	pass
+
+func _trigger_hit_flash(intensity: float = 0.08, color: Color = Color(1, 0.3, 0.3)):
+	_flash_overlay.color = Color(color.r, color.g, color.b, intensity)
+	var tween = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_LINEAR)
+	tween.tween_property(_flash_overlay, "color", Color(color.r, color.g, color.b, 0), 0.08)
+
+func _on_damage_dealt(attacker: Node2D, defender: Node2D, amount: float, _damage_type: int):
 	if not is_instance_valid(defender):
 		return
 	spawn_damage_number(defender.global_position, amount, false)
+	if defender.is_in_group("players"):
+		_trigger_hit_flash(0.08, Color(1, 0.3, 0.3))
+	elif amount > 50.0:
+		_trigger_hit_flash(0.06, Color(1, 0.8, 0.3))
