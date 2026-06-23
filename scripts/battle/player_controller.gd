@@ -44,8 +44,9 @@ func _ready():
 	_init_skills()
 
 func _on_weapon_changed(w: WeaponBase):
-	if w.max_ammo > 0:
-		ammo.switch_to_weapon(w.resource_path, w.max_ammo)
+	var ranged = w as RangedWeapon
+	if ranged and ranged.max_ammo > 0:
+		ammo.switch_to_weapon(w.resource_path, ranged.max_ammo)
 
 func _on_meltdown():
 	AudioManager.play_sfx(AudioManager.SfxType.PLAYER_MELTDOWN)

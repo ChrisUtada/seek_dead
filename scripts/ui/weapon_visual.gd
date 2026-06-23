@@ -10,14 +10,10 @@ var _trail_angles: Array[float] = []
 var _trail_alphas: Array[float] = []
 var _trail_lifetime: float = 0.15
 
-func set_weapon(color: Color, weapon_range: float, is_melee: bool, texture: Texture2D = null, offset: Vector2 = Vector2.ZERO):
+func set_weapon(color: Color, weapon_range: float, is_melee: bool):
 	_color = color
 	_range = weapon_range
 	_is_melee = is_melee
-	var sprite = get_node_or_null("WeaponSprite")
-	if sprite:
-		sprite.texture = texture
-		sprite.offset = offset
 	queue_redraw()
 
 func flash_range():

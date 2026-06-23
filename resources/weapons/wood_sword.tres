@@ -1,7 +1,7 @@
 [gd_resource type="Resource" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/battle/melee_weapon.gd" id="1"]
-[ext_resource type="Texture2D" path="res://assets/weapons/wood_sword.png" id="2"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/wood_sword.tscn" id="2"]
 
 [resource]
 script = ExtResource("1")
@@ -12,4 +12,4 @@ attack_speed = 1.5
 range = 60.0
 cleave_angle = 120.0
 knockback_force = 100.0
-texture = ExtResource("2")
+visual_scene = ExtResource("2")

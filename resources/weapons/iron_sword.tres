@@ -1,7 +1,7 @@
 [gd_resource type="Resource" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/battle/melee_weapon.gd" id="1"]
-[ext_resource type="Texture2D" path="res://assets/weapons/iron_sword.png" id="2"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/iron_sword.tscn" id="2"]
 
 [resource]
 script = ExtResource("1")
@@ -10,4 +10,4 @@ damage = 35.0
 damage_type = 1
 attack_speed = 1.2
 range = 80.0
-texture = ExtResource("2")
+visual_scene = ExtResource("2")

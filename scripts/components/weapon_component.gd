@@ -25,9 +25,7 @@ var current_weapon: WeaponBase:
 	get: return weapons[weapon_index] if weapons.size() > 0 else null
 
 func _ready():
-	_visual = load("res://scenes/battle/weapon_visual.tscn").instantiate()
-	add_child(_visual)
-	_visual.visible = false
+	pass
 
 func init_weapons(weapon_list: Array[WeaponBase]):
 	weapons = weapon_list
@@ -37,11 +35,15 @@ func init_weapons(weapon_list: Array[WeaponBase]):
 		weapon_changed.emit(weapons[0])
 
 func _update_visual(w: WeaponBase):
-	if not _visual:
+	if _visual:
+		_visual.queue_free()
+		_visual = null
+	if not w or not w.visual_scene:
 		return
-	_visual.visible = true
+	_visual = w.visual_scene.instantiate()
+	add_child(_visual)
 	_color = DamageSystem.get_color(w.damage_type)
-	_visual.set_weapon(_color, w.range, w is MeleeWeapon, w.texture, w.visual_offset)
+	_visual.set_weapon(_color, w.range, w is MeleeWeapon)
 
 func switch_weapon(index: int):
 	if index != weapon_index and index < weapons.size():
