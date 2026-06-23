@@ -1,5 +1,5 @@
 class_name WeaponComponent
-extends Node
+extends Node2D
 
 signal weapon_changed(weapon: WeaponBase)
 signal attack_performed(weapon: WeaponBase, hit_count: int)
@@ -8,18 +8,33 @@ var weapons: Array[WeaponBase] = []
 var weapon_index: int = 0
 var attack_cooldown: float = 0.0
 
+var _visual: Node2D = null
+
 var current_weapon: WeaponBase:
 	get: return weapons[weapon_index] if weapons.size() > 0 else null
+
+func _ready():
+	_visual = load("res://scripts/ui/weapon_visual.gd").new()
+	add_child(_visual)
+	_visual.visible = false
 
 func init_weapons(weapon_list: Array[WeaponBase]):
 	weapons = weapon_list
 	weapon_index = 0
 	if weapons.size() > 0:
+		_update_visual(weapons[0])
 		weapon_changed.emit(weapons[0])
+
+func _update_visual(w: WeaponBase):
+	if not _visual:
+		return
+	_visual.visible = true
+	_visual.set_weapon(DamageSystem.get_color(w.damage_type), w.range, w.weapon_type == WeaponBase.WeaponType.MELEE)
 
 func switch_weapon(index: int):
 	if index != weapon_index and index < weapons.size():
 		weapon_index = index
+		_update_visual(current_weapon)
 		weapon_changed.emit(current_weapon)
 
 func can_attack() -> bool:
@@ -40,6 +55,8 @@ func tick_cooldown(delta: float):
 	attack_cooldown = max(0, attack_cooldown - delta)
 
 func _melee_attack():
+	_visual.flash_range()
+	_visual.swing()
 	var parent: CharacterBody2D = get_parent()
 	var space = parent.get_world_2d().direct_space_state
 	var query = PhysicsShapeQueryParameters2D.new()
@@ -75,6 +92,7 @@ func _melee_attack():
 	attack_performed.emit(current_weapon, hit_count)
 
 func _ranged_attack():
+	_visual.flash_range()
 	var parent: CharacterBody2D = get_parent()
 	var bullet = load("res://scenes/battle/projectile.tscn").instantiate()
 	bullet.global_position = parent.global_position
