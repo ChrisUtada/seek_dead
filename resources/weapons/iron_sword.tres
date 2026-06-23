@@ -8,4 +8,4 @@ weapon_name = "铁剑"
 damage = 35.0
 damage_type = 1
 attack_speed = 1.2
-range = 40.0
+range = 80.0
