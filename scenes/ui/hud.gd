@@ -1,5 +1,7 @@
 extends CanvasLayer
 
+const _WeaponNode = preload("res://scripts/battle/weapon_node.gd")
+
 @onready var weapon_label: Label = $WeaponLabel
 
 var _bars: Dictionary = {}
@@ -265,9 +267,12 @@ func _on_reload_finished():
 	if _bars.has("ammo"):
 		_bars.ammo.label.text = "弹药: 已装填"
 
-func _on_weapon_changed(weapon: WeaponBase):
-	var color = DamageSystem.get_color(weapon.damage_type)
-	weapon_label.text = "武器: %s | 伤害: %.0f | 类型: %s" % [weapon.weapon_name, weapon.damage, DamageSystem.damage_type_to_string(weapon.damage_type)]
+func _on_weapon_changed(weapon: WeaponNode):
+	var s = weapon.stats
+	if not s:
+		return
+	var color = DamageSystem.get_color(s.damage_type)
+	weapon_label.text = "武器: %s | 伤害: %.0f | 类型: %s" % [s.weapon_name, s.damage, DamageSystem.damage_type_to_string(s.damage_type)]
 	weapon_label.add_theme_color_override("font_color", color)
 
 func _on_player_died():

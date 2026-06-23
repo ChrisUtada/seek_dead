@@ -1,4 +1,4 @@
-[gd_resource type="Resource" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="MeleeWeapon" format=3]
 
 [ext_resource type="Script" path="res://scripts/battle/melee_weapon.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/weapons/poison_dagger.tscn" id="2"]
@@ -9,7 +9,7 @@ weapon_name = "毒匕首"
 damage = 25.0
 damage_type = 6
 attack_speed = 2.0
-range = 60.0
+attack_range = 60.0
 status_effect_type = 0
 status_effect_damage = 5.0
 status_effect_duration = 5.0

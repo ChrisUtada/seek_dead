@@ -1,197 +1,81 @@
 class_name WeaponComponent
 extends Node2D
 
-signal weapon_changed(weapon: WeaponBase)
-signal attack_performed(weapon: WeaponBase, hit_count: int)
+const _WeaponBase = preload("res://scripts/battle/weapon_base.gd")
+const _WeaponNode = preload("res://scripts/battle/weapon_node.gd")
+const _MeleeWeaponNode = preload("res://scripts/battle/melee_weapon_node.gd")
+const _RangedWeaponNode = preload("res://scripts/battle/ranged_weapon_node.gd")
 
-var weapons: Array[WeaponBase] = []
+signal weapon_changed(weapon: WeaponNode)
+signal attack_performed(weapon: WeaponNode, hit_count: int)
+
+var weapons: Array[WeaponNode] = []
 var weapon_index: int = 0
-var attack_cooldown: float = 0.0
+var current_weapon: WeaponNode:
+	get: return weapons[weapon_index] if weapons.size() > 0 else null
 
 var aim_direction: Vector2 = Vector2.RIGHT
-var _visual: Node2D = null
+var _color: Color = Color(1, 1, 1)
 
-var _bullet_pools: Dictionary = {}
 var _particles_pool: Array[ColorRect] = []
-const POOL_BULLET_SIZE: int = 20
-const POOL_PARTICLE_SIZE: int = 60
 
 func set_aim_direction(dir: Vector2):
 	if dir.length_squared() > 0.001:
 		aim_direction = dir
+		for w in weapons:
+			w.aim_direction = dir
 		rotation = dir.angle()
 
-var current_weapon: WeaponBase:
-	get: return weapons[weapon_index] if weapons.size() > 0 else null
-
-func _ready():
-	pass
-
 func init_weapons(weapon_list: Array[WeaponBase]):
-	weapons = weapon_list
+	for w in weapon_list:
+		var scene = w.visual_scene
+		if not scene:
+			continue
+		var node = scene.instantiate() as WeaponNode
+		if not node:
+			continue
+		node.stats = w
+		node.shooter = get_parent() as CharacterBody2D
+		node.aim_direction = aim_direction
+		node.weapon_color = DamageSystem.get_color(w.damage_type)
+		node.hit_landed.connect(_on_weapon_hit)
+		node.attack_finished.connect(_on_attack_finished)
+		node.visible = false
+		add_child(node)
+		weapons.append(node)
 	weapon_index = 0
 	if weapons.size() > 0:
-		_update_visual(weapons[0])
+		weapons[0].on_equip()
 		weapon_changed.emit(weapons[0])
 
-func _update_visual(w: WeaponBase):
-	if _visual:
-		_visual.queue_free()
-		_visual = null
-	if not w or not w.visual_scene:
-		return
-	_visual = w.visual_scene.instantiate()
-	add_child(_visual)
-	_color = DamageSystem.get_color(w.damage_type)
-	_visual.set_weapon(_color, w.range, w is MeleeWeapon)
-
 func switch_weapon(index: int):
-	if index != weapon_index and index < weapons.size():
-		weapon_index = index
-		_update_visual(current_weapon)
-		weapon_changed.emit(current_weapon)
+	if index == weapon_index or index >= weapons.size():
+		return
+	if current_weapon:
+		current_weapon.on_unequip()
+	weapon_index = index
+	current_weapon.on_equip()
+	_color = DamageSystem.get_color(current_weapon.stats.damage_type)
+	weapon_changed.emit(current_weapon)
 
 func can_attack() -> bool:
-	return current_weapon != null and attack_cooldown <= 0
+	return current_weapon != null and current_weapon.can_attack()
 
 func attack():
 	if not can_attack():
 		return
-	var speed_mod = _get_attack_speed_modifier()
-	attack_cooldown = 1.0 / (current_weapon.attack_speed * speed_mod)
+	var node = current_weapon
+	var speed_mod = _get_attack_speed_modifier(node)
+	node.cooldown = 1.0 / (node.stats.attack_speed * speed_mod)
+	node.attack()
 
-	if current_weapon is MeleeWeapon:
-		_melee_attack()
-	elif current_weapon is RangedWeapon:
-		_ranged_attack()
+func get_weapon_count() -> int:
+	return weapons.size()
 
-func tick_cooldown(delta: float):
-	attack_cooldown = max(0, attack_cooldown - delta)
+func _on_weapon_hit(hit_pos: Vector2, hit_dir: Vector2, damage_type: int, body: Node2D):
+	call_deferred("_on_weapon_hit_deferred", hit_pos, hit_dir, damage_type, body)
 
-func _melee_attack():
-	var parent: CharacterBody2D = get_parent()
-	var state = parent.state if parent.has_node("StateComponent") else null
-	var in_meltdown = state and state.in_meltdown()
-	var weapon: MeleeWeapon = current_weapon as MeleeWeapon
-	if not weapon:
-		return
-	var atk_range = weapon.range * (1.5 if in_meltdown else 1.0)
-
-	_visual.flash_range()
-	_visual.swing()
-	AudioManager.play_sfx(AudioManager.SfxType.PLAYER_MELEE)
-	var space = parent.get_world_2d().direct_space_state
-	var query = PhysicsShapeQueryParameters2D.new()
-	var shape = CircleShape2D.new()
-	shape.radius = atk_range
-	query.shape = shape
-	query.transform = parent.global_transform
-	query.collision_mask = CollisionSystem.bit(CollisionSystem.LAYER_ENEMY)
-	query.exclude = [parent]
-
-	var results = space.intersect_shape(query)
-	var hit_count = 0
-	var dmg_mod = _get_damage_modifier()
-	var final_dmg = weapon.damage * dmg_mod
-
-	for result in results:
-		var body = result.collider
-		if body.has_method("take_damage"):
-			var damage_result = body.take_damage(final_dmg, weapon.damage_type)
-			hit_count += 1
-			if in_meltdown:
-				damage_result.is_critical = true
-				damage_result.hit_result = DamageSystem.HitResult.CRITICAL
-				if state:
-					var recoil = max(final_dmg * 0.1, 5.0)
-					state.take_damage(recoil, -1)
-
-			if weapon.status_effect_type >= 0 and body.has_method("apply_status"):
-				body.apply_status(weapon.status_effect_type, weapon.status_effect_damage, weapon.status_effect_duration)
-
-			if damage_result.hit_result == DamageSystem.HitResult.CRITICAL:
-				print("! 暴击! %.0f 伤害 (%.1fx)" % [damage_result.final_damage, damage_result.breakdown.get("crit_damage", 1.5)])
-			elif damage_result.is_weakness:
-				print("! 弱点! %.0f 伤害 (属性克制%.1fx)" % [damage_result.final_damage, damage_result.breakdown.get("type_advantage", 1.0)])
-
-	if hit_count == 0:
-		print("近战挥空 (范围: %.0f)" % atk_range)
-	else:
-		print("近战命中 %d 个敌人" % hit_count)
-		GameManager.hit_stop(0.04)
-		_spawn_impact_circle(results[0].collider.global_position, _color)
-		for result in results:
-			var pos = result.collider.global_position
-			_spawn_hit_particles(pos, aim_direction, _color)
-			if result.collider.has_method("knockback"):
-				result.collider.knockback(aim_direction * weapon.knockback_force)
-		_shake_parent_camera(Vector2(2.0, 1.0), 0.1)
-
-	if not in_meltdown:
-		_add_heat_after_attack()
-	attack_performed.emit(current_weapon, hit_count)
-
-func _ranged_attack():
-	var parent: CharacterBody2D = get_parent()
-	var state = parent.state if parent.has_node("StateComponent") else null
-	var in_meltdown = state and state.in_meltdown()
-	var weapon: RangedWeapon = current_weapon as RangedWeapon
-	if not weapon:
-		return
-
-	if not in_meltdown:
-		if weapon.max_ammo > 0:
-			var ammo_node = parent.get_node_or_null("AmmoSystem")
-			if ammo_node and not ammo_node.consume_ammo():
-				return
-	else:
-		if state:
-			state.take_damage(5.0, -1)
-
-	_visual.flash_range()
-	AudioManager.play_sfx(AudioManager.SfxType.PLAYER_SHOT)
-	var bullet_scene = weapon.bullet_scene
-	if bullet_scene == null:
-		bullet_scene = load("res://scenes/battle/projectile.tscn")
-	var bullet = _get_bullet(bullet_scene)
-	bullet.global_position = parent.global_position
-	bullet._age = 0
-	bullet.direction = aim_direction
-	bullet.speed = weapon.bullet_speed
-	bullet.damage = current_weapon.damage * _get_damage_modifier()
-	bullet.damage_type = current_weapon.damage_type
-	bullet.shooter = parent
-	bullet.status_effect_type = current_weapon.status_effect_type
-	bullet.status_effect_damage = current_weapon.status_effect_damage
-	bullet.status_effect_duration = current_weapon.status_effect_duration
-	var sprite = bullet.get_node_or_null("Sprite2D")
-	if sprite:
-		var color = DamageSystem.get_color(current_weapon.damage_type)
-		var bsize = 18 if in_meltdown else 10
-		var bimg = Image.create(bsize, bsize, false, Image.FORMAT_RGBA8)
-		bimg.fill(Color(0, 0, 0, 0))
-		var radius = bsize >> 1
-		for x in range(bsize):
-			for y in range(bsize):
-				var dx = x - radius
-				var dy = y - radius
-				if dx * dx + dy * dy < radius * radius:
-					bimg.set_pixel(x, y, color)
-		sprite.texture = ImageTexture.create_from_image(bimg)
-		sprite.centered = true
-
-	if not bullet.hit.is_connected(_on_bullet_hit):
-		bullet.hit.connect(_on_bullet_hit)
-	var label = "远程射击" + (" [超载]" if in_meltdown else "")
-	print("%s: %s (伤害: %.0f)" % [label, current_weapon.weapon_name, current_weapon.damage * _get_damage_modifier()])
-	if not in_meltdown:
-		_add_heat_after_attack()
-	attack_performed.emit(current_weapon, 1)
-
-func _on_bullet_hit(hit_pos: Vector2, hit_dir: Vector2, damage_type: int, body: Node2D):
-	call_deferred("_on_bullet_hit_deferred", hit_pos, hit_dir, damage_type, body)
-
-func _on_bullet_hit_deferred(hit_pos: Vector2, hit_dir: Vector2, damage_type: int, body: Node2D):
+func _on_weapon_hit_deferred(hit_pos: Vector2, hit_dir: Vector2, damage_type: int, body: Node2D):
 	var color = DamageSystem.get_color(damage_type)
 	_spawn_hit_particles(hit_pos, hit_dir, color)
 	_spawn_impact_circle(hit_pos, color)
@@ -199,6 +83,38 @@ func _on_bullet_hit_deferred(hit_pos: Vector2, hit_dir: Vector2, damage_type: in
 	if is_instance_valid(body) and body.has_method("knockback"):
 		body.knockback(hit_dir * 150.0)
 	_shake_parent_camera(Vector2(1.5, 0.8), 0.08)
+
+func _on_attack_finished(node: WeaponNode, hit_count: int):
+	var state = _get_state()
+	var in_meltdown = state and state.in_meltdown()
+	if in_meltdown and node is RangedWeaponNode:
+		if state:
+			state.take_damage(5.0, -1)
+	if not in_meltdown:
+		_add_heat_after_attack(node)
+	if hit_count > 0 and node is MeleeWeaponNode:
+		GameManager.hit_stop(0.04)
+		_shake_parent_camera(Vector2(2.0, 1.0), 0.1)
+	attack_performed.emit(node, hit_count)
+
+func _get_state():
+	var parent = get_parent()
+	return parent.state if parent.has_node("StateComponent") else null
+
+func _get_attack_speed_modifier(node: WeaponNode) -> float:
+	var state = _get_state()
+	if state and state.in_meltdown():
+		return 2.0 if node is RangedWeaponNode else 1.5
+	return 1.0
+
+func _add_heat_after_attack(node: WeaponNode):
+	var state = _get_state()
+	if not state:
+		return
+	var heat = node.stats.heat_per_attack if node.stats and node.stats.heat_per_attack >= 0 else -1.0
+	if heat < 0:
+		heat = 5.0 if node is MeleeWeaponNode else 8.0
+	state.add_heat(heat)
 
 func _spawn_hit_particles(pos: Vector2, dir: Vector2, particle_color: Color = Color(1, 1, 1)):
 	var count = randi_range(6, 10)
@@ -238,36 +154,6 @@ func _shake_parent_camera(intensity: Vector2, duration: float):
 		return
 	parent._shake_camera(intensity, duration)
 
-var _color: Color = Color(1, 1, 1)
-
-func _get_attack_speed_modifier() -> float:
-	var parent = get_parent()
-	if not parent.has_node("StateComponent"):
-		return 1.0
-	var state = parent.state
-	if state.in_meltdown():
-		return 2.0 if current_weapon is RangedWeapon else 1.5
-	return 1.0
-
-func _get_damage_modifier() -> float:
-	var parent = get_parent()
-	if not parent.has_node("StateComponent"):
-		return 1.0
-	var state = parent.state
-	if state.in_meltdown() and current_weapon is RangedWeapon:
-		return 1.5
-	return 1.0
-
-func _get_bullet(scene: PackedScene) -> Node:
-	var target = get_parent().get_parent()
-	var path = scene.resource_path
-	if not _bullet_pools.has(path):
-		_bullet_pools[path] = ObjectPool.new(scene, POOL_BULLET_SIZE)
-	var pool = _bullet_pools[path]
-	var bullet = pool.acquire(target)
-	bullet.set_pool(pool)
-	return bullet
-
 func _get_particle() -> ColorRect:
 	if _particles_pool.size() > 0:
 		return _particles_pool.pop_back()
@@ -280,12 +166,3 @@ func _release_particle(p: ColorRect):
 		p.get_parent().remove_child(p)
 	p.visible = false
 	_particles_pool.append(p)
-
-func _add_heat_after_attack():
-	var parent = get_parent()
-	if not parent.has_node("StateComponent"):
-		return
-	var heat = current_weapon.heat_per_attack
-	if heat < 0:
-		heat = 5.0 if current_weapon is MeleeWeapon else 8.0
-	parent.state.add_heat(heat)

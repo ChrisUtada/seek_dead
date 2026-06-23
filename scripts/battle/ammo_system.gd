@@ -13,28 +13,28 @@ var current_ammo: int
 var max_ammo: int = 30
 var is_reloading: bool = false
 var _reload_timer: float = 0.0
-var _current_weapon_path: String = ""
+var _current_weapon_name: String = ""
 var _ammo_pool: Dictionary = {}
 
 func _ready():
 	current_ammo = max_ammo
 
-func switch_to_weapon(weapon_path: String, weapon_max_ammo: int):
+func switch_to_weapon(weapon_name: String, weapon_max_ammo: int):
 	_save_current()
-	_current_weapon_path = weapon_path
+	_current_weapon_name = weapon_name
 	max_ammo = weapon_max_ammo
-	if _ammo_pool.has(weapon_path):
-		current_ammo = _ammo_pool[weapon_path]
+	if _ammo_pool.has(weapon_name):
+		current_ammo = _ammo_pool[weapon_name]
 	else:
 		current_ammo = weapon_max_ammo
-		_ammo_pool[weapon_path] = current_ammo
+		_ammo_pool[weapon_name] = current_ammo
 	is_reloading = false
 	_reload_timer = 0.0
 	ammo_changed.emit(current_ammo, max_ammo)
 
 func _save_current():
-	if _current_weapon_path != "":
-		_ammo_pool[_current_weapon_path] = current_ammo
+	if _current_weapon_name != "":
+		_ammo_pool[_current_weapon_name] = current_ammo
 
 func consume_ammo() -> bool:
 	if is_reloading:

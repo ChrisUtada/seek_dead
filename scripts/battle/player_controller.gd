@@ -3,6 +3,8 @@ extends CharacterBody2D
 
 const _WeaponComp = preload("res://scripts/components/weapon_component.gd")
 const _MoverComp = preload("res://scripts/components/movement_component.gd")
+const _WeaponBase = preload("res://scripts/battle/weapon_base.gd")
+const _RangedWeapon = preload("res://scripts/battle/ranged_weapon.gd")
 
 signal player_damaged(amount: float, current_hp: float, max_hp: float)
 
@@ -43,10 +45,10 @@ func _ready():
 	weapon.weapon_changed.connect(_on_weapon_changed)
 	_init_skills()
 
-func _on_weapon_changed(w: WeaponBase):
-	var ranged = w as RangedWeapon
-	if ranged and ranged.max_ammo > 0:
-		ammo.switch_to_weapon(w.resource_path, ranged.max_ammo)
+func _on_weapon_changed(w: WeaponNode):
+	var ranged_stats = w.stats as RangedWeapon
+	if ranged_stats and ranged_stats.max_ammo > 0:
+		ammo.switch_to_weapon(w.stats.weapon_name, ranged_stats.max_ammo)
 
 func _on_meltdown():
 	AudioManager.play_sfx(AudioManager.SfxType.PLAYER_MELTDOWN)
@@ -152,7 +154,6 @@ func _physics_process(delta: float):
 
 	mover.direction = _get_input_direction()
 	mover.speed = walk_speed
-	weapon.tick_cooldown(delta)
 
 	var aim_dir = (get_global_mouse_position() - global_position).normalized()
 	weapon.set_aim_direction(aim_dir)

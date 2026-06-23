@@ -1,4 +1,4 @@
-[gd_resource type="Resource" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="MeleeWeapon" format=3]
 
 [ext_resource type="Script" path="res://scripts/battle/melee_weapon.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/weapons/iron_sword.tscn" id="2"]
@@ -9,5 +9,5 @@ weapon_name = "铁剑"
 damage = 35.0
 damage_type = 1
 attack_speed = 1.2
-range = 80.0
+attack_range = 80.0
 visual_scene = ExtResource("2")

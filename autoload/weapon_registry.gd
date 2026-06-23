@@ -1,5 +1,7 @@
 extends Node
 
+const _WeaponBase = preload("res://scripts/battle/weapon_base.gd")
+
 var _weapons: Dictionary = {}
 
 func _ready():
@@ -26,20 +28,6 @@ func get_all() -> Array[WeaponBase]:
 	var result: Array[WeaponBase] = []
 	for w in _weapons.values():
 		result.append(w)
-	return result
-
-func get_melee() -> Array[WeaponBase]:
-	var result: Array[WeaponBase] = []
-	for w in _weapons.values():
-		if w is MeleeWeapon:
-			result.append(w)
-	return result
-
-func get_ranged() -> Array[WeaponBase]:
-	var result: Array[WeaponBase] = []
-	for w in _weapons.values():
-		if w is RangedWeapon:
-			result.append(w)
 	return result
 
 func get_names() -> Array[String]:
