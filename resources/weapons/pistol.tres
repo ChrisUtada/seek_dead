@@ -7,7 +7,6 @@
 [resource]
 script = ExtResource("1")
 weapon_name = "手枪"
-weapon_type = 1
 damage = 20.0
 damage_type = 0
 attack_speed = 2.5

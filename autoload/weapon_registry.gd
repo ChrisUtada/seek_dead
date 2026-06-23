@@ -28,10 +28,17 @@ func get_all() -> Array[WeaponBase]:
 		result.append(w)
 	return result
 
-func get_by_type(type: WeaponBase.WeaponType) -> Array[WeaponBase]:
+func get_melee() -> Array[WeaponBase]:
 	var result: Array[WeaponBase] = []
 	for w in _weapons.values():
-		if w.weapon_type == type:
+		if w is MeleeWeapon:
+			result.append(w)
+	return result
+
+func get_ranged() -> Array[WeaponBase]:
+	var result: Array[WeaponBase] = []
+	for w in _weapons.values():
+		if w is RangedWeapon:
 			result.append(w)
 	return result
 

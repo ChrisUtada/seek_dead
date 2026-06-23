@@ -41,7 +41,7 @@ func _update_visual(w: WeaponBase):
 		return
 	_visual.visible = true
 	_color = DamageSystem.get_color(w.damage_type)
-	_visual.set_weapon(_color, w.range, w.weapon_type == WeaponBase.WeaponType.MELEE, w.texture, w.visual_offset)
+	_visual.set_weapon(_color, w.range, w is MeleeWeapon, w.texture, w.visual_offset)
 
 func switch_weapon(index: int):
 	if index != weapon_index and index < weapons.size():
@@ -58,11 +58,10 @@ func attack():
 	var speed_mod = _get_attack_speed_modifier()
 	attack_cooldown = 1.0 / (current_weapon.attack_speed * speed_mod)
 
-	match current_weapon.weapon_type:
-		WeaponBase.WeaponType.MELEE:
-			_melee_attack()
-		WeaponBase.WeaponType.RANGED:
-			_ranged_attack()
+	if current_weapon is MeleeWeapon:
+		_melee_attack()
+	elif current_weapon is RangedWeapon:
+		_ranged_attack()
 
 func tick_cooldown(delta: float):
 	attack_cooldown = max(0, attack_cooldown - delta)
@@ -71,7 +70,10 @@ func _melee_attack():
 	var parent: CharacterBody2D = get_parent()
 	var state = parent.state if parent.has_node("StateComponent") else null
 	var in_meltdown = state and state.in_meltdown()
-	var atk_range = current_weapon.range * (1.5 if in_meltdown else 1.0)
+	var weapon: MeleeWeapon = current_weapon as MeleeWeapon
+	if not weapon:
+		return
+	var atk_range = weapon.range * (1.5 if in_meltdown else 1.0)
 
 	_visual.flash_range()
 	_visual.swing()
@@ -88,12 +90,12 @@ func _melee_attack():
 	var results = space.intersect_shape(query)
 	var hit_count = 0
 	var dmg_mod = _get_damage_modifier()
-	var final_dmg = current_weapon.damage * dmg_mod
+	var final_dmg = weapon.damage * dmg_mod
 
 	for result in results:
 		var body = result.collider
 		if body.has_method("take_damage"):
-			var damage_result = body.take_damage(final_dmg, current_weapon.damage_type)
+			var damage_result = body.take_damage(final_dmg, weapon.damage_type)
 			hit_count += 1
 			if in_meltdown:
 				damage_result.is_critical = true
@@ -102,8 +104,8 @@ func _melee_attack():
 					var recoil = max(final_dmg * 0.1, 5.0)
 					state.take_damage(recoil, -1)
 
-			if current_weapon.status_effect_type >= 0 and body.has_method("apply_status"):
-				body.apply_status(current_weapon.status_effect_type, current_weapon.status_effect_damage, current_weapon.status_effect_duration)
+			if weapon.status_effect_type >= 0 and body.has_method("apply_status"):
+				body.apply_status(weapon.status_effect_type, weapon.status_effect_damage, weapon.status_effect_duration)
 
 			if damage_result.hit_result == DamageSystem.HitResult.CRITICAL:
 				print("! 暴击! %.0f 伤害 (%.1fx)" % [damage_result.final_damage, damage_result.breakdown.get("crit_damage", 1.5)])
@@ -120,7 +122,7 @@ func _melee_attack():
 			var pos = result.collider.global_position
 			_spawn_hit_particles(pos, aim_direction, _color)
 			if result.collider.has_method("knockback"):
-				result.collider.knockback(aim_direction * 200.0)
+				result.collider.knockback(aim_direction * weapon.knockback_force)
 		_shake_parent_camera(Vector2(2.0, 1.0), 0.1)
 
 	if not in_meltdown:
@@ -131,9 +133,12 @@ func _ranged_attack():
 	var parent: CharacterBody2D = get_parent()
 	var state = parent.state if parent.has_node("StateComponent") else null
 	var in_meltdown = state and state.in_meltdown()
+	var weapon: RangedWeapon = current_weapon as RangedWeapon
+	if not weapon:
+		return
 
 	if not in_meltdown:
-		if current_weapon.max_ammo > 0:
+		if weapon.max_ammo > 0:
 			var ammo_node = parent.get_node_or_null("AmmoSystem")
 			if ammo_node and not ammo_node.consume_ammo():
 				return
@@ -143,14 +148,14 @@ func _ranged_attack():
 
 	_visual.flash_range()
 	AudioManager.play_sfx(AudioManager.SfxType.PLAYER_SHOT)
-	var bullet_scene = current_weapon.bullet_scene
+	var bullet_scene = weapon.bullet_scene
 	if bullet_scene == null:
 		bullet_scene = load("res://scenes/battle/projectile.tscn")
 	var bullet = _get_bullet(bullet_scene)
 	bullet.global_position = parent.global_position
 	bullet._age = 0
 	bullet.direction = aim_direction
-	bullet.speed = current_weapon.bullet_speed
+	bullet.speed = weapon.bullet_speed
 	bullet.damage = current_weapon.damage * _get_damage_modifier()
 	bullet.damage_type = current_weapon.damage_type
 	bullet.shooter = parent
@@ -239,7 +244,7 @@ func _get_attack_speed_modifier() -> float:
 		return 1.0
 	var state = parent.state
 	if state.in_meltdown():
-		return 2.0 if current_weapon.weapon_type == WeaponBase.WeaponType.RANGED else 1.5
+		return 2.0 if current_weapon is RangedWeapon else 1.5
 	return 1.0
 
 func _get_damage_modifier() -> float:
@@ -247,7 +252,7 @@ func _get_damage_modifier() -> float:
 	if not parent.has_node("StateComponent"):
 		return 1.0
 	var state = parent.state
-	if state.in_meltdown() and current_weapon.weapon_type == WeaponBase.WeaponType.RANGED:
+	if state.in_meltdown() and current_weapon is RangedWeapon:
 		return 1.5
 	return 1.0
 
@@ -280,5 +285,5 @@ func _add_heat_after_attack():
 		return
 	var heat = current_weapon.heat_per_attack
 	if heat < 0:
-		heat = 5.0 if current_weapon.weapon_type == WeaponBase.WeaponType.MELEE else 8.0
+		heat = 5.0 if current_weapon is MeleeWeapon else 8.0
 	parent.state.add_heat(heat)
