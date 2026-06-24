@@ -6,7 +6,7 @@ const _Generator = preload("res://scripts/level/room_generator.gd")
 
 
 func _ready():
-	var rooms = [
+	var rooms: Array[String] = [
 		"res://scenes/rooms/room_1.tscn",
 		"res://scenes/rooms/room_2.tscn",
 	]
