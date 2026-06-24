@@ -9,6 +9,9 @@ var _transition: ColorRect
 var _root: Node
 var _transitioning: bool = false
 
+var _room_cache: Dictionary = {}
+var _current_pos: Vector2i = Vector2i.ZERO
+
 
 func _ready():
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -36,6 +39,7 @@ func enter_first_room(player: Node2D, root: Node):
 		return
 	_player = player
 	_root = root
+	_current_pos = Vector2i.ZERO
 	_load_room(-1)
 
 
@@ -59,28 +63,37 @@ func _load_room(entrance_direction: int):
 
 
 func _do_switch(entrance_direction: int):
+	_current_pos = _next_pos(entrance_direction)
+
 	if is_instance_valid(_current_room):
-		_current_room.queue_free()
-	_current_room = null
+		_current_room.get_parent().remove_child(_current_room)
 
-	var scene = _room_scenes[randi() % _room_scenes.size()]
-	var room = scene.instantiate()
-	_current_room = room
-	_root.add_child(room)
-	_root.move_child(room, 0)
+	if _room_cache.has(_current_pos):
+		_current_room = _room_cache[_current_pos]
+		_root.add_child(_current_room)
+		_root.move_child(_current_room, 0)
+	else:
+		var scene = _room_scenes[randi() % _room_scenes.size()]
+		var room = scene.instantiate()
+		_room_cache[_current_pos] = room
+		_current_room = room
+		_root.add_child(room)
+		_root.move_child(room, 0)
 
+	var player_placed = false
 	if entrance_direction < 0:
-		var spawn = room.get_node_or_null("PlayerSpawn")
+		var spawn = _current_room.get_node_or_null("PlayerSpawn")
 		if spawn:
 			_player.global_position = spawn.global_position
-	else:
+			player_placed = true
+	if not player_placed:
 		var target_dir = _opposite(entrance_direction)
-		for child in room.find_children("*", "Area2D"):
+		for child in _current_room.find_children("*", "Area2D"):
 			if child.get_script() == _DoorScript and child.direction == target_dir:
 				_player.global_position = child.global_position
 				break
 
-	for child in room.find_children("*", "Area2D"):
+	for child in _current_room.find_children("*", "Area2D"):
 		if child.get_script() == _DoorScript:
 			if not child.player_entered.is_connected(_on_door_entered):
 				child.player_entered.connect(_on_door_entered)
@@ -88,6 +101,15 @@ func _do_switch(entrance_direction: int):
 
 func _on_door_entered(door_direction: int):
 	_load_room(door_direction)
+
+
+func _next_pos(door_dir: int) -> Vector2i:
+	match door_dir:
+		DoorMarker.Direction.UP: return _current_pos + Vector2i(0, -1)
+		DoorMarker.Direction.DOWN: return _current_pos + Vector2i(0, 1)
+		DoorMarker.Direction.LEFT: return _current_pos + Vector2i(-1, 0)
+		DoorMarker.Direction.RIGHT: return _current_pos + Vector2i(1, 0)
+	return _current_pos
 
 
 func _opposite(d: int) -> int:
