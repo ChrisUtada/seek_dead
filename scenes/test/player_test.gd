@@ -17,7 +17,6 @@ func _ready():
 	_create_obstacle()
 	_spawn_enemies_from_configs()
 	_spawn_boss()
-	_init_player_weapons()
 
 func _create_obstacle():
 	var block = StaticBody2D.new()
@@ -120,9 +119,3 @@ func _load_game():
 	if wi < player.weapon.get_weapon_count():
 		player.weapon.switch_weapon(wi)
 	print("读档成功")
-
-func _init_player_weapons():
-	var player = $Player
-	if not player:
-		return
-	player.init_weapons(WeaponRegistry.get_all())

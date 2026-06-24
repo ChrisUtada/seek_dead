@@ -3,7 +3,6 @@ extends CharacterBody2D
 
 const _WeaponComp = preload("res://scripts/components/weapon_component.gd")
 const _MoverComp = preload("res://scripts/components/movement_component.gd")
-const _WeaponBase = preload("res://scripts/battle/weapon_base.gd")
 const _RangedWeapon = preload("res://scripts/battle/ranged_weapon.gd")
 
 signal player_damaged(amount: float, current_hp: float, max_hp: float)
@@ -86,9 +85,6 @@ func _generate_placeholder_texture():
 	var spr = _sprite as Sprite2D
 	spr.texture = ImageTexture.create_from_image(image)
 	spr.centered = true
-
-func init_weapons(weapon_list: Array[WeaponBase]):
-	weapon.init_weapons(weapon_list)
 
 func take_damage(amount: float, damage_type: int) -> Dictionary:
 	if is_invincible:

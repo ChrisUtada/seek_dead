@@ -26,24 +26,17 @@ func set_aim_direction(dir: Vector2):
 			w.aim_direction = dir
 		rotation = dir.angle()
 
-func init_weapons(weapon_list: Array[WeaponBase]):
-	for w in weapon_list:
-		var scene = w.visual_scene
-		if not scene:
+func _ready():
+	for child in get_children():
+		if child.get("stats") == null or not child.has_signal("hit_landed"):
 			continue
-		var node = scene.instantiate() as WeaponNode
-		if not node:
-			continue
-		node.stats = w
-		node.shooter = get_parent() as CharacterBody2D
-		node.aim_direction = aim_direction
-		node.weapon_color = DamageSystem.get_color(w.damage_type)
-		node.hit_landed.connect(_on_weapon_hit)
-		node.attack_finished.connect(_on_attack_finished)
-		node.visible = false
-		add_child(node)
-		weapons.append(node)
-	weapon_index = 0
+		child.shooter = get_parent() as CharacterBody2D
+		child.aim_direction = aim_direction
+		child.weapon_color = DamageSystem.get_color(child.stats.damage_type)
+		child.hit_landed.connect(_on_weapon_hit)
+		child.attack_finished.connect(_on_attack_finished)
+		child.visible = false
+		weapons.append(child)
 	if weapons.size() > 0:
 		weapons[0].on_equip()
 		weapon_changed.emit(weapons[0])
