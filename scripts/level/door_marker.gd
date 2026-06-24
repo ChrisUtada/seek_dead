@@ -1,4 +1,5 @@
-extends Marker2D
+class_name DoorMarker
+extends Area2D
 
 enum Direction { UP, DOWN, LEFT, RIGHT }
 
@@ -6,6 +7,15 @@ enum Direction { UP, DOWN, LEFT, RIGHT }
 	set(v):
 		direction = v
 		queue_redraw()
+
+signal player_entered(door_direction: int)
+
+func _ready():
+	body_entered.connect(_on_body_entered)
+
+func _on_body_entered(body: Node2D):
+	if body.is_in_group("player"):
+		player_entered.emit(direction)
 
 func _draw():
 	if not Engine.is_editor_hint():

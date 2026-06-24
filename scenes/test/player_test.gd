@@ -1,31 +1,11 @@
 extends Node2D
 
-const _Generator = preload("res://scripts/level/room_generator.gd")
-
 @onready var _player: Node2D = $Player
 
 
 func _ready():
-	var rooms: Array[String] = [
-		"res://scenes/rooms/room_1.tscn",
-		"res://scenes/rooms/room_2.tscn",
-	]
-	var gen = _Generator.new()
-	var result = gen.generate(rooms, 4)
-
-	if result.is_empty():
-		print("Room generation failed — 请检查房间是否有 DoorMarker")
-		return
-
-	var level = result.root
-	add_child(level)
-	move_child(level, 0)
-
-	var spawn = result.player_spawn
 	if _player:
-		_player.position = spawn
-
-	print("地图已生成: %d 个房间" % level.get_child_count())
+		RoomManager.enter_first_room(_player, self)
 
 
 func _input(event):

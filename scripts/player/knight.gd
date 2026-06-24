@@ -2,6 +2,7 @@ extends "res://scripts/battle/player_controller.gd"
 
 func _ready():
 	super()
+	add_to_group("player")
 	var anim: AnimatedSprite2D = $Sprite2D
 	if anim:
 		anim.play("idle")

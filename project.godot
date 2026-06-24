@@ -28,6 +28,7 @@ EntityRegistry="*res://scripts/systems/entity_registry.gd"
 SaveSystem="*res://scripts/utils/save_system.gd"
 SceneManager="*res://autoload/scene_manager.gd"
 AudioManager="*res://autoload/audio_manager.gd"
+RoomManager="*res://scripts/level/room_manager.gd"
 
 [display]
 

@@ -1,0 +1,98 @@
+extends Node
+
+const _DoorScript = preload("res://scripts/level/door_marker.gd")
+
+var _player: Node2D
+var _current_room: Node2D
+var _room_scenes: Array[PackedScene]
+var _transition: ColorRect
+var _root: Node
+var _transitioning: bool = false
+
+
+func _ready():
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	var paths = [
+		"res://scenes/rooms/room_1.tscn",
+		"res://scenes/rooms/room_2.tscn",
+	]
+	for p in paths:
+		var s = load(p)
+		if s:
+			_room_scenes.append(s)
+
+	var layer = CanvasLayer.new()
+	layer.layer = 100
+	add_child(layer)
+	_transition = ColorRect.new()
+	_transition.size = Vector2(800, 600)
+	_transition.color = Color(0, 0, 0, 0)
+	_transition.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(_transition)
+
+
+func enter_first_room(player: Node2D, root: Node):
+	if _room_scenes.is_empty():
+		return
+	_player = player
+	_root = root
+	_load_room(-1)
+
+
+func _load_room(entrance_direction: int):
+	if _transitioning:
+		return
+	_transitioning = true
+
+	_transition.mouse_filter = Control.MOUSE_FILTER_STOP
+	var t = create_tween()
+	t.tween_property(_transition, "color", Color(0, 0, 0, 1), 0.3)
+	t.tween_callback(func():
+		_do_switch(entrance_direction)
+		var t2 = create_tween()
+		t2.tween_property(_transition, "color", Color(0, 0, 0, 0), 0.3)
+		t2.tween_callback(func():
+			_transition.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_transitioning = false
+		)
+	)
+
+
+func _do_switch(entrance_direction: int):
+	if is_instance_valid(_current_room):
+		_current_room.queue_free()
+	_current_room = null
+
+	var scene = _room_scenes[randi() % _room_scenes.size()]
+	var room = scene.instantiate()
+	_current_room = room
+	_root.add_child(room)
+
+	if entrance_direction < 0:
+		var spawn = room.get_node_or_null("PlayerSpawn")
+		if spawn:
+			_player.global_position = spawn.global_position
+	else:
+		var target_dir = _opposite(entrance_direction)
+		for child in room.find_children("*", "Area2D"):
+			if child.get_script() == _DoorScript and child.direction == target_dir:
+				_player.global_position = child.global_position
+				break
+
+	for child in room.find_children("*", "Area2D"):
+		if child.get_script() == _DoorScript:
+			if not child.player_entered.is_connected(_on_door_entered):
+				child.player_entered.connect(_on_door_entered)
+
+
+func _on_door_entered(door_direction: int):
+	_load_room(door_direction)
+
+
+func _opposite(d: int) -> int:
+	match d:
+		DoorMarker.Direction.UP: return DoorMarker.Direction.DOWN
+		DoorMarker.Direction.DOWN: return DoorMarker.Direction.UP
+		DoorMarker.Direction.LEFT: return DoorMarker.Direction.RIGHT
+		DoorMarker.Direction.RIGHT: return DoorMarker.Direction.LEFT
+	return d
