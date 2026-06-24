@@ -1,7 +1,7 @@
 class_name RoomGenerator
 extends RefCounted
 
-const GAP_TILES := 1
+const GAP_TILES := 3
 const _DoorScript = preload("res://scripts/level/door_marker.gd")
 
 class PlacedRoom:
@@ -77,6 +77,7 @@ func generate(room_paths: Array[String], max_rooms: int = 4, rng_seed: int = -1)
 			continue
 
 		root.add_child(new_room.node)
+		_create_corridor(root, src_room, src_door, new_room, dst_door)
 		src_room.door_connected[src_idx] = true
 		new_room.door_connected[dst_idx] = true
 		placed.append(new_room)
@@ -173,6 +174,43 @@ func _find_tilemap(node: Node) -> TileMapLayer:
 	for child in node.find_children("*", "TileMapLayer"):
 		return child
 	return null
+
+
+func _create_corridor(root: Node2D, src_room: PlacedRoom, src_door: Marker2D, dst_room: PlacedRoom, dst_door: Marker2D):
+	var ts = _tile_size(src_room)
+	var src_world = src_room.node.position + src_door.position
+	var dst_world = dst_room.node.position + dst_door.position
+	var dir = _dir_vec(src_door.direction)
+
+	var start_tile = Vector2i(
+		int(floor((src_world.x + dir.x * ts) / ts)),
+		int(floor((src_world.y + dir.y * ts) / ts))
+	)
+	var end_tile = Vector2i(
+		int(floor((dst_world.x - dir.x * ts) / ts)),
+		int(floor((dst_world.y - dir.y * ts) / ts))
+	)
+
+	var min_p = Vector2i(min(start_tile.x, end_tile.x), min(start_tile.y, end_tile.y))
+	var max_p = Vector2i(max(start_tile.x, end_tile.x), max(start_tile.y, end_tile.y))
+
+	var ts_set = src_room.tilemap.tile_set
+	if ts_set == null:
+		return
+	var corridor = TileMapLayer.new()
+	corridor.name = "Corridor"
+	corridor.tile_set = ts_set
+	root.add_child(corridor)
+	root.move_child(corridor, 0)
+
+	var src_id = 0
+	var ids = ts_set.get_source_list()
+	if ids.size() > 0:
+		src_id = ids[0]
+
+	for x in range(min_p.x, max_p.x + 1):
+		for y in range(min_p.y, max_p.y + 1):
+			corridor.set_cell(Vector2i(x, y), src_id, Vector2i(0, 0))
 
 
 func _bake_navigation(root: Node2D):
