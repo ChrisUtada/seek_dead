@@ -56,7 +56,16 @@ func _physics_process(delta):
 	else:
 		mover.direction = ai.get_move_direction()
 
+	_update_facing()
 	_update_animation()
+
+
+func _update_facing():
+	var target = ai.get_target()
+	if target and is_instance_valid(target):
+		_sprite.flip_h = target.global_position.x < global_position.x
+	elif mover.direction.length() > 0.1:
+		_sprite.flip_h = mover.direction.x < 0
 
 
 func _update_animation():
