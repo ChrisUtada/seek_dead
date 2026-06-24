@@ -74,7 +74,6 @@ _data = {
 }
 
 [node name="Goblin" type="CharacterBody2D" unique_id=1624054806]
-position = Vector2(-2, -33)
 collision_layer = 2
 collision_mask = 4
 script = ExtResource("1")
