@@ -67,6 +67,7 @@ func _do_switch(entrance_direction: int):
 	var room = scene.instantiate()
 	_current_room = room
 	_root.add_child(room)
+	_root.move_child(room, 0)
 
 	if entrance_direction < 0:
 		var spawn = room.get_node_or_null("PlayerSpawn")
