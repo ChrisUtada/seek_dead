@@ -3,6 +3,7 @@
 [ext_resource type="Script" path="res://scripts/battle/ranged_weapon.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/weapons/ice_gun.tscn" id="2"]
 [ext_resource type="PackedScene" uid="uid://projectile" path="res://scenes/battle/projectile.tscn" id="3"]
+[ext_resource type="Resource" path="res://resources/bullets/default_bullet.tres" id="4"]
 
 [resource]
 script = ExtResource("1")
@@ -17,4 +18,5 @@ status_effect_type = 2
 status_effect_damage = 0.0
 status_effect_duration = 2.0
 bullet_scene = ExtResource("3")
+bullet_data = ExtResource("4")
 visual_scene = ExtResource("2")

@@ -3,6 +3,7 @@
 [ext_resource type="Script" path="res://scripts/battle/ranged_weapon.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/weapons/pistol.tscn" id="2"]
 [ext_resource type="PackedScene" uid="uid://projectile" path="res://scenes/battle/projectile.tscn" id="3"]
+[ext_resource type="Resource" path="res://resources/bullets/default_bullet.tres" id="4"]
 
 [resource]
 script = ExtResource("1")
@@ -13,4 +14,5 @@ attack_range = 500.0
 bullet_speed = 700.0
 max_ammo = 30
 bullet_scene = ExtResource("3")
+bullet_data = ExtResource("4")
 visual_scene = ExtResource("2")

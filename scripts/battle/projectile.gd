@@ -2,8 +2,11 @@ extends Area2D
 
 signal hit(hit_pos: Vector2, hit_dir: Vector2, damage_type: int, body: Node2D)
 
+const _BulletData = preload("res://scripts/battle/bullet_data.gd")
+
+@export var data: BulletData
+
 var direction: Vector2
-var speed: float = 600.0
 var damage: float = 20.0
 var damage_type: int = 0
 var shooter: Node = null
@@ -25,9 +28,12 @@ func set_pool(pool: ObjectPool):
 	_pool = pool
 
 func _physics_process(delta):
-	position += direction * speed * delta
+	if not data:
+		_return_to_pool()
+		return
+	position += direction * data.speed * delta
 	_age += delta
-	if _age > 2.0:
+	if _age > data.lifetime:
 		_return_to_pool()
 
 func _on_body_entered(body):

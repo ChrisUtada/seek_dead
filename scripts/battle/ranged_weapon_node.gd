@@ -24,7 +24,7 @@ func attack():
 	var bullet = scene.instantiate()
 	bullet.global_position = shooter.global_position
 	bullet.direction = aim_direction
-	bullet.speed = ranged_stats.bullet_speed
+	bullet.data = ranged_stats.bullet_data
 	bullet.damage = stats.damage
 	bullet.damage_type = stats.damage_type
 	bullet.shooter = shooter
