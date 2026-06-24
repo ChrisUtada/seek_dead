@@ -8,10 +8,14 @@
 [ext_resource type="Script" uid="uid://btldsllomp8fd" path="res://scripts/components/dodge_component.gd" id="5"]
 [ext_resource type="Texture2D" uid="uid://g2gyh22pn17o" path="res://assets/chars/Knight/Run/Run-Sheet.png" id="5_d5h67"]
 [ext_resource type="Script" uid="uid://b5yukeonfgiv4" path="res://scripts/components/sprint_component.gd" id="6"]
+[ext_resource type="PackedScene" uid="uid://dcmcsdmej037o" path="res://scenes/weapons/fire_sword.tscn" id="6_52gso"]
 [ext_resource type="Script" uid="uid://ddx2ff3dfsbis" path="res://scripts/battle/ammo_system.gd" id="7"]
 [ext_resource type="Script" uid="uid://cpyarsdklh28t" path="res://scripts/battle/skill_manager.gd" id="8"]
 [ext_resource type="Resource" uid="uid://dcheib4eqysy2" path="res://resources/players/knight.tres" id="9"]
+[ext_resource type="Resource" path="res://resources/weapons/fire_sword.tres" id="9_ycxmx"]
 [ext_resource type="Script" uid="uid://qjvq1fr7aq82" path="res://scripts/ui/shadow.gd" id="10"]
+[ext_resource type="PackedScene" uid="uid://bk17goreq0m7a" path="res://scenes/weapons/pistol.tscn" id="10_xa10o"]
+[ext_resource type="Resource" path="res://resources/weapons/pistol.tres" id="11_b174x"]
 
 [sub_resource type="CircleShape2D" id="1"]
 radius = 17.0
@@ -127,6 +131,12 @@ script = ExtResource("2")
 
 [node name="WeaponComponent" type="Node2D" parent="." unique_id=817705289]
 script = ExtResource("4")
+
+[node name="Weapon" parent="WeaponComponent" unique_id=1490556440 instance=ExtResource("6_52gso")]
+stats = ExtResource("9_ycxmx")
+
+[node name="Weapon2" parent="WeaponComponent" unique_id=1605078602 instance=ExtResource("10_xa10o")]
+stats = ExtResource("11_b174x")
 
 [node name="MovementComponent" type="Node" parent="." unique_id=905232527]
 script = ExtResource("3")

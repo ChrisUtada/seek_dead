@@ -40,7 +40,6 @@ func _update_visual(delta):
 		if _swing_progress >= 1.0:
 			_is_swinging = false
 			_swing_progress = 0.0
-			rotation = 0.0
 			queue_redraw()
 	for i in range(_trail_alphas.size() - 1, -1, -1):
 		_trail_alphas[i] -= delta / _trail_lifetime
