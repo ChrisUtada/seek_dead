@@ -7,8 +7,8 @@ const _DoorScript = preload("res://scripts/level/door_marker.gd")
 class PlacedRoom:
 	var node: Node2D
 	var tilemap: TileMapLayer
-	var doors: Array[Marker2D]
-	var door_connected: Array[bool]
+	var doors = []
+	var door_connected = []
 	var world_rect: Rect2
 
 
@@ -112,8 +112,8 @@ func _instantiate_room(scene: PackedScene) -> PlacedRoom:
 	var tilemap = _find_tilemap(node)
 	result.tilemap = tilemap
 
-	result.doors = Array[Marker2D]()
-	result.door_connected = Array[bool]()
+	result.doors = []
+	result.door_connected = []
 	for child in node.find_children("*", "Marker2D"):
 		if child.get_script() == _DoorScript:
 			result.doors.append(child)
