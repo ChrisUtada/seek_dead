@@ -112,8 +112,8 @@ func _instantiate_room(scene: PackedScene) -> PlacedRoom:
 	var tilemap = _find_tilemap(node)
 	result.tilemap = tilemap
 
-	result.doors = []
-	result.door_connected = []
+	result.doors = Array[Marker2D]()
+	result.door_connected = Array[bool]()
 	for child in node.find_children("*", "Marker2D"):
 		if child.get_script() == _DoorScript:
 			result.doors.append(child)
