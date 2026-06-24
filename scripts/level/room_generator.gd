@@ -204,9 +204,9 @@ func _create_corridor(root: Node2D, src_room: PlacedRoom, src_door: Marker2D, ds
 	root.move_child(corridor, 0)
 
 	var src_id = 0
-	var ids = ts_set.get_source_list()
-	if ids.size() > 0:
-		src_id = ids[0]
+	var count = ts_set.get_source_count()
+	if count > 0:
+		src_id = ts_set.get_source_id(0)
 
 	for x in range(min_p.x, max_p.x + 1):
 		for y in range(min_p.y, max_p.y + 1):
