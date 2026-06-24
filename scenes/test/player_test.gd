@@ -64,8 +64,7 @@ func _spawn_enemies_from_configs():
 		var enemy = scene.instantiate()
 		enemy.position = positions[i]
 		add_child(enemy)
-		enemy.apply_config(cfg)
-		print("敌人%d: %s HP=%.0f 属性=%s" % [i + 1, cfg.display_name, enemy.state.max_hp, innate_names[enemy.state.innate_type]])
+		print("敌人%d: %s" % [i + 1, cfg.display_name])
 
 func _spawn_boss():
 	var cfg = load("res://resources/enemies/fire_boss.tres") as BossConfig
