@@ -1,43 +1,112 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene format=3 uid="uid://rqk8axxshsyu"]
 
-[ext_resource type="Script" path="res://scripts/battle/test_enemy.gd" id="1"]
-[ext_resource type="Script" path="res://scripts/battle/state_component.gd" id="2"]
-[ext_resource type="Script" path="res://scripts/components/movement_component.gd" id="3"]
-[ext_resource type="Script" path="res://scripts/components/status_effect_component.gd" id="4"]
-[ext_resource type="Script" path="res://scripts/components/ai_component.gd" id="5"]
-[ext_resource type="Script" path="res://scripts/ui/shadow.gd" id="6"]
+[ext_resource type="Script" uid="uid://bvajoqx4xhobd" path="res://scripts/battle/test_enemy.gd" id="1"]
+[ext_resource type="Script" uid="uid://ctiii7qq0t53a" path="res://scripts/battle/state_component.gd" id="2"]
+[ext_resource type="Script" uid="uid://cfrk7f3nucaq4" path="res://scripts/components/movement_component.gd" id="3"]
+[ext_resource type="Texture2D" uid="uid://c6n4ep77nf1yk" path="res://assets/chars/kl/Run-Sheet.png" id="3_oth3g"]
+[ext_resource type="Script" uid="uid://o84bb33jrmab" path="res://scripts/components/status_effect_component.gd" id="4"]
+[ext_resource type="Script" uid="uid://d34krmmfes3iv" path="res://scripts/components/ai_component.gd" id="5"]
+[ext_resource type="Script" uid="uid://qjvq1fr7aq82" path="res://scripts/ui/shadow.gd" id="6"]
 
 [sub_resource type="RectangleShape2D" id="1"]
-size = Vector2(28, 28)
+size = Vector2(28, 35)
 
-[node name="Goblin" type="CharacterBody2D"]
+[sub_resource type="Animation" id="Animation_xkrhs"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:hframes")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [6]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Sprite2D:frame")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [0]
+}
+
+[sub_resource type="Animation" id="Animation_s0g86"]
+resource_name = "run"
+length = 0.6
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:hframes")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [6]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Sprite2D:frame")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.16666667, 0.26666668, 0.36666667, 0.46666664, 0.56666666),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [0, 1, 2, 3, 4, 5]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_ddai1"]
+_data = {
+&"RESET": SubResource("Animation_xkrhs"),
+&"run": SubResource("Animation_s0g86")
+}
+
+[node name="Goblin" type="CharacterBody2D" unique_id=1624054806]
+position = Vector2(-2, -33)
 collision_layer = 2
 collision_mask = 4
 script = ExtResource("1")
 
-[node name="Shadow" type="Node2D" parent="."]
+[node name="Shadow" type="Node2D" parent="." unique_id=913478663]
 script = ExtResource("6")
 shadow_scale = Vector2(1.6, 0.5)
 shadow_offset = Vector2(0, 5)
 shadow_opacity = 0.25
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=102230998]
+position = Vector2(0, 15.5)
 shape = SubResource("1")
 
-[node name="Sprite2D" type="Sprite2D" parent="."]
-centered = true
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1213592308]
+texture = ExtResource("3_oth3g")
+hframes = 6
 
-[node name="StateComponent" type="Node" parent="."]
+[node name="StateComponent" type="Node" parent="." unique_id=1151793950]
 script = ExtResource("2")
 
-[node name="StatusEffectComponent" type="Node" parent="."]
+[node name="StatusEffectComponent" type="Node" parent="." unique_id=1943237101]
 script = ExtResource("4")
 
-[node name="AIComponent" type="Node" parent="."]
+[node name="AIComponent" type="Node" parent="." unique_id=926732128]
 script = ExtResource("5")
 
-[node name="MovementComponent" type="Node" parent="."]
+[node name="MovementComponent" type="Node" parent="." unique_id=516680120]
 script = ExtResource("3")
 speed = 65.0
 
-[node name="NavigationAgent2D" type="NavigationAgent2D" parent="."]
+[node name="NavigationAgent2D" type="NavigationAgent2D" parent="." unique_id=1249108397]
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=389024883]
+libraries/ = SubResource("AnimationLibrary_ddai1")

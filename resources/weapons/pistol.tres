@@ -1,18 +1,18 @@
-[gd_resource type="Resource" script_class="RangedWeapon" format=3]
+[gd_resource type="Resource" script_class="RangedWeapon" format=3 uid="uid://bp8mm0j2aqlyy"]
 
-[ext_resource type="Script" path="res://scripts/battle/ranged_weapon.gd" id="1"]
-[ext_resource type="PackedScene" path="res://scenes/weapons/pistol.tscn" id="2"]
+[ext_resource type="Script" uid="uid://vsxkxngsq4pt" path="res://scripts/battle/ranged_weapon.gd" id="1"]
+[ext_resource type="PackedScene" uid="uid://bk17goreq0m7a" path="res://scenes/weapons/pistol.tscn" id="2"]
 [ext_resource type="PackedScene" uid="uid://projectile" path="res://scenes/battle/projectile.tscn" id="3"]
 [ext_resource type="Resource" path="res://resources/bullets/default_bullet.tres" id="4"]
 
 [resource]
 script = ExtResource("1")
+bullet_scene = ExtResource("3")
+bullet_speed = 700.0
+max_ammo = 30
+bullet_data = ExtResource("4")
 weapon_name = "手枪"
 damage = 20.0
 attack_speed = 2.5
 attack_range = 500.0
-bullet_speed = 700.0
-max_ammo = 30
-bullet_scene = ExtResource("3")
-bullet_data = ExtResource("4")
 visual_scene = ExtResource("2")

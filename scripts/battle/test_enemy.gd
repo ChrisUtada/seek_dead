@@ -1,4 +1,4 @@
-extends "res://scripts/battle/enemy_base.gd"
+extends EnemyBase
 
 const _AIComp = preload("res://scripts/components/ai_component.gd")
 const _MoverComp = preload("res://scripts/components/movement_component.gd")
