@@ -7,6 +7,7 @@
 [ext_resource type="Script" uid="uid://o84bb33jrmab" path="res://scripts/components/status_effect_component.gd" id="4"]
 [ext_resource type="Script" uid="uid://d34krmmfes3iv" path="res://scripts/components/ai_component.gd" id="5"]
 [ext_resource type="Script" uid="uid://qjvq1fr7aq82" path="res://scripts/ui/shadow.gd" id="6"]
+[ext_resource type="Resource" uid="uid://ddc2lx0603a2f" path="res://resources/enemies/goblin.tres" id="7"]
 
 [sub_resource type="RectangleShape2D" id="1"]
 size = Vector2(28, 35)
@@ -77,6 +78,7 @@ _data = {
 collision_layer = 2
 collision_mask = 4
 script = ExtResource("1")
+config = ExtResource("7")
 
 [node name="Shadow" type="Node2D" parent="." unique_id=913478663]
 script = ExtResource("6")

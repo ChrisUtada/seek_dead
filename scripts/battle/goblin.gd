@@ -2,6 +2,8 @@ extends EnemyBase
 
 const _AIComp = preload("res://scripts/components/ai_component.gd")
 
+@export var config: EnemyConfig
+
 @onready var ai: AIComponent = $AIComponent
 @onready var _anim: AnimationPlayer = $AnimationPlayer
 
@@ -10,6 +12,8 @@ var _was_moving: bool = false
 
 func _ready():
 	_enemy_ready()
+	if config:
+		apply_config(config)
 	ai.attack_performed.connect(_on_ai_attack)
 	ai.alerted.connect(_on_ai_alerted)
 	ai.set_home(global_position, 600.0)
