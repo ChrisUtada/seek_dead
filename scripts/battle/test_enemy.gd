@@ -34,7 +34,8 @@ func apply_config(config: EnemyConfig):
 	state.innate_type = config.innate_type
 	state.defenses = config.defenses.duplicate()
 	mover.speed = config.speed
-	_generate_texture(config.color, 32)
+	if _sprite.texture == null:
+		_generate_texture(config.color, 32)
 
 func _on_ai_attack(target: Node2D, damage: float):
 	if not is_instance_valid(target):
