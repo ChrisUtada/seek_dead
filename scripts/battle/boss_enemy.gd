@@ -155,7 +155,8 @@ func _on_ranged_burst(_target: Node2D):
 		bullet.damage = get_burst_damage()
 		bullet.damage_type = state.innate_type
 		bullet.shooter = self
-		bullet.speed = get_bullet_speed()
+		bullet.data = BulletData.new()
+		bullet.data.speed = get_bullet_speed()
 		get_parent().add_child(bullet)
 		_bullet_visual(bullet)
 	AudioManager.play_sfx(AudioManager.SfxType.BOSS_BURST)
