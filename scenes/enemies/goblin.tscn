@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://rqk8axxshsyu"]
 
-[ext_resource type="Script" uid="uid://bvajoqx4xhobd" path="res://scripts/battle/test_enemy.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/battle/goblin.gd" id="1"]
 [ext_resource type="Script" uid="uid://ctiii7qq0t53a" path="res://scripts/battle/state_component.gd" id="2"]
 [ext_resource type="Script" uid="uid://cfrk7f3nucaq4" path="res://scripts/components/movement_component.gd" id="3"]
 [ext_resource type="Texture2D" uid="uid://c6n4ep77nf1yk" path="res://assets/chars/kl/Run-Sheet.png" id="3_oth3g"]
