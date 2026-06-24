@@ -1,0 +1,6 @@
+[gd_scene format=4]
+
+[ext_resource type="Script" path="res://scripts/level/door_marker.gd" id="1"]
+
+[node name="DoorMarker" type="Marker2D"]
+script = ExtResource("1")

@@ -1,79 +1,32 @@
 extends Node2D
 
+const _Generator = preload("res://scripts/level/room_generator.gd")
+
+@onready var _player: Node2D = $Player
+
+
 func _ready():
-	print("")
-	print("*".repeat(70))
-	print("  Seek Dead - 战斗系统验证")
-	print("  WASD移动 | 鼠标瞄准 | 左键攻击")
-	print("  1铁剑 | 2火剑 | 3毒匕 | 4手枪 | 5冰枪")
-	print("  Shift闪避(-15热) | Ctrl冲刺 | R装弹 | Q治疗 | E震波")
-	print("  F5存档 | F9读档 | Esc暂停 | F2重开")
-	print("  超载(100%热): 远程攻速x2自伤5/不耗弹, 近战范围x1.5必暴/-30%移速")
-	print("  骑士: Idle/Run/Death 动画")
-	print("*".repeat(70))
-	print("")
-
-	_create_background()
-	_create_obstacle()
-	_spawn_enemies_from_configs()
-	_spawn_boss()
-
-func _create_obstacle():
-	var block = StaticBody2D.new()
-	block.name = "Obstacle"
-	block.collision_layer = 1 << 2
-	add_child(block)
-	var shape = CollisionShape2D.new()
-	shape.shape = RectangleShape2D.new()
-	shape.shape.size = Vector2(80, 80)
-	block.add_child(shape)
-	var sprite = Sprite2D.new()
-	var img = Image.create(80, 80, false, Image.FORMAT_RGBA8)
-	for x in range(80):
-		for y in range(80):
-			img.set_pixel(x, y, Color(0.5, 0.25, 0.05))
-	sprite.texture = ImageTexture.create_from_image(img)
-	block.add_child(sprite)
-	block.position = Vector2(800, 600)
-
-func _create_background():
-	for x in range(-200, 1800, 50):
-		var line = Line2D.new()
-		line.points = [Vector2(x, -200), Vector2(x, 1400)]
-		line.default_color = Color(0.2, 0.2, 0.2, 0.3)
-		line.width = 1
-		add_child(line)
-	for y in range(-200, 1400, 50):
-		var line = Line2D.new()
-		line.points = [Vector2(-200, y), Vector2(1800, y)]
-		line.default_color = Color(0.2, 0.2, 0.2, 0.3)
-		line.width = 1
-		add_child(line)
-
-func _spawn_enemies_from_configs():
-	var config_paths = [
-		"res://resources/enemies/skeleton.tres",
-		"res://resources/enemies/goblin.tres",
+	var rooms = [
+		"res://scenes/rooms/room_1.tscn",
+		"res://scenes/rooms/room_2.tscn",
 	]
-	var positions = [Vector2(600, 150), Vector2(800, 150), Vector2(600, 400), Vector2(800, 400)]
-	var innate_names = ["穿刺", "斩击", "打击", "火焰", "雷电", "冰霜", "毒素", "风系"]
+	var gen = _Generator.new()
+	var result = gen.generate(rooms, 4)
 
-	for i in range(4):
-		var cfg = load(config_paths[i % config_paths.size()]) as EnemyConfig
-		var scene = load(cfg.scene_path)
-		var enemy = scene.instantiate()
-		enemy.position = positions[i]
-		add_child(enemy)
-		print("敌人%d: %s" % [i + 1, cfg.display_name])
+	if result.is_empty():
+		print("Room generation failed — 请检查房间是否有 DoorMarker")
+		return
 
-func _spawn_boss():
-	var cfg = load("res://resources/enemies/fire_boss.tres") as BossConfig
-	var scene = load(cfg.scene_path)
-	var boss = scene.instantiate()
-	boss.position = Vector2(800, 200)
-	add_child(boss)
-	boss.apply_config(cfg)
-	print("Boss: HP=%.0f 属性=火焰" % boss.state.max_hp)
+	var level = result.root
+	add_child(level)
+	move_child(level, 0)
+
+	var spawn = result.player_spawn
+	if _player:
+		_player.position = spawn
+
+	print("地图已生成: %d 个房间" % level.get_child_count())
+
 
 func _input(event):
 	if event.is_action_pressed("save_game"):
@@ -81,19 +34,19 @@ func _input(event):
 	if event.is_action_pressed("load_game"):
 		_load_game()
 
+
 func _save_game():
-	var player = $Player
-	if not player:
+	if not _player:
 		return
 	var data = {
-		"hp": player.state.hp,
-		"max_hp": player.state.max_hp,
-		"energy": player.state.energy,
-		"stamina": player.state.stamina,
-		"heat": player.state.heat,
-		"position_x": player.position.x,
-		"position_y": player.position.y,
-		"weapon_index": player.weapon.current_index,
+		"hp": _player.state.hp,
+		"max_hp": _player.state.max_hp,
+		"energy": _player.state.energy,
+		"stamina": _player.state.stamina,
+		"heat": _player.state.heat,
+		"position_x": _player.position.x,
+		"position_y": _player.position.y,
+		"weapon_index": _player.weapon.current_index,
 		"timestamp": Time.get_datetime_string_from_system(),
 	}
 	if SaveSystem.save_game(data):
@@ -101,20 +54,20 @@ func _save_game():
 	else:
 		push_error("存档失败")
 
+
 func _load_game():
 	var data = SaveSystem.load_game()
 	if data.is_empty():
 		print("没有存档")
 		return
-	var player = $Player
-	if not player:
+	if not _player:
 		return
-	player.state.hp = data.get("hp", player.state.max_hp)
-	player.state.energy = data.get("energy", player.state.max_energy)
-	player.state.stamina = data.get("stamina", player.state.max_stamina)
-	player.state.heat = data.get("heat", 0.0)
-	player.position = Vector2(data.get("position_x", 400.0), data.get("position_y", 300.0))
+	_player.state.hp = data.get("hp", _player.state.max_hp)
+	_player.state.energy = data.get("energy", _player.state.max_energy)
+	_player.state.stamina = data.get("stamina", _player.state.max_stamina)
+	_player.state.heat = data.get("heat", 0.0)
+	_player.position = Vector2(data.get("position_x", 400.0), data.get("position_y", 300.0))
 	var wi = data.get("weapon_index", 0)
-	if wi < player.weapon.get_weapon_count():
-		player.weapon.switch_weapon(wi)
+	if wi < _player.weapon.get_weapon_count():
+		_player.weapon.switch_weapon(wi)
 	print("读档成功")
