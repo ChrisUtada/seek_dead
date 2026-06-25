@@ -80,30 +80,16 @@ func _do_switch(entrance_direction: int):
 		_root.add_child(room)
 		_root.move_child(room, 0)
 
-	var player_placed = false
-	if entrance_direction < 0:
-		var spawn = _current_room.get_node_or_null("PlayerSpawn")
-		if spawn:
-			_player.global_position = spawn.global_position
-			player_placed = true
-	if not player_placed:
-		var target_dir = _opposite(entrance_direction)
-		for child in _current_room.find_children("*", "Area2D"):
-			if child.get_script() == _DoorScript and child.direction == target_dir:
-				_player.global_position = child.global_position
-				player_placed = true
-				break
-		if not player_placed:
-			var spawn = _current_room.get_node_or_null("PlayerSpawn")
-			if spawn:
-				_player.global_position = spawn.global_position
-			else:
-				var rect = _current_room.find_child("TileMapLayer")
-				if rect:
-					var r = rect.get_used_rect()
-					_player.global_position = Vector2(r.get_center()) * 16
-				else:
-					_player.global_position = Vector2(400, 300)
+	var spawn = _current_room.get_node_or_null("PlayerSpawn")
+	if spawn:
+		_player.global_position = spawn.global_position
+	else:
+		var tml = _current_room.find_child("TileMapLayer")
+		if tml:
+			var r = tml.get_used_rect() as Rect2i
+			_player.global_position = Vector2(r.get_center()) * _tile_size(tml)
+		else:
+			_player.global_position = Vector2(400, 300)
 
 	for child in _current_room.find_children("*", "Area2D"):
 		if child.get_script() == _DoorScript:
@@ -131,3 +117,8 @@ func _opposite(d: int) -> int:
 		DoorMarker.Direction.LEFT: return DoorMarker.Direction.RIGHT
 		DoorMarker.Direction.RIGHT: return DoorMarker.Direction.LEFT
 	return d
+
+func _tile_size(tml: TileMapLayer) -> int:
+	if tml and tml.tile_set:
+		return tml.tile_set.tile_size.x
+	return 16
