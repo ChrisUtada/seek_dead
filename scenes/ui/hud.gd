@@ -31,10 +31,10 @@ func _ready():
 	EventManager.damage_dealt.connect(_on_damage_dealt)
 
 func _build_bars():
-	var y = 6
-	var bar_w = 150
+	var y = 8
+	var bar_w = 180
 	var bar_h = 12
-	var gap = 3
+	var gap = 4
 	for key in _bar_order:
 		var cfg = _bar_config[key]
 		var bg = ColorRect.new()
@@ -55,7 +55,7 @@ func _build_bars():
 		label.add_theme_color_override("font_color", Color(1, 1, 1))
 		label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
 		label.add_theme_constant_override("outline_size", 1)
-		label.add_theme_font_size_override("font_size", 10)
+		label.add_theme_font_size_override("font_size", 11)
 		label.text = "%s: --/--" % cfg.label
 		add_child(label)
 		_bars[key] = {bg = bg, fill = fill, label = label, max_w = bar_w}
@@ -73,7 +73,7 @@ func _build_crosshair():
 func _build_overlay():
 	_overlay = ColorRect.new()
 	_overlay.name = "Overlay"
-	_overlay.size = Vector2(384, 216)
+	_overlay.size = Vector2(640, 360)
 	_overlay.color = Color(0, 0, 0, 0)
 	_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_overlay)
@@ -82,17 +82,17 @@ func _build_overlay():
 	_overlay_label.name = "OverlayLabel"
 	_overlay_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_overlay_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_overlay_label.position = Vector2(0, 72)
-	_overlay_label.size = Vector2(384, 30)
+	_overlay_label.position = Vector2(0, 130)
+	_overlay_label.size = Vector2(640, 40)
 	_overlay_label.add_theme_color_override("font_color", Color(1, 1, 1))
 	_overlay_label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
 	_overlay_label.add_theme_constant_override("outline_size", 3)
-	_overlay_label.add_theme_font_size_override("font_size", 18)
+	_overlay_label.add_theme_font_size_override("font_size", 22)
 	add_child(_overlay_label)
 
 	_flash_overlay = ColorRect.new()
 	_flash_overlay.name = "FlashOverlay"
-	_flash_overlay.size = Vector2(384, 216)
+	_flash_overlay.size = Vector2(640, 360)
 	_flash_overlay.color = Color(0, 0, 0, 0)
 	_flash_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_flash_overlay)
@@ -101,12 +101,12 @@ func _build_overlay():
 	_overlay_button.name = "OverlayButton"
 	_overlay_button.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_overlay_button.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_overlay_button.position = Vector2(0, 108)
-	_overlay_button.size = Vector2(384, 14)
+	_overlay_button.position = Vector2(0, 180)
+	_overlay_button.size = Vector2(640, 20)
 	_overlay_button.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8))
 	_overlay_button.add_theme_color_override("font_outline_color", Color(0, 0, 0))
 	_overlay_button.add_theme_constant_override("outline_size", 2)
-	_overlay_button.add_theme_font_size_override("font_size", 12)
+	_overlay_button.add_theme_font_size_override("font_size", 14)
 	add_child(_overlay_button)
 
 func _connect_player():
@@ -206,20 +206,20 @@ func _apply_bar_ratio(key: String, ratio: float):
 func _build_skill_bar():
 	var skill_bar = Control.new()
 	skill_bar.name = "SkillBar"
-	skill_bar.position = Vector2(310, 180)
-	skill_bar.size = Vector2(64, 28)
+	skill_bar.position = Vector2(580, 324)
+	skill_bar.size = Vector2(52, 24)
 	add_child(skill_bar)
 	var keys = ["Q", "E"]
 	for i in range(2):
 		var slot = ColorRect.new()
 		slot.name = "SkillSlot%d" % i
-		slot.position = Vector2(i * 32, 0)
-		slot.size = Vector2(28, 28)
+		slot.position = Vector2(i * 26, 0)
+		slot.size = Vector2(24, 24)
 		slot.color = Color(0.3, 0.3, 0.3, 0.8)
 		skill_bar.add_child(slot)
 		var key_label = Label.new()
 		key_label.text = keys[i]
-		key_label.position = Vector2(9, 16)
+		key_label.position = Vector2(7, 12)
 		key_label.add_theme_color_override("font_color", Color(1, 1, 1))
 		key_label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
 		key_label.add_theme_constant_override("outline_size", 1)
@@ -235,7 +235,7 @@ func _build_skill_bar():
 func _build_ammo_display():
 	var label = Label.new()
 	label.name = "AmmoLabel"
-	label.position = Vector2(10, 66)
+	label.position = Vector2(10, 76)
 	label.add_theme_color_override("font_color", Color(1, 1, 1))
 	label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
 	label.add_theme_constant_override("outline_size", 1)
@@ -331,16 +331,16 @@ func spawn_damage_number(world_pos: Vector2, amount: float, is_critical: bool = 
 	label.add_theme_color_override("font_color", Color(1, 0.8, 0.2) if is_critical else Color(1, 1, 1))
 	label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
 	label.add_theme_constant_override("outline_size", 3)
-	label.add_theme_font_size_override("font_size", 14)
+	label.add_theme_font_size_override("font_size", 16)
 	label.text = "%.0f" % amount
 	if is_critical:
 		label.text = "暴击! " + label.text
 	add_child(label)
 	var tween = create_tween()
-	var end_pos = label.position + Vector2(0, -18)
+	var end_pos = label.position + Vector2(0, -30)
 	if is_critical:
 		tween.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BOUNCE)
-		end_pos = label.position + Vector2(0, -22)
+		end_pos = label.position + Vector2(0, -36)
 	tween.tween_property(label, "position", end_pos, 0.8)
 	tween.parallel().tween_property(label, "modulate", Color(1, 1, 1, 0), 0.8)
 	tween.tween_callback(label.queue_free)
