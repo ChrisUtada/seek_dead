@@ -14,4 +14,4 @@ extends Resource
 	"fire_defense": 0.0,
 }
 @export var color: Color = Color(0.9, 0.2, 0.2)
-@export var scene_path: String = "res://scenes/battle/test_enemy.tscn"
+@export var scene_path: String = "res://scenes/enemies/goblin.tscn"
