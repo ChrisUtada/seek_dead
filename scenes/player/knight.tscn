@@ -10,6 +10,7 @@
 [ext_resource type="Script" uid="uid://b5yukeonfgiv4" path="res://scripts/components/sprint_component.gd" id="6"]
 [ext_resource type="PackedScene" uid="uid://dcmcsdmej037o" path="res://scenes/weapons/fire_sword.tscn" id="6_52gso"]
 [ext_resource type="Script" uid="uid://ddx2ff3dfsbis" path="res://scripts/battle/ammo_system.gd" id="7"]
+[ext_resource type="Script" uid="" path="res://scripts/battle/hurtbox.gd" id="8_d4e2m"]
 [ext_resource type="Script" uid="uid://cpyarsdklh28t" path="res://scripts/battle/skill_manager.gd" id="8"]
 [ext_resource type="Resource" uid="uid://dcheib4eqysy2" path="res://resources/players/knight.tres" id="9"]
 [ext_resource type="Resource" path="res://resources/weapons/fire_sword.tres" id="9_ycxmx"]
@@ -125,6 +126,12 @@ animation = &"run"
 [node name="Camera2D" type="Camera2D" parent="." unique_id=999914716]
 position_smoothing_enabled = true
 position_smoothing_speed = 8.0
+
+[node name="Hurtbox" type="Area2D" parent="."]
+script = ExtResource("8_d4e2m")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox"]
+shape = SubResource("1")
 
 [node name="StateComponent" type="Node" parent="." unique_id=1281210459]
 script = ExtResource("2")

@@ -2,6 +2,7 @@ class_name RangedWeaponNode
 extends WeaponNode
 
 const _RangedWeapon = preload("res://scripts/battle/ranged_weapon.gd")
+const _DefaultBulletScene = preload("res://scenes/battle/projectile.tscn")
 
 func attack():
 	if not shooter or not stats:
@@ -20,7 +21,7 @@ func attack():
 	AudioManager.play_sfx(AudioManager.SfxType.PLAYER_SHOT)
 
 	var parent = shooter.get_parent()
-	var scene = ranged_stats.bullet_scene if ranged_stats.bullet_scene else load("res://scenes/battle/projectile.tscn")
+	var scene = ranged_stats.bullet_scene if ranged_stats.bullet_scene else _DefaultBulletScene
 	var bullet = scene.instantiate()
 	bullet.global_position = shooter.global_position
 	bullet.direction = aim_direction
@@ -31,7 +32,6 @@ func attack():
 	bullet.status_effect_type = stats.status_effect_type
 	bullet.status_effect_damage = stats.status_effect_damage
 	bullet.status_effect_duration = stats.status_effect_duration
-	bullet._age = 0
 	parent.add_child(bullet)
 
 	var sprite = bullet.get_node_or_null("Sprite2D")

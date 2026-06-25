@@ -23,7 +23,6 @@ config/features=PackedStringArray("4.7")
 
 GameManager="*res://autoload/game_manager.gd"
 EventManager="*res://autoload/event_manager.gd"
-ResourceManager="*res://autoload/resource_manager.gd"
 EntityRegistry="*res://scripts/systems/entity_registry.gd"
 SaveSystem="*res://scripts/utils/save_system.gd"
 SceneManager="*res://autoload/scene_manager.gd"
@@ -36,7 +35,7 @@ window/size/viewport_width=640
 window/size/viewport_height=360
 window/size/window_width_override=1280
 window/size/window_height_override=720
-window/stretch/mode="viewport"
+window/stretch/mode="canvas_items"
 
 [input]
 
@@ -138,6 +137,8 @@ load_game={
 2d_physics/layer_3="Environment"
 2d_physics/layer_4="Pickup"
 2d_physics/layer_5="Hazard"
+2d_physics/layer_6="Hurtbox"
+2d_physics/layer_7="Hitbox"
 
 [rendering]
 

@@ -2,6 +2,7 @@ extends EnemyBase
 
 const _BossAIComp = preload("res://scripts/components/boss_ai_component.gd")
 const _MoverComp = preload("res://scripts/components/movement_component.gd")
+const _BulletScene = preload("res://scenes/battle/projectile.tscn")
 
 @onready var ai: BossAIComponent = $BossAIComponent
 
@@ -10,6 +11,9 @@ var _is_charging: bool = false
 var _charge_velocity: Vector2 = Vector2.ZERO
 var _charge_duration: float = 0.0
 
+@onready var _slam_hitbox: Hitbox = $SlamHitbox
+
+
 func _ready():
 	_enemy_ready()
 	_apply_boss_config()
@@ -17,6 +21,9 @@ func _ready():
 	ai.perform_charge.connect(_on_charge)
 	ai.perform_ranged_burst.connect(_on_ranged_burst)
 	mover.speed = 40.0
+	_slam_hitbox.monitoring = false
+	_slam_hitbox.monitorable = false
+	_slam_hitbox.lifespan = 0
 
 func _apply_boss_config():
 	state.max_hp = 600.0
@@ -60,7 +67,7 @@ func _get_phase_value(arr: Array, phase: int) -> Variant:
 		return null
 	return arr[min(phase - 1, arr.size() - 1)]
 
-func take_damage(amount: float, damage_type: int):
+func take_damage(amount: float, damage_type: int) -> Dictionary:
 	var result = super(amount, damage_type)
 	var hit_str = DamageSystem.hit_result_to_string(result.hit_result)
 	var prefix = "[%s]" % hit_str if hit_str else ""
@@ -101,21 +108,23 @@ func get_bullet_speed() -> float:
 	return _boss_config.bullet_speed if _boss_config else 400.0
 
 func _on_melee_slam(_target: Node2D):
-	var space = get_world_2d().direct_space_state
-	var query = PhysicsShapeQueryParameters2D.new()
-	var shape = CircleShape2D.new()
-	shape.radius = get_slam_range()
-	query.shape = shape
-	query.transform = global_transform
-	query.collision_mask = CollisionSystem.bit(CollisionSystem.LAYER_PLAYER)
-	query.exclude = [self]
-	for result in space.intersect_shape(query):
-		var body = result.collider
-		if body.has_method("take_damage"):
-			body.take_damage(get_slam_damage(), state.innate_type)
-		if body.has_method("knockback"):
-			var dir = (body.global_position - global_position).normalized()
-			body.knockback(dir * 300.0)
+	_slam_hitbox.damage = get_slam_damage()
+	_slam_hitbox.damage_type = state.innate_type
+	_slam_hitbox.shooter = self
+	_slam_hitbox.knockback_force = 300.0
+	_slam_hitbox.reset()
+	var cs = _slam_hitbox.get_child(0) as CollisionShape2D
+	if cs and cs.shape:
+		var circle = cs.shape as CircleShape2D
+		circle.radius = get_slam_range()
+	_slam_hitbox.global_position = global_position
+	_slam_hitbox.monitoring = true
+	_slam_hitbox.monitorable = true
+	var timer = get_tree().create_timer(0.15, false)
+	timer.timeout.connect(func():
+		_slam_hitbox.monitoring = false
+		_slam_hitbox.monitorable = false
+	)
 	_spawn_slam_ring()
 	AudioManager.play_sfx(AudioManager.SfxType.BOSS_SLAM)
 	print("Boss 猛击! 阶段 %d" % ai.phase)
@@ -144,11 +153,10 @@ func _on_charge(_target: Node2D):
 func _on_ranged_burst(_target: Node2D):
 	if not _target:
 		return
-	var bullet_scene = load("res://scenes/battle/projectile.tscn")
 	var count = get_burst_count()
 	var base_dir = global_position.direction_to(_target.global_position)
 	for i in range(count):
-		var bullet = bullet_scene.instantiate()
+		var bullet = _BulletScene.instantiate()
 		var spread = (i - (count - 1) / 2.0) * 0.15
 		bullet.direction = base_dir.rotated(spread)
 		bullet.global_position = global_position + bullet.direction * 30

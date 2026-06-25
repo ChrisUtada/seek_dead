@@ -11,21 +11,23 @@ func _init():
 	energy_cost = 10.0
 	cooldown = 8.0
 
+var _shape_cache: CircleShape2D
+
 func _activate_skill(user: Node2D):
 	var space = user.get_world_2d().direct_space_state
 	var query = PhysicsShapeQueryParameters2D.new()
-	var shape = CircleShape2D.new()
-	shape.radius = aoe_range
-	query.shape = shape
+	if not _shape_cache:
+		_shape_cache = CircleShape2D.new()
+	_shape_cache.radius = aoe_range
+	query.shape = _shape_cache
 	query.transform = user.global_transform
 	query.collision_mask = CollisionSystem.bit(CollisionSystem.LAYER_ENEMY)
 	query.exclude = [user]
 	var results = space.intersect_shape(query)
 	for result in results:
-		var body = result.collider
-		if body.has_method("take_damage"):
-			var dmg = body.state.max_hp * 0.15 if body.has_node("StateComponent") else 30.0
-			body.take_damage(dmg, -1)
-		if body.has_method("knockback"):
-			var dir = (body.global_position - user.global_position).normalized()
-			body.knockback(dir * knockback_force)
+		var target = result.collider as Damageable
+		if not target:
+			continue
+		target.take_damage(target.state.max_hp * 0.15 if "state" in target else 30.0, -1)
+		var dir = (target.global_position - user.global_position).normalized()
+		target.knockback(dir * knockback_force)

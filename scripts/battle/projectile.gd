@@ -1,4 +1,4 @@
-extends Area2D
+extends Hitbox
 
 signal hit(hit_pos: Vector2, hit_dir: Vector2, damage_type: int, body: Node2D)
 
@@ -7,16 +7,15 @@ const _BulletData = preload("res://scripts/battle/bullet_data.gd")
 @export var data: BulletData
 
 var direction: Vector2
-var damage: float = 20.0
-var damage_type: int = 0
-var shooter: Node = null
-var status_effect_type: int = -1
-var status_effect_damage: float = 0.0
-var status_effect_duration: float = 3.0
-var _age: float = 0.0
 var _pool: ObjectPool = null
 var _signal_connected: bool = false
 var _returning: bool = false
+
+func _ready():
+	super()
+	lifespan = 0.0
+	collision_mask = CollisionSystem.bit(CollisionSystem.LAYER_ENVIRONMENT)
+	hit_landed.connect(_on_hurtbox_hit)
 
 func _enter_tree():
 	_returning = false
@@ -39,12 +38,19 @@ func _physics_process(delta):
 func _on_body_entered(body):
 	if body == shooter:
 		return
-	if body.has_method("take_damage"):
-		body.take_damage(damage, damage_type)
-	if status_effect_type >= 0 and body.has_method("apply_status"):
-		body.apply_status(status_effect_type, status_effect_damage, status_effect_duration)
-	hit.emit(global_position, direction, damage_type, body)
-	_return_to_pool()
+	_handle_hit(body)
+
+func _on_hurtbox_hit(target: Node2D):
+	_handle_hit(target)
+
+func _handle_hit(hit_target: Node2D):
+	hit.emit(global_position, direction, damage_type, hit_target)
+	if _pool and data and data.pierce_count > 0:
+		data.pierce_count -= 1
+		if data.pierce_count <= 0:
+			_return_to_pool()
+	else:
+		_return_to_pool()
 
 func _return_to_pool():
 	if _returning:

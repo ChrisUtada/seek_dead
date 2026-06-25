@@ -9,6 +9,8 @@ const _AIComp = preload("res://scripts/components/ai_component.gd")
 
 var _was_moving: bool = false
 
+@onready var _hitbox: Hitbox = $MeleeHitbox
+
 
 func _ready():
 	_enemy_ready()
@@ -17,6 +19,9 @@ func _ready():
 	ai.attack_performed.connect(_on_ai_attack)
 	ai.alerted.connect(_on_ai_alerted)
 	ai.set_home(global_position, 600.0)
+	_hitbox.monitoring = false
+	_hitbox.monitorable = false
+	_hitbox.lifespan = 0
 
 
 func apply_config(config: EnemyConfig):
@@ -34,11 +39,19 @@ func _on_ai_alerted(_target: Node2D):
 func _on_ai_attack(target: Node2D, damage: float):
 	if not is_instance_valid(target):
 		return
-	if target.has_method("take_damage"):
-		target.take_damage(damage, state.innate_type)
-	if target.has_method("knockback"):
-		var dir = (target.global_position - global_position).normalized()
-		target.knockback(dir * 120.0)
+	_hitbox.damage = damage
+	_hitbox.damage_type = state.innate_type
+	_hitbox.shooter = self
+	_hitbox.knockback_force = 120.0
+	_hitbox.reset()
+	_hitbox.global_position = global_position
+	_hitbox.monitoring = true
+	_hitbox.monitorable = true
+	var timer = get_tree().create_timer(0.15, false)
+	timer.timeout.connect(func():
+		_hitbox.monitoring = false
+		_hitbox.monitorable = false
+	)
 
 
 func _on_died():
@@ -77,7 +90,8 @@ func _update_animation():
 		return
 	var is_moving = mover.direction.length() > 0.1
 	if is_moving and not _was_moving:
-		_anim.play("run")
+		if _anim.has_animation("run"):
+			_anim.play("run")
 	elif not is_moving and _was_moving:
 		_anim.stop()
 	_was_moving = is_moving

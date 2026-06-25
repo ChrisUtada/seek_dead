@@ -10,12 +10,12 @@ extends Resource
 var cooldown_timer: float = 0.0
 var is_active: bool = false
 
-func can_use(energy: float) -> bool:
-	return cooldown_timer <= 0.0 and energy >= energy_cost
+func can_use(state: StateComponent) -> bool:
+	return cooldown_timer <= 0.0 and state.energy >= energy_cost
 
 func use(user: Node2D) -> bool:
-	var state = user.get_node("StateComponent")
-	if not can_use(state.energy):
+	var state = user.get("state") as StateComponent
+	if not state or not can_use(state):
 		return false
 	state.energy -= energy_cost
 	cooldown_timer = cooldown

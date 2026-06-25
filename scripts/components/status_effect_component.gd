@@ -24,14 +24,13 @@ func apply(effect_type: int, damage: float, duration: float):
 	effect.tick_timer = 1.0
 	effect.damage_type = _effect_type_to_damage_type(effect_type)
 	effects.append(effect)
-	effect_applied.emit(effect_type, _effect_name(effect_type))
+	effect_applied.emit(effect_type, effect.get_display_name())
 
 func update(delta):
 	var i = effects.size() - 1
 	while i >= 0:
 		if not effects[i].update(delta):
-			var name_str = _effect_name(effects[i].effect_type)
-			effect_expired.emit(effects[i].effect_type, name_str)
+			effect_expired.emit(effects[i].effect_type, effects[i].get_display_name())
 			effects.remove_at(i)
 		elif effects[i].is_tick_ready():
 			var dmg = effects[i].get_tick_damage()
@@ -60,13 +59,4 @@ func _effect_type_to_damage_type(et: int) -> int:
 		StatusEffect.EffectType.BLEED: return DamageSystem.DamageType.SLASH
 		_: return -1
 
-func _effect_name(et: int) -> String:
-	match et:
-		StatusEffect.EffectType.POISON: return "中毒"
-		StatusEffect.EffectType.BURN: return "燃烧"
-		StatusEffect.EffectType.FREEZE: return "冰冻"
-		StatusEffect.EffectType.STUN: return "眩晕"
-		StatusEffect.EffectType.SLOW: return "减速"
-		StatusEffect.EffectType.BLEED: return "流血"
-		StatusEffect.EffectType.REGEN: return "再生"
-	return "未知"
+

@@ -33,7 +33,9 @@ var _nav_bounds: Rect2 = Rect2(10, 10, 1580, 1180)
 var _cooldown_alert: bool = false
 
 func _ready():
-	_nav = get_parent().get_node("NavigationAgent2D")
+	_nav = get_parent().get_node_or_null("NavigationAgent2D") as NavigationAgent2D
+	if not _nav:
+		push_error("AIComponent: NavigationAgent2D not found on %s" % get_parent().name)
 	home_position = get_parent().global_position
 	if patrol_points.size() > 0:
 		_change_state(AIState.PATROL)
@@ -52,6 +54,8 @@ func set_nav_bounds(bounds: Rect2):
 	_nav_bounds = bounds
 
 func process_ai(delta):
+	if not _nav:
+		return
 	_attack_timer = max(0, _attack_timer - delta)
 	var prev_target = _target
 	_target = _find_nearest_player()

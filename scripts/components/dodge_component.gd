@@ -19,26 +19,29 @@ func can_dodge() -> bool:
 func try_dodge(direction: Vector2):
 	if not can_dodge():
 		return
-	var parent = get_parent()
-	var state = parent.state
+	var p = get_parent()
+	var dmg = p as Damageable
+	if not dmg:
+		return
+	var state = p.state
 	if not state.consume_stamina(stamina_cost):
 		return
 	is_dodging = true
 	_cooldown_timer = dodge_cooldown
-	parent.is_invincible = true
+	dmg.is_invincible = true
 	AudioManager.play_sfx(AudioManager.SfxType.PLAYER_DODGE)
 	if not state.in_meltdown() and state.heat > 0:
 		state.heat -= heat_reduction
-	var start_pos = parent.global_position
-	var end_pos = start_pos + direction * dodge_distance
 	var tween = create_tween()
-	tween.tween_property(parent, "global_position", end_pos, dodge_duration)
-	tween.tween_callback(_finish_dodge)
+	tween.tween_property(p, "global_position", p.global_position + direction * dodge_distance, dodge_duration)
+	tween.tween_callback(_finish_dodge.bind(p))
 	dodge_started.emit(direction)
 
-func _finish_dodge():
+func _finish_dodge(p: Node):
 	is_dodging = false
-	get_parent().is_invincible = false
+	var dmg = p as Damageable
+	if dmg:
+		dmg.is_invincible = false
 	dodge_finished.emit()
 
 func _process(delta: float):

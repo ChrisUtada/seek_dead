@@ -2,8 +2,6 @@
 
 [ext_resource type="Texture2D" uid="uid://drdmjxcit257x" path="res://assets/tiles/Dungeon_Tiles.png" id="1_hnbyo"]
 [ext_resource type="PackedScene" path="res://scenes/rooms/door_marker.tscn" id="2_fbq1s"]
-[ext_resource type="PackedScene" path="res://scenes/enemies/goblin.tscn" id="3_ekd7n"]
-
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ksju7"]
 texture = ExtResource("1_hnbyo")
 0:0/0 = 0
@@ -329,17 +327,22 @@ direction = 3
 [node name="PlayerSpawn" type="Marker2D" parent="." unique_id=1789572739]
 position = Vector2(286, 63)
 
-[node name="Goblin1" parent="." instance=ExtResource("3_ekd7n")]
+[node name="SpawnMarker1" type="Marker2D" parent="."]
 position = Vector2(100, 80)
+groups = ["spawn"]
 
-[node name="Goblin2" parent="." instance=ExtResource("3_ekd7n")]
+[node name="SpawnMarker2" type="Marker2D" parent="."]
 position = Vector2(200, 90)
+groups = ["spawn"]
 
-[node name="Goblin3" parent="." instance=ExtResource("3_ekd7n")]
+[node name="SpawnMarker3" type="Marker2D" parent="."]
 position = Vector2(80, 220)
+groups = ["spawn"]
 
-[node name="Goblin4" parent="." instance=ExtResource("3_ekd7n")]
+[node name="SpawnMarker4" type="Marker2D" parent="."]
 position = Vector2(200, 260)
+groups = ["spawn"]
 
-[node name="Goblin5" parent="." instance=ExtResource("3_ekd7n")]
+[node name="SpawnMarker5" type="Marker2D" parent="."]
 position = Vector2(280, 150)
+groups = ["spawn"]

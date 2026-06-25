@@ -1,5 +1,5 @@
 class_name EnemyBase
-extends CharacterBody2D
+extends Damageable
 
 signal died()
 
@@ -38,7 +38,7 @@ func _generate_texture(color: Color, size: int = 32):
 	_sprite.texture = ImageTexture.create_from_image(img)
 	_sprite.centered = true
 
-func take_damage(amount: float, damage_type: int):
+func take_damage(amount: float, damage_type: int) -> Dictionary:
 	var result = state.take_damage(amount, damage_type)
 	_flash_timer = 0.1
 	EventManager.damage_dealt.emit(null, self, result.final_damage, damage_type)

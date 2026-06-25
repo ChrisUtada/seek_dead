@@ -1,5 +1,5 @@
 class_name PlayerController
-extends CharacterBody2D
+extends Damageable
 
 const _WeaponComp = preload("res://scripts/components/weapon_component.gd")
 const _MoverComp = preload("res://scripts/components/movement_component.gd")
@@ -20,7 +20,6 @@ signal player_damaged(amount: float, current_hp: float, max_hp: float)
 
 var walk_speed: float = 200.0
 var _base_walk_speed: float = 200.0
-var is_invincible: bool = false
 var _flash_timer: float = 0.0
 
 func _ready():

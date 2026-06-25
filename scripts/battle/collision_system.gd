@@ -6,6 +6,8 @@ const LAYER_ENEMY := 2
 const LAYER_ENVIRONMENT := 3
 const LAYER_PICKUP := 4
 const LAYER_HAZARD := 5
+const LAYER_HURTBOX := 6
+const LAYER_HITBOX := 7
 
 static func bit(layer: int) -> int:
 	return 1 << (layer - 1)

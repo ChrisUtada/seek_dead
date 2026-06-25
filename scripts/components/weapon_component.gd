@@ -73,8 +73,10 @@ func _on_weapon_hit_deferred(hit_pos: Vector2, hit_dir: Vector2, damage_type: in
 	_spawn_hit_particles(hit_pos, hit_dir, color)
 	_spawn_impact_circle(hit_pos, color)
 	GameManager.hit_stop(0.03)
-	if is_instance_valid(body) and body.has_method("knockback"):
-		body.knockback(hit_dir * 150.0)
+	if is_instance_valid(body):
+		var target = body as Damageable
+		if target:
+			target.knockback(hit_dir * 150.0)
 	_shake_parent_camera(Vector2(1.5, 0.8), 0.08)
 
 func _on_attack_finished(node: WeaponNode, hit_count: int):
@@ -91,8 +93,7 @@ func _on_attack_finished(node: WeaponNode, hit_count: int):
 	attack_performed.emit(node, hit_count)
 
 func _get_state():
-	var parent = get_parent()
-	return parent.state if parent.has_node("StateComponent") else null
+	return get_parent().get("state") as StateComponent
 
 func _get_attack_speed_modifier(node: WeaponNode) -> float:
 	var state = _get_state()

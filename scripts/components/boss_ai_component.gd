@@ -26,7 +26,9 @@ var _idle_timer: float = 0.0
 var _nav_bounds: Rect2 = Rect2(10, 10, 1580, 1180)
 
 func _ready():
-	_nav = get_parent().get_node("NavigationAgent2D")
+	_nav = get_parent().get_node_or_null("NavigationAgent2D") as NavigationAgent2D
+	if not _nav:
+		push_error("BossAIComponent: NavigationAgent2D not found on %s" % get_parent().name)
 
 func check_phase(hp_ratio: float):
 	var new_phase = 3 if hp_ratio < phase3_hp_ratio else (2 if hp_ratio < phase2_hp_ratio else 1)
@@ -34,6 +36,8 @@ func check_phase(hp_ratio: float):
 		phase = new_phase
 
 func process_ai(delta):
+	if not _nav:
+		return
 	_decision_timer = max(0, _decision_timer - delta)
 	_target = _find_nearest_player()
 
