@@ -32,9 +32,13 @@ RoomManager="*res://scripts/level/room_manager.gd"
 
 [display]
 
-window/size/viewport_width=800
-window/size/viewport_height=600
+window/size/viewport_width=384
+window/size/viewport_height=216
+window/size/window_width_override=1152
+window/size/window_height_override=648
 window/size/initial_position_type=0
+window/stretch/mode="viewport"
+window/stretch/aspect="keep"
 
 [input]
 

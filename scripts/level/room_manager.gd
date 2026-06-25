@@ -29,7 +29,7 @@ func _ready():
 	layer.layer = 100
 	add_child(layer)
 	_transition = ColorRect.new()
-	_transition.size = Vector2(800, 600)
+	_transition.size = Vector2(384, 216)
 	_transition.color = Color(0, 0, 0, 0)
 	_transition.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layer.add_child(_transition)
@@ -104,7 +104,7 @@ func _do_switch(entrance_direction: int):
 			var r = tml.get_used_rect() as Rect2i
 			_player.global_position = Vector2(r.get_center()) * _tile_size(tml)
 		else:
-			_player.global_position = Vector2(400, 300)
+			_player.global_position = Vector2(192, 108)
 
 	for child in _current_room.find_children("*", "Area2D"):
 		if child.get_script() == _DoorScript:

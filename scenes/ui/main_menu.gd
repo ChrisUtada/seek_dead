@@ -24,7 +24,7 @@ func _ready():
 
 func _build_ui():
 	var bg = ColorRect.new()
-	bg.size = Vector2(800, 600)
+	bg.size = Vector2(384, 216)
 	bg.color = Color(0.08, 0.08, 0.12, 1)
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_container.add_child(bg)
@@ -33,8 +33,8 @@ func _build_ui():
 	_title.text = "SEEK DEAD"
 	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_title.position = Vector2(0, 120)
-	_title.size = Vector2(800, 80)
+	_title.position = Vector2(0, 43)
+	_title.size = Vector2(384, 29)
 	_title.add_theme_color_override("font_color", Color(0.9, 0.15, 0.15))
 	_title.add_theme_color_override("font_outline_color", Color(0, 0, 0))
 	_title.add_theme_constant_override("outline_size", 4)
@@ -44,25 +44,25 @@ func _build_ui():
 	_subtitle.text = "Godot 迁移可行性验证原型"
 	_subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_subtitle.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_subtitle.position = Vector2(0, 200)
-	_subtitle.size = Vector2(800, 40)
+	_subtitle.position = Vector2(0, 72)
+	_subtitle.size = Vector2(384, 14)
 	_subtitle.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
 	_subtitle.add_theme_color_override("font_outline_color", Color(0, 0, 0))
 	_subtitle.add_theme_constant_override("outline_size", 2)
 	_container.add_child(_subtitle)
 
-	_btn_start = _make_button("开始游戏", Vector2(300, 320), Color(0.6, 0.1, 0.1))
+	_btn_start = _make_button("开始游戏", Vector2(144, 115), Color(0.6, 0.1, 0.1))
 	_container.add_child(_btn_start)
-	_btn_continue = _make_button("继续游戏", Vector2(300, 380), Color(0.15, 0.4, 0.15))
+	_btn_continue = _make_button("继续游戏", Vector2(144, 137), Color(0.15, 0.4, 0.15))
 	_btn_continue.visible = SaveSystem.has_save()
 	_container.add_child(_btn_continue)
-	_btn_quit = _make_button("退出", Vector2(300, 440), Color(0.3, 0.3, 0.3))
+	_btn_quit = _make_button("退出", Vector2(144, 158), Color(0.3, 0.3, 0.3))
 	_container.add_child(_btn_quit)
 
 func _make_button(text: String, pos: Vector2, color: Color) -> ColorRect:
 	var btn = ColorRect.new()
 	btn.position = pos
-	btn.size = Vector2(200, 44)
+	btn.size = Vector2(96, 16)
 	btn.color = color
 	btn.mouse_filter = Control.MOUSE_FILTER_STOP
 
@@ -71,7 +71,7 @@ func _make_button(text: String, pos: Vector2, color: Color) -> ColorRect:
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.position = Vector2(0, 0)
-	label.size = Vector2(200, 44)
+	label.size = Vector2(96, 16)
 	label.add_theme_color_override("font_color", Color(1, 1, 1))
 	label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
 	label.add_theme_constant_override("outline_size", 1)

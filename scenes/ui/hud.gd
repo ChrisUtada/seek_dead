@@ -72,7 +72,7 @@ func _build_crosshair():
 func _build_overlay():
 	_overlay = ColorRect.new()
 	_overlay.name = "Overlay"
-	_overlay.size = Vector2(800, 600)
+	_overlay.size = Vector2(384, 216)
 	_overlay.color = Color(0, 0, 0, 0)
 	_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_overlay)
@@ -81,8 +81,8 @@ func _build_overlay():
 	_overlay_label.name = "OverlayLabel"
 	_overlay_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_overlay_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_overlay_label.position = Vector2(0, 200)
-	_overlay_label.size = Vector2(800, 80)
+	_overlay_label.position = Vector2(0, 72)
+	_overlay_label.size = Vector2(384, 30)
 	_overlay_label.add_theme_color_override("font_color", Color(1, 1, 1))
 	_overlay_label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
 	_overlay_label.add_theme_constant_override("outline_size", 3)
@@ -90,7 +90,7 @@ func _build_overlay():
 
 	_flash_overlay = ColorRect.new()
 	_flash_overlay.name = "FlashOverlay"
-	_flash_overlay.size = Vector2(800, 600)
+	_flash_overlay.size = Vector2(384, 216)
 	_flash_overlay.color = Color(0, 0, 0, 0)
 	_flash_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_flash_overlay)
@@ -99,8 +99,8 @@ func _build_overlay():
 	_overlay_button.name = "OverlayButton"
 	_overlay_button.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_overlay_button.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_overlay_button.position = Vector2(0, 300)
-	_overlay_button.size = Vector2(800, 40)
+	_overlay_button.position = Vector2(0, 108)
+	_overlay_button.size = Vector2(384, 14)
 	_overlay_button.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8))
 	_overlay_button.add_theme_color_override("font_outline_color", Color(0, 0, 0))
 	_overlay_button.add_theme_constant_override("outline_size", 2)

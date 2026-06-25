@@ -9,7 +9,7 @@ func _ready():
 	layer.layer = 100
 	add_child(layer)
 	_transition = ColorRect.new()
-	_transition.size = Vector2(800, 600)
+	_transition.size = Vector2(384, 216)
 	_transition.color = Color(0, 0, 0, 0)
 	_transition.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layer.add_child(_transition)
