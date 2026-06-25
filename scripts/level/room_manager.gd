@@ -44,34 +44,52 @@ func enter_first_room(player: Node2D, root: Node):
 
 
 func _load_room(entrance_direction: int):
+	print("RoomMgr _load_room dir=", entrance_direction, " transitioning=", _transitioning)
 	if _transitioning:
+		print("RoomMgr skip: already transitioning")
 		return
 	_transitioning = true
 
 	_transition.mouse_filter = Control.MOUSE_FILTER_STOP
 	var t = create_tween()
 	t.tween_property(_transition, "color", Color(0, 0, 0, 1), 0.3)
-	t.tween_callback(func():
-		_do_switch(entrance_direction)
-		var t2 = create_tween()
-		t2.tween_property(_transition, "color", Color(0, 0, 0, 0), 0.3)
-		t2.tween_callback(func():
-			_transition.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			_transitioning = false
-		)
-	)
+	t.tween_callback(_do_switch.bind(entrance_direction))
+	t.tween_property(_transition, "color", Color(0, 0, 0, 0), 0.3)
+	t.finished.connect(_end_transition)
+	# safety timeout
+	get_tree().create_timer(8.0, false).timeout.connect(_end_transition)
+
+
+func _end_transition():
+	if not _transitioning:
+		return
+	_transitioning = false
+	_transition.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	print("RoomMgr _end_transition")
 
 
 func _do_switch(entrance_direction: int):
+	print("RoomMgr _do_switch dir=", entrance_direction, " old_pos=", _current_pos)
 	_current_pos = _next_pos(entrance_direction)
+	print("RoomMgr _do_switch new_pos=", _current_pos)
+
+	if not _player:
+		push_error("RoomMgr: _player is null")
+		return
+	if not _root:
+		push_error("RoomMgr: _root is null")
+		return
 
 	if is_instance_valid(_current_room):
-		_current_room.get_parent().remove_child(_current_room)
+		var p = _current_room.get_parent()
+		if p:
+			p.remove_child(_current_room)
 
 	if _room_cache.has(_current_pos):
 		_current_room = _room_cache[_current_pos]
 		_root.add_child(_current_room)
 		_root.move_child(_current_room, 0)
+		print("RoomMgr reused cached room at ", _current_pos)
 	else:
 		var scene = _room_scenes[randi() % _room_scenes.size()]
 		var room = scene.instantiate()
@@ -79,25 +97,31 @@ func _do_switch(entrance_direction: int):
 		_current_room = room
 		_root.add_child(room)
 		_root.move_child(room, 0)
+		print("RoomMgr instantiated new room at ", _current_pos, " scene=", scene.resource_path)
 
 	var spawn = _current_room.get_node_or_null("PlayerSpawn")
 	if spawn:
 		_player.global_position = spawn.global_position
+		print("RoomMgr placed player at PlayerSpawn ", spawn.global_position)
 	else:
 		var tml = _current_room.find_child("TileMapLayer")
 		if tml:
 			var r = tml.get_used_rect() as Rect2i
 			_player.global_position = Vector2(r.get_center()) * _tile_size(tml)
+			print("RoomMgr placed player at TileMap center ", _player.global_position)
 		else:
 			_player.global_position = Vector2(400, 300)
+			print("RoomMgr placed player at fallback 400,300")
 
 	for child in _current_room.find_children("*", "Area2D"):
 		if child.get_script() == _DoorScript:
 			if not child.player_entered.is_connected(_on_door_entered):
 				child.player_entered.connect(_on_door_entered)
+				print("RoomMgr connected door signal on ", child.name)
 
 
 func _on_door_entered(door_direction: int):
+	print("RoomMgr _on_door_entered dir=", door_direction)
 	_load_room(door_direction)
 
 
