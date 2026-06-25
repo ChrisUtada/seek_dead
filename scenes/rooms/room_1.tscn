@@ -314,5 +314,9 @@ tile_set = SubResource("TileSet_7u6i3")
 position = Vector2(21, 38)
 direction = 2
 
+[node name="DoorMarker2" parent="." unique_id=1789572740 instance=ExtResource("2_fbq1s")]
+position = Vector2(565, 38)
+direction = 3
+
 [node name="PlayerSpawn" type="Marker2D" parent="." unique_id=1789572739]
 position = Vector2(286, 63)
