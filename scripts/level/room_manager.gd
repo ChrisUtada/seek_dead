@@ -91,7 +91,19 @@ func _do_switch(entrance_direction: int):
 		for child in _current_room.find_children("*", "Area2D"):
 			if child.get_script() == _DoorScript and child.direction == target_dir:
 				_player.global_position = child.global_position
+				player_placed = true
 				break
+		if not player_placed:
+			var spawn = _current_room.get_node_or_null("PlayerSpawn")
+			if spawn:
+				_player.global_position = spawn.global_position
+			else:
+				var rect = _current_room.find_child("TileMapLayer")
+				if rect:
+					var r = rect.get_used_rect()
+					_player.global_position = Vector2(r.get_center()) * 16
+				else:
+					_player.global_position = Vector2(400, 300)
 
 	for child in _current_room.find_children("*", "Area2D"):
 		if child.get_script() == _DoorScript:

@@ -15,7 +15,7 @@
 [ext_resource type="Resource" path="res://resources/weapons/fire_sword.tres" id="9_ycxmx"]
 [ext_resource type="Script" uid="uid://qjvq1fr7aq82" path="res://scripts/ui/shadow.gd" id="10"]
 [ext_resource type="PackedScene" uid="uid://bk17goreq0m7a" path="res://scenes/weapons/pistol.tscn" id="10_xa10o"]
-[ext_resource type="Resource" path="res://resources/weapons/pistol.tres" id="11_b174x"]
+[ext_resource type="Resource" uid="uid://bp8mm0j2aqlyy" path="res://resources/weapons/pistol.tres" id="11_b174x"]
 
 [sub_resource type="CircleShape2D" id="1"]
 radius = 17.0
@@ -120,7 +120,7 @@ shape = SubResource("1")
 
 [node name="Sprite2D" type="AnimatedSprite2D" parent="." unique_id=378603439]
 sprite_frames = SubResource("SpriteFrames_u0kct")
-animation = &"idle"
+animation = &"run"
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=999914716]
 position_smoothing_enabled = true
