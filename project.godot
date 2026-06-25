@@ -34,11 +34,10 @@ RoomManager="*res://scripts/level/room_manager.gd"
 
 window/size/viewport_width=384
 window/size/viewport_height=216
+window/size/initial_position_type=0
 window/size/window_width_override=1152
 window/size/window_height_override=648
-window/size/initial_position_type=0
 window/stretch/mode="viewport"
-window/stretch/aspect="keep"
 
 [input]
 
@@ -140,3 +139,7 @@ load_game={
 2d_physics/layer_3="Environment"
 2d_physics/layer_4="Pickup"
 2d_physics/layer_5="Hazard"
+
+[rendering]
+
+textures/canvas_textures/default_texture_filter=0
