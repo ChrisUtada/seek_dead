@@ -1,6 +1,6 @@
 extends Node
 
-const _DoorScript = preload("res://scripts/level/door_marker.gd")
+const _DoorScript = preload("res://scripts/rooms/door_marker.gd")
 
 var _player: Node2D
 var _current_room: Node2D
