@@ -1,7 +1,7 @@
 class_name WaveConfig
 extends Resource
 
-enum Trigger { ON_START, ENEMIES_LEFT, TIMER }
+enum Trigger { ON_START, ENEMIES_LEFT, TIMER, BOSS_PHASE }
 
 @export var trigger: Trigger = Trigger.ON_START
 @export var trigger_value: float = 0.0

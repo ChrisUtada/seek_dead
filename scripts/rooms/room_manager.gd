@@ -23,6 +23,8 @@ var _pending_wave: bool = false
 var _pending_timers: Array = []
 var _wave_broadcasted: bool = false
 
+var _timer_waves_started: Dictionary = {}
+var _current_bosses: Array[Node2D] = []
 var _last_config_index: int = -1
 
 
@@ -72,6 +74,8 @@ func _reset_state():
 	_spawning_wave = false
 	_pending_wave = false
 	_wave_broadcasted = false
+	_timer_waves_started.clear()
+	_current_bosses.clear()
 	_current_config = null
 	if is_instance_valid(_current_room):
 		var p = _current_room.get_parent()
@@ -257,6 +261,7 @@ func _spawn_wave(config: RoomConfig, wave_index: int):
 					var pspawn = room.get_node_or_null("PlayerSpawn")
 					boss.global_position = (pspawn.global_position + Vector2(0, -80)) if pspawn else Vector2(320, 180)
 				room.add_child(boss)
+				_current_bosses.append(boss)
 
 	if wave:
 		var announce = _get_wave_property(wave, "announce", "")
@@ -378,8 +383,13 @@ func _check_wave_triggers(current_enemies: int):
 	if _current_wave_index + 1 >= _active_waves.size():
 		return
 
+	var config = _get_current_config()
+	if not config:
+		return
+
 	var next_wave = _active_waves[_current_wave_index + 1]
 	var should_trigger = false
+	var wave_index = _current_wave_index + 1
 
 	match _get_wave_property(next_wave, "trigger", 0):
 		0:  # ON_START
@@ -391,10 +401,34 @@ func _check_wave_triggers(current_enemies: int):
 				should_trigger = current_enemies <= int(threshold)
 
 		2:  # TIMER
-			pass
+			if not _timer_waves_started.has(wave_index):
+				_timer_waves_started[wave_index] = true
+				_pending_wave = true
+				var timeout = _get_wave_property(next_wave, "trigger_value", 5.0)
+				var timer = get_tree().create_timer(timeout, false)
+				_pending_timers.append(timer)
+				timer.timeout.connect(func():
+					if is_instance_valid(_current_room):
+						_spawn_wave(config, wave_index)
+				)
+
+		3:  # BOSS_PHASE
+			var threshold = _get_wave_property(next_wave, "trigger_value", 0.5)
+			_clear_dead_bosses()
+			for boss in _current_bosses:
+				if is_instance_valid(boss) and boss.has_method("get_hp_ratio"):
+					if boss.get_hp_ratio() <= threshold:
+						should_trigger = true
+						break
 
 	if should_trigger:
 		_spawn_next_wave()
+
+
+func _clear_dead_bosses():
+	for i in range(_current_bosses.size() - 1, -1, -1):
+		if not is_instance_valid(_current_bosses[i]):
+			_current_bosses.remove_at(i)
 
 
 func _on_room_cleared(_room_id: String):
