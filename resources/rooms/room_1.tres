@@ -3,16 +3,6 @@
 [ext_resource type="Script" uid="uid://dlgidw265t16o" path="res://scripts/rooms/room_config.gd" id="1"]
 [ext_resource type="PackedScene" uid="uid://3eutp2mujaxc" path="res://scenes/rooms/room_1.tscn" id="2"]
 [ext_resource type="PackedScene" uid="uid://rqk8axxshsyu" path="res://scenes/enemies/goblin.tscn" id="3"]
-[ext_resource type="Script" uid="uid://c5qhgikrb3h72" path="res://scripts/rooms/wave_config.gd" id="4"]
-
-[sub_resource type="Resource" id="WaveConfig_w1"]
-script = ExtResource("4")
-trigger = 0
-trigger_value = 0.0
-spawn_marker_groups = Array[String](["spawn"])
-enemy_count = 5
-delay = 0.0
-announce = ""
 
 [resource]
 script = ExtResource("1")
@@ -22,4 +12,3 @@ room_size = 0
 min_enemies = 4
 max_enemies = 6
 enemy_pool = Array[PackedScene]([ExtResource("3")])
-waves = Array[Resource]([SubResource("WaveConfig_w1")])
