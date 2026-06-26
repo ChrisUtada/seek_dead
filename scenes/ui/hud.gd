@@ -18,6 +18,7 @@ var _flash_overlay: ColorRect
 var _overlay_label: Label
 var _overlay_button: Label
 var _is_paused: bool = false
+var _death_overlay: bool = false
 
 func _ready():
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -281,6 +282,7 @@ func _on_weapon_changed(weapon: WeaponNode):
 	weapon_label.add_theme_color_override("font_color", color)
 
 func _on_player_died():
+	_death_overlay = true
 	_show_overlay("你死了", "按 F2 重新开始", Color(0.6, 0.1, 0.1, 0.7))
 
 func _show_overlay(title: String, button_text: String, bg_color: Color):
@@ -290,6 +292,7 @@ func _show_overlay(title: String, button_text: String, bg_color: Color):
 	_overlay_button.text = button_text
 
 func _hide_overlay():
+	_death_overlay = false
 	_overlay.color = Color(0, 0, 0, 0)
 	_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_overlay_label.text = ""
@@ -298,7 +301,7 @@ func _hide_overlay():
 func _input(event):
 	if event.is_action_pressed("pause"):
 		_toggle_pause()
-	if event.is_action_pressed("restart"):
+	if event.is_action_pressed("restart") and _death_overlay:
 		call_deferred("_restart_game")
 
 func _restart_game():

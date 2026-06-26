@@ -1,0 +1,62 @@
+[gd_scene format=4 uid="uid://room3_medium"]
+
+[ext_resource type="PackedScene" path="res://scenes/rooms/door_marker.tscn" id="1"]
+
+[sub_resource type="NavigationPolygon" id="1"]
+vertices = PackedVector2Array(16, 16, 512, 16, 512, 384, 16, 384)
+polygons = Array[PackedInt32Array]([PackedInt32Array(0, 1, 2, 3)])
+
+[node name="room3_medium" type="Node2D"]
+
+[node name="NavigationRegion2D" type="NavigationRegion2D" parent="."]
+navigation_polygon = SubResource("1")
+
+[node name="DoorMarker" parent="." instance=ExtResource("1")]
+position = Vector2(21, 38)
+
+[node name="DoorMarker2" parent="." instance=ExtResource("1")]
+position = Vector2(565, 38)
+direction = 1
+
+[node name="PlayerSpawn" type="Marker2D" parent="."]
+position = Vector2(256, 192)
+
+[node name="SpawnMarker1" type="Marker2D" parent="."]
+position = Vector2(80, 80)
+groups = ["spawn"]
+
+[node name="SpawnMarker2" type="Marker2D" parent="."]
+position = Vector2(180, 100)
+groups = ["spawn"]
+
+[node name="SpawnMarker3" type="Marker2D" parent="."]
+position = Vector2(340, 80)
+groups = ["spawn"]
+
+[node name="SpawnMarker4" type="Marker2D" parent="."]
+position = Vector2(430, 120)
+groups = ["spawn"]
+
+[node name="SpawnMarker5" type="Marker2D" parent="."]
+position = Vector2(100, 260)
+groups = ["spawn"]
+
+[node name="SpawnMarker6" type="Marker2D" parent="."]
+position = Vector2(200, 300)
+groups = ["spawn"]
+
+[node name="SpawnMarker7" type="Marker2D" parent="."]
+position = Vector2(340, 280)
+groups = ["spawn"]
+
+[node name="SpawnMarker8" type="Marker2D" parent="."]
+position = Vector2(430, 300)
+groups = ["spawn"]
+
+[node name="SpawnMarker_wave2" type="Marker2D" parent="."]
+position = Vector2(140, 180)
+groups = ["wave2"]
+
+[node name="SpawnMarker_wave2b" type="Marker2D" parent="."]
+position = Vector2(380, 190)
+groups = ["wave2"]

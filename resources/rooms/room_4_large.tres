@@ -1,0 +1,47 @@
+[gd_resource type="Resource" script_class="RoomConfig" format=3]
+
+[ext_resource type="Script" uid="uid://dlgidw265t16o" path="res://scripts/rooms/room_config.gd" id="1"]
+[ext_resource type="Script" uid="uid://c5qhgikrb3h72" path="res://scripts/rooms/wave_config.gd" id="2"]
+[ext_resource type="PackedScene" uid="uid://room4_large" path="res://scenes/rooms/room_4_large.tscn" id="3"]
+[ext_resource type="PackedScene" uid="uid://rqk8axxshsyu" path="res://scenes/enemies/goblin.tscn" id="4"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/skeleton.tscn" id="5"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/elite_mage.tscn" id="6"]
+
+[sub_resource type="Resource" id="WaveConfig_w1"]
+script = ExtResource("2")
+trigger = 0
+trigger_value = 0.0
+spawn_marker_groups = Array[String](["spawn"])
+enemy_count = 8
+delay = 0.0
+announce = ""
+
+[sub_resource type="Resource" id="WaveConfig_w2"]
+script = ExtResource("2")
+trigger = 1
+trigger_value = 4.0
+spawn_marker_groups = Array[String](["wave2"])
+enemy_count = 6
+delay = 0.5
+announce = "冷气从深处涌来..."
+
+[sub_resource type="Resource" id="WaveConfig_w3"]
+script = ExtResource("2")
+trigger = 1
+trigger_value = 3.0
+spawn_marker_groups = Array[String](["wave3"])
+enemy_count = 5
+delay = 0.3
+announce = "腐化核心苏醒了!"
+
+[resource]
+script = ExtResource("1")
+scene = ExtResource("3")
+room_name = "冷库深处"
+room_size = 2
+min_enemies = 8
+max_enemies = 10
+enemy_pool = Array[PackedScene]([ExtResource("4"), ExtResource("5"), ExtResource("6")])
+waves = Array[Resource]([SubResource("WaveConfig_w1"), SubResource("WaveConfig_w2"), SubResource("WaveConfig_w3")])
+reward_count = 3
+reward_quality_bonus = 0.2

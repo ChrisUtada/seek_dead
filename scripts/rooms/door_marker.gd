@@ -3,6 +3,8 @@ extends Area2D
 
 enum Direction { UP, DOWN, LEFT, RIGHT }
 
+@export var is_entrance: bool = false
+
 @export var direction: Direction = Direction.RIGHT:
 	set(v):
 		direction = v

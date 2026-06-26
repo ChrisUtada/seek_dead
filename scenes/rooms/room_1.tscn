@@ -329,18 +329,23 @@ position = Vector2(286, 63)
 
 [node name="SpawnMarker1" type="Marker2D" parent="." unique_id=1066654362]
 position = Vector2(100, 80)
+groups = ["spawn"]
 
 [node name="SpawnMarker2" type="Marker2D" parent="." unique_id=1978297308]
 position = Vector2(200, 90)
+groups = ["spawn"]
 
 [node name="SpawnMarker3" type="Marker2D" parent="." unique_id=1123224041]
 position = Vector2(80, 220)
+groups = ["spawn"]
 
 [node name="SpawnMarker4" type="Marker2D" parent="." unique_id=1688857871]
 position = Vector2(200, 260)
+groups = ["spawn"]
 
 [node name="SpawnMarker5" type="Marker2D" parent="." unique_id=2093203315]
 position = Vector2(280, 150)
+groups = ["spawn"]
 
 [node name="SpawnMarker_Boss" type="Marker2D" parent="." unique_id=1673023329]
 position = Vector2(170, 128)
