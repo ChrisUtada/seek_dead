@@ -60,9 +60,24 @@ func _tint_from_effects():
 	if _flash_timer <= 0:
 		_sprite.modulate = effects.get_last_color() if effects.has_any() else Color(1, 1, 1)
 
+func _apply_tier_multipliers(cfg: EnemyConfig):
+	match cfg.tier:
+		EnemyConfig.EnemyTier.ELITE_STAT:
+			state.max_hp *= 2.5 * cfg.stat_multiplier
+			state.hp = state.max_hp
+			mover.speed *= 1.3
+			scale = Vector2(1.2, 1.2)
+			_sprite.modulate = Color(1.5, 1.5, 0.9)
+		EnemyConfig.EnemyTier.ELITE_MECHANIC:
+			state.max_hp *= 1.8 * cfg.stat_multiplier
+			state.hp = state.max_hp
+			mover.speed *= 1.15
+			scale = Vector2(1.15, 1.15)
+
 func _on_died():
 	AudioManager.play_sfx(AudioManager.SfxType.ENEMY_DIE)
 	EntityRegistry.unregister_enemy(self)
+	died.emit()
 	queue_free()
 
 func _enemy_physics(delta):

@@ -14,3 +14,5 @@ extends EnemyConfig
 
 @export var attack_cooldowns: Array[float] = [1.2, 0.9, 0.6]
 @export var bullet_speed: float = 400.0
+
+@export var stun_duration: float = 3.0

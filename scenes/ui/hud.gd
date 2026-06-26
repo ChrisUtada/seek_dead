@@ -302,6 +302,7 @@ func _input(event):
 		call_deferred("_restart_game")
 
 func _restart_game():
+	get_tree().paused = false
 	var path = get_tree().current_scene.scene_file_path
 	if path != "":
 		get_tree().change_scene_to_file(path)

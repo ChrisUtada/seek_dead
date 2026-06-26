@@ -8,10 +8,8 @@ var _room_configs: Array[RoomConfig]
 var _transition: ColorRect
 var _root: Node
 var _transitioning: bool = false
-
-var _room_cache: Dictionary = {}
-var _current_pos: Vector2i = Vector2i.ZERO
 var _last_config_index: int = -1
+var _doors_unlocked: bool = false
 
 
 func _ready():
@@ -51,14 +49,23 @@ func _load_configs():
 				_room_configs.append(cfg)
 
 
+func _reset_state():
+	if is_instance_valid(_current_room):
+		var p = _current_room.get_parent()
+		if p:
+			p.remove_child(_current_room)
+	_current_room = null
+	_transitioning = false
+
+
 func enter_first_room(player: Node2D, root: Node):
+	_reset_state()
 	if _room_configs.is_empty():
 		push_error("RoomMgr: 无房间配置")
 		return
 	_player = player
 	_root = root
-	_current_pos = Vector2i.ZERO
-	_do_switch(-1)
+	_do_switch()
 
 
 func _load_room(entrance_direction: int):
@@ -69,7 +76,7 @@ func _load_room(entrance_direction: int):
 	_transition.mouse_filter = Control.MOUSE_FILTER_STOP
 	var t = create_tween()
 	t.tween_property(_transition, "color", Color(0, 0, 0, 1), 0.3)
-	t.tween_callback(_do_switch.bind(entrance_direction))
+	t.tween_callback(_do_switch)
 	t.tween_property(_transition, "color", Color(0, 0, 0, 0), 0.3)
 	t.finished.connect(_end_transition)
 	get_tree().create_timer(8.0, false).timeout.connect(_end_transition)
@@ -82,9 +89,7 @@ func _end_transition():
 	_transition.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 
-func _do_switch(entrance_direction: int):
-	_current_pos = _next_pos(entrance_direction)
-
+func _do_switch():
 	if not _player:
 		push_error("RoomMgr: _player is null")
 		return
@@ -96,21 +101,15 @@ func _do_switch(entrance_direction: int):
 		var p = _current_room.get_parent()
 		if p:
 			p.remove_child(_current_room)
+		_current_room = null
 
-	if _room_cache.has(_current_pos):
-		_current_room = _room_cache[_current_pos]
-		_root.add_child(_current_room)
-		_root.move_child(_current_room, 0)
-	else:
-		var config = _pick_config()
-		_last_config_index = _room_configs.find(config)
-		var room = config.scene.instantiate()
-		_room_cache[_current_pos] = room
-		_current_room = room
-		_root.add_child(room)
-		_root.move_child(room, 0)
-		_spawn_enemies(config, room)
-
+	var config = _pick_config()
+	var room = config.scene.instantiate()
+	_current_room = room
+	_root.add_child(room)
+	_root.move_child(room, 0)
+	_spawn_enemies(config, room)
+	_doors_unlocked = false
 	_position_player()
 
 	for child in _current_room.find_children("*", "Area2D"):
@@ -124,19 +123,31 @@ func _spawn_enemies(config: RoomConfig, room: Node2D):
 	for n in room.find_children("SpawnMarker*", "Marker2D", true, false):
 		if n is Marker2D:
 			markers.append(n)
-	if markers.is_empty():
-		push_warning("RoomMgr: 房间 %s 没有 SpawnMarker" % config.room_name)
-		return
-	var count = randi_range(config.min_enemies, min(config.max_enemies, markers.size()))
-	markers.shuffle()
-	for i in range(count):
-		var marker = markers[i]
-		var enemy_scene = config.enemy_pool.pick_random()
-		if not enemy_scene:
-			continue
-		var enemy = enemy_scene.instantiate()
-		enemy.global_position = marker.global_position
-		room.add_child(enemy)
+	if not markers.is_empty():
+		var count = randi_range(config.min_enemies, min(config.max_enemies, markers.size()))
+		markers.shuffle()
+		for i in range(count):
+			var marker = markers[i]
+			var enemy_scene = config.enemy_pool.pick_random()
+			if not enemy_scene:
+				continue
+			var enemy = enemy_scene.instantiate()
+			enemy.global_position = marker.global_position
+			room.add_child(enemy)
+
+	if config.boss_count > 0 and not config.boss_pool.is_empty():
+		var boss_marker = room.get_node_or_null("SpawnMarker_Boss")
+		for _j in range(min(config.boss_count, config.boss_pool.size())):
+			var boss_scene = config.boss_pool.pick_random()
+			if not boss_scene:
+				continue
+			var boss = boss_scene.instantiate()
+			if boss_marker:
+				boss.global_position = boss_marker.global_position
+			else:
+				var pspawn = room.get_node_or_null("PlayerSpawn")
+				boss.global_position = (pspawn.global_position + Vector2(0, -80)) if pspawn else Vector2(320, 180)
+			room.add_child(boss)
 
 
 func _position_player():
@@ -161,20 +172,26 @@ func _pick_config() -> RoomConfig:
 	var idx = randi() % n
 	if idx == _last_config_index:
 		idx = (idx + 1) % n
+	_last_config_index = idx
 	return _room_configs[idx]
 
 
+func _process(_delta):
+	if _doors_unlocked:
+		return
+	if not is_instance_valid(_current_room):
+		return
+	if EntityRegistry.get_enemy_count() <= 0:
+		_unlock_doors()
+
+func _unlock_doors():
+	for child in _current_room.find_children("*", "Area2D"):
+		if child.get_script() == _DoorScript:
+			child.unlock()
+	_doors_unlocked = true
+
 func _on_door_entered(door_direction: int):
 	_load_room(door_direction)
-
-
-func _next_pos(door_dir: int) -> Vector2i:
-	match door_dir:
-		DoorMarker.Direction.UP: return _current_pos + Vector2i(0, -1)
-		DoorMarker.Direction.DOWN: return _current_pos + Vector2i(0, 1)
-		DoorMarker.Direction.LEFT: return _current_pos + Vector2i(-1, 0)
-		DoorMarker.Direction.RIGHT: return _current_pos + Vector2i(1, 0)
-	return _current_pos
 
 
 func _tile_size(tml: TileMapLayer) -> int:

@@ -7,6 +7,8 @@ const _RangedWeapon = preload("res://scripts/battle/ranged_weapon.gd")
 
 signal player_damaged(amount: float, current_hp: float, max_hp: float)
 
+enum PlayerState { IDLE, WALK, ATTACK, DODGE, SPRINT, HURT, DEAD }
+
 @onready var state: StateComponent = $StateComponent
 @onready var weapon: WeaponComponent = $WeaponComponent
 @onready var mover: MovementComponent = $MovementComponent
@@ -21,6 +23,9 @@ signal player_damaged(amount: float, current_hp: float, max_hp: float)
 var walk_speed: float = 200.0
 var _base_walk_speed: float = 200.0
 var _flash_timer: float = 0.0
+var _state: PlayerState = PlayerState.IDLE
+var _hurt_timer: float = 0.0
+
 
 func _ready():
 	GameManager.register_player(self)
@@ -41,12 +46,152 @@ func _ready():
 	state.meltdown_triggered.connect(_on_meltdown)
 	state.meltdown_ended.connect(_on_meltdown_end)
 	weapon.weapon_changed.connect(_on_weapon_changed)
+	dodge.dodge_finished.connect(_on_dodge_finished)
+	sprint.sprint_finished.connect(_on_sprint_finished)
 	_init_skills()
+
+
+# ===================== State Machine =====================
+
+func _change_state(new_state: PlayerState):
+	if _state == new_state or _state == PlayerState.DEAD:
+		return
+	_exit_state(_state)
+	_state = new_state
+	_enter_state(_state)
+
+
+func _enter_state(s: PlayerState):
+	match s:
+		PlayerState.ATTACK:
+			weapon.attack()
+		PlayerState.DODGE:
+			if dodge.can_dodge():
+				var dir = _get_input_direction()
+				dodge.try_dodge(dir if dir != Vector2.ZERO else Vector2.DOWN)
+		PlayerState.SPRINT:
+			sprint.try_start_sprint()
+		PlayerState.HURT:
+			_hurt_timer = 0.25
+		PlayerState.DEAD:
+			set_physics_process(false)
+			mover.direction = Vector2.ZERO
+			GameManager.game_over()
+
+
+func _exit_state(s: PlayerState):
+	match s:
+		PlayerState.SPRINT:
+			if sprint.is_sprinting:
+				sprint.stop_sprint()
+
+
+func _on_dodge_finished():
+	if _state == PlayerState.DODGE:
+		_change_state(PlayerState.IDLE if _get_input_direction() == Vector2.ZERO else PlayerState.WALK)
+
+
+func _on_sprint_finished():
+	if _state == PlayerState.SPRINT:
+		_change_state(PlayerState.IDLE if _get_input_direction() == Vector2.ZERO else PlayerState.WALK)
+
+
+# ===================== Input =====================
+
+func _unhandled_input(event: InputEvent):
+	match _state:
+		PlayerState.DEAD, PlayerState.HURT, PlayerState.DODGE:
+			return
+		PlayerState.ATTACK:
+			if event.is_action_pressed("dodge") and dodge.can_dodge():
+				_change_state(PlayerState.DODGE)
+			return
+		PlayerState.SPRINT:
+			if event.is_action_pressed("dodge") and dodge.can_dodge():
+				_change_state(PlayerState.DODGE)
+				return
+			if event.is_action_pressed("attack") and weapon.can_attack():
+				_change_state(PlayerState.ATTACK)
+				return
+
+	if event.is_action_pressed("attack") and weapon.can_attack():
+		_change_state(PlayerState.ATTACK)
+		return
+	if event.is_action_pressed("dodge") and dodge.can_dodge():
+		_change_state(PlayerState.DODGE)
+		return
+	if event.is_action_pressed("sprint"):
+		if _state != PlayerState.SPRINT:
+			_change_state(PlayerState.SPRINT)
+		return
+	if event.is_action_released("sprint") and _state == PlayerState.SPRINT:
+		_change_state(PlayerState.IDLE if _get_input_direction() == Vector2.ZERO else PlayerState.WALK)
+		return
+	if event.is_action_pressed("reload"):
+		ammo.start_reload()
+		return
+	for i in range(2):
+		if event.is_action_pressed("skill_%d" % (i + 1)):
+			skill_manager.use_skill(i, self)
+			return
+
+
+# ===================== Physics =====================
+
+func _physics_process(delta: float):
+	match _state:
+		PlayerState.IDLE, PlayerState.WALK, PlayerState.SPRINT:
+			_process_movement(delta)
+			if _state != PlayerState.SPRINT:
+				var moving = _get_input_direction() != Vector2.ZERO
+				if moving and _state == PlayerState.IDLE:
+					_change_state(PlayerState.WALK)
+				elif not moving and _state == PlayerState.WALK:
+					_change_state(PlayerState.IDLE)
+		PlayerState.ATTACK:
+			_process_movement(delta)
+			if _attack_finished():
+				_change_state(PlayerState.IDLE if _get_input_direction() == Vector2.ZERO else PlayerState.WALK)
+		PlayerState.HURT:
+			_hurt_timer -= delta
+			if _hurt_timer <= 0:
+				_change_state(PlayerState.IDLE if _get_input_direction() == Vector2.ZERO else PlayerState.WALK)
+		PlayerState.DODGE, PlayerState.DEAD:
+			pass
+
+
+func _attack_finished() -> bool:
+	return not weapon.current_weapon or not weapon.current_weapon.is_attacking
+
+
+func _process_movement(delta: float):
+	if _flash_timer > 0 and _sprite and _sprite is CanvasItem:
+		var spr = _sprite as CanvasItem
+		_flash_timer -= delta
+		spr.modulate = Color(1, 1 - _flash_timer * 10, 1 - _flash_timer * 10)
+		if _flash_timer <= 0:
+			spr.modulate = Color(1, 1, 1)
+
+	mover.direction = _get_input_direction()
+	mover.speed = walk_speed
+
+	var aim_dir = (get_global_mouse_position() - global_position).normalized()
+	weapon.set_aim_direction(aim_dir)
+	if _sprite and "flip_h" in _sprite:
+		_sprite.flip_h = aim_dir.x < 0
+
+	for i in range(5):
+		if Input.is_key_pressed(KEY_1 + i):
+			weapon.switch_weapon(i)
+
+
+# ===================== Lifecycle =====================
 
 func _on_weapon_changed(w: WeaponNode):
 	var ranged_stats = w.stats as RangedWeapon
 	if ranged_stats and ranged_stats.max_ammo > 0:
 		ammo.switch_to_weapon(w.stats.weapon_name, ranged_stats.max_ammo)
+
 
 func _on_meltdown():
 	AudioManager.play_sfx(AudioManager.SfxType.PLAYER_MELTDOWN)
@@ -54,14 +199,17 @@ func _on_meltdown():
 	if _sprite and _sprite is CanvasItem:
 		(_sprite as CanvasItem).modulate = Color(1, 0.7, 0.2)
 
+
 func _on_meltdown_end():
 	walk_speed = _base_walk_speed
 	if _sprite and _sprite is CanvasItem:
 		(_sprite as CanvasItem).modulate = Color(1, 1, 1)
 
+
 func _init_skills():
 	skill_manager.add_skill(HealSkill.new())
 	skill_manager.add_skill(ShockwaveSkill.new())
+
 
 func _generate_placeholder_texture():
 	if not _sprite or _sprite is AnimatedSprite2D:
@@ -85,18 +233,19 @@ func _generate_placeholder_texture():
 	spr.texture = ImageTexture.create_from_image(image)
 	spr.centered = true
 
+
 func take_damage(amount: float, damage_type: int) -> Dictionary:
 	if is_invincible:
 		return {"final_damage": 0.0, "is_critical": false, "is_weakness": false, "hit_result": -1, "breakdown": {}}
 	var result = state.take_damage(amount, damage_type)
+	if _state != PlayerState.DEAD:
+		_change_state(PlayerState.HURT)
 	_flash_timer = 0.1
 	EventManager.damage_dealt.emit(null, self, result.final_damage, damage_type)
 	player_damaged.emit(result.final_damage, state.hp, state.max_hp)
 	_shake_camera(Vector2(2.0, 1.5) if result.is_critical else Vector2(1.0, 0.8), 0.15)
-	print("玩家受伤: %.0f (剩余HP: %.0f/%.0f)" % [result.final_damage, state.hp, state.max_hp])
-	if result.is_critical:
-		print("  ! 暴击! (%.1fx)" % result.breakdown.get("crit_damage", 1.5))
 	return result
+
 
 func _shake_camera(intensity: Vector2, duration: float):
 	var cam = $Camera2D
@@ -107,57 +256,19 @@ func _shake_camera(intensity: Vector2, duration: float):
 	tween.tween_method(_apply_shake.bind(cam, original, intensity), 0.0, 1.0, duration).set_trans(Tween.TRANS_LINEAR)
 	tween.tween_callback(func(): cam.position = original)
 
+
 func _apply_shake(_t: float, cam: Camera2D, original: Vector2, intensity: Vector2):
 	cam.position = original + Vector2(randf_range(-intensity.x, intensity.x), randf_range(-intensity.y, intensity.y))
+
 
 func knockback(velocity: Vector2):
 	mover.push(velocity, 0.12)
 
+
 func _on_died():
+	_change_state(PlayerState.DEAD)
 	AudioManager.play_sfx(AudioManager.SfxType.PLAYER_HURT)
-	print("玩家死亡!")
-	set_physics_process(false)
-	mover.direction = Vector2.ZERO
-	mover.speed = 0.0
 
-func _unhandled_input(event: InputEvent):
-	if event.is_action_pressed("attack"):
-		weapon.attack()
-	if event.is_action_pressed("dodge"):
-		var dir = _get_input_direction()
-		if dir == Vector2.ZERO:
-			dir = Vector2.DOWN
-		dodge.try_dodge(dir)
-	if event.is_action_pressed("sprint"):
-		sprint.try_start_sprint()
-	if event.is_action_released("sprint"):
-		sprint.stop_sprint()
-	if event.is_action_pressed("reload"):
-		ammo.start_reload()
-	for i in range(2):
-		if event.is_action_pressed("skill_%d" % (i + 1)):
-			skill_manager.use_skill(i, self)
-			break
-
-func _physics_process(delta: float):
-	if _flash_timer > 0 and _sprite and _sprite is CanvasItem:
-		var spr = _sprite as CanvasItem
-		_flash_timer -= delta
-		spr.modulate = Color(1, 1 - _flash_timer * 10, 1 - _flash_timer * 10)
-		if _flash_timer <= 0:
-			spr.modulate = Color(1, 1, 1)
-
-	mover.direction = _get_input_direction()
-	mover.speed = walk_speed
-
-	var aim_dir = (get_global_mouse_position() - global_position).normalized()
-	weapon.set_aim_direction(aim_dir)
-	if _sprite and "flip_h" in _sprite:
-		_sprite.flip_h = aim_dir.x < 0
-
-	for i in range(5):
-		if Input.is_key_pressed(KEY_1 + i):
-			weapon.switch_weapon(i)
 
 func _get_input_direction() -> Vector2:
 	var dir = Vector2.ZERO

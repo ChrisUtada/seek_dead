@@ -10,8 +10,8 @@
 [ext_resource type="Script" uid="uid://b5yukeonfgiv4" path="res://scripts/components/sprint_component.gd" id="6"]
 [ext_resource type="PackedScene" uid="uid://dcmcsdmej037o" path="res://scenes/weapons/fire_sword.tscn" id="6_52gso"]
 [ext_resource type="Script" uid="uid://ddx2ff3dfsbis" path="res://scripts/battle/ammo_system.gd" id="7"]
-[ext_resource type="Script" uid="" path="res://scripts/battle/hurtbox.gd" id="8_d4e2m"]
 [ext_resource type="Script" uid="uid://cpyarsdklh28t" path="res://scripts/battle/skill_manager.gd" id="8"]
+[ext_resource type="Script" uid="uid://d0ygt1ksgbf84" path="res://scripts/battle/hurtbox.gd" id="8_d4e2m"]
 [ext_resource type="Resource" uid="uid://dcheib4eqysy2" path="res://resources/players/knight.tres" id="9"]
 [ext_resource type="Resource" path="res://resources/weapons/fire_sword.tres" id="9_ycxmx"]
 [ext_resource type="Script" uid="uid://qjvq1fr7aq82" path="res://scripts/ui/shadow.gd" id="10"]
@@ -19,7 +19,7 @@
 [ext_resource type="Resource" uid="uid://bp8mm0j2aqlyy" path="res://resources/weapons/pistol.tres" id="11_b174x"]
 
 [sub_resource type="CircleShape2D" id="1"]
-radius = 17.0
+radius = 21.0
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_tdo2s"]
 atlas = ExtResource("4_52gso")
@@ -105,6 +105,9 @@ animations = [{
 "speed": 6.0
 }]
 
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_w4afe"]
+size = Vector2(27, 37)
+
 [node name="Knight" type="CharacterBody2D" unique_id=1848398606]
 collision_mask = 4
 script = ExtResource("1")
@@ -127,11 +130,12 @@ animation = &"run"
 position_smoothing_enabled = true
 position_smoothing_speed = 8.0
 
-[node name="Hurtbox" type="Area2D" parent="."]
+[node name="Hurtbox" type="Area2D" parent="." unique_id=610326860]
 script = ExtResource("8_d4e2m")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox"]
-shape = SubResource("1")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox" unique_id=2049756981]
+position = Vector2(0, 14)
+shape = SubResource("RectangleShape2D_w4afe")
 
 [node name="StateComponent" type="Node" parent="." unique_id=1281210459]
 script = ExtResource("2")

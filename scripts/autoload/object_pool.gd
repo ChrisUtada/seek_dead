@@ -20,9 +20,12 @@ func _create() -> Node:
 
 func acquire(target_parent: Node) -> Node:
 	var obj: Node
-	if _available.size() > 0:
+	while _available.size() > 0:
 		obj = _available.pop_back()
-	else:
+		if is_instance_valid(obj):
+			break
+		obj = null
+	if not obj:
 		obj = _create()
 	target_parent.add_child(obj)
 	obj.visible = true

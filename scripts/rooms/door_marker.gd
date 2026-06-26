@@ -10,12 +10,41 @@ enum Direction { UP, DOWN, LEFT, RIGHT }
 
 signal player_entered(door_direction: int)
 
+var locked: bool = true
+
+@onready var _visual: Sprite2D = $Visual
+
+
 func _ready():
 	body_entered.connect(_on_body_entered)
+	_update_visual()
+
 
 func _on_body_entered(body: Node2D):
+	if locked:
+		return
 	if body.is_in_group("player"):
 		player_entered.emit(direction)
+
+
+func unlock():
+	locked = false
+	_update_visual()
+
+
+func lock():
+	locked = true
+	_update_visual()
+
+
+func _update_visual():
+	if not _visual:
+		return
+	if locked:
+		_visual.modulate = Color(1, 0.2, 0.2, 0.7)
+	else:
+		_visual.modulate = Color(0.3, 1, 0.3, 0.4)
+
 
 func _draw():
 	if not Engine.is_editor_hint():

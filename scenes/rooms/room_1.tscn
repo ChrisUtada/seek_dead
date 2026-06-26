@@ -2,6 +2,11 @@
 
 [ext_resource type="Texture2D" uid="uid://drdmjxcit257x" path="res://assets/tiles/Dungeon_Tiles.png" id="1_hnbyo"]
 [ext_resource type="PackedScene" path="res://scenes/rooms/door_marker.tscn" id="2_fbq1s"]
+
+[sub_resource type="NavigationPolygon" id="NavigationPolygon_oqkh4"]
+vertices = PackedVector2Array(16, 16, 336, 16, 336, 320, 16, 320)
+polygons = Array[PackedInt32Array]([PackedInt32Array(0, 1, 2, 3)])
+
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ksju7"]
 texture = ExtResource("1_hnbyo")
 0:0/0 = 0
@@ -303,13 +308,9 @@ texture = ExtResource("1_hnbyo")
 [sub_resource type="TileSet" id="TileSet_7u6i3"]
 sources/1 = SubResource("TileSetAtlasSource_ksju7")
 
-[sub_resource type="NavigationPolygon" id="NavigationPolygon_oqkh4"]
-vertices = PackedVector2Array(16, 16, 336, 16, 336, 320, 16, 320)
-polygons = [PackedInt32Array(0, 1, 2, 3)]
-
 [node name="room1" type="Node2D" unique_id=844098735]
 
-[node name="NavigationRegion2D" type="NavigationRegion2D" parent="."]
+[node name="NavigationRegion2D" type="NavigationRegion2D" parent="." unique_id=657977590]
 navigation_polygon = SubResource("NavigationPolygon_oqkh4")
 
 [node name="TileMapLayer" type="TileMapLayer" parent="." unique_id=1072149566]
@@ -322,27 +323,24 @@ direction = 2
 
 [node name="DoorMarker2" parent="." unique_id=1789572740 instance=ExtResource("2_fbq1s")]
 position = Vector2(565, 38)
-direction = 3
 
 [node name="PlayerSpawn" type="Marker2D" parent="." unique_id=1789572739]
 position = Vector2(286, 63)
 
-[node name="SpawnMarker1" type="Marker2D" parent="."]
+[node name="SpawnMarker1" type="Marker2D" parent="." unique_id=1066654362]
 position = Vector2(100, 80)
-groups = ["spawn"]
 
-[node name="SpawnMarker2" type="Marker2D" parent="."]
+[node name="SpawnMarker2" type="Marker2D" parent="." unique_id=1978297308]
 position = Vector2(200, 90)
-groups = ["spawn"]
 
-[node name="SpawnMarker3" type="Marker2D" parent="."]
+[node name="SpawnMarker3" type="Marker2D" parent="." unique_id=1123224041]
 position = Vector2(80, 220)
-groups = ["spawn"]
 
-[node name="SpawnMarker4" type="Marker2D" parent="."]
+[node name="SpawnMarker4" type="Marker2D" parent="." unique_id=1688857871]
 position = Vector2(200, 260)
-groups = ["spawn"]
 
-[node name="SpawnMarker5" type="Marker2D" parent="."]
+[node name="SpawnMarker5" type="Marker2D" parent="." unique_id=2093203315]
 position = Vector2(280, 150)
-groups = ["spawn"]
+
+[node name="SpawnMarker_Boss" type="Marker2D" parent="." unique_id=1673023329]
+position = Vector2(170, 128)

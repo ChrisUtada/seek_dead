@@ -19,7 +19,7 @@ func reset():
 	_already_hit.clear()
 
 func _ready():
-	collision_layer = CollisionSystem.bit(CollisionSystem.LAYER_HITBOX)
+	set_deferred("collision_layer", CollisionSystem.bit(CollisionSystem.LAYER_HITBOX))
 
 func _process(delta):
 	if lifespan <= 0:
@@ -33,6 +33,8 @@ func apply_to(hurtbox: Hurtbox):
 		return
 	var target = hurtbox.owner as Damageable
 	if not target or target == shooter or target in _already_hit:
+		return
+	if shooter and target and shooter.is_in_group("enemies") and target.is_in_group("enemies"):
 		return
 	_already_hit.append(target)
 	hit_landed.emit(target)

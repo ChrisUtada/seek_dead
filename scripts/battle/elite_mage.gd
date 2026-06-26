@@ -1,6 +1,8 @@
 extends EnemyBase
 
 const _AIComp = preload("res://scripts/components/ai_component.gd")
+const _BulletScene = preload("res://scenes/battle/projectile.tscn")
+const _DefaultBulletData = preload("res://resources/bullets/default_bullet.tres")
 
 @export var config: EnemyConfig
 
@@ -9,50 +11,47 @@ const _AIComp = preload("res://scripts/components/ai_component.gd")
 
 var _was_moving: bool = false
 
-@onready var _hitbox: Hitbox = $MeleeHitbox
-
 
 func _ready():
 	_enemy_ready()
 	if config:
 		apply_config(config)
 		_apply_tier_multipliers(config)
+	ai.attack_range = 200.0
 	ai.attack_performed.connect(_on_ai_attack)
-	ai.alerted.connect(_on_ai_alerted)
 	ai.set_home(global_position, 600.0)
-	_hitbox.monitoring = false
-	_hitbox.monitorable = false
-	_hitbox.lifespan = 0
 
 
-func apply_config(config: EnemyConfig):
-	state.max_hp = randf_range(config.hp_min, config.hp_max)
+func apply_config(cfg: EnemyConfig):
+	state.max_hp = randf_range(cfg.hp_min, cfg.hp_max)
 	state.hp = state.max_hp
-	state.innate_type = config.innate_type
-	state.defenses = config.defenses.duplicate()
-	mover.speed = config.speed
-
-
-func _on_ai_alerted(_target: Node2D):
-	pass
+	state.innate_type = cfg.innate_type
+	state.defenses = cfg.defenses.duplicate()
+	mover.speed = cfg.speed
 
 
 func _on_ai_attack(target: Node2D, damage: float):
 	if not is_instance_valid(target):
 		return
-	_hitbox.damage = damage
-	_hitbox.damage_type = state.innate_type
-	_hitbox.shooter = self
-	_hitbox.knockback_force = 120.0
-	_hitbox.reset()
-	_hitbox.global_position = global_position
-	_hitbox.monitoring = true
-	_hitbox.monitorable = true
-	var timer = get_tree().create_timer(0.15, false)
-	timer.timeout.connect(func():
-		_hitbox.monitoring = false
-		_hitbox.monitorable = false
-	)
+	if not ai.has_line_of_sight_to(target, 400.0):
+		return
+	var dir = global_position.direction_to(target.global_position)
+	var bullet = _BulletScene.instantiate()
+	bullet.direction = dir
+	bullet.global_position = global_position + dir * 24
+	bullet.damage = damage
+	bullet.damage_type = state.innate_type
+	bullet.shooter = self
+	bullet.data = _DefaultBulletData
+	get_parent().add_child(bullet)
+	_setup_fireball_visual(bullet)
+
+
+func _setup_fireball_visual(bullet):
+	var spr = bullet.get_node_or_null("Sprite2D")
+	if spr:
+		spr.texture = DamageSystem.get_circle_texture(10, Color(1, 0.6, 0.1), Color(1, 0.9, 0.4))
+		spr.centered = true
 
 
 func _on_died():
@@ -73,7 +72,6 @@ func _physics_process(delta):
 		mover.direction = Vector2.ZERO
 	else:
 		mover.direction = ai.get_move_direction()
-
 	_update_facing()
 	_update_animation()
 

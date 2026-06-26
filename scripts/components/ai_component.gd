@@ -285,3 +285,18 @@ func _get_distance_to(target: Node2D) -> float:
 
 func _find_nearest_player():
 	return EntityRegistry.get_nearest_player(get_parent().global_position)
+
+func has_line_of_sight_to(target: Node2D, max_distance: float) -> bool:
+	var parent = get_parent() as Node2D
+	if not parent:
+		return true
+	var ray = parent.get_node_or_null("LOSRay") as RayCast2D
+	if not ray:
+		return true
+	var offset = target.global_position - parent.global_position
+	if offset.length() > max_distance:
+		return false
+	ray.global_position = parent.global_position
+	ray.target_position = offset
+	ray.force_raycast_update()
+	return not ray.is_colliding()

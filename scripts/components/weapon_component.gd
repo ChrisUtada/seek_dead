@@ -58,8 +58,7 @@ func attack():
 	if not can_attack():
 		return
 	var node = current_weapon
-	var speed_mod = _get_attack_speed_modifier(node)
-	node.cooldown = 1.0 / (node.stats.attack_speed * speed_mod)
+	node.attack_speed_modifier = _get_attack_speed_modifier(node)
 	node.attack()
 
 func get_weapon_count() -> int:

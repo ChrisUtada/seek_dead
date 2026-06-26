@@ -14,4 +14,4 @@ signal energy_changed(target: Node2D, current_energy: float, max_energy: float)
 signal stamina_changed(target: Node2D, current_stamina: float, max_stamina: float)
 
 func _ready():
-	print("[EventManager] Initialized")
+	pass

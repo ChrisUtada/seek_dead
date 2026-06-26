@@ -6,3 +6,5 @@ extends Resource
 @export var min_enemies: int = 3
 @export var max_enemies: int = 6
 @export var enemy_pool: Array[PackedScene] = []
+@export var boss_count: int = 0
+@export var boss_pool: Array[PackedScene] = []

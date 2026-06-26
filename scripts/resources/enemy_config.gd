@@ -1,6 +1,9 @@
 class_name EnemyConfig
 extends Resource
 
+enum EnemyTier { NORMAL, ELITE_STAT, ELITE_MECHANIC, BOSS }
+
+@export var tier: EnemyTier = EnemyTier.NORMAL
 @export var display_name: String = "敌人"
 @export var hp_min: float = 50.0
 @export var hp_max: float = 150.0
@@ -13,5 +16,6 @@ extends Resource
 	"smash_defense": 0.0,
 	"fire_defense": 0.0,
 }
+@export var stat_multiplier: float = 1.5
 @export var color: Color = Color(0.9, 0.2, 0.2)
-@export var scene_path: String = "res://scenes/enemies/goblin.tscn"
+@export var scene_path: String = ""

@@ -3,16 +3,20 @@ extends WeaponNode
 
 @onready var _hitbox: Hitbox = $Hitbox
 
+var _hit_count: int = 0
+
+
 func _ready():
-	_hitbox.monitoring = false
-	_hitbox.monitorable = false
+	_hitbox.set_deferred("monitoring", false)
+	_hitbox.set_deferred("monitorable", false)
 	_hitbox.lifespan = 0
 	_hitbox.hit_landed.connect(_on_hitbox_landed)
 
+
 func attack():
-	if not shooter or not stats:
+	if not can_attack():
 		return
-	cooldown = get_cooldown_time()
+	_start_attack()
 	flash_range()
 	swing()
 	AudioManager.play_sfx(AudioManager.SfxType.PLAYER_MELEE)
@@ -33,13 +37,13 @@ func attack():
 	_hitbox.monitoring = true
 	_hitbox.monitorable = true
 
-	var timer = get_tree().create_timer(0.15, false)
-	timer.timeout.connect(func():
-		_hitbox.monitoring = false
-		_hitbox.monitorable = false
-	)
 
-	attack_finished.emit(self, 0)
+func _end_active():
+	_hitbox.monitoring = false
+	_hitbox.monitorable = false
+	super()
+
 
 func _on_hitbox_landed(target: Node2D):
+	_hit_count += 1
 	hit_landed.emit(target.global_position, aim_direction, stats.damage_type, target)

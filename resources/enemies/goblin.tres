@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+tier = 0
 display_name = "哥布林"
 hp_min = 40.0
 hp_max = 80.0

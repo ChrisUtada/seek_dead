@@ -44,6 +44,7 @@ func apply_config(config: EnemyConfig):
 	mover.speed = config.speed
 	if config is BossConfig:
 		_boss_config = config as BossConfig
+	_apply_tier_multipliers(config)
 	_generate_boss_texture()
 
 func _generate_boss_texture():
@@ -69,9 +70,6 @@ func _get_phase_value(arr: Array, phase: int) -> Variant:
 
 func take_damage(amount: float, damage_type: int) -> Dictionary:
 	var result = super(amount, damage_type)
-	var hit_str = DamageSystem.hit_result_to_string(result.hit_result)
-	var prefix = "[%s]" % hit_str if hit_str else ""
-	print("Boss受伤: %s %.0f (HP: %.0f/%.0f, %.0f%%)" % [prefix, result.final_damage, state.hp, state.max_hp, get_hp_ratio() * 100])
 	var old_phase = ai.phase
 	ai.check_phase(get_hp_ratio())
 	if ai.phase != old_phase:
@@ -79,7 +77,6 @@ func take_damage(amount: float, damage_type: int) -> Dictionary:
 	return result
 
 func _on_phase_changed():
-	print("BOSS进入阶段 %d!" % ai.phase)
 	var colors = [Color(1, 1, 1), Color(1, 0.7, 0.2), Color(1, 0.2, 0.1)]
 	_sprite.modulate = colors[min(ai.phase, 3) - 1] if ai.phase > 1 else Color(1, 1, 1)
 
@@ -127,7 +124,6 @@ func _on_melee_slam(_target: Node2D):
 	)
 	_spawn_slam_ring()
 	AudioManager.play_sfx(AudioManager.SfxType.BOSS_SLAM)
-	print("Boss 猛击! 阶段 %d" % ai.phase)
 
 func _spawn_slam_ring():
 	var ring = ColorRect.new()
@@ -148,7 +144,6 @@ func _on_charge(_target: Node2D):
 	_charge_velocity = dir * get_charge_speed()
 	_charge_duration = get_charge_duration()
 	AudioManager.play_sfx(AudioManager.SfxType.BOSS_CHARGE)
-	print("Boss 冲锋!")
 
 func _on_ranged_burst(_target: Node2D):
 	if not _target:
@@ -168,22 +163,13 @@ func _on_ranged_burst(_target: Node2D):
 		get_parent().add_child(bullet)
 		_bullet_visual(bullet)
 	AudioManager.play_sfx(AudioManager.SfxType.BOSS_BURST)
-	print("Boss 远程爆发! %d发" % count)
 
 func _bullet_visual(bullet):
-	var img = Image.create(12, 12, false, Image.FORMAT_RGBA8)
-	img.fill(Color(0, 0, 0, 0))
-	for x in range(12):
-		for y in range(12):
-			var dx = x - 6
-			var dy = y - 6
-			if dx * dx + dy * dy < 25: img.set_pixel(x, y, Color(1, 0.5, 0))
-			if dx * dx + dy * dy < 9: img.set_pixel(x, y, Color(1, 1, 0))
-	bullet.get_node("Sprite2D").texture = ImageTexture.create_from_image(img)
-	bullet.get_node("Sprite2D").centered = true
+	var spr = bullet.get_node("Sprite2D")
+	spr.texture = DamageSystem.get_circle_texture(12, Color(1, 0.5, 0), Color(1, 1, 0))
+	spr.centered = true
 
 func _on_died():
-	print("BOSS死亡!")
 	super()
 
 func _physics_process(delta):

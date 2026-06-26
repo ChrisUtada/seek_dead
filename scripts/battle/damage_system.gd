@@ -111,13 +111,26 @@ static func hit_result_to_string(r: HitResult) -> String:
 		HitResult.WEAKNESS: return "弱点!"
 		_: return ""
 
+static var _bonus_keys: Array[String] = []
+static var _defense_keys: Array[String] = []
+static var _keys_initialized: bool = false
+
+static func _init_type_keys():
+	var names = ["puncture", "slash", "smash", "fire", "lightning", "ice", "poison", "wind"]
+	for n in names:
+		_bonus_keys.append(n + "_bonus")
+		_defense_keys.append(n + "_defense")
+	_keys_initialized = true
+
 static func _get_attack_bonus(attacker_stats: Dictionary, damage_type: DamageType) -> float:
-	var bonus_key = _damage_type_to_key(damage_type) + "_bonus"
-	return attacker_stats.get(bonus_key, 0.0)
+	if not _keys_initialized:
+		_init_type_keys()
+	return attacker_stats.get(_bonus_keys[damage_type], 0.0)
 
 static func _get_defense_ratio(defender_stats: Dictionary, damage_type: DamageType) -> float:
-	var ratio_key = _damage_type_to_key(damage_type) + "_defense"
-	return defender_stats.get(ratio_key, 0.0)
+	if not _keys_initialized:
+		_init_type_keys()
+	return defender_stats.get(_defense_keys[damage_type], 0.0)
 
 static func _get_type_advantage(attack_type: DamageType, defender_innate_type: int) -> float:
 	if defender_innate_type < 0:
@@ -126,17 +139,31 @@ static func _get_type_advantage(attack_type: DamageType, defender_innate_type: i
 		return TYPE_ADVANTAGE[attack_type][defender_innate_type]
 	return 1.0
 
-static func _damage_type_to_key(t: DamageType) -> String:
-	match t:
-		DamageType.PUNCTURE: return "puncture"
-		DamageType.SLASH: return "slash"
-		DamageType.SMASH: return "smash"
-		DamageType.FIRE: return "fire"
-		DamageType.LIGHTNING: return "lightning"
-		DamageType.ICE: return "ice"
-		DamageType.POISON: return "poison"
-		DamageType.WIND: return "wind"
-	return "default"
+static var _texture_cache: Dictionary = {}
+
+static func get_circle_texture(size: int, outer_color: Color, inner_color: Color = Color(-1, -1, -1)) -> Texture2D:
+	var key = "%d_%s" % [size, outer_color.to_html(false)]
+	if inner_color.a >= 0:
+		key += "_" + inner_color.to_html(false)
+	if _texture_cache.has(key):
+		return _texture_cache[key]
+	var img = Image.create(size, size, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0, 0, 0, 0))
+	var radius = size >> 1
+	var inner_r2 = (radius * radius) >> 1
+	for x in range(size):
+		for y in range(size):
+			var dx = x - radius
+			var dy = y - radius
+			var d = dx * dx + dy * dy
+			if d < radius * radius:
+				if inner_color.a >= 0 and d < inner_r2:
+					img.set_pixel(x, y, inner_color)
+				else:
+					img.set_pixel(x, y, outer_color)
+	var tex = ImageTexture.create_from_image(img)
+	_texture_cache[key] = tex
+	return tex
 
 static func damage_type_to_string(t: DamageType) -> String:
 	match t:

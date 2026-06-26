@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+tier = 0
 display_name = "骷髅兵"
 hp_min = 60.0
 hp_max = 120.0

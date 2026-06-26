@@ -19,6 +19,8 @@ func _ready():
 
 func _enter_tree():
 	_returning = false
+	_age = 0.0
+	reset()
 	if not _signal_connected:
 		body_entered.connect(_on_body_entered)
 		_signal_connected = true

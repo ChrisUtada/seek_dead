@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://dlgidw265t16o" path="res://scripts/rooms/room_config.gd" id="1"]
 [ext_resource type="PackedScene" uid="uid://3eutp2mujaxc" path="res://scenes/rooms/room_1.tscn" id="2"]
 [ext_resource type="PackedScene" uid="uid://rqk8axxshsyu" path="res://scenes/enemies/goblin.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://scenes/bosses/limb_boss.tscn" id="4"]
 
 [resource]
 script = ExtResource("1")
@@ -11,3 +12,5 @@ room_name = "Room 1"
 min_enemies = 3
 max_enemies = 5
 enemy_pool = Array[PackedScene]([ExtResource("3")])
+boss_count = 1
+boss_pool = Array[PackedScene]([ExtResource("4")])
