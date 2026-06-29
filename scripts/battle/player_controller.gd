@@ -30,6 +30,8 @@ var _hurt_timer: float = 0.0
 var equipment_manager: EquipmentManager
 var equipment_inventory: EquipmentInventory
 
+var _debug_f8_held: bool = false
+
 
 func _ready():
 	GameManager.register_player(self)
@@ -200,6 +202,13 @@ func _process_movement(delta: float):
 		if Input.is_key_pressed(KEY_1 + i):
 			weapon.switch_weapon(i)
 
+	if Input.is_key_pressed(KEY_F8):
+		if not _debug_f8_held:
+			_debug_f8_held = true
+			_debug_spawn_equipment()
+	else:
+		_debug_f8_held = false
+
 
 # ===================== Lifecycle =====================
 
@@ -235,6 +244,26 @@ func _init_skills():
 	skill_manager.add_skill(HealSkill.new())
 	skill_manager.add_skill(ShockwaveSkill.new())
 	skill_manager.add_skill(_EscapeSkill.new())
+
+
+func _debug_spawn_equipment():
+	var helm = EquipmentBase.new()
+	helm.equipment_name = "调试头盔"
+	helm.slot = EquipmentEnums.EquipmentSlot.HELMET
+	helm.rarity = EquipmentEnums.Rarity.RARE
+	var mod = StatModifier.new()
+	mod.target_stat = EquipmentEnums.StatTarget.MAX_HP
+	mod.modifier_type = EquipmentEnums.ModifierType.ADD
+	mod.value = 50.0
+	helm.stat_modifiers.append(mod)
+	if equipment_inventory.add_item(helm):
+		print("[装备调试] 已添加调试头盔到背包 (+50 HP)")
+	else:
+		print("[装备调试] 背包已满")
+	equipment_manager.equip(helm)
+	print("[装备调试] HP加成前: %d / %d" % [state.hp, state.max_hp])
+	state.hp = state.max_hp
+	print("[装备调试] HP加成后: %d / %d" % [state.hp, state.max_hp])
 
 
 func _generate_placeholder_texture():
