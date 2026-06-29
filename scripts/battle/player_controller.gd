@@ -27,6 +27,9 @@ var _flash_timer: float = 0.0
 var _state: PlayerState = PlayerState.IDLE
 var _hurt_timer: float = 0.0
 
+var equipment_manager: EquipmentManager
+var equipment_inventory: EquipmentInventory
+
 
 func _ready():
 	GameManager.register_player(self)
@@ -49,6 +52,7 @@ func _ready():
 	weapon.weapon_changed.connect(_on_weapon_changed)
 	dodge.dodge_finished.connect(_on_dodge_finished)
 	sprint.sprint_finished.connect(_on_sprint_finished)
+	_init_equipment()
 	_init_skills()
 
 
@@ -216,6 +220,15 @@ func _on_meltdown_end():
 	walk_speed = _base_walk_speed
 	if _sprite and _sprite is CanvasItem:
 		(_sprite as CanvasItem).modulate = Color(1, 1, 1)
+
+
+func _init_equipment():
+	equipment_manager = EquipmentManager.new()
+	equipment_manager.name = "EquipmentManager"
+	add_child(equipment_manager)
+	equipment_inventory = EquipmentInventory.new()
+	equipment_inventory.name = "EquipmentInventory"
+	add_child(equipment_inventory)
 
 
 func _init_skills():
