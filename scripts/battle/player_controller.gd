@@ -96,6 +96,7 @@ func _exit_state(s: PlayerState):
 func _on_dodge_finished():
 	if _state == PlayerState.DODGE:
 		_change_state(PlayerState.IDLE if _get_input_direction() == Vector2.ZERO else PlayerState.WALK)
+	EventManager.dodge_performed.emit()
 
 
 func _on_sprint_finished():
@@ -251,13 +252,27 @@ func _debug_spawn_equipment():
 	helm.equipment_name = "调试头盔"
 	helm.slot = EquipmentEnums.EquipmentSlot.HELMET
 	helm.rarity = EquipmentEnums.Rarity.RARE
-	var mod = StatModifier.new()
-	mod.target_stat = EquipmentEnums.StatTarget.MAX_HP
-	mod.modifier_type = EquipmentEnums.ModifierType.ADD
-	mod.value = 50.0
-	helm.stat_modifiers.append(mod)
+	var aff = AffixDatabase.get_affix("活力")
+	if not aff:
+		aff = Affix.new()
+		aff.affix_name = "活力(fallback)"
+		var mod = StatModifier.new()
+		mod.target_stat = EquipmentEnums.StatTarget.MAX_HP
+		mod.modifier_type = EquipmentEnums.ModifierType.ADD
+		mod.value = 50.0
+		aff.stat_modifiers.append(mod)
+	var trigger = TriggerEffect.new()
+	trigger.trigger_event = EquipmentEnums.TriggerEvent.ON_HIT
+	trigger.effect_action = EquipmentEnums.EffectAction.HEAL
+	trigger.chance = 0.25
+	trigger.param_value = 10.0
+	aff.trigger_effects.append(trigger)
+	var burn = AffixDatabase.get_affix("灼烧")
+	if burn:
+		helm.affixes.append(burn)
+	helm.affixes.append(aff)
 	if equipment_inventory.add_item(helm):
-		print("[装备调试] 已添加调试头盔到背包 (+50 HP)")
+		print("[装备调试] 调试头盔: " + aff.affix_name + " + 灼烧(命中25%爆炸100火伤)")
 	else:
 		print("[装备调试] 背包已满")
 	equipment_manager.equip(helm)
@@ -292,6 +307,11 @@ func _generate_placeholder_texture():
 func take_damage(amount: float, damage_type: int) -> Dictionary:
 	if is_invincible:
 		return {"final_damage": 0.0, "is_critical": false, "is_weakness": false, "hit_result": -1, "breakdown": {}}
+	var executor = equipment_manager.get_node_or_null("EffectExecutor") as EffectExecutor
+	if executor and executor.has_shield():
+		amount = executor.absorb_damage(amount)
+		if amount <= 0:
+			return {"final_damage": 0.0, "is_critical": false, "is_weakness": false, "hit_result": -1, "breakdown": {}}
 	var result = state.take_damage(amount, damage_type)
 	if _state != PlayerState.DEAD:
 		_change_state(PlayerState.HURT)

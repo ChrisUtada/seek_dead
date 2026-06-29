@@ -1,19 +1,92 @@
 class_name EquipmentManager
 extends Node
 
-const _SlotEnum = EquipmentEnums.EquipmentSlot
-const _RarityEnum = EquipmentEnums.Rarity
-
 signal equipment_equipped(slot: int, item: EquipmentBase)
 signal equipment_unequipped(slot: int)
+signal trigger_activated(event: int, effect: TriggerEffect)
 
 var _equipped: Dictionary = {}
+var _active_triggers: Array[Dictionary] = []
+var _active_conditions: Array[Dictionary] = []
+
+var _executor: EffectExecutor
+
+
+func _ready():
+	_executor = EffectExecutor.new()
+	_executor.name = "EffectExecutor"
+	add_child(_executor)
+	trigger_activated.connect(_on_trigger_activated)
+	EventManager.damage_dealt.connect(_on_damage_dealt)
+	EventManager.enemy_died.connect(_on_enemy_died)
+	EventManager.room_cleared.connect(_on_room_cleared)
+	EventManager.skill_used.connect(_on_skill_used)
+	EventManager.item_picked_up.connect(_on_item_picked_up)
+	EventManager.dodge_performed.connect(_on_dodge_performed)
+	var state = _get_state()
+	if state:
+		state.meltdown_triggered.connect(_on_meltdown_local)
+		state.stamina_depleted.connect(_on_stamina_depleted)
+	print("[EquipmentManager] 就绪")
+
+
+func _on_trigger_activated(event: int, effect: TriggerEffect):
+	var context = {}
+	_executor.execute(effect, context)
+
+
+func _on_damage_dealt(attacker: Node2D, defender: Node2D, amount: float, damage_type: int):
+	if not defender:
+		return
+	var p = _get_player()
+	if not p:
+		return
+	if defender == p:
+		on_trigger_event(EquipmentEnums.TriggerEvent.ON_HURT)
+	elif defender.is_in_group("enemies"):
+		on_trigger_event(EquipmentEnums.TriggerEvent.ON_HIT)
+
+
+func _on_enemy_died(enemy: Node2D):
+	on_trigger_event(EquipmentEnums.TriggerEvent.ON_KILL)
+
+
+func _on_room_cleared(room_id: String):
+	on_trigger_event(EquipmentEnums.TriggerEvent.ON_ROOM_CLEAR)
+
+
+func _on_skill_used(skill_data: Dictionary):
+	on_trigger_event(EquipmentEnums.TriggerEvent.ON_SKILL_USE)
+
+
+func _on_item_picked_up(item_data: Dictionary):
+	on_trigger_event(EquipmentEnums.TriggerEvent.ON_PICKUP)
+
+
+func _on_dodge_performed():
+	on_trigger_event(EquipmentEnums.TriggerEvent.ON_DODGE)
+
+
+func _on_meltdown_local():
+	on_trigger_event(EquipmentEnums.TriggerEvent.ON_MELTDOWN)
+
+
+func _on_stamina_depleted():
+	on_trigger_event(EquipmentEnums.TriggerEvent.ON_STATUS_INFLICT)
+
+
+func _get_player() -> Node2D:
+	var p = get_parent()
+	if not p:
+		return null
+	return p as Node2D
+
 
 func equip(item: EquipmentBase):
 	var slot = item.slot
 	unequip(slot)
 	_equipped[slot] = item
-	_apply_modifiers(item.stat_modifiers)
+	_apply_item(item)
 	EventManager.equipment_changed.emit(slot, item)
 	equipment_equipped.emit(slot, item)
 
@@ -22,7 +95,7 @@ func unequip(slot: int):
 	var old = _equipped.get(slot) as EquipmentBase
 	if not old:
 		return
-	_remove_modifiers(old.stat_modifiers)
+	_remove_item(old)
 	_equipped.erase(slot)
 	EventManager.equipment_changed.emit(slot, null)
 	equipment_unequipped.emit(slot)
@@ -43,23 +116,31 @@ func _get_state() -> StateComponent:
 	return p.get_node_or_null("StateComponent") as StateComponent
 
 
-func _apply_modifiers(modifiers: Array[StatModifier]):
-	var state = _get_state()
-	if not state:
-		return
-	for m in modifiers:
-		_apply_one(state, m)
+func _apply_item(item: EquipmentBase):
+	for affix in item.affixes:
+		for m in affix.stat_modifiers:
+			var state = _get_state()
+			if state:
+				_apply_modifier(state, m)
+		for e in affix.trigger_effects:
+			_register_trigger(e)
+		for c in affix.conditional_bonuses:
+			_register_condition(c)
 
 
-func _remove_modifiers(modifiers: Array[StatModifier]):
-	var state = _get_state()
-	if not state:
-		return
-	for m in modifiers:
-		_remove_one(state, m)
+func _remove_item(item: EquipmentBase):
+	for affix in item.affixes:
+		for m in affix.stat_modifiers:
+			var state = _get_state()
+			if state:
+				_remove_modifier(state, m)
+		for e in affix.trigger_effects:
+			_unregister_trigger(e)
+		for c in affix.conditional_bonuses:
+			_unregister_condition(c)
 
 
-func _apply_one(state: StateComponent, m: StatModifier):
+func _apply_modifier(state: StateComponent, m: StatModifier):
 	var key = _target_to_string(m.target_stat)
 	var prefix = ""
 	if key.ends_with("_def"):
@@ -69,17 +150,15 @@ func _apply_one(state: StateComponent, m: StatModifier):
 	match prefix:
 		"defenses":
 			var dict = state.defenses
-			var old = dict.get(key, 0.0)
-			dict[key] = _calc_modifier(old, m.value, m.modifier_type)
+			dict[key] = _calc_modifier(dict.get(key, 0.0), m.value, m.modifier_type)
 		"bonuses":
 			var dict = state.bonuses
-			var old = dict.get(key, 0.0)
-			dict[key] = _calc_modifier(old, m.value, m.modifier_type)
+			dict[key] = _calc_modifier(dict.get(key, 0.0), m.value, m.modifier_type)
 		_:
 			_set_stat_property(state, key, m)
 
 
-func _remove_one(state: StateComponent, m: StatModifier):
+func _remove_modifier(state: StateComponent, m: StatModifier):
 	var key = _target_to_string(m.target_stat)
 	var prefix = ""
 	if key.ends_with("_def"):
@@ -89,71 +168,107 @@ func _remove_one(state: StateComponent, m: StatModifier):
 	match prefix:
 		"defenses", "bonuses":
 			var dict = state.defenses if prefix == "defenses" else state.bonuses
-			var old = dict.get(key, 0.0)
-			dict[key] = _unapply_modifier(old, m.value, m.modifier_type)
+			dict[key] = _unapply_modifier(dict.get(key, 0.0), m.value, m.modifier_type)
 		_:
 			_set_stat_property(state, key, null, m)
 
 
 func _set_stat_property(state: StateComponent, key: String, m: StatModifier, inverse: StatModifier = null):
+	var mod = inverse if inverse else m
+	var apply = inverse == null
 	match key:
 		"max_hp":
-			if inverse:
-				state.max_hp = _unapply_modifier(state.max_hp, inverse.value, inverse.modifier_type)
-			else:
-				state.max_hp = _calc_modifier(state.max_hp, m.value, m.modifier_type)
-		"hp_regen":
-			if inverse:
-				state.hp_regen = _unapply_modifier(state.hp_regen, inverse.value, inverse.modifier_type)
-			else:
-				state.hp_regen = _calc_modifier(state.hp_regen, m.value, m.modifier_type)
-		"max_energy":
-			if inverse:
-				state.max_energy = _unapply_modifier(state.max_energy, inverse.value, inverse.modifier_type)
-			else:
-				state.max_energy = _calc_modifier(state.max_energy, m.value, m.modifier_type)
-		"energy_regen":
-			if inverse:
-				state.energy_regen = _unapply_modifier(state.energy_regen, inverse.value, inverse.modifier_type)
-			else:
-				state.energy_regen = _calc_modifier(state.energy_regen, m.value, m.modifier_type)
-		"max_stamina":
-			if inverse:
-				state.max_stamina = _unapply_modifier(state.max_stamina, inverse.value, inverse.modifier_type)
-			else:
-				state.max_stamina = _calc_modifier(state.max_stamina, m.value, m.modifier_type)
-		"stamina_regen":
-			if inverse:
-				state.stamina_regen = _unapply_modifier(state.stamina_regen, inverse.value, inverse.modifier_type)
-			else:
-				state.stamina_regen = _calc_modifier(state.stamina_regen, m.value, m.modifier_type)
-		"heat_cooling":
-			if inverse:
-				state.heat_cooling = _unapply_modifier(state.heat_cooling, inverse.value, inverse.modifier_type)
-			else:
-				state.heat_cooling = _calc_modifier(state.heat_cooling, m.value, m.modifier_type)
+			state.max_hp = _calc_modifier(state.max_hp, mod.value, mod.modifier_type) if apply else _unapply_modifier(state.max_hp, mod.value, mod.modifier_type)
+			if mod.modifier_type == EquipmentEnums.ModifierType.ADD:
+				state.hp += mod.value if apply else -mod.value
+		"hp_regen", "max_energy", "energy_regen", "max_stamina", "stamina_regen", "heat_cooling":
+			var current = state.get(key)
+			state.set(key, _calc_modifier(current, mod.value, mod.modifier_type) if apply else _unapply_modifier(current, mod.value, mod.modifier_type))
 
 
 func _calc_modifier(base: float, value: float, type: EquipmentEnums.ModifierType) -> float:
 	match type:
-		EquipmentEnums.ModifierType.ADD:
-			return base + value
-		EquipmentEnums.ModifierType.MUL:
-			return base * (1.0 + value)
-		EquipmentEnums.ModifierType.OVERRIDE:
-			return value
+		EquipmentEnums.ModifierType.ADD: return base + value
+		EquipmentEnums.ModifierType.MUL: return base * (1.0 + value)
+		EquipmentEnums.ModifierType.OVERRIDE: return value
 	return base
 
 
 func _unapply_modifier(base: float, value: float, type: EquipmentEnums.ModifierType) -> float:
 	match type:
-		EquipmentEnums.ModifierType.ADD:
-			return base - value
-		EquipmentEnums.ModifierType.MUL:
-			return base / (1.0 + value)
-		EquipmentEnums.ModifierType.OVERRIDE:
-			return EquipmentEnums.ModifierType.ADD  # cannot reverse override; return base unchanged
+		EquipmentEnums.ModifierType.ADD: return base - value
+		EquipmentEnums.ModifierType.MUL: return base / (1.0 + value)
 	return base
+
+
+func _register_trigger(e: TriggerEffect):
+	_active_triggers.append({ "effect": e, "last_trigger": 0.0 })
+
+
+func _unregister_trigger(e: TriggerEffect):
+	for i in range(_active_triggers.size() - 1, -1, -1):
+		if _active_triggers[i].get("effect") == e:
+			_active_triggers.remove_at(i)
+			return
+
+
+func _register_condition(c: ConditionalBonus):
+	_active_conditions.append({ "bonus": c, "currently_active": false })
+
+
+func _unregister_condition(c: ConditionalBonus):
+	for i in range(_active_conditions.size() - 1, -1, -1):
+		if _active_conditions[i].get("bonus") == c:
+			_active_conditions.remove_at(i)
+			return
+
+
+func on_trigger_event(event: int):
+	var now = Time.get_ticks_msec() / 1000.0
+	for entry in _active_triggers:
+		var e = entry.effect as TriggerEffect
+		if e.trigger_event != event:
+			continue
+		if now - entry.last_trigger < e.cooldown:
+			continue
+		if randf() > e.chance:
+			continue
+		entry.last_trigger = now
+		trigger_activated.emit(event, e)
+
+
+func _process(delta: float):
+	var state = _get_state()
+	if not state:
+		return
+	for entry in _active_conditions:
+		var c = entry.bonus as ConditionalBonus
+		var active = _evaluate_condition(c, state)
+		if active != entry.currently_active:
+			entry.currently_active = active
+			if active:
+				_apply_modifier(state, c.bonus)
+			else:
+				_remove_modifier(state, c.bonus)
+
+
+func _evaluate_condition(c: ConditionalBonus, state: StateComponent) -> bool:
+	match c.condition:
+		EquipmentEnums.ConditionType.HP_ABOVE:
+			return state.get_normalized_hp() >= c.condition_value
+		EquipmentEnums.ConditionType.HP_BELOW:
+			return state.get_normalized_hp() <= c.condition_value
+		EquipmentEnums.ConditionType.STAMINA_FULL:
+			return state.stamina >= state.max_stamina
+		EquipmentEnums.ConditionType.HEAT_ABOVE:
+			return state.get_normalized_heat() >= c.condition_value
+		EquipmentEnums.ConditionType.NO_AMMO:
+			var p = get_parent()
+			if p and p.has_node("AmmoSystem"):
+				return p.get_node("AmmoSystem").current_ammo <= 0
+			return false
+		_:
+			return false
 
 
 func _target_to_string(t: EquipmentEnums.StatTarget) -> String:

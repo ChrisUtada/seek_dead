@@ -77,6 +77,7 @@ func _apply_tier_multipliers(cfg: EnemyConfig):
 func _on_died():
 	AudioManager.play_sfx(AudioManager.SfxType.ENEMY_DIE)
 	EntityRegistry.unregister_enemy(self)
+	EventManager.enemy_died.emit(self)
 	died.emit()
 	queue_free()
 
