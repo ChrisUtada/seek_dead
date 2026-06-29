@@ -10,6 +10,7 @@ var _active_triggers: Array[Dictionary] = []
 var _active_conditions: Array[Dictionary] = []
 
 var _executor: EffectExecutor
+var _set_manager: SetBonusManager
 var _in_trigger: bool = false
 
 
@@ -17,6 +18,9 @@ func _ready():
 	_executor = EffectExecutor.new()
 	_executor.name = "EffectExecutor"
 	add_child(_executor)
+	_set_manager = SetBonusManager.new()
+	_set_manager.name = "SetBonusManager"
+	add_child(_set_manager)
 	trigger_activated.connect(_on_trigger_activated)
 	EventManager.damage_dealt.connect(_on_damage_dealt)
 	EventManager.enemy_died.connect(_on_enemy_died)
@@ -107,6 +111,8 @@ func equip(item: EquipmentBase):
 	_apply_item(item)
 	EventManager.equipment_changed.emit(slot, item)
 	equipment_equipped.emit(slot, item)
+	if _set_manager:
+		_set_manager.check_all()
 
 
 func unequip(slot: int):
@@ -117,6 +123,16 @@ func unequip(slot: int):
 	_equipped.erase(slot)
 	EventManager.equipment_changed.emit(slot, null)
 	equipment_unequipped.emit(slot)
+	if _set_manager:
+		_set_manager.check_all()
+
+
+func register_set_trigger(e: TriggerEffect):
+	_register_trigger(e)
+
+
+func unregister_set_trigger(e: TriggerEffect):
+	_unregister_trigger(e)
 
 
 func get_equipped(slot: int) -> EquipmentBase:

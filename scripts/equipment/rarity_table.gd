@@ -23,6 +23,7 @@ const BASE_WEIGHTS: Dictionary = {
 	EquipmentEnums.Rarity.MAGIC: 25,
 	EquipmentEnums.Rarity.RARE: 12,
 	EquipmentEnums.Rarity.LEGENDARY: 3,
+	EquipmentEnums.Rarity.SET: 0,
 }
 
 
@@ -33,12 +34,16 @@ static func roll_rarity(quality_bonus: float = 0.0, force_min: int = -1) -> int:
 		weights[EquipmentEnums.Rarity.MAGIC] = int(weights[EquipmentEnums.Rarity.MAGIC] * (1.0 + quality_bonus))
 		weights[EquipmentEnums.Rarity.RARE] = int(weights[EquipmentEnums.Rarity.RARE] * (1.0 + quality_bonus * 2))
 		weights[EquipmentEnums.Rarity.LEGENDARY] = max(1, int(weights[EquipmentEnums.Rarity.LEGENDARY] + quality_bonus * 10))
+		if quality_bonus >= 0.3:
+			weights[EquipmentEnums.Rarity.SET] = max(1, int(quality_bonus * 10))
 	var total = 0
 	for r in weights.values():
 		total += r
+	if total <= 0:
+		return EquipmentEnums.Rarity.COMMON
 	var roll = randi() % total
 	var cumulative = 0
-	for r in [EquipmentEnums.Rarity.COMMON, EquipmentEnums.Rarity.MAGIC, EquipmentEnums.Rarity.RARE, EquipmentEnums.Rarity.LEGENDARY]:
+	for r in [EquipmentEnums.Rarity.SET, EquipmentEnums.Rarity.LEGENDARY, EquipmentEnums.Rarity.RARE, EquipmentEnums.Rarity.MAGIC, EquipmentEnums.Rarity.COMMON]:
 		cumulative += weights[r]
 		if roll < cumulative:
 			if force_min >= 0 and r < force_min:

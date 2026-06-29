@@ -24,14 +24,17 @@ const RARITY_PREFIX: Dictionary = {
 
 static func generate_drop(quality_bonus: float = 0.0, slot: int = -1, force_min_rarity: int = -1) -> EquipmentBase:
 	var rarity = RarityTable.roll_rarity(quality_bonus, force_min_rarity)
-	if slot < 0:
-		slot = randi() % 7
 	var equip = EquipmentBase.new()
-	equip.slot = slot
 	equip.rarity = rarity
-	equip.equipment_name = _build_name(equip)
-	if rarity != EquipmentEnums.Rarity.COMMON:
-		_add_affixes(equip)
+	if rarity == EquipmentEnums.Rarity.SET:
+		_apply_set(equip)
+	else:
+		if slot < 0:
+			slot = randi() % 7
+		equip.slot = slot
+		equip.equipment_name = _build_name(equip)
+		if rarity != EquipmentEnums.Rarity.COMMON:
+			_add_affixes(equip)
 	return equip
 
 
@@ -64,3 +67,28 @@ static func _add_affixes(equip: EquipmentBase):
 		var aff = pool[i]
 		picked.append(aff)
 	equip.affixes = picked
+
+
+static func _apply_set(equip: EquipmentBase):
+	var all_sets = SetDatabase.get_all_sets()
+	if all_sets.is_empty():
+		equip.rarity = EquipmentEnums.Rarity.RARE
+		equip.slot = randi() % 7
+		equip.equipment_name = _build_name(equip)
+		_add_affixes(equip)
+		return
+	var set_def = all_sets[randi() % all_sets.size()]
+	equip.set_id = set_def.set_id
+	equip.slot = set_def.slots[randi() % set_def.slots.size()]
+	equip.equipment_name = set_def.set_name + _slot_suffix(equip.slot)
+
+
+static func _slot_suffix(slot: int) -> String:
+	match slot:
+		EquipmentEnums.EquipmentSlot.HELMET: return "头盔"
+		EquipmentEnums.EquipmentSlot.BODY: return "战甲"
+		EquipmentEnums.EquipmentSlot.HAND: return "手套"
+		EquipmentEnums.EquipmentSlot.LEG: return "战靴"
+		EquipmentEnums.EquipmentSlot.ACCESSORY_1: return "戒指"
+		EquipmentEnums.EquipmentSlot.ACCESSORY_2: return "护符"
+		_: return "装备"
