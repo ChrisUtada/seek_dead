@@ -41,7 +41,10 @@ func _get_state() -> StateComponent:
 
 
 func _get_nearest_enemies(pos: Vector2, radius: float, max_count: int) -> Array:
-	var space = get_world_2d().direct_space_state
+	var player = _get_player()
+	if not player:
+		return []
+	var space = player.get_world_2d().direct_space_state
 	if not space:
 		return []
 	var query = PhysicsShapeQueryParameters2D.new()
