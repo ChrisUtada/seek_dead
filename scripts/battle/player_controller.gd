@@ -99,6 +99,22 @@ func _on_sprint_finished():
 
 # ===================== Input =====================
 
+func _input(event: InputEvent):
+	if event is InputEventKey and event.pressed and not event.echo:
+		_cancel_escape_channel()
+	elif event is InputEventMouseButton and event.pressed:
+		_cancel_escape_channel()
+
+
+func _cancel_escape_channel():
+	var sm = skill_manager
+	if not sm or sm.skills.size() <= 2:
+		return
+	var esc = sm.skills[2]
+	if esc is EscapeSkill and esc.get("_is_channeling"):
+		esc._cancel_channel()
+
+
 func _unhandled_input(event: InputEvent):
 	match _state:
 		PlayerState.DEAD, PlayerState.HURT, PlayerState.DODGE:
