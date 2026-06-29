@@ -10,6 +10,7 @@ var _active_triggers: Array[Dictionary] = []
 var _active_conditions: Array[Dictionary] = []
 
 var _executor: EffectExecutor
+var _in_trigger: bool = false
 
 
 func _ready():
@@ -241,6 +242,9 @@ func _unregister_condition(c: ConditionalBonus):
 
 
 func on_trigger_event(event: int):
+	if _in_trigger:
+		return
+	_in_trigger = true
 	var now = Time.get_ticks_msec() / 1000.0
 	for entry in _active_triggers:
 		var e = entry.effect as TriggerEffect
@@ -253,6 +257,7 @@ func on_trigger_event(event: int):
 			continue
 		entry.last_trigger = now
 		trigger_activated.emit(event, e)
+	_in_trigger = false
 
 
 func _process(delta: float):
