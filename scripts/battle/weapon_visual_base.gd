@@ -35,12 +35,14 @@ func _process(delta):
 ## 装备时调用，初始化视觉
 func setup(data: WeaponData):
 	weapon_data = data
+	position = data.visual_offset if data else Vector2.ZERO
 	visible = true
 
 
 ## 卸下时调用
 func teardown():
 	visible = false
+	position = Vector2.ZERO
 	weapon_data = null
 
 

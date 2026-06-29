@@ -245,12 +245,21 @@ func _init_equipment():
 
 
 func _equip_starting_weapon():
+	# 主手：铁剑（近战）
 	var starting_weapon = EquipmentBase.new()
 	starting_weapon.equipment_name = "铁剑"
 	starting_weapon.slot = EquipmentEnums.EquipmentSlot.WEAPON_MAIN
 	starting_weapon.rarity = EquipmentEnums.Rarity.COMMON
 	starting_weapon.weapon_data = preload("res://resources/weapon_templates/iron_sword.tres").duplicate(true)
 	equipment_manager.equip(starting_weapon)
+
+	# 副手：手枪（远程）
+	var offhand_weapon = EquipmentBase.new()
+	offhand_weapon.equipment_name = "手枪"
+	offhand_weapon.slot = EquipmentEnums.EquipmentSlot.WEAPON_OFFHAND
+	offhand_weapon.rarity = EquipmentEnums.Rarity.COMMON
+	offhand_weapon.weapon_data = preload("res://resources/weapon_templates/pistol.tres").duplicate(true)
+	equipment_manager.equip(offhand_weapon)
 
 
 func _init_skills():
@@ -348,8 +357,8 @@ func _apply_shake(_t: float, cam: Camera2D, original: Vector2, intensity: Vector
 	cam.position = original + Vector2(randf_range(-intensity.x, intensity.x), randf_range(-intensity.y, intensity.y))
 
 
-func knockback(velocity: Vector2):
-	mover.push(velocity, 0.12)
+func knockback(kb_velocity: Vector2):
+	mover.push(kb_velocity, 0.12)
 
 
 func _on_died():

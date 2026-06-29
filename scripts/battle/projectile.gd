@@ -14,7 +14,7 @@ var _returning: bool = false
 func _ready():
 	super()
 	lifespan = 0.0
-	collision_mask = CollisionSystem.bit(CollisionSystem.LAYER_ENVIRONMENT)
+	collision_mask = CollisionSystem.bit(CollisionSystem.LAYER_ENEMY) | CollisionSystem.bit(CollisionSystem.LAYER_HURTBOX)
 	hit_landed.connect(_on_hurtbox_hit)
 
 func _enter_tree():
@@ -23,6 +23,7 @@ func _enter_tree():
 	reset()
 	if not _signal_connected:
 		body_entered.connect(_on_body_entered)
+		area_entered.connect(_on_area_entered)
 		_signal_connected = true
 
 func set_pool(pool: ObjectPool):
@@ -42,6 +43,10 @@ func _on_body_entered(body):
 		return
 	_handle_hit(body)
 
+func _on_area_entered(area):
+	if area is Hurtbox:
+		apply_to(area as Hurtbox)
+
 func _on_hurtbox_hit(target: Node2D):
 	_handle_hit(target)
 
@@ -60,6 +65,7 @@ func _return_to_pool():
 	_returning = true
 	if _pool:
 		body_entered.disconnect(_on_body_entered)
+		area_entered.disconnect(_on_area_entered)
 		_signal_connected = false
 		call_deferred("_deferred_return_to_pool")
 	else:

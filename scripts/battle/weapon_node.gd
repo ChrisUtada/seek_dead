@@ -57,6 +57,11 @@ func equip(equip: EquipmentBase):
 	weapon_color = DamageSystem.get_color(weapon_data.damage_type)
 	_spawn_weapon_visual()
 	_init_hitbox()
+	# 重置状态机，避免继承前一把武器的状态
+	_ws = WeaponState.IDLE
+	is_attacking = false
+	_active_timer = 0.0
+	_cooldown_timer = 0.0
 	visible = true
 
 
@@ -64,6 +69,11 @@ func unequip():
 	visible = false
 	_clear_weapon_visual()
 	_clear_hitbox()
+	# 重置状态机
+	_ws = WeaponState.IDLE
+	is_attacking = false
+	_active_timer = 0.0
+	_cooldown_timer = 0.0
 	equipment = null
 	weapon_data = null
 
@@ -213,7 +223,7 @@ func _attack_ranged():
 
 	bullet.global_position = shooter.global_position
 	bullet.direction = aim_direction
-	bullet.data = weapon_data.bullet_data
+	bullet.data = weapon_data.bullet_data if weapon_data.bullet_data else _make_default_bullet_data()
 	bullet.damage = weapon_data.damage
 	bullet.damage_type = weapon_data.damage_type
 	bullet.shooter = shooter
@@ -229,11 +239,17 @@ func _attack_ranged():
 
 	if not bullet.hit.is_connected(_on_ranged_hit):
 		bullet.hit.connect(_on_ranged_hit)
-	attack_finished.emit(self, 1)
 
 
 func _on_ranged_hit(hit_pos: Vector2, hit_dir: Vector2, hit_damage_type: int, body: Node2D):
 	hit_landed.emit(hit_pos, hit_dir, hit_damage_type, body)
+
+
+func _make_default_bullet_data() -> BulletData:
+	var bd = BulletData.new()
+	bd.speed = weapon_data.bullet_speed if weapon_data else 600.0
+	bd.lifetime = 2.0
+	return bd
 
 
 # ════════════════════════════════════════

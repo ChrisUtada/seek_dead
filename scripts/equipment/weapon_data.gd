@@ -7,6 +7,7 @@ enum WeaponType { MELEE, RANGED }
 @export var weapon_name: String = ""
 @export var archetype: Archetype = Archetype.MEDIUM
 @export var weapon_type: WeaponType = WeaponType.MELEE
+@export var can_dual_wield: bool = false  # 是否可装备到副手
 
 # -- 通用战斗属性 --
 @export var damage: float = 10.0
@@ -16,6 +17,7 @@ enum WeaponType { MELEE, RANGED }
 
 # -- 武器场景 --
 @export var weapon_scene: PackedScene
+@export var visual_offset: Vector2 = Vector2.ZERO  # 武器视觉偏移（微调武器在角色上的位置）
 
 # -- 状态效果 --
 @export var status_effect_type: int = -1

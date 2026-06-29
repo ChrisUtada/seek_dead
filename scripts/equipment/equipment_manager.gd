@@ -107,6 +107,11 @@ func _get_player() -> Node2D:
 
 func equip(item: EquipmentBase):
 	var slot = item.slot
+
+	# 副手校验：非可双持武器不能装副手
+	if slot == EquipmentEnums.EquipmentSlot.WEAPON_OFFHAND and item.weapon_data and not item.weapon_data.can_dual_wield:
+		return
+
 	unequip(slot)
 	_equipped[slot] = item
 	_apply_item(item)

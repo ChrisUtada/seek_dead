@@ -7,6 +7,7 @@
 script = ExtResource("1")
 weapon_name = "毒匕首"
 archetype = 0
+can_dual_wield = true
 weapon_type = 0
 damage = 18.0
 damage_type = 6

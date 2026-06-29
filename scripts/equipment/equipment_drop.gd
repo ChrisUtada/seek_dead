@@ -54,7 +54,12 @@ static func generate_drop(quality_bonus: float = 0.0, slot: int = -1, force_min_
 
 
 static func _generate_weapon_data(equip: EquipmentBase) -> WeaponData:
-	var template = WEAPON_TEMPLATES[randi() % WEAPON_TEMPLATES.size()] as WeaponData
+	var pool = WEAPON_TEMPLATES
+	if equip.slot == EquipmentEnums.EquipmentSlot.WEAPON_OFFHAND:
+		pool = pool.filter(func(t): return t.can_dual_wield)
+		if pool.is_empty():
+			pool = WEAPON_TEMPLATES
+	var template = pool[randi() % pool.size()] as WeaponData
 	var wd = template.duplicate(true) as WeaponData
 	wd.weapon_name = equip.equipment_name
 	var mult = RarityTable.get_base_stat_multiplier(equip.rarity)
