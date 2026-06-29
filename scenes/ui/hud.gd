@@ -1,10 +1,13 @@
 extends CanvasLayer
 
 const _WeaponNode = preload("res://scripts/battle/weapon_node.gd")
+const _EquipmentPanel = preload("res://scenes/ui/equipment_panel.gd")
+const _ComparePopup = preload("res://scenes/ui/compare_popup.gd")
 
 @onready var weapon_label: Label = $WeaponLabel
 
 var _bars: Dictionary = {}
+var _equipment_panel: EquipmentPanel = null
 var _bar_order = ["hp", "energy", "stamina", "heat"]
 var _bar_config = {
 	hp = {color = Color(0.8, 0.15, 0.15), label = "HP"},
@@ -156,6 +159,46 @@ func _connect_player():
 				esc.channel_progress.connect(_on_escape_channel_progress)
 				esc.channel_cancelled.connect(_on_escape_channel_cancelled)
 				esc.channel_completed.connect(_on_escape_channel_completed)
+
+	_init_equipment_panel(player)
+	_connect_equipment_signals(player)
+
+func _init_equipment_panel(player: Node2D):
+	_equipment_panel = _EquipmentPanel.new()
+	_equipment_panel.name = "EquipmentPanel"
+	_equipment_panel.hide()
+	add_child(_equipment_panel)
+	_equipment_panel.init(player)
+
+func _connect_equipment_signals(player: Node2D):
+	var mgr = player.get_node_or_null("EquipmentManager") as EquipmentManager
+	if mgr:
+		mgr.equipment_equipped.connect(_on_equipment_changed)
+		mgr.equipment_unequipped.connect(_on_equipment_changed)
+		mgr.trigger_activated.connect(_on_trigger_activated.bind(player))
+		var set_mgr = mgr.get_node_or_null("SetBonusManager") as SetBonusManager
+		if set_mgr:
+			set_mgr.set_bonus_activated.connect(_on_set_bonus_activated.bind(player))
+	var inv = player.get_node_or_null("EquipmentInventory") as EquipmentInventory
+	if inv:
+		inv.inventory_changed.connect(_on_equipment_changed)
+		inv.item_added.connect(_on_item_added.bind(player))
+
+func _on_equipment_changed(_a = null, _b = null):
+	if _equipment_panel and _equipment_panel.visible:
+		_equipment_panel.refresh()
+
+func _on_item_added(item: EquipmentBase, _index: int, player: Node2D):
+	var mgr = player.get_node_or_null("EquipmentManager") as EquipmentManager
+	if not mgr:
+		return
+	var equipped = mgr.get_equipped(item.slot) as EquipmentBase
+	if not equipped:
+		return
+	var popup = _ComparePopup.new()
+	popup.name = "ComparePopup"
+	add_child(popup)
+	popup.init(player, item)
 
 func _update_hp(current: float, max_v: float, _delta: float):
 	_apply_bar_ratio("hp", current / max_v if max_v > 0 else 0)
@@ -374,6 +417,15 @@ func _input(event):
 		_toggle_pause()
 	if event.is_action_pressed("restart") and _death_overlay:
 		call_deferred("_restart_game")
+	if event.is_action_pressed("inventory"):
+		_toggle_inventory()
+
+func _toggle_inventory():
+	if not _equipment_panel:
+		return
+	_equipment_panel.visible = not _equipment_panel.visible
+	if _equipment_panel.visible:
+		_equipment_panel.refresh()
 
 func _restart_game():
 	get_tree().paused = false
@@ -418,6 +470,69 @@ func spawn_damage_number(world_pos: Vector2, amount: float, is_critical: bool = 
 		end_pos = label.position + Vector2(0, -36)
 	tween.tween_property(label, "position", end_pos, 0.8)
 	tween.parallel().tween_property(label, "modulate", Color(1, 1, 1, 0), 0.8)
+	tween.tween_callback(label.queue_free)
+
+func _on_trigger_activated(event: int, effect: TriggerEffect, player: Node2D):
+	if not is_instance_valid(player):
+		return
+	var text = _trigger_floating_text(effect.effect_action)
+	if text.length() == 0:
+		return
+	spawn_floating_text(player.global_position, text, _trigger_color(effect.effect_action))
+
+func _on_set_bonus_activated(set_id: String, tier: int, player: Node2D):
+	if not is_instance_valid(player):
+		return
+	var set_def = SetDatabase.get_set(set_id)
+	if not set_def:
+		return
+	var text = "套装 %s %d件 已激活!" % [set_def.set_name, tier]
+	spawn_floating_text(player.global_position, text, Color(0.3, 1, 0.3))
+
+func _trigger_floating_text(action: int) -> String:
+	match action:
+		EquipmentEnums.EffectAction.EXPLODE: return "爆炸!"
+		EquipmentEnums.EffectAction.SPAWN_PROJECTILE: return "弹射!"
+		EquipmentEnums.EffectAction.SPAWN_POOL: return "毒池!"
+		EquipmentEnums.EffectAction.CHAIN_LIGHTNING: return "连锁闪电!"
+		EquipmentEnums.EffectAction.HEAL: return "回血!"
+		EquipmentEnums.EffectAction.SHIELD: return "护盾!"
+		EquipmentEnums.EffectAction.FIRE_AURA: return "火焰光环!"
+		EquipmentEnums.EffectAction.KNOCKBACK: return "击退!"
+		EquipmentEnums.EffectAction.SLOW_ENEMIES: return "减速!"
+		_: return ""
+
+func _trigger_color(action: int) -> Color:
+	match action:
+		EquipmentEnums.EffectAction.EXPLODE: return Color(1, 0.6, 0.1)
+		EquipmentEnums.EffectAction.SPAWN_PROJECTILE: return Color(0.6, 0.8, 1)
+		EquipmentEnums.EffectAction.SPAWN_POOL: return Color(0.3, 1, 0.3)
+		EquipmentEnums.EffectAction.CHAIN_LIGHTNING: return Color(0.5, 0.5, 1)
+		EquipmentEnums.EffectAction.HEAL: return Color(0.3, 1, 0.3)
+		EquipmentEnums.EffectAction.SHIELD: return Color(0.3, 0.6, 1)
+		EquipmentEnums.EffectAction.FIRE_AURA: return Color(1, 0.4, 0.1)
+		EquipmentEnums.EffectAction.KNOCKBACK: return Color(1, 1, 0.3)
+		EquipmentEnums.EffectAction.SLOW_ENEMIES: return Color(0.5, 0.8, 1)
+		_: return Color.WHITE
+
+func spawn_floating_text(world_pos: Vector2, text: String, color: Color = Color.WHITE):
+	var label = Label.new()
+	var viewport = get_viewport()
+	if not viewport:
+		return
+	var cam = viewport.get_camera_2d()
+	if cam:
+		label.position = cam.get_canvas_transform() * world_pos
+	label.position -= Vector2(30, 0)
+	label.add_theme_color_override("font_color", color)
+	label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	label.add_theme_constant_override("outline_size", 3)
+	label.add_theme_font_size_override("font_size", 14)
+	label.text = text
+	add_child(label)
+	var tween = create_tween()
+	tween.tween_property(label, "position", label.position + Vector2(0, -40), 1.0)
+	tween.parallel().tween_property(label, "modulate", Color(color.r, color.g, color.b, 0), 1.0)
 	tween.tween_callback(label.queue_free)
 
 func _build_hit_flash():
