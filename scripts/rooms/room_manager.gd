@@ -25,7 +25,6 @@ var _wave_broadcasted: bool = false
 
 var _timer_waves_started: Dictionary = {}
 var _current_bosses: Array[Node2D] = []
-var _escape_charges: int = 2
 var _last_config_index: int = -1
 
 
@@ -99,7 +98,6 @@ func enter_first_room(player: Node2D, root: Node):
 	_root = root
 	_room_sequence = _RoomSequence.generate()
 	_sequence_index = 0
-	_escape_charges = 2
 	_do_switch()
 
 
@@ -459,14 +457,7 @@ func _tile_size(tml: TileMapLayer) -> int:
 
 
 func escape_current_room():
-	if _escape_charges <= 0:
-		return
 	if _transitioning:
 		return
-	_escape_charges -= 1
-	print("--- 紧急撤离 (%d/2 剩余) ---" % _escape_charges)
+	print("--- 紧急撤离 ---")
 	_load_room(0)
-
-
-func get_escape_charges() -> int:
-	return _escape_charges

@@ -226,15 +226,6 @@ func _build_skill_bar():
 		key_label.add_theme_constant_override("outline_size", 1)
 		key_label.add_theme_font_size_override("font_size", 10)
 		slot.add_child(key_label)
-		if i == 2:
-			var charge_label = Label.new()
-			charge_label.name = "Charges"
-			charge_label.text = "×2"
-			charge_label.position = Vector2(2, 14)
-			charge_label.add_theme_color_override("font_color", Color(1, 0.7, 0.2))
-			charge_label.add_theme_constant_override("outline_size", 1)
-			charge_label.add_theme_font_size_override("font_size", 8)
-			slot.add_child(charge_label)
 		var cd_overlay = ColorRect.new()
 		cd_overlay.name = "Cooldown"
 		cd_overlay.position = Vector2(0, 0)
@@ -274,17 +265,9 @@ func _on_skill_used(index: int, _skill: SkillBase):
 	var cd = slot.get_node_or_null("Cooldown")
 	if not cd:
 		return
-	if index == 2:
-		var cl = slot.get_node_or_null("Charges")
-		if cl:
-			var charges = RoomManager.get_escape_charges()
-			cl.text = "×%d" % charges if charges > 0 else ""
-			if charges <= 0:
-				slot.modulate = Color(0.4, 0.4, 0.4, 0.5)
-	else:
-		var tween = create_tween()
-		cd.size.y = 40
-		tween.tween_property(cd, "size:y", 0, _skill.cooldown)
+	var tween = create_tween()
+	cd.size.y = 40
+	tween.tween_property(cd, "size:y", 0, _skill.cooldown)
 
 func _on_reload_finished():
 	if _bars.has("ammo"):
