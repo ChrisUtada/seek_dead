@@ -422,6 +422,8 @@ func _input(event):
 		call_deferred("_restart_game")
 	if event.is_action_pressed("inventory"):
 		_toggle_inventory()
+	if event.is_action_pressed("return_lobby") and not _is_paused and not _death_overlay:
+		_return_to_lobby()
 
 func _toggle_inventory():
 	if not _equipment_panel:
@@ -430,9 +432,12 @@ func _toggle_inventory():
 	if _equipment_panel.visible:
 		_equipment_panel.refresh()
 
-func _restart_game():
+func _return_to_lobby():
 	get_tree().paused = false
 	SceneManager.fade_to_scene("res://scenes/ui/lobby.tscn")
+
+func _restart_game():
+	_return_to_lobby()
 
 func _toggle_pause():
 	_is_paused = not _is_paused
