@@ -109,7 +109,8 @@ func _cancel_escape_channel():
 
 
 func _unhandled_input(event: InputEvent):
-	_cancel_escape_channel()
+	if event.is_action_type() and event.is_pressed():
+		_cancel_escape_channel()
 	match _state:
 		PlayerState.DEAD, PlayerState.HURT, PlayerState.DODGE:
 			return
