@@ -1,11 +1,42 @@
 extends CanvasLayer
 
-var _container: Control
-var _resource_labels: Dictionary = {}
-var _forge_panel: Control = null
-var _collection_panel: Control = null
-var _panels_container: Control = null
-var _all_buttons: Array[ColorRect] = []
+@onready var _container: Control = $Container
+@onready var _panels_container: Control = $Container/PanelsContainer
+@onready var _forge_panel: Control = $Container/PanelsContainer/ForgePanel
+@onready var _collection_panel: Control = $Container/PanelsContainer/CollectionPanel
+@onready var _coll_progress: Label = $Container/PanelsContainer/CollectionPanel/ProgressLabel
+@onready var _coll_bar_fill: ColorRect = $Container/PanelsContainer/CollectionPanel/BarFill
+@onready var _coll_bonus: Label = $Container/PanelsContainer/CollectionPanel/BonusLabel
+@onready var _coll_list: Label = $Container/PanelsContainer/CollectionPanel/ListLabel
+
+const RESOURCE_NAMES: Dictionary = {
+	"gold": ["金币", Color(1, 0.85, 0.3)],
+	"iron": ["铁碎片", Color(0.6, 0.6, 0.7)],
+	"magic_essence": ["魔法精华", Color(0.4, 0.5, 1)],
+	"legendary_core": ["传奇核心", Color(1, 0.4, 0.2)],
+}
+
+const _LABEL_STYLES: Dictionary = {
+	"Container/Title": { "size": 20, "color": Color(0.8, 0.8, 0.8), "outline": Color(0, 0, 0), "outline_size": 2 },
+	"Container/Subtitle": { "size": 9, "color": Color(0.4, 0.4, 0.4) },
+	"Container/ResTitle": { "size": 12, "color": Color(0.7, 0.7, 0.7) },
+	"Container/ResGold": { "size": 10 },
+	"Container/ResIron": { "size": 10 },
+	"Container/ResMagic": { "size": 10 },
+	"Container/ResLegendary": { "size": 10 },
+	"Container/DoorArea/DoorLabel": { "size": 10, "color": Color(0.8, 0.7, 0.5), "outline": Color(0, 0, 0), "outline_size": 1 },
+	"Container/ForgeArea/RoleLabel": { "size": 9, "color": Color(0.8, 0.8, 0.6), "outline": Color(0, 0, 0), "outline_size": 1 },
+	"Container/CollectionArea/RoleLabel": { "size": 9, "color": Color(0.8, 0.8, 0.6), "outline": Color(0, 0, 0), "outline_size": 1 },
+	"Container/ExitArea/ExitLabel": { "size": 11, "color": Color(0.8, 0.8, 0.8) },
+	"Container/PanelsContainer/ForgePanel/PanelTitle": { "size": 14, "color": Color(0.6, 0.8, 1) },
+	"Container/PanelsContainer/ForgePanel/HintLabel": { "size": 11, "color": Color(0.5, 0.5, 0.5) },
+	"Container/PanelsContainer/ForgePanel/CloseBtn/CloseLabel": { "size": 12 },
+	"Container/PanelsContainer/CollectionPanel/PanelTitle": { "size": 14, "color": Color(0.4, 1, 0.4) },
+	"Container/PanelsContainer/CollectionPanel/ProgressLabel": { "size": 12 },
+	"Container/PanelsContainer/CollectionPanel/BonusLabel": { "size": 10 },
+	"Container/PanelsContainer/CollectionPanel/ListLabel": { "size": 9 },
+	"Container/PanelsContainer/CollectionPanel/CloseBtn/CloseLabel": { "size": 12 },
+}
 
 const PANEL_NONE = -1
 const PANEL_FORGE = 0
@@ -15,88 +46,59 @@ var _active_panel: int = PANEL_NONE
 
 func _ready():
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	_container = Control.new()
-	_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(_container)
-	_build_ui()
+	_style_labels()
+	_refresh_resources()
+	_make_interactive($Container/DoorArea, _on_start_run)
+	_make_interactive($Container/ForgeArea, _on_open_forge)
+	_make_interactive($Container/CollectionArea, _on_open_collection)
+	_make_interactive($Container/ExitArea, _on_back_to_menu)
+	_make_interactive($Container/PanelsContainer/Overlay, _close_all_panels)
+	_make_interactive($Container/PanelsContainer/ForgePanel/CloseBtn, _close_all_panels)
+	_make_interactive($Container/PanelsContainer/CollectionPanel/CloseBtn, _close_all_panels)
 	_container.modulate = Color(1, 1, 1, 0)
 	var t = create_tween()
 	t.tween_property(_container, "modulate", Color(1, 1, 1, 1), 0.3)
 
 
-func _build_ui():
-	var bg = ColorRect.new()
-	bg.size = Vector2(640, 360)
-	bg.color = Color(0.06, 0.06, 0.1, 1)
-	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_container.add_child(bg)
-
-	var title = Label.new()
-	title.text = "补给站"
-	title.position = Vector2(20, 20)
-	title.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8))
-	title.add_theme_color_override("font_outline_color", Color(0, 0, 0))
-	title.add_theme_constant_override("outline_size", 2)
-	title.add_theme_font_size_override("font_size", 22)
-	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_container.add_child(title)
-
-	var subtitle = Label.new()
-	subtitle.text = "Seek Dead — 局外基地"
-	subtitle.position = Vector2(20, 48)
-	subtitle.add_theme_color_override("font_color", Color(0.4, 0.4, 0.4))
-	subtitle.add_theme_font_size_override("font_size", 10)
-	subtitle.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_container.add_child(subtitle)
-
-	_build_resources()
-	_build_buttons()
-	_build_panels()
-	_panels_container.hide()
+func _style_labels():
+	for path in _LABEL_STYLES:
+		var node = get_node_or_null(path)
+		if not node or not node is Label:
+			continue
+		var lbl = node as Label
+		var opts = _LABEL_STYLES[path]
+		if opts.has("size"):
+			lbl.add_theme_font_size_override("font_size", opts.size)
+		if opts.has("color"):
+			lbl.add_theme_color_override("font_color", opts.color)
+		if opts.has("outline"):
+			lbl.add_theme_color_override("font_outline_color", opts.outline)
+		if opts.has("outline_size"):
+			lbl.add_theme_constant_override("outline_size", opts.outline_size)
 
 
-func _build_resources():
-	var x = 320
-	var y = 20
-	var res_title = Label.new()
-	res_title.text = "资源"
-	res_title.position = Vector2(x, y)
-	res_title.add_theme_font_size_override("font_size", 14)
-	res_title.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
-	res_title.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_container.add_child(res_title)
-	y += 22
-
-	var resource_keys = [
-		["gold", "金币", Color(1, 0.85, 0.3)],
-		["iron", "铁碎片", Color(0.6, 0.6, 0.7)],
-		["magic_essence", "魔法精华", Color(0.4, 0.5, 1)],
-		["legendary_core", "传奇核心", Color(1, 0.4, 0.2)],
-	]
-	for pair in resource_keys:
-		var key = pair[0] as String
-		var label_text = pair[1] as String
-		var color = pair[2] as Color
-		var lbl = Label.new()
-		lbl.name = "Res" + key
-		lbl.position = Vector2(x, y)
-		lbl.size = Vector2(200, 16)
-		lbl.add_theme_font_size_override("font_size", 11)
-		lbl.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8))
-		lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_container.add_child(lbl)
-		_resource_labels[key] = { "label": lbl, "name": label_text, "color": color }
-		y += 18
-	_refresh_resources()
+func _make_interactive(control: Control, callback: Callable):
+	control.mouse_filter = Control.MOUSE_FILTER_STOP
+	control.gui_input.connect(func(event):
+		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+			callback.call()
+	)
 
 
 func _refresh_resources():
 	var data = SaveSystem.load_lobby_data()
-	for key in _resource_labels:
-		var entry = _resource_labels[key]
+	var _res_nodes = {
+		"gold": $Container/ResGold,
+		"iron": $Container/ResIron,
+		"magic_essence": $Container/ResMagic,
+		"legendary_core": $Container/ResLegendary,
+	}
+	for key in _res_nodes:
+		var label = _res_nodes[key] as Label
+		var meta = RESOURCE_NAMES[key]
 		var val = data.get(key, 0)
-		entry.label.text = "%s: %s" % [entry.name, _fmt_num(val)]
-		entry.label.add_theme_color_override("font_color", entry.color if val > 0 else Color(0.4, 0.4, 0.4))
+		label.text = "%s: %s" % [meta[0], _fmt_num(val)]
+		label.add_theme_color_override("font_color", meta[1] if val > 0 else Color(0.4, 0.4, 0.4))
 
 
 func _fmt_num(v: int) -> String:
@@ -105,222 +107,40 @@ func _fmt_num(v: int) -> String:
 	return str(v)
 
 
-func _build_buttons():
-	var btn_data = [
-		["开始旅程", Vector2(30, 90), Vector2(160, 24), Color(0.5, 0.1, 0.1),
-		 func(): _on_start_run()],
-		["锻造", Vector2(30, 126), Vector2(160, 24), Color(0.15, 0.35, 0.5),
-		 func(): _on_open_forge()],
-		["图鉴", Vector2(30, 162), Vector2(160, 24), Color(0.15, 0.4, 0.15),
-		 func(): _on_open_collection()],
-		["返回主菜单", Vector2(30, 300), Vector2(160, 24), Color(0.3, 0.3, 0.3),
-		 func(): _on_back_to_menu()],
-	]
-	for d in btn_data:
-		_make_button(d[0], d[1], d[2], d[3], d[4])
+func _open_panel(idx: int):
+	_close_all_panels()
+	_active_panel = idx
+	_panels_container.show()
+	_forge_panel.visible = idx == PANEL_FORGE
+	_collection_panel.visible = idx == PANEL_COLLECTION
+	if idx == PANEL_COLLECTION:
+		_refresh_collection()
 
 
-func _make_button(text: String, pos: Vector2, size: Vector2, color: Color, callback: Callable):
-	var btn = ColorRect.new()
-	btn.position = pos
-	btn.size = size
-	btn.color = color
-	btn.mouse_filter = Control.MOUSE_FILTER_STOP
-	_container.add_child(btn)
-	_all_buttons.append(btn)
-
-	var label = Label.new()
-	label.text = text
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.position = Vector2(0, 0)
-	label.size = size
-	label.add_theme_color_override("font_color", Color(1, 1, 1))
-	label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
-	label.add_theme_constant_override("outline_size", 1)
-	label.add_theme_font_size_override("font_size", 13)
-	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	btn.add_child(label)
-
-	btn.set_meta("callback", callback)
-
-
-func _build_panels():
-	_panels_container = Control.new()
-	_panels_container.mouse_filter = Control.MOUSE_FILTER_STOP
-	_container.add_child(_panels_container)
-
-	_forge_panel = _build_forge_panel()
-	_collection_panel = _build_collection_panel()
-	_forge_panel.hide()
-	_collection_panel.hide()
-
-
-func _build_forge_panel() -> Control:
-	var panel = Control.new()
-	panel.position = Vector2(200, 70)
-	panel.size = Vector2(420, 270)
-	panel.mouse_filter = Control.MOUSE_FILTER_STOP
-	_panels_container.add_child(panel)
-
-	var bg = ColorRect.new()
-	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	bg.color = Color(0.1, 0.1, 0.15, 0.95)
-	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	panel.add_child(bg)
-
-	var title = Label.new()
-	title.text = "锻造"
-	title.position = Vector2(10, 10)
-	title.add_theme_font_size_override("font_size", 14)
-	title.add_theme_color_override("font_color", Color(0.6, 0.8, 1))
-	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	panel.add_child(title)
-
-	var hint = Label.new()
-	hint.text = "装备升级 / 附魔 / 洗练 / 分解 — 需回到大厅后处理上个 run 的装备，待完善"
-	hint.position = Vector2(10, 50)
-	hint.size = Vector2(400, 60)
-	hint.add_theme_font_size_override("font_size", 11)
-	hint.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
-	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	panel.add_child(hint)
-
-	_make_panel_close_btn(panel)
-	return panel
-
-
-func _build_collection_panel() -> Control:
-	var panel = Control.new()
-	panel.position = Vector2(200, 70)
-	panel.size = Vector2(420, 270)
-	panel.mouse_filter = Control.MOUSE_FILTER_STOP
-	_panels_container.add_child(panel)
-
-	var bg = ColorRect.new()
-	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	bg.color = Color(0.1, 0.1, 0.15, 0.95)
-	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	panel.add_child(bg)
-
-	var title = Label.new()
-	title.text = "装备图鉴"
-	title.position = Vector2(10, 10)
-	title.add_theme_font_size_override("font_size", 14)
-	title.add_theme_color_override("font_color", Color(0.4, 1, 0.4))
-	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	panel.add_child(title)
-
+func _refresh_collection():
 	var total = Collection.get_total_count()
-	var collected_count = Collection.get_collection_count()
+	var count = Collection.get_collection_count()
 	var pct = Collection.get_completion_percent()
-
-	var progress = Label.new()
-	progress.text = "收集进度: %d / %d  (%.0f%%)" % [collected_count, total, pct * 100.0]
-	progress.position = Vector2(10, 40)
-	progress.add_theme_font_size_override("font_size", 12)
-	progress.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8))
-	progress.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	panel.add_child(progress)
-
-	var bar_bg = ColorRect.new()
-	bar_bg.position = Vector2(10, 62)
-	bar_bg.size = Vector2(400, 10)
-	bar_bg.color = Color(0.2, 0.2, 0.25)
-	bar_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	panel.add_child(bar_bg)
-
-	var bar_fill = ColorRect.new()
-	bar_fill.position = Vector2(10, 62)
-	bar_fill.size = Vector2(400 * pct, 10)
-	bar_fill.color = Color(0.3, 0.8, 0.3)
-	bar_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	panel.add_child(bar_fill)
+	_coll_progress.text = "收集进度: %d / %d  (%.0f%%)" % [count, total, pct * 100.0]
+	_coll_bar_fill.size.x = 400.0 * pct
 
 	var bonuses = Collection.get_global_bonuses()
-	var bonus_text = "全局奖励:"
+	var txt = "全局奖励:"
 	if bonuses.size() == 0:
-		bonus_text += "\n  收集 5 件解锁 HP+20"
+		txt += "\n  收集 5 件解锁 HP+20"
 	else:
-		for key in bonuses:
-			var label_map = { "max_hp": "HP上限", "move_speed": "移速", "attack_damage": "伤害", "crit_rate": "暴击率" }
-			bonus_text += "\n  " + label_map.get(key, key) + " +" + str(bonuses[key])
-
-	var bonus_lbl = Label.new()
-	bonus_lbl.text = bonus_text
-	bonus_lbl.position = Vector2(10, 82)
-	bonus_lbl.size = Vector2(400, 100)
-	bonus_lbl.add_theme_font_size_override("font_size", 10)
-	bonus_lbl.add_theme_color_override("font_color", Color(0.6, 0.8, 0.6))
-	bonus_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	bonus_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	panel.add_child(bonus_lbl)
+		var m = {"max_hp": "HP上限", "move_speed": "移速", "attack_damage": "伤害", "crit_rate": "暴击率"}
+		for k in bonuses:
+			txt += "\n  " + m.get(k, k) + " +" + str(bonuses[k])
+	_coll_bonus.text = txt
 
 	var collected = Collection.get_collected()
-	var list_text = "已收集:"
-	for key in collected:
-		list_text += " " + key
+	var list_txt = "已收集:"
+	for k in collected:
+		list_txt += " " + k
 	if collected.size() == 0:
-		list_text += " 无"
-	var list_lbl = Label.new()
-	list_lbl.text = list_text
-	list_lbl.position = Vector2(10, 170)
-	list_lbl.size = Vector2(400, 80)
-	list_lbl.add_theme_font_size_override("font_size", 9)
-	list_lbl.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
-	list_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	list_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	panel.add_child(list_lbl)
-
-	_make_panel_close_btn(panel)
-	return panel
-
-
-func _make_panel_close_btn(parent: Control):
-	var btn = ColorRect.new()
-	btn.position = Vector2(parent.size.x - 36, 6)
-	btn.size = Vector2(30, 20)
-	btn.color = Color(0.5, 0.15, 0.15)
-	btn.mouse_filter = Control.MOUSE_FILTER_STOP
-	parent.add_child(btn)
-	_all_buttons.append(btn)
-	btn.set_meta("callback", func(): _close_all_panels())
-
-	var label = Label.new()
-	label.text = "X"
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	label.add_theme_font_size_override("font_size", 12)
-	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	btn.add_child(label)
-
-
-func _input(event):
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		var mpos = event.position
-		for btn in _all_buttons:
-			if not is_instance_valid(btn):
-				continue
-			if _rect_contains(btn, mpos):
-				var cb = btn.get_meta("callback") as Callable
-				if cb:
-					cb.call()
-				return
-
-		if _active_panel != PANEL_NONE and _panels_container:
-			var p = _forge_panel if _active_panel == PANEL_FORGE else _collection_panel
-			if not _rect_contains(p, mpos):
-				_close_all_panels()
-
-
-func _rect_contains(node: Node, point: Vector2) -> bool:
-	if not node is Control:
-		return false
-	var c = node as Control
-	return point.x >= c.position.x and point.x <= c.position.x + c.size.x \
-		and point.y >= c.position.y and point.y <= c.position.y + c.size.y
+		list_txt += " 无"
+	_coll_list.text = list_txt
 
 
 func _on_start_run():
@@ -329,17 +149,11 @@ func _on_start_run():
 
 
 func _on_open_forge():
-	_close_all_panels()
-	_active_panel = PANEL_FORGE
-	_panels_container.show()
-	_forge_panel.show()
+	_open_panel(PANEL_FORGE)
 
 
 func _on_open_collection():
-	_close_all_panels()
-	_active_panel = PANEL_COLLECTION
-	_panels_container.show()
-	_collection_panel.show()
+	_open_panel(PANEL_COLLECTION)
 
 
 func _close_all_panels():

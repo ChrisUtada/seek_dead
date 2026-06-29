@@ -1,6 +1,351 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=6 format=3]
 
-[ext_resource type="Script" path="res://scenes/ui/lobby.gd" id="1"]
+[ext_resource type="Texture2D" uid="uid://c6n4ep77nf1yk" path="res://assets/chars/kl/Run-Sheet.png" id="1"]
+[ext_resource type="Texture2D" uid="uid://drdmjxcit257x" path="res://assets/tiles/Dungeon_Tiles.png" id="2"]
+[ext_resource type="Script" path="res://scenes/ui/lobby.gd" id="3"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_kl00"]
+atlas = ExtResource("1")
+region = Rect2(0, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_door"]
+atlas = ExtResource("2")
+region = Rect2(0, 0, 16, 16)
 
 [node name="Lobby" type="CanvasLayer"]
-script = ExtResource("1")
+process_mode = 4
+script = ExtResource("3")
+
+[node name="Container" type="Control" parent="."]
+offset_right = 640.0
+offset_bottom = 360.0
+mouse_filter = 2
+
+[node name="Bg" type="ColorRect" parent="Container"]
+offset_right = 640.0
+offset_bottom = 360.0
+color = Color(0.06, 0.06, 0.1, 1)
+mouse_filter = 2
+
+[node name="Title" type="Label" parent="Container"]
+offset_left = 20.0
+offset_top = 12.0
+offset_right = 260.0
+offset_bottom = 36.0
+text = "补给站"
+mouse_filter = 2
+
+[node name="Subtitle" type="Label" parent="Container"]
+offset_left = 20.0
+offset_top = 36.0
+offset_right = 240.0
+offset_bottom = 48.0
+text = "Seek Dead — 局外基地"
+mouse_filter = 2
+
+[node name="ResTitle" type="Label" parent="Container"]
+offset_left = 440.0
+offset_top = 10.0
+offset_right = 580.0
+offset_bottom = 24.0
+text = "资源"
+mouse_filter = 2
+
+[node name="ResGold" type="Label" parent="Container"]
+offset_left = 440.0
+offset_top = 26.0
+offset_right = 620.0
+offset_bottom = 40.0
+mouse_filter = 2
+
+[node name="ResIron" type="Label" parent="Container"]
+offset_left = 440.0
+offset_top = 40.0
+offset_right = 620.0
+offset_bottom = 54.0
+mouse_filter = 2
+
+[node name="ResMagic" type="Label" parent="Container"]
+offset_left = 440.0
+offset_top = 54.0
+offset_right = 620.0
+offset_bottom = 68.0
+mouse_filter = 2
+
+[node name="ResLegendary" type="Label" parent="Container"]
+offset_left = 440.0
+offset_top = 68.0
+offset_right = 620.0
+offset_bottom = 82.0
+mouse_filter = 2
+
+[node name="DoorArea" type="Control" parent="Container"]
+offset_left = 260.0
+offset_top = 40.0
+offset_right = 380.0
+offset_bottom = 190.0
+mouse_filter = 1
+
+[node name="DoorSprite" type="TextureRect" parent="Container/DoorArea"]
+offset_right = 120.0
+offset_bottom = 150.0
+texture = SubResource("AtlasTexture_door")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="DoorLabel" type="Label" parent="Container/DoorArea"]
+offset_left = 0.0
+offset_top = 130.0
+offset_right = 120.0
+offset_bottom = 148.0
+horizontal_alignment = 1
+text = "开始旅程"
+mouse_filter = 2
+
+[node name="ForgeArea" type="Control" parent="Container"]
+offset_left = 60.0
+offset_top = 200.0
+offset_right = 190.0
+offset_bottom = 340.0
+mouse_filter = 1
+
+[node name="NpcSprite" type="TextureRect" parent="Container/ForgeArea"]
+offset_left = 33.0
+offset_top = 55.0
+offset_right = 97.0
+offset_bottom = 119.0
+texture = SubResource("AtlasTexture_kl00")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="RoleLabel" type="Label" parent="Container/ForgeArea"]
+offset_left = 0.0
+offset_top = 6.0
+offset_right = 130.0
+offset_bottom = 20.0
+horizontal_alignment = 1
+text = "铁匠"
+mouse_filter = 2
+
+[node name="Hammer" type="ColorRect" parent="Container/ForgeArea"]
+offset_left = 6.0
+offset_top = 74.0
+offset_right = 28.0
+offset_bottom = 82.0
+color = Color(0.5, 0.4, 0.3, 1)
+mouse_filter = 2
+
+[node name="HammerHead" type="ColorRect" parent="Container/ForgeArea"]
+offset_left = 4.0
+offset_top = 68.0
+offset_right = 14.0
+offset_bottom = 82.0
+color = Color(0.5, 0.5, 0.5, 1)
+mouse_filter = 2
+
+[node name="ForgeFire" type="ColorRect" parent="Container/ForgeArea"]
+offset_left = 60.0
+offset_top = 120.0
+offset_right = 70.0
+offset_bottom = 134.0
+color = Color(0.9, 0.4, 0.1, 1)
+mouse_filter = 2
+
+[node name="CollectionArea" type="Control" parent="Container"]
+offset_left = 240.0
+offset_top = 200.0
+offset_right = 370.0
+offset_bottom = 340.0
+mouse_filter = 1
+
+[node name="NpcSprite" type="TextureRect" parent="Container/CollectionArea"]
+offset_left = 33.0
+offset_top = 55.0
+offset_right = 97.0
+offset_bottom = 119.0
+texture = SubResource("AtlasTexture_kl00")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="RoleLabel" type="Label" parent="Container/CollectionArea"]
+offset_left = 0.0
+offset_top = 6.0
+offset_right = 130.0
+offset_bottom = 20.0
+horizontal_alignment = 1
+text = "学者"
+mouse_filter = 2
+
+[node name="BookTop" type="ColorRect" parent="Container/CollectionArea"]
+offset_left = 110.0
+offset_top = 62.0
+offset_right = 130.0
+offset_bottom = 66.0
+color = Color(0.5, 0.3, 0.15, 1)
+mouse_filter = 2
+
+[node name="BookBody" type="ColorRect" parent="Container/CollectionArea"]
+offset_left = 108.0
+offset_top = 66.0
+offset_right = 132.0
+offset_bottom = 84.0
+color = Color(0.6, 0.4, 0.2, 1)
+mouse_filter = 2
+
+[node name="ExitArea" type="Control" parent="Container"]
+offset_left = 440.0
+offset_top = 310.0
+offset_right = 530.0
+offset_bottom = 334.0
+mouse_filter = 1
+
+[node name="ExitBg" type="ColorRect" parent="Container/ExitArea"]
+offset_right = 90.0
+offset_bottom = 24.0
+color = Color(0.3, 0.3, 0.3, 1)
+mouse_filter = 2
+
+[node name="ExitLabel" type="Label" parent="Container/ExitArea"]
+offset_right = 90.0
+offset_bottom = 24.0
+horizontal_alignment = 1
+vertical_alignment = 1
+text = "返回主菜单"
+mouse_filter = 2
+
+[node name="PanelsContainer" type="Control" parent="Container"]
+visible = false
+offset_right = 640.0
+offset_bottom = 360.0
+mouse_filter = 1
+
+[node name="Overlay" type="ColorRect" parent="Container/PanelsContainer"]
+offset_right = 640.0
+offset_bottom = 360.0
+color = Color(0, 0, 0, 0.4)
+mouse_filter = 1
+
+[node name="ForgePanel" type="Control" parent="Container/PanelsContainer"]
+offset_left = 200.0
+offset_top = 70.0
+offset_right = 620.0
+offset_bottom = 340.0
+mouse_filter = 1
+
+[node name="PanelBg" type="ColorRect" parent="Container/PanelsContainer/ForgePanel"]
+offset_right = 420.0
+offset_bottom = 270.0
+color = Color(0.1, 0.1, 0.15, 0.95)
+mouse_filter = 2
+
+[node name="PanelTitle" type="Label" parent="Container/PanelsContainer/ForgePanel"]
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 120.0
+offset_bottom = 26.0
+text = "锻造"
+mouse_filter = 2
+
+[node name="HintLabel" type="Label" parent="Container/PanelsContainer/ForgePanel"]
+offset_left = 10.0
+offset_top = 50.0
+offset_right = 410.0
+offset_bottom = 110.0
+autowrap_mode = 3
+text = "装备升级 / 附魔 / 洗练 / 分解\n需回到大厅后处理上个 run 的装备，待完善"
+mouse_filter = 2
+
+[node name="CloseBtn" type="ColorRect" parent="Container/PanelsContainer/ForgePanel"]
+offset_left = 384.0
+offset_top = 6.0
+offset_right = 414.0
+offset_bottom = 26.0
+color = Color(0.5, 0.15, 0.15, 1)
+mouse_filter = 1
+
+[node name="CloseLabel" type="Label" parent="Container/PanelsContainer/ForgePanel/CloseBtn"]
+offset_right = 30.0
+offset_bottom = 20.0
+horizontal_alignment = 1
+vertical_alignment = 1
+text = "X"
+mouse_filter = 2
+
+[node name="CollectionPanel" type="Control" parent="Container/PanelsContainer"]
+offset_left = 200.0
+offset_top = 70.0
+offset_right = 620.0
+offset_bottom = 340.0
+mouse_filter = 1
+
+[node name="PanelBg" type="ColorRect" parent="Container/PanelsContainer/CollectionPanel"]
+offset_right = 420.0
+offset_bottom = 270.0
+color = Color(0.1, 0.1, 0.15, 0.95)
+mouse_filter = 2
+
+[node name="PanelTitle" type="Label" parent="Container/PanelsContainer/CollectionPanel"]
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 140.0
+offset_bottom = 26.0
+text = "装备图鉴"
+mouse_filter = 2
+
+[node name="ProgressLabel" type="Label" parent="Container/PanelsContainer/CollectionPanel"]
+offset_left = 10.0
+offset_top = 40.0
+offset_right = 410.0
+offset_bottom = 54.0
+mouse_filter = 2
+
+[node name="BarBg" type="ColorRect" parent="Container/PanelsContainer/CollectionPanel"]
+offset_left = 10.0
+offset_top = 62.0
+offset_right = 410.0
+offset_bottom = 72.0
+color = Color(0.2, 0.2, 0.25, 1)
+mouse_filter = 2
+
+[node name="BarFill" type="ColorRect" parent="Container/PanelsContainer/CollectionPanel"]
+offset_left = 10.0
+offset_top = 62.0
+offset_right = 10.0
+offset_bottom = 72.0
+color = Color(0.3, 0.8, 0.3, 1)
+mouse_filter = 2
+
+[node name="BonusLabel" type="Label" parent="Container/PanelsContainer/CollectionPanel"]
+offset_left = 10.0
+offset_top = 82.0
+offset_right = 410.0
+offset_bottom = 170.0
+autowrap_mode = 3
+mouse_filter = 2
+
+[node name="ListLabel" type="Label" parent="Container/PanelsContainer/CollectionPanel"]
+offset_left = 10.0
+offset_top = 170.0
+offset_right = 410.0
+offset_bottom = 260.0
+autowrap_mode = 3
+mouse_filter = 2
+
+[node name="CloseBtn" type="ColorRect" parent="Container/PanelsContainer/CollectionPanel"]
+offset_left = 384.0
+offset_top = 6.0
+offset_right = 414.0
+offset_bottom = 26.0
+color = Color(0.5, 0.15, 0.15, 1)
+mouse_filter = 1
+
+[node name="CloseLabel" type="Label" parent="Container/PanelsContainer/CollectionPanel/CloseBtn"]
+offset_right = 30.0
+offset_bottom = 20.0
+horizontal_alignment = 1
+vertical_alignment = 1
+text = "X"
+mouse_filter = 2
