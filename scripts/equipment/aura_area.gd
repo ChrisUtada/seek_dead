@@ -36,7 +36,7 @@ func _pulse():
 	else:
 		shape.radius = 100.0
 	query.shape = shape
-	query.position = global_position
+	query.transform = Transform2D(0, global_position)
 	query.collision_mask = CollisionSystem.bit(CollisionSystem.LAYER_ENEMY)
 	query.collide_with_areas = true
 	var results = space.intersect_shape(query)

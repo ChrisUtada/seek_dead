@@ -57,7 +57,7 @@ func _get_nearest_enemies(pos: Vector2, radius: float, max_count: int) -> Array:
 	var shape = CircleShape2D.new()
 	shape.radius = radius
 	query.shape = shape
-	query.position = pos
+	query.transform = Transform2D(0, pos)
 	query.collision_mask = CollisionSystem.bit(CollisionSystem.LAYER_ENEMY)
 	query.collide_with_areas = true
 	var results = space.intersect_shape(query)
