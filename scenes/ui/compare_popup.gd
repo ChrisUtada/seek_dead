@@ -80,10 +80,10 @@ func _draw_item(pos: Vector2, item: EquipmentBase, is_new: bool):
 	y += 16
 
 	if item.set_id.length() > 0:
-		var set_name = SetDatabase.get_set(item.set_id)
-		if set_name:
+		var set_def = SetDatabase.get_set(item.set_id)
+		if set_def:
 			var set_label = Label.new()
-			set_label.text = "套装: %s" % set_name.set_name
+			set_label.text = "套装: %s" % set_def.set_name
 			set_label.position = pos + Vector2(4, y)
 			set_label.add_theme_font_size_override("font_size", 10)
 			set_label.add_theme_color_override("font_color", Color(0.3, 1, 0.3))
@@ -104,15 +104,15 @@ func _draw_item(pos: Vector2, item: EquipmentBase, is_new: bool):
 
 
 func _build_buttons():
-	var btn_equip = _make_button(Vector2(90, 260), Vector2(120, 30), "替换装备", Color(0.2, 0.6, 0.3), _on_equip)
-	var btn_keep = _make_button(Vector2(220, 260), Vector2(120, 30), "留在背包", Color(0.3, 0.3, 0.5), _on_keep)
-	var btn_discard = _make_button(Vector2(350, 260), Vector2(120, 30), "丢弃", Color(0.6, 0.2, 0.2), _on_discard)
+	_make_button(Vector2(90, 260), Vector2(120, 30), "替换装备", Color(0.2, 0.6, 0.3), _on_equip)
+	_make_button(Vector2(220, 260), Vector2(120, 30), "留在背包", Color(0.3, 0.3, 0.5), _on_keep)
+	_make_button(Vector2(350, 260), Vector2(120, 30), "丢弃", Color(0.6, 0.2, 0.2), _on_discard)
 
 
-func _make_button(pos: Vector2, size: Vector2, text: String, color: Color, callback: Callable) -> Control:
+func _make_button(pos: Vector2, btn_size: Vector2, text: String, color: Color, callback: Callable) -> Control:
 	var container = Control.new()
 	container.position = pos
-	container.size = size
+	container.size = btn_size
 	add_child(container)
 
 	var bg = ColorRect.new()
