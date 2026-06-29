@@ -197,6 +197,12 @@ func _on_item_added(item: EquipmentBase, _index: int, player: Node2D):
 		return
 	call_deferred("_show_compare_popup", player, item)
 
+func _show_compare_popup(player: Node2D, item: EquipmentBase):
+	var popup = _ComparePopup.new()
+	popup.name = "ComparePopup"
+	add_child(popup)
+	popup.init(player, item)
+
 func _update_hp(current: float, max_v: float, _delta: float):
 	_apply_bar_ratio("hp", current / max_v if max_v > 0 else 0)
 	_bars.hp.label.text = "HP: %.0f/%.0f" % [current, max_v]
