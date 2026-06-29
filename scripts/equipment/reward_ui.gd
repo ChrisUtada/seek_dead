@@ -80,11 +80,13 @@ func set_button_style(btn: Button, border_color: Color):
 func _format_card(item: EquipmentBase) -> String:
 	var slot_name = EquipmentEnums.SLOT_NAMES.get(item.slot, "?")
 	var rarity_name = RarityTable.get_rarity_name(item.rarity)
-	var text = "[%s]\n" % item.equipment_name
+	var text = "%s\n" % item.equipment_name
 	text += "%s %s\n" % [rarity_name, slot_name]
-	text += "─" * 16 + "\n"
+	text += "----------------\n"
 	for affix in item.affixes:
-		text += affix.affix_name + ": " + affix.affix_description + "\n"
+		text += "%s\n" % affix.affix_name if affix.affix_name else ""
+		if affix.affix_description:
+			text += "  " + affix.affix_description + "\n"
 	if item.affixes.is_empty():
 		text += "无词缀\n"
 	return text
