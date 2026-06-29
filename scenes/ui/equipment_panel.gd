@@ -6,6 +6,9 @@ var _slot_widgets: Dictionary = {}
 var _bag_grid: Control
 var _stat_labels: Dictionary = {}
 var _bag_slot_controls: Array = []
+var _bag_items: Array = []
+var _drag_index: int = -1
+var _drag_start_pos: Vector2
 
 const SLOT_POS: Dictionary = {
 	EquipmentEnums.EquipmentSlot.HELMET: Vector2(40, 40),
@@ -30,6 +33,7 @@ func _build():
 	var bg = ColorRect.new()
 	bg.color = Color(0.05, 0.05, 0.1, 0.92)
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(bg)
 
 	_build_slots()
@@ -43,6 +47,7 @@ func _build_slots():
 		var container = Control.new()
 		container.position = pos
 		container.size = Vector2(150, 50)
+		container.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(container)
 
 		var label = Label.new()
@@ -50,18 +55,21 @@ func _build_slots():
 		label.position = Vector2(0, -14)
 		label.add_theme_font_size_override("font_size", 10)
 		label.modulate = Color(0.6, 0.6, 0.6)
+		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		container.add_child(label)
 
 		var slot_bg = ColorRect.new()
 		slot_bg.position = Vector2(0, 0)
 		slot_bg.size = Vector2(148, 46)
 		slot_bg.color = Color(0.15, 0.15, 0.2, 0.8)
+		slot_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		container.add_child(slot_bg)
 
 		var name_label = Label.new()
 		name_label.position = Vector2(4, 2)
 		name_label.size = Vector2(140, 20)
 		name_label.add_theme_font_size_override("font_size", 12)
+		name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		container.add_child(name_label)
 
 		var affix_label = Label.new()
@@ -69,6 +77,7 @@ func _build_slots():
 		affix_label.size = Vector2(140, 20)
 		affix_label.add_theme_font_size_override("font_size", 9)
 		affix_label.modulate = Color(0.8, 0.8, 0.8)
+		affix_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		container.add_child(affix_label)
 
 		_slot_widgets[slot] = { "name": name_label, "affix": affix_label, "bg": slot_bg }
@@ -108,6 +117,7 @@ func _build_stats():
 	title.text = "属性"
 	title.position = Vector2(x, y)
 	title.add_theme_font_size_override("font_size", 16)
+	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(title)
 	y += 25
 
@@ -115,17 +125,12 @@ func _build_stats():
 		"max_hp", "hp_regen", "max_energy", "energy_regen",
 		"max_stamina", "stamina_regen", "heat_cooling",
 	]
-	var label_map = {
-		"max_hp": "HP上限", "hp_regen": "HP回复/秒", "max_energy": "能量上限",
-		"energy_regen": "能量回复/秒", "max_stamina": "体力上限",
-		"stamina_regen": "体力回复/秒", "heat_cooling": "热量冷却",
-	}
-	var state = _get_state()
 	for key in stat_keys:
 		var lbl = Label.new()
 		lbl.position = Vector2(x, y)
 		lbl.size = Vector2(180, 18)
 		lbl.add_theme_font_size_override("font_size", 11)
+		lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(lbl)
 		_stat_labels[key] = lbl
 		y += 17
@@ -137,12 +142,14 @@ func _build_backpack():
 	title.text = "背包"
 	title.position = Vector2(20, y)
 	title.add_theme_font_size_override("font_size", 14)
+	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(title)
 	y += 22
 
 	_bag_grid = Control.new()
 	_bag_grid.position = Vector2(20, y)
 	_bag_grid.size = Vector2(600, 60)
+	_bag_grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_bag_grid)
 	_refresh_backpack()
 
@@ -152,6 +159,7 @@ func _refresh_backpack():
 		if is_instance_valid(c):
 			c.queue_free()
 	_bag_slot_controls.clear()
+	_bag_items.clear()
 
 	var inv = _get_inventory()
 	if not inv:
@@ -170,8 +178,10 @@ func _refresh_backpack():
 		var slot = Control.new()
 		slot.position = Vector2(col * (slot_size.x + gap), row * (slot_size.y + gap))
 		slot.size = slot_size
+		slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var bg = ColorRect.new()
 		bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var color = RarityTable.get_rarity_color(item.rarity)
 		bg.color = Color(color.r * 0.25, color.g * 0.25, color.b * 0.25, 0.9)
 		slot.add_child(bg)
@@ -181,8 +191,10 @@ func _refresh_backpack():
 		name_lbl.add_theme_font_size_override("font_size", 8)
 		name_lbl.text = item.equipment_name.substr(0, 6)
 		name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		slot.add_child(name_lbl)
 		_bag_slot_controls.append(slot)
+		_bag_items.append({ "index": i, "item": item, "rect": Rect2(slot.position, slot.size) })
 		_bag_grid.add_child(slot)
 
 
@@ -229,3 +241,65 @@ func _get_inventory() -> EquipmentInventory:
 	if not _player_ref:
 		return null
 	return _player_ref.get_node_or_null("EquipmentInventory") as EquipmentInventory
+
+
+func _gui_input(event):
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed:
+			_drag_index = _bag_slot_at_position(event.position)
+			if _drag_index >= 0:
+				_drag_start_pos = event.position
+		elif _drag_index >= 0:
+			_try_drop(event.position)
+			_drag_index = -1
+
+	if event is InputEventMouseMotion and _drag_index >= 0:
+		if event.position.distance_to(_drag_start_pos) > 8:
+			mouse_default_cursor_shape = CURSOR_DRAG
+
+
+func _bag_slot_at_position(pos: Vector2) -> int:
+	for i in range(_bag_items.size()):
+		var entry = _bag_items[i]
+		var global_rect = Rect2(_bag_grid.position + entry.rect.position, entry.rect.size)
+		if global_rect.has_point(pos):
+			return i
+	return -1
+
+
+func _equip_slot_at_position(pos: Vector2) -> int:
+	for slot in SLOT_POS.keys():
+		var slot_rect = Rect2(SLOT_POS[slot], Vector2(150, 50))
+		if slot_rect.has_point(pos):
+			return slot
+	return -1
+
+
+func _try_drop(mouse_pos: Vector2):
+	if _drag_index < 0 or _drag_index >= _bag_items.size():
+		return
+	var entry = _bag_items[_drag_index]
+	var item = entry.item as EquipmentBase
+	if not item:
+		return
+	var target_slot = _equip_slot_at_position(mouse_pos)
+	if target_slot < 0:
+		return
+	if target_slot != item.slot:
+		return
+
+	var mgr = _get_equip_manager()
+	var inv = _get_inventory()
+	if not mgr or not inv:
+		return
+
+	var old_item = mgr.get_equipped(target_slot) as EquipmentBase
+
+	inv.remove_item(entry.index)
+	mgr.equip(item)
+
+	if old_item:
+		inv.add_item(old_item)
+
+	refresh()
+	mouse_default_cursor_shape = CURSOR_ARROW
