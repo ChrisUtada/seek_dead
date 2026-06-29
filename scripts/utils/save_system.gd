@@ -1,6 +1,7 @@
 extends Node
 
 const SAVE_PATH: String = "user://save_data.json"
+const LOBBY_PATH: String = "user://lobby_data.json"
 
 func save_game(data: Dictionary) -> bool:
 	var file = FileAccess.open(SAVE_PATH, FileAccess.WRITE)
@@ -32,3 +33,30 @@ func has_save() -> bool:
 func delete_save():
 	if has_save():
 		DirAccess.remove_absolute(SAVE_PATH)
+
+func save_lobby_data(data: Dictionary) -> bool:
+	var file = FileAccess.open(LOBBY_PATH, FileAccess.WRITE)
+	if not file:
+		push_error("SaveSystem: 无法打开局外存档")
+		return false
+	file.store_string(JSON.stringify(data, "\t"))
+	file.close()
+	return true
+
+func load_lobby_data() -> Dictionary:
+	if not FileAccess.file_exists(LOBBY_PATH):
+		return {}
+	var file = FileAccess.open(LOBBY_PATH, FileAccess.READ)
+	if not file:
+		return {}
+	var text = file.get_as_text()
+	file.close()
+	var json = JSON.new()
+	var err = json.parse(text)
+	if err != OK:
+		push_error("SaveSystem: 局外存档解析失败 - " + json.get_error_message())
+		return {}
+	return json.data
+
+func reset_lobby_data():
+	DirAccess.remove_absolute(LOBBY_PATH)

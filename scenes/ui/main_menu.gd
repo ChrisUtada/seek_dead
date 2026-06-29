@@ -90,7 +90,7 @@ func _input(event):
 		var mpos = event.position
 		if _rect_contains(_btn_start, mpos):
 			SaveSystem.delete_save()
-			SceneManager.fade_to_scene("res://scenes/game/game.tscn")
+			SceneManager.fade_to_scene("res://scenes/ui/lobby.tscn")
 		if _rect_contains(_btn_continue, mpos) and _btn_continue.visible:
 			SceneManager.fade_to_scene("res://scenes/game/game.tscn")
 		if _rect_contains(_btn_quit, mpos):
