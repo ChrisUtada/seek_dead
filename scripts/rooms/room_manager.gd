@@ -442,23 +442,24 @@ func _on_room_cleared(_room_id: String):
 	if int(_current_config.room_size) == 3:
 		min_rarity = EquipmentEnums.Rarity.RARE
 	var items = EquipmentDrop.generate_drops(count, bonus, min_rarity)
-	_show_reward_ui(items)
+	_spawn_rewards(items)
+	_unlock_doors()
 
 
-func _show_reward_ui(items: Array[EquipmentBase]):
+func _spawn_rewards(items: Array[EquipmentBase]):
 	if _current_room == null:
-		_unlock_doors()
 		return
-	var ui = RewardUI.new()
-	_current_room.add_child(ui)
-	var inv = _get_player_inventory()
-	ui.show_reward(items, func(item: EquipmentBase):
-		if inv and inv.add_item(item):
-			print("[奖励] 选择了: ", item.equipment_name)
-		else:
-			print("[奖励] 背包已满, 丢弃: ", item.equipment_name)
-		_unlock_doors()
-	)
+	var center = Vector2(320, 200)
+	var spawn = _current_room.get_node_or_null("PlayerSpawn")
+	if spawn:
+		center = spawn.global_position + Vector2(0, 60)
+	var spread = 40
+	for i in range(items.size()):
+		var drop = EquipmentPickup.new()
+		var pos = center + Vector2((i - (items.size() - 1) * 0.5) * spread, 0)
+		_current_room.add_child(drop)
+		drop.global_position = pos
+		drop.setup(items[i])
 
 
 func _get_player_inventory() -> EquipmentInventory:
