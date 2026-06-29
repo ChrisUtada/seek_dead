@@ -25,6 +25,7 @@ var _wave_broadcasted: bool = false
 
 var _timer_waves_started: Dictionary = {}
 var _current_bosses: Array[Node2D] = []
+var _escape_charges: int = 2
 var _last_config_index: int = -1
 
 
@@ -98,6 +99,7 @@ func enter_first_room(player: Node2D, root: Node):
 	_root = root
 	_room_sequence = _RoomSequence.generate()
 	_sequence_index = 0
+	_escape_charges = 2
 	_do_switch()
 
 
@@ -143,13 +145,6 @@ func _do_switch():
 	_spawn_wave(config, 0)
 	_position_player()
 	_connect_doors()
-
-	if int(config.room_size) == 3:
-		for child in room.find_children("*", "Area2D"):
-			if child.get_script() == _DoorScript and child.get("is_entrance"):
-				child.unlock()
-				print("BOSS房: 入口门不锁，可逃离（触碰入口门跳至下一间）")
-				break
 
 	print("Room %d/%d: [%s] %s" % [_sequence_index + 1, _room_sequence.size(), _size_name(config.room_size), config.room_name])
 	_sequence_index += 1
@@ -461,3 +456,17 @@ func _tile_size(tml: TileMapLayer) -> int:
 	if tml and tml.tile_set:
 		return tml.tile_set.tile_size.x
 	return 16
+
+
+func escape_current_room():
+	if _escape_charges <= 0:
+		return
+	if _transitioning:
+		return
+	_escape_charges -= 1
+	print("--- 紧急撤离 (%d/2 剩余) ---" % _escape_charges)
+	_load_room(0)
+
+
+func get_escape_charges() -> int:
+	return _escape_charges

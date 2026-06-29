@@ -4,6 +4,7 @@ extends Damageable
 const _WeaponComp = preload("res://scripts/components/weapon_component.gd")
 const _MoverComp = preload("res://scripts/components/movement_component.gd")
 const _RangedWeapon = preload("res://scripts/battle/ranged_weapon.gd")
+const _EscapeSkill = preload("res://scripts/battle/skills/escape_skill.gd")
 
 signal player_damaged(amount: float, current_hp: float, max_hp: float)
 
@@ -130,7 +131,7 @@ func _unhandled_input(event: InputEvent):
 	if event.is_action_pressed("reload"):
 		ammo.start_reload()
 		return
-	for i in range(2):
+	for i in range(3):
 		if event.is_action_pressed("skill_%d" % (i + 1)):
 			skill_manager.use_skill(i, self)
 			return
@@ -209,6 +210,7 @@ func _on_meltdown_end():
 func _init_skills():
 	skill_manager.add_skill(HealSkill.new())
 	skill_manager.add_skill(ShockwaveSkill.new())
+	skill_manager.add_skill(_EscapeSkill.new())
 
 
 func _generate_placeholder_texture():
