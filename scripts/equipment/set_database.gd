@@ -74,8 +74,8 @@ static func apply_to_state(state: StateComponent, key: String, m: StatModifier):
 					var current = state.get(key)
 					state.set(key, current + m.value)
 				_:
-					var current = state.get(key, 0.0)
-					state.set(key, current + m.value)
+					var current = state.get(key)
+					state.set(key, (current if current != null else 0.0) + m.value)
 
 
 static func unapply_to_state(state: StateComponent, key: String, m: StatModifier):
@@ -99,8 +99,8 @@ static func unapply_to_state(state: StateComponent, key: String, m: StatModifier
 					var current = state.get(key)
 					state.set(key, current - m.value)
 				_:
-					var current = state.get(key, 0.0)
-					state.set(key, current - m.value)
+					var current = state.get(key)
+					state.set(key, (current if current != null else 0.0) - m.value)
 
 
 static func _courier_set() -> SetBonus:

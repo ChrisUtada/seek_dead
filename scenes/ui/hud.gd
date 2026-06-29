@@ -169,6 +169,7 @@ func _init_equipment_panel(player: Node2D):
 	_equipment_panel.hide()
 	add_child(_equipment_panel)
 	_equipment_panel.init(player)
+	print("[HUD] EquipmentPanel 已创建, visible=", _equipment_panel.visible)
 
 func _connect_equipment_signals(player: Node2D):
 	var mgr = player.get_node_or_null("EquipmentManager") as EquipmentManager
