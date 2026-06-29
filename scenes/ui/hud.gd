@@ -115,12 +115,11 @@ func _build_overlay():
 	add_child(_overlay_button)
 
 func _connect_player():
-	var player = EntityRegistry.players[0] if EntityRegistry.get_player_count() > 0 else null
-	if not player:
-		await get_tree().process_frame
+	var player: Node2D = null
+	while player == null:
 		player = EntityRegistry.players[0] if EntityRegistry.get_player_count() > 0 else null
-	if not player:
-		return
+		if player == null:
+			await get_tree().process_frame
 
 	var st = player.state
 	st.hp_changed.connect(_update_hp)
@@ -414,6 +413,8 @@ func _hide_overlay():
 	_overlay_button.text = ""
 
 func _input(event):
+	if event is InputEventKey:
+		print("[HUD Input] key pressed=", event.pressed, " physical=", event.physical_keycode, " echo=", event.echo)
 	if event.is_action_pressed("pause"):
 		_toggle_pause()
 	if event.is_action_pressed("restart") and _death_overlay:
