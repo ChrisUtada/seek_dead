@@ -138,8 +138,10 @@ func _connect_player():
 	_update_heat(st.heat, st.max_heat, 0)
 
 	player.weapon.weapon_changed.connect(_on_weapon_changed)
-	if player.weapon.current_weapon:
-		_on_weapon_changed(player.weapon.current_weapon)
+	player.weapon.active_hand_changed.connect(_on_active_hand_changed)
+	var active_node = player.weapon.get_active_weapon_node()
+	if active_node:
+		_on_weapon_changed(active_node, player.weapon.active_hand)
 
 	var ammo_node = player.get_node_or_null("AmmoSystem")
 	if ammo_node:
@@ -390,13 +392,24 @@ func _on_reload_finished():
 	if _bars.has("ammo"):
 		_bars.ammo.label.text = "弹药: 已装填"
 
-func _on_weapon_changed(weapon: WeaponNode):
-	var s = weapon.stats
+func _on_weapon_changed(weapon: WeaponNode, _hand: int = 0):
+	var s = weapon.weapon_data
 	if not s:
 		return
+	var hand_label = "主手" if _hand == 0 else "副手"
 	var color = DamageSystem.get_color(s.damage_type)
-	weapon_label.text = "武器: %s | 伤害: %.0f | 类型: %s" % [s.weapon_name, s.damage, DamageSystem.damage_type_to_string(s.damage_type)]
+	weapon_label.text = "%s | %s | 伤害: %.0f | 类型: %s" % [hand_label, s.weapon_name, s.damage, DamageSystem.damage_type_to_string(s.damage_type)]
 	weapon_label.add_theme_color_override("font_color", color)
+
+func _on_active_hand_changed(hand: int):
+	var wc = EntityRegistry.players[0].weapon as WeaponComponent
+	if not wc:
+		return
+	var node = wc.get_active_weapon_node()
+	if node:
+		_on_weapon_changed(node, hand)
+	else:
+		weapon_label.text = ""
 
 func _on_player_died():
 	_death_overlay = true

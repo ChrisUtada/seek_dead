@@ -110,6 +110,14 @@ func equip(item: EquipmentBase):
 	unequip(slot)
 	_equipped[slot] = item
 	_apply_item(item)
+
+	# 武器槽特殊处理：将 WeaponData 注入 WeaponComponent
+	if (slot == EquipmentEnums.EquipmentSlot.WEAPON_MAIN or slot == EquipmentEnums.EquipmentSlot.WEAPON_OFFHAND) and item.weapon_data:
+		var player = get_parent()
+		var wc = player.get_node_or_null("WeaponComponent") as WeaponComponent
+		if wc:
+			wc.equip_weapon(item, slot)
+
 	EventManager.equipment_changed.emit(slot, item)
 	equipment_equipped.emit(slot, item)
 	if _set_manager:
@@ -120,6 +128,14 @@ func unequip(slot: int):
 	var old = _equipped.get(slot) as EquipmentBase
 	if not old:
 		return
+
+	# 武器槽卸下处理
+	if slot == EquipmentEnums.EquipmentSlot.WEAPON_MAIN or slot == EquipmentEnums.EquipmentSlot.WEAPON_OFFHAND:
+		var player = get_parent()
+		var wc = player.get_node_or_null("WeaponComponent") as WeaponComponent
+		if wc:
+			wc.unequip_weapon(slot)
+
 	_remove_item(old)
 	_equipped.erase(slot)
 	EventManager.equipment_changed.emit(slot, null)

@@ -59,6 +59,10 @@ static func do_upgrade(item: EquipmentBase) -> bool:
 	var chance = UPGRADE_CHANCE.get(item.rarity, 0.0)
 	if randf() <= chance:
 		item.rarity = next
+		# 武器数值同步提升
+		if item.weapon_data:
+			item.weapon_data.damage *= 1.2
+			item.weapon_data.attack_speed *= 1.05
 		if not RARITY_PREFIX.get(next, "").is_empty():
 			item.equipment_name = RARITY_PREFIX[next] + item.equipment_name
 		return true

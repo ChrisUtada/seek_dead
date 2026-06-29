@@ -26,6 +26,14 @@ const BASE_WEIGHTS: Dictionary = {
 	EquipmentEnums.Rarity.SET: 0,
 }
 
+const BASE_STAT_MULTIPLIER: Dictionary = {
+	EquipmentEnums.Rarity.COMMON: 1.0,
+	EquipmentEnums.Rarity.MAGIC: 1.15,
+	EquipmentEnums.Rarity.RARE: 1.35,
+	EquipmentEnums.Rarity.LEGENDARY: 1.6,
+	EquipmentEnums.Rarity.SET: 2.0,
+}
+
 
 static func roll_rarity(quality_bonus: float = 0.0, force_min: int = -1) -> int:
 	var weights = BASE_WEIGHTS.duplicate()
@@ -72,3 +80,7 @@ static func get_rarity_color(rarity: int) -> Color:
 		EquipmentEnums.Rarity.LEGENDARY: return Color(1.0, 0.3, 0.1)
 		EquipmentEnums.Rarity.SET: return Color(0.3, 1.0, 0.3)
 	return Color.WHITE
+
+
+static func get_base_stat_multiplier(rarity: int) -> float:
+	return BASE_STAT_MULTIPLIER.get(rarity, 1.0)

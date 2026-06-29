@@ -1,0 +1,69 @@
+class_name WeaponData
+extends Resource
+
+enum Archetype { LIGHT, MEDIUM, HEAVY, MAGIC }
+enum WeaponType { MELEE, RANGED }
+
+@export var weapon_name: String = ""
+@export var archetype: Archetype = Archetype.MEDIUM
+@export var weapon_type: WeaponType = WeaponType.MELEE
+
+# -- 通用战斗属性 --
+@export var damage: float = 10.0
+@export var damage_type: int = 0
+@export var attack_speed: float = 1.0
+@export var attack_range: float = 40.0
+
+# -- 武器场景 --
+@export var weapon_scene: PackedScene
+
+# -- 状态效果 --
+@export var status_effect_type: int = -1
+@export var status_effect_damage: float = 0.0
+@export var status_effect_duration: float = 3.0
+
+# -- 过热 --
+@export var heat_per_attack: float = -1.0
+
+# -- 远程专属 --
+@export var bullet_scene: PackedScene
+@export var bullet_speed: float = 600.0
+@export var max_ammo: int = 0
+@export var ammo_per_shot: int = 1
+@export var bullet_data: BulletData
+
+# -- 近战专属 --
+@export var cleave_angle: float = 90.0
+@export var knockback_force: float = 200.0
+
+# -- 碰撞体配置 --
+enum HitboxShape { CIRCLE, RECTANGLE }
+@export var hitbox_shape: HitboxShape = HitboxShape.CIRCLE
+@export var hitbox_size: Vector2 = Vector2.ZERO  # 矩形碰撞体尺寸（ZERO 时使用 attack_range）
+@export var hitbox_offset: Vector2 = Vector2.ZERO  # 碰撞体相对武器的偏移
+
+
+## 返回 archetype 对应的隐式修正列表。
+## 复用 StatModifier 对象，与装备词缀管线一致。
+static func get_implicit_modifiers(archetype: Archetype) -> Array[StatModifier]:
+	var result: Array[StatModifier] = []
+	match archetype:
+		Archetype.LIGHT:
+			result.append(_mod(EquipmentEnums.StatTarget.ATTACK_SPEED, EquipmentEnums.ModifierType.MUL, 0.10))
+			result.append(_mod(EquipmentEnums.StatTarget.ATTACK_DAMAGE, EquipmentEnums.ModifierType.MUL, -0.20))
+		Archetype.HEAVY:
+			result.append(_mod(EquipmentEnums.StatTarget.ATTACK_DAMAGE, EquipmentEnums.ModifierType.MUL, 0.20))
+			result.append(_mod(EquipmentEnums.StatTarget.ATTACK_SPEED, EquipmentEnums.ModifierType.MUL, -0.10))
+		Archetype.MAGIC:
+			result.append(_mod(EquipmentEnums.StatTarget.ATTACK_DAMAGE, EquipmentEnums.ModifierType.MUL, 0.15))
+			result.append(_mod(EquipmentEnums.StatTarget.ATTACK_SPEED, EquipmentEnums.ModifierType.MUL, -0.10))
+		# MEDIUM: 无隐式修正
+	return result
+
+
+static func _mod(target: int, type: int, value: float) -> StatModifier:
+	var m = StatModifier.new()
+	m.target_stat = target
+	m.modifier_type = type
+	m.value = value
+	return m

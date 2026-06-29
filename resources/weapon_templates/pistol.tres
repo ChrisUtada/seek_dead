@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Script" path="res://scripts/equipment/weapon_data.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/pistol.tscn" id="2"]
+
+[resource]
+script = ExtResource("1")
+weapon_name = "手枪"
+archetype = 1
+weapon_type = 1
+damage = 20.0
+damage_type = 0
+attack_speed = 2.5
+attack_range = 500.0
+weapon_scene = ExtResource("2")
+bullet_speed = 700.0
+max_ammo = 30
+ammo_per_shot = 1

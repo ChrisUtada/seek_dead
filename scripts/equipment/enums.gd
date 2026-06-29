@@ -1,7 +1,7 @@
 class_name EquipmentEnums
 extends RefCounted
 
-enum EquipmentSlot { WEAPON, HELMET, BODY, HAND, LEG, ACCESSORY_1, ACCESSORY_2 }
+enum EquipmentSlot { WEAPON_MAIN, WEAPON_OFFHAND, HELMET, BODY, HAND, LEG, ACCESSORY_1, ACCESSORY_2 }
 enum Rarity { COMMON, MAGIC, RARE, LEGENDARY, SET }
 enum ModifierType { ADD, MUL, OVERRIDE }
 
@@ -40,7 +40,8 @@ enum StatTarget {
 }
 
 const SLOT_NAMES: Dictionary = {
-	EquipmentSlot.WEAPON: "武器",
+	EquipmentSlot.WEAPON_MAIN: "主手武器",
+	EquipmentSlot.WEAPON_OFFHAND: "副手武器",
 	EquipmentSlot.HELMET: "头盔",
 	EquipmentSlot.BODY: "身体",
 	EquipmentSlot.HAND: "手部",

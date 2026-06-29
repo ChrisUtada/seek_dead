@@ -3,7 +3,7 @@ extends Resource
 
 @export var set_id: String = ""
 @export var set_name: String = ""
-@export var slots: Array[int] = []
+@export var slots: Array = []
 
 @export_group("2件效果")
 @export var bonus_2pc_modifiers: Array[StatModifier] = []

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Script" path="res://scripts/equipment/weapon_data.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/iron_sword.tscn" id="2"]
+
+[resource]
+script = ExtResource("1")
+weapon_name = "铁剑"
+archetype = 1
+weapon_type = 0
+damage = 35.0
+damage_type = 1
+attack_speed = 1.2
+attack_range = 80.0
+weapon_scene = ExtResource("2")
+cleave_angle = 90.0
+knockback_force = 200.0

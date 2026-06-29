@@ -1,14 +1,16 @@
 class_name WeaponNode
 extends Node2D
 
-const _WeaponBase = preload("res://scripts/battle/weapon_base.gd")
-
 signal hit_landed(hit_pos: Vector2, hit_dir: Vector2, damage_type: int, body: Node2D)
 signal attack_finished(weapon_node: WeaponNode, hit_count: int)
 
 enum WeaponState { IDLE, ACTIVE, COOLDOWN }
 
-@export var stats: WeaponBase
+const _DefaultBulletScene = preload("res://scenes/battle/projectile.tscn")
+const _BULLET_SIZE := 10
+
+var equipment: EquipmentBase
+var weapon_data: WeaponData
 
 var shooter: Node2D = null
 var aim_direction: Vector2 = Vector2.RIGHT
@@ -19,12 +21,17 @@ var attack_speed_modifier: float = 1.0
 var _ws: WeaponState = WeaponState.IDLE
 var _active_timer: float = 0.0
 var _cooldown_timer: float = 0.0
-var _flash_timer: float = 0.0
-var _swing_progress: float = 0.0
-var _is_swinging: bool = false
-var _trail_angles: Array[float] = []
-var _trail_alphas: Array[float] = []
-var _trail_lifetime: float = 0.15
+
+# -- 武器视觉场景 --
+var _weapon_visual: WeaponVisualBase = null
+
+# -- 近战运行时 --
+var _hitbox: Node = null
+var _hit_count: int = 0
+
+
+func _ready():
+	visible = false
 
 
 func _process(delta):
@@ -37,15 +44,208 @@ func _process(delta):
 			_cooldown_timer -= delta
 			if _cooldown_timer <= 0:
 				_ws = WeaponState.IDLE
-	_update_visual(delta)
 
+
+# ════════════════════════════════════════
+#  装备注入
+# ════════════════════════════════════════
+
+func equip(equip: EquipmentBase):
+	equipment = equip
+	weapon_data = equip.weapon_data.duplicate() as WeaponData
+	_apply_archetype_modifiers()
+	weapon_color = DamageSystem.get_color(weapon_data.damage_type)
+	_spawn_weapon_visual()
+	_init_hitbox()
+	visible = true
+
+
+func unequip():
+	visible = false
+	_clear_weapon_visual()
+	_clear_hitbox()
+	equipment = null
+	weapon_data = null
+
+
+func _spawn_weapon_visual():
+	_clear_weapon_visual()
+	if weapon_data.weapon_scene:
+		var visual_instance = weapon_data.weapon_scene.instantiate()
+		if visual_instance is WeaponVisualBase:
+			_weapon_visual = visual_instance
+			add_child(_weapon_visual)
+			_weapon_visual.setup(weapon_data)
+			_weapon_visual.set_aim_direction(aim_direction)
+		else:
+			push_warning("Weapon scene root must have WeaponVisualBase script")
+			visual_instance.queue_free()
+
+
+func _clear_weapon_visual():
+	if _weapon_visual and is_instance_valid(_weapon_visual):
+		_weapon_visual.teardown()
+		_weapon_visual.queue_free()
+	_weapon_visual = null
+
+
+func _apply_archetype_modifiers():
+	if weapon_data == null:
+		return
+	var mods = WeaponData.get_implicit_modifiers(weapon_data.archetype)
+	for m in mods:
+		match m.target_stat:
+			EquipmentEnums.StatTarget.ATTACK_SPEED:
+				weapon_data.attack_speed *= (1.0 + m.value)
+			EquipmentEnums.StatTarget.ATTACK_DAMAGE:
+				weapon_data.damage *= (1.0 + m.value)
+
+
+# ════════════════════════════════════════
+#  动态 Hitbox
+# ════════════════════════════════════════
+
+func _init_hitbox():
+	_clear_hitbox()
+	if weapon_data.weapon_type == WeaponData.WeaponType.MELEE:
+		_hitbox = Area2D.new()
+		_hitbox.name = "Hitbox"
+		_hitbox.set_script(load("res://scripts/battle/hitbox.gd"))
+		_hitbox.collision_layer = 0
+		_hitbox.collision_mask = CollisionSystem.bit(CollisionSystem.LAYER_ENEMY)
+		var cs = CollisionShape2D.new()
+		cs.position = weapon_data.hitbox_offset
+		match weapon_data.hitbox_shape:
+			WeaponData.HitboxShape.RECTANGLE:
+				var rect = RectangleShape2D.new()
+				rect.size = weapon_data.hitbox_size if weapon_data.hitbox_size != Vector2.ZERO else Vector2(weapon_data.attack_range, weapon_data.attack_range)
+				cs.shape = rect
+			_:  # CIRCLE
+				var circle = CircleShape2D.new()
+				circle.radius = weapon_data.hitbox_size.x if weapon_data.hitbox_size != Vector2.ZERO else weapon_data.attack_range
+				cs.shape = circle
+		_hitbox.add_child(cs)
+		add_child(_hitbox)
+		_hitbox.set_deferred("monitoring", false)
+		_hitbox.set_deferred("monitorable", false)
+		_hitbox.lifespan = 0
+		_hitbox.hit_landed.connect(_on_melee_hit)
+
+
+func _clear_hitbox():
+	if _hitbox and is_instance_valid(_hitbox):
+		_hitbox.queue_free()
+	_hitbox = null
+
+
+# ════════════════════════════════════════
+#  攻击分发
+# ════════════════════════════════════════
+
+func attack():
+	if not can_attack():
+		return
+	if shooter == null:
+		shooter = get_parent() as Node2D
+	_start_attack()
+	if weapon_data.weapon_type == WeaponData.WeaponType.MELEE:
+		_attack_melee()
+	else:
+		_attack_ranged()
+	_end_active()
+
+
+# ════════════════════════════════════════
+#  近战攻击
+# ════════════════════════════════════════
+
+func _attack_melee():
+	AudioManager.play_sfx(AudioManager.SfxType.PLAYER_MELEE)
+
+	# 触发武器视觉攻击动画
+	if _weapon_visual:
+		_weapon_visual.flash_range()
+		_weapon_visual.swing()
+
+	_hitbox.damage = weapon_data.damage
+	_hitbox.damage_type = weapon_data.damage_type
+	_hitbox.shooter = shooter
+	_hitbox.knockback_force = weapon_data.knockback_force
+	_hitbox.status_effect_type = weapon_data.status_effect_type
+	_hitbox.status_effect_damage = weapon_data.status_effect_damage
+	_hitbox.status_effect_duration = weapon_data.status_effect_duration
+	_hitbox.reset()
+	_hitbox.global_position = shooter.global_position
+	_hitbox.monitoring = true
+	_hitbox.monitorable = true
+
+
+func _on_melee_hit(target: Node2D):
+	_hit_count += 1
+	hit_landed.emit(target.global_position, aim_direction, weapon_data.damage_type, target)
+
+
+# ════════════════════════════════════════
+#  远程攻击
+# ════════════════════════════════════════
+
+func _attack_ranged():
+	AudioManager.play_sfx(AudioManager.SfxType.PLAYER_SHOT)
+
+	var ammo_node = shooter.get_node_or_null("AmmoSystem")
+	if weapon_data.max_ammo > 0 and ammo_node and not ammo_node.consume_ammo():
+		return
+
+	# 触发武器视觉攻击动画
+	if _weapon_visual:
+		_weapon_visual.flash_range()
+
+	var parent = shooter.get_parent()
+	var pool = GameManager.get_bullet_pool()
+	var scene = weapon_data.bullet_scene if weapon_data.bullet_scene else _DefaultBulletScene
+	var bullet
+	if scene == _DefaultBulletScene and pool:
+		bullet = pool.acquire(parent)
+		bullet.set_pool(pool)
+	else:
+		bullet = scene.instantiate()
+		parent.add_child(bullet)
+
+	bullet.global_position = shooter.global_position
+	bullet.direction = aim_direction
+	bullet.data = weapon_data.bullet_data
+	bullet.damage = weapon_data.damage
+	bullet.damage_type = weapon_data.damage_type
+	bullet.shooter = shooter
+	bullet.status_effect_type = weapon_data.status_effect_type
+	bullet.status_effect_damage = weapon_data.status_effect_damage
+	bullet.status_effect_duration = weapon_data.status_effect_duration
+
+	var sprite = bullet.get_node_or_null("Sprite2D")
+	if sprite:
+		var color = DamageSystem.get_color(weapon_data.damage_type)
+		sprite.texture = DamageSystem.get_circle_texture(_BULLET_SIZE, color)
+		sprite.centered = true
+
+	if not bullet.hit.is_connected(_on_ranged_hit):
+		bullet.hit.connect(_on_ranged_hit)
+	attack_finished.emit(self, 1)
+
+
+func _on_ranged_hit(hit_pos: Vector2, hit_dir: Vector2, hit_damage_type: int, body: Node2D):
+	hit_landed.emit(hit_pos, hit_dir, hit_damage_type, body)
+
+
+# ════════════════════════════════════════
+#  状态机
+# ════════════════════════════════════════
 
 func can_attack() -> bool:
-	return _ws == WeaponState.IDLE and stats != null
+	return _ws == WeaponState.IDLE and weapon_data != null
 
 
 func get_cooldown_time() -> float:
-	return 1.0 / (stats.attack_speed * attack_speed_modifier) if stats else 1.0
+	return 1.0 / (weapon_data.attack_speed * attack_speed_modifier) if weapon_data else 1.0
 
 
 func _start_attack():
@@ -53,76 +253,23 @@ func _start_attack():
 	is_attacking = true
 	_active_timer = 0.15
 	_cooldown_timer = get_cooldown_time()
+	_hit_count = 0
 
 
 func _end_active():
 	_ws = WeaponState.COOLDOWN
 	is_attacking = false
-	attack_finished.emit(self, 0)
+	if _hitbox:
+		_hitbox.monitoring = false
+		_hitbox.monitorable = false
+	attack_finished.emit(self, _hit_count)
 
 
-func attack():
-	pass
+# ════════════════════════════════════════
+#  朝向更新
+# ════════════════════════════════════════
 
-
-func flash_range():
-	_flash_timer = 0.15
-	queue_redraw()
-
-
-func swing():
-	_is_swinging = true
-	_swing_progress = 0.0
-
-
-func on_equip():
-	visible = true
-
-
-func on_unequip():
-	visible = false
-
-
-func _update_visual(delta):
-	if not stats:
-		return
-	if _flash_timer > 0:
-		_flash_timer -= delta
-		if _flash_timer <= 0:
-			queue_redraw()
-	if _is_swinging:
-		_swing_progress += delta * 8.0
-		var angle = _swing_progress * PI * 0.8 - PI * 0.4
-		if _trail_angles.size() < 32:
-			_trail_angles.append(angle)
-			_trail_alphas.append(1.0)
-		queue_redraw()
-		if _swing_progress >= 1.0:
-			_is_swinging = false
-			_swing_progress = 0.0
-			queue_redraw()
-	for i in range(_trail_alphas.size() - 1, -1, -1):
-		_trail_alphas[i] -= delta / _trail_lifetime
-		if _trail_alphas[i] <= 0:
-			_trail_angles.remove_at(i)
-			_trail_alphas.remove_at(i)
-
-
-func _draw():
-	if not stats:
-		return
-	if _flash_timer > 0:
-		var alpha = _flash_timer / 0.15
-		draw_arc(Vector2.ZERO, stats.attack_range, 0, TAU, 32, Color(weapon_color.r, weapon_color.g, weapon_color.b, alpha * 0.4), 2.0, true)
-	for i in range(_trail_angles.size()):
-		var a = _trail_alphas[i]
-		if a <= 0:
-			continue
-		var angle = _trail_angles[i]
-		draw_arc(Vector2.ZERO, stats.attack_range * 0.5, -PI * 0.4, angle, 12, Color(weapon_color.r, weapon_color.g, weapon_color.b, a * 0.3), 3.0, true)
-	if _is_swinging:
-		var angle = _swing_progress * PI * 0.8 - PI * 0.4
-		draw_arc(Vector2.ZERO, stats.attack_range * 0.5, -PI * 0.4, angle, 16, Color(weapon_color.r, weapon_color.g, weapon_color.b, 0.6), 4.0, true)
-	if stats.attack_range > 100:
-		var tip = Vector2(stats.attack_range * 0.7, 0)
-		draw_circle(tip, 4, Color(weapon_color.r, weapon_color.g, weapon_color.b, 0.3))
+func set_aim_direction(dir: Vector2):
+	aim_direction = dir
+	if _weapon_visual:
+		_weapon_visual.set_aim_direction(dir)

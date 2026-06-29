@@ -108,6 +108,16 @@ func _format_card(item: EquipmentBase) -> String:
 	var rarity_name = RarityTable.get_rarity_name(item.rarity)
 	var text = "%s\n" % item.equipment_name
 	text += "%s %s\n" % [rarity_name, slot_name]
+
+	# 武器基础数值
+	if (item.slot == EquipmentEnums.EquipmentSlot.WEAPON_MAIN or item.slot == EquipmentEnums.EquipmentSlot.WEAPON_OFFHAND) and item.weapon_data:
+		var wd = item.weapon_data
+		var arch_names = ["轻盈", "均衡", "沉重", "秘法"]
+		var type_str = "近战" if wd.weapon_type == WeaponData.WeaponType.MELEE else "远程"
+		var arch_str = arch_names[wd.archetype]
+		text += "[%s·%s] 伤害:%d 攻速:%.1f 射程:%d\n" % [
+			arch_str, type_str, wd.damage, wd.attack_speed, wd.attack_range]
+
 	text += "----------------\n"
 	for affix in item.affixes:
 		text += "%s\n" % affix.affix_name if affix.affix_name else ""

@@ -3,7 +3,6 @@ extends Damageable
 
 const _WeaponComp = preload("res://scripts/components/weapon_component.gd")
 const _MoverComp = preload("res://scripts/components/movement_component.gd")
-const _RangedWeapon = preload("res://scripts/battle/ranged_weapon.gd")
 const _EscapeSkill = preload("res://scripts/battle/skills/escape_skill.gd")
 
 signal player_damaged(amount: float, current_hp: float, max_hp: float)
@@ -180,7 +179,8 @@ func _physics_process(delta: float):
 
 
 func _attack_finished() -> bool:
-	return not weapon.current_weapon or not weapon.current_weapon.is_attacking
+		var node = weapon.get_active_weapon_node()
+		return node == null or not node.is_attacking
 
 
 func _process_movement(delta: float):
@@ -199,9 +199,11 @@ func _process_movement(delta: float):
 	if _sprite and "flip_h" in _sprite:
 		_sprite.flip_h = aim_dir.x < 0
 
-	for i in range(5):
-		if Input.is_key_pressed(KEY_1 + i):
-			weapon.switch_weapon(i)
+	# 数字键 1/2 切换主副手
+	if Input.is_action_just_pressed("weapon_slot_1"):
+		weapon.switch_active_hand(0)  # 主手
+	if Input.is_action_just_pressed("weapon_slot_2"):
+		weapon.switch_active_hand(1)  # 副手
 
 	if Input.is_key_pressed(KEY_K):
 		if not _debug_k_held:
@@ -213,10 +215,9 @@ func _process_movement(delta: float):
 
 # ===================== Lifecycle =====================
 
-func _on_weapon_changed(w: WeaponNode):
-	var ranged_stats = w.stats as RangedWeapon
-	if ranged_stats and ranged_stats.max_ammo > 0:
-		ammo.switch_to_weapon(w.stats.weapon_name, ranged_stats.max_ammo)
+func _on_weapon_changed(w: WeaponNode, _hand: int = 0):
+	if w.weapon_data and w.weapon_data.weapon_type == WeaponData.WeaponType.RANGED and w.weapon_data.max_ammo > 0:
+		ammo.switch_to_weapon(w.weapon_data.weapon_name, w.weapon_data.max_ammo)
 
 
 func _on_meltdown():
@@ -239,6 +240,17 @@ func _init_equipment():
 	equipment_inventory = EquipmentInventory.new()
 	equipment_inventory.name = "EquipmentInventory"
 	add_child(equipment_inventory)
+	# 延迟装备初始武器，确保 WeaponComponent._ready() 已完成扫描
+	call_deferred("_equip_starting_weapon")
+
+
+func _equip_starting_weapon():
+	var starting_weapon = EquipmentBase.new()
+	starting_weapon.equipment_name = "铁剑"
+	starting_weapon.slot = EquipmentEnums.EquipmentSlot.WEAPON_MAIN
+	starting_weapon.rarity = EquipmentEnums.Rarity.COMMON
+	starting_weapon.weapon_data = preload("res://resources/weapon_templates/iron_sword.tres").duplicate(true)
+	equipment_manager.equip(starting_weapon)
 
 
 func _init_skills():

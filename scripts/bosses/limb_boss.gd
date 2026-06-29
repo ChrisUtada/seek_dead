@@ -322,9 +322,17 @@ func _on_died():
 
 
 func _drop_weapon():
-	var weapon = preload("res://scenes/weapons/fire_sword.tscn").instantiate()
-	weapon.global_position = global_position + Vector2(0, -20)
-	get_parent().add_child(weapon)
+	var wd = preload("res://resources/weapon_templates/fire_sword.tres").duplicate(true) as WeaponData
+	var equip = EquipmentBase.new()
+	equip.equipment_name = wd.weapon_name
+	equip.slot = EquipmentEnums.EquipmentSlot.WEAPON_MAIN
+	equip.rarity = EquipmentEnums.Rarity.RARE
+	equip.weapon_data = wd
+	var node = WeaponNode.new()
+	node.name = "BossDrop"
+	add_child(node)
+	node.equip(equip)
+	node.global_position = global_position + Vector2(0, -20)
 
 
 func _generate_boss_texture():

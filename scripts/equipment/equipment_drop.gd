@@ -2,10 +2,11 @@ class_name EquipmentDrop
 extends RefCounted
 
 const SLOT_NAMES: Array = [
-	"武器", "头盔", "身体", "手部", "腿部", "饰品1", "饰品2",
+	"主手武器", "副手武器", "头盔", "身体", "手部", "腿部", "饰品1", "饰品2",
 ]
 const BASE_NAMES: Dictionary = {
-	EquipmentEnums.EquipmentSlot.WEAPON: ["铁剑", "短弓", "法杖"],
+	EquipmentEnums.EquipmentSlot.WEAPON_MAIN: ["铁剑", "短弓", "法杖"],
+	EquipmentEnums.EquipmentSlot.WEAPON_OFFHAND: ["铁剑", "短弓", "法杖"],
 	EquipmentEnums.EquipmentSlot.HELMET: ["铁盔", "皮帽", "头带"],
 	EquipmentEnums.EquipmentSlot.BODY: ["铁甲", "皮衣", "布袍"],
 	EquipmentEnums.EquipmentSlot.HAND: ["铁手套", "护腕", "指虎"],
@@ -21,6 +22,17 @@ const RARITY_PREFIX: Dictionary = {
 	EquipmentEnums.Rarity.SET: "套装",
 }
 
+const WEAPON_TEMPLATES: Array = [
+	preload("res://resources/weapon_templates/iron_sword.tres"),
+	preload("res://resources/weapon_templates/dagger.tres"),
+	preload("res://resources/weapon_templates/battle_axe.tres"),
+	preload("res://resources/weapon_templates/fire_sword.tres"),
+	preload("res://resources/weapon_templates/pistol.tres"),
+	preload("res://resources/weapon_templates/ice_gun.tres"),
+	preload("res://resources/weapon_templates/poison_dagger.tres"),
+	preload("res://resources/weapon_templates/flame_staff.tres"),
+]
+
 
 static func generate_drop(quality_bonus: float = 0.0, slot: int = -1, force_min_rarity: int = -1) -> EquipmentBase:
 	var rarity = RarityTable.roll_rarity(quality_bonus, force_min_rarity)
@@ -30,12 +42,24 @@ static func generate_drop(quality_bonus: float = 0.0, slot: int = -1, force_min_
 		_apply_set(equip)
 	else:
 		if slot < 0:
-			slot = randi() % 7
+			slot = randi() % 8
 		equip.slot = slot
 		equip.equipment_name = _build_name(equip)
 		if rarity != EquipmentEnums.Rarity.COMMON:
 			_add_affixes(equip)
+		# 武器槽生成 WeaponData
+		if slot == EquipmentEnums.EquipmentSlot.WEAPON_MAIN or slot == EquipmentEnums.EquipmentSlot.WEAPON_OFFHAND:
+			equip.weapon_data = _generate_weapon_data(equip)
 	return equip
+
+
+static func _generate_weapon_data(equip: EquipmentBase) -> WeaponData:
+	var template = WEAPON_TEMPLATES[randi() % WEAPON_TEMPLATES.size()] as WeaponData
+	var wd = template.duplicate(true) as WeaponData
+	wd.weapon_name = equip.equipment_name
+	var mult = RarityTable.get_base_stat_multiplier(equip.rarity)
+	wd.damage *= mult
+	return wd
 
 
 static func generate_drops(count: int, quality_bonus: float = 0.0, force_min_rarity: int = -1) -> Array[EquipmentBase]:
@@ -73,7 +97,7 @@ static func _apply_set(equip: EquipmentBase):
 	var all_sets = SetDatabase.get_all_sets()
 	if all_sets.is_empty():
 		equip.rarity = EquipmentEnums.Rarity.RARE
-		equip.slot = randi() % 7
+		equip.slot = randi() % 8
 		equip.equipment_name = _build_name(equip)
 		_add_affixes(equip)
 		return
@@ -85,6 +109,8 @@ static func _apply_set(equip: EquipmentBase):
 
 static func _slot_suffix(slot: int) -> String:
 	match slot:
+		EquipmentEnums.EquipmentSlot.WEAPON_MAIN: return "主武"
+		EquipmentEnums.EquipmentSlot.WEAPON_OFFHAND: return "副武"
 		EquipmentEnums.EquipmentSlot.HELMET: return "头盔"
 		EquipmentEnums.EquipmentSlot.BODY: return "战甲"
 		EquipmentEnums.EquipmentSlot.HAND: return "手套"

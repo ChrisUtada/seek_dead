@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3 uid="uid://bw88p35vvqqfk"]
+
+[ext_resource type="Script" uid="uid://dkgpb1yi42sdb" path="res://scripts/equipment/weapon_data.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/dagger.tscn" id="2"]
+
+[resource]
+script = ExtResource("1")
+weapon_name = "匕首"
+archetype = 0
+damage = 25.0
+attack_speed = 2.0
+attack_range = 60.0
+weapon_scene = ExtResource("2")
+status_effect_type = 6
+status_effect_damage = 5.0
+status_effect_duration = 5.0
+cleave_angle = 120.0
+knockback_force = 100.0
