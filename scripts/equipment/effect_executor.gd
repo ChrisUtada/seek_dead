@@ -21,6 +21,12 @@ func execute(effect: TriggerEffect, context: Dictionary = {}) -> bool:
 			return _execute_chain_lightning(effect, context)
 		EquipmentEnums.EffectAction.SPAWN_PROJECTILE:
 			return _execute_spawn_projectile(effect, context)
+		EquipmentEnums.EffectAction.SPAWN_POOL:
+			return _execute_spawn_pool(effect, context)
+		EquipmentEnums.EffectAction.FIRE_AURA:
+			return _execute_fire_aura(effect, context)
+		EquipmentEnums.EffectAction.SLOW_ENEMIES:
+			return _execute_slow_enemies(effect, context)
 		_:
 			print("[EffectExecutor] 未实现效果: ", effect.effect_action)
 			return false
@@ -160,5 +166,82 @@ func _execute_chain_lightning(effect: TriggerEffect, context: Dictionary) -> boo
 
 
 func _execute_spawn_projectile(effect: TriggerEffect, context: Dictionary) -> bool:
-	print("[效果执行] SPAWN_PROJECTILE: 待实现 (param=% .1f)" % [effect.param_value])
+	print("[效果执行] SPAWN_PROJECTILE: 待实现 (param=%.1f)" % [effect.param_value])
 	return false
+
+
+func _execute_spawn_pool(effect: TriggerEffect, context: Dictionary) -> bool:
+	var player = _get_player()
+	if not player:
+		return false
+	var radius = effect.param_value
+	if radius <= 0:
+		radius = 80.0
+	var pool = Area2D.new()
+	var shape = CollisionShape2D.new()
+	var circle = CircleShape2D.new()
+	circle.radius = radius
+	shape.shape = circle
+	pool.add_child(shape)
+	pool.collision_layer = 0
+	pool.collision_mask = CollisionSystem.bit(CollisionSystem.LAYER_ENEMY)
+	pool.global_position = player.global_position
+	var dmg_type = DamageSystem.DamageType.POISON
+	var tick_timer = 0.0
+	pool.set_script(load("res://scripts/equipment/pool_area.gd"))
+	pool.set("damage", context.get("damage", 15.0))
+	pool.set("damage_type", dmg_type)
+	pool.set("lifetime", 3.0)
+	get_tree().current_scene.add_child(pool)
+	print("[效果执行] 毒池: 半径%.0f pos=(%.0f,%.0f)" % [radius, pool.global_position.x, pool.global_position.y])
+	return true
+
+
+func _execute_fire_aura(effect: TriggerEffect, context: Dictionary) -> bool:
+	var player = _get_player()
+	if not player:
+		return false
+	var radius = effect.param_value
+	if radius <= 0:
+		radius = 100.0
+	var aura = Area2D.new()
+	var shape = CollisionShape2D.new()
+	var circle = CircleShape2D.new()
+	circle.radius = radius
+	shape.shape = circle
+	aura.add_child(shape)
+	aura.collision_layer = 0
+	aura.collision_mask = CollisionSystem.bit(CollisionSystem.LAYER_ENEMY)
+	aura.set_script(load("res://scripts/equipment/aura_area.gd"))
+	aura.set("damage", context.get("damage", 10.0))
+	aura.set("damage_type", DamageSystem.DamageType.FIRE)
+	aura.set("interval", 0.5)
+	aura.set("lifetime", 5.0)
+	player.add_child(aura)
+	aura.global_position = Vector2.ZERO
+	print("[效果执行] 火焰光环: 半径%.0f 持续5s" % [radius])
+	return true
+
+
+func _execute_slow_enemies(effect: TriggerEffect, context: Dictionary) -> bool:
+	var player = _get_player()
+	if not player:
+		return false
+	var radius = effect.param_value
+	if radius <= 0:
+		radius = 150.0
+	var slow = Area2D.new()
+	var shape = CollisionShape2D.new()
+	var circle = CircleShape2D.new()
+	circle.radius = radius
+	shape.shape = circle
+	slow.add_child(shape)
+	slow.collision_layer = 0
+	slow.collision_mask = CollisionSystem.bit(CollisionSystem.LAYER_ENEMY)
+	slow.set_script(load("res://scripts/equipment/slow_area.gd"))
+	slow.set("speed_mult", 0.5)
+	slow.set("lifetime", 3.0)
+	get_tree().current_scene.add_child(slow)
+	slow.global_position = player.global_position
+	print("[效果执行] 减速场: 半径%.0f 持续3s" % [radius])
+	return true

@@ -329,6 +329,16 @@ func _get_current_config() -> RoomConfig:
 	return _current_config
 
 
+func get_current_room_size() -> int:
+	if not _current_config:
+		return 0
+	return int(_current_config.room_size)
+
+
+func get_current_wave_index() -> int:
+	return _current_wave_index
+
+
 func _position_player():
 	var spawn = _current_room.get_node_or_null("PlayerSpawn")
 	if spawn:

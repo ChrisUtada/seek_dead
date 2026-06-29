@@ -31,8 +31,9 @@ func _ready():
 
 
 func _on_trigger_activated(event: int, effect: TriggerEffect):
-	var context = {}
-	_executor.execute(effect, context)
+	var scaled = effect.duplicate() as TriggerEffect
+	scaled.param_value = _scale_param(effect)
+	_executor.execute(scaled, {})
 
 
 func _on_damage_dealt(attacker: Node2D, defender: Node2D, amount: float, damage_type: int):
@@ -73,6 +74,22 @@ func _on_meltdown_local():
 
 func _on_stamina_depleted():
 	on_trigger_event(EquipmentEnums.TriggerEvent.ON_STATUS_INFLICT)
+
+
+func _scale_param(effect: TriggerEffect) -> float:
+	var val = effect.param_value
+	match effect.effect_action:
+		EquipmentEnums.EffectAction.EXPLODE, EquipmentEnums.EffectAction.KNOCKBACK:
+			val = RoomContext.scale_radius(val)
+		EquipmentEnums.EffectAction.CHAIN_LIGHTNING:
+			val = RoomContext.scale_chain_count(int(val))
+		EquipmentEnums.EffectAction.SPAWN_PROJECTILE:
+			val = RoomContext.scale_projectile_count(int(val))
+	return val
+
+
+func _scale_chance(base: float) -> float:
+	return RoomContext.scale_chance(base, 0)
 
 
 func _get_player() -> Node2D:
@@ -231,7 +248,8 @@ func on_trigger_event(event: int):
 			continue
 		if now - entry.last_trigger < e.cooldown:
 			continue
-		if randf() > e.chance:
+		var effective_chance = _scale_chance(e.chance)
+		if randf() > effective_chance:
 			continue
 		entry.last_trigger = now
 		trigger_activated.emit(event, e)
