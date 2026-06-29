@@ -79,11 +79,14 @@ static func apply_global_bonuses(state: StateComponent):
 				state.max_hp += val
 				state.hp += val
 			"move_speed":
-				state.set("move_speed", state.get("move_speed", 0.0) + val)
+				var ms = state.get("move_speed")
+				state.set("move_speed", (ms if ms != null else 0.0) + val)
 			"attack_damage":
-				state.set("attack_damage", state.get("attack_damage", 0.0) + val)
+				var ad = state.get("attack_damage")
+				state.set("attack_damage", (ad if ad != null else 0.0) + val)
 			"crit_rate":
-				state.set("crit_rate", state.get("crit_rate", 0.0) + val)
+				var cr = state.get("crit_rate")
+				state.set("crit_rate", (cr if cr != null else 0.0) + val)
 
 
 static func has_collected(name: String) -> bool:

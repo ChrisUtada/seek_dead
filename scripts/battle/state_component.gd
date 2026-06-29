@@ -26,6 +26,11 @@ signal meltdown_ended()
 @export var heat_warning_threshold: float = 75.0
 @export var meltdown_duration: float = 4.0
 @export var heat_cool_delay: float = 1.0
+@export var move_speed: float = 160.0
+@export var attack_damage: float = 10.0
+@export var attack_speed: float = 1.0
+@export var crit_rate: float = 0.05
+@export var crit_damage: float = 1.5
 
 var hp: float: set = _set_hp
 var energy: float: set = _set_energy
