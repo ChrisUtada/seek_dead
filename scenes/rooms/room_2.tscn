@@ -213,7 +213,7 @@ texture = ExtResource("2_ar6ir")
 sources/0 = SubResource("TileSetAtlasSource_ghqej")
 
 [sub_resource type="NavigationPolygon" id="NavigationPolygon_oqkh4"]
-vertices = PackedVector2Array(16, 16, 352, 16, 352, 208, 16, 208)
+vertices = PackedVector2Array(16, 16, 420, 16, 420, 590, 16, 590)
 polygons = [PackedInt32Array(0, 1, 2, 3)]
 
 [node name="room2" type="Node2D" unique_id=1694518185]

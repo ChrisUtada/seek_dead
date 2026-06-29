@@ -4,7 +4,7 @@
 [ext_resource type="PackedScene" path="res://scenes/rooms/door_marker.tscn" id="2_fbq1s"]
 
 [sub_resource type="NavigationPolygon" id="NavigationPolygon_oqkh4"]
-vertices = PackedVector2Array(16, 16, 336, 16, 336, 320, 16, 320)
+vertices = PackedVector2Array(16, 16, 580, 16, 580, 352, 16, 352)
 polygons = Array[PackedInt32Array]([PackedInt32Array(0, 1, 2, 3)])
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ksju7"]
