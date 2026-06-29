@@ -7,7 +7,10 @@ var _bag_grid: Control
 var _stat_labels: Dictionary = {}
 var _bag_slot_controls: Array = []
 var _bag_items: Array = []
+enum DragSource { NONE, BAG, EQUIP }
+var _drag_source = DragSource.NONE
 var _drag_index: int = -1
+var _drag_slot: int = -1
 var _drag_start_pos: Vector2
 
 const SLOT_POS: Dictionary = {
@@ -246,14 +249,22 @@ func _get_inventory() -> EquipmentInventory:
 func _gui_input(event):
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
+			_drag_source = DragSource.NONE
 			_drag_index = _bag_slot_at_position(event.position)
 			if _drag_index >= 0:
+				_drag_source = DragSource.BAG
 				_drag_start_pos = event.position
-		elif _drag_index >= 0:
-			_try_drop(event.position)
-			_drag_index = -1
+			else:
+				var es = _equip_slot_at_position(event.position)
+				if es >= 0 and _get_equip_manager():
+					if _get_equip_manager().get_equipped(es) != null:
+						_drag_source = DragSource.EQUIP
+						_drag_slot = es
+						_drag_start_pos = event.position
+		elif _drag_source != DragSource.NONE:
+			_end_drag(event.position)
 
-	if event is InputEventMouseMotion and _drag_index >= 0:
+	if event is InputEventMouseMotion and _drag_source != DragSource.NONE:
 		if event.position.distance_to(_drag_start_pos) > 8:
 			mouse_default_cursor_shape = CURSOR_DRAG
 
@@ -275,7 +286,19 @@ func _equip_slot_at_position(pos: Vector2) -> int:
 	return -1
 
 
-func _try_drop(mouse_pos: Vector2):
+func _end_drag(mouse_pos: Vector2):
+	mouse_default_cursor_shape = CURSOR_ARROW
+	match _drag_source:
+		DragSource.BAG:
+			_drop_bag_to_slot(mouse_pos)
+		DragSource.EQUIP:
+			_drop_equip_to_bag()
+	_drag_source = DragSource.NONE
+	_drag_index = -1
+	_drag_slot = -1
+
+
+func _drop_bag_to_slot(mouse_pos: Vector2):
 	if _drag_index < 0 or _drag_index >= _bag_items.size():
 		return
 	var entry = _bag_items[_drag_index]
@@ -283,9 +306,7 @@ func _try_drop(mouse_pos: Vector2):
 	if not item:
 		return
 	var target_slot = _equip_slot_at_position(mouse_pos)
-	if target_slot < 0:
-		return
-	if target_slot != item.slot:
+	if target_slot < 0 or target_slot != item.slot:
 		return
 
 	var mgr = _get_equip_manager()
@@ -294,12 +315,22 @@ func _try_drop(mouse_pos: Vector2):
 		return
 
 	var old_item = mgr.get_equipped(target_slot) as EquipmentBase
-
 	inv.remove_item(entry.index)
 	mgr.equip(item)
-
 	if old_item:
 		inv.add_item(old_item)
-
 	refresh()
-	mouse_default_cursor_shape = CURSOR_ARROW
+
+
+func _drop_equip_to_bag():
+	var mgr = _get_equip_manager()
+	var inv = _get_inventory()
+	if not mgr or not inv:
+		return
+	var item = mgr.get_equipped(_drag_slot) as EquipmentBase
+	if not item:
+		return
+	mgr.unequip(_drag_slot)
+	if inv.has_space():
+		inv.add_item(item)
+	refresh()
