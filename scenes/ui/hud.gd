@@ -195,10 +195,7 @@ func _on_item_added(item: EquipmentBase, _index: int, player: Node2D):
 	var equipped = mgr.get_equipped(item.slot) as EquipmentBase
 	if not equipped:
 		return
-	var popup = _ComparePopup.new()
-	popup.name = "ComparePopup"
-	add_child(popup)
-	popup.init(player, item)
+	call_deferred("_show_compare_popup", player, item)
 
 func _update_hp(current: float, max_v: float, _delta: float):
 	_apply_bar_ratio("hp", current / max_v if max_v > 0 else 0)

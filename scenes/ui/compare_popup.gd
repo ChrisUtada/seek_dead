@@ -118,6 +118,7 @@ func _make_button(pos: Vector2, size: Vector2, text: String, color: Color, callb
 	var bg = ColorRect.new()
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	bg.color = color
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	container.add_child(bg)
 
 	var label = Label.new()
@@ -125,23 +126,16 @@ func _make_button(pos: Vector2, size: Vector2, text: String, color: Color, callb
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	label.add_theme_font_size_override("font_size", 11)
-	add_child(label)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	container.add_child(label)
 
-	var btn = Area2D.new()
-	var shape = CollisionShape2D.new()
-	var rect = RectangleShape2D.new()
-	rect.size = size
-	shape.shape = rect
-	btn.add_child(shape)
-	btn.position = pos + size / 2
-	add_child(btn)
-	btn.input_event.connect(_make_input_handler(callback))
+	container.gui_input.connect(_make_gui_handler(callback))
 
 	return container
 
 
-func _make_input_handler(callback: Callable):
-	return func(_viewport, event: InputEvent, _shape_idx):
+func _make_gui_handler(callback: Callable):
+	return func(event: InputEvent):
 		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 			callback.call()
 
