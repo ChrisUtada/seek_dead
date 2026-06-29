@@ -28,6 +28,7 @@ func _ready():
 	_build_hit_flash()
 	_build_ammo_display()
 	_build_skill_bar()
+	_build_escape_bar()
 	_connect_player()
 	EventManager.damage_dealt.connect(_on_damage_dealt)
 
@@ -148,6 +149,13 @@ func _connect_player():
 	var skill_node = player.get_node_or_null("SkillManager")
 	if skill_node:
 		skill_node.skill_used.connect(_on_skill_used)
+		if skill_node.skills.size() > 2:
+			var esc = skill_node.skills[2]
+			if esc is EscapeSkill:
+				esc.channel_started.connect(_on_escape_channel_started)
+				esc.channel_progress.connect(_on_escape_channel_progress)
+				esc.channel_cancelled.connect(_on_escape_channel_cancelled)
+				esc.channel_completed.connect(_on_escape_channel_completed)
 
 func _update_hp(current: float, max_v: float, _delta: float):
 	_apply_bar_ratio("hp", current / max_v if max_v > 0 else 0)
@@ -204,13 +212,40 @@ func _apply_bar_ratio(key: String, ratio: float):
 	var tween = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
 	tween.tween_property(bar, "size:x", target_w, 0.25)
 
+func _build_escape_bar():
+	var bg = ColorRect.new()
+	bg.name = "EscapeBarBg"
+	bg.position = Vector2(220, 200)
+	bg.size = Vector2(200, 16)
+	bg.color = Color(0.1, 0.1, 0.1, 0.8)
+	bg.visible = false
+	add_child(bg)
+	var fill = ColorRect.new()
+	fill.name = "EscapeBarFill"
+	fill.position = Vector2(0, 0)
+	fill.size = Vector2(0, 16)
+	fill.color = Color(1, 0.7, 0.1, 0.9)
+	bg.add_child(fill)
+	var label = Label.new()
+	label.name = "EscapeBarLabel"
+	label.position = Vector2(0, 0)
+	label.size = Vector2(200, 16)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.text = "撤离中...  再次按Z取消"
+	label.add_theme_color_override("font_color", Color(1, 1, 1))
+	label.add_theme_constant_override("outline_size", 1)
+	label.add_theme_font_size_override("font_size", 10)
+	bg.add_child(label)
+
+
 func _build_skill_bar():
 	var skill_bar = Control.new()
 	skill_bar.name = "SkillBar"
 	skill_bar.position = Vector2(580, 324)
 	skill_bar.size = Vector2(78, 24)
 	add_child(skill_bar)
-	var keys = ["Q", "E", "F"]
+	var keys = ["Q", "E", "Z"]
 	for i in range(3):
 		var slot = ColorRect.new()
 		slot.name = "SkillSlot%d" % i
@@ -258,12 +293,48 @@ func _on_reload_started():
 	if _bars.has("ammo"):
 		_bars.ammo.label.text = "弹药: 装弹中..."
 
+func _on_escape_channel_started(_duration: float):
+	var bg = get_node_or_null("EscapeBarBg")
+	if bg:
+		bg.visible = true
+		bg.get_node("EscapeBarFill").size.x = 0
+
+
+func _on_escape_channel_progress(ratio: float):
+	var fill = get_node_or_null("EscapeBarBg/EscapeBarFill")
+	if fill:
+		fill.size.x = 200 * ratio
+
+
+func _on_escape_channel_cancelled():
+	var bg = get_node_or_null("EscapeBarBg")
+	if bg:
+		bg.visible = false
+		bg.get_node("EscapeBarFill").size.x = 0
+
+
+func _on_escape_channel_completed():
+	var bg = get_node_or_null("EscapeBarBg")
+	if bg:
+		bg.visible = false
+		bg.get_node("EscapeBarFill").size.x = 0
+	var slot = get_node_or_null("SkillBar/SkillSlot2")
+	if slot:
+		var cd = slot.get_node_or_null("Cooldown")
+		if cd:
+			var tween = create_tween()
+			cd.size.y = 40
+			tween.tween_property(cd, "size:y", 0, 90.0)
+
+
 func _on_skill_used(index: int, _skill: SkillBase):
 	var slot = get_node_or_null("SkillBar/SkillSlot%d" % index)
 	if not slot:
 		return
 	var cd = slot.get_node_or_null("Cooldown")
 	if not cd:
+		return
+	if index == 2:
 		return
 	var tween = create_tween()
 	cd.size.y = 40
