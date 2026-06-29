@@ -150,19 +150,16 @@ func _build_panels():
 	_panels_container.mouse_filter = Control.MOUSE_FILTER_STOP
 	_container.add_child(_panels_container)
 
-	_forge_panel = _make_sub_panel(Vector2(200, 70), Vector2(420, 270),
-		"锻造", Color(0.6, 0.8, 1), "装备升级/附魔/洗练/分解 — 敬请期待")
-	_collection_panel = _make_sub_panel(Vector2(200, 70), Vector2(420, 270),
-		"图鉴", Color(0.4, 1, 0.4), "装备收集进度 + 全局属性奖励 — 敬请期待")
+	_forge_panel = _build_forge_panel()
+	_collection_panel = _build_collection_panel()
 	_forge_panel.hide()
 	_collection_panel.hide()
 
 
-func _make_sub_panel(pos: Vector2, size: Vector2, title_text: String,
-		title_color: Color, hint_text: String) -> Control:
+func _build_forge_panel() -> Control:
 	var panel = Control.new()
-	panel.position = pos
-	panel.size = size
+	panel.position = Vector2(200, 70)
+	panel.size = Vector2(420, 270)
 	panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	_panels_container.add_child(panel)
 
@@ -173,28 +170,114 @@ func _make_sub_panel(pos: Vector2, size: Vector2, title_text: String,
 	panel.add_child(bg)
 
 	var title = Label.new()
-	title.text = title_text
+	title.text = "锻造"
 	title.position = Vector2(10, 10)
 	title.add_theme_font_size_override("font_size", 14)
-	title.add_theme_color_override("font_color", title_color)
+	title.add_theme_color_override("font_color", Color(0.6, 0.8, 1))
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(title)
 
 	var hint = Label.new()
-	hint.text = hint_text
+	hint.text = "装备升级 / 附魔 / 洗练 / 分解 — 需回到大厅后处理上个 run 的装备，待完善"
 	hint.position = Vector2(10, 50)
-	hint.size = Vector2(400, 80)
+	hint.size = Vector2(400, 60)
 	hint.add_theme_font_size_override("font_size", 11)
 	hint.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(hint)
 
-	_make_panel_close_btn(panel, func(): _close_all_panels())
+	_make_panel_close_btn(panel)
 	return panel
 
 
-func _make_panel_close_btn(parent: Control, callback: Callable):
+func _build_collection_panel() -> Control:
+	var panel = Control.new()
+	panel.position = Vector2(200, 70)
+	panel.size = Vector2(420, 270)
+	panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	_panels_container.add_child(panel)
+
+	var bg = ColorRect.new()
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	bg.color = Color(0.1, 0.1, 0.15, 0.95)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(bg)
+
+	var title = Label.new()
+	title.text = "装备图鉴"
+	title.position = Vector2(10, 10)
+	title.add_theme_font_size_override("font_size", 14)
+	title.add_theme_color_override("font_color", Color(0.4, 1, 0.4))
+	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(title)
+
+	var total = Collection.get_total_count()
+	var collected_count = Collection.get_collection_count()
+	var pct = Collection.get_completion_percent()
+
+	var progress = Label.new()
+	progress.text = "收集进度: %d / %d  (%.0f%%)" % [collected_count, total, pct * 100.0]
+	progress.position = Vector2(10, 40)
+	progress.add_theme_font_size_override("font_size", 12)
+	progress.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8))
+	progress.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(progress)
+
+	var bar_bg = ColorRect.new()
+	bar_bg.position = Vector2(10, 62)
+	bar_bg.size = Vector2(400, 10)
+	bar_bg.color = Color(0.2, 0.2, 0.25)
+	bar_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(bar_bg)
+
+	var bar_fill = ColorRect.new()
+	bar_fill.position = Vector2(10, 62)
+	bar_fill.size = Vector2(400 * pct, 10)
+	bar_fill.color = Color(0.3, 0.8, 0.3)
+	bar_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(bar_fill)
+
+	var bonuses = Collection.get_global_bonuses()
+	var bonus_text = "全局奖励:"
+	if bonuses.size() == 0:
+		bonus_text += "\n  收集 5 件解锁 HP+20"
+	else:
+		for key in bonuses:
+			var label_map = { "max_hp": "HP上限", "move_speed": "移速", "attack_damage": "伤害", "crit_rate": "暴击率" }
+			bonus_text += "\n  " + label_map.get(key, key) + " +" + str(bonuses[key])
+
+	var bonus_lbl = Label.new()
+	bonus_lbl.text = bonus_text
+	bonus_lbl.position = Vector2(10, 82)
+	bonus_lbl.size = Vector2(400, 100)
+	bonus_lbl.add_theme_font_size_override("font_size", 10)
+	bonus_lbl.add_theme_color_override("font_color", Color(0.6, 0.8, 0.6))
+	bonus_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	bonus_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(bonus_lbl)
+
+	var collected = Collection.get_collected()
+	var list_text = "已收集:"
+	for key in collected:
+		list_text += " " + key
+	if collected.size() == 0:
+		list_text += " 无"
+	var list_lbl = Label.new()
+	list_lbl.text = list_text
+	list_lbl.position = Vector2(10, 170)
+	list_lbl.size = Vector2(400, 80)
+	list_lbl.add_theme_font_size_override("font_size", 9)
+	list_lbl.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+	list_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	list_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(list_lbl)
+
+	_make_panel_close_btn(panel)
+	return panel
+
+
+func _make_panel_close_btn(parent: Control):
 	var btn = ColorRect.new()
 	btn.position = Vector2(parent.size.x - 36, 6)
 	btn.size = Vector2(30, 20)
@@ -202,7 +285,7 @@ func _make_panel_close_btn(parent: Control, callback: Callable):
 	btn.mouse_filter = Control.MOUSE_FILTER_STOP
 	parent.add_child(btn)
 	_all_buttons.append(btn)
-	btn.set_meta("callback", callback)
+	btn.set_meta("callback", func(): _close_all_panels())
 
 	var label = Label.new()
 	label.text = "X"

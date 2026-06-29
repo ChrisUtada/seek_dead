@@ -66,6 +66,7 @@ func _try_pickup(target: Node2D):
 	if inv.add_item(item):
 		print("[拾取] %s (%s)" % [item.equipment_name, RarityTable.get_rarity_name(item.rarity)])
 		EventManager.item_picked_up.emit({"item": item})
+		Collection.register_item(item)
 	else:
 		_collected = false
 		print("[拾取] 背包已满")
