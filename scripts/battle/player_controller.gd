@@ -30,7 +30,7 @@ var _hurt_timer: float = 0.0
 var equipment_manager: EquipmentManager
 var equipment_inventory: EquipmentInventory
 
-var _debug_f8_held: bool = false
+var _debug_k_held: bool = false
 
 
 func _ready():
@@ -202,12 +202,12 @@ func _process_movement(delta: float):
 		if Input.is_key_pressed(KEY_1 + i):
 			weapon.switch_weapon(i)
 
-	if Input.is_key_pressed(KEY_F8):
-		if not _debug_f8_held:
-			_debug_f8_held = true
+	if Input.is_key_pressed(KEY_K):
+		if not _debug_k_held:
+			_debug_k_held = true
 			_debug_spawn_equipment()
 	else:
-		_debug_f8_held = false
+		_debug_k_held = false
 
 
 # ===================== Lifecycle =====================
