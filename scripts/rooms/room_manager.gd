@@ -377,7 +377,6 @@ func _process(_delta):
 		elif not _wave_broadcasted:
 			_wave_broadcasted = true
 			EventManager.room_cleared.emit(str(_get_current_config().room_size))
-			_unlock_doors()
 
 
 func _check_wave_triggers(current_enemies: int):
@@ -435,7 +434,37 @@ func _clear_dead_bosses():
 
 
 func _on_room_cleared(_room_id: String):
-	pass
+	if not _current_config:
+		return
+	var count = _current_config.reward_count
+	var bonus = _current_config.reward_quality_bonus
+	var min_rarity = -1
+	if int(_current_config.room_size) == 3:
+		min_rarity = EquipmentEnums.Rarity.RARE
+	var items = EquipmentDrop.generate_drops(count, bonus, min_rarity)
+	_show_reward_ui(items)
+
+
+func _show_reward_ui(items: Array[EquipmentBase]):
+	if _current_room == null:
+		_unlock_doors()
+		return
+	var ui = RewardUI.new()
+	_current_room.add_child(ui)
+	var inv = _get_player_inventory()
+	ui.show_reward(items, func(item: EquipmentBase):
+		if inv and inv.add_item(item):
+			print("[奖励] 选择了: ", item.equipment_name)
+		else:
+			print("[奖励] 背包已满, 丢弃: ", item.equipment_name)
+		_unlock_doors()
+	)
+
+
+func _get_player_inventory() -> EquipmentInventory:
+	if not _player:
+		return null
+	return _player.get_node_or_null("EquipmentInventory") as EquipmentInventory
 
 
 func _unlock_doors():
