@@ -44,12 +44,13 @@ static func generate_drop(quality_bonus: float = 0.0, slot: int = -1, force_min_
 		if slot < 0:
 			slot = randi() % 8
 		equip.slot = slot
-		equip.equipment_name = _build_name(equip)
-		if rarity != EquipmentEnums.Rarity.COMMON:
-			_add_affixes(equip)
-		# 武器槽生成 WeaponData
 		if slot == EquipmentEnums.EquipmentSlot.WEAPON_MAIN or slot == EquipmentEnums.EquipmentSlot.WEAPON_OFFHAND:
 			equip.weapon_data = _generate_weapon_data(equip)
+			equip.equipment_name = _weapon_name(equip)
+		else:
+			equip.equipment_name = _build_name(equip)
+		if rarity != EquipmentEnums.Rarity.COMMON:
+			_add_affixes(equip)
 	return equip
 
 
@@ -61,10 +62,19 @@ static func _generate_weapon_data(equip: EquipmentBase) -> WeaponData:
 			pool = WEAPON_TEMPLATES
 	var template = pool[randi() % pool.size()] as WeaponData
 	var wd = template.duplicate(true) as WeaponData
-	wd.weapon_name = equip.equipment_name
 	var mult = RarityTable.get_base_stat_multiplier(equip.rarity)
 	wd.damage *= mult
 	return wd
+
+
+static func _weapon_name(equip: EquipmentBase) -> String:
+	var wd = equip.weapon_data
+	if not wd or wd.weapon_name.is_empty():
+		return _build_name(equip)
+	var prefix = RARITY_PREFIX.get(equip.rarity, "")
+	if prefix == "":
+		return wd.weapon_name
+	return prefix + wd.weapon_name
 
 
 static func generate_drops(count: int, quality_bonus: float = 0.0, force_min_rarity: int = -1) -> Array[EquipmentBase]:
