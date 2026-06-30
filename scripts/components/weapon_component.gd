@@ -23,9 +23,9 @@ var _particles_pool: Array[ColorRect] = []
 func set_aim_direction(dir: Vector2):
 	if dir.length_squared() > 0.001:
 		aim_direction = dir
+		scale.x = -1.0 if dir.x < 0 else 1.0
 		if _weapon_node:
-			_weapon_node.aim_direction = dir
-		rotation = dir.angle()
+			_weapon_node.set_aim_direction(dir)
 
 
 func _ready():

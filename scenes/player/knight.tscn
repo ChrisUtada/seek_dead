@@ -14,6 +14,8 @@
 [ext_resource type="Script" uid="uid://d0ygt1ksgbf84" path="res://scripts/battle/hurtbox.gd" id="8_d4e2m"]
 [ext_resource type="Resource" uid="uid://dcheib4eqysy2" path="res://resources/players/knight.tres" id="9"]
 [ext_resource type="Script" uid="uid://qjvq1fr7aq82" path="res://scripts/ui/shadow.gd" id="10"]
+[ext_resource type="Script" uid="uid://dry6wv0q3vubp" path="res://scripts/editor/weapon_previewer.gd" id="15_ycxmx"]
+[ext_resource type="Resource" uid="uid://ti6ximf1nxib" path="res://resources/weapon_templates/pistol.tres" id="16_xa10o"]
 
 [sub_resource type="CircleShape2D" id="1"]
 radius = 21.0
@@ -140,6 +142,9 @@ script = ExtResource("2")
 [node name="WeaponComponent" type="Node2D" parent="." unique_id=817705289]
 script = ExtResource("4")
 
+[node name="HandPoint" type="Marker2D" parent="WeaponComponent" unique_id=592589615]
+position = Vector2(17, 17)
+
 [node name="Weapon" type="Node2D" parent="WeaponComponent" unique_id=1490556440]
 script = ExtResource("6_52gso")
 
@@ -157,3 +162,8 @@ script = ExtResource("7")
 
 [node name="SkillManager" type="Node" parent="." unique_id=295472842]
 script = ExtResource("8")
+
+[node name="Node2D" type="Node2D" parent="." unique_id=474987798]
+position = Vector2(15, 17)
+script = ExtResource("15_ycxmx")
+weapon_template = ExtResource("16_xa10o")

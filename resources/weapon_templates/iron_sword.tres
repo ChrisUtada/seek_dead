@@ -11,3 +11,4 @@ damage_type = 1
 attack_speed = 1.2
 attack_range = 80.0
 weapon_scene = ExtResource("2")
+cleave_angle = 240.0

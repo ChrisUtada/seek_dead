@@ -17,7 +17,9 @@ enum WeaponType { MELEE, RANGED }
 
 # -- 武器场景 --
 @export var weapon_scene: PackedScene
+@export var grip_point: Vector2 = Vector2.ZERO   # 握把锚点（武器精灵上"手握住的位置"，相对于精灵原点）
 @export var visual_offset: Vector2 = Vector2.ZERO  # 武器视觉偏移（微调武器在角色上的位置）
+@export var visual_scale: Vector2 = Vector2.ONE   # 武器视觉缩放
 
 # -- 状态效果 --
 @export var status_effect_type: int = -1
@@ -39,10 +41,7 @@ enum WeaponType { MELEE, RANGED }
 @export var knockback_force: float = 200.0
 
 # -- 碰撞体配置 --
-enum HitboxShape { CIRCLE, RECTANGLE }
-@export var hitbox_shape: HitboxShape = HitboxShape.CIRCLE
-@export var hitbox_size: Vector2 = Vector2.ZERO  # 矩形碰撞体尺寸（ZERO 时使用 attack_range）
-@export var hitbox_offset: Vector2 = Vector2.ZERO  # 碰撞体相对武器的偏移
+# 碰撞体形状在武器 .tscn 的 HitboxArea 节点中配置
 
 
 ## 返回 archetype 对应的隐式修正列表。

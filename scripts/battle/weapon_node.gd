@@ -29,6 +29,9 @@ var _weapon_visual: WeaponVisualBase = null
 var _hitbox: Node = null
 var _hit_count: int = 0
 
+# -- 挥砍 Tween --
+var _swing_tween: Tween = null
+
 
 func _ready():
 	visible = false
@@ -67,6 +70,7 @@ func equip(equip: EquipmentBase):
 
 func unequip():
 	visible = false
+	_kill_swing_tween()
 	_clear_weapon_visual()
 	_clear_hitbox()
 	# 重置状态机
@@ -76,6 +80,12 @@ func unequip():
 	_cooldown_timer = 0.0
 	equipment = null
 	weapon_data = null
+
+
+func _kill_swing_tween():
+	if _swing_tween and _swing_tween.is_valid():
+		_swing_tween.kill()
+	_swing_tween = null
 
 
 func _spawn_weapon_visual():
@@ -117,34 +127,28 @@ func _apply_archetype_modifiers():
 
 func _init_hitbox():
 	_clear_hitbox()
-	if weapon_data.weapon_type == WeaponData.WeaponType.MELEE:
-		_hitbox = Area2D.new()
-		_hitbox.name = "Hitbox"
-		_hitbox.set_script(load("res://scripts/battle/hitbox.gd"))
-		_hitbox.collision_layer = 0
-		_hitbox.collision_mask = CollisionSystem.bit(CollisionSystem.LAYER_ENEMY)
-		var cs = CollisionShape2D.new()
-		cs.position = weapon_data.hitbox_offset
-		match weapon_data.hitbox_shape:
-			WeaponData.HitboxShape.RECTANGLE:
-				var rect = RectangleShape2D.new()
-				rect.size = weapon_data.hitbox_size if weapon_data.hitbox_size != Vector2.ZERO else Vector2(weapon_data.attack_range, weapon_data.attack_range)
-				cs.shape = rect
-			_:  # CIRCLE
-				var circle = CircleShape2D.new()
-				circle.radius = weapon_data.hitbox_size.x if weapon_data.hitbox_size != Vector2.ZERO else weapon_data.attack_range
-				cs.shape = circle
-		_hitbox.add_child(cs)
-		add_child(_hitbox)
-		_hitbox.set_deferred("monitoring", false)
-		_hitbox.set_deferred("monitorable", false)
-		_hitbox.lifespan = 0
+	if weapon_data.weapon_type != WeaponData.WeaponType.MELEE:
+		return
+	if not _weapon_visual:
+		return
+	var ha = _weapon_visual.get_node_or_null("HitboxArea") as Area2D
+	if not ha:
+		push_warning("Weapon visual missing HitboxArea for melee weapon: ", weapon_data.weapon_name)
+		return
+	_hitbox = ha
+	_hitbox.collision_layer = 0
+	_hitbox.collision_mask = CollisionSystem.bit(CollisionSystem.LAYER_HURTBOX)
+	_hitbox.set_deferred("monitoring", false)
+	_hitbox.set_deferred("monitorable", false)
+	_hitbox.lifespan = 0
+	if not _hitbox.hit_landed.is_connected(_on_melee_hit):
 		_hitbox.hit_landed.connect(_on_melee_hit)
 
 
 func _clear_hitbox():
 	if _hitbox and is_instance_valid(_hitbox):
-		_hitbox.queue_free()
+		if _hitbox.hit_landed.is_connected(_on_melee_hit):
+			_hitbox.hit_landed.disconnect(_on_melee_hit)
 	_hitbox = null
 
 
@@ -162,7 +166,7 @@ func attack():
 		_attack_melee()
 	else:
 		_attack_ranged()
-	_end_active()
+		_end_active()
 
 
 # ════════════════════════════════════════
@@ -172,11 +176,12 @@ func attack():
 func _attack_melee():
 	AudioManager.play_sfx(AudioManager.SfxType.PLAYER_MELEE)
 
-	# 触发武器视觉攻击动画
-	if _weapon_visual:
-		_weapon_visual.flash_range()
-		_weapon_visual.swing()
+	# 计算挥砍参数
+	var half_arc = deg_to_rad(weapon_data.cleave_angle * 0.5)
+	var swing_duration = clamp(0.12 / (weapon_data.attack_speed * max(attack_speed_modifier, 0.1)), 0.06, 0.3)
+	_active_timer = swing_duration + 0.05
 
+	# 设置碰撞体数据
 	_hitbox.damage = weapon_data.damage
 	_hitbox.damage_type = weapon_data.damage_type
 	_hitbox.shooter = shooter
@@ -185,9 +190,40 @@ func _attack_melee():
 	_hitbox.status_effect_damage = weapon_data.status_effect_damage
 	_hitbox.status_effect_duration = weapon_data.status_effect_duration
 	_hitbox.reset()
-	_hitbox.global_position = shooter.global_position
+
+	# Tween 驱动武器视觉旋转挥砍弧线
+	if _weapon_visual:
+		_weapon_visual.reset_rotation()
+		_weapon_visual.rotation = -half_arc
+		_swing_tween = create_tween()
+		_swing_tween.set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+		_swing_tween.tween_property(_weapon_visual, "rotation", half_arc, swing_duration)
+
+	# 在挥砍中点附近激活碰撞体
+	var hit_delay = swing_duration * 0.4
+	var hit_timer = get_tree().create_timer(hit_delay, false)
+	hit_timer.timeout.connect(_enable_melee_hitbox.bind(swing_duration * 0.25), CONNECT_ONE_SHOT)
+
+	# 范围闪烁
+	if _weapon_visual:
+		_weapon_visual.flash_range()
+
+
+func _enable_melee_hitbox(window: float):
+	if not _hitbox or not is_instance_valid(_hitbox):
+		return
+	if not is_instance_valid(shooter):
+		return
 	_hitbox.monitoring = true
 	_hitbox.monitorable = true
+	var disable_timer = get_tree().create_timer(max(window, 0.03), false)
+	disable_timer.timeout.connect(_disable_melee_hitbox, CONNECT_ONE_SHOT)
+
+
+func _disable_melee_hitbox():
+	if _hitbox and is_instance_valid(_hitbox):
+		_hitbox.monitoring = false
+		_hitbox.monitorable = false
 
 
 func _on_melee_hit(target: Node2D):
@@ -275,9 +311,13 @@ func _start_attack():
 func _end_active():
 	_ws = WeaponState.COOLDOWN
 	is_attacking = false
+	_kill_swing_tween()
+	_disable_melee_hitbox()
+	if _weapon_visual:
+		_weapon_visual.reset_rotation()
 	if _hitbox:
-		_hitbox.monitoring = false
-		_hitbox.monitorable = false
+		_hitbox.set_deferred("monitoring", false)
+		_hitbox.set_deferred("monitorable", false)
 	attack_finished.emit(self, _hit_count)
 
 

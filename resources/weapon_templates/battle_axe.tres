@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="WeaponData" format=3 uid="uid://dne3muookpene"]
 
 [ext_resource type="Script" uid="uid://dkgpb1yi42sdb" path="res://scripts/equipment/weapon_data.gd" id="1"]
-[ext_resource type="PackedScene" path="res://scenes/weapons/battle_axe.tscn" id="2"]
+[ext_resource type="PackedScene" uid="uid://gthslrlipwm0" path="res://scenes/weapons/battle_axe.tscn" id="2"]
 
 [resource]
 script = ExtResource("1")

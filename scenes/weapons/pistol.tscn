@@ -1,11 +1,13 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene format=3 uid="uid://3wa02d7ngrln"]
 
-[ext_resource type="Script" path="res://scripts/battle/weapon_visual_base.gd" id="1"]
-[ext_resource type="Texture2D" path="res://assets/weapons/pistol.png" id="2"]
+[ext_resource type="Script" uid="uid://dhumlrr8jx166" path="res://scripts/battle/weapon_visual_base.gd" id="1"]
+[ext_resource type="Texture2D" uid="uid://b4jpkhla4gse6" path="res://assets/weapons/pistol.png" id="2"]
 
-[node name="Pistol" type="Node2D"]
+[node name="Pistol" type="Node2D" unique_id=80643257]
 script = ExtResource("1")
 
-[node name="Sprite2D" type="Sprite2D" parent="."]
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1500519701]
+position = Vector2(33, 16)
 texture = ExtResource("2")
-centered = true
+region_enabled = true
+region_rect = Rect2(79, 0, 31, 14.5)
