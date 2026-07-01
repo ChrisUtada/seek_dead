@@ -12,6 +12,10 @@ enum RoomSize { SMALL, MEDIUM, LARGE, BOSS }
 @export var max_enemies: int = 6
 @export var enemy_pool: Array[PackedScene] = []
 
+@export_group("Elite")
+@export var has_elite: bool = false
+@export var elite_pool: Array[PackedScene] = []
+
 @export_group("Boss")
 @export var boss_count: int = 0
 @export var boss_pool: Array[PackedScene] = []

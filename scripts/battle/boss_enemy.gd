@@ -3,6 +3,7 @@ extends EnemyBase
 const _BossAIComp = preload("res://scripts/components/boss_ai_component.gd")
 const _MoverComp = preload("res://scripts/components/movement_component.gd")
 const _BulletScene = preload("res://scenes/battle/projectile.tscn")
+const _DefaultBulletData = preload("res://resources/bullets/default_bullet.tres")
 
 @onready var ai: BossAIComponent = $BossAIComponent
 
@@ -158,8 +159,7 @@ func _on_ranged_burst(_target: Node2D):
 		bullet.damage = get_burst_damage()
 		bullet.damage_type = state.innate_type
 		bullet.shooter = self
-		bullet.data = BulletData.new()
-		bullet.data.speed = get_bullet_speed()
+		bullet.data = _boss_config.bullet_data if _boss_config and _boss_config.bullet_data else _make_bullet_data()
 		get_parent().add_child(bullet)
 		_bullet_visual(bullet)
 	AudioManager.play_sfx(AudioManager.SfxType.BOSS_BURST)
@@ -168,6 +168,11 @@ func _bullet_visual(bullet):
 	var spr = bullet.get_node("Sprite2D")
 	spr.texture = DamageSystem.get_circle_texture(12, Color(1, 0.5, 0), Color(1, 1, 0))
 	spr.centered = true
+
+func _make_bullet_data() -> BulletData:
+	var bd = BulletData.new()
+	bd.speed = get_bullet_speed()
+	return bd
 
 func _on_died():
 	super()

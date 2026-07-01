@@ -14,7 +14,7 @@
 |------|------|
 | 英文名 | Seek Dead |
 | 中文名 | 寻死者 |
-| 类型 | 俯视角动作 RPG，单人/合作/PVP/循环 |
+| 类型 | 俯视角动作 RPG，单人/合作/循环 |
 | 引擎 | Godot 4.x (GDScript only, 无 C#) |
 | 分辨率 | 设计 640×360，窗口 1280×720，stretch/mode=canvas_items |
 | 方向 | 像素风，texture_filter = NEAREST |
@@ -63,6 +63,7 @@ ssz/
 | SceneManager | autoload/scene_manager.gd | 场景切换+淡入淡出 |
 | AudioManager | autoload/audio_manager.gd | 音频播放（空壳） |
 | RoomManager | scripts/rooms/room_manager.gd | 房间生成/波次管理 |
+| SkillDatabase | scripts/equipment/skill_database.gd | 技能自动发现与注册 |
 
 ### 1.4 碰撞层
 
@@ -86,10 +87,13 @@ ssz/
 | Ctrl | ctrl | 冲刺 |
 | R | R | 手动装弹 |
 | Z | Z | 紧急撤离（引导5s） |
+| 1 | 1 | 技能槽 1 |
+| 2 | 2 | 技能槽 2 |
+| Q | Q | 武器主手 |
+| E | E | 武器副手 |
 | I | I | 打开装备面板 |
 | U | U | 返回大厅 |
 | K | K | 调试刷装备 |
-| 数字键 1/2 | 1/2 | 切换主/副手武器 |
 | Esc | Esc | 暂停菜单 |
 
 ---
@@ -183,6 +187,17 @@ ssz/
 | RARE（金） | 金 | 2 | 12% |
 | LEGENDARY（红） | 红 | 3 | 3% |
 | SET（绿） | 绿 | 2（带套装） | 特殊（质量加成≥0.3） |
+
+**词缀槽位过滤**：每个词缀有明确的可用槽位范围，避免荒诞组合。饰品（ACCESSORY）不受限制，出任何词缀都有可能：
+
+| 槽位 | 可用词缀 | 设计思路 |
+|------|---------|---------|
+| WEAPON（主/副手） | 进攻数值（#2-10*）、所有触发类（#11-22）、条件类（#23/25/27/29） | 武器决定攻击风格，触发效果和条件增伤 |
+| HELMET/BODY（头/身） | 防御数值（#1/4/5）、生存触发（#17）、生存条件（#26/30） | 防具提供生存基础 |
+| HAND/LEG（手/腿） | 机动数值（#8-9）、部分条件（#24/28） | 手足决定操作手感 |
+| ACCESSORY（饰品） | **全部词缀**，无限制 | 饰品是构筑拼图的核心 |
+
+\*#2 狂怒/#3 疾风/#6 灵巧/#7 致命/#10 元素专精/#8 迅捷等武器相关进攻数值
 
 **6套套装**：
 
@@ -353,70 +368,109 @@ WeaponVisualBase.set_aim_direction(dir)
 
 ---
 
-## 五、当前技能系统
+## 五、技能系统（纯 DMD 路线）
 
-### 5.1 SkillBase（Resource）
+设计原则：**技能是独立于装备的 blessing 式系统**。技能作为独立掉落物拾取，直接进入技能槽。**无升级**，拾取同名技能视为满槽替换。与装备系统完全解耦。治疗由 HealthPickup（敌怪血球掉落）替代，不占用技能槽。
 
-```gdscript
-class_name SkillBase
-extends Resource
-@export var skill_name, skill_description, energy_cost, cooldown, duration
-func can_use(state: StateComponent) -> bool
-func use(user: Node2D) -> bool        # 消耗能量、设置冷却
-func tick(delta)                      # 冷却计时
-```
+### 5.1 技能槽
 
-### 5.2 SkillManager（Node）
+- **2 个主动技能槽**，对应键位 1/2
+- EscapeSkill 固定 Z 键，不占 2 槽
+- 空槽显示为灰色空格
+
+### 5.2 技能获取与替换
+
+| 触发 | 行为 |
+|------|------|
+| 拾取技能光球，有空槽 | 填入空槽 |
+| 拾取技能光球，槽位已满 | 弹替换选择：替换某个已有技能，或放弃 |
+| 房间清空 | 50% 概率掉落一个技能光球 |
+| 精英死亡 | 触发三选一面板（三个技能选一） |
+
+### 5.3 技能来源（掉落管线）
+
+| 来源 | 说明 |
+|------|------|
+| 房间清空 | 50% 概率掉落技能光球 |
+| 精英/Boss 击杀 | 三选一面板（必定触发） |
+| 宝箱 | 概率产出技能（待实现） |
+
+### 5.4 HealthPickup（血球）
+
+治疗由敌怪掉落 HealthPickup 替代（红色 + 标识），不占技能槽：
+- `EnemyConfig.drop_heal`：回复量
+- `EnemyConfig.drop_heal_chance`：掉落概率（0.0~1.0）
+- 碰触自动回血 `state.hp += drop_heal`
+- 所有敌怪 `.tres` 配置独立数值（哥布林 8-20%、骷髅 10-25%、精英法师 20-60%、Boss 30-80%）
+
+### 5.5 SkillManager 职责
 
 ```gdscript
 class_name SkillManager
 extends Node
-var skills: Array[SkillBase]
-func add_skill(skill)
-func use_skill(index, user) -> bool
-signal skill_used(skill_index, skill)
+
+const MAX_SLOTS: int = 2
+
+var skills: Array[SkillBase]            # 2槽，null=空
+
+func add_or_upgrade(skill: SkillBase) -> bool
+  # 有空槽 → 填入并返回 true
+  # 无空槽 → 触发 skill_replace_needed 信号 → HUD 弹替换选择
+
+func replace_skill(slot_index: int, skill: SkillBase)
+  # 替换指定槽位的技能
+
+func use_skill(slot_index: int, user: Node2D) -> bool
+signal skill_equipped(slot_index, skill)
+signal skill_removed(slot_index)
+signal skill_replace_needed(new_skill: SkillBase)  # UI 弹选择
 ```
 
-### 5.3 现有技能
+### 5.6 当前实现状态
 
-| 技能 | 键位 | 效果 | 能量 | CD |
-|------|------|------|------|----|
-| HealSkill | — | 恢复50% HP | 30 | 10s |
-| ShockwaveSkill | — | 范围120px AoE + 击退 | 10 | 8s |
-| EscapeSkill | Z | 引导5s撤离房间，受伤打断 | 0 | 90s |
+| 组件 | 状态 | 说明 |
+|------|------|------|
+| SkillBase Resource | ✅ | can_use/use/tick/冷却/能量管理 |
+| SkillManager Node | ✅ | 2槽 + add_or_upgrade + replace_skill + 替换信号 |
+| SkillPickup | ✅ | 蓝色技能光球 + 拾取检测 + SkillManager.add_or_upgrade |
+| HealthPickup | ✅ | 红色 + 血球 + 碰触回血 |
+| 技能面板 UI | ✅ | 2槽底部居中 + 冷却遮罩 + 能量不足变暗 |
+| 替换选择弹窗 | ✅ | 2槽预览 + 放弃按钮 |
+| 掉落集成（清空） | ✅ | RoomManager 50% 概率丢技能光球 |
+| 掉落集成（精英） | ✅ | RoomManager 三选一面板 |
+| 技能数据库 | ✅ | SkillDatabase 自动发现 `resources/skills/` 目录加载，过滤 EscapeSkill |
+| HealSkill | ❌ 已删除 | 被 HealthPickup 替代 |
+| EscapeSkill | ✅ | Z 键引导撤离，90s CD，角色固有 |
 
-### 5.4 技能注册
+### 5.7 清理项（已完成）
 
-目前在 `player_controller.gd:_init_skills()` 硬编码：
-```gdscript
-skill_manager.add_skill(HealSkill.new())
-skill_manager.add_skill(ShockwaveSkill.new())
-skill_manager.add_skill(_EscapeSkill.new())
-```
-
-### 5.5 技能输入
-
-目前只有 Z 键（escape_skill）直接绑定到 player_controller._process。
-HealSkill 和 ShockwaveSkill 注册了但未绑定快捷键输入（旧 Q/E 槽已移除）。
+- ✅ 删除 `EquipmentBase.granted_skill` 字段
+- ✅ 删除 `Affix.granted_skill` 字段
+- ✅ 删除 `SetBonus.bonus_3pc_skills` 字段
+- ✅ 从 EquipmentManager 中移除所有技能桥接逻辑
 
 ---
 
-## 六、待办 / 尚未实现
+## 六、局内词缀升级系统
+
+技能系统采用 Pure DMD 路线（详见 §五），**无局外天赋树**。局内成长通过装备词缀的 StatModifier/ConditionalBonus 实现，技能无等级系统。
+
+---
+
+## 七、待办 / 尚未实现
 
 ### P0 优先级
 
-| 功能 | 说明 | 相关资料 |
-|------|------|---------|
-| **技能系统扩展** | 技能面板 UI、快捷键配置（4-6槽）、Resource 驱动的技能配置、技能树/天赋 | docs/核心战斗功能完善规划.md §4 |
-| 房间环境碰撞体 | 所有房间场景墙壁 StaticBody2D 或 TileSet 碰撞多边形，玩家目前可走出导航网格 | docs/架构待办.md #7 |
-| RoomManager 硬编码 fallback | room_1.tres / room_2.tres 路径硬编码兜底，新增房间需更新列表 | docs/架构待办.md #6 |
-| 子弹对象池未接通 | projectile.gd 有 _pool 字段但从未赋值，每次射击 instantiate + queue_free | docs/架构待办.md #2 |
-| Boss 配置数据流混乱 | boss_enemy.gd 同时有硬编码 _apply_boss_config() 和数据驱动 apply_config() | docs/架构待办.md #3 |
-| 技能硬编码 | player_controller 写死注册技能，换角色不能换技能列表 | docs/架构待办.md #4 |
-| 各武器碰撞体精细调整 | CollisionShape2D 位置/大小需要逐武器适配 | — |
-| 音频系统 | AudioManager 空壳，无实际音效/BGM | — |
-| 敌人 AI 完善 | 搜索/巡逻/阵型/区域防御等高级行为 | docs/敌人系统设计.md |
-| Boss 血条 UI | Boss 战专用血条组件 | — |
+| 功能 | 说明 |
+|------|------|
+| 房间环境碰撞体 | 所有房间场景墙壁 StaticBody2D 或 TileSet 碰撞多边形，玩家目前可走出导航网格 |
+| RoomManager 硬编码 fallback | room_1.tres / room_2.tres 路径硬编码兜底，新增房间需更新列表 |
+| 子弹对象池未接通 | projectile.gd 有 _pool 字段但从未赋值，每次射击 instantiate + queue_free |
+| Boss 配置数据流混乱 | boss_enemy.gd 同时有硬编码 _apply_boss_config() 和数据驱动 apply_config() |
+| 各武器碰撞体精细调整 | CollisionShape2D 位置/大小需要逐武器适配 |
+| 音频系统 | AudioManager 空壳，无实际音效/BGM |
+| 敌人 AI 完善 | 搜索/巡逻/阵型/区域防御等高级行为 |
+| Boss 血条 UI | Boss 战专用血条组件 |
 
 ### P1 优先级
 
@@ -424,22 +478,22 @@ HealSkill 和 ShockwaveSkill 注册了但未绑定快捷键输入（旧 Q/E 槽�
 |------|------|
 | 宝箱/商店交互 | 房间中可放置的互动物体（弹药箱、装备箱、商店等） |
 | 环境危险物 | 炸弹、陷阱、尖刺、风场等 |
-| 可拾取物品 | 弹药、金币、能量、经验、天赋材料 |
+| 可拾取物品 | 弹药、金币、能量、经验 |
 | 精英敌人 | 独有行为脚本 + 精英掉落 |
 | 章节模式 | 关卡解锁 + 难度选择 |
 | 循环模式 | 无限场景 + 难度递增 + 最高纪录 |
-| 天赋系统 | 天赋树 + 全局加成 |
 | 装备图鉴界面 | 收集展示（目前数据已存，缺界面） |
+| 更多技能种类 | `resources/skills/` 下填充更多技能脚本+.tres |
 
-### P2 优先级
+### 已取消
 
 | 功能 | 说明 |
 |------|------|
-| PVP 模式 | 玩家对战 + 计分 |
-| 基地系统 | 建筑建造 + 被动技能 |
-| 角色自定义 | 发型/眼睛/皮肤颜色 |
-| 镶嵌系统 | 装备镶嵌槽 + 效果 |
-| 完整职业系统 | 驯兽师/炼金师/诗人 |
+| PVP 模式 | ❌ 不再做 |
+| 基地系统 | ❌ 不再做 |
+| 角色自定义 | ❌ 不再做 |
+| 镶嵌系统 | ❌ 不再做 |
+| 完整职业系统 | ❌ 不再做（仅保留现有 warrior/mage/knight 三职业 PlayerConfig） |
 
 ### 架构待修复
 
@@ -447,7 +501,6 @@ HealSkill 和 ShockwaveSkill 注册了但未绑定快捷键输入（旧 Q/E 槽�
 |------|------|---------|
 | weapon_data.gd 中 `visual_scene` 冗余 | weapon_data.gd | 已弃用，待清理 |
 | `tool_path` 无效引用 | set_database.gd:27 | `preload("res://addons/tool_path_not_exist.png")` |
-| player_controller 输入节对 EscapeSkill 特殊处理 | player_controller.gd | 应统一走技能槽 |
 
 ---
 

@@ -28,13 +28,11 @@
 ```
 scripts/
 ├── battle/
-│   ├── player_controller.gd        ← 主玩家逻辑，技能输入在 _process (Z/X/C/V/1-4)
-│   ├── skill_manager.gd            ← SkillManager 节点，管理 Array[SkillBase]
-│   ├── skill_base.gd               ← SkillBase Resource，含 can_use/use/tick
+│   ├── player_controller.gd        ← 主玩家逻辑，装备绑定的技能通过 EquipmentManager 下发给 PlayerSlots
+│   ├── skill_manager.gd            ← SkillManager 节点，装备驱动的技能槽（最多4槽）
+│   ├── skill_base.gd               ← SkillBase Resource，词缀/套装产出的技能效果
 │   ├── skills/
-│   │   ├── escape_skill.gd         ← 引导5s撤离技能（Z键, CD 90s）
-│   │   ├── heal_skill.gd           ← 恢复50%HP
-│   │   └── shockwave_skill.gd      ← 范围伤害+击退（CircleShape2D 物理查询）
+│   │   ├── escape_skill.gd         ← 引导5s撤离技能（Z键, CD 90s，角色自带不占槽）
 │   ├── weapon_node.gd              ← 通用武器节点（melee/ranged 分发）
 │   ├── weapon_visual_base.gd       ← 武器视觉基类（GripPoint 锚点对齐）
 │   ├── hitbox.gd / hurtbox.gd      ← 碰撞体脚本
@@ -81,23 +79,72 @@ resources/
 └── bullets/default_bullet.tres     ← 默认子弹 BulletData
 ```
 
-### 技能系统现状
+### 技能系统现状（纯 DMD 路线）
 
-- `SkillBase`（Resource）已存在：`can_use(state)`, `use(user)`, `tick(delta)`, 冷却/能量管理
-- `SkillManager`（Node）已存在：`add_skill()`, `use_skill(index, user)`, 信号 `skill_used`
-- 3个实现技能：`EscapeSkill`（Z键引导撤离）, `HealSkill`, `ShockwaveSkill`
-- 技能在 `player_controller.gd` 硬编码注册（约 260~280 行）
-- 无技能面板 UI，无快捷键配置，无技能树
-- `技能系统` 在 `docs/核心战斗功能完善规划.md` 中有详细设计（技能配置结构、技能栏UI方案、扩展点）
+设计原则：技能是独立于装备的 blessing 式系统。技能作为独立掉落物拾取，直接进入技能槽。升级靠拾取同名技能。与装备系统完全解耦。
+
+| 维度 | 说明 |
+|------|------|
+| 技能来源 | 独立掉落（SkillPickup 光球），不绑在装备上 |
+| 技能槽 | 4 个主动技能槽，键位 1/2/3/4 |
+| 升级方式 | 拾取同名技能光球 → 槽内技能等级 +1（Lv1→Lv4） |
+| 替换规则 | 槽满且无同名 → 弹替换选择（替换某个已有技能或放弃） |
+| 被动效果 | 词缀的 StatModifier/ConditionalBonus 直接作用于角色，不占技能槽 |
+| EscapeSkill | 角色固有（Z键引导撤离，90s CD），不占 4 槽 |
+| 构筑导向 | 技能是对词缀 synergy 的补充，通过独立拾取管线获取 |
+
+当前实现：
+- ✅ SkillBase Resource 框架就位（can_use/use/tick/冷却/能量）
+- ✅ SkillManager 已重写（add_or_upgrade + 升星逻辑 + 替换信号）
+- ✅ SkillPickup 场景+脚本已就位（光球+拾取检测+SkillManager.add_or_upgrade）
+- ✅ 技能面板 UI：4槽底部居中，含等级小数字、冷却遮罩、能量不足变暗
+- ✅ 升级浮动文字（"+1 Lv.X!"）
+- ✅ 替换选择弹窗（4槽预览+放弃按钮）
+- ✅ 掉落集成：精英怪死亡触发三选一技能面板
+- ✅ EscapeSkill 独立为 player.escape_skill，不占 4 槽
+- ⚠️ 旧 DMD 桥接代码保留待清理（Phase B） → ✅ 已清理
 
 ### 待办要点
 
-1. **技能系统扩展**：Resource 驱动的技能配置、技能面板（快捷键绑定/拖拽）、技能树/天赋
-2. **场景环境碰撞体**：玩家可走出导航网格，需在房间场景添加墙壁碰撞体
-3. **RoomManager 硬编码 fallback**：room_1.tres / room_2.tres 路径硬编码
-4. **子弹对象池未接通**：`projectile.gd` 的 `_pool` 从未被赋值
-5. **Boss 配置数据流混乱**：硬编码 + 数据驱动两套入口打架
-6. **各武器 .tscn 碰撞体精细调整**：CollisionShape2D 的位置/大小
+1. **SkillPickup 实现（Phase A ✅）**：
+    - [x] 新建 `scripts/equipment/skill_pickup.gd`（Area2D + 光球 + collision + 拾取检测 + SkillManager.add_or_upgrade）
+2. **SkillManager 重写（Phase A ✅）**：
+    - [x] `add_skill()` → `add_or_upgrade(skill: SkillBase) → bool`
+    - [x] 升级逻辑：遍历 4 槽找同名 → 等级+1 或填入空槽
+    - [x] 槽满替换信号 `skill_replace_needed(new_skill)`
+    - [x] EscapeSkill 分离为 player.escape_skill，不经过 SkillManager（已有）
+3. **技能面板 UI（Phase A ✅）**：
+    - [x] 4槽底部居中 HUD（图标+冷却遮罩+能量不足变暗）— 已有
+    - [x] 等级小数字显示（右下角）
+    - [x] 绿色升级浮动 "+1 Lv3!"
+    - [x] 替换选择弹窗（4槽预览 + 放弃按钮）
+4. **掉落集成（Phase A ✅）**：
+    - [x] 精英怪击杀触发三选一技能面板（取代旧固定掉落）
+    - [x] RoomManager 新增 `_on_enemy_died` + `_show_skill_choice()`
+5. **清理旧绑定（Phase B ✅）**：
+    - [x] 删除 `EquipmentBase.granted_skill` 字段
+    - [x] 删除 `Affix.granted_skill` 字段
+    - [x] 删除 `SetBonus.bonus_3pc_skills` 字段
+    - [x] EquipmentManager 移除所有技能桥接逻辑
+    - [x] SetBonusManager 移除套装技能桥接逻辑
+    - [x] 删除 EffectAction.ACTIVATE_SKILL 枚举值 + 处理器 + trigger_effect.skill 字段
+    - [x] 删除 affix_database 中 _skill_31 / _skill_32 两条词缀
+    - [x] 删除 EquipmentDrop._try_grant_skill / SKILL_TEMPLATES / SKILL_CHANCE
+    - [x] 删除神秘外卖套 bonus_3pc_skills
+    - [x] 删除 player_controller 调试戒指 granted_skill
+    - [x] 删除 SkillManager.add_skill / remove_skill 兼容方法
+6. **天赋树系统（Phase C）**：
+    - [ ] TalentNode Resource（4分支，共24+节点）
+    - [ ] TalentManager 节点（解锁/资源消耗/存档对接）
+    - [ ] 天赋碎片获取（通关房间+1，Boss+5）
+    - [ ] Lobby 天赋面板 UI（节点可视化+升级按钮+资源预览）
+    - [ ] EquipmentDrop 对接 TalentManager 过滤解锁词缀/武器池
+    - [ ] 菱形关键节点实现（不屈意志/武器大师/双重词缀/传奇猎手等）
+7. **场景环境碰撞体**：玩家可走出导航网格，需在房间场景添加墙壁碰撞体
+8. **RoomManager 硬编码 fallback**：room_1.tres / room_2.tres 路径硬编码
+9. **子弹对象池未接通**：`projectile.gd` 的 `_pool` 从未被赋值
+10. **Boss 配置数据流混乱**：硬编码 + 数据驱动两套入口打架
+11. **各武器 .tscn 碰撞体精细调整**：CollisionShape2D 的位置/大小
 
 ### 碰撞层
 
@@ -117,7 +164,8 @@ resources/
 |------|-----|
 | `inventory` | I |
 | `return_lobby` | U |
-| 技能快捷键 | Z / X / C / V（player_controller 硬编码）|
+| 武器主/副手 | Q / E |
+| 技能槽 1-4 | 1 / 2 / 3 / 4 |
 
 ### 最近一次提交
 

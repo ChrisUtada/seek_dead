@@ -178,6 +178,8 @@ func _execute_spawn_pool(effect: TriggerEffect, context: Dictionary) -> bool:
 	if radius <= 0:
 		radius = 80.0
 	var pool = Area2D.new()
+	pool.monitoring = false
+	pool.monitorable = false
 	var shape = CollisionShape2D.new()
 	var circle = CircleShape2D.new()
 	circle.radius = radius
@@ -192,9 +194,15 @@ func _execute_spawn_pool(effect: TriggerEffect, context: Dictionary) -> bool:
 	pool.set("damage", context.get("damage", 15.0))
 	pool.set("damage_type", dmg_type)
 	pool.set("lifetime", 3.0)
-	get_tree().current_scene.add_child(pool)
+	call_deferred("_add_pool_to_scene", pool)
 	print("[效果执行] 毒池: 半径%.0f pos=(%.0f,%.0f)" % [radius, pool.global_position.x, pool.global_position.y])
 	return true
+
+
+func _add_pool_to_scene(pool: Area2D):
+	get_tree().current_scene.add_child(pool)
+	pool.set_deferred("monitoring", true)
+	pool.set_deferred("monitorable", true)
 
 
 func _execute_fire_aura(effect: TriggerEffect, context: Dictionary) -> bool:
@@ -205,6 +213,8 @@ func _execute_fire_aura(effect: TriggerEffect, context: Dictionary) -> bool:
 	if radius <= 0:
 		radius = 100.0
 	var aura = Area2D.new()
+	aura.monitoring = false
+	aura.monitorable = false
 	var shape = CollisionShape2D.new()
 	var circle = CircleShape2D.new()
 	circle.radius = radius
@@ -217,10 +227,16 @@ func _execute_fire_aura(effect: TriggerEffect, context: Dictionary) -> bool:
 	aura.set("damage_type", DamageSystem.DamageType.FIRE)
 	aura.set("interval", 0.5)
 	aura.set("lifetime", 5.0)
-	player.add_child(aura)
-	aura.global_position = Vector2.ZERO
+	call_deferred("_add_aura_to_player", aura, player)
 	print("[效果执行] 火焰光环: 半径%.0f 持续5s" % [radius])
 	return true
+
+
+func _add_aura_to_player(aura: Area2D, player: Node2D):
+	player.add_child(aura)
+	aura.global_position = Vector2.ZERO
+	aura.set_deferred("monitoring", true)
+	aura.set_deferred("monitorable", true)
 
 
 func _execute_slow_enemies(effect: TriggerEffect, context: Dictionary) -> bool:
@@ -231,6 +247,8 @@ func _execute_slow_enemies(effect: TriggerEffect, context: Dictionary) -> bool:
 	if radius <= 0:
 		radius = 150.0
 	var slow = Area2D.new()
+	slow.monitoring = false
+	slow.monitorable = false
 	var shape = CollisionShape2D.new()
 	var circle = CircleShape2D.new()
 	circle.radius = radius
@@ -241,7 +259,13 @@ func _execute_slow_enemies(effect: TriggerEffect, context: Dictionary) -> bool:
 	slow.set_script(load("res://scripts/equipment/slow_area.gd"))
 	slow.set("speed_mult", 0.5)
 	slow.set("lifetime", 3.0)
-	get_tree().current_scene.add_child(slow)
-	slow.global_position = player.global_position
+	call_deferred("_add_slow_to_scene", slow, player.global_position)
 	print("[效果执行] 减速场: 半径%.0f 持续3s" % [radius])
 	return true
+
+
+func _add_slow_to_scene(slow: Area2D, pos: Vector2):
+	get_tree().current_scene.add_child(slow)
+	slow.global_position = pos
+	slow.set_deferred("monitoring", true)
+	slow.set_deferred("monitorable", true)

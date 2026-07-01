@@ -7,7 +7,7 @@
 [ext_resource type="Script" uid="uid://o84bb33jrmab" path="res://scripts/components/status_effect_component.gd" id="5"]
 [ext_resource type="Script" uid="uid://d34krmmfes3iv" path="res://scripts/components/ai_component.gd" id="6"]
 [ext_resource type="Script" uid="uid://qjvq1fr7aq82" path="res://scripts/ui/shadow.gd" id="7"]
-[ext_resource type="Resource" path="res://resources/enemies/elite_mage.tres" id="8"]
+[ext_resource type="Resource" uid="uid://kou7xwhdvgp7" path="res://resources/enemies/elite_mage.tres" id="8"]
 [ext_resource type="Script" uid="uid://d0ygt1ksgbf84" path="res://scripts/battle/hurtbox.gd" id="9"]
 
 [sub_resource type="RectangleShape2D" id="1"]

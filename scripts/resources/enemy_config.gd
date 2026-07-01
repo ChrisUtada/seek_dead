@@ -19,3 +19,6 @@ enum EnemyTier { NORMAL, ELITE_STAT, ELITE_MECHANIC, BOSS }
 @export var stat_multiplier: float = 1.5
 @export var color: Color = Color(0.9, 0.2, 0.2)
 @export var scene_path: String = ""
+@export var bullet_data: Resource
+@export var drop_heal: int = 0
+@export var drop_heal_chance: float = 0.0

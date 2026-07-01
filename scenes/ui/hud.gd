@@ -8,6 +8,8 @@ const _ComparePopup = preload("res://scenes/ui/compare_popup.gd")
 
 var _bars: Dictionary = {}
 var _equipment_panel: EquipmentPanel = null
+var _skill_manager: SkillManager
+var _skill_slots: Array = []
 var _bar_order = ["hp", "energy", "stamina", "heat"]
 var _bar_config = {
 	hp = {color = Color(0.8, 0.15, 0.15), label = "HP"},
@@ -22,6 +24,9 @@ var _overlay_label: Label
 var _overlay_button: Label
 var _is_paused: bool = false
 var _death_overlay: bool = false
+
+var _choice_panel: Control = null
+var _choice_card_rects: Array = []
 
 func _ready():
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -152,14 +157,19 @@ func _connect_player():
 
 	var skill_node = player.get_node_or_null("SkillManager")
 	if skill_node:
+		_skill_manager = skill_node
 		skill_node.skill_used.connect(_on_skill_used)
-		if skill_node.skills.size() > 2:
-			var esc = skill_node.skills[2]
-			if esc is EscapeSkill:
-				esc.channel_started.connect(_on_escape_channel_started)
-				esc.channel_progress.connect(_on_escape_channel_progress)
-				esc.channel_cancelled.connect(_on_escape_channel_cancelled)
-				esc.channel_completed.connect(_on_escape_channel_completed)
+		skill_node.skill_added.connect(_on_skill_added)
+		skill_node.skill_removed.connect(_on_skill_removed)
+		skill_node.skill_upgraded.connect(_on_skill_upgraded)
+		skill_node.skill_replace_needed.connect(_on_skill_replace_needed)
+
+	if "escape_skill" in player and player.escape_skill:
+		var esc = player.escape_skill
+		esc.channel_started.connect(_on_escape_channel_started)
+		esc.channel_progress.connect(_on_escape_channel_progress)
+		esc.channel_cancelled.connect(_on_escape_channel_cancelled)
+		esc.channel_completed.connect(_on_escape_channel_completed)
 
 	_init_equipment_panel(player)
 	_connect_equipment_signals(player)
@@ -290,31 +300,55 @@ func _build_escape_bar():
 func _build_skill_bar():
 	var skill_bar = Control.new()
 	skill_bar.name = "SkillBar"
-	skill_bar.position = Vector2(580, 324)
-	skill_bar.size = Vector2(78, 24)
+	skill_bar.position = Vector2(272, 324)
+	skill_bar.size = Vector2(68, 32)
 	add_child(skill_bar)
-	var keys = ["Q", "E", "Z"]
-	for i in range(3):
+	var slot_size = 32
+	var gap = 4
+	for i in range(2):
 		var slot = ColorRect.new()
 		slot.name = "SkillSlot%d" % i
-		slot.position = Vector2(i * 26, 0)
-		slot.size = Vector2(24, 24)
-		slot.color = Color(0.3, 0.3, 0.3, 0.8)
+		slot.position = Vector2(i * (slot_size + gap), 0)
+		slot.size = Vector2(slot_size, slot_size)
+		slot.color = Color(0.25, 0.25, 0.25, 0.85)
 		skill_bar.add_child(slot)
 		var key_label = Label.new()
-		key_label.text = keys[i]
-		key_label.position = Vector2(7, 12)
-		key_label.add_theme_color_override("font_color", Color(1, 1, 1))
-		key_label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+		key_label.text = str(i + 1)
+		key_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		key_label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+		key_label.position = Vector2(0, 0)
+		key_label.size = Vector2(slot_size, slot_size)
+		key_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
 		key_label.add_theme_constant_override("outline_size", 1)
-		key_label.add_theme_font_size_override("font_size", 10)
+		key_label.add_theme_font_size_override("font_size", 9)
 		slot.add_child(key_label)
+		var name_label = Label.new()
+		name_label.name = "SkillName"
+		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		name_label.position = Vector2(0, 0)
+		name_label.size = Vector2(slot_size, slot_size)
+		name_label.add_theme_color_override("font_color", Color(1, 1, 1))
+		name_label.add_theme_constant_override("outline_size", 1)
+		name_label.add_theme_font_size_override("font_size", 10)
+		slot.add_child(name_label)
+		var level_label = Label.new()
+		level_label.name = "Level"
+		level_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		level_label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+		level_label.position = Vector2(0, 0)
+		level_label.size = Vector2(slot_size - 1, slot_size - 1)
+		level_label.add_theme_color_override("font_color", Color(0.8, 0.8, 0.2))
+		level_label.add_theme_constant_override("outline_size", 1)
+		level_label.add_theme_font_size_override("font_size", 8)
+		slot.add_child(level_label)
 		var cd_overlay = ColorRect.new()
 		cd_overlay.name = "Cooldown"
 		cd_overlay.position = Vector2(0, 0)
-		cd_overlay.size = Vector2(40, 0)
-		cd_overlay.color = Color(0, 0, 0, 0.7)
+		cd_overlay.size = Vector2(slot_size, 0)
+		cd_overlay.color = Color(0, 0, 0, 0.75)
 		slot.add_child(cd_overlay)
+		_skill_slots.append(slot)
 
 func _build_ammo_display():
 	var label = Label.new()
@@ -366,27 +400,150 @@ func _on_escape_channel_completed():
 	if bg:
 		bg.visible = false
 		bg.get_node("EscapeBarFill").size.x = 0
-	var slot = get_node_or_null("SkillBar/SkillSlot2")
-	if slot:
-		var cd = slot.get_node_or_null("Cooldown")
-		if cd:
-			var tween = create_tween()
-			cd.size.y = 40
-			tween.tween_property(cd, "size:y", 0, 90.0)
 
 
-func _on_skill_used(index: int, _skill: SkillBase):
-	var slot = get_node_or_null("SkillBar/SkillSlot%d" % index)
-	if not slot:
+func _on_skill_used(_index: int, _skill: SkillBase):
+	pass
+
+func _on_skill_added(_skill: SkillBase):
+	pass
+
+func _on_skill_removed(_skill: SkillBase):
+	pass
+
+
+func _on_skill_upgraded(skill: SkillBase, old_level: int, new_level: int):
+	var player = EntityRegistry.players[0] if EntityRegistry.get_player_count() > 0 else null
+	if not player:
 		return
-	var cd = slot.get_node_or_null("Cooldown")
-	if not cd:
+	var text = "%s +1 Lv.%d!" % [skill.skill_name, new_level]
+	spawn_floating_text(player.global_position, text, Color(0.3, 1, 0.3))
+
+
+var _replace_popup: Control = null
+var _pending_skill: SkillBase = null
+
+
+func _on_skill_replace_needed(new_skill: SkillBase):
+	if _replace_popup:
 		return
-	if index == 2:
+	_pending_skill = new_skill
+	_replace_popup = Control.new()
+	_replace_popup.name = "ReplacePopup"
+	_replace_popup.set_anchors_and_offsets_preset(Control.PRESET_CENTER, Control.PRESET_MODE_MINSIZE, 4)
+	_replace_popup.size = Vector2(220, 100)
+	add_child(_replace_popup)
+
+	var bg = ColorRect.new()
+	bg.color = Color(0.1, 0.1, 0.1, 0.9)
+	bg.size = Vector2(220, 100)
+	_replace_popup.add_child(bg)
+
+	var title = Label.new()
+	title.text = "技能替换"
+	title.position = Vector2(8, 4)
+	title.size = Vector2(200, 16)
+	title.add_theme_color_override("font_color", Color(1, 1, 1))
+	title.add_theme_font_size_override("font_size", 12)
+	_replace_popup.add_child(title)
+
+	var prompt = Label.new()
+	prompt.text = "选择要替换的技能："
+	prompt.position = Vector2(8, 20)
+	prompt.size = Vector2(200, 14)
+	prompt.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8))
+	prompt.add_theme_font_size_override("font_size", 10)
+	_replace_popup.add_child(prompt)
+
+	var slot_size = 36
+	var gap = 4
+	var start_x = 8
+	for i in range(_skill_manager.skills.size()):
+		var btn = ColorRect.new()
+		btn.name = "SlotBtn%d" % i
+		btn.position = Vector2(start_x + i * (slot_size + gap), 38)
+		btn.size = Vector2(slot_size, slot_size)
+		btn.color = Color(0.3, 0.3, 0.5, 0.9)
+		_replace_popup.add_child(btn)
+
+		var lbl = Label.new()
+		lbl.text = _skill_manager.skills[i].skill_name
+		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		lbl.position = Vector2(0, 0)
+		lbl.size = Vector2(slot_size, slot_size)
+		lbl.add_theme_color_override("font_color", Color(1, 1, 1))
+		lbl.add_theme_font_size_override("font_size", 9)
+		btn.add_child(lbl)
+
+		var lv = Label.new()
+		lv.text = "Lv%d" % _skill_manager.skills[i].level
+		lv.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		lv.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+		lv.position = Vector2(0, 0)
+		lv.size = Vector2(slot_size - 1, slot_size - 1)
+		lv.add_theme_color_override("font_color", Color(0.8, 0.8, 0.2))
+		lv.add_theme_font_size_override("font_size", 8)
+		btn.add_child(lv)
+
+		var click_area = Area2D.new()
+		var shape = CollisionShape2D.new()
+		var rect = RectangleShape2D.new()
+		rect.size = Vector2(slot_size, slot_size)
+		shape.shape = rect
+		click_area.add_child(shape)
+		click_area.global_position = btn.global_position + btn.size / 2
+		var idx = i
+		click_area.input_event.connect(func(_v, _e, _i): _on_replace_confirm(idx))
+		_replace_popup.add_child(click_area)
+		click_area.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	var discard_btn = ColorRect.new()
+	discard_btn.name = "DiscardBtn"
+	discard_btn.position = Vector2(start_x + _skill_manager.skills.size() * (slot_size + gap), 38)
+	discard_btn.size = Vector2(slot_size, slot_size)
+	discard_btn.color = Color(0.5, 0.3, 0.3, 0.9)
+	_replace_popup.add_child(discard_btn)
+
+	var discard_lbl = Label.new()
+	discard_lbl.text = "放弃"
+	discard_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	discard_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	discard_lbl.position = Vector2(0, 0)
+	discard_lbl.size = Vector2(slot_size, slot_size)
+	discard_lbl.add_theme_color_override("font_color", Color(1, 1, 1))
+	discard_lbl.add_theme_font_size_override("font_size", 9)
+	discard_btn.add_child(discard_lbl)
+
+	var discard_click = Area2D.new()
+	var dshape = CollisionShape2D.new()
+	var drect = RectangleShape2D.new()
+	drect.size = Vector2(slot_size, slot_size)
+	dshape.shape = drect
+	discard_click.add_child(dshape)
+	discard_click.input_event.connect(func(_v, _e, _i): _on_replace_discard())
+	_replace_popup.add_child(discard_click)
+
+
+func _close_replace_popup():
+	if _replace_popup:
+		_replace_popup.queue_free()
+		_replace_popup = null
+	_pending_skill = null
+
+
+func _on_replace_confirm(index: int):
+	if not _pending_skill or not _skill_manager:
+		_close_replace_popup()
 		return
-	var tween = create_tween()
-	cd.size.y = 40
-	tween.tween_property(cd, "size:y", 0, _skill.cooldown)
+	_skill_manager.replace_skill(index, _pending_skill.duplicate(true))
+	print("[技能替换] 槽%d → %s" % [index, _pending_skill.skill_name])
+	_close_replace_popup()
+
+
+func _on_replace_discard():
+	print("[技能替换] 放弃拾取: %s" % [_pending_skill.skill_name if _pending_skill else "null"])
+	_close_replace_popup()
 
 func _on_reload_finished():
 	if _bars.has("ammo"):
@@ -437,6 +594,13 @@ func _input(event):
 		_toggle_inventory()
 	if event.is_action_pressed("return_lobby") and not _is_paused and not _death_overlay:
 		_return_to_lobby()
+	if _choice_panel and not _choice_card_rects.is_empty() and event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		var mouse = get_viewport().get_mouse_position()
+		for entry in _choice_card_rects:
+			var pos = _choice_panel.position + entry.rect.position
+			if mouse.x >= pos.x and mouse.x <= pos.x + entry.rect.size.x and mouse.y >= pos.y and mouse.y <= pos.y + entry.rect.size.y:
+				_on_skill_choice_selected(entry.skill)
+				return
 
 func _toggle_inventory():
 	if not _equipment_panel:
@@ -464,6 +628,31 @@ func _toggle_pause():
 func _process(_delta):
 	var mouse = get_viewport().get_mouse_position()
 	_crosshair.position = mouse - _crosshair.size / 2
+	_update_skill_bar()
+
+
+func _update_skill_bar():
+	if not _skill_manager or _skill_slots.size() == 0:
+		return
+	var player = EntityRegistry.players[0] if EntityRegistry.get_player_count() > 0 else null
+	var state = player.state if player and player.state else null
+	for i in range(min(_skill_slots.size(), _skill_manager.skills.size())):
+		var skill = _skill_manager.skills[i]
+		var slot = _skill_slots[i]
+		var cd = slot.get_node_or_null("Cooldown")
+		if cd:
+			var ratio = skill.get_cooldown_ratio()
+			cd.size.y = slot.size.y * ratio
+		var name_label = slot.get_node_or_null("SkillName")
+		if name_label:
+			name_label.text = skill.skill_name
+		var level_label = slot.get_node_or_null("Level")
+		if level_label:
+			level_label.text = "Lv%d" % skill.level if skill.level > 0 else ""
+		if state and not skill.can_use(state):
+			slot.color = Color(0.15, 0.15, 0.15, 0.85)
+		else:
+			slot.color = Color(0.25, 0.25, 0.25, 0.85)
 
 func spawn_damage_number(world_pos: Vector2, amount: float, is_critical: bool = false):
 	var label = Label.new()
@@ -570,3 +759,94 @@ func _on_damage_dealt(attacker: Node2D, defender: Node2D, amount: float, _damage
 		_trigger_hit_flash(0.08, Color(1, 0.3, 0.3))
 	elif amount > 50.0:
 		_trigger_hit_flash(0.06, Color(1, 0.8, 0.3))
+
+
+func show_skill_choice(choices: Array[SkillBase]):
+	if _choice_panel:
+		_choice_panel.queue_free()
+		_choice_panel = null
+	get_tree().paused = true
+	_choice_panel = Control.new()
+	_choice_panel.name = "SkillChoicePanel"
+	_choice_panel.size = Vector2(400, 160)
+	var viewport_size = get_viewport().get_visible_rect().size
+	_choice_panel.position = (viewport_size - _choice_panel.size) / 2
+	add_child(_choice_panel)
+
+	var bg = ColorRect.new()
+	bg.color = Color(0.05, 0.05, 0.1, 0.92)
+	bg.size = Vector2(400, 160)
+	_choice_panel.add_child(bg)
+
+	var title = Label.new()
+	title.text = "选择技能"
+	title.position = Vector2(140, 8)
+	title.size = Vector2(120, 20)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_color_override("font_color", Color(1, 1, 1))
+	title.add_theme_font_size_override("font_size", 14)
+	_choice_panel.add_child(title)
+
+	var card_size = Vector2(110, 120)
+	var gap = 12
+	var total_w = choices.size() * int(card_size.x) + (choices.size() - 1) * gap
+	var start_x = (400 - total_w) / 2
+	_choice_card_rects.clear()
+	for i in range(choices.size()):
+		var sk = choices[i]
+		var card = ColorRect.new()
+		card.name = "Card%d" % i
+		card.position = Vector2(start_x + i * (int(card_size.x) + gap), 32)
+		card.size = card_size
+		card.color = Color(0.2, 0.2, 0.3, 0.95)
+		_choice_panel.add_child(card)
+
+		_choice_card_rects.append({rect = Rect2(card.position, card_size), skill = sk})
+
+		var name_lbl = Label.new()
+		name_lbl.text = sk.skill_name
+		name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		name_lbl.position = Vector2(0, 4)
+		name_lbl.size = Vector2(card_size.x, 20)
+		name_lbl.add_theme_color_override("font_color", Color(1, 1, 1))
+		name_lbl.add_theme_font_size_override("font_size", 12)
+		card.add_child(name_lbl)
+
+		var desc_lbl = Label.new()
+		desc_lbl.text = sk.skill_description
+		desc_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		desc_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		desc_lbl.position = Vector2(4, 24)
+		desc_lbl.size = Vector2(card_size.x - 8, 60)
+		desc_lbl.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8))
+		desc_lbl.add_theme_font_size_override("font_size", 9)
+		desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		card.add_child(desc_lbl)
+
+		var cost_lbl = Label.new()
+		cost_lbl.text = "能量 %d  CD %.1fs" % [sk.energy_cost, sk.cooldown]
+		cost_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		cost_lbl.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+		cost_lbl.position = Vector2(0, card_size.y - 24)
+		cost_lbl.size = Vector2(card_size.x, 20)
+		cost_lbl.add_theme_color_override("font_color", Color(0.6, 0.8, 1))
+		cost_lbl.add_theme_font_size_override("font_size", 8)
+		card.add_child(cost_lbl)
+
+
+func _on_skill_choice_selected(skill: SkillBase):
+	if not _skill_manager:
+		_close_skill_choice()
+		return
+	var dup = skill.duplicate(true)
+	if _skill_manager.add_or_upgrade(dup):
+		print("[技能选择] 选中: %s (Lv.%d)" % [dup.skill_name, dup.level])
+	_close_skill_choice()
+
+
+func _close_skill_choice():
+	get_tree().paused = false
+	if _choice_panel:
+		_choice_panel.queue_free()
+		_choice_panel = null
+	_choice_card_rects.clear()

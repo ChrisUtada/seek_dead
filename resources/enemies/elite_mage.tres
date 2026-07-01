@@ -1,6 +1,7 @@
-[gd_resource type="Resource" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="EnemyConfig" format=3 uid="uid://kou7xwhdvgp7"]
 
-[ext_resource type="Script" path="res://scripts/resources/enemy_config.gd" id="1"]
+[ext_resource type="Script" uid="uid://csx8dy1fumba2" path="res://scripts/resources/enemy_config.gd" id="1"]
+[ext_resource type="Resource" uid="uid://dl3f4xkradnd4" path="res://resources/bullets/elite_mage_bullet.tres" id="2"]
 
 [resource]
 script = ExtResource("1")
@@ -11,11 +12,14 @@ hp_max = 180.0
 speed = 55.0
 damage = 20.0
 innate_type = 2
-scene_path = "res://scenes/enemies/elite_mage.tscn"
 defenses = {
+"fire_defense": 0.3,
 "puncture_defense": 0.1,
 "slash_defense": 0.1,
-"smash_defense": 0.1,
-"fire_defense": 0.3,
+"smash_defense": 0.1
 }
-color = Color(0.4, 0.3, 0.8, 1.0)
+color = Color(0.4, 0.3, 0.8, 1)
+scene_path = "res://scenes/enemies/elite_mage.tscn"
+bullet_data = ExtResource("2")
+drop_heal = 20
+drop_heal_chance = 0.9

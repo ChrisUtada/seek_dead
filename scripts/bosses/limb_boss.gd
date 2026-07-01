@@ -395,7 +395,7 @@ func _fire_limb_bullet(limb: BossLimb, target_pos: Vector2):
 	bullet.damage = _get_burst_damage(0, 12.0)
 	bullet.damage_type = limb.element_type
 	bullet.shooter = self
-	bullet.data = _DefaultBulletData
+	bullet.data = config.bullet_data if config and config.bullet_data else _DefaultBulletData
 	get_parent().add_child(bullet)
 	_setup_bullet_visual(bullet, limb.limb_color)
 
@@ -411,7 +411,7 @@ func _fire_radial_burst():
 		bullet.damage = _get_burst_damage(1, 10.0)
 		bullet.damage_type = state.innate_type
 		bullet.shooter = self
-		bullet.data = _DefaultBulletData
+		bullet.data = config.bullet_data if config and config.bullet_data else _DefaultBulletData
 		get_parent().add_child(bullet)
 		_setup_bullet_visual(bullet, Color(1, 0.5, 0))
 

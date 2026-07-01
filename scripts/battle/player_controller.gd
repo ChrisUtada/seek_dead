@@ -3,7 +3,6 @@ extends Damageable
 
 const _WeaponComp = preload("res://scripts/components/weapon_component.gd")
 const _MoverComp = preload("res://scripts/components/movement_component.gd")
-const _EscapeSkill = preload("res://scripts/battle/skills/escape_skill.gd")
 
 signal player_damaged(amount: float, current_hp: float, max_hp: float)
 
@@ -28,6 +27,7 @@ var _hurt_timer: float = 0.0
 
 var equipment_manager: EquipmentManager
 var equipment_inventory: EquipmentInventory
+var escape_skill: EscapeSkill
 
 var _debug_k_held: bool = false
 
@@ -54,7 +54,7 @@ func _ready():
 	dodge.dodge_finished.connect(_on_dodge_finished)
 	sprint.sprint_finished.connect(_on_sprint_finished)
 	_init_equipment()
-	_init_skills()
+	_init_escape_skill()
 
 
 # ===================== State Machine =====================
@@ -106,12 +106,8 @@ func _on_sprint_finished():
 # ===================== Input =====================
 
 func _cancel_escape_channel():
-	var sm = skill_manager
-	if not sm or sm.skills.size() <= 2:
-		return
-	var esc = sm.skills[2]
-	if esc is EscapeSkill and esc.get("_is_channeling"):
-		esc._cancel_channel()
+	if escape_skill and escape_skill.get("_is_channeling"):
+		escape_skill._cancel_channel()
 
 
 func _unhandled_input(event: InputEvent):
@@ -148,7 +144,10 @@ func _unhandled_input(event: InputEvent):
 	if event.is_action_pressed("reload"):
 		ammo.start_reload()
 		return
-	for i in range(3):
+	if event.is_action_pressed("escape_skill") and escape_skill:
+		escape_skill.use(self)
+		return
+	for i in range(2):
 		if event.is_action_pressed("skill_%d" % (i + 1)):
 			skill_manager.use_skill(i, self)
 			return
@@ -199,7 +198,7 @@ func _process_movement(delta: float):
 	if _sprite and "flip_h" in _sprite:
 		_sprite.flip_h = aim_dir.x < 0
 
-	# 数字键 1/2 切换主副手
+	# Q/E 切换主副手
 	if Input.is_action_just_pressed("weapon_slot_1"):
 		weapon.switch_active_hand(0)  # 主手
 	if Input.is_action_just_pressed("weapon_slot_2"):
@@ -262,10 +261,8 @@ func _equip_starting_weapon():
 	equipment_manager.equip(offhand_weapon)
 
 
-func _init_skills():
-	skill_manager.add_skill(HealSkill.new())
-	skill_manager.add_skill(ShockwaveSkill.new())
-	skill_manager.add_skill(_EscapeSkill.new())
+func _init_escape_skill():
+	escape_skill = preload("res://resources/skills/escape_skill.tres").duplicate(true)
 
 
 func _debug_spawn_equipment():

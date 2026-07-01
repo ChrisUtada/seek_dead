@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ShockwaveSkill" format=3]
+
+[ext_resource type="Script" uid="uid://cvwiial4ur5qx" path="res://scripts/battle/skills/shockwave_skill.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+skill_name = "震波"
+skill_description = "对周围敌人造成范围伤害并击退"
+energy_cost = 10.0
+cooldown = 8.0
+aoe_range = 120.0
+damage_mult = 1.5
+knockback_force = 300.0
+cast_color = Color(1, 0.7, 0.2, 1)
+cast_radius = 120.0
+cast_duration = 0.3
+cast_type = "ring"

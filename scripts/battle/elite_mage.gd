@@ -42,7 +42,7 @@ func _on_ai_attack(target: Node2D, damage: float):
 	bullet.damage = damage
 	bullet.damage_type = state.innate_type
 	bullet.shooter = self
-	bullet.data = _DefaultBulletData
+	bullet.data = config.bullet_data if config and config.bullet_data else _DefaultBulletData
 	get_parent().add_child(bullet)
 	_setup_fireball_visual(bullet)
 

@@ -14,6 +14,7 @@ func _init():
 var _shape_cache: CircleShape2D
 
 func _activate_skill(user: Node2D):
+	play_visual(user)
 	var space = user.get_world_2d().direct_space_state
 	var query = PhysicsShapeQueryParameters2D.new()
 	if not _shape_cache:

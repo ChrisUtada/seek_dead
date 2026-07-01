@@ -6,6 +6,12 @@ extends Resource
 @export var energy_cost: float = 20.0
 @export var cooldown: float = 5.0
 @export var duration: float = 0.0
+@export var level: int = 1
+@export var cast_color: Color = Color(1, 1, 1)
+@export var cast_radius: float = 0.0
+@export var cast_duration: float = 0.3
+@export var cast_type: String = "ring"
+var max_level: int = 4
 
 var cooldown_timer: float = 0.0
 var is_active: bool = false
@@ -29,8 +35,33 @@ func use(user: Node2D) -> bool:
 		_on_skill_finished(user)
 	return true
 
+func play_visual(user: Node2D):
+	if cast_radius <= 0:
+		return
+	var world = user.get_parent()
+	if not world:
+		return
+	var vfx = ColorRect.new()
+	vfx.size = Vector2(cast_radius * 2, cast_radius * 2)
+	vfx.position = Vector2(-cast_radius, -cast_radius)
+	vfx.color = Color(cast_color.r, cast_color.g, cast_color.b, 0.5)
+	vfx.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	world.add_child(vfx)
+	vfx.global_position = user.global_position
+	if cast_type == "ring":
+		var tween = user.create_tween()
+		tween.tween_property(vfx, "scale", Vector2(1.5, 1.5), cast_duration)
+		tween.parallel().tween_property(vfx, "modulate", Color(cast_color.r, cast_color.g, cast_color.b, 0), cast_duration)
+		tween.tween_callback(vfx.queue_free)
+	else:
+		var tween = user.create_tween()
+		tween.tween_property(vfx, "modulate", Color(cast_color.r, cast_color.g, cast_color.b, 0), cast_duration)
+		tween.tween_callback(vfx.queue_free)
+
+
 func _activate_skill(_user: Node2D):
 	pass
+
 
 func _on_skill_finished(_user: Node2D):
 	is_active = false

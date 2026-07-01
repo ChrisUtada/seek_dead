@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="EscapeSkill" format=3]
+
+[ext_resource type="Script" uid="uid://cetlirn03rf6o" path="res://scripts/battle/skills/escape_skill.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+skill_name = "紧急撤离"
+skill_description = "引导5秒后逃离当前房间，受伤或再次使用取消（CD 90秒）"
+energy_cost = 0.0
+cooldown = 90.0

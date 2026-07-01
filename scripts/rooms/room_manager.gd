@@ -42,6 +42,7 @@ func _ready():
 	layer.add_child(_transition)
 
 	EventManager.room_cleared.connect(_on_room_cleared)
+	EventManager.enemy_died.connect(_on_enemy_died)
 
 
 func _load_configs():
@@ -256,6 +257,19 @@ func _spawn_wave(config: RoomConfig, wave_index: int):
 				room.add_child(boss)
 				_current_bosses.append(boss)
 
+		if config.has_elite and not config.elite_pool.is_empty():
+			var elite_scene = config.elite_pool.pick_random()
+			if elite_scene:
+				var elite = elite_scene.instantiate()
+				var marker = markers[randi() % markers.size()] if markers.size() > 0 else null
+				if marker:
+					elite.global_position = marker.global_position
+				else:
+					var pspawn = room.get_node_or_null("PlayerSpawn")
+					elite.global_position = (pspawn.global_position + Vector2(0, -60)) if pspawn else Vector2(320, 180)
+				elite.add_to_group("elite")
+				room.add_child(elite)
+
 	if wave:
 		var announce = _get_wave_property(wave, "announce", "")
 		if not announce.is_empty():
@@ -443,7 +457,41 @@ func _on_room_cleared(_room_id: String):
 		min_rarity = EquipmentEnums.Rarity.RARE
 	var items = EquipmentDrop.generate_drops(count, bonus, min_rarity)
 	_spawn_rewards(items)
+
+	if randf() < 0.5:
+		_spawn_skill_pickup()
+
 	_unlock_doors()
+
+
+func _on_enemy_died(enemy: Node2D):
+	if _current_room == null:
+		return
+	var cfg = enemy.config if "config" in enemy else (enemy._boss_config if "_boss_config" in enemy else null)
+	var heal = cfg.drop_heal if cfg is EnemyConfig and cfg.drop_heal > 0 else 0
+	var chance = cfg.drop_heal_chance if cfg is EnemyConfig else 0.0
+	if heal > 0 and randf() < chance:
+		_spawn_health_pickup(enemy.global_position, heal)
+	if enemy.is_in_group("elite"):
+		if not _current_config or not _current_config.has_elite:
+			return
+		_show_skill_choice()
+
+
+func _show_skill_choice():
+	var player = _player
+	if not player:
+		return
+	var hud = player.get_node_or_null("/root/Game/HUD")
+	if not hud:
+		hud = get_tree().root.find_child("HUD", true, false)
+	if hud and hud.has_method("show_skill_choice"):
+		var skills = SkillDatabase.get_all_skills()
+		if skills.size() == 0:
+			return
+		skills.shuffle()
+		var choices = skills.slice(0, 3)
+		hud.show_skill_choice(choices)
 
 
 func _spawn_rewards(items: Array[EquipmentBase]):
@@ -460,6 +508,47 @@ func _spawn_rewards(items: Array[EquipmentBase]):
 		_current_room.add_child(drop)
 		drop.global_position = pos
 		drop.setup(items[i])
+
+
+func _spawn_skill_reward():
+	if _current_room == null:
+		return
+	var sk = SkillDatabase.get_random_skill()
+	if not sk:
+		return
+	var center = Vector2(320, 200)
+	var spawn = _current_room.get_node_or_null("PlayerSpawn")
+	if spawn:
+		center = spawn.global_position + Vector2(0, 60)
+	var drop = SkillPickup.new()
+	_current_room.add_child(drop)
+	drop.global_position = center + Vector2(0, -30)
+	drop.setup(sk)
+
+
+func _spawn_health_pickup(world_pos: Vector2, amount: int):
+	if _current_room == null:
+		return
+	var drop = HealthPickup.new()
+	_current_room.add_child(drop)
+	drop.global_position = world_pos + Vector2(randf_range(-10, 10), randf_range(-10, 10))
+	drop.setup(amount)
+
+
+func _spawn_skill_pickup():
+	if _current_room == null:
+		return
+	var sk = SkillDatabase.get_random_skill()
+	if not sk:
+		return
+	var center = Vector2(320, 200)
+	var spawn = _current_room.get_node_or_null("PlayerSpawn")
+	if spawn:
+		center = spawn.global_position + Vector2(0, 60)
+	var drop = SkillPickup.new()
+	_current_room.add_child(drop)
+	drop.global_position = center + Vector2(randf_range(-20, 20), -20)
+	drop.setup(sk)
 
 
 func _get_player_inventory() -> EquipmentInventory:
