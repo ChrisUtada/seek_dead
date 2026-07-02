@@ -10,6 +10,8 @@ var _bars: Dictionary = {}
 var _equipment_panel: EquipmentPanel = null
 var _skill_manager: SkillManager
 var _skill_slots: Array = []
+var _escape_btn: ColorRect = null
+var _lobby_btn: ColorRect = null
 var _bar_order = ["hp", "energy", "stamina", "heat"]
 var _bar_config = {
 	hp = {color = Color(0.8, 0.15, 0.15), label = "HP"},
@@ -37,6 +39,7 @@ func _ready():
 	_build_ammo_display()
 	_build_skill_bar()
 	_build_escape_bar()
+	_build_utility_bar()
 	_connect_player()
 	EventManager.damage_dealt.connect(_on_damage_dealt)
 
@@ -295,6 +298,74 @@ func _build_escape_bar():
 	label.add_theme_constant_override("outline_size", 1)
 	label.add_theme_font_size_override("font_size", 10)
 	bg.add_child(label)
+
+
+func _build_utility_bar():
+	var start_x = 364
+	var y = 324
+	var sz = Vector2(28, 28)
+	var gap = 4
+
+	_escape_btn = ColorRect.new()
+	_escape_btn.name = "EscapeBtn"
+	_escape_btn.position = Vector2(start_x, y)
+	_escape_btn.size = sz
+	_escape_btn.color = Color(0.25, 0.25, 0.25, 0.85)
+	add_child(_escape_btn)
+	var zkey = Label.new()
+	zkey.text = "Z"
+	zkey.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	zkey.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	zkey.position = Vector2(2, 1)
+	zkey.size = Vector2(sz.x - 4, 12)
+	zkey.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+	zkey.add_theme_constant_override("outline_size", 1)
+	zkey.add_theme_font_size_override("font_size", 8)
+	_escape_btn.add_child(zkey)
+	var zname = Label.new()
+	zname.name = "EscapeName"
+	zname.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	zname.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+	zname.position = Vector2(0, 0)
+	zname.size = sz
+	zname.add_theme_color_override("font_color", Color(1, 1, 1))
+	zname.add_theme_constant_override("outline_size", 1)
+	zname.add_theme_font_size_override("font_size", 7)
+	zname.text = "撤离"
+	_escape_btn.add_child(zname)
+	var zcd = ColorRect.new()
+	zcd.name = "EscapeCD"
+	zcd.position = Vector2(0, 0)
+	zcd.size = Vector2(sz.x, 0)
+	zcd.color = Color(0, 0, 0, 0.75)
+	_escape_btn.add_child(zcd)
+
+	_lobby_btn = ColorRect.new()
+	_lobby_btn.name = "LobbyBtn"
+	_lobby_btn.position = Vector2(start_x + sz.x + gap, y)
+	_lobby_btn.size = sz
+	_lobby_btn.color = Color(0.2, 0.2, 0.25, 0.85)
+	add_child(_lobby_btn)
+	var ukey = Label.new()
+	ukey.text = "U"
+	ukey.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	ukey.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	ukey.position = Vector2(2, 1)
+	ukey.size = Vector2(sz.x - 4, 12)
+	ukey.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+	ukey.add_theme_constant_override("outline_size", 1)
+	ukey.add_theme_font_size_override("font_size", 8)
+	_lobby_btn.add_child(ukey)
+	var uname = Label.new()
+	uname.text = "返回"
+	uname.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	uname.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+	uname.position = Vector2(0, 0)
+	uname.size = sz
+	uname.add_theme_color_override("font_color", Color(1, 1, 1))
+	uname.add_theme_constant_override("outline_size", 1)
+	uname.add_theme_font_size_override("font_size", 7)
+	_lobby_btn.add_child(uname)
 
 
 func _build_skill_bar():
@@ -629,6 +700,7 @@ func _process(_delta):
 	var mouse = get_viewport().get_mouse_position()
 	_crosshair.position = mouse - _crosshair.size / 2
 	_update_skill_bar()
+	_update_utility_bar()
 
 
 func _update_skill_bar():
@@ -850,3 +922,24 @@ func _close_skill_choice():
 		_choice_panel.queue_free()
 		_choice_panel = null
 	_choice_card_rects.clear()
+
+
+func _update_utility_bar():
+	var player = EntityRegistry.players[0] if EntityRegistry.get_player_count() > 0 else null
+	if not player or not _escape_btn or not _lobby_btn:
+		return
+
+	if "escape_skill" in player and player.escape_skill:
+		var esc = player.escape_skill
+		var cd = _escape_btn.get_node_or_null("EscapeCD")
+		if cd:
+			var ratio = esc.cooldown_timer / esc.cooldown if esc.cooldown > 0 else 0
+			cd.size.y = _escape_btn.size.y * ratio
+		if esc.get("_is_channeling"):
+			_escape_btn.color = Color(0.8, 0.6, 0.1, 0.85)
+		elif esc.cooldown_timer > 0:
+			_escape_btn.color = Color(0.25, 0.2, 0.2, 0.85)
+		else:
+			_escape_btn.color = Color(0.2, 0.5, 0.2, 0.85)
+
+	_lobby_btn.color = Color(0.2, 0.2, 0.25, 0.85) if not get_tree().paused else Color(0.15, 0.15, 0.15, 0.85)
