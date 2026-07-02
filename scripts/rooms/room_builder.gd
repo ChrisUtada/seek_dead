@@ -435,7 +435,7 @@ func _door_pos(dd: DoorDef, outer: Rect2) -> Vector2:
 		1: return Vector2(outer.position.x + outer.size.x, dd.pos)
 		2: return Vector2(dd.pos, outer.position.y + outer.size.y)
 		3: return Vector2(outer.position.x, dd.pos)
-	_ : return Vector2.ZERO
+	_: return Vector2.ZERO
 
 
 func _door_glow_pos(dd: DoorDef, outer: Rect2) -> Vector2:
@@ -446,7 +446,7 @@ func _door_glow_pos(dd: DoorDef, outer: Rect2) -> Vector2:
 		1: return Vector2(outer.position.x + outer.size.x - in_off - 32, dd.pos - 8)
 		2: return Vector2(dd.pos - half, outer.position.y + outer.size.y - in_off - 16)
 		3: return Vector2(outer.position.x + in_off, dd.pos - 8)
-	_ : return Vector2.ZERO
+	_: return Vector2.ZERO
 
 
 func _obstacle_size(type: String) -> Vector2:
@@ -455,7 +455,7 @@ func _obstacle_size(type: String) -> Vector2:
 		"crate": return Vector2(32, 32)
 		"bookshelf": return Vector2(16, 64)
 		"counter": return Vector2(64, 16)
-		_ : return Vector2(24, 24)
+		_: return Vector2(24, 24)
 
 
 func _calc_spawn_positions(r: RoomDef, outer: Rect2) -> Dictionary:
