@@ -88,3 +88,59 @@
 - `SkillDatabase` 在 `SkillManager.MAX_SLOTS` 中屏蔽 EscapeSkill
 - **最小改动原则**，先读所有 `docs/*.md`
 - 编码约定：GDScript only, 640×360, NEAREST, no comments
+
+---
+
+## 前次会话 (2026-06-30)
+
+### 当时已完成的装备系统 (Phases 0–7)
+
+| 阶段 | 内容 |
+|------|------|
+| 0 | 房间波次刷新 + EquipmentBase/Enums |
+| 1 | 基础装备架构（EquipmentManager, Inventory, Pickup, Drop） |
+| 2 | 词缀系统（30条 affix, 9种 EffectExecutor 动作） |
+| 3 | 掉落与品质（RarityTable, EquipmentDrop, RoomContext 缩放） |
+| 4 | 套装系统（6套, 2pc stat + 3pc trigger, SetDatabase） |
+| 5 | UI（EquipmentPanel 拖拽换装, ComparePopup, FloatingText, 快捷栏） |
+| 6 | 大厅（Lobby.tscn NPC交互, Forging, Collection, SaveSystem） |
+| 7 | 武器-装备统一（WeaponData Resource, archetype, 模板池） |
+
+### 当时技能系统状态（Phase A+B 完成）
+
+- ✅ SkillBase Resource（can_use/use/tick/冷却/能量）
+- ✅ SkillManager（add_or_upgrade + 升星逻辑 + 替换信号）
+- ✅ SkillPickup 场景+脚本
+- ✅ 技能面板 UI（当时 4 槽，含等级小数字、冷却遮罩、能量不足变暗）
+- ✅ 替换选择弹窗
+- ✅ 掉落集成（精英三选一）
+- ✅ EscapeSkill 独立不占槽
+- ✅ 旧 DMD 桥接代码清理完毕
+- ⚠️ 天赋树系统 Phase C 当时待办（本会话已删除）
+
+### 当时待办（与本会话无关）
+
+- 场景环境碰撞体
+- RoomManager 硬编码 fallback
+- 子弹对象池未接通
+- Boss 配置数据流混乱
+- 各武器碰撞体精细调整
+
+### 当时碰撞层与输入
+
+| Layer | 值 |
+|-------|-----|
+| Player | 1 |
+| Enemy | 2 |
+| Environment | 4 |
+| Pickup | 8 |
+| Hazard | 16 |
+| Hurtbox | 32 |
+| Hitbox | 64 |
+
+| 输入 | 当时键位 |
+|------|---------|
+| inventory | I |
+| return_lobby | U |
+| 武器主/副手 | Q / E |
+| 技能槽 1-4 | 1-4（本会话改为 2 槽） |

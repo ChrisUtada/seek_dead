@@ -18,7 +18,7 @@
 | 引擎 | Godot 4.x (GDScript only, 无 C#) |
 | 分辨率 | 设计 640×360，窗口 1280×720，stretch/mode=canvas_items |
 | 方向 | 像素风，texture_filter = NEAREST |
-| 世界观 | 外卖员清理被遗忘外卖柜，柜中怪物/腐化贵重外卖 Boss（《Control》式日常×超自然） |
+| 世界观 | 你是超级外卖员，职责是每 12 小时清理一次被遗忘的外卖柜。柜门背后不只是残羹冷炙——有些承载强烈情感的外卖（生日蛋糕、订婚套餐）长期无人认领会"腐化"成为怪物。每清完一层深入一层，直到击败最深处 Boss（腐化贵重外卖）取出"残余物"。日常 × 超自然恐怖，类似《Control》。 |
 
 ### 1.2 目录结构
 
@@ -27,7 +27,7 @@ ssz/
 ├── autoload/                  # 全局单例（GameManager, EventManager, SaveSystem, SceneManager, RoomManager, AudioManager, EntityRegistry）
 ├── scripts/
 │   ├── battle/                # 战斗核心（player_controller, enemy_base, weapon_node, weapon_visual_base, hitbox, hurtbox, damage_system, status_effect, collision_system, ammo_system, skill_manager, skill_base）
-│   │   └── skills/            # 技能实现（escape_skill, heal_skill, shockwave_skill）
+│   │   └── skills/            # 技能实现（escape_skill, shockwave_skill）
 │   ├── components/            # 组件化系统（weapon_component, movement_component, state_component, ai_component, boss_ai_component, dodge_component, sprint_component, status_effect_component）
 │   ├── equipment/             # 装备系统（equipment_manager, equipment_drop, equipment_pickup, equipment_inventory, equipment_base, effect_executor, forging, collection, weapon_data, rarity_table, affix_database, set_database, reward_ui, etc）
 │   ├── rooms/                 # 房间系统（room_manager, room_config, wave_config, 房间场景脚本）
@@ -143,6 +143,12 @@ ssz/
 | 手枪 | 远程 MEDIUM | true | MEDIUM |
 | 冰霜枪 | 远程 LIGHT | true | LIGHT |
 | 火焰法杖 | 远程 MAGIC | false | MAGIC |
+
+**待优化**：
+- 不同武器需不同的 `visual_offset`（铁剑/战斧/手枪大小差异），当前默认 Vector2.ZERO，需逐 .tres 填写
+- 可在 WeaponData 中加 `visual_scale` 属性控制缩放
+
+**初始装备配置**：主手铁剑（近战），副手手枪（远程）
 
 **武器隐式修正**（Archetype，不占词缀槽）：
 
@@ -561,10 +567,7 @@ signal skill_replace_needed(new_skill: SkillBase)  # UI 弹选择
 | docs/项目实施规划.md | 整体阶段规划、文件清单、风险评估 |
 | docs/装备系统设计.md | 装备系统 v7.0 完整设计（词缀/品质/套装/锻造/Room适配） |
 | docs/武器-装备统一方案.md | WeaponData 设计、Archtype 隐式修正、WeaponNode 统一 |
-| docs/weapon_system_progress.md | 武器系统当前状态和待优化 |
 | docs/敌人系统设计.md | EnemyConfig/BossConfig 骨架、3层敌人架构 |
 | docs/核心战斗功能完善规划.md | 体力/热量/弹药/技能详细设计（Unity原版参考） |
 | docs/游戏策划文档.md | 初始策划（战斗/角色/关卡/经济/UI/音频） |
-| docs/设定文档.md | 世界观设定（外卖员/遗忘/腐化外卖） |
 | docs/架构待办.md | 7个架构问题的分析和修复方向 |
-| docs/session_handoff_20260630.md | 上次会话交接记录 |
