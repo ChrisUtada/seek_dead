@@ -156,6 +156,8 @@ func _unhandled_input(event: InputEvent):
 # ===================== Physics =====================
 
 func _physics_process(delta: float):
+	if escape_skill:
+		escape_skill.tick(delta)
 	match _state:
 		PlayerState.IDLE, PlayerState.WALK, PlayerState.SPRINT:
 			_process_movement(delta)
