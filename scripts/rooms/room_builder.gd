@@ -119,7 +119,7 @@ func o(type: String, x: float, y: float) -> ObstacleDef:
 
 func _generate_room(r: RoomDef):
 	var outer := _outer_rect(r.nav_rect)
-	var path := ROOMS_DIR + r.id + ".tscn"
+	var path: String = ROOMS_DIR + r.id + ".tscn"
 	print("Generating ", path)
 
 	var scene_text := _build_scene_text(r, outer)
@@ -127,7 +127,7 @@ func _generate_room(r: RoomDef):
 	file.store_string(scene_text)
 	file.close()
 
-	var res_path := CONFIG_DIR + r.id + ".tres"
+	var res_path: String = CONFIG_DIR + r.id + ".tres"
 	var config_text := _build_config_text(r)
 	var cfg_file := FileAccess.open(res_path, FileAccess.WRITE)
 	cfg_file.store_string(config_text)
@@ -208,7 +208,7 @@ func _build_scene_text(r: RoomDef, outer: Rect2) -> String:
 		lines.append("[node name=\"" + ws.name + "\" type=\"StaticBody2D\" parent=\"Walls\"]")
 		lines.append("collision_layer = " + str(LAYER_ENV))
 		lines.append("")
-		var shape_id := "RectangleShape2D_" + ws.name
+		var shape_id: String = "RectangleShape2D_" + ws.name
 		lines.append("[sub_resource type=\"RectangleShape2D\" id=\"" + shape_id + "\"]")
 		lines.append("size = Vector2(" + str(ws.size.x) + ", " + str(ws.size.y) + ")")
 		lines.append("")
@@ -222,13 +222,13 @@ func _build_scene_text(r: RoomDef, outer: Rect2) -> String:
 
 	for i in r.obstacles.size():
 		var ob := r.obstacles[i] as ObstacleDef
-		var obs_name := ob.type.capitalize() + "_" + str(i + 1)
+		var obs_name: String = ob.type.capitalize() + "_" + str(i + 1)
 		var obs_size := _obstacle_size(ob.type)
 		lines.append("[node name=\"" + obs_name + "\" type=\"StaticBody2D\" parent=\"Obstacles\"]")
 		lines.append("collision_layer = " + str(LAYER_ENV))
 		lines.append("position = Vector2(" + str(ob.pos.x) + ", " + str(ob.pos.y) + ")")
 		lines.append("")
-		var obs_shape_id := "RectangleShape2D_" + obs_name
+		var obs_shape_id: String = "RectangleShape2D_" + obs_name
 		lines.append("[sub_resource type=\"RectangleShape2D\" id=\"" + obs_shape_id + "\"]")
 		lines.append("size = Vector2(" + str(obs_size.x) + ", " + str(obs_size.y) + ")")
 		lines.append("")
@@ -249,7 +249,7 @@ func _build_scene_text(r: RoomDef, outer: Rect2) -> String:
 	lines.append("")
 
 	for i in spawn_positions.spawns.size():
-		var sp := spawn_positions.spawns[i]
+		var sp: Vector2 = spawn_positions.spawns[i]
 		lines.append("[node name=\"SpawnMarker" + str(i + 1) + "\" type=\"Marker2D\" parent=\"Markers\"]")
 		lines.append("position = Vector2(" + str(sp.x) + ", " + str(sp.y) + ")")
 		lines.append("groups = [\"spawn\"]")
@@ -262,7 +262,7 @@ func _build_scene_text(r: RoomDef, outer: Rect2) -> String:
 
 	var interactables := _calc_interactables(r, outer)
 	for key in interactables:
-		var ip := interactables[key]
+		var ip: Vector2 = interactables[key]
 		lines.append("[node name=\"" + key + "\" type=\"Marker2D\" parent=\"Markers\"]")
 		lines.append("position = Vector2(" + str(ip.x) + ", " + str(ip.y) + ")")
 		lines.append("groups = [\"interactable\"]")
@@ -274,7 +274,6 @@ func _build_scene_text(r: RoomDef, outer: Rect2) -> String:
 	for i in r.doors.size():
 		var dd := r.doors[i] as DoorDef
 		var door_pos := _door_pos(dd, outer)
-		var dir_name := ["RIGHT", "DOWN", "LEFT", "UP"][dd.edge]
 		lines.append("[node name=\"DoorMarker" + str(i + 1) + "\" parent=\"Doors\" instance=ExtResource(\"1_1adhe\")]")
 		lines.append("position = Vector2(" + str(door_pos.x) + ", " + str(door_pos.y) + ")")
 		if i == 0:
@@ -435,7 +434,7 @@ func _door_pos(dd: DoorDef, outer: Rect2) -> Vector2:
 		1: return Vector2(outer.position.x + outer.size.x, dd.pos)
 		2: return Vector2(dd.pos, outer.position.y + outer.size.y)
 		3: return Vector2(outer.position.x, dd.pos)
-	_: return Vector2.ZERO
+	return Vector2.ZERO
 
 
 func _door_glow_pos(dd: DoorDef, outer: Rect2) -> Vector2:
@@ -446,7 +445,7 @@ func _door_glow_pos(dd: DoorDef, outer: Rect2) -> Vector2:
 		1: return Vector2(outer.position.x + outer.size.x - in_off - 32, dd.pos - 8)
 		2: return Vector2(dd.pos - half, outer.position.y + outer.size.y - in_off - 16)
 		3: return Vector2(outer.position.x + in_off, dd.pos - 8)
-	_: return Vector2.ZERO
+	return Vector2.ZERO
 
 
 func _obstacle_size(type: String) -> Vector2:
@@ -455,7 +454,7 @@ func _obstacle_size(type: String) -> Vector2:
 		"crate": return Vector2(32, 32)
 		"bookshelf": return Vector2(16, 64)
 		"counter": return Vector2(64, 16)
-		_: return Vector2(24, 24)
+	return Vector2(24, 24)
 
 
 func _calc_spawn_positions(r: RoomDef, outer: Rect2) -> Dictionary:
@@ -476,8 +475,8 @@ func _calc_spawn_positions(r: RoomDef, outer: Rect2) -> Dictionary:
 		for col in range(cols):
 			if idx >= r.spawn_count:
 				break
-			var x := margin + (nav.size.x - margin * 2) * (col + 0.5) / cols
-			var y := margin + (nav.size.y - margin * 2) * (row + 0.5) / ceil(float(r.spawn_count) / cols)
+			var x: float = margin + (nav.size.x - margin * 2) * (col + 0.5) / cols
+			var y: float = margin + (nav.size.y - margin * 2) * (row + 0.5) / ceil(float(r.spawn_count) / cols)
 			spawns.append(Vector2(x, y))
 			idx += 1
 
