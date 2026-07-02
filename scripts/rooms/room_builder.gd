@@ -17,8 +17,8 @@ class RoomDef:
 	var name: String
 	var size: RoomSize
 	var nav_rect: Rect2
-	var doors: Array[DoorDef]
-	var obstacles: Array[ObstacleDef]
+	var doors: Array
+	var obstacles: Array
 	var spawn_count: int
 	var has_elite: bool
 
