@@ -1,0 +1,195 @@
+[gd_scene format=4]
+
+[ext_resource type="PackedScene" path="res://scenes/rooms/door_marker.tscn" id="1_1adhe"]
+
+[sub_resource type="NavigationPolygon" id="NavigationPolygon_yxrvq"]
+vertices = PackedVector2Array(16.0, 16.0, 496.0, 16.0, 496.0, 368.0, 16.0, 368.0)
+polygons = Array[PackedInt32Array]([PackedInt32Array(0, 1, 2, 3)])
+
+[node name="room_06" type="Node2D"]
+
+[node name="NavigationRegion2D" type="NavigationRegion2D" parent="."]
+navigation_polygon = SubResource("NavigationPolygon_yxrvq")
+
+[node name="Floor" type="Node2D" parent="."]
+
+[node name="ColorRect" type="ColorRect" parent="Floor"]
+color = Color("#2a2a2a")
+size = Vector2(480.0, 352.0)
+position = Vector2(16.0, 16.0)
+
+[node name="DoorGlow1" type="ColorRect" parent="Floor"]
+color = Color(0, 1, 0.267, 0.3)
+size = Vector2(32, 16)
+position = Vector2(104.0, 348.0)
+[node name="DoorGlow2" type="ColorRect" parent="Floor"]
+color = Color(0, 1, 0.267, 0.3)
+size = Vector2(32, 16)
+position = Vector2(20.0, 232.0)
+
+[node name="Walls" type="Node2D" parent="."]
+
+[node name="TopWall" type="StaticBody2D" parent="Walls"]
+collision_layer = 4
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_TopWall"]
+size = Vector2(512.0, 16.0)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Walls/TopWall"]
+shape = SubResource("RectangleShape2D_TopWall")
+position = Vector2(256.0, 0.0)
+
+[node name="BottomWall_L1" type="StaticBody2D" parent="Walls"]
+collision_layer = 4
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_BottomWall_L1"]
+size = Vector2(104.0, 16.0)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Walls/BottomWall_L1"]
+shape = SubResource("RectangleShape2D_BottomWall_L1")
+position = Vector2(52.0, 384.0)
+
+[node name="BottomWall_R" type="StaticBody2D" parent="Walls"]
+collision_layer = 4
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_BottomWall_R"]
+size = Vector2(376.0, 16.0)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Walls/BottomWall_R"]
+shape = SubResource("RectangleShape2D_BottomWall_R")
+position = Vector2(324.0, 384.0)
+
+[node name="LeftWall_T1" type="StaticBody2D" parent="Walls"]
+collision_layer = 4
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_LeftWall_T1"]
+size = Vector2(16.0, 224.0)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Walls/LeftWall_T1"]
+shape = SubResource("RectangleShape2D_LeftWall_T1")
+position = Vector2(0.0, 112.0)
+
+[node name="LeftWall_B" type="StaticBody2D" parent="Walls"]
+collision_layer = 4
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_LeftWall_B"]
+size = Vector2(16.0, 128.0)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Walls/LeftWall_B"]
+shape = SubResource("RectangleShape2D_LeftWall_B")
+position = Vector2(0.0, 320.0)
+
+[node name="RightWall" type="StaticBody2D" parent="Walls"]
+collision_layer = 4
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_RightWall"]
+size = Vector2(16.0, 384.0)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Walls/RightWall"]
+shape = SubResource("RectangleShape2D_RightWall")
+position = Vector2(512.0, 192.0)
+
+[node name="Obstacles" type="Node2D" parent="."]
+
+[node name="Pillar_1" type="StaticBody2D" parent="Obstacles"]
+collision_layer = 4
+position = Vector2(80.0, 80.0)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_Pillar_1"]
+size = Vector2(24.0, 24.0)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Obstacles/Pillar_1"]
+shape = SubResource("RectangleShape2D_Pillar_1")
+
+[node name="NavigationObstacle2D" type="NavigationObstacle2D" parent="Obstacles/Pillar_1"]
+avoidance_enabled = true
+radius = 12.0
+
+[node name="Pillar_2" type="StaticBody2D" parent="Obstacles"]
+collision_layer = 4
+position = Vector2(120.0, 220.0)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_Pillar_2"]
+size = Vector2(24.0, 24.0)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Obstacles/Pillar_2"]
+shape = SubResource("RectangleShape2D_Pillar_2")
+
+[node name="NavigationObstacle2D" type="NavigationObstacle2D" parent="Obstacles/Pillar_2"]
+avoidance_enabled = true
+radius = 12.0
+
+[node name="Crate_3" type="StaticBody2D" parent="Obstacles"]
+collision_layer = 4
+position = Vector2(280.0, 120.0)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_Crate_3"]
+size = Vector2(32.0, 32.0)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Obstacles/Crate_3"]
+shape = SubResource("RectangleShape2D_Crate_3")
+
+[node name="NavigationObstacle2D" type="NavigationObstacle2D" parent="Obstacles/Crate_3"]
+avoidance_enabled = true
+radius = 12.0
+
+[node name="Crate_4" type="StaticBody2D" parent="Obstacles"]
+collision_layer = 4
+position = Vector2(320.0, 260.0)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_Crate_4"]
+size = Vector2(32.0, 32.0)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Obstacles/Crate_4"]
+shape = SubResource("RectangleShape2D_Crate_4")
+
+[node name="NavigationObstacle2D" type="NavigationObstacle2D" parent="Obstacles/Crate_4"]
+avoidance_enabled = true
+radius = 12.0
+
+[node name="Markers" type="Node2D" parent="."]
+
+[node name="PlayerSpawn" type="Marker2D" parent="Markers"]
+position = Vector2(256.0, 280.0)
+
+[node name="SpawnMarker1" type="Marker2D" parent="Markers"]
+position = Vector2(112.0, 112.0)
+groups = ["spawn"]
+
+[node name="SpawnMarker2" type="Marker2D" parent="Markers"]
+position = Vector2(240.0, 112.0)
+groups = ["spawn"]
+
+[node name="SpawnMarker3" type="Marker2D" parent="Markers"]
+position = Vector2(368.0, 112.0)
+groups = ["spawn"]
+
+[node name="SpawnMarker4" type="Marker2D" parent="Markers"]
+position = Vector2(112.0, 240.0)
+groups = ["spawn"]
+
+[node name="SpawnMarker5" type="Marker2D" parent="Markers"]
+position = Vector2(240.0, 240.0)
+groups = ["spawn"]
+
+[node name="SpawnMarker6" type="Marker2D" parent="Markers"]
+position = Vector2(368.0, 240.0)
+groups = ["spawn"]
+
+[node name="Interactable_Chest" type="Marker2D" parent="Markers"]
+position = Vector2(112.0, 315.200012207031)
+groups = ["interactable"]
+
+[node name="Trap_Spikes" type="Marker2D" parent="Markers"]
+position = Vector2(256.0, 192.0)
+groups = ["interactable"]
+
+[node name="Doors" type="Node2D" parent="."]
+
+[node name="DoorMarker1" parent="Doors" instance=ExtResource("1_1adhe")]
+position = Vector2(120.0, 384.0)
+direction = 2
+is_entrance = true
+[node name="DoorMarker2" parent="Doors" instance=ExtResource("1_1adhe")]
+position = Vector2(0.0, 240.0)
+direction = 3

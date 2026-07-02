@@ -4,9 +4,7 @@ extends Node
 const DOOR_SCENE := preload("res://scenes/rooms/door_marker.tscn")
 const ROOMS_DIR := "res://scenes/rooms/"
 const CONFIG_DIR := "res://resources/rooms/"
-
-const LAYER_ENV := 4
-
+const ENV_LAYER := 4
 const WALL_THICKNESS := 16
 const DOOR_WIDTH := 32
 
@@ -23,11 +21,11 @@ class RoomDef:
 	var has_elite: bool
 
 class DoorDef:
-	var edge: int  # 0=top, 1=right, 2=bottom, 3=left
-	var pos: float  # position along the edge
+	var edge: int
+	var pos: float
 
 class ObstacleDef:
-	var type: String  # pillar, crate, bookshelf, counter
+	var type: String
 	var pos: Vector2
 
 
@@ -35,400 +33,238 @@ func _ready():
 	if Engine.is_editor_hint():
 		return
 	generate_all()
-	print("Generation complete. You can close this scene.")
+	print("Generation complete.")
 	get_tree().quit()
 
 
 func generate_all():
 	print("=== Starting room generation ===")
-
-	var rooms := _define_all_rooms()
-
-	for r in rooms:
+	for r in _define_all_rooms():
 		_generate_room(r)
+	print("=== Done ===")
 
-	print("=== All rooms generated ===")
 
-
-func _define_all_rooms() -> Array[RoomDef]:
+func _define_all_rooms() -> Array:
 	var rooms: Array[RoomDef] = []
 
-	var small_nav = Rect2(16, 16, 384, 224)
-	var med_nav = Rect2(16, 16, 480, 352)
-	var large_nav = Rect2(16, 16, 640, 432)
-	var boss_nav = Rect2(16, 16, 640, 448)
+	var sn := Rect2(16, 16, 384, 224)
+	var mn := Rect2(16, 16, 480, 352)
+	var ln := Rect2(16, 16, 640, 432)
+	var bn := Rect2(16, 16, 640, 448)
 
-	rooms.append(_make("room_01", "石质大厅", RoomSize.SMALL, Rect2(16, 16, 384, 224), [d(0, 192)], [o("pillar", 120, 80), o("pillar", 260, 140)], 5, false, []))
-	rooms.append(_make("room_02", "水牢", RoomSize.SMALL, Rect2(16, 16, 288, 256), [d(2, 144)], [o("crate", 80, 120), o("crate", 180, 160)], 4, false, []))
-	rooms.append(_make("room_03", "武器库", RoomSize.SMALL, Rect2(16, 16, 352, 224), [d(0, 120), d(2, 120)], [o("counter", 160, 64), o("counter", 160, 160), o("bookshelf", 280, 80)], 4, false, []))
-	rooms.append(_make("room_04", "囚室", RoomSize.SMALL, Rect2(16, 16, 320, 256), [d(1, 128), d(2, 160)], [o("pillar", 80, 80), o("pillar", 240, 80), o("pillar", 160, 160)], 5, false, []))
-	rooms.append(_make("room_05", "食堂", RoomSize.SMALL, Rect2(16, 16, 352, 288), [d(2, 176)], [o("counter", 100, 80), o("crate", 240, 180)], 5, false, []))
-
-	rooms.append(_make("room_06", "兵营", RoomSize.MEDIUM, med_nav, [d(2, 120), d(3, 240)], [o("pillar", 80, 80), o("pillar", 120, 220), o("crate", 280, 120), o("crate", 320, 260)], 6, true, []))
-	rooms.append(_make("room_07", "图书馆", RoomSize.MEDIUM, med_nav, [d(1, 240), d(3, 160)], [o("bookshelf", 160, 80), o("bookshelf", 160, 140), o("bookshelf", 320, 200)], 6, false, []))
-	rooms.append(_make("room_08", "实验室", RoomSize.MEDIUM, med_nav, [d(0, 160), d(1, 240), d(2, 160)], [o("counter", 120, 100), o("counter", 260, 200), o("pillar", 200, 160)], 6, true, []))
-	rooms.append(_make("room_09", "锻造间", RoomSize.MEDIUM, med_nav, [d(1, 200), d(3, 240)], [o("crate", 80, 120), o("crate", 140, 80), o("crate", 280, 200), o("counter", 320, 100)], 6, false, []))
-	rooms.append(_make("room_10", "祭坛", RoomSize.MEDIUM, med_nav, [d(0, 120), d(2, 120)], [o("pillar", 120, 100), o("pillar", 240, 100), o("pillar", 120, 240), o("pillar", 240, 240)], 6, true, []))
-	rooms.append(_make("room_11", "仓库", RoomSize.MEDIUM, med_nav, [d(1, 160), d(3, 200)], [o("crate", 80, 80), o("crate", 140, 100), o("crate", 80, 200), o("crate", 140, 220), o("crate", 300, 120), o("crate", 300, 200)], 6, false, []))
-	rooms.append(_make("room_12", "宴会厅", RoomSize.MEDIUM, med_nav, [d(0, 80), d(1, 240), d(3, 80)], [o("counter", 160, 80), o("counter", 240, 200), o("bookshelf", 80, 180), o("bookshelf", 360, 180)], 6, true, []))
-	rooms.append(_make("room_13", "演武场", RoomSize.MEDIUM, med_nav, [d(0, 160), d(2, 160)], [], 8, true, []))
-
-	rooms.append(_make("room_14", "花园", RoomSize.LARGE, large_nav, [d(0, 80), d(1, 320), d(2, 80)], [o("pillar", 100, 80), o("pillar", 200, 80), o("pillar", 400, 160), o("pillar", 500, 200), o("pillar", 200, 300), o("pillar", 400, 360)], 8, false, []))
-	rooms.append(_make("room_15", "军械库", RoomSize.LARGE, large_nav, [d(1, 160), d(3, 320), d(2, 240)], [o("crate", 120, 100), o("crate", 180, 80), o("crate", 120, 200), o("crate", 400, 150), o("counter", 320, 100), o("counter", 320, 280)], 8, true, []))
-	rooms.append(_make("room_16", "大殿", RoomSize.LARGE, large_nav, [d(1, 320), d(3, 320)], [o("bookshelf", 160, 80), o("bookshelf", 160, 160), o("bookshelf", 160, 240), o("bookshelf", 480, 80), o("pillar", 320, 160), o("pillar", 320, 280)], 8, true, []))
-	rooms.append(_make("room_17", "地下河", RoomSize.LARGE, large_nav, [d(0, 160), d(1, 480), d(2, 160)], [o("pillar", 80, 120), o("pillar", 160, 200), o("crate", 400, 100), o("crate", 500, 300)], 8, false, []))
-	rooms.append(_make("room_18", "宝库", RoomSize.LARGE, large_nav, [d(0, 80), d(1, 160), d(2, 80), d(3, 240)], [o("crate", 160, 80), o("crate", 240, 80), o("crate", 360, 160), o("crate", 440, 240), o("counter", 80, 200), o("counter", 500, 300)], 8, true, []))
-	rooms.append(_make("room_19", "迷宫", RoomSize.LARGE, Rect2(16, 16, 480, 416), [d(1, 128), d(1, 384)], [o("bookshelf", 120, 80), o("bookshelf", 120, 200), o("bookshelf", 240, 160), o("bookshelf", 240, 320), o("bookshelf", 360, 80), o("bookshelf", 360, 240)], 6, false, []))
-	rooms.append(_make("room_20", "角斗场", RoomSize.LARGE, large_nav, [d(0, 240), d(2, 240)], [o("pillar", 80, 80), o("pillar", 560, 80), o("pillar", 80, 360), o("pillar", 560, 360)], 10, true, []))
-	rooms.append(_make("room_21", "教堂", RoomSize.LARGE, large_nav, [d(0, 160), d(2, 160), d(3, 80)], [o("pillar", 160, 80), o("pillar", 320, 80), o("pillar", 480, 80), o("bookshelf", 80, 200), o("bookshelf", 560, 200)], 8, true, []))
-
-	rooms.append(_make("room_22", "巨龙巢穴", RoomSize.BOSS, boss_nav, [d(0, 320)], [o("pillar", 80, 80), o("pillar", 560, 80), o("pillar", 80, 380), o("pillar", 560, 380)], 10, false, [true]))
-	rooms.append(_make("room_23", "巫妖塔顶", RoomSize.BOSS, Rect2(16, 16, 512, 384), [d(2, 256)], [o("pillar", 160, 80), o("pillar", 320, 80), o("pillar", 240, 200)], 8, false, [true]))
-	rooms.append(_make("room_24", "深渊裂隙", RoomSize.BOSS, boss_nav, [d(1, 320), d(3, 320)], [o("pillar", 120, 100), o("pillar", 200, 200), o("pillar", 320, 150), o("pillar", 440, 300), o("pillar", 520, 200), o("pillar", 400, 80)], 10, false, [true]))
-	rooms.append(_make("room_25", "最终之间", RoomSize.BOSS, boss_nav, [d(0, 320)], [o("pillar", 160, 160), o("pillar", 320, 160), o("pillar", 480, 160), o("crate", 160, 300), o("crate", 480, 300)], 12, false, [true]))
+	rooms.append(_mk("room_01", "石质大厅", RoomSize.SMALL, sn, [dd(0, 192)], [ob("pillar", 120, 80), ob("pillar", 260, 140)], 5))
+	rooms.append(_mk("room_02", "水牢", RoomSize.SMALL, Rect2(16, 16, 288, 256), [dd(2, 144)], [ob("crate", 80, 120), ob("crate", 180, 160)], 4))
+	rooms.append(_mk("room_03", "武器库", RoomSize.SMALL, Rect2(16, 16, 352, 224), [dd(0, 120), dd(2, 120)], [ob("counter", 160, 64), ob("counter", 160, 160), ob("bookshelf", 280, 80)], 4))
+	rooms.append(_mk("room_04", "囚室", RoomSize.SMALL, Rect2(16, 16, 320, 256), [dd(1, 128), dd(2, 160)], [ob("pillar", 80, 80), ob("pillar", 240, 80), ob("pillar", 160, 160)], 5))
+	rooms.append(_mk("room_05", "食堂", RoomSize.SMALL, Rect2(16, 16, 352, 288), [dd(2, 176)], [ob("counter", 100, 80), ob("crate", 240, 180)], 5))
+	rooms.append(_mk("room_06", "兵营", RoomSize.MEDIUM, mn, [dd(2, 120), dd(3, 240)], [ob("pillar", 80, 80), ob("pillar", 120, 220), ob("crate", 280, 120), ob("crate", 320, 260)], 6))
+	rooms.append(_mk("room_07", "图书馆", RoomSize.MEDIUM, mn, [dd(1, 240), dd(3, 160)], [ob("bookshelf", 160, 80), ob("bookshelf", 160, 140), ob("bookshelf", 320, 200)], 6))
+	rooms.append(_mk("room_08", "实验室", RoomSize.MEDIUM, mn, [dd(0, 160), dd(1, 240), dd(2, 160)], [ob("counter", 120, 100), ob("counter", 260, 200), ob("pillar", 200, 160)], 6))
+	rooms.append(_mk("room_09", "锻造间", RoomSize.MEDIUM, mn, [dd(1, 200), dd(3, 240)], [ob("crate", 80, 120), ob("crate", 140, 80), ob("crate", 280, 200), ob("counter", 320, 100)], 6))
+	rooms.append(_mk("room_10", "祭坛", RoomSize.MEDIUM, mn, [dd(0, 120), dd(2, 120)], [ob("pillar", 120, 100), ob("pillar", 240, 100), ob("pillar", 120, 240), ob("pillar", 240, 240)], 6))
+	rooms.append(_mk("room_11", "仓库", RoomSize.MEDIUM, mn, [dd(1, 160), dd(3, 200)], [ob("crate", 80, 80), ob("crate", 140, 100), ob("crate", 80, 200), ob("crate", 140, 220), ob("crate", 300, 120), ob("crate", 300, 200)], 6))
+	rooms.append(_mk("room_12", "宴会厅", RoomSize.MEDIUM, mn, [dd(0, 80), dd(1, 240), dd(3, 80)], [ob("counter", 160, 80), ob("counter", 240, 200), ob("bookshelf", 80, 180), ob("bookshelf", 360, 180)], 6))
+	rooms.append(_mk("room_13", "演武场", RoomSize.MEDIUM, mn, [dd(0, 160), dd(2, 160)], [], 8))
+	rooms.append(_mk("room_14", "花园", RoomSize.LARGE, ln, [dd(0, 80), dd(1, 320), dd(2, 80)], [ob("pillar", 100, 80), ob("pillar", 200, 80), ob("pillar", 400, 160), ob("pillar", 500, 200), ob("pillar", 200, 300), ob("pillar", 400, 360)], 8))
+	rooms.append(_mk("room_15", "军械库", RoomSize.LARGE, ln, [dd(1, 160), dd(3, 320), dd(2, 240)], [ob("crate", 120, 100), ob("crate", 180, 80), ob("crate", 120, 200), ob("crate", 400, 150), ob("counter", 320, 100), ob("counter", 320, 280)], 8))
+	rooms.append(_mk("room_16", "大殿", RoomSize.LARGE, ln, [dd(1, 320), dd(3, 320)], [ob("bookshelf", 160, 80), ob("bookshelf", 160, 160), ob("bookshelf", 160, 240), ob("bookshelf", 480, 80), ob("pillar", 320, 160), ob("pillar", 320, 280)], 8))
+	rooms.append(_mk("room_17", "地下河", RoomSize.LARGE, ln, [dd(0, 160), dd(1, 480), dd(2, 160)], [ob("pillar", 80, 120), ob("pillar", 160, 200), ob("crate", 400, 100), ob("crate", 500, 300)], 8))
+	rooms.append(_mk("room_18", "宝库", RoomSize.LARGE, ln, [dd(0, 80), dd(1, 160), dd(2, 80), dd(3, 240)], [ob("crate", 160, 80), ob("crate", 240, 80), ob("crate", 360, 160), ob("crate", 440, 240), ob("counter", 80, 200), ob("counter", 500, 300)], 8))
+	rooms.append(_mk("room_19", "迷宫", RoomSize.LARGE, Rect2(16, 16, 480, 416), [dd(1, 128), dd(1, 384)], [ob("bookshelf", 120, 80), ob("bookshelf", 120, 200), ob("bookshelf", 240, 160), ob("bookshelf", 240, 320), ob("bookshelf", 360, 80), ob("bookshelf", 360, 240)], 6))
+	rooms.append(_mk("room_20", "角斗场", RoomSize.LARGE, ln, [dd(0, 240), dd(2, 240)], [ob("pillar", 80, 80), ob("pillar", 560, 80), ob("pillar", 80, 360), ob("pillar", 560, 360)], 10))
+	rooms.append(_mk("room_21", "教堂", RoomSize.LARGE, ln, [dd(0, 160), dd(2, 160), dd(3, 80)], [ob("pillar", 160, 80), ob("pillar", 320, 80), ob("pillar", 480, 80), ob("bookshelf", 80, 200), ob("bookshelf", 560, 200)], 8))
+	rooms.append(_mk("room_22", "巨龙巢穴", RoomSize.BOSS, bn, [dd(0, 320)], [ob("pillar", 80, 80), ob("pillar", 560, 80), ob("pillar", 80, 380), ob("pillar", 560, 380)], 10))
+	rooms.append(_mk("room_23", "巫妖塔顶", RoomSize.BOSS, Rect2(16, 16, 512, 384), [dd(2, 256)], [ob("pillar", 160, 80), ob("pillar", 320, 80), ob("pillar", 240, 200)], 8))
+	rooms.append(_mk("room_24", "深渊裂隙", RoomSize.BOSS, bn, [dd(1, 320), dd(3, 320)], [ob("pillar", 120, 100), ob("pillar", 200, 200), ob("pillar", 320, 150), ob("pillar", 440, 300), ob("pillar", 520, 200), ob("pillar", 400, 80)], 10))
+	rooms.append(_mk("room_25", "最终之间", RoomSize.BOSS, bn, [dd(0, 320)], [ob("pillar", 160, 160), ob("pillar", 320, 160), ob("pillar", 480, 160), ob("crate", 160, 300), ob("crate", 480, 300)], 12))
 
 	return rooms
 
 
-func _make(id: String, name: String, size: RoomSize, nav_rect: Rect2, doors: Array, obstacles: Array, spawn_count: int, has_elite: bool, boss_flags: Array = []) -> RoomDef:
+func _mk(id: String, name: String, size: RoomSize, nav: Rect2, doors: Array, obstacles: Array, spawn_count: int) -> RoomDef:
 	var r := RoomDef.new()
-	r.id = id
-	r.name = name
-	r.size = size
-	r.nav_rect = nav_rect
-	r.doors = doors
-	r.obstacles = obstacles
-	r.spawn_count = spawn_count
-	r.has_elite = has_elite or (size == RoomSize.BOSS)
+	r.id = id; r.name = name; r.size = size; r.nav_rect = nav; r.doors = doors; r.obstacles = obstacles; r.spawn_count = spawn_count; r.has_elite = size != RoomSize.SMALL
 	return r
 
 
-func d(edge: int, pos: float) -> DoorDef:
-	var dd := DoorDef.new()
-	dd.edge = edge
-	dd.pos = pos
-	return dd
+func dd(edge: int, pos: float) -> DoorDef:
+	var d := DoorDef.new(); d.edge = edge; d.pos = pos; return d
 
-
-func o(type: String, x: float, y: float) -> ObstacleDef:
-	var od := ObstacleDef.new()
-	od.type = type
-	od.pos = Vector2(x, y)
-	return od
+func ob(type: String, x: float, y: float) -> ObstacleDef:
+	var o := ObstacleDef.new(); o.type = type; o.pos = Vector2(x, y); return o
 
 
 func _generate_room(r: RoomDef):
-	var outer := _outer_rect(r.nav_rect)
-	var path: String = ROOMS_DIR + r.id + ".tscn"
-	print("Generating ", path)
+	var outer := Rect2(r.nav_rect.position.x - WALL_THICKNESS, r.nav_rect.position.y - WALL_THICKNESS, r.nav_rect.size.x + WALL_THICKNESS * 2, r.nav_rect.size.y + WALL_THICKNESS * 2)
+	var root := Node2D.new()
+	root.name = r.id
+	root.set_editable_instance(true)
 
-	var scene_text := _build_scene_text(r, outer)
-	var file := FileAccess.open(path, FileAccess.WRITE)
-	file.store_string(scene_text)
-	file.close()
+	var nav_node := NavigationRegion2D.new()
+	nav_node.name = "NavigationRegion2D"
+	var nav_poly := NavigationPolygon.new()
+	var verts := PackedVector2Array([Vector2(r.nav_rect.position.x, r.nav_rect.position.y), Vector2(r.nav_rect.position.x + r.nav_rect.size.x, r.nav_rect.position.y), Vector2(r.nav_rect.position.x + r.nav_rect.size.x, r.nav_rect.position.y + r.nav_rect.size.y), Vector2(r.nav_rect.position.x, r.nav_rect.position.y + r.nav_rect.size.y)])
+	nav_poly.vertices = verts
+	nav_poly.add_polygon(PackedInt32Array([0, 1, 2, 3]))
+	nav_node.navigation_polygon = nav_poly
+	root.add_child(nav_node)
+	nav_node.owner = root
 
-	var res_path: String = CONFIG_DIR + r.id + ".tres"
-	var config_text := _build_config_text(r)
-	var cfg_file := FileAccess.open(res_path, FileAccess.WRITE)
-	cfg_file.store_string(config_text)
-	cfg_file.close()
+	var floor_node := Node2D.new()
+	floor_node.name = "Floor"
+	root.add_child(floor_node)
+	floor_node.owner = root
 
-	print("  -> ", path)
-	print("  -> ", res_path)
-
-
-func _outer_rect(nav: Rect2) -> Rect2:
-	return Rect2(
-		nav.position.x - WALL_THICKNESS,
-		nav.position.y - WALL_THICKNESS,
-		nav.size.x + WALL_THICKNESS * 2,
-		nav.size.y + WALL_THICKNESS * 2
-	)
-
-
-func _build_scene_text(r: RoomDef, outer: Rect2) -> String:
-	var lines: Array[String] = []
-	lines.append("[gd_scene format=4]")
-	lines.append("")
-
-	var door_ref := "[ext_resource type=\"PackedScene\" path=\"res://scenes/rooms/door_marker.tscn\" id=\"1_1adhe\"]"
-	lines.append(door_ref)
-	lines.append("")
-
-	var nav_poly_id := "NavigationPolygon_yxrvq"
-	lines.append("[sub_resource type=\"NavigationPolygon\" id=\"" + nav_poly_id + "\"]")
-
-	var nav := r.nav_rect
-	var verts := PackedVector2Array([
-		Vector2(nav.position.x, nav.position.y),
-		Vector2(nav.position.x + nav.size.x, nav.position.y),
-		Vector2(nav.position.x + nav.size.x, nav.position.y + nav.size.y),
-		Vector2(nav.position.x, nav.position.y + nav.size.y),
-	])
-	var vert_str := ""
-	for v in verts:
-		vert_str += str(v.x) + ", " + str(v.y) + ", "
-	vert_str = vert_str.trim_suffix(", ")
-	lines.append("vertices = PackedVector2Array(" + vert_str + ")")
-	lines.append("polygons = Array[PackedInt32Array]([PackedInt32Array(0, 1, 2, 3)])")
-	lines.append("")
-
-	lines.append("[node name=\"" + r.id + "\" type=\"Node2D\"]")
-	lines.append("")
-
-	lines.append("[node name=\"NavigationRegion2D\" type=\"NavigationRegion2D\" parent=\".\"]")
-	lines.append("navigation_polygon = SubResource(\"" + nav_poly_id + "\")")
-	lines.append("")
-
-	lines.append("[node name=\"Floor\" type=\"Node2D\" parent=\".\"]")
-	lines.append("")
-
-	var floor_color := "\"#2a2a2a\""
-	lines.append("[node name=\"ColorRect\" type=\"ColorRect\" parent=\"Floor\"]")
-	lines.append("color = Color(" + floor_color + ")")
-	lines.append("size = Vector2(" + str(nav.size.x) + ", " + str(nav.size.y) + ")")
-	lines.append("position = Vector2(" + str(nav.position.x) + ", " + str(nav.position.y) + ")")
-	lines.append("")
+	var floor_rect := ColorRect.new()
+	floor_rect.name = "ColorRect"
+	floor_rect.color = Color("#2a2a2a")
+	floor_rect.size = r.nav_rect.size
+	floor_rect.position = r.nav_rect.position
+	floor_node.add_child(floor_rect)
+	floor_rect.owner = root
 
 	for i in r.doors.size():
-		var dd := r.doors[i] as DoorDef
-		var glow_pos := _door_glow_pos(dd, outer)
-		lines.append("[node name=\"DoorGlow" + str(i + 1) + "\" type=\"ColorRect\" parent=\"Floor\"]")
-		lines.append("color = Color(0, 1, 0.267, 0.3)")
-		lines.append("size = Vector2(32, 16)")
-		lines.append("position = Vector2(" + str(glow_pos.x) + ", " + str(glow_pos.y) + ")")
-	lines.append("")
+		var dd_obj := r.doors[i] as DoorDef
+		var glow := ColorRect.new()
+		glow.name = "DoorGlow" + str(i + 1)
+		glow.color = Color(0, 1, 0.267, 0.3)
+		glow.size = Vector2(32, 16)
+		glow.position = _door_glow_pos(dd_obj, outer)
+		floor_node.add_child(glow)
+		glow.owner = root
 
-	lines.append("[node name=\"Walls\" type=\"Node2D\" parent=\".\"]")
-	lines.append("")
+	var walls_node := Node2D.new()
+	walls_node.name = "Walls"
+	root.add_child(walls_node)
+	walls_node.owner = root
 
-	var wall_segments := _calc_wall_segments(r, outer)
-	for i in wall_segments.size():
-		var ws := wall_segments[i]
-		lines.append("[node name=\"" + ws.name + "\" type=\"StaticBody2D\" parent=\"Walls\"]")
-		lines.append("collision_layer = " + str(LAYER_ENV))
-		lines.append("")
-		var shape_id: String = "RectangleShape2D_" + ws.name
-		lines.append("[sub_resource type=\"RectangleShape2D\" id=\"" + shape_id + "\"]")
-		lines.append("size = Vector2(" + str(ws.size.x) + ", " + str(ws.size.y) + ")")
-		lines.append("")
-		lines.append("[node name=\"CollisionShape2D\" type=\"CollisionShape2D\" parent=\"Walls/" + ws.name + "\"]")
-		lines.append("shape = SubResource(\"" + shape_id + "\")")
-		lines.append("position = Vector2(" + str(ws.pos.x) + ", " + str(ws.pos.y) + ")")
-		lines.append("")
+	for ws in _wall_segments(r, outer):
+		var body := StaticBody2D.new()
+		body.name = ws.name
+		body.collision_layer = ENV_LAYER
+		walls_node.add_child(body)
+		body.owner = root
+		var shape := RectangleShape2D.new()
+		shape.size = ws.size
+		var col := CollisionShape2D.new()
+		col.name = "CollisionShape2D"
+		col.shape = shape
+		col.position = ws.shape_offset
+		body.add_child(col)
+		col.owner = root
 
-	lines.append("[node name=\"Obstacles\" type=\"Node2D\" parent=\".\"]")
-	lines.append("")
+	var obs_node := Node2D.new()
+	obs_node.name = "Obstacles"
+	root.add_child(obs_node)
+	obs_node.owner = root
 
 	for i in r.obstacles.size():
-		var ob := r.obstacles[i] as ObstacleDef
-		var obs_name: String = ob.type.capitalize() + "_" + str(i + 1)
-		var obs_size := _obstacle_size(ob.type)
-		lines.append("[node name=\"" + obs_name + "\" type=\"StaticBody2D\" parent=\"Obstacles\"]")
-		lines.append("collision_layer = " + str(LAYER_ENV))
-		lines.append("position = Vector2(" + str(ob.pos.x) + ", " + str(ob.pos.y) + ")")
-		lines.append("")
-		var obs_shape_id: String = "RectangleShape2D_" + obs_name
-		lines.append("[sub_resource type=\"RectangleShape2D\" id=\"" + obs_shape_id + "\"]")
-		lines.append("size = Vector2(" + str(obs_size.x) + ", " + str(obs_size.y) + ")")
-		lines.append("")
-		lines.append("[node name=\"CollisionShape2D\" type=\"CollisionShape2D\" parent=\"Obstacles/" + obs_name + "\"]")
-		lines.append("shape = SubResource(\"" + obs_shape_id + "\")")
-		lines.append("")
-		lines.append("[node name=\"NavigationObstacle2D\" type=\"NavigationObstacle2D\" parent=\"Obstacles/" + obs_name + "\"]")
-		lines.append("avoidance_enabled = true")
-		lines.append("radius = 12.0")
-		lines.append("")
+		var ob_obj := r.obstacles[i] as ObstacleDef
+		var body := StaticBody2D.new()
+		body.name = ob_obj.type.capitalize() + "_" + str(i + 1)
+		body.collision_layer = ENV_LAYER
+		body.position = ob_obj.pos
+		obs_node.add_child(body)
+		body.owner = root
+		var osize := _obs_size(ob_obj.type)
+		var shape := RectangleShape2D.new()
+		shape.size = osize
+		var col := CollisionShape2D.new()
+		col.name = "CollisionShape2D"
+		col.shape = shape
+		body.add_child(col)
+		col.owner = root
+		var nav_obs := NavigationObstacle2D.new()
+		nav_obs.name = "NavigationObstacle2D"
+		nav_obs.avoidance_enabled = true
+		nav_obs.radius = 12.0
+		body.add_child(nav_obs)
+		nav_obs.owner = root
 
-	lines.append("[node name=\"Markers\" type=\"Node2D\" parent=\".\"]")
-	lines.append("")
+	var markers_node := Node2D.new()
+	markers_node.name = "Markers"
+	root.add_child(markers_node)
+	markers_node.owner = root
 
-	var spawn_positions := _calc_spawn_positions(r, outer)
-	lines.append("[node name=\"PlayerSpawn\" type=\"Marker2D\" parent=\"Markers\"]")
-	lines.append("position = Vector2(" + str(spawn_positions.player.x) + ", " + str(spawn_positions.player.y) + ")")
-	lines.append("")
+	var cx := r.nav_rect.position.x + r.nav_rect.size.x / 2
+	var cy := r.nav_rect.position.y + r.nav_rect.size.y / 2
 
-	for i in spawn_positions.spawns.size():
-		var sp: Vector2 = spawn_positions.spawns[i]
-		lines.append("[node name=\"SpawnMarker" + str(i + 1) + "\" type=\"Marker2D\" parent=\"Markers\"]")
-		lines.append("position = Vector2(" + str(sp.x) + ", " + str(sp.y) + ")")
-		lines.append("groups = [\"spawn\"]")
-		lines.append("")
+	var spawn := Marker2D.new()
+	spawn.name = "PlayerSpawn"
+	spawn.position = Vector2(cx, cy + r.nav_rect.size.y * 0.25)
+	markers_node.add_child(spawn)
+	spawn.owner = root
+
+	var sp_positions := _spawn_positions(r)
+	for i in sp_positions.size():
+		var sp := Marker2D.new()
+		sp.name = "SpawnMarker" + str(i + 1)
+		sp.position = sp_positions[i]
+		sp.add_to_group("spawn")
+		markers_node.add_child(sp)
+		sp.owner = root
 
 	if r.size == RoomSize.BOSS:
-		lines.append("[node name=\"SpawnMarker_Boss\" type=\"Marker2D\" parent=\"Markers\"]")
-		lines.append("position = Vector2(" + str(spawn_positions.player.x) + ", " + str(spawn_positions.player.y - 80) + ")")
-		lines.append("")
+		var boss_sp := Marker2D.new()
+		boss_sp.name = "SpawnMarker_Boss"
+		boss_sp.position = spawn.position + Vector2(0, -80)
+		markers_node.add_child(boss_sp)
+		boss_sp.owner = root
 
-	var interactables := _calc_interactables(r, outer)
+	var interactables := _interactables(r)
 	for key in interactables:
-		var ip: Vector2 = interactables[key]
-		lines.append("[node name=\"" + key + "\" type=\"Marker2D\" parent=\"Markers\"]")
-		lines.append("position = Vector2(" + str(ip.x) + ", " + str(ip.y) + ")")
-		lines.append("groups = [\"interactable\"]")
-		lines.append("")
+		var im := Marker2D.new()
+		im.name = key
+		im.position = interactables[key]
+		im.add_to_group("interactable")
+		markers_node.add_child(im)
+		im.owner = root
 
-	lines.append("[node name=\"Doors\" type=\"Node2D\" parent=\".\"]")
-	lines.append("")
+	var doors_node := Node2D.new()
+	doors_node.name = "Doors"
+	root.add_child(doors_node)
+	doors_node.owner = root
 
 	for i in r.doors.size():
-		var dd := r.doors[i] as DoorDef
-		var door_pos := _door_pos(dd, outer)
-		lines.append("[node name=\"DoorMarker" + str(i + 1) + "\" parent=\"Doors\" instance=ExtResource(\"1_1adhe\")]")
-		lines.append("position = Vector2(" + str(door_pos.x) + ", " + str(door_pos.y) + ")")
+		var dd_obj := r.doors[i] as DoorDef
+		var door := DOOR_SCENE.instantiate()
+		door.name = "DoorMarker" + str(i + 1)
+		door.position = _door_pos(dd_obj, outer)
+		door.direction = dd_obj.edge
 		if i == 0:
-			lines.append("direction = " + str(dd.edge))
-			lines.append("is_entrance = true")
-		else:
-			lines.append("direction = " + str(dd.edge))
+			door.is_entrance = true
+		doors_node.add_child(door)
+		door.owner = root
 
-	return "\n".join(lines)
+	var scene := PackedScene.new()
+	scene.pack(root)
+	var path := ROOMS_DIR + r.id + ".tscn"
+	ResourceSaver.save(scene, path)
+	print("  saved: ", path)
 
-
-func _build_config_text(r: RoomDef) -> String:
-	var lines: Array[String] = []
-	lines.append("[gd_resource type=\"Resource\" script_class=\"RoomConfig\" format=3]")
-	lines.append("")
-	lines.append("[ext_resource type=\"Script\" path=\"res://scripts/rooms/room_config.gd\" id=\"1\"]")
-	lines.append("[ext_resource type=\"PackedScene\" path=\"res://scenes/rooms/" + r.id + ".tscn\" id=\"2\"]")
-	lines.append("[ext_resource type=\"PackedScene\" path=\"res://scenes/enemies/goblin.tscn\" id=\"3\"]")
-	lines.append("[ext_resource type=\"PackedScene\" path=\"res://scenes/enemies/skeleton.tscn\" id=\"4\"]")
-	lines.append("")
-	lines.append("[resource]")
-	lines.append("script = ExtResource(\"1\")")
-	lines.append("scene = ExtResource(\"2\")")
-	lines.append("room_name = \"" + r.name + "\"")
-	lines.append("room_size = " + str(r.size))
-
-	var min_enemy := 3
-	var max_enemy := 6
+	var cfg := RoomConfig.new()
+	cfg.scene = scene
+	cfg.room_name = r.name
+	cfg.room_size = r.size as int
 	match r.size:
-		RoomSize.MEDIUM:
-			min_enemy = 5; max_enemy = 8
-		RoomSize.LARGE:
-			min_enemy = 6; max_enemy = 10
-		RoomSize.BOSS:
-			min_enemy = 0; max_enemy = 0
+		RoomSize.SMALL: cfg.min_enemies = 3; cfg.max_enemies = 6
+		RoomSize.MEDIUM: cfg.min_enemies = 5; cfg.max_enemies = 8
+		RoomSize.LARGE: cfg.min_enemies = 6; cfg.max_enemies = 10
+		RoomSize.BOSS: cfg.min_enemies = 0; cfg.max_enemies = 0; cfg.boss_count = 1
+	if r.size != RoomSize.BOSS:
+		cfg.enemy_pool = [load("res://scenes/enemies/goblin.tscn"), load("res://scenes/enemies/skeleton.tscn")]
+		cfg.has_elite = r.has_elite
+	elif r.size == RoomSize.BOSS:
+		cfg.boss_pool = []
+	cfg.reward_count = 3 if r.size == RoomSize.BOSS else 1
+	cfg.reward_quality_bonus = 0.3 if r.size == RoomSize.BOSS else 0.0
 
-	lines.append("min_enemies = " + str(min_enemy))
-	lines.append("max_enemies = " + str(max_enemy))
-
-	if r.size == RoomSize.BOSS:
-		lines.append("boss_count = 1")
-		lines.append("")
-		var pool := "enemy_pool = Array[PackedScene]([])"
-
-		lines.append(pool)
-		lines.append("has_elite = false")
-	else:
-		lines.append("enemy_pool = Array[PackedScene]([ExtResource(\"3\"), ExtResource(\"4\")])")
-		lines.append("has_elite = " + ("true" if r.has_elite else "false"))
-
-	if r.size == RoomSize.BOSS:
-		lines.append("boss_pool = Array[PackedScene]([])")
-
-	lines.append("")
-	return "\n".join(lines)
-
-
-func _calc_wall_segments(r: RoomDef, outer: Rect2) -> Array[Dictionary]:
-	var segments: Array[Dictionary] = []
-
-	var top_gaps: Array[float] = []
-	var bot_gaps: Array[float] = []
-	var left_gaps: Array[float] = []
-	var right_gaps: Array[float] = []
-
-	for dd in r.doors:
-		var d := dd as DoorDef
-		var half := DOOR_WIDTH / 2.0
-		match d.edge:
-			0: top_gaps.append(d.pos)
-			1: right_gaps.append(d.pos)
-			2: bot_gaps.append(d.pos)
-			3: left_gaps.append(d.pos)
-
-	top_gaps.sort()
-	bot_gaps.sort()
-	left_gaps.sort()
-	right_gaps.sort()
-
-	var ox := outer.position.x
-	var oy := outer.position.y
-	var ow := outer.size.x
-	var oh := outer.size.y
-
-	var half_door := DOOR_WIDTH / 2.0
-
-	if top_gaps.is_empty():
-		segments.append({"name": "TopWall", "pos": Vector2(ox + ow / 2, oy), "size": Vector2(ow, WALL_THICKNESS)})
-	else:
-		var prev := ox
-		for i in top_gaps.size():
-			var g := top_gaps[i]
-			var left_end := g - half_door
-			var right_start := g + half_door
-			if left_end > prev + 1:
-				var seg_w := left_end - prev
-				segments.append({"name": "TopWall_L" + str(i + 1) if i == 0 else "TopWall_" + str(i + 1), "pos": Vector2(prev + seg_w / 2, oy), "size": Vector2(seg_w, WALL_THICKNESS)})
-			prev = right_start
-		if outer.position.x + ow > prev + 1:
-			var seg_w := (outer.position.x + ow) - prev
-			segments.append({"name": "TopWall_R", "pos": Vector2(prev + seg_w / 2, oy), "size": Vector2(seg_w, WALL_THICKNESS)})
-
-	if bot_gaps.is_empty():
-		segments.append({"name": "BottomWall", "pos": Vector2(ox + ow / 2, oy + oh), "size": Vector2(ow, WALL_THICKNESS)})
-	else:
-		var prev := ox
-		for i in bot_gaps.size():
-			var g := bot_gaps[i]
-			var left_end := g - half_door
-			var right_start := g + half_door
-			if left_end > prev + 1:
-				var seg_w := left_end - prev
-				segments.append({"name": "BottomWall_L" + str(i + 1) if i == 0 else "BottomWall_" + str(i + 1), "pos": Vector2(prev + seg_w / 2, oy + oh), "size": Vector2(seg_w, WALL_THICKNESS)})
-			prev = right_start
-		if ox + ow > prev + 1:
-			var seg_w := (ox + ow) - prev
-			segments.append({"name": "BottomWall_R", "pos": Vector2(prev + seg_w / 2, oy + oh), "size": Vector2(seg_w, WALL_THICKNESS)})
-
-	if left_gaps.is_empty():
-		segments.append({"name": "LeftWall", "pos": Vector2(ox, oy + oh / 2), "size": Vector2(WALL_THICKNESS, oh)})
-	else:
-		var prev := oy
-		for i in left_gaps.size():
-			var g := left_gaps[i]
-			var top_end := g - half_door
-			var bot_start := g + half_door
-			if top_end > prev + 1:
-				var seg_h := top_end - prev
-				segments.append({"name": "LeftWall_T" + str(i + 1) if i == 0 else "LeftWall_" + str(i + 1), "pos": Vector2(ox, prev + seg_h / 2), "size": Vector2(WALL_THICKNESS, seg_h)})
-			prev = bot_start
-		if oy + oh > prev + 1:
-			var seg_h := (oy + oh) - prev
-			segments.append({"name": "LeftWall_B", "pos": Vector2(ox, prev + seg_h / 2), "size": Vector2(WALL_THICKNESS, seg_h)})
-
-	if right_gaps.is_empty():
-		segments.append({"name": "RightWall", "pos": Vector2(ox + ow, oy + oh / 2), "size": Vector2(WALL_THICKNESS, oh)})
-	else:
-		var prev := oy
-		for i in right_gaps.size():
-			var g := right_gaps[i]
-			var top_end := g - half_door
-			var bot_start := g + half_door
-			if top_end > prev + 1:
-				var seg_h := top_end - prev
-				segments.append({"name": "RightWall_T" + str(i + 1) if i == 0 else "RightWall_" + str(i + 1), "pos": Vector2(ox + ow, prev + seg_h / 2), "size": Vector2(WALL_THICKNESS, seg_h)})
-			prev = bot_start
-		if oy + oh > prev + 1:
-			var seg_h := (oy + oh) - prev
-			segments.append({"name": "RightWall_B", "pos": Vector2(ox + ow, prev + seg_h / 2), "size": Vector2(WALL_THICKNESS, seg_h)})
-
-	return segments
+	var cfg_path := CONFIG_DIR + r.id + ".tres"
+	ResourceSaver.save(cfg, cfg_path)
+	print("  saved: ", cfg_path)
 
 
 func _door_pos(dd: DoorDef, outer: Rect2) -> Vector2:
-	var half := DOOR_WIDTH / 2.0
 	match dd.edge:
 		0: return Vector2(dd.pos, outer.position.y)
 		1: return Vector2(outer.position.x + outer.size.x, dd.pos)
@@ -439,16 +275,16 @@ func _door_pos(dd: DoorDef, outer: Rect2) -> Vector2:
 
 func _door_glow_pos(dd: DoorDef, outer: Rect2) -> Vector2:
 	var half := DOOR_WIDTH / 2.0
-	var in_off := WALL_THICKNESS + 4
+	var off := WALL_THICKNESS + 4
 	match dd.edge:
-		0: return Vector2(dd.pos - half, outer.position.y + in_off)
-		1: return Vector2(outer.position.x + outer.size.x - in_off - 32, dd.pos - 8)
-		2: return Vector2(dd.pos - half, outer.position.y + outer.size.y - in_off - 16)
-		3: return Vector2(outer.position.x + in_off, dd.pos - 8)
+		0: return Vector2(dd.pos - half, outer.position.y + off)
+		1: return Vector2(outer.position.x + outer.size.x - off - 32, dd.pos - 8)
+		2: return Vector2(dd.pos - half, outer.position.y + outer.size.y - off - 16)
+		3: return Vector2(outer.position.x + off, dd.pos - 8)
 	return Vector2.ZERO
 
 
-func _obstacle_size(type: String) -> Vector2:
+func _obs_size(type: String) -> Vector2:
 	match type:
 		"pillar": return Vector2(24, 24)
 		"crate": return Vector2(32, 32)
@@ -457,35 +293,81 @@ func _obstacle_size(type: String) -> Vector2:
 	return Vector2(24, 24)
 
 
-func _calc_spawn_positions(r: RoomDef, outer: Rect2) -> Dictionary:
+func _wall_segments(r: RoomDef, outer: Rect2) -> Array[Dictionary]:
+	var segs: Array[Dictionary] = []
+	var gaps := {0: [], 1: [], 2: [], 3: []}
+	for d_obj in r.doors:
+		var dd_obj := d_obj as DoorDef
+		gaps[dd_obj.edge].append(dd_obj.pos)
+	for e in gaps: gaps[e].sort()
+
+	var ox := outer.position.x; var oy := outer.position.y
+	var ow := outer.size.x; var oh := outer.size.y
+	var half := DOOR_WIDTH / 2.0
+
+	func add_seg(name: String, px: float, py: float, sx: float, sy: float):
+		segs.append({"name": name, "pos": Vector2(px, py), "size": Vector2(sx, sy), "shape_offset": Vector2(sx / 2, sy / 2)})
+
+	if gaps[0].is_empty():
+		add_seg("TopWall", ox, oy, ow, WALL_THICKNESS)
+	else:
+		var prev := ox
+		for g in gaps[0]:
+			if g - half > prev + 1: add_seg("TopWall_L", prev, oy, g - half - prev, WALL_THICKNESS)
+			prev = g + half
+		if ox + ow > prev + 1: add_seg("TopWall_R", prev, oy, ox + ow - prev, WALL_THICKNESS)
+
+	if gaps[2].is_empty():
+		add_seg("BottomWall", ox, oy + oh, ow, WALL_THICKNESS)
+	else:
+		var prev := ox
+		for g in gaps[2]:
+			if g - half > prev + 1: add_seg("BottomWall_L", prev, oy + oh, g - half - prev, WALL_THICKNESS)
+			prev = g + half
+		if ox + ow > prev + 1: add_seg("BottomWall_R", prev, oy + oh, ox + ow - prev, WALL_THICKNESS)
+
+	if gaps[3].is_empty():
+		add_seg("LeftWall", ox, oy, WALL_THICKNESS, oh)
+	else:
+		var prev := oy
+		for g in gaps[3]:
+			if g - half > prev + 1: add_seg("LeftWall_T", ox, prev, WALL_THICKNESS, g - half - prev)
+			prev = g + half
+		if oy + oh > prev + 1: add_seg("LeftWall_B", ox, prev, WALL_THICKNESS, oy + oh - prev)
+
+	if gaps[1].is_empty():
+		add_seg("RightWall", ox + ow, oy, WALL_THICKNESS, oh)
+	else:
+		var prev := oy
+		for g in gaps[1]:
+			if g - half > prev + 1: add_seg("RightWall_T", ox + ow, prev, WALL_THICKNESS, g - half - prev)
+			prev = g + half
+		if oy + oh > prev + 1: add_seg("RightWall_B", ox + ow, prev, WALL_THICKNESS, oy + oh - prev)
+
+	return segs
+
+
+func _spawn_positions(r: RoomDef) -> Array[Vector2]:
 	var nav := r.nav_rect
-	var cx := nav.position.x + nav.size.x / 2
-	var cy := nav.position.y + nav.size.y / 2
-
-	var player_pos := Vector2(cx, cy + nav.size.y * 0.25)
-
-	var spawns: Array[Vector2] = []
 	var margin := 48.0
-	var cols := 2
-	if r.size >= RoomSize.MEDIUM:
-		cols = 3
-
+	var cols := 2 if r.size < RoomSize.MEDIUM else 3
+	var result: Array[Vector2] = []
 	var idx := 0
-	for row in range(ceil(float(r.spawn_count) / cols)):
+	var rows := ceil(float(r.spawn_count) / cols)
+
+	for row in range(rows):
 		for col in range(cols):
-			if idx >= r.spawn_count:
-				break
-			var x: float = margin + (nav.size.x - margin * 2) * (col + 0.5) / cols
-			var y: float = margin + (nav.size.y - margin * 2) * (row + 0.5) / ceil(float(r.spawn_count) / cols)
-			spawns.append(Vector2(x, y))
+			if idx >= r.spawn_count: break
+			var x := margin + (nav.size.x - margin * 2) * (col + 0.5) / cols
+			var y := margin + (nav.size.y - margin * 2) * (row + 0.5) / rows
+			result.append(Vector2(x, y))
 			idx += 1
+	return result
 
-	return {"player": player_pos, "spawns": spawns}
 
-
-func _calc_interactables(r: RoomDef, outer: Rect2) -> Dictionary:
-	var result := {}
+func _interactables(r: RoomDef) -> Dictionary:
 	var nav := r.nav_rect
+	var result := {}
 	if r.size != RoomSize.SMALL:
 		result["Interactable_Chest"] = Vector2(nav.position.x + nav.size.x * 0.2, nav.position.y + nav.size.y * 0.85)
 	if r.size >= RoomSize.LARGE:
