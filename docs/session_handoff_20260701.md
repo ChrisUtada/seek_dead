@@ -47,7 +47,15 @@
 | `project.godot` | 回退天赋树 Autoload |
 | `scenes/ui/lobby.gd` + `lobby.tscn` | 回退天赋树面板/入口 |
 
-### 关键修复
+### 架构问题修复
+
+- **Boss 配置数据流统一**：`boss_enemy.gd` 删除 `_apply_boss_config()` 硬编码，加入 `@export var config: BossConfig`，`_ready()` 走 `apply_config(config)` 数据驱动路径
+- **RoomManager fallback 扩展**：硬编码 fallback 从 2 个房间（room_1/room_2）扩展为全部 5 个已知房间
+- **子弹对象池**：确认已接通（`GameManager.get_bullet_pool()` 预分配 30 发，`weapon_node.gd` 远程攻击调用池 acquire）
+- **visual_scene 冗余字段**：确认代码中已移除，无残留引用
+- **tool_path 无效引用**：确认代码中已移除
+- **技能硬编码**：确认已通过 Pure DMD 路线解决
+- 以上所有项均更新 `docs/*.md` 对应条目为 ✅ 已修复
 
 - **三选一面板居中**：手动视口坐标计算替代锚点预设
 - **暂停/点击**：合并双 `_input`、`_choice_panel = null` 清理、PROCESS_MODE_ALWAYS 保活

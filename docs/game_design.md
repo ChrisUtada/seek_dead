@@ -471,7 +471,6 @@ signal skill_replace_needed(new_skill: SkillBase)  # UI 弹选择
 |------|------|
 | 房间环境碰撞体 | 所有房间场景墙壁 StaticBody2D 或 TileSet 碰撞多边形，玩家目前可走出导航网格 |
 | RoomManager 硬编码 fallback | room_1.tres / room_2.tres 路径硬编码兜底，新增房间需更新列表 |
-| 子弹对象池未接通 | projectile.gd 有 _pool 字段但从未赋值，每次射击 instantiate + queue_free |
 | Boss 配置数据流混乱 | boss_enemy.gd 同时有硬编码 _apply_boss_config() 和数据驱动 apply_config() |
 | 各武器碰撞体精细调整 | CollisionShape2D 位置/大小需要逐武器适配 |
 | 音频系统 | AudioManager 空壳，无实际音效/BGM |
@@ -503,10 +502,13 @@ signal skill_replace_needed(new_skill: SkillBase)  # UI 弹选择
 
 ### 架构待修复
 
-| 问题 | 文件 | 修复方向 |
-|------|------|---------|
-| weapon_data.gd 中 `visual_scene` 冗余 | weapon_data.gd | 已弃用，待清理 |
-| `tool_path` 无效引用 | set_database.gd:27 | `preload("res://addons/tool_path_not_exist.png")` |
+| 问题 | 文件 | 状态 |
+|------|------|------|
+| weapon_data.gd 中 `visual_scene` 冗余 | weapon_data.gd | ✅ 已清理（代码中已移除） |
+| `tool_path` 无效引用 | set_database.gd:27 | ✅ 已清理（代码中已移除） |
+| 子弹对象池未接通 | projectile.gd → GameManager | ✅ 已接通（GameManager.get_bullet_pool() 预分配 30 发） |
+| Boss 配置数据流混乱 | boss_enemy.gd | ✅ 已统一：删除 `_apply_boss_config()` 硬编码，加入 `@export var config: BossConfig`，走数据驱动 |
+| RoomManager 硬编码 fallback | room_manager.gd | ✅ 已扩展：fallback 列表从 2 个增加到 5 个已知房间 |
 
 ---
 

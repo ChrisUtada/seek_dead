@@ -61,6 +61,9 @@ func _load_configs():
 		var fallback = [
 			"res://resources/rooms/room_1.tres",
 			"res://resources/rooms/room_2.tres",
+			"res://resources/rooms/room_3_medium.tres",
+			"res://resources/rooms/room_4_large.tres",
+			"res://resources/rooms/room_boss.tres",
 		]
 		for p in fallback:
 			var cfg = load(p) as RoomConfig

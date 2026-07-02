@@ -5,6 +5,8 @@ const _MoverComp = preload("res://scripts/components/movement_component.gd")
 const _BulletScene = preload("res://scenes/battle/projectile.tscn")
 const _DefaultBulletData = preload("res://resources/bullets/default_bullet.tres")
 
+@export var config: BossConfig
+
 @onready var ai: BossAIComponent = $BossAIComponent
 
 var _boss_config: BossConfig
@@ -17,7 +19,19 @@ var _charge_duration: float = 0.0
 
 func _ready():
 	_enemy_ready()
-	_apply_boss_config()
+	if config:
+		apply_config(config)
+	else:
+		state.max_hp = 600.0
+		state.hp = 600.0
+		state.innate_type = DamageSystem.DamageType.FIRE
+		state.defenses = {
+			"puncture_defense": 0.15,
+			"slash_defense": 0.15,
+			"smash_defense": 0.05,
+			"fire_defense": 0.3,
+		}
+		_generate_boss_texture()
 	ai.perform_melee_slam.connect(_on_melee_slam)
 	ai.perform_charge.connect(_on_charge)
 	ai.perform_ranged_burst.connect(_on_ranged_burst)
@@ -25,17 +39,6 @@ func _ready():
 	_slam_hitbox.monitoring = false
 	_slam_hitbox.monitorable = false
 	_slam_hitbox.lifespan = 0
-
-func _apply_boss_config():
-	state.max_hp = 600.0
-	state.hp = 600.0
-	state.innate_type = DamageSystem.DamageType.FIRE
-	state.defenses = {
-		"puncture_defense": 0.15,
-		"slash_defense": 0.15,
-		"smash_defense": 0.05,
-		"fire_defense": 0.3,
-	}
 
 func apply_config(config: EnemyConfig):
 	state.max_hp = randf_range(config.hp_min, config.hp_max)
