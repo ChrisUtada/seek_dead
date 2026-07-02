@@ -1,0 +1,149 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/rooms/door_marker.tscn" id="1_61sb3"]
+[ext_resource type="Script" path="res://scripts/rooms/door_marker.gd" id="2_e8t84"]
+
+[sub_resource type="NavigationPolygon" id="NavigationPolygon_h7lb2"]
+vertices = PackedVector2Array(16, 16, 272, 16, 272, 272, 16, 272)
+polygons = Array[PackedInt32Array]([PackedInt32Array(0, 1, 2, 3)])
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_mi8ql"]
+size = Vector2(128, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ng3qv"]
+size = Vector2(128, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_cilcd"]
+size = Vector2(288, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_28urq"]
+size = Vector2(16, 288)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_b6tkv"]
+size = Vector2(16, 288)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ca0vf"]
+size = Vector2(24, 24)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_xrihy"]
+size = Vector2(24, 24)
+
+[node name="room_small_test" type="Node2D" unique_id=69479805]
+
+[node name="NavigationRegion2D" type="NavigationRegion2D" parent="." unique_id=388331413]
+navigation_polygon = SubResource("NavigationPolygon_h7lb2")
+
+[node name="Floor" type="Node2D" parent="." unique_id=354971468]
+
+[node name="ColorRect" type="ColorRect" parent="Floor" unique_id=1444904096]
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 272.0
+offset_bottom = 272.0
+mouse_filter = 2
+color = Color(0.16470589, 0.16470589, 0.16470589, 1)
+
+[node name="DoorGlow1" type="ColorRect" parent="Floor" unique_id=1942662803]
+offset_left = 128.0
+offset_top = 20.0
+offset_right = 160.0
+offset_bottom = 36.0
+mouse_filter = 2
+color = Color(0, 1, 0.267, 0.3)
+
+[node name="Walls" type="Node2D" parent="." unique_id=1111019426]
+
+[node name="TopWall_L" type="StaticBody2D" parent="Walls" unique_id=929540816]
+collision_layer = 4
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Walls/TopWall_L" unique_id=1127646423]
+position = Vector2(64, 8)
+shape = SubResource("RectangleShape2D_mi8ql")
+
+[node name="TopWall_R" type="StaticBody2D" parent="Walls" unique_id=1572572960]
+position = Vector2(160, 0)
+collision_layer = 4
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Walls/TopWall_R" unique_id=762125687]
+position = Vector2(64, 8)
+shape = SubResource("RectangleShape2D_ng3qv")
+
+[node name="BottomWall" type="StaticBody2D" parent="Walls" unique_id=642255146]
+position = Vector2(0, 272)
+collision_layer = 4
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Walls/BottomWall" unique_id=1056881250]
+position = Vector2(144, 8)
+shape = SubResource("RectangleShape2D_cilcd")
+
+[node name="LeftWall" type="StaticBody2D" parent="Walls" unique_id=999663858]
+collision_layer = 4
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Walls/LeftWall" unique_id=284325711]
+position = Vector2(8, 144)
+shape = SubResource("RectangleShape2D_28urq")
+
+[node name="RightWall" type="StaticBody2D" parent="Walls" unique_id=1020246295]
+position = Vector2(272, 0)
+collision_layer = 4
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Walls/RightWall" unique_id=2108626932]
+position = Vector2(8, 144)
+shape = SubResource("RectangleShape2D_b6tkv")
+
+[node name="Obstacles" type="Node2D" parent="." unique_id=1250708424]
+
+[node name="Pillar_1" type="StaticBody2D" parent="Obstacles" unique_id=899167792]
+position = Vector2(80, 80)
+collision_layer = 4
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Obstacles/Pillar_1" unique_id=1848491319]
+position = Vector2(12, 12)
+shape = SubResource("RectangleShape2D_ca0vf")
+
+[node name="NavigationObstacle2D" type="NavigationObstacle2D" parent="Obstacles/Pillar_1" unique_id=1575652684]
+radius = 12.0
+
+[node name="Visual" type="Polygon2D" parent="Obstacles/Pillar_1" unique_id=21900153]
+color = Color(0.54509807, 0.4509804, 0.33333334, 1)
+polygon = PackedVector2Array(-12, -12, 12, -12, 12, 12, -12, 12)
+
+[node name="Pillar_2" type="StaticBody2D" parent="Obstacles" unique_id=144788696]
+position = Vector2(200, 180)
+collision_layer = 4
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Obstacles/Pillar_2" unique_id=1364381983]
+position = Vector2(12, 12)
+shape = SubResource("RectangleShape2D_xrihy")
+
+[node name="NavigationObstacle2D" type="NavigationObstacle2D" parent="Obstacles/Pillar_2" unique_id=384571370]
+radius = 12.0
+
+[node name="Visual" type="Polygon2D" parent="Obstacles/Pillar_2" unique_id=166385439]
+color = Color(0.54509807, 0.4509804, 0.33333334, 1)
+polygon = PackedVector2Array(-12, -12, 12, -12, 12, 12, -12, 12)
+
+[node name="Markers" type="Node2D" parent="." unique_id=1672767791]
+
+[node name="PlayerSpawn" type="Marker2D" parent="Markers" unique_id=1173217252]
+position = Vector2(144, 208)
+
+[node name="SpawnMarker1" type="Marker2D" parent="Markers" unique_id=936955441 groups=["spawn"]]
+position = Vector2(88, 88)
+
+[node name="SpawnMarker2" type="Marker2D" parent="Markers" unique_id=542388833 groups=["spawn"]]
+position = Vector2(168, 88)
+
+[node name="SpawnMarker3" type="Marker2D" parent="Markers" unique_id=806600196 groups=["spawn"]]
+position = Vector2(88, 168)
+
+[node name="SpawnMarker4" type="Marker2D" parent="Markers" unique_id=1407794055 groups=["spawn"]]
+position = Vector2(168, 168)
+
+[node name="Doors" type="Node2D" parent="." unique_id=1138722146]
+
+[node name="DoorMarker1" type="Area2D" parent="Doors" unique_id=1698260678 instance=ExtResource("1_61sb3")]
+position = Vector2(144, 0)
+script = ExtResource("2_e8t84")
+is_entrance = true
+direction = 0

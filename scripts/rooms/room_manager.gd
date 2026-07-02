@@ -246,7 +246,7 @@ func _spawn_wave(config: RoomConfig, wave_index: int):
 
 	if wave_index == 0:
 		if config.boss_count > 0 and not config.boss_pool.is_empty():
-			var boss_marker = room.get_node_or_null("SpawnMarker_Boss")
+			var boss_marker = room.find_child("SpawnMarker_Boss", true, false)
 			for _j in range(mini(config.boss_count, config.boss_pool.size())):
 				var boss_scene = config.boss_pool.pick_random()
 				if not boss_scene:
@@ -255,7 +255,7 @@ func _spawn_wave(config: RoomConfig, wave_index: int):
 				if boss_marker:
 					boss.global_position = boss_marker.global_position
 				else:
-					var pspawn = room.get_node_or_null("PlayerSpawn")
+					var pspawn = room.find_child("PlayerSpawn", true, false)
 					boss.global_position = (pspawn.global_position + Vector2(0, -80)) if pspawn else Vector2(320, 180)
 				room.add_child(boss)
 				_current_bosses.append(boss)
@@ -268,7 +268,7 @@ func _spawn_wave(config: RoomConfig, wave_index: int):
 				if marker:
 					elite.global_position = marker.global_position
 				else:
-					var pspawn = room.get_node_or_null("PlayerSpawn")
+					var pspawn = room.find_child("PlayerSpawn", true, false)
 					elite.global_position = (pspawn.global_position + Vector2(0, -60)) if pspawn else Vector2(320, 180)
 				elite.add_to_group("elite")
 				room.add_child(elite)
@@ -357,7 +357,7 @@ func get_current_wave_index() -> int:
 
 
 func _position_player():
-	var spawn = _current_room.get_node_or_null("PlayerSpawn")
+	var spawn = _current_room.find_child("PlayerSpawn", true, false)
 	if spawn:
 		_player.global_position = spawn.global_position
 		return
@@ -501,7 +501,7 @@ func _spawn_rewards(items: Array[EquipmentBase]):
 	if _current_room == null:
 		return
 	var center = Vector2(320, 200)
-	var spawn = _current_room.get_node_or_null("PlayerSpawn")
+	var spawn = _current_room.find_child("PlayerSpawn", true, false)
 	if spawn:
 		center = spawn.global_position + Vector2(0, 60)
 	var spread = 40
@@ -520,7 +520,7 @@ func _spawn_skill_reward():
 	if not sk:
 		return
 	var center = Vector2(320, 200)
-	var spawn = _current_room.get_node_or_null("PlayerSpawn")
+	var spawn = _current_room.find_child("PlayerSpawn", true, false)
 	if spawn:
 		center = spawn.global_position + Vector2(0, 60)
 	var drop = SkillPickup.new()
@@ -545,7 +545,7 @@ func _spawn_skill_pickup():
 	if not sk:
 		return
 	var center = Vector2(320, 200)
-	var spawn = _current_room.get_node_or_null("PlayerSpawn")
+	var spawn = _current_room.find_child("PlayerSpawn", true, false)
 	if spawn:
 		center = spawn.global_position + Vector2(0, 60)
 	var drop = SkillPickup.new()

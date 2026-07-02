@@ -1,0 +1,53 @@
+[gd_resource type="Resource" script_class="RoomConfig" format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/enemies/goblin.tscn" id="1_b1h0o"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/skeleton.tscn" id="2_ipr8r"]
+[ext_resource type="PackedScene" path="res://scenes/rooms/door_marker.tscn" id="3_impj3"]
+[ext_resource type="Script" path="res://scripts/rooms/door_marker.gd" id="4_452yh"]
+[ext_resource type="Script" path="res://scripts/rooms/room_config.gd" id="5_7n6gn"]
+
+[sub_resource type="NavigationPolygon" id="NavigationPolygon_h7lb2"]
+vertices = PackedVector2Array(16, 16, 272, 16, 272, 272, 16, 272)
+polygons = Array[PackedInt32Array]([PackedInt32Array(0, 1, 2, 3)])
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_mi8ql"]
+size = Vector2(128, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ng3qv"]
+size = Vector2(128, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_cilcd"]
+size = Vector2(288, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_28urq"]
+size = Vector2(16, 288)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_b6tkv"]
+size = Vector2(16, 288)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ca0vf"]
+size = Vector2(24, 24)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_xrihy"]
+size = Vector2(24, 24)
+
+[sub_resource type="PackedScene" id="PackedScene_b1h0o"]
+_bundled = {
+"conn_count": 0,
+"conns": PackedInt32Array(),
+"editable_instances": [],
+"id_paths": [],
+"names": PackedStringArray("room_small_test", "Node2D", "NavigationRegion2D", "navigation_polygon", "Floor", "ColorRect", "offset_left", "offset_top", "offset_right", "offset_bottom", "mouse_filter", "color", "DoorGlow1", "Walls", "TopWall_L", "collision_layer", "StaticBody2D", "CollisionShape2D", "position", "shape", "TopWall_R", "BottomWall", "LeftWall", "RightWall", "Obstacles", "Pillar_1", "NavigationObstacle2D", "radius", "Visual", "polygon", "Polygon2D", "Pillar_2", "Markers", "PlayerSpawn", "Marker2D", "SpawnMarker1", "spawn", "SpawnMarker2", "SpawnMarker3", "SpawnMarker4", "Doors", "DoorMarker1", "script", "is_entrance", "direction", "Area2D"),
+"node_count": 33,
+"node_ids": PackedInt32Array(69479805, 388331413, 354971468, 1444904096, 1942662803, 1111019426, 929540816, 1127646423, 1572572960, 762125687, 642255146, 1056881250, 999663858, 284325711, 1020246295, 2108626932, 1250708424, 899167792, 1848491319, 1575652684, 21900153, 144788696, 1364381983, 384571370, 166385439, 1672767791, 1173217252, 936955441, 542388833, 806600196, 1407794055, 1138722146, 1698260678),
+"node_paths": [],
+"nodes": PackedInt32Array(-1, -1, 1, 0, -1, 0, 0, 0, 0, 2, 2, -1, 1, 3, 0, 0, 0, 0, 1, 4, -1, 0, 0, 2, 0, 5, 5, -1, 6, 6, 1, 7, 1, 8, 2, 9, 2, 10, 3, 11, 4, 0, 2, 0, 5, 12, -1, 6, 6, 5, 7, 6, 8, 7, 9, 8, 10, 3, 11, 9, 0, 0, 0, 1, 13, -1, 0, 0, 5, 0, 16, 14, -1, 1, 15, 10, 0, 6, 0, 17, 17, -1, 2, 18, 11, 19, 12, 0, 5, 0, 16, 20, -1, 2, 18, 13, 15, 10, 0, 8, 0, 17, 17, -1, 2, 18, 11, 19, 14, 0, 5, 0, 16, 21, -1, 2, 18, 15, 15, 10, 0, 10, 0, 17, 17, -1, 2, 18, 16, 19, 17, 0, 5, 0, 16, 22, -1, 1, 15, 10, 0, 12, 0, 17, 17, -1, 2, 18, 18, 19, 19, 0, 5, 0, 16, 23, -1, 2, 18, 20, 15, 10, 0, 14, 0, 17, 17, -1, 2, 18, 18, 19, 21, 0, 0, 0, 1, 24, -1, 0, 0, 16, 0, 16, 25, -1, 2, 18, 22, 15, 10, 0, 17, 0, 17, 17, -1, 2, 18, 23, 19, 24, 0, 17, 0, 26, 26, -1, 1, 27, 25, 0, 17, 0, 30, 28, -1, 2, 11, 26, 29, 27, 0, 16, 0, 16, 31, -1, 2, 18, 28, 15, 10, 0, 21, 0, 17, 17, -1, 2, 18, 23, 19, 29, 0, 21, 0, 26, 26, -1, 1, 27, 25, 0, 21, 0, 30, 28, -1, 2, 11, 26, 29, 27, 0, 0, 0, 1, 32, -1, 0, 0, 25, 0, 34, 33, -1, 1, 18, 30, 0, 25, 0, 34, 35, -1, 1, 18, 31, 1, 36, 25, 0, 34, 37, -1, 1, 18, 32, 1, 36, 25, 0, 34, 38, -1, 1, 18, 33, 1, 36, 25, 0, 34, 39, -1, 1, 18, 34, 1, 36, 0, 0, 1, 40, -1, 0, 0, 31, 0, 45, 41, 35, 4, 18, 36, 42, 37, 43, 38, 44, 39, 0),
+"variants": [SubResource("NavigationPolygon_h7lb2"), 16.0, 272.0, 2, Color(0.16470589, 0.16470589, 0.16470589, 1), 128.0, 20.0, 160.0, 36.0, Color(0, 1, 0.267, 0.3), 4, Vector2(64, 8), SubResource("RectangleShape2D_mi8ql"), Vector2(160, 0), SubResource("RectangleShape2D_ng3qv"), Vector2(0, 272), Vector2(144, 8), SubResource("RectangleShape2D_cilcd"), Vector2(8, 144), SubResource("RectangleShape2D_28urq"), Vector2(272, 0), SubResource("RectangleShape2D_b6tkv"), Vector2(80, 80), Vector2(12, 12), SubResource("RectangleShape2D_ca0vf"), 12.0, Color(0.54509807, 0.4509804, 0.33333334, 1), PackedVector2Array(-12, -12, 12, -12, 12, 12, -12, 12), Vector2(200, 180), SubResource("RectangleShape2D_xrihy"), Vector2(144, 208), Vector2(88, 88), Vector2(168, 88), Vector2(88, 168), Vector2(168, 168), ExtResource("3_impj3"), Vector2(144, 0), ExtResource("4_452yh"), true, 0],
+"version": 3
+}
+
+[resource]
+script = ExtResource("5_7n6gn")
+scene = SubResource("PackedScene_b1h0o")
+room_name = "测试小房间"
+enemy_pool = Array[PackedScene]([ExtResource("1_b1h0o"), ExtResource("2_ipr8r")])

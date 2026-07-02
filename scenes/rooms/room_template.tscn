@@ -1,0 +1,43 @@
+[gd_scene format=3]
+
+[sub_resource type="NavigationPolygon" id="NavigationPolygon_ml5sd"]
+vertices = PackedVector2Array(16, 16, 272, 16, 272, 272, 16, 272)
+polygons = Array[PackedInt32Array]([PackedInt32Array(0, 1, 2, 3)])
+
+[node name="RoomTemplate" type="Node2D" unique_id=1800915081]
+
+[node name="NavigationRegion2D" type="NavigationRegion2D" parent="." unique_id=903627870]
+navigation_polygon = SubResource("NavigationPolygon_ml5sd")
+
+[node name="Floor" type="Node2D" parent="." unique_id=1644385106]
+
+[node name="ColorRect" type="ColorRect" parent="Floor" unique_id=410859630]
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 272.0
+offset_bottom = 272.0
+mouse_filter = 2
+color = Color(0.16470589, 0.16470589, 0.16470589, 1)
+
+[node name="Walls" type="Node2D" parent="." unique_id=1048985993]
+
+[node name="Obstacles" type="Node2D" parent="." unique_id=763749389]
+
+[node name="Markers" type="Node2D" parent="." unique_id=315069583]
+
+[node name="PlayerSpawn" type="Marker2D" parent="Markers" unique_id=754666377]
+position = Vector2(144, 208)
+
+[node name="SpawnMarker1" type="Marker2D" parent="Markers" unique_id=166644220 groups=["spawn"]]
+position = Vector2(88, 88)
+
+[node name="SpawnMarker2" type="Marker2D" parent="Markers" unique_id=996039588 groups=["spawn"]]
+position = Vector2(168, 88)
+
+[node name="SpawnMarker3" type="Marker2D" parent="Markers" unique_id=1320677150 groups=["spawn"]]
+position = Vector2(88, 168)
+
+[node name="SpawnMarker4" type="Marker2D" parent="Markers" unique_id=1919331949 groups=["spawn"]]
+position = Vector2(168, 168)
+
+[node name="Doors" type="Node2D" parent="." unique_id=461354643]

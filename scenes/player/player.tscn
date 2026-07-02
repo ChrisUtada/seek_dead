@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3 uid="uid://player"]
+[gd_scene load_steps=11 format=3 uid="uid://player"]
 
 [ext_resource type="Script" path="res://scripts/battle/player_controller.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/battle/state_component.gd" id="2"]
@@ -9,6 +9,7 @@
 [ext_resource type="Script" path="res://scripts/battle/ammo_system.gd" id="7"]
 [ext_resource type="Script" path="res://scripts/battle/skill_manager.gd" id="8"]
 [ext_resource type="Resource" path="res://resources/players/warrior.tres" id="9"]
+[ext_resource type="Script" path="res://scripts/battle/weapon_node.gd" id="10"]
 
 [sub_resource type="CircleShape2D" id="1"]
 radius = 14.0
@@ -37,6 +38,9 @@ script = ExtResource("2")
 script = ExtResource("4")
 
 [node name="HandPoint" type="Marker2D" parent="WeaponComponent"]
+
+[node name="WeaponNode" type="Node2D" parent="WeaponComponent"]
+script = ExtResource("10")
 
 [node name="MovementComponent" type="Node" parent="."]
 script = ExtResource("3")

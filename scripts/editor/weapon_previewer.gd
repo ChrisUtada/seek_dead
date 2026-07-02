@@ -43,13 +43,18 @@ extends Node2D
 var _weapon_visual: WeaponVisualBase = null
 
 
+func _ready():
+	if Engine.is_editor_hint():
+		_spawn_weapon_preview()
+
 func _process(_delta):
-	# 仅在编辑器中工作，运行时自动隐藏
 	if not Engine.is_editor_hint():
 		if visible:
 			visible = false
 		return
 	visible = true
+	if not _weapon_visual and weapon_template:
+		_spawn_weapon_preview()
 
 
 func _draw():

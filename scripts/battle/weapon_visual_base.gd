@@ -30,8 +30,8 @@ var _base_scale: Vector2 = Vector2.ONE
 
 
 func _ready():
-	# 默认隐藏，由 WeaponNode 控制显示
-	visible = false
+	if not weapon_data:
+		visible = false
 
 
 func _process(delta):
