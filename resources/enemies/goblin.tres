@@ -19,3 +19,5 @@ color = Color(0.2, 0.6, 0.2, 1)
 scene_path = "res://scenes/enemies/goblin.tscn"
 drop_heal = 8
 drop_heal_chance = 1.0
+drop_equip_chance = 0.15
+drop_equip_quality_bonus = 0.0

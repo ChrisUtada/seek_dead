@@ -120,9 +120,7 @@ func _format_card(item: EquipmentBase) -> String:
 
 	text += "----------------\n"
 	for affix in item.affixes:
-		text += "%s\n" % affix.affix_name if affix.affix_name else ""
-		if affix.affix_description:
-			text += "  " + affix.affix_description + "\n"
+		text += "%s - %s\n" % [affix.affix_name, affix.get_description()]
 	if item.affixes.is_empty():
 		text += "无词缀\n"
 	return text

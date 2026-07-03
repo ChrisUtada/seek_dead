@@ -23,3 +23,5 @@ scene_path = "res://scenes/enemies/elite_mage.tscn"
 bullet_data = ExtResource("2")
 drop_heal = 20
 drop_heal_chance = 0.9
+drop_equip_chance = 0.5
+drop_equip_quality_bonus = 0.15

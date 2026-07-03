@@ -3,6 +3,8 @@
 | 版本 | 日期 | 说明 |
 |------|------|------|
 | v1.0 | 2026-06-30 | 全系统整合，合并 docs/*.md 为一站式参考 |
+| v1.1 | 2026-07-01 | 同步代码现状：修复技能/装备/Lobby/待办等不准确描述，补充天赋树设计 |
+| v1.2 | 2026-07-03 | 5→3品质简化、SET标签化、词缀槽位过滤、锻造删除、Collection瘦身、Lobby资源简化、Gold + 附魔台实现 |
 
 ---
 
@@ -31,7 +33,7 @@ ssz/
 │   ├── components/            # 组件化系统（weapon_component, movement_component, state_component, ai_component, boss_ai_component, dodge_component, sprint_component, status_effect_component）
 │   ├── equipment/             # 装备系统（equipment_manager, equipment_drop, equipment_pickup, equipment_inventory, equipment_base, effect_executor, forging, collection, weapon_data, rarity_table, affix_database, set_database, reward_ui, etc）
 │   ├── rooms/                 # 房间系统（room_manager, room_config, wave_config, 房间场景脚本）
-│   ├── ui/                    # UI 组件（hud, shadow, weapon_visual, equipment_panel, compare_popup, lobby）
+│   ├── ui/                    # UI 组件（hud, shadow, weapon_visual, equipment_panel, lobby）
 │   ├── systems/               # 系统（entity_registry）
 │   ├── resources/             # Resource 定义（player_config, enemy_config, boss_config, bullet_data）
 │   └── utils/                 # 工具（save_system, object_pool）
@@ -63,7 +65,6 @@ ssz/
 | SceneManager | autoload/scene_manager.gd | 场景切换+淡入淡出 |
 | AudioManager | autoload/audio_manager.gd | 音频播放（空壳） |
 | RoomManager | scripts/rooms/room_manager.gd | 房间生成/波次管理 |
-| SkillDatabase | scripts/equipment/skill_database.gd | 技能自动发现与注册 |
 
 ### 1.4 碰撞层
 
@@ -108,7 +109,6 @@ ssz/
 | EventManager | ✅ | 全局信号事件分发（伤害、死亡、房间清空等） |
 | SceneManager | ✅ | 场景切换+淡入淡出过渡 |
 | SaveSystem | ✅ | JSON 存档/读档（F5/F9），lobby_data 单独保存 |
-| ResourceManager | ✅ | JSON 配置加载与缓存 |
 | EntityRegistry | ✅ | 玩家/敌人注册与查询 |
 | AudioManager | ⚠️ 空壳 | SfxType 枚举 + play_sfx 接口，无声 |
 | ObjectPool | ✅ | RefCounted 泛型对象池（预分配+acquire/release） |
@@ -161,38 +161,57 @@ ssz/
 
 ### 2.3 装备系统（Phases 0–7）
 
+> 本节 §二.3 描述的设计已全部实现（改造于 v1.2 完成）。
+
 | Phase | 内容 | 状态 |
 |-------|------|------|
 | 0 | 房间波次刷新 + Boss 门锁 + 紧急撤离技能 | ✅ |
 | 1 | 装备基础架构（EquipmentBase/EquipmentManager/Inventory） | ✅ |
 | 2 | 词缀系统（30条、EffectExecutor 9种动作、TriggerEffect/ConditionalBonus） | ✅ |
-| 3 | 掉落与品质（RarityTable、EquipmentDrop、Pickup、RoomContext 缩放） | ✅ |
-| 4 | 套装系统（6套、SetBonus Resource、SetBonusManager、SET品质） | ✅ |
-| 5 | UI（EquipmentPanel 拖拽、ComparePopup affix对比、FloatingText、Set激活提示） | ✅ |
-| 6 | Lobby/锻造/收藏（Forging升级/附魔/洗练/分解、Collection 全局加成、SaveSystem 持久化） | ✅ |
+| 3 | 掉落与品质（RarityTable 3品质、EquipmentDrop、Pickup、RoomContext 缩放） | ✅ |
+| 4 | 套装系统（6套、SetBonus Resource、SetBonusManager、SET标签化） | ✅ |
+| 5 | UI（EquipmentPanel 拖拽、FloatingText、Set激活提示、ComparePopup 已删除） | ✅ |
+| 6 | Lobby（资源简化 gold+talent_shards、Collection记录、无锻造） | ✅ |
 | 7 | 武器-装备统一（WeaponData 内嵌 Resource、模板池、archetype 隐式修正） | ✅ |
 
-**7个装备槽位**：
+**7个装备槽位**（无基础属性，装备价值 100% 来自词缀）：
 
-| 槽位 | 数量 | 基础属性 |
-|------|------|----------|
-| WEAPON_MAIN | 1 | 武器数据（WeaponData） |
-| WEAPON_OFFHAND | 1 | 武器数据（仅双持） |
-| HELMET | 1 | 对应类型防御 +0.1 |
-| BODY | 1 | max_hp +50 |
-| HAND | 1 | 攻击速度 +10% |
-| LEG | 1 | 移动速度 +10% |
-| ACCESSORY | 2 | 无基础属性，纯词缀 |
+| 槽位 | 数量 | 说明 |
+|------|------|------|
+| WEAPON_MAIN | 1 | 武器数据（WeaponData），决定攻击方式和伤害类型 |
+| WEAPON_OFFHAND | 1 | 武器数据（仅双持武器可用） |
+| HELMET | 1 | 纯词缀槽，生存类词缀池 |
+| BODY | 1 | 纯词缀槽，生存类词缀池 |
+| HAND | 1 | 纯词缀槽，机动/进攻类词缀池 |
+| LEG | 1 | 纯词缀槽，机动类词缀池 |
+| ACCESSORY | 2 | 纯词缀槽，全词缀池（构筑核心） |
 
-**5种品质**：
+**3种品质**：
 
 | 品质 | 色 | 词缀数 | 掉落权重 |
 |------|-----|--------|---------|
-| COMMON（白） | 白 | 0 | 60% |
-| MAGIC（蓝） | 蓝 | 1 | 25% |
-| RARE（金） | 金 | 2 | 12% |
-| LEGENDARY（红） | 红 | 3 | 3% |
-| SET（绿） | 绿 | 2（带套装） | 特殊（质量加成≥0.3） |
+| MAGIC（蓝） | 蓝 | 1 | 60% |
+| RARE（金） | 金 | 2 | 30% |
+| LEGENDARY（红） | 红 | 3 + 独特效果 | 10% |
+
+> 删除了 COMMON（白板无意义）和 SET（降为标签，见下文）。
+> 每件掉落至少 1 条词缀，每件都能影响构筑。
+> LEGENDARY 与 RARE 质的差距：额外一条独特效果（不可镶嵌，不可替代）。
+
+**属性管线**：玩家最终属性由三层叠加，装备槽位不再提供白送基础值。
+
+```
+最终属性 = 职业底值 + 天赋树(跨局永久) + 词缀(局内构筑)
+```
+
+| 属性来源 | 举例 | 性质 |
+|---------|------|------|
+| 职业底值（PlayerConfig） | 骑士 HP200/体力100/移速200 | 开局固定，换职业变 |
+| 天赋树解锁 | 坚韧 I→III（HP+30/+60/+100） | 跨局永久，全职业共享 |
+| 词缀（局内装备掉落） | 活力(+80HP) / 铁壁(+0.15全防) | 局内构筑，更换装备动态变化 |
+
+> 职业底值是玩家初始能力的基础，天赋树是成长追求，词缀是构筑选择。
+> 装备本身没有"这件比那件多 5 点防御"——区别全在词缀组合上。
 
 **词缀槽位过滤**：每个词缀有明确的可用槽位范围，避免荒诞组合。饰品（ACCESSORY）不受限制，出任何词缀都有可能：
 
@@ -205,7 +224,7 @@ ssz/
 
 \*#2 狂怒/#3 疾风/#6 灵巧/#7 致命/#10 元素专精/#8 迅捷等武器相关进攻数值
 
-**6套套装**：
+**套装**（降为标签，不再独立品质）：
 
 | 套装 | 2件 | 3件 |
 |------|-----|-----|
@@ -216,12 +235,25 @@ ssz/
 | 高压电柜 | 雷电伤害+40%，暴击率+10% | 暴击时闪电新星全屏 |
 | 神秘外卖 | 全伤害+20%，资源回复+30% | 每清空房间随机属性+3% |
 
-**锻造系统**：
-- 升级：COMMON→MAGIC→RARE→LEGENDARY（逐级，有成功概率）
-- 附魔：添加随机词缀
-- 洗练：重随词缀数值
-- 分解：返回锻造材料
-- 4种材料：金币、铁碎片、魔法精华、传奇核心
+**房间附魔台**（替代锻造，有限可控性）：
+
+每个房间低概率（约20%）生成附魔台，提供词缀操作：
+
+| 操作 | 消耗 | 效果 |
+|------|------|------|
+| 重铸 | 金币 300 | 重随装备一条指定词缀的数值 |
+| 转移 | 金币 500 + 消耗一件装备 | 将消耗装备的一条词缀转移到目标装备空位 |
+
+**经济系统**：
+
+| 资源 | 用途 | 来源 | 性质 |
+|------|------|------|------|
+| 金币 | 附魔台操作 | 怪物击杀(10~25)、精英击杀(50~100)、Boss(200~500)、出售装备 | 局内消耗，每局重置 |
+| 天赋碎片 | 天赋树解锁 | 清空房间(+1)、Boss击杀(+5) | 跨局累积，永久保留 |
+
+> 一局 10 房间正常收入约 800~1500 金币，够 2~3 次操作或攒着不用。
+> 不出附魔台的房间，装备全靠掉落随机——这正是 DMD 的核心："掉到什么用什么"。
+> 附魔台、HealthPickup（血球）、SkillPickup（技能光球）三者都是房间内放置物，不相互挤占掉落位。
 
 ### 2.4 玩家/角色
 
@@ -264,18 +296,21 @@ ssz/
 | 屏幕震动 | ✅ Camera2D 随机偏移 |
 | 主菜单 | ✅ 标题画面 + 开始/继续/退出 |
 | EquipmentPanel | ✅ I键 7槽+6×2背包+属性总览+拖拽换装 |
-| ComparePopup | ✅ 拾取时对比弹窗（replace/keep/discard） |
 | RewardUI | ✅ 房间清空选装备（3选1） |
-| 装备面板地图 | ❌ 未实现 |
 | 技能界面 | ❌ 未实现 |
+
+> ComparePopup 已删除（战斗中打断节奏）。背包管理改为自动流程：拾取时若背包未满则直接拾取，若已满则替换最旧装备。玩家可在 I 键面板中手动管理。
 
 ### 2.7 Lobby
 
-- lobby.tscn 完整节点树（背景/标题/资源标签/门精灵/铁匠NPC/学者NPC/返回按钮）
-- 锻造面板（升级/附魔/洗练/分解）
-- 收集面板（进度条/全局加成/已收集列表）
+- lobby.tscn 节点树（背景/标题/资源标签/门精灵/铁匠NPC视觉遗留/学者NPC/返回按钮）
+- 资源仅 gold（金币） + talent_shards（天赋碎片），去除旧四种材料（iron/magic_essence/legendary_core）
+- 锻造面板已废弃（forging.gd 内容已清空），ForgeArea/ForgePanel 节点保留为编辑器视觉遗留
+- 收集面板仅保留记录展示（无全局加成）
 - 游戏流程：MainMenu → Lobby → Game → death → Lobby
-- SaveSystem.lobby_data 持久化（gold/iron/magic_essence/legendary_core/collection）
+- SaveSystem.lobby_data 持久化（gold/talent_shards/collection_record）
+
+> 锻造已删除，替代为房间内附魔台。铁匠NPC节点保留但无交互功能。
 
 ---
 
@@ -372,11 +407,25 @@ WeaponVisualBase.set_aim_direction(dir)
 - TIMER(n)（n 秒后自动刷）
 - BOSS_PHASE(n)（Boss HP 低于 n% 时刷）
 
+### 4.4 房间内放置物
+
+每个房间（SMALL/MEDIUM/LARGE）有概率生成放置物，不相互挤占：
+
+| 放置物 | 概率 | 功能 |
+|--------|------|------|
+| 技能光球 | 50% | 清空后掉落，见 §五 |
+| 附魔台 | ~20% | 重铸（300金）或 转移（500金+消耗装备），见 §二.3.1 |
+| HealthPickup | 敌怪掉落 | 血球，见 §五.4 |
+| GoldPickup | 敌怪掉落（60%） | 金币 10~25（默认），见 §二.3 经济系统 |
+
+> 附魔台不出现在 BOSS 房间。
+> 金币也受 EnemyConfig.drop_gold 字段覆盖控制。
+
 ---
 
 ## 五、技能系统（纯 DMD 路线）
 
-设计原则：**技能是独立于装备的 blessing 式系统**。技能作为独立掉落物拾取，直接进入技能槽。**无升级**，拾取同名技能视为满槽替换。与装备系统完全解耦。治疗由 HealthPickup（敌怪血球掉落）替代，不占用技能槽。
+设计原则：**技能是独立于装备的 blessing 式系统**。技能作为独立掉落物拾取，直接进入技能槽。**拾取同名技能升级**（Lv1→Lv4），满槽无同名时触发替换选择。与装备系统完全解耦。治疗由 HealthPickup（敌怪血球掉落）替代，不占用技能槽。
 
 ### 5.1 技能槽
 
@@ -418,10 +467,12 @@ extends Node
 const MAX_SLOTS: int = 2
 
 var skills: Array[SkillBase]            # 2槽，null=空
+var max_level: int = 4
 
 func add_or_upgrade(skill: SkillBase) -> bool
-  # 有空槽 → 填入并返回 true
-  # 无空槽 → 触发 skill_replace_needed 信号 → HUD 弹替换选择
+  # 有同名且未满级 → 升级（等级+1），返回 true
+  # 有空槽 → 填入，返回 true
+  # 无同名且槽满 → 触发 skill_replace_needed 信号 → HUD 弹替换选择，返回 false
 
 func replace_skill(slot_index: int, skill: SkillBase)
   # 替换指定槽位的技能
@@ -457,38 +508,68 @@ signal skill_replace_needed(new_skill: SkillBase)  # UI 弹选择
 
 ---
 
-## 六、局内词缀升级系统
+## 六、局外天赋树
 
-技能系统采用 Pure DMD 路线（详见 §五），**无局外天赋树**。局内成长通过装备词缀的 StatModifier/ConditionalBonus 实现，技能无等级系统。
+设计目标：**跨局永久成长系统**。天赋碎片由通关房间/Boss获得，用于解锁天赋节点。天赋树独立于装备和技能，提供底层数值基础和构筑可能性。
+
+### 6.1 核心规则
+
+| 规则 | 说明 |
+|------|------|
+| 资源 | 天赋碎片（通关房间+1，Boss+5） |
+| 节点类型 | 普通节点（+1级） + 菱形关键节点（一次性解锁） |
+| 每节点消耗 | 天赋碎片 + 金币（少量） |
+| 重置 | 可重置回收部分碎片 |
+
+### 6.2 四分支
+
+| 分支 | 色 | 定位 | 关键节点 |
+|------|-----|------|---------|
+| 生存（绿） | 绿 | HP/防御/回复 | 不屈意志：HP归零时3s无敌（1次/局） |
+| 战斗（红） | 红 | 伤害/暴击/攻速 | 武器大师：主副手武器词缀共享 |
+| 构筑（蓝） | 蓝 | 附魔台/技能/背包 | 词缀共鸣：同一条词缀出现在两件装备上时，效果×1.5 |
+| 掉落（黄） | 黄 | 品质/金币/碎片 | 传奇猎手：LEGENDARY掉落率×2 |
+
+> 当前状态：设计完成，未实现（N/A）。
 
 ---
 
 ## 七、待办 / 尚未实现
 
-### P0 优先级
+### 装备改造 v1.2（已完成）
 
 | 功能 | 说明 |
 |------|------|
-| 房间环境碰撞体 | 所有房间场景墙壁 StaticBody2D 或 TileSet 碰撞多边形，玩家目前可走出导航网格 |
-| RoomManager 硬编码 fallback | room_1.tres / room_2.tres 路径硬编码兜底，新增房间需更新列表 |
-| Boss 配置数据流混乱 | boss_enemy.gd 同时有硬编码 _apply_boss_config() 和数据驱动 apply_config() |
-| 各武器碰撞体精细调整 | CollisionShape2D 位置/大小需要逐武器适配 |
-| 音频系统 | AudioManager 空壳，无实际音效/BGM |
-| 敌人 AI 完善 | 搜索/巡逻/阵型/区域防御等高级行为 |
-| Boss 血条 UI | Boss 战专用血条组件 |
+| 5→3品质简化 | 删 COMMON/SET，RarityTable 重构，EquipmentDrop 适配 |
+| 槽位基础属性移除 | 删装备基础数值管线 |
+| SET 标签化 | SET 从品质枚举中移除，改为 EquipmentBase.set_id 字段 |
+| 词缀槽位过滤实现 | `_add_affixes` 加上 `allowed_slots` 过滤逻辑 |
+| 锻造删除 | forging.gd、ForgeMaterial 相关代码清空 |
+| Lobby 改造 | 资源简化为 gold + talent_shards，Collection 删除全局加成 |
+| Collection 瘦身 | 删除全局加成逻辑，保留记录功能 |
+| 材料简化 | iron/magic_essence/legendary_core → 仅 gold + talent_shards |
+| 附魔台实现 | 房间场景 EnchantmentTable（Area2D 交互），重铸消耗 300 金 |
+| Gold 系统 | GoldPickup + EnemyConfig.drop_gold + run_gold 归入 lobby_data |
 
-### P1 优先级
+### 待实现新功能（P0）
 
 | 功能 | 说明 |
 |------|------|
-| 宝箱/商店交互 | 房间中可放置的互动物体（弹药箱、装备箱、商店等） |
-| 环境危险物 | 炸弹、陷阱、尖刺、风场等 |
-| 可拾取物品 | 弹药、金币、能量、经验 |
+| 天赋树实现 | TalentNode Resource + TalentManager + Lobby 面板 |
+| 房间环境碰撞体 | 所有房间场景墙壁 StaticBody2D |
+| 各武器碰撞体精细调整 | CollisionShape2D 位置/大小 |
+| 音频系统 | AudioManager 填实 |
+
+### 待实现新功能（P1）
+
+| 功能 | 说明 |
+|------|------|
 | 精英敌人 | 独有行为脚本 + 精英掉落 |
+| Boss 血条 UI | Boss 战专用血条组件 |
+| 更多技能种类 | `resources/skills/` 下填充更多技能脚本+.tres |
 | 章节模式 | 关卡解锁 + 难度选择 |
 | 循环模式 | 无限场景 + 难度递增 + 最高纪录 |
-| 装备图鉴界面 | 收集展示（目前数据已存，缺界面） |
-| 更多技能种类 | `resources/skills/` 下填充更多技能脚本+.tres |
+| 装备图鉴界面 | 收集展示（数据已存，缺界面） |
 
 ### 已取消
 
@@ -497,22 +578,22 @@ signal skill_replace_needed(new_skill: SkillBase)  # UI 弹选择
 | PVP 模式 | ❌ 不再做 |
 | 基地系统 | ❌ 不再做 |
 | 角色自定义 | ❌ 不再做 |
-| 镶嵌系统 | ❌ 不再做 |
 | 完整职业系统 | ❌ 不再做（仅保留现有 warrior/mage/knight 三职业 PlayerConfig） |
+| 镶嵌/宝石系统 | ❌ 不再做（替换方案：房间附魔台） |
 
-### 架构待修复
+### 架构已修复
 
 | 问题 | 文件 | 状态 |
 |------|------|------|
-| weapon_data.gd 中 `visual_scene` 冗余 | weapon_data.gd | ✅ 已清理（代码中已移除） |
-| `tool_path` 无效引用 | set_database.gd:27 | ✅ 已清理（代码中已移除） |
-| 子弹对象池未接通 | projectile.gd → GameManager | ✅ 已接通（GameManager.get_bullet_pool() 预分配 30 发） |
-| Boss 配置数据流混乱 | boss_enemy.gd | ✅ 已统一：删除 `_apply_boss_config()` 硬编码，加入 `@export var config: BossConfig`，走数据驱动 |
-| RoomManager 硬编码 fallback | room_manager.gd | ✅ 已扩展：fallback 列表从 2 个增加到 5 个已知房间 |
+| weapon_data.gd 中 `visual_scene` 冗余 | weapon_data.gd | ✅ |
+| `tool_path` 无效引用 | set_database.gd:27 | ✅ |
+| 子弹对象池未接通 | projectile.gd → GameManager | ✅ |
+| Boss 配置数据流混乱 | boss_enemy.gd | ✅ （已统一走数据驱动） |
+| RoomManager 硬编码 fallback | room_manager.gd | ✅ （fallback 增至 5 个房间） |
 
 ---
 
-## 七、关键编码约定
+## 八、关键编码约定
 
 ### 应遵守
 
@@ -544,25 +625,28 @@ signal skill_replace_needed(new_skill: SkillBase)  # UI 弹选择
 
 ---
 
-## 八、数据流全景（装备→战斗）
+## 九、数据流全景（装备→战斗）
 
 ```
 掉落生成（EquipmentDrop）
   → 拾取（EquipmentPickup） → 背包（EquipmentInventory）
   → 装备（EquipmentManager.equip()）
-    ├── 非武器槽：StatModifier → StateComponent
-    └── WEAPON槽：词缀走 StatModifier
-                  + weapon_data duplicate → WeaponNode.equip()
+    ├── 所有槽：StatModifier → StateComponent
+    └── WEAPON槽：weapon_data duplicate → WeaponNode.equip()
                     → _apply_archetype_modifiers()（隐式修正）
                     → _spawn_weapon_visual()（加载 .tscn 视觉场景）
                     → attack() → _attack_melee() / _attack_ranged()
                       → hit_landed 信号 → WeaponComponent（粒子/震屏）
                                         → EquipmentManager（词缀触发判定）
+
+附魔台交互（房间内）
+  → 重铸（消耗金币，重随单条词缀数值）
+  → 转移（消耗金币+装备，移动词缀到目标装备）
 ```
 
 ---
 
-## 九、参考文档
+## 十、参考文档
 
 | 文件 | 内容 |
 |------|------|

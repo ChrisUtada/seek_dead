@@ -22,3 +22,6 @@ enum EnemyTier { NORMAL, ELITE_STAT, ELITE_MECHANIC, BOSS }
 @export var bullet_data: Resource
 @export var drop_heal: int = 0
 @export var drop_heal_chance: float = 0.0
+@export var drop_equip_chance: float = 0.0
+@export var drop_equip_quality_bonus: float = 0.0
+@export var drop_gold: int = 0  # 0=默认掉落(10-25), >0=固定值

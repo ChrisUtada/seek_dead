@@ -2,7 +2,6 @@ extends CanvasLayer
 
 const _WeaponNode = preload("res://scripts/battle/weapon_node.gd")
 const _EquipmentPanel = preload("res://scenes/ui/equipment_panel.gd")
-const _ComparePopup = preload("res://scenes/ui/compare_popup.gd")
 
 @onready var weapon_label: Label = $WeaponLabel
 
@@ -198,25 +197,28 @@ func _connect_equipment_signals(player: Node2D):
 	if inv:
 		inv.inventory_changed.connect(_on_equipment_changed)
 		inv.item_added.connect(_on_item_added.bind(player))
+		inv.item_removed.connect(_on_item_removed)
+
+func _on_item_removed(item: EquipmentBase, _index: int):
+	print("[丢弃] %s" % item.equipment_name)
 
 func _on_equipment_changed(_a = null, _b = null):
 	if _equipment_panel and _equipment_panel.visible:
 		_equipment_panel.refresh()
 
-func _on_item_added(item: EquipmentBase, _index: int, player: Node2D):
+func _on_item_added(item: EquipmentBase, index: int, player: Node2D):
 	var mgr = player.get_node_or_null("EquipmentManager") as EquipmentManager
 	if not mgr:
 		return
-	var equipped = mgr.get_equipped(item.slot) as EquipmentBase
-	if not equipped:
+	if mgr.get_equipped(item.slot) != null:
+		print("[拾取→背包] %s (槽位已被占)" % item.equipment_name)
 		return
-	call_deferred("_show_compare_popup", player, item)
-
-func _show_compare_popup(player: Node2D, item: EquipmentBase):
-	var popup = _ComparePopup.new()
-	popup.name = "ComparePopup"
-	add_child(popup)
-	popup.init(player, item)
+	var inv = player.get_node_or_null("EquipmentInventory") as EquipmentInventory
+	if not inv:
+		return
+	inv.remove_item(index)
+	mgr.equip(item)
+	print("[拾取→装备] %s" % item.equipment_name)
 
 func _update_hp(current: float, max_v: float, _delta: float):
 	_apply_bar_ratio("hp", current / max_v if max_v > 0 else 0)
@@ -670,7 +672,10 @@ func _input(event):
 		for entry in _choice_card_rects:
 			var pos = _choice_panel.position + entry.rect.position
 			if mouse.x >= pos.x and mouse.x <= pos.x + entry.rect.size.x and mouse.y >= pos.y and mouse.y <= pos.y + entry.rect.size.y:
-				_on_skill_choice_selected(entry.skill)
+				if _choice_panel.name == "SkillUpgradePanel":
+					_on_skill_upgrade_selected(entry.skill)
+				else:
+					_on_skill_choice_selected(entry.skill)
 				return
 
 func _toggle_inventory():
@@ -833,6 +838,72 @@ func _on_damage_dealt(attacker: Node2D, defender: Node2D, amount: float, _damage
 		_trigger_hit_flash(0.06, Color(1, 0.8, 0.3))
 
 
+func show_skill_upgrade(sm: SkillManager):
+	if _choice_panel:
+		_choice_panel.queue_free()
+		_choice_panel = null
+	get_tree().paused = true
+	_choice_panel = Control.new()
+	_choice_panel.name = "SkillUpgradePanel"
+	var panel_w = 260
+	var panel_h = 40 + sm.skills.size() * 70
+	_choice_panel.size = Vector2(panel_w, panel_h)
+	var viewport_size = get_viewport().get_visible_rect().size
+	_choice_panel.position = (viewport_size - _choice_panel.size) / 2
+	add_child(_choice_panel)
+
+	var bg = ColorRect.new()
+	bg.color = Color(0.05, 0.05, 0.1, 0.92)
+	bg.size = Vector2(panel_w, panel_h)
+	_choice_panel.add_child(bg)
+
+	var title = Label.new()
+	title.text = "选择升级技能"
+	title.position = Vector2(panel_w / 2 - 60, 8)
+	title.size = Vector2(120, 20)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_color_override("font_color", Color(1, 1, 1))
+	title.add_theme_font_size_override("font_size", 14)
+	_choice_panel.add_child(title)
+
+	var card_size = Vector2(panel_w - 24, 56)
+	var start_y = 34
+	_choice_card_rects.clear()
+	for i in range(sm.skills.size()):
+		var sk = sm.skills[i]
+		var card = ColorRect.new()
+		card.name = "UpgradeCard%d" % i
+		card.position = Vector2(12, start_y + i * (int(card_size.y) + 8))
+		card.size = card_size
+		card.color = Color(0.2, 0.3, 0.25, 0.95) if sk.level < sk.max_level else Color(0.25, 0.2, 0.2, 0.95)
+		_choice_panel.add_child(card)
+
+		_choice_card_rects.append({rect = Rect2(card.position, card_size), skill = sk})
+
+		var name_lbl = Label.new()
+		name_lbl.text = sk.skill_name + "  Lv." + str(sk.level)
+		name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		name_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		name_lbl.position = Vector2(0, 4)
+		name_lbl.size = Vector2(card_size.x, 24)
+		name_lbl.add_theme_color_override("font_color", Color(1, 1, 1))
+		name_lbl.add_theme_font_size_override("font_size", 13)
+		card.add_child(name_lbl)
+
+		var status_lbl = Label.new()
+		if sk.level >= sk.max_level:
+			status_lbl.text = "已达最高等级"
+			status_lbl.add_theme_color_override("font_color", Color(0.8, 0.5, 0.5))
+		else:
+			status_lbl.text = "点击升级至 Lv." + str(sk.level + 1)
+			status_lbl.add_theme_color_override("font_color", Color(0.5, 1, 0.5))
+		status_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		status_lbl.position = Vector2(0, 30)
+		status_lbl.size = Vector2(card_size.x, 20)
+		status_lbl.add_theme_font_size_override("font_size", 10)
+		card.add_child(status_lbl)
+
+
 func show_skill_choice(choices: Array[SkillBase]):
 	if _choice_panel:
 		_choice_panel.queue_free()
@@ -904,6 +975,20 @@ func show_skill_choice(choices: Array[SkillBase]):
 		cost_lbl.add_theme_color_override("font_color", Color(0.6, 0.8, 1))
 		cost_lbl.add_theme_font_size_override("font_size", 8)
 		card.add_child(cost_lbl)
+
+
+func _on_skill_upgrade_selected(skill: SkillBase):
+	if not _skill_manager:
+		_close_skill_choice()
+		return
+	for existing in _skill_manager.skills:
+		if existing.skill_name == skill.skill_name:
+			var old = existing.level
+			existing.level += 1
+			_skill_manager.skill_upgraded.emit(existing, old, existing.level)
+			print("[技能升级] %s: Lv.%d → Lv.%d" % [existing.skill_name, old, existing.level])
+			break
+	_close_skill_choice()
 
 
 func _on_skill_choice_selected(skill: SkillBase):

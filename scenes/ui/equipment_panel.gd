@@ -78,8 +78,9 @@ func _build_slots():
 
 		var affix_label = Label.new()
 		affix_label.position = Vector2(4, 22)
-		affix_label.size = Vector2(140, 20)
-		affix_label.add_theme_font_size_override("font_size", 9)
+		affix_label.size = Vector2(140, 28)
+		affix_label.add_theme_font_size_override("font_size", 8)
+		affix_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		affix_label.modulate = Color(0.8, 0.8, 0.8)
 		affix_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		container.add_child(affix_label)
@@ -105,8 +106,8 @@ func _refresh_slots():
 			w.bg.color = Color(color.r * 0.2, color.g * 0.2, color.b * 0.2, 0.8)
 			var parts: Array[String] = []
 			for aff in item.affixes:
-				parts.append(aff.affix_name)
-			w.affix.text = ", ".join(parts)
+				parts.append(aff.affix_name + " (" + aff.get_description() + ")")
+			w.affix.text = "\n".join(parts)
 		else:
 			w.name.text = "空"
 			w.name.modulate = Color(0.4, 0.4, 0.4)
@@ -197,6 +198,11 @@ func _refresh_backpack():
 		name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		slot.add_child(name_lbl)
+		var tip = ""
+		for aff in item.affixes:
+			tip += aff.affix_name + " (" + aff.get_description() + ")\n"
+		if tip.length() > 0:
+			slot.tooltip_text = tip.strip_edges()
 		_bag_slot_controls.append(slot)
 		_bag_items.append({ "index": i, "item": item, "rect": Rect2(slot.position, slot.size) })
 		_bag_grid.add_child(slot)
@@ -264,6 +270,15 @@ func _gui_input(event):
 						_drag_start_pos = event.position
 		elif _drag_source != DragSource.NONE:
 			_end_drag(event.position)
+
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+		var bi = _bag_slot_at_position(event.position)
+		if bi >= 0:
+			_discard_bag_item(bi)
+			return
+		var es = _equip_slot_at_position(event.position)
+		if es >= 0:
+			_discard_equipped_slot(es)
 
 	if event is InputEventMouseMotion and _drag_source != DragSource.NONE:
 		if event.position.distance_to(_drag_start_pos) > 8:
@@ -334,4 +349,29 @@ func _drop_equip_to_bag():
 	mgr.unequip(_drag_slot)
 	if inv.has_space():
 		inv.add_item(item)
+	refresh()
+
+
+func _discard_bag_item(index: int):
+	var inv = _get_inventory()
+	if not inv or index < 0 or index >= _bag_items.size():
+		return
+	var entry = _bag_items[index]
+	inv.remove_item(entry.index)
+	refresh()
+
+
+func _discard_equipped_slot(slot: int):
+	var mgr = _get_equip_manager()
+	var inv = _get_inventory()
+	if not mgr or not inv:
+		return
+	var item = mgr.get_equipped(slot) as EquipmentBase
+	if not item:
+		return
+	if inv.has_space():
+		mgr.unequip(slot)
+		inv.add_item(item)
+	else:
+		mgr.unequip(slot)
 	refresh()

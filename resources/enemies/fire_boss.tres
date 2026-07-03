@@ -30,3 +30,5 @@ bullet_speed = 400.0
 bullet_data = ExtResource("2")
 drop_heal = 30
 drop_heal_chance = 0.8
+drop_equip_chance = 1.0
+drop_equip_quality_bonus = 0.3

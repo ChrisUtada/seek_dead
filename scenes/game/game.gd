@@ -8,6 +8,10 @@ func _ready():
 		RoomManager.enter_first_room(_player, self)
 
 
+func _exit_tree():
+	GameManager.end_run()
+
+
 func _input(event):
 	if event.is_action_pressed("save_game"):
 		_save_game()

@@ -58,25 +58,11 @@ offset_right = 620.0
 offset_bottom = 40.0
 mouse_filter = 2
 
-[node name="ResIron" type="Label" parent="Container"]
+[node name="ResShards" type="Label" parent="Container"]
 offset_left = 440.0
 offset_top = 40.0
 offset_right = 620.0
 offset_bottom = 54.0
-mouse_filter = 2
-
-[node name="ResMagic" type="Label" parent="Container"]
-offset_left = 440.0
-offset_top = 54.0
-offset_right = 620.0
-offset_bottom = 68.0
-mouse_filter = 2
-
-[node name="ResLegendary" type="Label" parent="Container"]
-offset_left = 440.0
-offset_top = 68.0
-offset_right = 620.0
-offset_bottom = 82.0
 mouse_filter = 2
 
 [node name="DoorArea" type="Control" parent="Container"]

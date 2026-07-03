@@ -32,7 +32,6 @@ func _ready():
 	if state:
 		state.meltdown_triggered.connect(_on_meltdown_local)
 		state.stamina_depleted.connect(_on_stamina_depleted)
-		Collection.apply_global_bonuses(state)
 	print("[EquipmentManager] 就绪")
 
 

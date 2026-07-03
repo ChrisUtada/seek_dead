@@ -9,6 +9,7 @@ enum GameState { MENU, LOADING, PLAYING, PAUSED, GAME_OVER }
 var player_data: Dictionary = {}
 var current_level: int = 1
 var player: Node = null
+var run_gold: int = 0
 
 var _state: GameState = GameState.MENU
 var _prev_state: GameState = GameState.MENU
@@ -101,6 +102,19 @@ func register_player(p: Node):
 	player = p
 
 
+func start_run():
+	run_gold = 0
+
+
+func end_run():
+	if run_gold > 0:
+		var data = SaveSystem.load_lobby_data()
+		data["gold"] = data.get("gold", 0) + run_gold
+		SaveSystem.save_lobby_data(data)
+		print("[运行结束] 金币 %d → 大厅" % run_gold)
+	run_gold = 0
+
+
 func hit_stop(duration: float = 0.04):
 	if _hitstop_timer > 0:
 		return
@@ -109,6 +123,7 @@ func hit_stop(duration: float = 0.04):
 
 
 func reset():
+	end_run()
 	player_data = {}
 	current_level = 1
 	player = null

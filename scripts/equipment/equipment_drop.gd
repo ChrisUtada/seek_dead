@@ -15,11 +15,9 @@ const BASE_NAMES: Dictionary = {
 	EquipmentEnums.EquipmentSlot.ACCESSORY_2: ["铜戒", "石符", "骨环"],
 }
 const RARITY_PREFIX: Dictionary = {
-	EquipmentEnums.Rarity.COMMON: "",
 	EquipmentEnums.Rarity.MAGIC: "精良",
 	EquipmentEnums.Rarity.RARE: "稀有",
 	EquipmentEnums.Rarity.LEGENDARY: "传奇",
-	EquipmentEnums.Rarity.SET: "套装",
 }
 
 const WEAPON_TEMPLATES: Array = [
@@ -38,19 +36,16 @@ static func generate_drop(quality_bonus: float = 0.0, slot: int = -1, force_min_
 	var rarity = RarityTable.roll_rarity(quality_bonus, force_min_rarity)
 	var equip = EquipmentBase.new()
 	equip.rarity = rarity
-	if rarity == EquipmentEnums.Rarity.SET:
-		_apply_set(equip)
+	if slot < 0:
+		slot = randi() % 8
+	equip.slot = slot
+	if slot == EquipmentEnums.EquipmentSlot.WEAPON_MAIN or slot == EquipmentEnums.EquipmentSlot.WEAPON_OFFHAND:
+		equip.weapon_data = _generate_weapon_data(equip)
+		equip.equipment_name = _weapon_name(equip)
 	else:
-		if slot < 0:
-			slot = randi() % 8
-		equip.slot = slot
-		if slot == EquipmentEnums.EquipmentSlot.WEAPON_MAIN or slot == EquipmentEnums.EquipmentSlot.WEAPON_OFFHAND:
-			equip.weapon_data = _generate_weapon_data(equip)
-			equip.equipment_name = _weapon_name(equip)
-		else:
-			equip.equipment_name = _build_name(equip)
-		if rarity != EquipmentEnums.Rarity.COMMON:
-			_add_affixes(equip)
+		equip.equipment_name = _build_name(equip)
+	_add_affixes(equip)
+	_try_apply_set_label(equip)
 	return equip
 
 
@@ -101,24 +96,35 @@ static func _add_affixes(equip: EquipmentBase):
 		return
 	var picked: Array[Affix] = []
 	var pool = all_affixes.duplicate()
+	pool = pool.filter(func(a): return a.can_appear_on(equip.slot))
 	pool.shuffle()
 	for i in range(min(count, pool.size())):
-		var aff = pool[i]
+		var aff = pool[i].duplicate()
+		aff.level = int(randf_range(level_range.x, level_range.y + 0.99))
+		_scale_affix_values(aff)
 		picked.append(aff)
 	equip.affixes = picked
 
 
-static func _apply_set(equip: EquipmentBase):
+static func _scale_affix_values(aff: Affix):
+	var mult = 1.0 + (aff.level - 1) * 0.25
+	for m in aff.stat_modifiers:
+		m.value *= mult
+	for e in aff.trigger_effects:
+		e.param_value *= mult
+	for c in aff.conditional_bonuses:
+		if c.bonus:
+			c.bonus.value *= mult
+
+
+static func _try_apply_set_label(equip: EquipmentBase):
 	var all_sets = SetDatabase.get_all_sets()
 	if all_sets.is_empty():
-		equip.rarity = EquipmentEnums.Rarity.RARE
-		equip.slot = randi() % 8
-		equip.equipment_name = _build_name(equip)
-		_add_affixes(equip)
+		return
+	if randf() > 0.1:
 		return
 	var set_def = all_sets[randi() % all_sets.size()]
 	equip.set_id = set_def.set_id
-	equip.slot = set_def.slots[randi() % set_def.slots.size()]
 	equip.equipment_name = set_def.set_name + _slot_suffix(equip.slot)
 
 

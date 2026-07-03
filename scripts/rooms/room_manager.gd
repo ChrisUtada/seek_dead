@@ -145,6 +145,8 @@ func _do_switch():
 	_doors_unlocked = false
 
 	_spawn_wave(config, 0)
+	if randf() < 0.2 and config.room_size != RoomConfig.RoomSize.BOSS:
+		_spawn_enchantment_table()
 	_position_player()
 	_connect_doors()
 
@@ -462,7 +464,7 @@ func _on_room_cleared(_room_id: String):
 	_spawn_rewards(items)
 
 	if randf() < 0.5:
-		_spawn_skill_pickup()
+		_show_skill_upgrade()
 
 	_unlock_doors()
 
@@ -475,19 +477,45 @@ func _on_enemy_died(enemy: Node2D):
 	var chance = cfg.drop_heal_chance if cfg is EnemyConfig else 0.0
 	if heal > 0 and randf() < chance:
 		_spawn_health_pickup(enemy.global_position, heal)
+	if randf() < 0.6:
+		var gold_val = 10 + randi() % 16
+		if cfg is EnemyConfig and cfg.drop_gold > 0:
+			gold_val = cfg.drop_gold
+		_spawn_gold_pickup(enemy.global_position, gold_val)
+	if cfg is EnemyConfig and cfg.drop_equip_chance > 0 and randf() < cfg.drop_equip_chance:
+		_spawn_equip_drop(enemy.global_position, cfg.drop_equip_quality_bonus)
 	if enemy.is_in_group("elite"):
 		if not _current_config or not _current_config.has_elite:
 			return
 		_show_skill_choice()
 
 
+func _show_skill_upgrade():
+	var player = _player
+	if not player:
+		return
+	var sm = player.get_node_or_null("SkillManager") as SkillManager
+	if not sm or sm.skills.is_empty():
+		_spawn_skill_pickup()
+		return
+	var hud = get_tree().root.find_child("HUD", true, false)
+	if hud and hud.has_method("show_skill_upgrade"):
+		var all_max = true
+		for sk in sm.skills:
+			if sk.level < sk.max_level:
+				all_max = false
+				break
+		if all_max:
+			_spawn_skill_pickup()
+		else:
+			hud.show_skill_upgrade(sm)
+
+
 func _show_skill_choice():
 	var player = _player
 	if not player:
 		return
-	var hud = player.get_node_or_null("/root/Game/HUD")
-	if not hud:
-		hud = get_tree().root.find_child("HUD", true, false)
+	var hud = get_tree().root.find_child("HUD", true, false)
 	if hud and hud.has_method("show_skill_choice"):
 		var skills = SkillDatabase.get_all_skills()
 		if skills.size() == 0:
@@ -529,6 +557,16 @@ func _spawn_skill_reward():
 	drop.setup(sk)
 
 
+func _spawn_equip_drop(world_pos: Vector2, quality_bonus: float):
+	if _current_room == null:
+		return
+	var item = EquipmentDrop.generate_drop(quality_bonus)
+	var drop = EquipmentPickup.new()
+	_current_room.add_child(drop)
+	drop.global_position = world_pos + Vector2(randf_range(-8, 8), randf_range(-8, 8))
+	drop.call_deferred("setup", item)
+
+
 func _spawn_health_pickup(world_pos: Vector2, amount: int):
 	if _current_room == null:
 		return
@@ -536,6 +574,25 @@ func _spawn_health_pickup(world_pos: Vector2, amount: int):
 	_current_room.add_child(drop)
 	drop.global_position = world_pos + Vector2(randf_range(-10, 10), randf_range(-10, 10))
 	drop.setup(amount)
+
+
+func _spawn_gold_pickup(world_pos: Vector2, value: int):
+	if _current_room == null:
+		return
+	var drop = GoldPickup.new()
+	_current_room.add_child(drop)
+	drop.global_position = world_pos + Vector2(randf_range(-10, 10), randf_range(-10, 10))
+	drop.setup(value)
+
+
+func _spawn_enchantment_table():
+	if _current_room == null:
+		return
+	var table = EnchantmentTable.new()
+	_current_room.add_child(table)
+	var center = Vector2(320, 200)
+	var offset = Vector2(randf_range(-100, 100), randf_range(-80, 80))
+	table.global_position = center + offset
 
 
 func _spawn_skill_pickup():
