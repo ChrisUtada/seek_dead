@@ -1,7 +1,5 @@
 extends EnemyBase
 
-const _AIComp = preload("res://scripts/components/ai_component.gd")
-
 @export var config: EnemyConfig
 
 @onready var ai: AIComponent = $AIComponent
@@ -69,7 +67,7 @@ func _physics_process(delta):
 	else:
 		mover.reset_speed_multiplier()
 
-	if ai.current_state == AIComponent.AIState.ATTACK:
+	if ai.is_attacking():
 		mover.direction = Vector2.ZERO
 	else:
 		mover.direction = ai.get_move_direction()

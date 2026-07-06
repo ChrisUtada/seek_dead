@@ -1,6 +1,5 @@
 extends EnemyBase
 
-const _AIComp = preload("res://scripts/components/ai_component.gd")
 const _BulletScene = preload("res://scenes/battle/projectile.tscn")
 const _DefaultBulletData = preload("res://resources/bullets/default_bullet.tres")
 
@@ -20,6 +19,10 @@ func _ready():
 	ai.attack_range = 200.0
 	ai.attack_performed.connect(_on_ai_attack)
 	ai.set_home(global_position, 600.0)
+	ai.set_behaviors(
+		[AIComponent.BehaviorType.STRAFE, AIComponent.BehaviorType.RETREAT, AIComponent.BehaviorType.SUMMON],
+		[4.0, 3.0, -1.0]
+	)
 
 
 func apply_config(cfg: EnemyConfig):
@@ -68,7 +71,7 @@ func _physics_process(delta):
 	else:
 		mover.reset_speed_multiplier()
 
-	if ai.current_state == AIComponent.AIState.ATTACK:
+	if ai.is_attacking():
 		mover.direction = Vector2.ZERO
 	else:
 		mover.direction = ai.get_move_direction()
