@@ -36,6 +36,8 @@ func _ready():
 	_nav = get_parent().get_node_or_null("NavigationAgent2D") as NavigationAgent2D
 	if not _nav:
 		push_error("AIComponent: NavigationAgent2D not found on %s" % get_parent().name)
+	else:
+		_nav.target_desired_distance = attack_range * 0.8
 	home_position = get_parent().global_position
 	if patrol_points.size() > 0:
 		_change_state(AIState.PATROL)
@@ -164,7 +166,10 @@ func _process_chase(delta):
 		_change_state(AIState.RETURN)
 		return
 
-	_nav.target_position = _target.global_position
+	var spread = attack_range * 0.6
+	var angle = fmod(float(get_parent().get_instance_id()) * 0.001, TAU)
+	var offset = Vector2(cos(angle), sin(angle)) * spread
+	_nav.target_position = _target.global_position + offset
 	if _nav.is_navigation_finished():
 		_last_move_dir = Vector2.ZERO
 	else:

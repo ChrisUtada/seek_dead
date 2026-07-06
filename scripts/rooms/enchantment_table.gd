@@ -5,6 +5,7 @@ const REROLL_COST: int = 300
 
 var _player_near: bool = false
 var _panel: Control = null
+var _room_cleared: bool = false
 
 
 func _ready():
@@ -13,7 +14,14 @@ func _ready():
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
 	tree_exiting.connect(_close_panel)
+	EventManager.room_cleared.connect(_on_room_cleared, CONNECT_ONE_SHOT)
 	call_deferred("_build_visual")
+
+
+func _on_room_cleared(_room_id: String):
+	_room_cleared = true
+	if _player_near:
+		_open_panel()
 
 
 func _build_visual():
@@ -43,7 +51,8 @@ func _on_body_entered(body: Node2D):
 	if not body.is_in_group("player"):
 		return
 	_player_near = true
-	_open_panel()
+	if _room_cleared:
+		_open_panel()
 
 
 func _on_body_exited(body: Node2D):
