@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="EnemyConfig" format=3]
+
+[ext_resource type="Script" uid="uid://csx8dy1fumba2" path="res://scripts/resources/enemy_config.gd" id="1"]
+[ext_resource type="Resource" uid="" path="res://resources/enemies/loot_tables/elite_goblin.tres" id="2"]
+
+[resource]
+script = ExtResource("1")
+loot_table = ExtResource("2")
+tier = 1
+display_name = "精英哥布林"
+hp_min = 120.0
+hp_max = 200.0
+speed = 75.0
+damage = 20.0
+innate_type = 0
+defenses = {
+"fire_defense": 0.1,
+"puncture_defense": 0.0,
+"slash_defense": 0.0,
+"smash_defense": 0.2
+}
+stat_multiplier = 1.5
+color = Color(1.0, 0.7, 0.1, 1)
+scene_path = "res://scenes/enemies/elite_goblin.tscn"
+behavior_types = [0]
+behavior_durations = [-1.0]
+attack_range = 50.0

@@ -4,72 +4,31 @@ extends RefCounted
 const SLOT_NAMES: Array = [
 	"主手武器", "副手武器", "头盔", "身体", "手部", "腿部", "饰品1", "饰品2",
 ]
-const BASE_NAMES: Dictionary = {
-	EquipmentEnums.EquipmentSlot.WEAPON_MAIN: ["铁剑", "短弓", "法杖"],
-	EquipmentEnums.EquipmentSlot.WEAPON_OFFHAND: ["铁剑", "短弓", "法杖"],
-	EquipmentEnums.EquipmentSlot.HELMET: ["铁盔", "皮帽", "头带"],
-	EquipmentEnums.EquipmentSlot.BODY: ["铁甲", "皮衣", "布袍"],
-	EquipmentEnums.EquipmentSlot.HAND: ["铁手套", "护腕", "指虎"],
-	EquipmentEnums.EquipmentSlot.LEG: ["铁靴", "皮靴", "布鞋"],
-	EquipmentEnums.EquipmentSlot.ACCESSORY_1: ["铜戒", "石符", "骨环"],
-	EquipmentEnums.EquipmentSlot.ACCESSORY_2: ["铜戒", "石符", "骨环"],
-}
 const RARITY_PREFIX: Dictionary = {
 	EquipmentEnums.Rarity.MAGIC: "精良",
 	EquipmentEnums.Rarity.RARE: "稀有",
 	EquipmentEnums.Rarity.LEGENDARY: "传奇",
 }
-
-const WEAPON_TEMPLATES: Array = [
-	preload("res://resources/weapon_templates/iron_sword.tres"),
-	preload("res://resources/weapon_templates/dagger.tres"),
-	preload("res://resources/weapon_templates/battle_axe.tres"),
-	preload("res://resources/weapon_templates/fire_sword.tres"),
-	preload("res://resources/weapon_templates/pistol.tres"),
-	preload("res://resources/weapon_templates/ice_gun.tres"),
-	preload("res://resources/weapon_templates/poison_dagger.tres"),
-	preload("res://resources/weapon_templates/flame_staff.tres"),
-]
+const DEFAULT_POOL: EquipmentPool = preload("res://resources/equipment_pool/default.tres")
 
 
-static func generate_drop(quality_bonus: float = 0.0, slot: int = -1, force_min_rarity: int = -1) -> EquipmentBase:
-	var rarity = RarityTable.roll_rarity(quality_bonus, force_min_rarity)
+static func generate_drop(quality_bonus: float = 0.0, slot: int = -1, force_min_rarity: int = -1, template: EquipmentTemplate = null) -> EquipmentBase:
 	var equip = EquipmentBase.new()
-	equip.rarity = rarity
-	if slot < 0:
-		slot = randi() % 8
-	equip.slot = slot
-	if slot == EquipmentEnums.EquipmentSlot.WEAPON_MAIN or slot == EquipmentEnums.EquipmentSlot.WEAPON_OFFHAND:
-		equip.weapon_data = _generate_weapon_data(equip)
-		equip.equipment_name = _weapon_name(equip)
-	else:
-		equip.equipment_name = _build_name(equip)
+	equip.rarity = RarityTable.roll_rarity(quality_bonus, force_min_rarity)
+	if template == null:
+		template = DEFAULT_POOL.roll()
+	if template == null:
+		return equip
+	equip.slot = template.slot
+	if template.weapon_data:
+		var wd = template.weapon_data.duplicate(true) as WeaponData
+		wd.damage *= RarityTable.get_base_stat_multiplier(equip.rarity)
+		equip.weapon_data = wd
+	var prefix = RARITY_PREFIX.get(equip.rarity, "")
+	equip.equipment_name = prefix + template.template_name if prefix else template.template_name
 	_add_affixes(equip)
 	_try_apply_set_label(equip)
 	return equip
-
-
-static func _generate_weapon_data(equip: EquipmentBase) -> WeaponData:
-	var pool = WEAPON_TEMPLATES
-	if equip.slot == EquipmentEnums.EquipmentSlot.WEAPON_OFFHAND:
-		pool = pool.filter(func(t): return t.can_dual_wield)
-		if pool.is_empty():
-			pool = WEAPON_TEMPLATES
-	var template = pool[randi() % pool.size()] as WeaponData
-	var wd = template.duplicate(true) as WeaponData
-	var mult = RarityTable.get_base_stat_multiplier(equip.rarity)
-	wd.damage *= mult
-	return wd
-
-
-static func _weapon_name(equip: EquipmentBase) -> String:
-	var wd = equip.weapon_data
-	if not wd or wd.weapon_name.is_empty():
-		return _build_name(equip)
-	var prefix = RARITY_PREFIX.get(equip.rarity, "")
-	if prefix == "":
-		return wd.weapon_name
-	return prefix + wd.weapon_name
 
 
 static func generate_drops(count: int, quality_bonus: float = 0.0, force_min_rarity: int = -1) -> Array[EquipmentBase]:
@@ -77,15 +36,6 @@ static func generate_drops(count: int, quality_bonus: float = 0.0, force_min_rar
 	for i in range(count):
 		result.append(generate_drop(quality_bonus, -1, force_min_rarity))
 	return result
-
-
-static func _build_name(equip: EquipmentBase) -> String:
-	var base_pool = BASE_NAMES.get(equip.slot, ["未知"])
-	var base_name = base_pool[randi() % base_pool.size()]
-	var prefix = RARITY_PREFIX.get(equip.rarity, "")
-	if prefix == "":
-		return base_name
-	return prefix + base_name
 
 
 static func _add_affixes(equip: EquipmentBase):

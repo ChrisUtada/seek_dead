@@ -1,0 +1,151 @@
+[gd_resource type="Resource" script_class="EquipmentPool" format=3 uid="uid://c0om473wwclwe"]
+
+[ext_resource type="Script" uid="uid://cw0wlk0wfcums" path="res://scripts/resources/equipment_pool.gd" id="1"]
+[ext_resource type="Script" uid="uid://cjpav6e2twumi" path="res://scripts/resources/equipment_template.gd" id="2"]
+[ext_resource type="Resource" uid="uid://bq23ena74qfx" path="res://resources/weapon_templates/iron_sword.tres" id="3"]
+[ext_resource type="Resource" uid="uid://bw88p35vvqqfk" path="res://resources/weapon_templates/dagger.tres" id="4"]
+[ext_resource type="Resource" uid="uid://dne3muookpene" path="res://resources/weapon_templates/battle_axe.tres" id="5"]
+[ext_resource type="Resource" path="res://resources/weapon_templates/fire_sword.tres" id="6"]
+[ext_resource type="Resource" uid="uid://ti6ximf1nxib" path="res://resources/weapon_templates/pistol.tres" id="7"]
+[ext_resource type="Resource" path="res://resources/weapon_templates/ice_gun.tres" id="8"]
+[ext_resource type="Resource" path="res://resources/weapon_templates/poison_dagger.tres" id="9"]
+[ext_resource type="Resource" path="res://resources/weapon_templates/flame_staff.tres" id="10"]
+
+[sub_resource type="Resource" id="1"]
+script = ExtResource("2")
+template_name = "铁剑"
+weight = 3.0
+weapon_data = ExtResource("3")
+
+[sub_resource type="Resource" id="2"]
+script = ExtResource("2")
+template_name = "匕首"
+weight = 3.0
+weapon_data = ExtResource("4")
+
+[sub_resource type="Resource" id="3"]
+script = ExtResource("2")
+template_name = "战斧"
+weight = 2.0
+weapon_data = ExtResource("5")
+
+[sub_resource type="Resource" id="4"]
+script = ExtResource("2")
+template_name = "火焰剑"
+weapon_data = ExtResource("6")
+
+[sub_resource type="Resource" id="5"]
+script = ExtResource("2")
+template_name = "手枪"
+weight = 2.0
+weapon_data = ExtResource("7")
+
+[sub_resource type="Resource" id="6"]
+script = ExtResource("2")
+template_name = "冰霜枪"
+weapon_data = ExtResource("8")
+
+[sub_resource type="Resource" id="7"]
+script = ExtResource("2")
+template_name = "毒匕首"
+weight = 1.5
+weapon_data = ExtResource("9")
+
+[sub_resource type="Resource" id="8"]
+script = ExtResource("2")
+template_name = "火焰法杖"
+weapon_data = ExtResource("10")
+
+[sub_resource type="Resource" id="9"]
+script = ExtResource("2")
+slot = 2
+template_name = "铁盔"
+weight = 2.0
+
+[sub_resource type="Resource" id="10"]
+script = ExtResource("2")
+slot = 2
+template_name = "皮帽"
+weight = 2.0
+
+[sub_resource type="Resource" id="11"]
+script = ExtResource("2")
+slot = 2
+template_name = "头带"
+weight = 2.0
+
+[sub_resource type="Resource" id="12"]
+script = ExtResource("2")
+slot = 3
+template_name = "铁甲"
+weight = 2.0
+
+[sub_resource type="Resource" id="13"]
+script = ExtResource("2")
+slot = 3
+template_name = "皮衣"
+weight = 2.0
+
+[sub_resource type="Resource" id="14"]
+script = ExtResource("2")
+slot = 3
+template_name = "布袍"
+weight = 2.0
+
+[sub_resource type="Resource" id="15"]
+script = ExtResource("2")
+slot = 4
+template_name = "铁手套"
+weight = 2.0
+
+[sub_resource type="Resource" id="16"]
+script = ExtResource("2")
+slot = 4
+template_name = "护腕"
+weight = 2.0
+
+[sub_resource type="Resource" id="17"]
+script = ExtResource("2")
+slot = 4
+template_name = "指虎"
+weight = 2.0
+
+[sub_resource type="Resource" id="18"]
+script = ExtResource("2")
+slot = 5
+template_name = "铁靴"
+weight = 2.0
+
+[sub_resource type="Resource" id="19"]
+script = ExtResource("2")
+slot = 5
+template_name = "皮靴"
+weight = 2.0
+
+[sub_resource type="Resource" id="20"]
+script = ExtResource("2")
+slot = 5
+template_name = "布鞋"
+weight = 2.0
+
+[sub_resource type="Resource" id="21"]
+script = ExtResource("2")
+slot = 6
+template_name = "铜戒"
+weight = 2.0
+
+[sub_resource type="Resource" id="22"]
+script = ExtResource("2")
+slot = 6
+template_name = "石符"
+weight = 2.0
+
+[sub_resource type="Resource" id="23"]
+script = ExtResource("2")
+slot = 6
+template_name = "骨环"
+weight = 2.0
+
+[resource]
+script = ExtResource("1")
+entries = Array[ExtResource("2")]([SubResource("1"), SubResource("2"), SubResource("3"), SubResource("4"), SubResource("5"), SubResource("6"), SubResource("7"), SubResource("8"), SubResource("9"), SubResource("10"), SubResource("11"), SubResource("12"), SubResource("13"), SubResource("14"), SubResource("15"), SubResource("16"), SubResource("17"), SubResource("18"), SubResource("19"), SubResource("20"), SubResource("21"), SubResource("22"), SubResource("23")])

@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="EnemyConfig" format=3 uid="uid://ca53bgowv5a1s"]
 
 [ext_resource type="Script" uid="uid://csx8dy1fumba2" path="res://scripts/resources/enemy_config.gd" id="1"]
+[ext_resource type="Resource" uid="uid://b3htk0xgqp63m" path="res://resources/enemies/loot_tables/goblin.tres" id="2"]
 
 [resource]
 script = ExtResource("1")
@@ -17,7 +18,7 @@ defenses = {
 }
 color = Color(0.2, 0.6, 0.2, 1)
 scene_path = "res://scenes/enemies/goblin.tscn"
-drop_heal = 8
-drop_heal_chance = 1.0
-drop_equip_chance = 0.15
-drop_equip_quality_bonus = 0.0
+behavior_types = Array[int]([0])
+behavior_durations = Array[float]([-1.0])
+attack_range = 20.0
+loot_table = ExtResource("2")

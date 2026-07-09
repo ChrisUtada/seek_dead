@@ -28,7 +28,7 @@ signal alerted(target: Node2D)
 var attack_range: float = 50.0
 var current_state: int = AIState.IDLE
 var home_position: Vector2
-var behaviors: Array[int] = [BehaviorType.CHASE_MELEE]
+var behaviors: Array = [BehaviorType.CHASE_MELEE]
 var behavior_durations: Array[float] = [-1.0]
 var behavior_index: int = 0
 
@@ -60,7 +60,7 @@ func _ready():
 		_pick_wander_target()
 
 
-func set_behaviors(types: Array[int], durations: Array[float] = []):
+func set_behaviors(types: Array, durations: Array[float] = []):
 	behaviors = types
 	behavior_durations = durations
 	behavior_index = 0
@@ -72,6 +72,14 @@ func set_behaviors(types: Array[int], durations: Array[float] = []):
 		var fill = behavior_durations.size()
 		for i in range(behaviors.size() - fill):
 			behavior_durations.append(-1.0)
+
+
+func apply_behavior_config(cfg: EnemyConfig):
+	attack_range = cfg.attack_range
+	attack_cooldown = cfg.attack_cooldown
+	set_behaviors(cfg.behavior_types, cfg.behavior_durations)
+	if _nav:
+		_nav.target_desired_distance = attack_range * 0.8
 
 
 func set_patrol(points: Array[Vector2]):
@@ -240,15 +248,13 @@ func _tick_chase_melee(delta):
 			attack_performed.emit(_target, attack_damage)
 		return
 	_in_attack_phase = false
-	var spread = attack_range * 0.6
-	var angle = fmod(float(get_parent().get_instance_id()) * 0.001, TAU)
-	var offset = Vector2(cos(angle), sin(angle)) * spread
-	_nav.target_position = _target.global_position + offset
-	if _nav.is_navigation_finished():
-		_last_move_dir = Vector2.ZERO
+	_nav.target_position = _target.global_position
+	var next = _nav.get_next_path_position()
+	var my_pos = get_parent().global_position
+	if next.distance_squared_to(my_pos) < 4.0:
+		_last_move_dir = my_pos.direction_to(_target.global_position)
 	else:
-		var next = _nav.get_next_path_position()
-		_last_move_dir = get_parent().global_position.direction_to(next)
+		_last_move_dir = my_pos.direction_to(next)
 
 
 func _tick_strafe(delta):
@@ -462,19 +468,3 @@ func _get_distance_to(target: Node2D) -> float:
 
 func _find_nearest_player():
 	return EntityRegistry.get_nearest_player(get_parent().global_position)
-
-
-func has_line_of_sight_to(target: Node2D, max_distance: float) -> bool:
-	var parent = get_parent() as Node2D
-	if not parent:
-		return true
-	var ray = parent.get_node_or_null("LOSRay") as RayCast2D
-	if not ray:
-		return true
-	var offset = target.global_position - parent.global_position
-	if offset.length() > max_distance:
-		return false
-	ray.global_position = parent.global_position
-	ray.target_position = offset
-	ray.force_raycast_update()
-	return not ray.is_colliding()

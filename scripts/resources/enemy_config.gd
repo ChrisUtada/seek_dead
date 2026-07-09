@@ -19,9 +19,14 @@ enum EnemyTier { NORMAL, ELITE_STAT, ELITE_MECHANIC, BOSS }
 @export var stat_multiplier: float = 1.5
 @export var color: Color = Color(0.9, 0.2, 0.2)
 @export var scene_path: String = ""
-@export var bullet_data: Resource
+@export var bullet_data: BulletData
+@export var behavior_types: Array[AIComponent.BehaviorType]
+@export var behavior_durations: Array[float]
+@export var attack_range: float = 50.0
+@export var attack_cooldown: float = 1.5
+@export var loot_table: LootTable
 @export var drop_heal: int = 0
 @export var drop_heal_chance: float = 0.0
 @export var drop_equip_chance: float = 0.0
 @export var drop_equip_quality_bonus: float = 0.0
-@export var drop_gold: int = 0  # 0=默认掉落(10-25), >0=固定值
+@export var drop_gold: int = 0

@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="LootTable" format=3 uid="uid://b3htk0xgqp63m"]
+
+[ext_resource type="Script" uid="uid://fs4a8oqifl0h" path="res://scripts/resources/loot_table.gd" id="1"]
+[ext_resource type="Script" uid="uid://ce6fnmf7pj6xq" path="res://scripts/resources/loot_entry.gd" id="2"]
+
+[sub_resource type="Resource" id="1"]
+script = ExtResource("2")
+item_type = 1
+min_amount = 8
+max_amount = 8
+
+[sub_resource type="Resource" id="2"]
+script = ExtResource("2")
+weight = 0.6
+min_amount = 10
+max_amount = 25
+
+[sub_resource type="Resource" id="3"]
+script = ExtResource("2")
+item_type = 2
+weight = 0.15
+
+[resource]
+script = ExtResource("1")
+entries = Array[ExtResource("2")]([SubResource("1"), SubResource("2"), SubResource("3")])
