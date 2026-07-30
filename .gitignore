@@ -27,3 +27,9 @@ Pixel Crawler - Free Pack 2.09.zip
 
 # Temp room builder scene
 roombuild.tscn
+
+# WorkBuddy project memory (do not commit)
+.workbuddy/
+
+# Asset source packs
+kenney_tiny-dungeon*

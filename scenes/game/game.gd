@@ -1,3 +1,4 @@
+class_name Game
 extends Node2D
 
 @onready var _player: Node2D = $Player
@@ -34,7 +35,7 @@ func _save_game():
 		"timestamp": Time.get_datetime_string_from_system(),
 	}
 	if SaveSystem.save_game(data):
-		print("存档成功")
+		Debug.log("存档成功")
 	else:
 		push_error("存档失败")
 
@@ -42,7 +43,7 @@ func _save_game():
 func _load_game():
 	var data = SaveSystem.load_game()
 	if data.is_empty():
-		print("没有存档")
+		Debug.log("没有存档")
 		return
 	if not _player:
 		return
@@ -54,4 +55,4 @@ func _load_game():
 	var wi = data.get("weapon_index", 0)
 	if wi < _player.weapon.get_weapon_count():
 		_player.weapon.switch_weapon(wi)
-	print("读档成功")
+	Debug.log("读档成功")

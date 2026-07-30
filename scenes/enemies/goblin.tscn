@@ -3,23 +3,24 @@
 [ext_resource type="Script" uid="uid://de63lowgfrcqc" path="res://scripts/battle/goblin.gd" id="1"]
 [ext_resource type="Script" uid="uid://ctiii7qq0t53a" path="res://scripts/battle/state_component.gd" id="2"]
 [ext_resource type="Script" uid="uid://cfrk7f3nucaq4" path="res://scripts/components/movement_component.gd" id="3"]
-[ext_resource type="Texture2D" uid="uid://c6n4ep77nf1yk" path="res://assets/chars/kl/Run-Sheet.png" id="3_oth3g"]
 [ext_resource type="Script" uid="uid://o84bb33jrmab" path="res://scripts/components/status_effect_component.gd" id="4"]
 [ext_resource type="Script" uid="uid://d34krmmfes3iv" path="res://scripts/components/ai_component.gd" id="5"]
 [ext_resource type="Script" uid="uid://qjvq1fr7aq82" path="res://scripts/ui/shadow.gd" id="6"]
+[ext_resource type="Texture2D" uid="uid://vapxyakudy1p" path="res://assets/chars/tile_0108.png" id="6_ddai1"]
 [ext_resource type="Resource" uid="uid://ca53bgowv5a1s" path="res://resources/enemies/goblin.tres" id="7"]
 [ext_resource type="Script" uid="uid://d0ygt1ksgbf84" path="res://scripts/battle/hurtbox.gd" id="8_oxf57"]
 [ext_resource type="Script" uid="uid://r0bxpgciuacn" path="res://scripts/battle/hitbox.gd" id="9"]
 
 [sub_resource type="RectangleShape2D" id="1"]
-size = Vector2(28, 35)
+size = Vector2(16, 23.5)
 
-[sub_resource type="CircleShape2D" id="2"]
-radius = 24.0
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_32abb"]
+size = Vector2(15, 35)
 
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_ddai1"]
 
 [node name="Goblin" type="CharacterBody2D" unique_id=1624054806]
+position = Vector2(43, 21)
 collision_layer = 2
 collision_mask = 4
 script = ExtResource("1")
@@ -32,7 +33,7 @@ shadow_offset = Vector2(0, 5)
 shadow_opacity = 0.25
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=102230998]
-position = Vector2(0, 15.5)
+position = Vector2(-2, 9.25)
 shape = SubResource("1")
 
 [node name="Hurtbox" type="Area2D" parent="." unique_id=1604775669]
@@ -42,16 +43,17 @@ script = ExtResource("8_oxf57")
 shape = SubResource("1")
 
 [node name="MeleeHitbox" type="Area2D" parent="." unique_id=1320821107]
+position = Vector2(0, 13)
 monitoring = false
 monitorable = false
 script = ExtResource("9")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="MeleeHitbox" unique_id=1438324677]
-shape = SubResource("2")
+position = Vector2(-0.5, 2.5)
+shape = SubResource("RectangleShape2D_32abb")
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=1213592308]
-texture = ExtResource("3_oth3g")
-hframes = 6
+texture = ExtResource("6_ddai1")
 
 [node name="StateComponent" type="Node" parent="." unique_id=1151793950]
 script = ExtResource("2")
@@ -61,11 +63,6 @@ script = ExtResource("4")
 
 [node name="AIComponent" type="Node" parent="." unique_id=926732128]
 script = ExtResource("5")
-
-[node name="LOSRay" type="RayCast2D" parent="." unique_id=1170586867]
-target_position = Vector2(300, 0)
-collision_mask = 4
-hit_from_inside = true
 
 [node name="MovementComponent" type="Node" parent="." unique_id=516680120]
 script = ExtResource("3")

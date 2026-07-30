@@ -1,4 +1,20 @@
+# =============================================================================
+# room_generator.gd — 房间几何参考工具（已降级，非房间来源）
+# -----------------------------------------------------------------------------
+# ⚠️ 本脚本已不再是房间的权威来源。自 2026-07-08 起，房间改为手工维护的
+#    .tscn 资产（scenes/rooms/room_1.tscn / room_2.tscn / room_3_medium.tscn /
+#    room_4_large.tscn），由设计者在 Godot 编辑器内自由细化（门位、障碍、装饰、
+#    贴图）。碰撞体为纯几何 StaticBody2D，不依赖美术资源。
+#
+# 本脚本仅作「几何参考」保留：如需重新生成 room_*_test.tscn 测试场景，可在
+# 编辑器用 F6 运行 `scenes/rooms/room_generator.tscn`（仅产出 test 命名场景，
+# 不会覆盖 room_1/2/3_medium/4_large）。日常房间设计请直接编辑对应 .tscn。
+#
+# 历史：旧 `room_builder.gd`（+ roombuild.tscn）因 StaticBody2D 定位 bug 与
+#    ownership 未递归设置，已于 2026-07-08 删除。
+# =============================================================================
 @tool
+class_name RoomGenerator
 extends Node
 
 const DOOR_SCENE := preload("res://scenes/rooms/door_marker.tscn")
@@ -32,19 +48,19 @@ func _ready():
 	if Engine.is_editor_hint():
 		return
 	generate_all()
-	print("=== Room generation complete ===")
+	Debug.log("=== Room generation complete ===")
 	get_tree().quit()
 
 
 func generate_all():
-	print("=== Starting room generation ===")
+	Debug.log("=== Starting room generation ===")
 
 	_generate_template()
 
 	for r in _define_rooms():
 		_generate_room(r)
 
-	print("=== Done ===")
+	Debug.log("=== Done ===")
 
 
 func _own_recursive(node: Node, owner: Node):
@@ -96,7 +112,7 @@ func _generate_template():
 	var scene := PackedScene.new()
 	scene.pack(root)
 	ResourceSaver.save(scene, ROOMS_DIR + "room_template.tscn")
-	print("  saved: room_template.tscn")
+	Debug.log("  saved: room_template.tscn")
 
 
 func _make_nav(nav_rect: Rect2) -> NavigationRegion2D:
@@ -141,6 +157,9 @@ func _make_floor(nav_rect: Rect2, doors: Array) -> Node2D:
 	return floor
 
 
+# 几何参考：本函数仅为 room_*_test 场景生成墙体 StaticBody2D 碰撞。
+# 正式房间（room_1/2/3_medium/4_large）已由手工维护的 .tscn 提供含墙版本，
+# 房间碰撞体问题已于 2026-07-08 解决（见架构待办 #7 ✅）。本生成器已降级为参考工具。
 func _make_walls(r: RoomDef, outer: Rect2) -> Node2D:
 	var walls := Node2D.new()
 	walls.name = "Walls"
@@ -267,7 +286,7 @@ func _generate_room(r: RoomDef):
 	scene.pack(root)
 	var path := ROOMS_DIR + r.id + ".tscn"
 	ResourceSaver.save(scene, path)
-	print("  saved: ", path)
+	Debug.log("  saved: " + path)
 
 	var cfg := RoomConfig.new()
 	cfg.scene = scene
@@ -288,7 +307,7 @@ func _generate_room(r: RoomDef):
 
 	var cfg_path := CONFIG_DIR + r.id + ".tres"
 	ResourceSaver.save(cfg, cfg_path)
-	print("  saved: ", cfg_path)
+	Debug.log("  saved: " + cfg_path)
 
 
 func _wall_segments(r: RoomDef, outer: Rect2) -> Array[Dictionary]:

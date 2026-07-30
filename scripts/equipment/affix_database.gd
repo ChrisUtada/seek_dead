@@ -199,9 +199,9 @@ static func _condition_25() -> Affix:
 	], SLOT_WEAPON)
 
 static func _condition_26() -> Affix:
-	return _affix("残血护盾", "HP<20%时获得护盾(CD8s)", [], [], [
-		_cb(EquipmentEnums.ConditionType.HP_BELOW, 0.2, _sm(EquipmentEnums.StatTarget.MAX_HP, EquipmentEnums.ModifierType.OVERRIDE, 30.0)),
-	], SLOT_DEFENSE)
+	return _affix("残血护盾", "受伤时100%获得护盾(CD8s)", [], [
+		_te(EquipmentEnums.TriggerEvent.ON_HURT, EquipmentEnums.EffectAction.SHIELD, 1.0, 0.0, 8.0),
+	], [], SLOT_DEFENSE)
 
 static func _condition_27() -> Affix:
 	return _affix("弹尽粮绝", "弹药=0时远程伤害+100%", [], [], [

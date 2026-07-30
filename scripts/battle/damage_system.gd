@@ -31,7 +31,7 @@ const TYPE_ADVANTAGE: Dictionary = {
 	DamageType.WIND: { DamageType.POISON: 1.3, DamageType.LIGHTNING: 1.3 },
 }
 
-static func calculate(attacker_stats: Dictionary, defender_stats: Dictionary, damage_type: DamageType, base_damage: float) -> Dictionary:
+static func calculate(attacker: CombatStats, defender: CombatStats, damage_type: DamageType, base_damage: float) -> Dictionary:
 	var result = {
 		damage = base_damage,
 		hit_result = HitResult.NORMAL,
@@ -43,13 +43,13 @@ static func calculate(attacker_stats: Dictionary, defender_stats: Dictionary, da
 	}
 
 	# 1. 攻击加成
-	var attack_bonus = _get_attack_bonus(attacker_stats, damage_type)
+	var attack_bonus = attacker.bonus_for(damage_type)
 	result.damage *= (1.0 + attack_bonus)
 	result.breakdown["attack_bonus"] = attack_bonus
 	result.breakdown["after_attack_bonus"] = result.damage
 
 	# 2. 防御减免
-	var defense_ratio = _get_defense_ratio(defender_stats, damage_type)
+	var defense_ratio = defender.defense_for(damage_type)
 	defense_ratio = clamp(defense_ratio, 0.0, 0.85)
 	result.damage *= (1.0 - defense_ratio)
 	result.breakdown["defense_ratio"] = defense_ratio
@@ -57,7 +57,7 @@ static func calculate(attacker_stats: Dictionary, defender_stats: Dictionary, da
 	result.is_resisted = defense_ratio > 0.5
 
 	# 3. 属性克制
-	var advantage = _get_type_advantage(damage_type, defender_stats.get("innate_type", -1))
+	var advantage = _get_type_advantage(damage_type, defender.innate_type)
 	if advantage != 1.0:
 		result.damage *= advantage
 		result.breakdown["type_advantage"] = advantage
@@ -68,8 +68,8 @@ static func calculate(attacker_stats: Dictionary, defender_stats: Dictionary, da
 			result.is_resisted = true
 
 	# 4. 暴击
-	var crit_rate = attacker_stats.get("crit_rate", 0.05)
-	var crit_dmg = attacker_stats.get("crit_damage", 1.5)
+	var crit_rate = attacker.crit_rate
+	var crit_dmg = attacker.crit_damage
 	result.is_critical = randf() < crit_rate
 	if result.is_critical:
 		result.damage *= crit_dmg
@@ -88,8 +88,8 @@ static func calculate(attacker_stats: Dictionary, defender_stats: Dictionary, da
 
 	return result
 
-static func calculate_simple(base_damage: float, damage_type: DamageType, target_defenses: Dictionary = {}) -> float:
-	var defense = target_defenses.get(damage_type, 0.0)
+static func calculate_simple(base_damage: float, damage_type: DamageType, target: CombatStats = null) -> float:
+	var defense = target.defense_for(damage_type) if target != null else 0.0
 	return round(max(base_damage * (1.0 - clamp(defense, 0.0, 0.9)), 1.0))
 
 static func get_color(damage_type: DamageType) -> Color:
@@ -110,27 +110,6 @@ static func hit_result_to_string(r: HitResult) -> String:
 		HitResult.RESISTED: return "抵抗"
 		HitResult.WEAKNESS: return "弱点!"
 		_: return ""
-
-static var _bonus_keys: Array[String] = []
-static var _defense_keys: Array[String] = []
-static var _keys_initialized: bool = false
-
-static func _init_type_keys():
-	var names = ["puncture", "slash", "smash", "fire", "lightning", "ice", "poison", "wind"]
-	for n in names:
-		_bonus_keys.append(n + "_bonus")
-		_defense_keys.append(n + "_defense")
-	_keys_initialized = true
-
-static func _get_attack_bonus(attacker_stats: Dictionary, damage_type: DamageType) -> float:
-	if not _keys_initialized:
-		_init_type_keys()
-	return attacker_stats.get(_bonus_keys[damage_type], 0.0)
-
-static func _get_defense_ratio(defender_stats: Dictionary, damage_type: DamageType) -> float:
-	if not _keys_initialized:
-		_init_type_keys()
-	return defender_stats.get(_defense_keys[damage_type], 0.0)
 
 static func _get_type_advantage(attack_type: DamageType, defender_innate_type: int) -> float:
 	if defender_innate_type < 0:

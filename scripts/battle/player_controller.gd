@@ -15,7 +15,7 @@ enum PlayerState { IDLE, WALK, ATTACK, DODGE, SPRINT, HURT, DEAD }
 @onready var sprint: SprintComponent = $SprintComponent
 @onready var ammo: AmmoSystem = $AmmoSystem
 @onready var skill_manager: SkillManager = $SkillManager
-@onready var _sprite: Node = $Sprite2D
+@onready var _sprite: Node = get_node_or_null("Sprite2D")
 
 @export var config: PlayerConfig
 
@@ -198,7 +198,8 @@ func _process_movement(delta: float):
 	var aim_dir = (get_global_mouse_position() - global_position).normalized()
 	weapon.set_aim_direction(aim_dir)
 	if _sprite and "flip_h" in _sprite:
-		_sprite.flip_h = aim_dir.x < 0
+		# 鼠标在右侧时翻转（精灵默认朝左）
+		_sprite.flip_h = aim_dir.x > 0
 
 	# Q/E 切换主副手
 	if Input.is_action_just_pressed("weapon_slot_1"):
@@ -246,21 +247,27 @@ func _init_equipment():
 
 
 func _equip_starting_weapon():
-	# 主手：铁剑（近战）
-	var starting_weapon = EquipmentBase.new()
-	starting_weapon.equipment_name = "铁剑"
-	starting_weapon.slot = EquipmentEnums.EquipmentSlot.WEAPON_MAIN
-	starting_weapon.rarity = EquipmentEnums.Rarity.MAGIC
-	starting_weapon.weapon_data = preload("res://resources/weapon_templates/iron_sword.tres").duplicate(true)
-	equipment_manager.equip(starting_weapon)
+	# 初始武器改由角色配置 (PlayerConfig) 决定，便于在 .tres 中调整
+	var main_data: WeaponData = null
+	if config and config.starting_weapon_main:
+		main_data = config.starting_weapon_main
+	else:
+		main_data = preload("res://resources/weapon_templates/iron_sword.tres")
+	_equip_weapon_from_data(main_data, EquipmentEnums.EquipmentSlot.WEAPON_MAIN)
 
-	# 副手：手枪（远程）
-	var offhand_weapon = EquipmentBase.new()
-	offhand_weapon.equipment_name = "手枪"
-	offhand_weapon.slot = EquipmentEnums.EquipmentSlot.WEAPON_OFFHAND
-	offhand_weapon.rarity = EquipmentEnums.Rarity.MAGIC
-	offhand_weapon.weapon_data = preload("res://resources/weapon_templates/pistol.tres").duplicate(true)
-	equipment_manager.equip(offhand_weapon)
+	if config and config.starting_weapon_offhand:
+		_equip_weapon_from_data(config.starting_weapon_offhand, EquipmentEnums.EquipmentSlot.WEAPON_OFFHAND)
+
+
+func _equip_weapon_from_data(data: WeaponData, slot: int):
+	if data == null:
+		return
+	var equip = EquipmentBase.new()
+	equip.equipment_name = data.weapon_name
+	equip.slot = slot
+	equip.rarity = EquipmentEnums.Rarity.MAGIC
+	equip.weapon_data = data.duplicate(true)
+	equipment_manager.equip(equip)
 
 
 func _init_escape_skill():
@@ -292,17 +299,21 @@ func _debug_spawn_equipment():
 		helm.affixes.append(burn)
 	helm.affixes.append(aff)
 	if equipment_inventory.add_item(helm):
-		print("[装备调试] 调试头盔: " + aff.affix_name + " + 灼烧(命中25%爆炸100火伤)")
+		Debug.log("[装备调试] 调试头盔: " + aff.affix_name + " + 灼烧(命中25%爆炸100火伤)")
 	else:
-		print("[装备调试] 背包已满")
+		Debug.log("[装备调试] 背包已满")
 	equipment_manager.equip(helm)
-	print("[装备调试] HP加成前: %d / %d" % [state.hp, state.max_hp])
+	Debug.log("[装备调试] HP加成前: %d / %d" % [state.hp, state.max_hp])
 	state.hp = state.max_hp
-	print("[装备调试] HP加成后: %d / %d" % [state.hp, state.max_hp])
+	Debug.log("[装备调试] HP加成后: %d / %d" % [state.hp, state.max_hp])
 
 
 func _generate_placeholder_texture():
 	if not _sprite or _sprite is AnimatedSprite2D:
+		return
+	var spr = _sprite as Sprite2D
+	# 如果 Sprite 已有纹理（如弓箭手的 archor.png），跳过占位生成
+	if spr.texture:
 		return
 	var body = config.body_color if config else Color(0.3, 0.6, 1.0)
 	var eye = config.eye_color if config else Color(1, 1, 1)
@@ -319,7 +330,6 @@ func _generate_placeholder_texture():
 				image.set_pixel(x, y, eye)
 			if dist < 6 and dx > 2 and abs(dy) < 2:
 				image.set_pixel(x, y, Color(0, 0, 0))
-	var spr = _sprite as Sprite2D
 	spr.texture = ImageTexture.create_from_image(image)
 	spr.centered = true
 

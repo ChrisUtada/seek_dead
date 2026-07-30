@@ -1,3 +1,4 @@
+class_name Lobby
 extends CanvasLayer
 
 @onready var _container: Control = $Container

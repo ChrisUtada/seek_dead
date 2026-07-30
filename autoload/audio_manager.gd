@@ -32,7 +32,7 @@ func _ready():
 	_setup_players()
 	_setup_bgm()
 	_connect_events()
-	print("[AudioManager] Initialized (%d sfx types)" % _type_count)
+	Debug.log("[AudioManager] Initialized (%d sfx types)" % _type_count)
 
 func _setup_players():
 	for i in range(8):

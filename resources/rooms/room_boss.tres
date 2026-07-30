@@ -7,6 +7,8 @@
 [ext_resource type="PackedScene" path="res://scenes/enemies/skeleton.tscn" id="5"]
 [ext_resource type="PackedScene" path="res://scenes/enemies/elite_mage.tscn" id="6"]
 [ext_resource type="PackedScene" path="res://scenes/bosses/limb_boss.tscn" id="7"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/elite_goblin.tscn" id="8"]
+[ext_resource type="PackedScene" path="res://scenes/enemies/elite_archer.tscn" id="9"]
 
 [sub_resource type="Resource" id="WaveConfig_ws1"]
 script = ExtResource("2")
@@ -45,8 +47,8 @@ max_enemies = 8
 enemy_pool = Array[PackedScene]([ExtResource("4"), ExtResource("5"), ExtResource("6")])
 boss_count = 1
 boss_pool = Array[PackedScene]([ExtResource("7")])
-waves = Array[Resource]([SubResource("WaveConfig_ws1"), SubResource("WaveConfig_ws2"), SubResource("WaveConfig_ws3")])
+waves = Array[WaveConfig]([SubResource("WaveConfig_ws1"), SubResource("WaveConfig_ws2"), SubResource("WaveConfig_ws3")])
 has_elite = true
-elite_pool = Array[PackedScene]([ExtResource("6")])
+elite_pool = Array[PackedScene]([ExtResource("6"), ExtResource("8"), ExtResource("9")])
 reward_count = 3
 reward_quality_bonus = 0.3

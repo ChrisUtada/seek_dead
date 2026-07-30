@@ -177,6 +177,7 @@ func _reroll_item(item, lobby_data):
 		_recalc_affix_values(aff)
 	lobby_data["gold"] = lobby_data.get("gold", 0) - REROLL_COST
 	SaveSystem.save_lobby_data(lobby_data)
+	SaveSystem.flush_lobby_data()
 
 
 func _recalc_affix_values(aff: Affix):

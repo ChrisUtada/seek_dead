@@ -65,11 +65,6 @@ script = ExtResource("3")
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="."]
 
-[node name="LOSRay" type="RayCast2D" parent="."]
-collision_mask = 4
-hit_from_inside = true
-target_position = Vector2(500, 0)
-
 [node name="Limb_Fire" type="Node2D" parent="."]
 position = Vector2(-28, -22)
 script = ExtResource("9")

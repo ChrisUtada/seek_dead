@@ -33,6 +33,11 @@ func _ready():
 	for child in get_children():
 		if child is WeaponNode:
 			_weapon_node = child
+			# 将武器节点对齐到 HandPoint（角色手部锚点）
+			# HandPoint 是 WeaponComponent 的子级 Marker2D，由各角色场景拖拽定位
+			var hand_point := get_node_or_null("HandPoint") as Marker2D
+			if hand_point:
+				_weapon_node.position = hand_point.position
 			_weapon_node.shooter = get_parent() as CharacterBody2D
 			_weapon_node.aim_direction = aim_direction
 			_weapon_node.visible = false

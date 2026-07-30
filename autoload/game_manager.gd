@@ -111,7 +111,8 @@ func end_run():
 		var data = SaveSystem.load_lobby_data()
 		data["gold"] = data.get("gold", 0) + run_gold
 		SaveSystem.save_lobby_data(data)
-		print("[运行结束] 金币 %d → 大厅" % run_gold)
+		SaveSystem.flush_lobby_data()
+		Debug.log("[运行结束] 金币 %d → 大厅" % run_gold)
 	run_gold = 0
 
 

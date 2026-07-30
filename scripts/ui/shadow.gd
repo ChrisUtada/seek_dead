@@ -1,3 +1,4 @@
+class_name Shadow
 extends Node2D
 
 @export var shadow_scale: Vector2 = Vector2(1.2, 0.4)

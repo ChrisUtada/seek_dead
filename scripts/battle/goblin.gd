@@ -1,3 +1,4 @@
+class_name Goblin
 extends EnemyBase
 
 @export var config: EnemyConfig
@@ -15,6 +16,7 @@ func _ready():
 	if config:
 		apply_config(config)
 		_apply_tier_multipliers(config)
+		ai.apply_behavior_config(config)
 	ai.attack_performed.connect(_on_ai_attack)
 	ai.alerted.connect(_on_ai_alerted)
 	ai.set_home(global_position, 600.0)
@@ -24,6 +26,7 @@ func _ready():
 
 
 func apply_config(config: EnemyConfig):
+	_enemy_config = config
 	state.max_hp = randf_range(config.hp_min, config.hp_max)
 	state.hp = state.max_hp
 	state.innate_type = config.innate_type

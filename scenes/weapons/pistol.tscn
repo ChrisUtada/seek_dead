@@ -11,3 +11,6 @@ position = Vector2(13, 0)
 texture = ExtResource("2")
 region_enabled = true
 region_rect = Rect2(80.69479, 0.78554535, 27.094757, 13.547371)
+
+[node name="GripPoint" type="Marker2D" parent="."]
+position = Vector2(1, 3)

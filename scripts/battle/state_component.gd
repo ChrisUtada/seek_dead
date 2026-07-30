@@ -142,15 +142,9 @@ func get_heat_ratio() -> float:
 	return heat / max_heat if max_heat > 0 else 0.0
 
 func take_damage(amount: float, damage_type: int) -> Dictionary:
-	var defender_stats = {
-		"innate_type": innate_type,
-	}
-	for key in defenses:
-		defender_stats[key] = defenses[key]
-
-	var attacker_stats = {}
-	for key in bonuses:
-		attacker_stats[key] = bonuses[key]
+	var defender_stats = CombatStats.from_dict(defenses)
+	defender_stats.innate_type = innate_type
+	var attacker_stats = CombatStats.from_dict(bonuses)
 
 	var result = DamageSystem.calculate(attacker_stats, defender_stats, damage_type, amount)
 	self.hp -= result.final_damage

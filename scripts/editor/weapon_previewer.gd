@@ -1,4 +1,5 @@
 @tool
+class_name WeaponPreviewer
 extends Node2D
 
 ## 编辑器武器预览工具
@@ -112,6 +113,6 @@ func _commit_to_template():
 	var path = weapon_template.resource_path
 	if path != "":
 		ResourceSaver.save(weapon_template, path)
-		print("[WeaponPreviewer] 已写入: ", path)
+		Debug.log("[WeaponPreviewer] 已写入: " + path)
 	else:
-		print("[WeaponPreviewer] 模板无磁盘路径，仅内存更新")
+		Debug.log("[WeaponPreviewer] 模板无磁盘路径，仅内存更新")

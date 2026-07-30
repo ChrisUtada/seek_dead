@@ -1,3 +1,4 @@
+class_name Knight
 extends "res://scripts/battle/player_controller.gd"
 
 func _ready():

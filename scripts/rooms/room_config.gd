@@ -21,7 +21,7 @@ enum RoomSize { SMALL, MEDIUM, LARGE, BOSS }
 @export var boss_pool: Array[PackedScene] = []
 
 @export_group("Waves")
-@export var waves: Array[Resource] = []
+@export var waves: Array[WaveConfig] = []
 
 @export_group("Rewards")
 @export var reward_count: int = 1

@@ -5,6 +5,7 @@
 | v1.0 | 2026-06-30 | 全系统整合，合并 docs/*.md 为一站式参考 |
 | v1.1 | 2026-07-01 | 同步代码现状：修复技能/装备/Lobby/待办等不准确描述，补充天赋树设计 |
 | v1.2 | 2026-07-03 | 5→3品质简化、SET标签化、词缀槽位过滤、锻造删除、Collection瘦身、Lobby资源简化、Gold + 附魔台实现 |
+| v1.3 | 2026-07-06 | AI 行为框架重写: BehaviorType + 6种行为 + COMBAT 替换 CHASE/ATTACK |
 
 ---
 
@@ -274,14 +275,27 @@ ssz/
 | 系统 | 状态 |
 |------|------|
 | EnemyBase | ✅ 抽象基类（HP/闪白/状态效果/击退/血条） |
-| BasicEnemy (goblin/skeleton) | ✅ 通用 AIComponent 巡逻/追击/攻击 |
+| BasicEnemy (goblin/skeleton) | ✅ AIComponent 6种行为模式 + IDLE/WANDER/PATROL/ALERT/COMBAT/RETURN 状态机 |
 | BossEnemy (limb_boss) | ✅ BossAIComponent 三阶段（猛击AoE/冲锋/远程散射） |
-| AIComponent | ✅ IDLE/WANDER/CHASE/ATTACK 状态机 |
+| AIComponent | ✅ BehaviorType 行为队列（CHASE_MELEE/STRAFE/RETREAT/TURRET/SUMMON/FLEE） |
 | BossAIComponent | ✅ 三阶段 HP 阈值（60%/30%） |
 | Navigation | ✅ NavigationRegion2D + NavigationAgent2D |
 | 行为树框架 | ✅ Selector/Sequence/Condition/Action/Invert/Cooldown |
 | EnemyConfig/BossConfig/LootEntry | ⚠️ 骨架定义，待完善 |
 | 精英敌人 | ❌ 未实现 |
+
+**AI 行为说明**：AIComponent 使用 BehaviorType 队列替代了旧的 CHASE→ATTACK 硬编码循环。进入战斗时顺序执行队列中的行为，每个行为有独立时长（-1=持续到条件触发）：
+
+| BehaviorType | 移动方式 | 攻击 | 适用 |
+|-------------|---------|------|------|
+| CHASE_MELEE | 冲向玩家 + 散开偏移 | 贴脸近战 | 哥布林、骷髅 |
+| STRAFE | 绕玩家圆周走位，保持 `attack_range×0.7` | 周期射击 | 精英法师 |
+| RETREAT | 太近后退，太远前进 | 边退边射 | 远程怪 |
+| TURRET | 不移动 | 周期弹幕 | 固定炮台 |
+| SUMMON | 拉远到安全距离后停下 | 召唤攻击 | 召唤型精英 |
+| FLEE | 反方向逃跑（撞墙停止） | 不攻击 | 低血量逃跑 |
+
+配置方式：`ai.set_behaviors([STRAFE, RETREAT], [4.0, -1.0])`，第二个数组为每项持续时间。
 
 ### 2.6 UI
 
@@ -551,6 +565,16 @@ signal skill_replace_needed(new_skill: SkillBase)  # UI 弹选择
 | 附魔台实现 | 房间场景 EnchantmentTable（Area2D 交互），重铸消耗 300 金 |
 | Gold 系统 | GoldPickup + EnemyConfig.drop_gold + run_gold 归入 lobby_data |
 
+### AI 行为框架 v1.3（已完成）
+
+| 功能 | 说明 |
+|------|------|
+| BehaviorType 枚举 | CHASE_MELEE / STRAFE / RETREAT / TURRET / SUMMON / FLEE |
+| 行为队列系统 | `set_behaviors(types, durations)` 配置序列，自动循环 |
+| COMBAT 状态 | 替换旧 CHASE+ATTACK，每帧 tick 当前 behavior |
+| AI 散开 | 每个敌人根据 instance_id 派生独立偏移角度 |
+| 精英法师接入 | 配置 STRAFE→RETREAT→SUMMON 行为序列 |
+
 ### 待实现新功能（P0）
 
 | 功能 | 说明 |
@@ -564,7 +588,8 @@ signal skill_replace_needed(new_skill: SkillBase)  # UI 弹选择
 
 | 功能 | 说明 |
 |------|------|
-| 精英敌人 | 独有行为脚本 + 精英掉落 |
+| 精英敌人 | 独有行为脚本 + 精英掉落 + 房间投放（Phase 2） |
+| 更多 AI 行为模式 | 阵型、寻路巡逻、区域防御（Phase 2/4） |
 | Boss 血条 UI | Boss 战专用血条组件 |
 | 更多技能种类 | `resources/skills/` 下填充更多技能脚本+.tres |
 | 章节模式 | 关卡解锁 + 难度选择 |

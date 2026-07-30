@@ -18,3 +18,5 @@ knockback_force = 200.0
 status_effect_type = 1
 status_effect_damage = 8.0
 status_effect_duration = 3.0
+reel_symbols = {2: 5.0, 0: 3.0, 8: 2.0}
+special_symbol = 2

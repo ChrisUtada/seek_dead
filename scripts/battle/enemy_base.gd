@@ -10,6 +10,15 @@ signal died()
 
 var _flash_timer: float = 0.0
 
+## 统一敌人配置访问入口的备份字段。各子类在 apply_config 中赋值，
+## 取代各处对 config / _boss_config 的字符串探测（见 pickup_spawner.gd）。
+var _enemy_config: EnemyConfig = null
+
+## 返回本敌人的配置（EnemyConfig 或其子类 BossConfig）。
+## 统一访问入口：子类无需暴露各自私有配置字段，即可供掉落/AI 等模块安全读取。
+func get_config() -> EnemyConfig:
+	return _enemy_config
+
 func _enemy_ready():
 	effects.tick_damage.connect(_on_tick_damage)
 	effects.effect_applied.connect(_on_effect_applied)

@@ -74,7 +74,7 @@ func _activate_tier(set_id: String, tier: int):
 			for e in set_def.bonus_3pc_triggers:
 				p.register_set_trigger(e)
 	set_bonus_activated.emit(set_id, tier)
-	print("[套装] %s %d件激活" % [set_def.set_name, tier])
+	Debug.log("[套装] %s %d件激活" % [set_def.set_name, tier])
 
 
 func _deactivate(set_id: String):
@@ -98,4 +98,4 @@ func _deactivate(set_id: String):
 		if p and p.has_method("unregister_set_trigger"):
 			for e in set_def.bonus_3pc_triggers:
 				p.unregister_set_trigger(e)
-	print("[套装] %s 已停用" % [set_def.set_name])
+	Debug.log("[套装] %s 已停用" % [set_def.set_name])

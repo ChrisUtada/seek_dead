@@ -1,3 +1,4 @@
+class_name LimbBoss
 extends EnemyBase
 
 const _BulletScene = preload("res://scenes/battle/projectile.tscn")
@@ -113,7 +114,7 @@ func _process_phase1(delta):
 		_movement_retreat(dir)
 
 	_limb_fire_timer -= delta
-	if _limb_fire_timer <= 0 and _has_line_of_sight_to(_target, 500.0):
+	if _limb_fire_timer <= 0:
 		_limb_fire_timer = _get_attack_cooldown(0, 1.2)
 		for limb in _limbs:
 			if limb and not limb.is_destroyed:
@@ -272,6 +273,7 @@ func _physics_process(delta):
 
 
 func apply_config(cfg: EnemyConfig):
+	_enemy_config = cfg
 	state.max_hp = randf_range(cfg.hp_min, cfg.hp_max)
 	state.hp = state.max_hp
 	state.innate_type = cfg.innate_type
@@ -344,17 +346,6 @@ func _generate_boss_texture():
 
 func _find_player() -> Node2D:
 	return EntityRegistry.get_nearest_player(global_position)
-
-
-func _has_line_of_sight_to(target: Node2D, max_distance: float) -> bool:
-	var offset = target.global_position - global_position
-	if offset.length() > max_distance:
-		return false
-	var ray = $LOSRay
-	ray.global_position = global_position
-	ray.target_position = offset
-	ray.force_raycast_update()
-	return not ray.is_colliding()
 
 
 func _compute_room_bounds():

@@ -149,6 +149,7 @@ func _update_swing(delta: float):
 			queue_redraw()
 
 
+# TODO: 武器外观为调试占位绘制（红色圆点/线框），后续替换为真实武器贴图与挥砍动画。
 # 绘制攻击范围（调试用）
 func _draw():
 	# 调试：显示握把点

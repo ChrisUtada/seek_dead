@@ -1,3 +1,4 @@
+class_name EliteMage
 extends EnemyBase
 
 const _BulletScene = preload("res://scenes/battle/projectile.tscn")
@@ -16,16 +17,13 @@ func _ready():
 	if config:
 		apply_config(config)
 		_apply_tier_multipliers(config)
-	ai.attack_range = 200.0
+		ai.apply_behavior_config(config)
 	ai.attack_performed.connect(_on_ai_attack)
 	ai.set_home(global_position, 600.0)
-	ai.set_behaviors(
-		[AIComponent.BehaviorType.STRAFE, AIComponent.BehaviorType.RETREAT, AIComponent.BehaviorType.SUMMON],
-		[4.0, 3.0, -1.0]
-	)
 
 
 func apply_config(cfg: EnemyConfig):
+	_enemy_config = cfg
 	state.max_hp = randf_range(cfg.hp_min, cfg.hp_max)
 	state.hp = state.max_hp
 	state.innate_type = cfg.innate_type
@@ -35,8 +33,6 @@ func apply_config(cfg: EnemyConfig):
 
 func _on_ai_attack(target: Node2D, damage: float):
 	if not is_instance_valid(target):
-		return
-	if not ai.has_line_of_sight_to(target, 400.0):
 		return
 	var dir = global_position.direction_to(target.global_position)
 	var bullet = _BulletScene.instantiate()

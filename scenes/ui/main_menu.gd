@@ -1,3 +1,4 @@
+class_name MainMenu
 extends CanvasLayer
 
 signal start_game()

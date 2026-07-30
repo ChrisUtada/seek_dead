@@ -1,3 +1,4 @@
+class_name BossEnemy
 extends EnemyBase
 
 const _BossAIComp = preload("res://scripts/components/boss_ai_component.gd")
@@ -41,6 +42,7 @@ func _ready():
 	_slam_hitbox.lifespan = 0
 
 func apply_config(config: EnemyConfig):
+	_enemy_config = config
 	state.max_hp = randf_range(config.hp_min, config.hp_max)
 	state.hp = state.max_hp
 	state.innate_type = config.innate_type

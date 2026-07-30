@@ -43,6 +43,13 @@ enum WeaponType { MELEE, RANGED }
 # -- 碰撞体配置 --
 # 碰撞体形状在武器 .tscn 的 HitboxArea 节点中配置
 
+# -- 老虎机战斗符号池（M1 接入） --
+# 该武器作为"转轮"时，其符号及权重。key = ReelSymbol.Id 整数，value = 权重(float)。
+# 例：{ 0: 6.0, 5: 3.0 } 表示斩(SLASH)权重 6、格挡(BLOCK)权重 3。
+@export var reel_symbols: Dictionary = {}
+# 该武器的专属特殊符号（ReelSymbol.Id）。仅作签名记录，M3 接入武器 special 效果时再使用。-1 表示无。
+@export var special_symbol: int = -1
+
 
 ## 返回 archetype 对应的隐式修正列表。
 ## 复用 StatModifier 对象，与装备词缀管线一致。

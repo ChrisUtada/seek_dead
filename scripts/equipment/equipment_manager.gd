@@ -32,7 +32,7 @@ func _ready():
 	if state:
 		state.meltdown_triggered.connect(_on_meltdown_local)
 		state.stamina_depleted.connect(_on_stamina_depleted)
-	print("[EquipmentManager] 就绪")
+	Debug.log("[EquipmentManager] 就绪")
 
 
 func _on_trigger_activated(event: int, effect: TriggerEffect):
@@ -253,6 +253,8 @@ func _unapply_modifier(base: float, value: float, type: EquipmentEnums.ModifierT
 	match type:
 		EquipmentEnums.ModifierType.ADD: return base - value
 		EquipmentEnums.ModifierType.MUL: return base / (1.0 + value)
+		EquipmentEnums.ModifierType.OVERRIDE:
+			return base
 	return base
 
 

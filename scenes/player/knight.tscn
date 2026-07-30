@@ -15,10 +15,9 @@
 [ext_resource type="Resource" uid="uid://dcheib4eqysy2" path="res://resources/players/knight.tres" id="9"]
 [ext_resource type="Script" uid="uid://qjvq1fr7aq82" path="res://scripts/ui/shadow.gd" id="10"]
 [ext_resource type="Script" uid="uid://dry6wv0q3vubp" path="res://scripts/editor/weapon_previewer.gd" id="15_ycxmx"]
-[ext_resource type="Resource" uid="uid://ti6ximf1nxib" path="res://resources/weapon_templates/pistol.tres" id="16_xa10o"]
 
-[sub_resource type="CircleShape2D" id="1"]
-radius = 21.0
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ycxmx"]
+size = Vector2(19, 24)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_tdo2s"]
 atlas = ExtResource("4_52gso")
@@ -105,7 +104,7 @@ animations = [{
 }]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_w4afe"]
-size = Vector2(27, 37)
+size = Vector2(21, 30)
 
 [node name="Knight" type="CharacterBody2D" unique_id=1848398606]
 collision_mask = 4
@@ -119,7 +118,8 @@ shadow_offset = Vector2(-4, 16)
 texture_size = 25
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1318900054]
-shape = SubResource("1")
+position = Vector2(0.5, 17)
+shape = SubResource("RectangleShape2D_ycxmx")
 
 [node name="Sprite2D" type="AnimatedSprite2D" parent="." unique_id=378603439]
 sprite_frames = SubResource("SpriteFrames_u0kct")
@@ -130,10 +130,11 @@ position_smoothing_enabled = true
 position_smoothing_speed = 8.0
 
 [node name="Hurtbox" type="Area2D" parent="." unique_id=610326860]
+position = Vector2(0, 5)
 script = ExtResource("8_d4e2m")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox" unique_id=2049756981]
-position = Vector2(0, 14)
+position = Vector2(0.5, 12)
 shape = SubResource("RectangleShape2D_w4afe")
 
 [node name="StateComponent" type="Node" parent="." unique_id=1281210459]
@@ -166,4 +167,3 @@ script = ExtResource("8")
 [node name="Node2D" type="Node2D" parent="." unique_id=474987798]
 position = Vector2(17, 17)
 script = ExtResource("15_ycxmx")
-weapon_template = ExtResource("16_xa10o")

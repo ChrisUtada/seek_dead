@@ -1,3 +1,4 @@
+class_name SlowArea
 extends Area2D
 
 var speed_mult: float = 0.5

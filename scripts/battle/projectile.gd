@@ -1,3 +1,4 @@
+class_name Projectile
 extends Hitbox
 
 signal hit(hit_pos: Vector2, hit_dir: Vector2, damage_type: int, body: Node2D)
@@ -14,7 +15,7 @@ var _returning: bool = false
 func _ready():
 	super()
 	lifespan = 0.0
-	collision_mask = CollisionSystem.bit(CollisionSystem.LAYER_ENEMY) | CollisionSystem.bit(CollisionSystem.LAYER_HURTBOX)
+	collision_mask = CollisionSystem.bit(CollisionSystem.LAYER_ENEMY) | CollisionSystem.bit(CollisionSystem.LAYER_HURTBOX) | CollisionSystem.bit(CollisionSystem.LAYER_ENVIRONMENT)
 	hit_landed.connect(_on_hurtbox_hit)
 
 func _enter_tree():

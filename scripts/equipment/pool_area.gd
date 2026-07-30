@@ -1,3 +1,4 @@
+class_name PoolArea
 extends Area2D
 
 var damage: float = 15.0

@@ -53,9 +53,9 @@ func _process(delta):
 #  装备注入
 # ════════════════════════════════════════
 
-func equip(equip: EquipmentBase):
-	equipment = equip
-	weapon_data = equip.weapon_data.duplicate() as WeaponData
+func equip(new_equip: EquipmentBase):
+	equipment = new_equip
+	weapon_data = new_equip.weapon_data.duplicate() as WeaponData
 	_apply_archetype_modifiers()
 	weapon_color = DamageSystem.get_color(weapon_data.damage_type)
 	_spawn_weapon_visual()

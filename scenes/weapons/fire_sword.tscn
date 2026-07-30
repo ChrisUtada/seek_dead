@@ -13,6 +13,8 @@ script = ExtResource("1")
 [node name="Sprite2D" type="Sprite2D" parent="."]
 texture = ExtResource("2")
 centered = true
+region_enabled = true
+region_rect = Rect2(0, 0, 32, 36)
 
 [node name="HitboxArea" type="Area2D" parent="."]
 script = ExtResource("3")
@@ -24,3 +26,6 @@ monitorable = false
 [node name="CollisionShape2D" type="CollisionShape2D" parent="HitboxArea"]
 position = Vector2(0, -22)
 shape = SubResource("1")
+
+[node name="GripPoint" type="Marker2D" parent="."]
+position = Vector2(0, 10)

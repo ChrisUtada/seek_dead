@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="CharmData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/charm_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+item_id = "resist_charm"
+item_name = "抗扰护符"
+description = "本局敌人干扰概率降低（约相当于 1 级铁砧抗扰）。"
+icon = "🚫"
+effect = "interference_resist"
+value = 1

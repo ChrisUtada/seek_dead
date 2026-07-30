@@ -1,3 +1,4 @@
+class_name EnemyHpBar
 extends Node2D
 
 var _hp_ratio: float = 1.0

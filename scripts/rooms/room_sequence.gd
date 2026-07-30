@@ -29,7 +29,7 @@ static func generate() -> Array[int]:
 	sizes.insert(0, RoomSize.SMALL)
 	sizes.insert(0, RoomSize.SMALL)
 
-	print("RoomSequence (%d rooms, BOSS in room %d): " % [sizes.size(), boss_pos + 3], _size_names(sizes))
+	Debug.log("RoomSequence (%d rooms, BOSS in room %d): %s" % [sizes.size(), boss_pos + 3, _size_names(sizes)])
 	return sizes
 
 

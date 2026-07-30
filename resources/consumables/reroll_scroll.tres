@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ConsumableData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/consumable_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+item_id = "reroll_scroll"
+item_name = "重转卷轴"
+description = "立刻免费重转一次（不触发敌人回合）。"
+icon = "🌀"
+effect = "reroll"
+value = 1
+charges = 1
