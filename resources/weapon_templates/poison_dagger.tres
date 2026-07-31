@@ -21,3 +21,4 @@ status_effect_damage = 5.0
 status_effect_duration = 5.0
 reel_symbols = {4: 6.0, 8: 3.0}
 special_symbol = 4
+reel_element = "poison"

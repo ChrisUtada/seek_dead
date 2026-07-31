@@ -18,3 +18,4 @@ bullet_speed = 500.0
 bullet_data = ExtResource("3")
 reel_symbols = {2: 5.0, 7: 2.0, 8: 3.0}
 special_symbol = 2
+reel_element = "fire"

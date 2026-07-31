@@ -49,6 +49,9 @@ enum WeaponType { MELEE, RANGED }
 @export var reel_symbols: Dictionary = {}
 # 该武器的专属特殊符号（ReelSymbol.Id）。仅作签名记录，M3 接入武器 special 效果时再使用。-1 表示无。
 @export var special_symbol: int = -1
+# 该武器特殊符号的属性元素（fire/ice/poison/light/dark/none）。
+# 用于单向属性克制：玩家特殊符号元素 → 敌人元素。普通伤害符号恒为 none（中性）。
+@export var reel_element: String = "none"
 
 
 ## 返回 archetype 对应的隐式修正列表。

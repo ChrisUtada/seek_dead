@@ -37,6 +37,7 @@ extends Control
 # ============================================================================
 
 const ReelSymbol = preload("res://scripts/battle/reel_symbol.gd")
+const ElementCounter = preload("res://scripts/battle/element_counter.gd")
 
 # 可选物品池（整备界面从这里自由勾选，真实 .tres 数据）。
 const WEAPON_POOL := [
@@ -88,19 +89,22 @@ const REWARD_POOL := [
 # 房间序列（肉鸽逐房推进）。
 # jam=注废意图概率, lock=锁轮意图概率, chaos=乱权意图概率, heavy=重击意图概率, 其余=普攻。
 const ROOMS := [
-	{"name": "腐化史莱姆", "hp": 90,  "atk": 11, "jam": 0.15, "lock": 0.10, "chaos": 0.10, "heavy": 0.15},
-	{"name": "锈蚀傀儡",   "hp": 130, "atk": 14, "jam": 0.20, "lock": 0.15, "chaos": 0.15, "heavy": 0.20},
-	{"name": "呓语教徒",   "hp": 165, "atk": 16, "jam": 0.25, "lock": 0.20, "chaos": 0.20, "heavy": 0.20},
-	{"name": "深渊监视者", "hp": 220, "atk": 20, "jam": 0.30, "lock": 0.25, "chaos": 0.25, "heavy": 0.30},
+	{"name": "腐化史莱姆", "hp": 90,  "atk": 11, "jam": 0.15, "lock": 0.10, "chaos": 0.10, "heavy": 0.15, "element": "poison"},
+	{"name": "锈蚀傀儡",   "hp": 130, "atk": 14, "jam": 0.20, "lock": 0.15, "chaos": 0.15, "heavy": 0.20, "element": "none"},
+	{"name": "呓语教徒",   "hp": 165, "atk": 16, "jam": 0.25, "lock": 0.20, "chaos": 0.20, "heavy": 0.20, "element": "dark"},
+	{"name": "深渊监视者", "hp": 220, "atk": 20, "jam": 0.30, "lock": 0.25, "chaos": 0.25, "heavy": 0.30, "element": "light"},
 ]
 
 # grid[reel][row] = 符号 id (ReelSymbol.Id)
 var grid = []
 var cells = []   # 展示用 Button 引用 [reel][row]
+var cell_badges = []   # 每格右上角匹配角标 Label 引用 [reel][row]
 
 # 合并后的加权符号池：元素为 [symbol_id, weight]
 var pool: Array = []
 var loadout_names: Array = []
+var _special_element: String = "none"   # 当前池内特殊符号的属性元素（取自武器 reel_element）
+var _busy: bool = false                 # 旋转序列进行中，防重入
 
 # 整备（M3–M6）：玩家自由勾选武器 / 消耗品 / 护符三分类
 var in_loadout := false
@@ -137,6 +141,7 @@ var enemy_chaos = 0.1
 var enemy_heavy = 0.2
 var enemy_status: Dictionary = {}      # status_type(str) -> 叠加层数(int)
 var enemy_intent: Dictionary = {}      # 当前敌人意图（SPIN 后执行），空字典表示已执行/未定
+var enemy_element: String = "none"     # 敌人属性元素（用于单向克制：玩家符号元素 → 敌人元素）
 var pending_jam_reel = -1              # 敌人注废 → 下一轮强制废铁列索引（-1 无）
 var pending_lock_reel = -1             # 敌人锁轮 → 下一轮该列固定为当前符号（-1 无）
 var pending_chaos = false              # 敌人乱权 → 下一轮权重削弱优势符号
@@ -201,6 +206,12 @@ var overlay
 var overlay_label
 var overlay_button
 
+# 符号图例（每符号名称/类型/元素 + 敌人属性提示）
+var legend_box
+var legend_container
+var player_panel          # 左：玩家面板（飘字锚点）
+var enemy_panel           # 右：敌人面板（飘字锚点）
+
 var logs: Array = []
 
 
@@ -220,6 +231,7 @@ func _ready() -> void:
 func _build_pool(loadout: Array) -> void:
 	pool = []
 	loadout_names = []
+	_special_element = "none"
 	var merged := {}   # symbol_id -> 总权重（跨武器累加）
 	for path in loadout:
 		var wd: Resource = load(path)
@@ -232,6 +244,9 @@ func _build_pool(loadout: Array) -> void:
 		for key in wd.reel_symbols.keys():
 			var sid := int(key)
 			merged[sid] = merged.get(sid, 0.0) + float(wd.reel_symbols[key])
+			# 记录特殊符号的属性元素（用于单向克制）
+			if sid == ReelSymbol.Id.SPECIAL and wd.reel_element != "none":
+				_special_element = wd.reel_element
 		# M5 铁砧：武器升级 → 主符号（权重最高者）额外加成
 		var bonus = meta["weapon_upgrades"].get(path, 0)
 		if bonus > 0 and not wd.reel_symbols.is_empty():
@@ -256,6 +271,9 @@ func _build_pool(loadout: Array) -> void:
 				break
 		if not found:
 			pool.append([sid, float(run_symbol_bonus[sid])])
+	# 符号图例（每符号名称/类型/元素 + 敌人属性）
+	if legend_container != null:
+		_refresh_legend()
 
 
 func _weighted_random_sym() -> int:
@@ -393,6 +411,7 @@ func _build_ui() -> void:
 	main.add_child(ppanel)
 
 	# 中：转轮 + 敌人意图/状态
+	player_panel = ppanel
 	var center = VBoxContainer.new()
 	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -411,6 +430,7 @@ func _build_ui() -> void:
 	for reel in REELS:
 		cells.append([])
 		grid.append([])
+		cell_badges.append([])
 		for row in ROWS:
 			var b = Button.new()
 			b.custom_minimum_size = Vector2(84, 84)
@@ -419,6 +439,19 @@ func _build_ui() -> void:
 			grid_container.add_child(b)
 			cells[reel].append(b)
 			grid[reel].append(ReelSymbol.Id.TRASH)
+			# 匹配角标（右上角锚定，修复依赖 size.x 导致的丢失）
+			var badge = Label.new()
+			badge.text = ""
+			badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+			badge.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+			badge.add_theme_font_size_override("font_size", 13)
+			badge.add_theme_color_override("font_color", Color(1.0, 0.85, 0.30, 1))
+			badge.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+			badge.offset_right = -4
+			badge.offset_top = 2
+			badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			b.add_child(badge)
+			cell_badges[reel].append(badge)
 
 	var intent_box = HBoxContainer.new()
 	intent_box.add_theme_constant_override("separation", 14)
@@ -428,6 +461,23 @@ func _build_ui() -> void:
 	enemy_status_label = _label("状态: 无", 11)
 	intent_box.add_child(enemy_intent_label)
 	intent_box.add_child(enemy_status_label)
+
+	# 符号图例（每符号名称/类型/元素 + 敌人属性），帮助理解"符号作用"
+	legend_box = PanelContainer.new()
+	var lstyle = StyleBoxFlat.new()
+	lstyle.bg_color = Color(0.09, 0.09, 0.13, 0.85)
+	lstyle.border_color = Color(0.22, 0.22, 0.30, 1)
+	lstyle.set_border_width_all(1)
+	lstyle.set_corner_radius_all(6)
+	lstyle.content_margin_left = 8
+	lstyle.content_margin_right = 8
+	lstyle.content_margin_top = 6
+	lstyle.content_margin_bottom = 6
+	legend_box.add_theme_stylebox_override("panel", lstyle)
+	center.add_child(legend_box)
+	legend_container = VBoxContainer.new()
+	legend_container.add_theme_constant_override("separation", 2)
+	legend_box.add_child(legend_container)
 
 	# 右：敌人面板 + 日志
 	var rpanel = _make_side_panel(170)
@@ -457,6 +507,7 @@ func _build_ui() -> void:
 	log_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	log_scroll.add_child(log_label)
 	main.add_child(rpanel)
+	enemy_panel = rpanel
 
 	# 底部操作栏：始终可见，不被日志或内容挤出
 	var bot = HBoxContainer.new()
@@ -1182,6 +1233,7 @@ func _start_room(idx: int) -> void:
 	enemy_lock = r["lock"]
 	enemy_chaos = r["chaos"]
 	enemy_heavy = r["heavy"]
+	enemy_element = r.get("element", "none")   # 单向克制：敌人属性（仅供玩家符号克制判定）
 	# M5+M6 抗干扰：铁砧 + 抗扰护符 共同降低敌人干扰概率（每级 -12%，最低保留 25%）
 	var total_resist = meta["interference_resist"] + charm_interf_resist
 	if total_resist > 0:
@@ -1212,6 +1264,7 @@ func _start_room(idx: int) -> void:
 	_reset_grid(true)
 	_begin_player_turn()
 	_refresh_meta()
+	_refresh_legend()
 	_log("▶ 进入房间 %d/%d：%s（HP %d，攻击 %d）" % [idx + 1, ROOMS.size(), enemy_name, enemy_hp_max, enemy_atk])
 
 
@@ -1232,12 +1285,15 @@ func _begin_player_turn() -> void:
 
 
 func _on_spin_pressed() -> void:
-	if in_loadout:
+	if in_loadout or game_state != "playing" or _busy:
 		return
-	if game_state != "playing":
-		return
+	_busy = true
 	turn_count += 1
+	# 阶段 0：旋转（刷新转轮，暂不结算）
 	_do_spin_core()
+	await get_tree().create_timer(0.45).timeout
+	# 阶段 1+2：结算（先防御/增益/状态，后攻击；含飘字）
+	await _evaluate()
 	if enemy_hp <= 0:
 		_log("★ 击败 %s！" % enemy_name)
 		game_state = "won"
@@ -1245,19 +1301,34 @@ func _on_spin_pressed() -> void:
 		var title = ("★ 通关！\n%s 被击败" % enemy_name) if is_boss else ("★ 胜利！\n%s 被击败" % enemy_name)
 		_show_overlay(title, "领取奖励 ▶")
 		_refresh_meta()
+		_busy = false
 		return
 
+	# 阶段 3：敌人行动
 	_enemy_turn()
-
+	_refresh_meta()
+	if enemy_hp <= 0:
+		# 敌人可能在自身回合被状态 DoT 结算致死
+		_log("★ 击败 %s！（状态结算）" % enemy_name)
+		game_state = "won"
+		var is_boss = (room_index + 1 >= ROOMS.size())
+		var title = ("★ 通关！\n%s 被击败" % enemy_name) if is_boss else ("★ 胜利！\n%s 被击败" % enemy_name)
+		_show_overlay(title, "领取奖励 ▶")
+		_busy = false
+		return
 	if player_hp <= 0:
 		_log("✖ 你被 %s 击倒。" % enemy_name)
 		game_state = "lost"
 		_show_overlay("✖ 失败\n你倒在了 %s 面前" % enemy_name, "重试本房 ↺")
 		_refresh_meta()
+		_busy = false
 		return
 
+	await get_tree().create_timer(0.20).timeout
+	# 阶段 4：预告下一回合意图
 	_begin_player_turn()
 	_refresh_meta()
+	_busy = false
 
 
 # 旋转 + 结算核心（SPIN 与重转卷轴共用）
@@ -1281,12 +1352,15 @@ func _do_spin_core() -> void:
 	pending_chaos = false
 	if chaos_this_spin:
 		_restore_pool()
-	_evaluate()
 
 
 # 重转卷轴：免费重转一次（不触发敌人回合）
 func _free_spin() -> void:
+	if _busy:
+		return
+	_busy = true
 	_do_spin_core()
+	await _evaluate()
 	if enemy_hp <= 0:
 		_log("★ 重转触发击败 %s！" % enemy_name)
 		game_state = "won"
@@ -1294,6 +1368,7 @@ func _free_spin() -> void:
 		var title = ("★ 通关！\n%s 被击败" % enemy_name) if is_boss else ("★ 胜利！\n%s 被击败" % enemy_name)
 		_show_overlay(title, "领取奖励 ▶")
 	_refresh_meta()
+	_busy = false
 
 
 func _enemy_turn() -> void:
@@ -1328,17 +1403,18 @@ func _tick_status() -> void:
 	var dot = 0
 	for st in enemy_status.keys():
 		var base = _status_base(st)
-		dot += enemy_status[st] * base
+		var mult = ElementCounter.multiplier(_status_element(st), enemy_element)
+		dot += int(round(enemy_status[st] * base * mult))
 		enemy_status[st] = max(0, enemy_status[st] - 1)
 		if enemy_status[st] <= 0:
 			enemy_status.erase(st)
 	if dot > 0:
 		enemy_hp -= dot
-		_log("状态结算 %d 伤害（灼烧/毒）" % dot)
+		_log("状态结算 %d 伤害（灼烧/毒·含克制）" % dot)
 
 
 func _on_purify_pressed() -> void:
-	if in_loadout:
+	if in_loadout or _busy:
 		return
 	if game_state != "playing":
 		return
@@ -1400,7 +1476,7 @@ func _refresh_consumable_panel() -> void:
 
 
 func _on_consumable_pressed(id: String) -> void:
-	if in_loadout or game_state != "playing":
+	if in_loadout or game_state != "playing" or _busy:
 		return
 	if consumable_charges.get(id, 0) <= 0:
 		_log("「%s」已用尽" % id)
@@ -1428,7 +1504,7 @@ func _on_consumable_pressed(id: String) -> void:
 			_log("强袭药剂：下一次转轮伤害 ×%d" % data.value)
 		"reroll":
 			_log("重转卷轴：免费重转！")
-			_free_spin()
+			await _free_spin()
 	_refresh_consumable_panel()
 	_refresh_meta()
 
@@ -1449,6 +1525,7 @@ func _retry_room() -> void:
 # 结算（方案 A：单符号必结算 + 匹配倍率）
 # ---------------------------------------------------------------------------
 func _reset_grid(fill_random: bool) -> void:
+	_clear_badges()
 	for reel in REELS:
 		for row in ROWS:
 			grid[reel][row] = ReelSymbol.Id.TRASH
@@ -1465,11 +1542,18 @@ func _contribute(sym_id: int, mult: int, acc: Dictionary) -> void:
 		"shield":  acc["shield"]  += d["base"] * mult
 		"heal":    acc["heal"]    += d["base"] * mult
 		"status":  acc["status_stacks"][d["status"]] = acc["status_stacks"].get(d["status"], 0) + mult
-		"special": acc["special"] += flat * mult
+		"special":
+			# special 降级：1 同即生效（base×c），3 同额外追加一次 base
+			var v = flat * mult
+			if mult >= 3:
+				v += flat
+			acc["special"] += v
 		_: pass
 
 
+# 结算：分两阶段（先防御/增益/状态，后攻击），接单向属性克制与强袭药剂。
 func _evaluate() -> void:
+	_clear_badges()
 	var acc = { "dmg": 0, "shield": 0, "heal": 0, "status_stacks": {}, "special": 0 }
 
 	var row_syms: Array = []
@@ -1483,26 +1567,42 @@ func _evaluate() -> void:
 			continue
 		var c = counts[s]
 		var d = ReelSymbol.get_symbol(s)
-		if d["kind"] == "special" and c < 3:
+		if d["kind"] == "special" and c < 1:
 			continue
 		_contribute(s, c, acc)
 
+	# 匹配角标（×N，N>=2）
+	_update_match_badges(counts)
+
+	# —— 阶段 1：防御 / 增益 / 状态先落地 ——
 	for st in acc["status_stacks"].keys():
 		enemy_status[st] = enemy_status.get(st, 0) + acc["status_stacks"][st]
-
-	var total_dmg = (acc["dmg"] + acc["special"]) * assault_next_spin   # M6：强袭药剂翻倍
-	assault_next_spin = 1
-	if total_dmg > 0:
-		enemy_hp -= total_dmg
-		_log("连线造成 %d 伤害" % total_dmg)
 	if acc["shield"] > 0:
 		player_shield += acc["shield"]
+		_popup("🛡+%d" % acc["shield"], Color(0.55, 0.70, 0.95), _player_panel_anchor())
 		_log("获得 %d 护盾" % acc["shield"])
 	if acc["heal"] > 0:
 		player_hp = min(player_hp_max, player_hp + acc["heal"])
+		_popup("❤+%d" % acc["heal"], Color(0.50, 0.95, 0.60), _player_panel_anchor())
 		_log("回复 %d HP" % acc["heal"])
 	if not acc["status_stacks"].is_empty():
 		_log("敌人获得状态: " + _status_summary(acc["status_stacks"]))
+		_popup(_status_summary(acc["status_stacks"]), Color(1.00, 0.60, 0.30), _enemy_panel_anchor())
+
+	_refresh_meta()
+	await get_tree().create_timer(0.30).timeout
+
+	# —— 阶段 2：攻击结算（单向克制 + 强袭药剂）——
+	var sp_mult = ElementCounter.multiplier(_special_element, enemy_element)
+	var total = (acc["dmg"] + acc["special"] * sp_mult) * assault_next_spin
+	assault_next_spin = 1
+	if total > 0:
+		enemy_hp -= total
+		var elem_tag := ""
+		if acc["special"] > 0 and sp_mult != 1.0:
+			elem_tag = ElementCounter.tag(_special_element, enemy_element)
+		_popup("-%d%s" % [int(total), elem_tag], Color(1.00, 0.50, 0.40), _enemy_panel_anchor())
+		_log("连线造成 %d 伤害%s" % [int(total), elem_tag])
 
 
 func _status_base(type_str: String) -> float:
@@ -1511,6 +1611,98 @@ func _status_base(type_str: String) -> float:
 		if d.has("status") and d["status"] == type_str:
 			return d["base"]
 	return 0.0
+
+
+# 状态类型对应的属性元素（用于 DoT 单向克制）
+func _status_element(st: String) -> String:
+	for id in ReelSymbol.CATALOG.keys():
+		var d = ReelSymbol.CATALOG[id]
+		if d.has("status") and d["status"] == st:
+			return d.get("element", "none")
+	return "none"
+
+
+func _clear_badges() -> void:
+	for reel in REELS:
+		for row in ROWS:
+			if cell_badges.size() > reel and cell_badges[reel].size() > row:
+				cell_badges[reel][row].text = ""
+
+
+func _update_match_badges(counts: Dictionary) -> void:
+	_clear_badges()
+	for s in counts:
+		if s == ReelSymbol.Id.TRASH:
+			continue
+		var c = counts[s]
+		if c < 2:
+			continue
+		for reel in REELS:
+			for row in ROWS:
+				if grid[reel][row] == s:
+					cell_badges[reel][row].text = "×%d" % c
+
+
+# 符号图例：每符号名称/类型/元素 + 敌人属性
+func _refresh_legend() -> void:
+	if legend_container == null:
+		return
+	for c in legend_container.get_children():
+		legend_container.remove_child(c)
+		c.queue_free()
+	var et = _label("敌人属性：%s" % ElementCounter.label(enemy_element), 11)
+	et.add_theme_color_override("font_color", ElementCounter.color(enemy_element))
+	et.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	legend_container.add_child(et)
+	var seen := {}
+	for p in pool:
+		var sid = p[0]
+		if seen.has(sid):
+			continue
+		seen[sid] = true
+		var d = ReelSymbol.get_symbol(sid)
+		var elem = d.get("element", "none")
+		var kindname := ""
+		match d["kind"]:
+			"damage": kindname = "伤害"
+			"shield": kindname = "护盾"
+			"heal":   kindname = "治疗"
+			"status": kindname = "状态"
+			"special":kindname = "特殊"
+			_: kindname = d["kind"]
+		var t = "%s %s · %s%s" % [d["label"], d["name"], kindname, ("" if elem == "none" else " · " + ElementCounter.label(elem))]
+		var l = _label(t, 10)
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		l.add_theme_color_override("font_color", ElementCounter.color(elem))
+		legend_container.add_child(l)
+
+
+# 飘字：在 anchor 面板顶部中央弹出并上浮淡出
+func _popup(text: String, color: Color, anchor: Control) -> void:
+	if anchor == null:
+		return
+	var lbl = Label.new()
+	lbl.text = text
+	lbl.add_theme_font_size_override("font_size", 18)
+	lbl.add_theme_color_override("font_color", color)
+	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var gp = anchor.get_global_rect()
+	var self_rect = get_global_rect()
+	lbl.position = Vector2(gp.position.x - self_rect.position.x + gp.size.x * 0.5 - 24, gp.position.y - self_rect.position.y + 6)
+	add_child(lbl)
+	var tw = create_tween()
+	tw.tween_property(lbl, "position:y", lbl.position.y - 38, 0.8)
+	tw.parallel().tween_property(lbl, "modulate:a", 0.0, 0.8)
+	await tw.finished
+	lbl.queue_free()
+
+
+func _player_panel_anchor() -> Control:
+	return player_panel
+
+
+func _enemy_panel_anchor() -> Control:
+	return enemy_panel
 
 
 func _status_summary(stacks: Dictionary) -> String:
