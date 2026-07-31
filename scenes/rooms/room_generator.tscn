@@ -1,6 +1,0 @@
-[gd_scene format=4]
-
-[ext_resource type="Script" path="res://scripts/rooms/room_generator.gd" id="1"]
-
-[node name="RoomGenerator" type="Node"]
-script = ExtResource("1")

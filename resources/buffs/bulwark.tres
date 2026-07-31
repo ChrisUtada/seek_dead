@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="BuffData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/items/buff_data.gd" id="1"]
+[ext_resource type="Resource" path="res://resources/symbols/buff_bulwark.tres" id="2"]
+
+[resource]
+script = ExtResource("1")
+buff_id = "bulwark"
+buff_name = "铁壁印记"
+icon = "🧱"
+description = "壁符入轮：每回合额外 +8 护盾"
+symbol = ExtResource("2")
+weight = 3.0

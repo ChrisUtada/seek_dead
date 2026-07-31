@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="RoomData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/room_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+name = "锈蚀傀儡"
+hp = 130
+atk = 14
+jam = 0.2
+lock = 0.15
+chaos = 0.15
+heavy = 0.2
+element = "none"

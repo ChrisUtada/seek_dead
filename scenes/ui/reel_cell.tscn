@@ -1,8 +1,0 @@
-[gd_scene format=3 uid="uid://c3of41rf4kiik"]
-
-[ext_resource type="Script" path="res://scripts/ui/reel_cell.gd" id="1_rc"]
-
-[node name="ReelCell" type="Button" unique_id=1016380552]
-custom_minimum_size = Vector2(84, 84)
-disabled = true
-script = ExtResource("1_rc")

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="SymbolData" load_steps=2 format=3]
+
+[ext_resource type="Script" uid="uid://dlg6m5ycp5oc2" path="res://scripts/battle/symbol_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+label = "❤️"
+name = "治疗"
+kind = "heal"
+base = 6.0
+element = "light"
+status_type = ""
+color = Color(0.50, 0.95, 0.60, 1)

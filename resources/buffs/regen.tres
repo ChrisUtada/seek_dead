@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="BuffData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/items/buff_data.gd" id="1"]
+[ext_resource type="Resource" path="res://resources/symbols/buff_regen.tres" id="2"]
+
+[resource]
+script = ExtResource("1")
+buff_id = "regen"
+buff_name = "回春印记"
+icon = "🌿"
+description = "春符入轮：每回合回复 6 HP"
+symbol = ExtResource("2")
+weight = 3.0

@@ -1,7 +1,25 @@
-[gd_resource type="Resource" script_class="WeaponData" format=3 uid="uid://bw88p35vvqqfk"]
+[gd_resource type="Resource" script_class="WeaponData" load_steps=9 format=3 uid="uid://bw88p35vvqqfk"]
 
 [ext_resource type="Script" uid="uid://dkgpb1yi42sdb" path="res://scripts/equipment/weapon_data.gd" id="1"]
-[ext_resource type="PackedScene" path="res://scenes/weapons/dagger.tscn" id="2"]
+[ext_resource type="Script" uid="uid://b7ejpof4wrtqt" path="res://scripts/battle/symbol_weight.gd" id="sw"]
+[ext_resource type="Resource" path="res://resources/symbols/slash.tres" id="s0"]
+[ext_resource type="Resource" path="res://resources/symbols/block.tres" id="s1"]
+[ext_resource type="Resource" path="res://resources/symbols/trash.tres" id="s2"]
+
+[sub_resource type="Resource" id="sw0"]
+script = ExtResource("sw")
+symbol = ExtResource("s0")
+weight = 5.0
+
+[sub_resource type="Resource" id="sw1"]
+script = ExtResource("sw")
+symbol = ExtResource("s1")
+weight = 1.0
+
+[sub_resource type="Resource" id="sw2"]
+script = ExtResource("sw")
+symbol = ExtResource("s2")
+weight = 2.0
 
 [resource]
 script = ExtResource("1")
@@ -11,11 +29,9 @@ can_dual_wield = true
 damage = 25.0
 attack_speed = 2.0
 attack_range = 60.0
-weapon_scene = ExtResource("2")
 status_effect_type = 6
 status_effect_damage = 5.0
 status_effect_duration = 5.0
 cleave_angle = 120.0
 knockback_force = 100.0
-reel_symbols = {0: 5.0, 5: 1.0, 8: 2.0}
-special_symbol = 0
+reel = Array[ExtResource("sw")]([SubResource("sw0"), SubResource("sw1"), SubResource("sw2")])

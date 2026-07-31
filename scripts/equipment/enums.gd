@@ -1,3 +1,8 @@
+# ⚠️ 死代码 / 预留（Phase D 死代码治理）：
+# 本文件定义的是「原实时武器 · 词缀系统」的枚举与显示名（装备槽 / 稀有度 / 触发事件 /
+# 特效动作 / 条件 / 词缀目标等），【老虎机对决流程完全不使用】这些装备槽 / 稀有度 / 触发链体系。
+# 仅 stat_modifier.gd 引用了其中的 StatTarget / ModifierType（stat_modifier 自身也是未接线预留）。
+# 保留于此以备 Phase F 词缀系统复用；请勿将其误认为活跃逻辑，也不要在此新增老虎机相关内容。
 class_name EquipmentEnums
 extends RefCounted
 

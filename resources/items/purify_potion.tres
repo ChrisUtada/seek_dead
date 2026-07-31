@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+category = "active"
+item_id = "purify_potion"
+item_name = "净化药剂"
+description = "清除敌人的干扰意图，并恢复 2 点净化次数。"
+icon = "🧪"
+effect = "purify"
+value = 2
+charges = 1

@@ -21,24 +21,18 @@ config/features=PackedStringArray("4.7")
 
 [autoload]
 
-GameManager="*res://autoload/game_manager.gd"
-EventManager="*res://autoload/event_manager.gd"
-EntityRegistry="*res://autoload/entity_registry.gd"
 SaveSystem="*res://autoload/save_system.gd"
-SceneManager="*res://autoload/scene_manager.gd"
-AudioManager="*res://autoload/audio_manager.gd"
-RoomManager="*res://autoload/room_manager.gd"
 
 [display]
 
-window/size/viewport_width=640
-window/size/viewport_height=360
+window/size/viewport_width=1280
+window/size/viewport_height=720
 window/size/window_width_override=1280
 window/size/window_height_override=720
-window/size/min_width=1280
-window/size/min_height=720
 window/stretch/mode="canvas_items"
-window/stretch/aspect="keep"
+window/stretch/aspect="expand"
+window/size/min_width=960
+window/size/min_height=540
 
 [input]
 

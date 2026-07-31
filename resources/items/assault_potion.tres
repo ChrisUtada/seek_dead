@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+category = "active"
+item_id = "assault_potion"
+item_name = "强袭药剂"
+description = "下一次转轮的所有伤害符号翻倍。"
+icon = "⚔️"
+effect = "assault"
+value = 2
+charges = 1

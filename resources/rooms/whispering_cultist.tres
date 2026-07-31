@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="RoomData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/room_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+name = "呓语教徒"
+hp = 165
+atk = 16
+jam = 0.25
+lock = 0.2
+chaos = 0.2
+heavy = 0.2
+element = "dark"

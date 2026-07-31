@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="BuffData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/items/buff_data.gd" id="1"]
+[ext_resource type="Resource" path="res://resources/symbols/buff_rage.tres" id="2"]
+
+[resource]
+script = ExtResource("1")
+buff_id = "rage"
+buff_name = "狂怒印记"
+icon = "💢"
+description = "怒符入轮：伤害符号 +3"
+symbol = ExtResource("2")
+weight = 3.0

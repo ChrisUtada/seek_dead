@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="SymbolData" load_steps=2 format=3]
+
+[ext_resource type="Script" uid="uid://dlg6m5ycp5oc2" path="res://scripts/battle/symbol_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+label = "🧱"
+name = "铁壁"
+kind = "buff"
+base = 0.0
+element = "none"
+status_type = ""
+color = Color(0.60, 0.68, 0.85, 1)
+buff_effect = "shield"
+buff_value = 8.0
+buff_turns = 2

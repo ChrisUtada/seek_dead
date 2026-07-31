@@ -2,8 +2,8 @@ extends Control
 # ============================================================================
 # 官方对决控制器（DuelController）
 # 由原型 prototypes/reel_combat/reel_combat.gd 迁移而来（M0–M6 完整闭环）。
-# 复用主工程数据层：scripts/battle/reel_symbol.gd、WeaponData.reel_symbols、
-#   8 把武器 .tres、ConsumableData/CharmData + 8 个 .tres。
+# 符号数据层：scripts/battle/symbol_data.gd（SymbolData 资源）、WeaponData.reel、
+#   8 把武器 .tres、ItemData（合并原 ConsumableData/CharmData）+ 8 个 .tres。
 # 与原型唯一差异：铁砧元进度存档由 user://reel_combat_save.json 改为
 #   SaveSystem.lobby_data["anvil_meta"]（与项目统一 JSON 存档）。
 # 全代码 UI（Control 树），可直接作为 duel.tscn 脚本运行（F6）或由 RoomManager 进入。
@@ -17,7 +17,7 @@ extends Control
 #   · DoT 细化（灼烧/毒跨回合持续、回合末衰减、HUD 显示层数）
 #   · 干扰反制接入（M3 的轻量切片）：敌人 jam 注入废铁占据一列，
 #     玩家用「净化」次数抵消（每房回满，M3 将由消耗品承接）
-# 仍：1 行 3 格、符号池来自 WeaponData.reel_symbols、单符号必结算+匹配倍率、无锁定。
+# 仍：1 行 3 格、符号池来自 WeaponData.reel、单符号必结算+匹配倍率、无锁定。
 # 按 F6 运行试玩。
 #
 # M3 增量（整备选物 UI）：
@@ -36,71 +36,49 @@ extends Control
 #   · Boss 房（最后一房）击败 → 通关 → 领取残余物奖励 → 开新一局
 # ============================================================================
 
-const ReelSymbol = preload("res://scripts/battle/reel_symbol.gd")
+const TRASH_SYMBOL = preload("res://resources/symbols/trash.tres")
 const ElementCounter = preload("res://scripts/battle/element_counter.gd")
+# Phase D 软注册表清理：文件夹自动扫描工具（替代手写路径数组）
+const ResourceScan = preload("res://scripts/utils/resource_scan.gd")
+
+# Phase 1 组件化：UI 复用场景与脚手架
+const UI_BUTTON = preload("res://scenes/ui/ui_button.tscn")
 
 # 可选物品池（整备界面从这里自由勾选，真实 .tres 数据）。
-const WEAPON_POOL := [
-	"res://resources/weapon_templates/iron_sword.tres",
-	"res://resources/weapon_templates/pistol.tres",
-	"res://resources/weapon_templates/fire_sword.tres",
-	"res://resources/weapon_templates/flame_staff.tres",
-	"res://resources/weapon_templates/ice_gun.tres",
-	"res://resources/weapon_templates/battle_axe.tres",
-	"res://resources/weapon_templates/dagger.tres",
-	"res://resources/weapon_templates/poison_dagger.tres",
-]
-const CONSUMABLE_POOL := [
-	"res://resources/consumables/purify_potion.tres",
-	"res://resources/consumables/heal_potion.tres",
-	"res://resources/consumables/assault_potion.tres",
-	"res://resources/consumables/reroll_scroll.tres",
-]
-const CHARM_POOL := [
-	"res://resources/charms/sharp_charm.tres",
-	"res://resources/charms/ward_charm.tres",
-	"res://resources/charms/resist_charm.tres",
-	"res://resources/charms/purify_charm.tres",
-]
+# Phase D 软注册表清理：改为文件夹自动扫描，新增内容只需在对应 resources/ 子目录放 .tres，
+# 不再手写路径数组（见 _ready 内的 ResourceScan 填充）。默认空，待 _ready 填充。
+var WEAPON_POOL: Array = []
+var ITEM_POOL: Array = []
+# Phase C 主动增益：携带后其符号进入转轮，连线命中施加限时增益
+var BUFF_POOL: Array = []
 
-# 携带约束（与策划案 v0.4 定稿一致）：武器硬下限≥1；分类容量上限；总槽≈6。
+# 携带约束（与策划案 v0.4 定稿一致）：武器硬下限≥1；分类容量上限；总槽≈8（Phase C 起含增益）。
 const LOADOUT_MIN := 1
 const LOADOUT_MAX := 5
 const CONSUMABLE_MIN := 0
 const CONSUMABLE_MAX := 3
 const CHARM_MIN := 0
 const CHARM_MAX := 2
-const TOTAL_MAX := 6
+const BUFF_MIN := 0
+const BUFF_MAX := 2
+const TOTAL_MAX := 8
 
 const REELS = 3
 const ROWS = 1
 
-# M4 房奖励池（每清一房随机 3 选 1；Boss 房走同池但标为「残余物」）
-const REWARD_POOL := [
-	{"id": "heal",   "icon": "✚", "label": "治疗药剂", "desc": "恢复 35% 最大 HP"},
-	{"id": "maxhp",  "icon": "♥", "label": "强韧之心", "desc": "最大 HP +20 并回满"},
-	{"id": "purify", "icon": "⛨", "label": "净化符文", "desc": "净化上限 +1（每房回满）"},
-	{"id": "symbol", "icon": "✶", "label": "符号灌注", "desc": "随机优势符号权重 +3"},
-	{"id": "shield", "icon": "🛡", "label": "守望结界", "desc": "下一房开局 +15 护盾"},
-	{"id": "power",  "icon": "⚔", "label": "锋锐打磨", "desc": "本局符号伤害 +1"},
-]
-# 净化上限由 M6 物品（净化药剂 + 丰沛护符）与房奖励共同决定，见 purify_max_base
+# M4 房奖励池（每清一房随机 3 选 1；Boss 房走同池但标为「残余物」）。
+# Phase D 资源化：改为扫描 resources/rewards/*.tres（RewardData），见 _ready 内填充。
+var REWARD_POOL: Array = []
 
 # 房间序列（肉鸽逐房推进）。
 # jam=注废意图概率, lock=锁轮意图概率, chaos=乱权意图概率, heavy=重击意图概率, 其余=普攻。
-const ROOMS := [
-	{"name": "腐化史莱姆", "hp": 90,  "atk": 11, "jam": 0.15, "lock": 0.10, "chaos": 0.10, "heavy": 0.15, "element": "poison"},
-	{"name": "锈蚀傀儡",   "hp": 130, "atk": 14, "jam": 0.20, "lock": 0.15, "chaos": 0.15, "heavy": 0.20, "element": "none"},
-	{"name": "呓语教徒",   "hp": 165, "atk": 16, "jam": 0.25, "lock": 0.20, "chaos": 0.20, "heavy": 0.20, "element": "dark"},
-	{"name": "深渊监视者", "hp": 220, "atk": 20, "jam": 0.30, "lock": 0.25, "chaos": 0.25, "heavy": 0.30, "element": "light"},
-]
+# Phase D 资源化：改为扫描 resources/rooms/*.tres（RoomData），见 _ready 内填充。
+var ROOMS: Array = []
 
-# grid[reel][row] = 符号 id (ReelSymbol.Id)
+# grid[reel][row] = SymbolData 引用
 var grid = []
-var cells = []   # 展示用 Button 引用 [reel][row]
-var cell_badges = []   # 每格右上角匹配角标 Label 引用 [reel][row]
 
-# 合并后的加权符号池：元素为 [symbol_id, weight]
+# 合并后的加权符号池：元素为 [SymbolData, weight]
 var pool: Array = []
 var loadout_names: Array = []
 var _special_element: String = "none"   # 当前池内特殊符号的属性元素（取自武器 reel_element）
@@ -111,12 +89,10 @@ var in_loadout := false
 var selected_loadout: Array = []          # 玩家勾选的武器路径
 var selected_consumables: Array = []      # 玩家勾选的消耗品路径
 var selected_charms: Array = []           # 玩家勾选的护符路径
-var loadout_screen
-var loadout_columns: Dictionary = {}  # category -> VBoxContainer for refresh
-var loadout_cards := []                   # 卡片元数据列表 {path, btn, selected, category}
-var loadout_count_label
-var loadout_confirm_btn
-var loadout_anvil_label                # M5：整备屏显示铁砧点数
+var selected_buffs: Array = []            # 玩家勾选的主动增益路径（Phase C）
+
+# Phase C 主动增益运行时：SymbolData -> 剩余回合数（本房内有效，进房清空）
+var player_buffs: Dictionary = {}
 
 # 消耗品运行时（战斗中主动使用）
 var consumable_charges: Dictionary = {}   # item_id -> 剩余次数（每房回满）
@@ -161,13 +137,9 @@ var game_state = "playing"             # playing | won | lost | cleared
 var turn_count = 1
 
 # M4 本局（Run）加成层
-var run_symbol_bonus: Dictionary = {}  # symbol_id -> 额外权重（奖励：符号灌注）
+var run_symbol_bonus: Dictionary = {}  # resource_path -> 额外权重（奖励：符号灌注）
 var run_power_bonus: int = 0           # 本局符号基础伤害加成（奖励：锋锐打磨）
 var run_shield_next: int = 0           # 进入下一房时获得的护盾（奖励：守望结界）
-var reward_screen                       # 奖励三选一覆盖层
-var reward_title_label
-var reward_grid
-var reward_skip_btn
 var reward_choices: Array = []         # 当前展示的 3 个奖励
 var reward_is_boss: bool = false       # 当前奖励是否来自 Boss 房（选完开新局）
 
@@ -176,11 +148,6 @@ var reward_is_boss: bool = false       # 当前奖励是否来自 Boss 房（选
 # interference_resist: int（抗干扰等级，降低敌人干扰概率）
 var meta: Dictionary = {"anvil_points": 0, "weapon_upgrades": {}, "interference_resist": 0}
 const ANVIL_SAVE_KEY := "anvil_meta"   # 铁砧元进度存于 SaveSystem.lobby_data
-var anvil_screen
-var anvil_title_label
-var anvil_points_label
-var anvil_grid
-var anvil_back_btn
 
 # 仅 1 行 3 格。特殊符号需 3 同才触发；普通符号单颗即结算，出现 n 次 ×n。
 var PAYLINES = [
@@ -188,97 +155,101 @@ var PAYLINES = [
 ]
 
 # UI 引用
-var grid_container
-var log_label
-var log_scroll
-var player_hp_label
-var player_shield_label
-var enemy_name_label
-var enemy_hp_label
-var enemy_intent_label
-var enemy_status_label
-var loadout_label
-var room_label
-var turn_label
-var run_label
-var purify_label
-var overlay
-var overlay_label
-var overlay_button
 
 # 符号图例（每符号名称/类型/元素 + 敌人属性提示）
-var legend_box
-var legend_container
-var player_panel          # 左：玩家面板（飘字锚点）
-var enemy_panel           # 右：敌人面板（飘字锚点）
 
 var logs: Array = []
 
 
+
+const BATTLE_HUD = preload("res://scenes/ui/battle_hud.tscn")
+var hud: BattleHud
+
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_load_meta()                     # M5：载入铁砧元进度
-	_build_ui()
-	_build_loadout_screen()
-	_build_reward_screen()
-	_build_anvil_screen()
-	_show_loadout_screen()
-
-
-# ---------------------------------------------------------------------------
-# 符号池：合并已装备武器的 reel_symbols
-# ---------------------------------------------------------------------------
+	# Phase D：文件夹自动扫描内容池（替代手写路径数组）。必须在构建整备界面之前完成。
+	WEAPON_POOL = ResourceScan.scan_paths("res://resources/weapon_templates/")
+	ITEM_POOL = ResourceScan.scan_paths("res://resources/items/")
+	BUFF_POOL = ResourceScan.scan_paths("res://resources/buffs/")
+	ROOMS = ResourceScan.scan_resources("res://resources/rooms/", "RoomData")
+	REWARD_POOL = ResourceScan.scan_resources("res://resources/rewards/", "RewardData")
+	hud = BATTLE_HUD.instantiate()
+	add_child(hud)
+	hud.controller = self
+	_load_meta()
+	hud._build_ui()
+	hud._build_loadout_screen()
+	hud._build_reward_screen()
+	hud._build_anvil_screen()
+	hud._show_loadout_screen()
 func _build_pool(loadout: Array) -> void:
 	pool = []
 	loadout_names = []
 	_special_element = "none"
-	var merged := {}   # symbol_id -> 总权重（跨武器累加）
+	var merged := {}   # resource_path -> [SymbolData, 总权重]（跨武器累加）
 	for path in loadout:
-		var wd: Resource = load(path)
+		var wd: WeaponData = load(path)
 		if wd == null:
-			_log("⚠ 找不到武器: " + path)
+			hud._log("⚠ 找不到武器: " + path)
 			continue
 		loadout_names.append(wd.weapon_name)
-		if typeof(wd.get("reel_symbols")) != TYPE_DICTIONARY:
+		if wd.reel == null or wd.reel.is_empty():
 			continue
-		for key in wd.reel_symbols.keys():
-			var sid := int(key)
-			merged[sid] = merged.get(sid, 0.0) + float(wd.reel_symbols[key])
+		for sw in wd.reel:
+			if sw == null or sw.symbol == null:
+				continue
+			var sp: String = sw.symbol.resource_path
+			if not merged.has(sp):
+				merged[sp] = [sw.symbol, 0.0]
+			merged[sp][1] += float(sw.weight)
 			# 记录特殊符号的属性元素（用于单向克制）
-			if sid == ReelSymbol.Id.SPECIAL and wd.reel_element != "none":
+			if sw.symbol.kind == "special" and wd.reel_element != "none":
 				_special_element = wd.reel_element
 		# M5 铁砧：武器升级 → 主符号（权重最高者）额外加成
 		var bonus = meta["weapon_upgrades"].get(path, 0)
-		if bonus > 0 and not wd.reel_symbols.is_empty():
-			var dom = -1
+		if bonus > 0 and not wd.reel.is_empty():
+			var dom_path = ""
 			var domw = -1.0
-			for key in wd.reel_symbols.keys():
-				var w = float(wd.reel_symbols[key])
+			for sw in wd.reel:
+				if sw == null or sw.symbol == null:
+					continue
+				var w = float(sw.weight)
 				if w > domw:
 					domw = w
-					dom = int(key)
-			if dom >= 0:
-				merged[dom] = merged.get(dom, 0.0) + float(bonus)
-	for sid in merged.keys():
-		pool.append([sid, merged[sid]])
-	# M4 本局符号权重加成（符号灌注奖励叠加）
-	for sid in run_symbol_bonus.keys():
+					dom_path = sw.symbol.resource_path
+			if dom_path != "":
+				if not merged.has(dom_path):
+					merged[dom_path] = [load(dom_path), 0.0]
+				merged[dom_path][1] += float(bonus)
+	# Phase C：所携带的主动增益，其符号同样注入转轮池（与武器符号同池竞争）
+	for path in selected_buffs:
+		var bd: BuffData = load(path)
+		if bd == null or bd.symbol == null:
+			continue
+		var bp: String = bd.symbol.resource_path
+		if not merged.has(bp):
+			merged[bp] = [bd.symbol, 0.0]
+		merged[bp][1] += float(bd.weight)
+	for sp in merged.keys():
+		pool.append([merged[sp][0], merged[sp][1]])
+	# M4 本局符号权重加成（符号灌注奖励叠加）— run_symbol_bonus 以 resource_path 为键
+	for spath in run_symbol_bonus.keys():
 		var found = false
 		for p in pool:
-			if p[0] == sid:
-				p[1] += float(run_symbol_bonus[sid])
+			if p[0].resource_path == spath:
+				p[1] += float(run_symbol_bonus[spath])
 				found = true
 				break
 		if not found:
-			pool.append([sid, float(run_symbol_bonus[sid])])
+			pool.append([load(spath), float(run_symbol_bonus[spath])])
 	# 符号图例（每符号名称/类型/元素 + 敌人属性）
-	if legend_container != null:
-		_refresh_legend()
+	if hud.legend_container != null:
+		hud._refresh_legend()
 
 
-func _weighted_random_sym() -> int:
+func _weighted_random_sym() -> SymbolData:
 	if pool.is_empty():
-		return ReelSymbol.Id.TRASH
+		return TRASH_SYMBOL
 	var total := 0.0
 	for p in pool:
 		total += p[1]
@@ -299,7 +270,7 @@ func _apply_chaos_pool() -> void:
 	var chaotic := []
 	for p in pool:
 		var w = p[1]
-		if p[0] == ReelSymbol.Id.TRASH:
+		if p[0] == TRASH_SYMBOL:
 			w *= 2.0
 		elif w >= max_w * 0.99:
 			w *= 0.35
@@ -316,521 +287,63 @@ func _restore_pool() -> void:
 # ---------------------------------------------------------------------------
 # UI 构建（全代码）
 # ---------------------------------------------------------------------------
-func _label(text: String, size: int = 16) -> Label:
-	var l = Label.new()
-	l.text = text
-	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	if size > 0:
-		l.add_theme_font_size_override("font_size", size)
-	return l
-
-
-func _make_side_panel(min_width: int) -> PanelContainer:
-	var panel = PanelContainer.new()
-	panel.custom_minimum_size = Vector2(min_width, 0)
-	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.11, 0.11, 0.16, 0.75)
-	style.border_color = Color(0.22, 0.22, 0.30, 1)
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(6)
-	style.content_margin_left = 8
-	style.content_margin_right = 8
-	style.content_margin_top = 8
-	style.content_margin_bottom = 8
-	panel.add_theme_stylebox_override("panel", style)
-	var v = VBoxContainer.new()
-	v.add_theme_constant_override("separation", 4)
-	panel.add_child(v)
-	return panel
-
-
-func _build_ui() -> void:
-	var bg = ColorRect.new()
-	bg.color = Color(0.09, 0.09, 0.13, 1)
-	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(bg)
-
-	var margin = MarginContainer.new()
-	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	margin.add_theme_constant_override("margin_left", 10)
-	margin.add_theme_constant_override("margin_right", 10)
-	margin.add_theme_constant_override("margin_top", 8)
-	margin.add_theme_constant_override("margin_bottom", 8)
-	add_child(margin)
-
-	var root = VBoxContainer.new()
-	root.add_theme_constant_override("separation", 6)
-	margin.add_child(root)
-
-	# 标题
-	var title_label = _label("Seek Dead · 老虎机对决", 17)
-	title_label.add_theme_color_override("font_color", Color(0.90, 0.85, 0.70, 1))
-	root.add_child(title_label)
-
-	# 信息栏：房间 / 回合 / 本局加成（单行，不占用垂直空间）
-	var info = HBoxContainer.new()
-	info.add_theme_constant_override("separation", 10)
-	root.add_child(info)
-	room_label = _label("房间: 1/1", 11)
-	room_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	turn_label = _label("回合: 1", 11)
-	turn_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	run_label = _label("本局加成: —", 10)
-	run_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	var info_spacer = Control.new()
-	info_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	info.add_child(room_label)
-	info.add_child(turn_label)
-	info.add_child(info_spacer)
-	info.add_child(run_label)
-
-	loadout_label = _label("已装备: —", 10)
-	loadout_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	root.add_child(loadout_label)
-
-	# 主区域：玩家面板 | 转轮+意图 | 敌人面板+日志
-	var main = HBoxContainer.new()
-	main.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	main.add_theme_constant_override("separation", 10)
-	root.add_child(main)
-
-	# 左：玩家面板（固定宽度，视觉分组）
-	var ppanel = _make_side_panel(130)
-	var ppv = ppanel.get_child(0)
-	ppv.add_theme_constant_override("separation", 4)
-	var ptitle = _label("玩家", 13)
-	ptitle.add_theme_color_override("font_color", Color(0.60, 0.85, 0.95, 1))
-	ppv.add_child(ptitle)
-	player_hp_label = _label("HP 100/100", 12)
-	player_hp_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	player_shield_label = _label("护盾 0", 11)
-	player_shield_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	ppv.add_child(player_hp_label)
-	ppv.add_child(player_shield_label)
-	ppv.add_child(Control.new())  # 占位撑开
-	main.add_child(ppanel)
-
-	# 中：转轮 + 敌人意图/状态
-	player_panel = ppanel
-	var center = VBoxContainer.new()
-	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	center.add_theme_constant_override("separation", 8)
-	main.add_child(center)
-
-	var reel_center = CenterContainer.new()
-	reel_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	center.add_child(reel_center)
-	grid_container = GridContainer.new()
-	grid_container.columns = REELS
-	grid_container.add_theme_constant_override("h_separation", 10)
-	grid_container.add_theme_constant_override("v_separation", 10)
-	reel_center.add_child(grid_container)
-
-	for reel in REELS:
-		cells.append([])
-		grid.append([])
-		cell_badges.append([])
-		for row in ROWS:
-			var b = Button.new()
-			b.custom_minimum_size = Vector2(84, 84)
-			b.add_theme_font_size_override("font_size", 30)
-			b.disabled = true   # 无锁定，格子仅作展示
-			grid_container.add_child(b)
-			cells[reel].append(b)
-			grid[reel].append(ReelSymbol.Id.TRASH)
-			# 匹配角标（右上角锚定，修复依赖 size.x 导致的丢失）
-			var badge = Label.new()
-			badge.text = ""
-			badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-			badge.vertical_alignment = VERTICAL_ALIGNMENT_TOP
-			badge.add_theme_font_size_override("font_size", 13)
-			badge.add_theme_color_override("font_color", Color(1.0, 0.85, 0.30, 1))
-			badge.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-			badge.offset_right = -4
-			badge.offset_top = 2
-			badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			b.add_child(badge)
-			cell_badges[reel].append(badge)
-
-	var intent_box = HBoxContainer.new()
-	intent_box.add_theme_constant_override("separation", 14)
-	intent_box.alignment = BoxContainer.ALIGNMENT_CENTER
-	center.add_child(intent_box)
-	enemy_intent_label = _label("意图: —", 12)
-	enemy_status_label = _label("状态: 无", 11)
-	intent_box.add_child(enemy_intent_label)
-	intent_box.add_child(enemy_status_label)
-
-	# 符号图例（每符号名称/类型/元素 + 敌人属性），帮助理解"符号作用"
-	legend_box = PanelContainer.new()
-	var lstyle = StyleBoxFlat.new()
-	lstyle.bg_color = Color(0.09, 0.09, 0.13, 0.85)
-	lstyle.border_color = Color(0.22, 0.22, 0.30, 1)
-	lstyle.set_border_width_all(1)
-	lstyle.set_corner_radius_all(6)
-	lstyle.content_margin_left = 8
-	lstyle.content_margin_right = 8
-	lstyle.content_margin_top = 6
-	lstyle.content_margin_bottom = 6
-	legend_box.add_theme_stylebox_override("panel", lstyle)
-	center.add_child(legend_box)
-	legend_container = VBoxContainer.new()
-	legend_container.add_theme_constant_override("separation", 2)
-	legend_box.add_child(legend_container)
-
-	# 右：敌人面板 + 日志
-	var rpanel = _make_side_panel(170)
-	var rpv = rpanel.get_child(0)
-	rpv.add_theme_constant_override("separation", 4)
-	var etitle = _label("敌人", 13)
-	etitle.add_theme_color_override("font_color", Color(0.95, 0.55, 0.55, 1))
-	rpv.add_child(etitle)
-	enemy_name_label = _label("—", 12)
-	enemy_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	enemy_hp_label = _label("HP 0/0", 11)
-	enemy_hp_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	rpv.add_child(enemy_name_label)
-	rpv.add_child(enemy_hp_label)
-
-	var log_title = _label("战斗日志", 11)
-	log_title.add_theme_color_override("font_color", Color(0.70, 0.70, 0.75, 1))
-	rpv.add_child(log_title)
-	log_scroll = ScrollContainer.new()
-	log_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	log_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	log_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	rpv.add_child(log_scroll)
-	log_label = Label.new()
-	log_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	log_label.add_theme_font_size_override("font_size", 10)
-	log_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	log_scroll.add_child(log_label)
-	main.add_child(rpanel)
-	enemy_panel = rpanel
-
-	# 底部操作栏：始终可见，不被日志或内容挤出
-	var bot = HBoxContainer.new()
-	bot.add_theme_constant_override("separation", 8)
-	root.add_child(bot)
-	var spin = Button.new()
-	spin.text = "SPIN (空格)"
-	spin.custom_minimum_size = Vector2(120, 38)
-	spin.add_theme_font_size_override("font_size", 14)
-	spin.connect("pressed", _on_spin_pressed)
-	bot.add_child(spin)
-
-	var purify = Button.new()
-	purify.text = "净化"
-	purify.custom_minimum_size = Vector2(70, 38)
-	purify.add_theme_font_size_override("font_size", 11)
-	purify.connect("pressed", _on_purify_pressed)
-	bot.add_child(purify)
-	purify_label = _label("2", 11)
-	bot.add_child(purify_label)
-
-	consumable_panel = HBoxContainer.new()
-	consumable_panel.add_theme_constant_override("separation", 6)
-	bot.add_child(consumable_panel)
-
-	var bot_spacer = Control.new()
-	bot_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	bot.add_child(bot_spacer)
-
-	var re_eq = Button.new()
-	re_eq.text = "整备"
-	re_eq.custom_minimum_size = Vector2(64, 32)
-	re_eq.add_theme_font_size_override("font_size", 11)
-	re_eq.connect("pressed", _on_reload_loadout_pressed)
-	bot.add_child(re_eq)
-	var reset = Button.new()
-	reset.text = "重置"
-	reset.custom_minimum_size = Vector2(64, 32)
-	reset.add_theme_font_size_override("font_size", 11)
-	reset.connect("pressed", _full_reset)
-	bot.add_child(reset)
-
-	_build_overlay()
-
-
-# ---------------------------------------------------------------------------
-# 整备界面（M3–M6）：武器 / 消耗品 / 护符 三分类自由勾选
-# ---------------------------------------------------------------------------
-func _build_loadout_screen() -> void:
-	loadout_screen = Control.new()
-	loadout_screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	loadout_screen.mouse_filter = Control.MOUSE_FILTER_STOP
-	var bg = ColorRect.new()
-	bg.color = Color(0.06, 0.06, 0.10, 0.98)
-	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	loadout_screen.add_child(bg)
-
-	var margin = MarginContainer.new()
-	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	margin.add_theme_constant_override("margin_left", 10)
-	margin.add_theme_constant_override("margin_right", 10)
-	margin.add_theme_constant_override("margin_top", 8)
-	margin.add_theme_constant_override("margin_bottom", 8)
-	loadout_screen.add_child(margin)
-
-	var root = VBoxContainer.new()
-	root.add_theme_constant_override("separation", 6)
-	margin.add_child(root)
-
-	var title = _label("⚙ 整备 · 选择携带物品", 15)
-	title.add_theme_color_override("font_color", Color(0.90, 0.85, 0.70, 1))
-	root.add_child(title)
-	var rule = _label("武器 %d–%d 把 · 消耗品 0–%d · 护符 0–%d · 总槽 %d  |  武器=转轮池 / 消耗品=主动 / 护符=被动" % [LOADOUT_MIN, LOADOUT_MAX, CONSUMABLE_MAX, CHARM_MAX, TOTAL_MAX], 10)
-	rule.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	root.add_child(rule)
-
-	# 三分类并列卡片区
-	var cat_box = HBoxContainer.new()
-	cat_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	cat_box.add_theme_constant_override("separation", 10)
-	root.add_child(cat_box)
-
-	loadout_cards = []
-	loadout_columns = {}
-	_add_loadout_column(cat_box, "武器", WEAPON_POOL, "weapon", 1)
-	_add_loadout_column(cat_box, "消耗品", CONSUMABLE_POOL, "consumable", 1)
-	_add_loadout_column(cat_box, "护符", CHARM_POOL, "charm", 1)
-
-	# 底部：计数 + 铁砧点数 + 铁砧按钮 + 确认（始终可见）
-	var bot = HBoxContainer.new()
-	bot.add_theme_constant_override("separation", 10)
-	root.add_child(bot)
-	loadout_count_label = _label("武器 0 · 消耗 0 · 护符 0 · 总 0/6", 11)
-	loadout_count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	bot.add_child(loadout_count_label)
-	var bot_spacer = Control.new()
-	bot_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	bot.add_child(bot_spacer)
-	loadout_anvil_label = _label("铁砧点数: 0", 10)
-	bot.add_child(loadout_anvil_label)
-	var anvil_btn = Button.new()
-	anvil_btn.text = "🔨 铁砧"
-	anvil_btn.custom_minimum_size = Vector2(80, 28)
-	anvil_btn.add_theme_font_size_override("font_size", 10)
-	anvil_btn.connect("pressed", _show_anvil_screen)
-	bot.add_child(anvil_btn)
-	loadout_confirm_btn = Button.new()
-	loadout_confirm_btn.text = "确认开战 ▶"
-	loadout_confirm_btn.custom_minimum_size = Vector2(110, 30)
-	loadout_confirm_btn.add_theme_font_size_override("font_size", 12)
-	loadout_confirm_btn.connect("pressed", _confirm_loadout)
-	bot.add_child(loadout_confirm_btn)
-
-	add_child(loadout_screen)
-	loadout_screen.visible = false
-
-
-func _add_loadout_column(parent: Control, title: String, pool: Array, category: String, _columns: int) -> void:
-	var panel = PanelContainer.new()
-	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.10, 0.10, 0.15, 0.80)
-	style.border_color = Color(0.22, 0.22, 0.30, 1)
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(6)
-	style.content_margin_left = 6
-	style.content_margin_right = 6
-	style.content_margin_top = 8
-	style.content_margin_bottom = 8
-	panel.add_theme_stylebox_override("panel", style)
-	parent.add_child(panel)
-
-	var v = VBoxContainer.new()
-	v.add_theme_constant_override("separation", 6)
-	panel.add_child(v)
-
-	var title_label = _label("%s 0/%d" % [title, _cat_max(category)], 12)
-	loadout_columns[category] = title_label
-	v.add_child(title_label)
-
-	var scroll = ScrollContainer.new()
-	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	v.add_child(scroll)
-
-	# 单列纵向列表（固定最小宽度 170 设计 px，确保文字不会竖排；
-	# 实际渲染时会按 ScrollContainer 可用宽度进一步扩展）。
-	var list = VBoxContainer.new()
-	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	list.custom_minimum_size = Vector2(170, 0)
-	list.add_theme_constant_override("separation", 6)
-	scroll.add_child(list)
-	for path in pool:
-		var data: Resource = load(path)
-		var card = _make_item_card(data, path, category)
-		list.add_child(card["btn"])
-		loadout_cards.append(card)
-
-
-func _make_item_card(data: Resource, path: String, category: String) -> Dictionary:
-	var btn = Button.new()
-	btn.custom_minimum_size = Vector2(120, 88)
-	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	btn.text = ""
-	var vb = VBoxContainer.new()
-	vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	vb.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	vb.add_theme_constant_override("separation", 3)
-	btn.add_child(vb)
-
-	var name := ""
-	var line1 := ""   # 图标/核心信息
-	var line2 := ""   # 数值/权重
-	if category == "weapon":
-		name = data.weapon_name if (data != null) else path.get_file().get_basename()
-		if data != null and typeof(data.get("reel_symbols")) == TYPE_DICTIONARY:
-			var parts := []
-			for key in data.reel_symbols.keys():
-				var sid := int(key)
-				var d = ReelSymbol.get_symbol(sid)
-				parts.append("%s×%d" % [d["label"], int(data.reel_symbols[key])])
-			line1 = " ".join(parts)
-		line2 = "特殊: %s" % (ReelSymbol.get_symbol(data.special_symbol)["name"] if (data != null and data.special_symbol >= 0) else "无")
-	else:
-		name = data.item_name if (data != null) else path.get_file().get_basename()
-		if data != null:
-			line1 = "%s %s" % [data.icon, data.description]
-			line2 = "持有 %d" % data.charges if (category == "consumable" and data.get("charges") != null) else "被动"
-
-	var nl = _label(name, 11)
-	nl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	nl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	vb.add_child(nl)
-	var l1 = _label(line1, 10)
-	l1.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	l1.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	l1.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	vb.add_child(l1)
-	if line2 != "":
-		var l2 = _label(line2, 9)
-		l2.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		l2.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		l2.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		l2.add_theme_color_override("font_color", Color(0.65, 0.65, 0.75, 1))
-		vb.add_child(l2)
-	var card := {"path": path, "btn": btn, "selected": false, "category": category}
-	btn.connect("pressed", _on_card_toggled.bind(card))
-	return card
-
-
-# 卡片点击：三分类通用 toggle（受分类上限与总槽约束）
 func _on_card_toggled(card: Dictionary) -> void:
-	var cat = card["category"]
+	var cat = card.kind
 	var arr = _sel_arr(cat)
 	if card["selected"]:
 		card["selected"] = false
 		arr.erase(card["path"])
 	else:
 		if arr.size() >= _cat_max(cat):
-			_log("%s已达上限 %d" % [_cat_name(cat), _cat_max(cat)])
+			hud._log("%s已达上限 %d" % [_cat_name(cat), _cat_max(cat)])
 			return
 		if _total_selected() >= TOTAL_MAX:
-			_log("总槽已达上限 %d" % TOTAL_MAX)
+			hud._log("总槽已达上限 %d" % TOTAL_MAX)
 			return
 		card["selected"] = true
 		arr.append(card["path"])
-	_update_loadout_cards_visual()
-	_update_loadout_count()
+	hud._update_loadout_cards_visual()
+	hud._update_loadout_count()
 
 
 func _sel_arr(cat: String) -> Array:
 	match cat:
-		"weapon":     return selected_loadout
-		"consumable": return selected_consumables
-		"charm":      return selected_charms
+		"weapon":  return selected_loadout
+		"active":  return selected_consumables
+		"passive": return selected_charms
+		"buff":    return selected_buffs
 	return []
 
 
 func _cat_max(cat: String) -> int:
 	match cat:
-		"weapon":     return LOADOUT_MAX
-		"consumable": return CONSUMABLE_MAX
-		"charm":      return CHARM_MAX
+		"weapon":  return LOADOUT_MAX
+		"active":  return CONSUMABLE_MAX
+		"passive": return CHARM_MAX
+		"buff":    return BUFF_MAX
+		"item":    return CONSUMABLE_MAX + CHARM_MAX
 	return 99
 
 
 func _cat_name(cat: String) -> String:
 	match cat:
-		"weapon":     return "武器"
-		"consumable": return "消耗品"
-		"charm":      return "护符"
+		"weapon":  return "武器"
+		"active":  return "消耗品"
+		"passive": return "护符"
+		"buff":    return "增益"
+		"item":    return "物品"
 	return cat
 
 
 func _total_selected() -> int:
-	return selected_loadout.size() + selected_consumables.size() + selected_charms.size()
-
-
-func _update_loadout_cards_visual() -> void:
-	var wfull = selected_loadout.size() >= LOADOUT_MAX
-	var cfull = selected_consumables.size() >= CONSUMABLE_MAX
-	var hfull = selected_charms.size() >= CHARM_MAX
-	var tfull = _total_selected() >= TOTAL_MAX
-	for card in loadout_cards:
-		var sb = StyleBoxFlat.new()
-		if card["selected"]:
-			sb.bg_color = Color(0.20, 0.32, 0.22, 1)
-			sb.border_color = Color(0.45, 0.85, 0.50, 1)
-			sb.set_border_width_all(2)
-			card["btn"].disabled = false
-		else:
-			sb.bg_color = Color(0.16, 0.16, 0.22, 1)
-			sb.border_color = Color(0.30, 0.30, 0.38, 1)
-			sb.set_border_width_all(1)
-			var cf = (card["category"] == "weapon" and wfull) or (card["category"] == "consumable" and cfull) or (card["category"] == "charm" and hfull)
-			card["btn"].disabled = (cf or tfull)
-		card["btn"].add_theme_stylebox_override("normal", sb)
-		card["btn"].add_theme_stylebox_override("hover", sb)
-		card["btn"].add_theme_stylebox_override("pressed", sb)
-		card["btn"].add_theme_stylebox_override("disabled", sb)
-
-
-func _update_loadout_count() -> void:
-	var t = _total_selected()
-	loadout_count_label.text = "武器 %d · 消耗 %d · 护符 %d · 总 %d/%d" % [selected_loadout.size(), selected_consumables.size(), selected_charms.size(), t, TOTAL_MAX]
-	if loadout_columns.has("weapon"):
-		loadout_columns["weapon"].text = "武器 %d/%d" % [selected_loadout.size(), LOADOUT_MAX]
-	if loadout_columns.has("consumable"):
-		loadout_columns["consumable"].text = "消耗品 %d/%d" % [selected_consumables.size(), CONSUMABLE_MAX]
-	if loadout_columns.has("charm"):
-		loadout_columns["charm"].text = "护符 %d/%d" % [selected_charms.size(), CHARM_MAX]
-	var ok = selected_loadout.size() >= LOADOUT_MIN and t <= TOTAL_MAX
-	loadout_confirm_btn.disabled = not ok
-	loadout_confirm_btn.text = ("确认开战 ▶" if ok else "至少选 %d 把武器 ▶" % LOADOUT_MIN)
-
-
-func _show_loadout_screen() -> void:
-	in_loadout = true
-	_update_loadout_cards_visual()
-	_update_loadout_count()
-	_update_loadout_anvil()
-	loadout_screen.visible = true
-
-
-func _update_loadout_anvil() -> void:
-	if loadout_anvil_label != null:
-		loadout_anvil_label.text = "铁砧点数: %d" % meta["anvil_points"]
-
-
-func _hide_loadout_screen() -> void:
-	in_loadout = false
-	loadout_screen.visible = false
+	return selected_loadout.size() + selected_consumables.size() + selected_charms.size() + selected_buffs.size()
 
 
 func _confirm_loadout() -> void:
 	if selected_loadout.size() < LOADOUT_MIN:
 		return
 	_apply_charms()                       # 结算护符被动 + 净化上限
-	_hide_loadout_screen()
+	hud._hide_loadout_screen()
 	_full_reset()
 
 
@@ -855,121 +368,40 @@ func _apply_charms() -> void:
 		if cd != null and cd.effect == "purify":
 			pm += cd.value
 	purify_max_base = pm + charm_purify_bonus
-	_log("护符已装配：伤害+%d / 护盾+%d / 抗扰+%d / 净化+%d" % [charm_power_bonus, charm_room_shield, charm_interf_resist, charm_purify_bonus])
+	hud._log("护符已装配：伤害+%d / 护盾+%d / 抗扰+%d / 净化+%d" % [charm_power_bonus, charm_room_shield, charm_interf_resist, charm_purify_bonus])
 
 
 func _on_reload_loadout_pressed() -> void:
-	_show_loadout_screen()
+	hud._show_loadout_screen()
 
 
 # ---------------------------------------------------------------------------
 # M4 房奖励三选一界面（Roguelike 构筑）
 # ---------------------------------------------------------------------------
-func _build_reward_screen() -> void:
-	reward_screen = Control.new()
-	reward_screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	reward_screen.mouse_filter = Control.MOUSE_FILTER_STOP
-	var bg = ColorRect.new()
-	bg.color = Color(0.05, 0.07, 0.12, 0.98)
-	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	reward_screen.add_child(bg)
-
-	var margin = MarginContainer.new()
-	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	margin.add_theme_constant_override("margin_left", 18)
-	margin.add_theme_constant_override("margin_right", 18)
-	margin.add_theme_constant_override("margin_top", 14)
-	margin.add_theme_constant_override("margin_bottom", 14)
-	reward_screen.add_child(margin)
-
-	var v = VBoxContainer.new()
-	v.add_theme_constant_override("separation", 6)
-	margin.add_child(v)
-	reward_title_label = _label("", 18)
-	v.add_child(reward_title_label)
-	v.add_child(_label("选择一项奖励带入后续房间（Roguelike 构筑，跳过则不取）", 11))
-
-	var scroll = ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	v.add_child(scroll)
-	reward_grid = GridContainer.new()
-	reward_grid.columns = 3
-	reward_grid.add_theme_constant_override("h_separation", 8)
-	reward_grid.add_theme_constant_override("v_separation", 8)
-	scroll.add_child(reward_grid)
-
-	var bot = HBoxContainer.new()
-	v.add_child(bot)
-	var sp = Control.new()
-	sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	bot.add_child(sp)
-	reward_skip_btn = Button.new()
-	reward_skip_btn.text = "跳过 ▶"
-	reward_skip_btn.custom_minimum_size = Vector2(110, 30)
-	reward_skip_btn.connect("pressed", _on_reward_skip_pressed)
-	bot.add_child(reward_skip_btn)
-
-	add_child(reward_screen)
-	reward_screen.visible = false
-
-
-func _show_reward_screen(is_boss: bool) -> void:
-	reward_is_boss = is_boss
-	reward_choices = _roll_rewards()
-	# 清理旧卡片
-	for c in reward_grid.get_children():
-		reward_grid.remove_child(c)
-		c.queue_free()
-	reward_title_label.text = ("★ 通关！选择一项残余物奖励" if is_boss else "胜利！选择一项房奖励")
-	for rw in reward_choices:
-		reward_grid.add_child(_make_reward_card(rw))
-	reward_screen.visible = true
-
-
-func _make_reward_card(rw: Dictionary) -> Button:
-	var btn = Button.new()
-	btn.custom_minimum_size = Vector2(96, 64)
-	btn.text = ""
-	var cc = CenterContainer.new()
-	cc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	cc.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	btn.add_child(cc)
-	var vb = VBoxContainer.new()
-	vb.add_theme_constant_override("separation", 2)
-	cc.add_child(vb)
-	vb.add_child(_label("%s %s" % [rw["icon"], rw["label"]], 13))
-	var dl = _label(rw["desc"], 10)
-	dl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	dl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	vb.add_child(dl)
-	btn.connect("pressed", _on_reward_chosen.bind(rw["id"]))
-	return btn
-
-
 func _on_reward_chosen(id: String) -> void:
-	reward_screen.visible = false
+	hud.reward_screen.visible = false
 	_apply_reward(id)
 	_award_meta(reward_is_boss)    # M5：房间通关发放铁砧点数
 	if reward_is_boss:
 		_full_reset()              # 通关后开新一局
 	else:
 		_start_room(room_index + 1)
-	_refresh_meta()
+	hud._refresh_meta()
 
 
 func _on_reward_skip_pressed() -> void:
-	reward_screen.visible = false
+	hud.reward_screen.visible = false
 	_award_meta(reward_is_boss)    # M5：房间通关发放铁砧点数（即使跳过奖励）
 	if reward_is_boss:
 		_full_reset()
 	else:
 		_start_room(room_index + 1)
-	_refresh_meta()
+	hud._refresh_meta()
 
 
 func _roll_rewards() -> Array:
-	var copy = REWARD_POOL.duplicate(true)
+	# REWARD_POOL 现为 RewardData 资源数组；元素只读不修改，用浅拷贝即可（避免深拷贝复制资源）。
+	var copy = REWARD_POOL.duplicate()
 	var out := []
 	for i in 3:
 		if copy.is_empty():
@@ -985,30 +417,30 @@ func _apply_reward(id: String) -> void:
 		"heal":
 			var h = int(player_hp_max * 0.35)
 			player_hp = min(player_hp_max, player_hp + h)
-			_log("奖励：治疗 +%d HP" % h)
+			hud._log("奖励：治疗 +%d HP" % h)
 		"maxhp":
 			player_hp_max += 20
 			player_hp = player_hp_max
-			_log("奖励：最大 HP +20 并回满")
+			hud._log("奖励：最大 HP +20 并回满")
 		"purify":
 			purify_max_base += 1
-			_log("奖励：净化上限 +1（当前 %d）" % purify_max_base)
+			hud._log("奖励：净化上限 +1（当前 %d）" % purify_max_base)
 		"symbol":
 			var cand := []
 			for p in pool:
-				if p[0] != ReelSymbol.Id.TRASH:
+				if p[0] != TRASH_SYMBOL:
 					cand.append(p[0])
 			if cand.is_empty():
-				cand = [ReelSymbol.Id.SLASH]
-			var sid = cand[randi() % cand.size()]
-			run_symbol_bonus[sid] = run_symbol_bonus.get(sid, 0) + 3
-			_log("奖励：%s 符号权重 +3" % ReelSymbol.get_symbol(sid)["name"])
+				cand = [TRASH_SYMBOL]
+			var sym: SymbolData = cand[randi() % cand.size()]
+			run_symbol_bonus[sym.resource_path] = run_symbol_bonus.get(sym.resource_path, 0) + 3
+			hud._log("奖励：%s 符号权重 +3" % sym.name)
 		"shield":
 			run_shield_next += 15
-			_log("奖励：下一房 +15 护盾")
+			hud._log("奖励：下一房 +15 护盾")
 		"power":
 			run_power_bonus += 1
-			_log("奖励：本局符号伤害 +1（当前 +%d）" % run_power_bonus)
+			hud._log("奖励：本局符号伤害 +1（当前 +%d）" % run_power_bonus)
 
 
 # ---------------------------------------------------------------------------
@@ -1022,7 +454,7 @@ func _load_meta() -> void:
 		for k in defaults.keys():
 			if parsed.has(k):
 				meta[k] = parsed[k]
-	_log("铁砧元进度已载入：点数 %d，武器升级 %d，抗干扰 Lv%d" % \
+	hud._log("铁砧元进度已载入：点数 %d，武器升级 %d，抗干扰 Lv%d" % \
 		[meta["anvil_points"], meta["weapon_upgrades"].size(), meta["interference_resist"]])
 
 
@@ -1041,177 +473,43 @@ func _award_meta(is_boss: bool) -> void:
 	var pts = 8 + (25 if is_boss else 0)
 	meta["anvil_points"] += pts
 	_save_meta()
-	_log("铁砧点数 +%d（共 %d）" % [pts, meta["anvil_points"]])
-
-
-func _build_anvil_screen() -> void:
-	anvil_screen = Control.new()
-	anvil_screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	anvil_screen.mouse_filter = Control.MOUSE_FILTER_STOP
-	var bg = ColorRect.new()
-	bg.color = Color(0.10, 0.08, 0.05, 0.98)
-	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	anvil_screen.add_child(bg)
-
-	var margin = MarginContainer.new()
-	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	margin.add_theme_constant_override("margin_left", 12)
-	margin.add_theme_constant_override("margin_right", 12)
-	margin.add_theme_constant_override("margin_top", 10)
-	margin.add_theme_constant_override("margin_bottom", 10)
-	anvil_screen.add_child(margin)
-
-	var v = VBoxContainer.new()
-	v.add_theme_constant_override("separation", 4)
-	margin.add_child(v)
-	anvil_title_label = _label("🔨 铁砧锻造 · 元进度", 16)
-	v.add_child(anvil_title_label)
-	anvil_points_label = _label("铁砧点数: 0", 11)
-	v.add_child(anvil_points_label)
-	v.add_child(_label("消耗点数永久强化转轮 / 抗干扰（跨局保留）", 9))
-
-	var scroll = ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	v.add_child(scroll)
-	anvil_grid = GridContainer.new()
-	anvil_grid.columns = 3
-	anvil_grid.add_theme_constant_override("h_separation", 6)
-	anvil_grid.add_theme_constant_override("v_separation", 6)
-	scroll.add_child(anvil_grid)
-
-	var bot = HBoxContainer.new()
-	v.add_child(bot)
-	var sp = Control.new()
-	sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	bot.add_child(sp)
-	anvil_back_btn = Button.new()
-	anvil_back_btn.text = "返回整备"
-	anvil_back_btn.custom_minimum_size = Vector2(110, 30)
-	anvil_back_btn.add_theme_font_size_override("font_size", 12)
-	anvil_back_btn.connect("pressed", _on_anvil_back_pressed)
-	bot.add_child(anvil_back_btn)
-
-	add_child(anvil_screen)
-	anvil_screen.visible = false
-
-
-func _show_anvil_screen() -> void:
-	_refresh_anvil()
-	anvil_screen.visible = true
-
-
-func _refresh_anvil() -> void:
-	anvil_points_label.text = "铁砧点数: %d" % meta["anvil_points"]
-	# 清理旧卡片
-	for c in anvil_grid.get_children():
-		anvil_grid.remove_child(c)
-		c.queue_free()
-	# 武器转轮升级
-	for path in WEAPON_POOL:
-		var wd: Resource = load(path)
-		var wname = wd.weapon_name if (wd != null) else path.get_file().get_basename()
-		var lvl = meta["weapon_upgrades"].get(path, 0)
-		var cost = (lvl + 1) * 10
-		var btn = Button.new()
-		btn.custom_minimum_size = Vector2(96, 56)
-		btn.text = ""
-		var cc = CenterContainer.new()
-		cc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		cc.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		btn.add_child(cc)
-		var vb = VBoxContainer.new()
-		vb.add_theme_constant_override("separation", 1)
-		cc.add_child(vb)
-		vb.add_child(_label(wname, 11))
-		vb.add_child(_label("转轮 Lv%d" % lvl, 9))
-		vb.add_child(_label("升级 %d 点" % cost, 9))
-		btn.connect("pressed", _on_anvil_weapon_pressed.bind(path))
-		anvil_grid.add_child(btn)
-	# 抗干扰
-	var rl = meta["interference_resist"]
-	var rcost = (rl + 1) * 15
-	var rbtn = Button.new()
-	rbtn.custom_minimum_size = Vector2(96, 56)
-	rbtn.text = ""
-	var rcc = CenterContainer.new()
-	rcc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	rcc.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	rbtn.add_child(rcc)
-	var rvb = VBoxContainer.new()
-	rvb.add_theme_constant_override("separation", 1)
-	rcc.add_child(rvb)
-	rvb.add_child(_label("锤炼意志", 11))
-	rvb.add_child(_label("抗干扰 Lv%d/5" % rl, 9))
-	if rl >= 5:
-		rvb.add_child(_label("已满级", 9))
-	else:
-		rvb.add_child(_label("升级 %d 点" % rcost, 9))
-	rbtn.connect("pressed", _on_anvil_resist_pressed)
-	anvil_grid.add_child(rbtn)
+	hud._log("铁砧点数 +%d（共 %d）" % [pts, meta["anvil_points"]])
 
 
 func _on_anvil_weapon_pressed(path: String) -> void:
 	var lvl = meta["weapon_upgrades"].get(path, 0)
 	var cost = (lvl + 1) * 10
 	if meta["anvil_points"] < cost:
-		_log("铁砧点数不足（%s 需 %d）" % [path.get_file().get_basename(), cost])
+		hud._log("铁砧点数不足（%s 需 %d）" % [path.get_file().get_basename(), cost])
 		return
 	meta["anvil_points"] -= cost
 	meta["weapon_upgrades"][path] = lvl + 1
 	_save_meta()
-	_refresh_anvil()
-	_log("铁砧：%s 转轮升级 Lv%d" % [path.get_file().get_basename(), lvl + 1])
+	hud._refresh_anvil()
+	hud._log("铁砧：%s 转轮升级 Lv%d" % [path.get_file().get_basename(), lvl + 1])
 
 
 func _on_anvil_resist_pressed() -> void:
 	var rl = meta["interference_resist"]
 	if rl >= 5:
-		_log("抗干扰已满级")
+		hud._log("抗干扰已满级")
 		return
 	var cost = (rl + 1) * 15
 	if meta["anvil_points"] < cost:
-		_log("铁砧点数不足（抗干扰需 %d）" % cost)
+		hud._log("铁砧点数不足（抗干扰需 %d）" % cost)
 		return
 	meta["anvil_points"] -= cost
 	meta["interference_resist"] = rl + 1
 	_save_meta()
-	_refresh_anvil()
-	_log("铁砧：抗干扰 Lv%d（敌人干扰概率降低）" % (rl + 1))
+	hud._refresh_anvil()
+	hud._log("铁砧：抗干扰 Lv%d（敌人干扰概率降低）" % (rl + 1))
 
 
 func _on_anvil_back_pressed() -> void:
-	anvil_screen.visible = false
-	_update_loadout_anvil()
+	hud.anvil_screen.visible = false
+	hud._update_loadout_anvil()
 
 
-func _build_overlay() -> void:
-	overlay = Control.new()
-	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	var ov_bg = ColorRect.new()
-	ov_bg.color = Color(0, 0, 0, 0.72)
-	ov_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	overlay.add_child(ov_bg)
-	var ov_c = CenterContainer.new()
-	ov_c.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	overlay.add_child(ov_c)
-	var ov_v = VBoxContainer.new()
-	ov_v.add_theme_constant_override("separation", 18)
-	ov_c.add_child(ov_v)
-	overlay_label = _label("", 30)
-	ov_v.add_child(overlay_label)
-	overlay_button = Button.new()
-	overlay_button.custom_minimum_size = Vector2(220, 50)
-	overlay_button.connect("pressed", _on_overlay_button_pressed)
-	ov_v.add_child(overlay_button)
-	add_child(overlay)
-	overlay.visible = false
-
-
-# ---------------------------------------------------------------------------
-# 房间 / 流程
-# ---------------------------------------------------------------------------
 func _full_reset() -> void:
 	player_hp = player_hp_max
 	# M4：开新一局，重置本局加成层
@@ -1224,16 +522,16 @@ func _full_reset() -> void:
 
 func _start_room(idx: int) -> void:
 	room_index = idx
-	var r: Dictionary = ROOMS[idx]
-	enemy_name = r["name"]
-	enemy_hp_max = r["hp"]
+	var r: RoomData = ROOMS[idx]
+	enemy_name = r.name
+	enemy_hp_max = r.hp
 	enemy_hp = enemy_hp_max
-	enemy_atk = r["atk"]
-	enemy_jam = r["jam"]
-	enemy_lock = r["lock"]
-	enemy_chaos = r["chaos"]
-	enemy_heavy = r["heavy"]
-	enemy_element = r.get("element", "none")   # 单向克制：敌人属性（仅供玩家符号克制判定）
+	enemy_atk = r.atk
+	enemy_jam = r.jam
+	enemy_lock = r.lock
+	enemy_chaos = r.chaos
+	enemy_heavy = r.heavy
+	enemy_element = r.element if r.element != "" else "none"   # 单向克制：敌人属性（仅供玩家符号克制判定）
 	# M5+M6 抗干扰：铁砧 + 抗扰护符 共同降低敌人干扰概率（每级 -12%，最低保留 25%）
 	var total_resist = meta["interference_resist"] + charm_interf_resist
 	if total_resist > 0:
@@ -1242,6 +540,7 @@ func _start_room(idx: int) -> void:
 		enemy_lock *= rf
 		enemy_chaos *= rf
 	enemy_status = {}
+	player_buffs = {}                     # Phase C：主动增益不跨房保留
 	player_shield = 0
 	player_shield += run_shield_next      # M4：上一房奖励的结界在本房开局生效
 	player_shield += charm_room_shield    # M6：守望护符每房开局护盾
@@ -1256,16 +555,17 @@ func _start_room(idx: int) -> void:
 		var cd: Resource = load(path)
 		if cd != null:
 			consumable_charges[cd.item_id] = cd.charges
+	game_state = "playing"                # 必须在重建消耗品按钮前置为 playing，否则房间过渡瞬间按钮被误判为禁用
 	_rebuild_consumable_panel()
-	game_state = "playing"
 	turn_count = 1
 	enemy_intent = {}
-	_hide_overlay()
+	hud._hide_overlay()
 	_reset_grid(true)
 	_begin_player_turn()
-	_refresh_meta()
-	_refresh_legend()
-	_log("▶ 进入房间 %d/%d：%s（HP %d，攻击 %d）" % [idx + 1, ROOMS.size(), enemy_name, enemy_hp_max, enemy_atk])
+	_refresh_consumable_panel()           # 双重保险：同步按钮禁用状态与当前战斗状态
+	hud._refresh_meta()
+	hud._refresh_legend()
+	hud._log("▶ 进入房间 %d/%d：%s（HP %d，攻击 %d）" % [idx + 1, ROOMS.size(), enemy_name, enemy_hp_max, enemy_atk])
 
 
 func _begin_player_turn() -> void:
@@ -1295,39 +595,41 @@ func _on_spin_pressed() -> void:
 	# 阶段 1+2：结算（先防御/增益/状态，后攻击；含飘字）
 	await _evaluate()
 	if enemy_hp <= 0:
-		_log("★ 击败 %s！" % enemy_name)
+		hud._log("★ 击败 %s！" % enemy_name)
 		game_state = "won"
 		var is_boss = (room_index + 1 >= ROOMS.size())
 		var title = ("★ 通关！\n%s 被击败" % enemy_name) if is_boss else ("★ 胜利！\n%s 被击败" % enemy_name)
-		_show_overlay(title, "领取奖励 ▶")
-		_refresh_meta()
+		hud._show_overlay(title, "领取奖励 ▶")
+		hud._refresh_meta()
 		_busy = false
 		return
 
-	# 阶段 3：敌人行动
+	# 阶段 3：敌人行动（先让玩家看清敌人刚掉的血）
+	await get_tree().create_timer(0.35).timeout
 	_enemy_turn()
-	_refresh_meta()
+	hud._refresh_meta()
+	await get_tree().create_timer(0.55).timeout
 	if enemy_hp <= 0:
 		# 敌人可能在自身回合被状态 DoT 结算致死
-		_log("★ 击败 %s！（状态结算）" % enemy_name)
+		hud._log("★ 击败 %s！（状态结算）" % enemy_name)
 		game_state = "won"
 		var is_boss = (room_index + 1 >= ROOMS.size())
 		var title = ("★ 通关！\n%s 被击败" % enemy_name) if is_boss else ("★ 胜利！\n%s 被击败" % enemy_name)
-		_show_overlay(title, "领取奖励 ▶")
+		hud._show_overlay(title, "领取奖励 ▶")
 		_busy = false
 		return
 	if player_hp <= 0:
-		_log("✖ 你被 %s 击倒。" % enemy_name)
+		hud._log("✖ 你被 %s 击倒。" % enemy_name)
 		game_state = "lost"
-		_show_overlay("✖ 失败\n你倒在了 %s 面前" % enemy_name, "重试本房 ↺")
-		_refresh_meta()
+		hud._show_overlay("✖ 失败\n你倒在了 %s 面前" % enemy_name, "重试本房 ↺")
+		hud._refresh_meta()
 		_busy = false
 		return
 
-	await get_tree().create_timer(0.20).timeout
+	await get_tree().create_timer(0.30).timeout
 	# 阶段 4：预告下一回合意图
 	_begin_player_turn()
-	_refresh_meta()
+	hud._refresh_meta()
 	_busy = false
 
 
@@ -1338,15 +640,15 @@ func _do_spin_core() -> void:
 		_apply_chaos_pool()
 	for reel in REELS:
 		for row in ROWS:
-			var sym: int
+			var sym: SymbolData
 			if reel == pending_jam_reel:
-				sym = ReelSymbol.Id.TRASH
+				sym = TRASH_SYMBOL
 			elif reel == pending_lock_reel:
 				sym = grid[reel][row]
 			else:
 				sym = _weighted_random_sym()
 			grid[reel][row] = sym
-			_refresh_cell(reel, row)
+			hud._refresh_cell(reel, row)
 	pending_jam_reel = -1
 	pending_lock_reel = -1
 	pending_chaos = false
@@ -1362,12 +664,12 @@ func _free_spin() -> void:
 	_do_spin_core()
 	await _evaluate()
 	if enemy_hp <= 0:
-		_log("★ 重转触发击败 %s！" % enemy_name)
+		hud._log("★ 重转触发击败 %s！" % enemy_name)
 		game_state = "won"
 		var is_boss = (room_index + 1 >= ROOMS.size())
 		var title = ("★ 通关！\n%s 被击败" % enemy_name) if is_boss else ("★ 胜利！\n%s 被击败" % enemy_name)
-		_show_overlay(title, "领取奖励 ▶")
-	_refresh_meta()
+		hud._show_overlay(title, "领取奖励 ▶")
+	hud._refresh_meta()
 	_busy = false
 
 
@@ -1378,15 +680,15 @@ func _enemy_turn() -> void:
 			_enemy_deal_damage(it.get("value", enemy_atk))
 		"jam":
 			pending_jam_reel = randi() % REELS
-			_log("敌人注废 → 下一轮第 %d 列被废铁占据" % (pending_jam_reel + 1))
+			hud._log("敌人注废 → 下一轮第 %d 列被废铁占据" % (pending_jam_reel + 1))
 		"lock":
 			pending_lock_reel = randi() % REELS
-			_log("敌人锁轮 → 下一轮第 %d 列固定不变" % (pending_lock_reel + 1))
+			hud._log("敌人锁轮 → 下一轮第 %d 列固定不变" % (pending_lock_reel + 1))
 		"chaos":
 			pending_chaos = true
-			_log("敌人乱权 → 下一轮权重被打乱（优势符号被削弱）")
+			hud._log("敌人乱权 → 下一轮权重被打乱（优势符号被削弱）")
 		"none":
-			_log("敌人意图落空（已被净化）")
+			hud._log("敌人意图落空（已被净化）")
 	enemy_intent = {}
 	_tick_status()
 
@@ -1396,7 +698,9 @@ func _enemy_deal_damage(raw: int) -> void:
 	player_shield -= blocked
 	var dealt = raw - blocked
 	player_hp -= dealt
-	_log("敌人攻击 %d（盾挡 %d，受 %d）" % [raw, blocked, dealt])
+	if dealt > 0:
+		hud._popup("-%d" % dealt, Palette.POP_DAMAGE, hud._player_panel_anchor())
+	hud._log("敌人攻击 %d（盾挡 %d，受 %d）" % [raw, blocked, dealt])
 
 
 func _tick_status() -> void:
@@ -1410,7 +714,7 @@ func _tick_status() -> void:
 			enemy_status.erase(st)
 	if dot > 0:
 		enemy_hp -= dot
-		_log("状态结算 %d 伤害（灼烧/毒·含克制）" % dot)
+		hud._log("状态结算 %d 伤害（灼烧/毒·含克制）" % dot)
 
 
 func _on_purify_pressed() -> void:
@@ -1419,19 +723,19 @@ func _on_purify_pressed() -> void:
 	if game_state != "playing":
 		return
 	if enemy_intent.is_empty():
-		_log("当前敌人无意图，无需净化")
+		hud._log("当前敌人无意图，无需净化")
 		return
 	if enemy_intent.get("type") not in ["jam", "lock", "chaos"]:
-		_log("当前意图不可净化（攻击/重击）")
+		hud._log("当前意图不可净化（攻击/重击）")
 		return
 	if purify_charges <= 0:
-		_log("净化次数已用尽（整备携带的净化药剂不足）")
+		hud._log("净化次数已用尽（整备携带的净化药剂不足）")
 		return
 	purify_charges -= 1
 	var t = enemy_intent.get("type")
 	enemy_intent = {"type": "none", "value": 0}
-	_log("净化成功：抵消了敌人的%s" % _intent_name(t))
-	_refresh_meta()
+	hud._log("净化成功：抵消了敌人的%s" % _intent_name(t))
+	hud._refresh_meta()
 
 
 func _intent_name(t: String) -> String:
@@ -1459,9 +763,9 @@ func _rebuild_consumable_panel() -> void:
 		var cd: Resource = load(path)
 		if cd == null:
 			continue
-		var btn = Button.new()
+		var btn = UI_BUTTON.instantiate()
 		btn.custom_minimum_size = Vector2(86, 30)
-		btn.add_theme_font_size_override("font_size", 10)
+		btn.add_theme_font_size_override("font_size", TypeScale.TINY)
 		btn.connect("pressed", _on_consumable_pressed.bind(cd.item_id))
 		consumable_panel.add_child(btn)
 		consumable_buttons.append({"id": cd.item_id, "data": cd, "btn": btn})
@@ -1479,7 +783,7 @@ func _on_consumable_pressed(id: String) -> void:
 	if in_loadout or game_state != "playing" or _busy:
 		return
 	if consumable_charges.get(id, 0) <= 0:
-		_log("「%s」已用尽" % id)
+		hud._log("「%s」已用尽" % id)
 		return
 	var data: Resource = null
 	for m in consumable_buttons:
@@ -1493,25 +797,25 @@ func _on_consumable_pressed(id: String) -> void:
 		"purify":
 			if enemy_intent.get("type") in ["jam", "lock", "chaos"]:
 				enemy_intent = {"type": "none", "value": 0}
-				_log("净化药剂：抵消了敌人的干扰意图")
+				hud._log("净化药剂：抵消了敌人的干扰意图")
 			purify_charges += data.value
-			_log("净化药剂：恢复 %d 点净化次数（现 %d）" % [data.value, purify_charges])
+			hud._log("净化药剂：恢复 %d 点净化次数（现 %d）" % [data.value, purify_charges])
 		"heal":
 			player_hp = min(player_hp_max, player_hp + data.value)
-			_log("治疗药剂：回复 %d HP（现 %d）" % [data.value, player_hp])
+			hud._log("治疗药剂：回复 %d HP（现 %d）" % [data.value, player_hp])
 		"assault":
 			assault_next_spin = data.value
-			_log("强袭药剂：下一次转轮伤害 ×%d" % data.value)
+			hud._log("强袭药剂：下一次转轮伤害 ×%d" % data.value)
 		"reroll":
-			_log("重转卷轴：免费重转！")
+			hud._log("重转卷轴：免费重转！")
 			await _free_spin()
 	_refresh_consumable_panel()
-	_refresh_meta()
+	hud._refresh_meta()
 
 
 func _on_overlay_button_pressed() -> void:
 	match game_state:
-		"won":    _show_reward_screen(room_index + 1 >= ROOMS.size())   # M4：胜利→房奖励三选一
+		"won":    hud._show_reward_screen(room_index + 1 >= ROOMS.size())   # M4：胜利→房奖励三选一
 		"lost":   _retry_room()
 		"cleared": _full_reset()
 
@@ -1525,23 +829,22 @@ func _retry_room() -> void:
 # 结算（方案 A：单符号必结算 + 匹配倍率）
 # ---------------------------------------------------------------------------
 func _reset_grid(fill_random: bool) -> void:
-	_clear_badges()
+	hud._clear_badges()
 	for reel in REELS:
 		for row in ROWS:
-			grid[reel][row] = ReelSymbol.Id.TRASH
+			grid[reel][row] = TRASH_SYMBOL
 			if fill_random:
 				grid[reel][row] = _weighted_random_sym()
-			_refresh_cell(reel, row)
+			hud._refresh_cell(reel, row)
 
 
-func _contribute(sym_id: int, mult: int, acc: Dictionary) -> void:
-	var d = ReelSymbol.get_symbol(sym_id)
-	var flat = d["base"] + run_power_bonus + charm_power_bonus   # M6：锋锐护符加成
-	match d["kind"]:
+func _contribute(sym: SymbolData, mult: int, acc: Dictionary) -> void:
+	var flat = sym.base + run_power_bonus + charm_power_bonus + _buff_power()   # M6 锋锐护符 + Phase C 狂怒增益
+	match sym.kind:
 		"damage":  acc["dmg"]     += flat * mult
-		"shield":  acc["shield"]  += d["base"] * mult
-		"heal":    acc["heal"]    += d["base"] * mult
-		"status":  acc["status_stacks"][d["status"]] = acc["status_stacks"].get(d["status"], 0) + mult
+		"shield":  acc["shield"]  += sym.base * mult
+		"heal":    acc["heal"]    += sym.base * mult
+		"status":  acc["status_stacks"][sym.status_type] = acc["status_stacks"].get(sym.status_type, 0) + mult
 		"special":
 			# special 降级：1 同即生效（base×c），3 同额外追加一次 base
 			var v = flat * mult
@@ -1553,7 +856,7 @@ func _contribute(sym_id: int, mult: int, acc: Dictionary) -> void:
 
 # 结算：分两阶段（先防御/增益/状态，后攻击），接单向属性克制与强袭药剂。
 func _evaluate() -> void:
-	_clear_badges()
+	hud._clear_badges()
 	var acc = { "dmg": 0, "shield": 0, "heal": 0, "status_stacks": {}, "special": 0 }
 
 	var row_syms: Array = []
@@ -1562,147 +865,149 @@ func _evaluate() -> void:
 	var counts = {}
 	for s in row_syms:
 		counts[s] = counts.get(s, 0) + 1
+	# Phase C：先结算 buff 符号（本回合即生效，命中当回合就吃到增益）
 	for s in counts:
-		if s == ReelSymbol.Id.TRASH:
+		if s == TRASH_SYMBOL or s.kind != "buff":
+			continue
+		_grant_buff(s, counts[s])
+	# 再结算常规符号（此时 _contribute 读到的已是含新增益的加成）
+	for s in counts:
+		if s == TRASH_SYMBOL or s.kind == "buff":
 			continue
 		var c = counts[s]
-		var d = ReelSymbol.get_symbol(s)
-		if d["kind"] == "special" and c < 1:
+		if s.kind == "special" and c < 1:
 			continue
 		_contribute(s, c, acc)
 
 	# 匹配角标（×N，N>=2）
-	_update_match_badges(counts)
+	hud._update_match_badges(counts)
 
 	# —— 阶段 1：防御 / 增益 / 状态先落地 ——
+	# Phase C：铁壁(shield)/回春(regen) 按回合生效，并入本回合护盾与治疗
+	acc["shield"] += int(_buff_shield())
+	acc["heal"] += int(_buff_regen())
 	for st in acc["status_stacks"].keys():
 		enemy_status[st] = enemy_status.get(st, 0) + acc["status_stacks"][st]
 	if acc["shield"] > 0:
 		player_shield += acc["shield"]
-		_popup("🛡+%d" % acc["shield"], Color(0.55, 0.70, 0.95), _player_panel_anchor())
-		_log("获得 %d 护盾" % acc["shield"])
+		hud._popup("🛡+%d" % acc["shield"], Palette.POP_SHIELD, hud._player_panel_anchor())
+		hud._log("获得 %d 护盾" % acc["shield"])
 	if acc["heal"] > 0:
 		player_hp = min(player_hp_max, player_hp + acc["heal"])
-		_popup("❤+%d" % acc["heal"], Color(0.50, 0.95, 0.60), _player_panel_anchor())
-		_log("回复 %d HP" % acc["heal"])
+		hud._popup("❤+%d" % acc["heal"], Palette.POP_HEAL, hud._player_panel_anchor())
+		hud._log("回复 %d HP" % acc["heal"])
 	if not acc["status_stacks"].is_empty():
-		_log("敌人获得状态: " + _status_summary(acc["status_stacks"]))
-		_popup(_status_summary(acc["status_stacks"]), Color(1.00, 0.60, 0.30), _enemy_panel_anchor())
+		hud._log("敌人获得状态: " + _status_summary(acc["status_stacks"]))
+		hud._popup(_status_summary(acc["status_stacks"]), Palette.POP_STATUS, hud._enemy_panel_anchor())
 
-	_refresh_meta()
-	await get_tree().create_timer(0.30).timeout
+	hud._refresh_meta()
+	await get_tree().create_timer(0.45).timeout
 
 	# —— 阶段 2：攻击结算（单向克制 + 强袭药剂）——
 	var sp_mult = ElementCounter.multiplier(_special_element, enemy_element)
-	var total = (acc["dmg"] + acc["special"] * sp_mult) * assault_next_spin
+	# Phase C：迅捷(damage_mult) 对本回合总伤害做乘算
+	var buff_mult = _buff_damage_mult()
+	var total = int((acc["dmg"] + acc["special"] * sp_mult) * assault_next_spin * buff_mult)
 	assault_next_spin = 1
 	if total > 0:
 		enemy_hp -= total
 		var elem_tag := ""
 		if acc["special"] > 0 and sp_mult != 1.0:
 			elem_tag = ElementCounter.tag(_special_element, enemy_element)
-		_popup("-%d%s" % [int(total), elem_tag], Color(1.00, 0.50, 0.40), _enemy_panel_anchor())
-		_log("连线造成 %d 伤害%s" % [int(total), elem_tag])
+		if buff_mult != 1.0:
+			elem_tag += "⚡"
+		hud._popup("-%d%s" % [total, elem_tag], Palette.POP_DAMAGE, hud._enemy_panel_anchor())
+		hud._log("连线造成 %d 伤害%s" % [total, elem_tag])
+	await get_tree().create_timer(0.55).timeout
+	# Phase C：回合末递减增益剩余回合
+	_tick_buffs()
+
+
+# ---------------------------------------------------------------------------
+# Phase C 主动增益：符号自描述（sym.buff_effect / buff_value / buff_turns），零查表
+# player_buffs: SymbolData -> 剩余回合数
+# ---------------------------------------------------------------------------
+func _grant_buff(sym: SymbolData, mult: int) -> void:
+	var add = max(1, sym.buff_turns) * mult
+	player_buffs[sym] = int(player_buffs.get(sym, 0)) + add
+	hud._popup("%s+%d" % [sym.label, add], Palette.POP_BUFF, hud._player_panel_anchor())
+	hud._log("增益：%s %s（剩余 %d 回合）" % [sym.label, sym.name, player_buffs[sym]])
+
+
+# 按效果类型聚合当前生效的增益值（加法型）
+func _buff_sum(effect: String) -> float:
+	var v = 0.0
+	for sym in player_buffs.keys():
+		if sym.buff_effect == effect:
+			v += sym.buff_value
+	return v
+
+
+func _buff_power() -> float:
+	return _buff_sum("power")
+
+
+func _buff_shield() -> float:
+	return _buff_sum("shield")
+
+
+func _buff_regen() -> float:
+	return _buff_sum("regen")
+
+
+# 乘法型增益（多个同时生效则连乘）
+func _buff_damage_mult() -> float:
+	var m = 1.0
+	for sym in player_buffs.keys():
+		if sym.buff_effect == "damage_mult":
+			m *= sym.buff_value
+	return m
+
+
+func _tick_buffs() -> void:
+	var expired: Array = []
+	for sym in player_buffs.keys():
+		player_buffs[sym] = int(player_buffs[sym]) - 1
+		if player_buffs[sym] <= 0:
+			expired.append(sym)
+	for sym in expired:
+		player_buffs.erase(sym)
+		hud._log("增益结束：%s %s" % [sym.label, sym.name])
+
+
+func _buff_summary() -> String:
+	if player_buffs.is_empty():
+		return "无"
+	var parts: Array = []
+	for sym in player_buffs.keys():
+		parts.append("%s%d" % [sym.label, int(player_buffs[sym])])
+	return " ".join(parts)
+
+
+func _buff_effect_name(effect: String) -> String:
+	match effect:
+		"power":       return "伤害符号加成"
+		"shield":      return "每回合护盾"
+		"regen":       return "每回合回血"
+		"damage_mult": return "总伤害倍率"
+		_:             return effect
 
 
 func _status_base(type_str: String) -> float:
-	for id in ReelSymbol.CATALOG.keys():
-		var d = ReelSymbol.CATALOG[id]
-		if d.has("status") and d["status"] == type_str:
-			return d["base"]
+	for p in pool:
+		var d: SymbolData = p[0]
+		if d.kind == "status" and d.status_type == type_str:
+			return d.base
 	return 0.0
 
 
 # 状态类型对应的属性元素（用于 DoT 单向克制）
 func _status_element(st: String) -> String:
-	for id in ReelSymbol.CATALOG.keys():
-		var d = ReelSymbol.CATALOG[id]
-		if d.has("status") and d["status"] == st:
-			return d.get("element", "none")
-	return "none"
-
-
-func _clear_badges() -> void:
-	for reel in REELS:
-		for row in ROWS:
-			if cell_badges.size() > reel and cell_badges[reel].size() > row:
-				cell_badges[reel][row].text = ""
-
-
-func _update_match_badges(counts: Dictionary) -> void:
-	_clear_badges()
-	for s in counts:
-		if s == ReelSymbol.Id.TRASH:
-			continue
-		var c = counts[s]
-		if c < 2:
-			continue
-		for reel in REELS:
-			for row in ROWS:
-				if grid[reel][row] == s:
-					cell_badges[reel][row].text = "×%d" % c
-
-
-# 符号图例：每符号名称/类型/元素 + 敌人属性
-func _refresh_legend() -> void:
-	if legend_container == null:
-		return
-	for c in legend_container.get_children():
-		legend_container.remove_child(c)
-		c.queue_free()
-	var et = _label("敌人属性：%s" % ElementCounter.label(enemy_element), 11)
-	et.add_theme_color_override("font_color", ElementCounter.color(enemy_element))
-	et.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	legend_container.add_child(et)
-	var seen := {}
 	for p in pool:
-		var sid = p[0]
-		if seen.has(sid):
-			continue
-		seen[sid] = true
-		var d = ReelSymbol.get_symbol(sid)
-		var elem = d.get("element", "none")
-		var kindname := ""
-		match d["kind"]:
-			"damage": kindname = "伤害"
-			"shield": kindname = "护盾"
-			"heal":   kindname = "治疗"
-			"status": kindname = "状态"
-			"special":kindname = "特殊"
-			_: kindname = d["kind"]
-		var t = "%s %s · %s%s" % [d["label"], d["name"], kindname, ("" if elem == "none" else " · " + ElementCounter.label(elem))]
-		var l = _label(t, 10)
-		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-		l.add_theme_color_override("font_color", ElementCounter.color(elem))
-		legend_container.add_child(l)
-
-
-# 飘字：在 anchor 面板顶部中央弹出并上浮淡出
-func _popup(text: String, color: Color, anchor: Control) -> void:
-	if anchor == null:
-		return
-	var lbl = Label.new()
-	lbl.text = text
-	lbl.add_theme_font_size_override("font_size", 18)
-	lbl.add_theme_color_override("font_color", color)
-	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var gp = anchor.get_global_rect()
-	var self_rect = get_global_rect()
-	lbl.position = Vector2(gp.position.x - self_rect.position.x + gp.size.x * 0.5 - 24, gp.position.y - self_rect.position.y + 6)
-	add_child(lbl)
-	var tw = create_tween()
-	tw.tween_property(lbl, "position:y", lbl.position.y - 38, 0.8)
-	tw.parallel().tween_property(lbl, "modulate:a", 0.0, 0.8)
-	await tw.finished
-	lbl.queue_free()
-
-
-func _player_panel_anchor() -> Control:
-	return player_panel
-
-
-func _enemy_panel_anchor() -> Control:
-	return enemy_panel
+		var d: SymbolData = p[0]
+		if d.kind == "status" and d.status_type == st:
+			return d.element
+	return "none"
 
 
 func _status_summary(stacks: Dictionary) -> String:
@@ -1715,77 +1020,6 @@ func _status_summary(stacks: Dictionary) -> String:
 # ---------------------------------------------------------------------------
 # 表现刷新
 # ---------------------------------------------------------------------------
-func _refresh_cell(reel: int, row: int) -> void:
-	var b: Button = cells[reel][row]
-	var s: int = grid[reel][row]
-	var d = ReelSymbol.get_symbol(s)
-	b.text = d["label"]
-	b.add_theme_color_override("font_color", d["color"])
-	var sb = StyleBoxFlat.new()
-	sb.bg_color = Color(0.18, 0.18, 0.24, 1)
-	b.add_theme_stylebox_override("normal", sb)
-
-
-func _refresh_meta() -> void:
-	loadout_label.text = "已装备: " + ("/".join(loadout_names) if not loadout_names.is_empty() else "—")
-	room_label.text = "房间: %d/%d" % [room_index + 1, ROOMS.size()]
-	turn_label.text = "回合: %d" % turn_count
-	player_hp_label.text = "HP %d/%d" % [player_hp, player_hp_max]
-	player_shield_label.text = "护盾 %d" % player_shield
-	enemy_name_label.text = enemy_name
-	enemy_hp_label.text = "HP %d/%d" % [max(enemy_hp, 0), enemy_hp_max]
-	enemy_status_label.text = "状态: " + ("无" if enemy_status.is_empty() else _status_summary(enemy_status))
-	purify_label.text = "%d/%d" % [purify_charges, purify_max_base]
-	# M4+M6 本局加成概览
-	var parts := []
-	if run_power_bonus + charm_power_bonus > 0:
-		parts.append("伤害+%d" % (run_power_bonus + charm_power_bonus))
-	if purify_max_base > 0:
-		parts.append("净化上限%d" % purify_max_base)
-	if charm_room_shield > 0:
-		parts.append("护盾+%d" % charm_room_shield)
-	if charm_interf_resist > 0:
-		parts.append("抗扰+%d" % charm_interf_resist)
-	if not run_symbol_bonus.is_empty():
-		var sp := []
-		for sid in run_symbol_bonus.keys():
-			sp.append("%s+%d" % [ReelSymbol.get_symbol(sid)["name"], run_symbol_bonus[sid]])
-		parts.append("符号:" + "/".join(sp))
-	if run_shield_next > 0:
-		parts.append("下房盾+%d" % run_shield_next)
-	run_label.text = "本局加成: " + ("无" if parts.is_empty() else " / ".join(parts))
-	if enemy_intent.is_empty():
-		enemy_intent_label.text = "意图: —"
-	else:
-		var t = enemy_intent["type"]
-		match t:
-			"attack": enemy_intent_label.text = "意图: ⚔ 攻击 %d" % enemy_intent["value"]
-			"heavy":  enemy_intent_label.text = "意图: 💥 重击 %d" % enemy_intent["value"]
-			"jam":    enemy_intent_label.text = "意图: ☣ 注废（可净化）"
-			"lock":   enemy_intent_label.text = "意图: 🔒 锁轮（可净化）"
-			"chaos":  enemy_intent_label.text = "意图: 🌀 乱权（可净化）"
-			"none":   enemy_intent_label.text = "意图: ✔ 已净化(无)"
-			_:        enemy_intent_label.text = "意图: —"
-
-
-func _show_overlay(title: String, btn_text: String) -> void:
-	overlay_label.text = title
-	overlay_button.text = btn_text
-	overlay.visible = true
-
-
-func _hide_overlay() -> void:
-	overlay.visible = false
-
-
-func _log(msg: String) -> void:
-	logs.push_front(msg)
-	if logs.size() > 10:
-		logs.pop_back()
-	if log_label != null:
-		log_label.text = "\n".join(logs)
-
-
 func _input(event) -> void:
 	if in_loadout:
 		return

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="SymbolData" load_steps=2 format=3]
+
+[ext_resource type="Script" uid="uid://dlg6m5ycp5oc2" path="res://scripts/battle/symbol_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+label = "❄️"
+name = "霜"
+kind = "status"
+base = 3.0
+element = "ice"
+status_type = "frost"
+color = Color(0.50, 0.80, 1.0, 1)

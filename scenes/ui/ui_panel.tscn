@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[node name="Panel" type="PanelContainer"]
+
+[node name="VBox" type="VBoxContainer" parent="."]
+separation = 4

@@ -34,7 +34,6 @@ enum WeaponType { MELEE, RANGED }
 @export var bullet_speed: float = 600.0
 @export var max_ammo: int = 0
 @export var ammo_per_shot: int = 1
-@export var bullet_data: BulletData
 
 # -- 近战专属 --
 @export var cleave_angle: float = 90.0
@@ -43,17 +42,20 @@ enum WeaponType { MELEE, RANGED }
 # -- 碰撞体配置 --
 # 碰撞体形状在武器 .tscn 的 HitboxArea 节点中配置
 
-# -- 老虎机战斗符号池（M1 接入） --
-# 该武器作为"转轮"时，其符号及权重。key = ReelSymbol.Id 整数，value = 权重(float)。
-# 例：{ 0: 6.0, 5: 3.0 } 表示斩(SLASH)权重 6、格挡(BLOCK)权重 3。
-@export var reel_symbols: Dictionary = {}
-# 该武器的专属特殊符号（ReelSymbol.Id）。仅作签名记录，M3 接入武器 special 效果时再使用。-1 表示无。
-@export var special_symbol: int = -1
-# 该武器特殊符号的属性元素（fire/ice/poison/light/dark/none）。
+# -- 老虎机战斗符号池（资源化，零注册表） --
+# 该武器作为"转轮"时持有的符号与各自权重。每个元素直接引用 SymbolData 资源，
+# 无 id 查表、无全局 CATALOG。加符=新建 SymbolData .tres，不改代码。
+@export var reel: Array[SymbolWeight] = []
+# 该武器特殊符号（kind=="special"）的属性元素（fire/ice/poison/light/dark/none）。
 # 用于单向属性克制：玩家特殊符号元素 → 敌人元素。普通伤害符号恒为 none（中性）。
 @export var reel_element: String = "none"
 
 
+# ⚠️ 死代码 / 预留接口（Phase D 死代码治理，与 equipment/enums.gd、stat_modifier.gd 同族）：
+# 以下 Archetype/WeaponType 枚举与 get_implicit_modifiers/_mod 是「原实时武器 · 词缀管线」的残余，
+# 【老虎机对决流程零调用】—— duel_controller 只读取 reel / reel_element / weapon_name，
+# 从不会调用 get_implicit_modifiers，也不依赖 archetype/weapon_type。保留为 Phase F 词缀系统预留，
+# 切勿误认为活跃逻辑。
 ## 返回 archetype 对应的隐式修正列表。
 ## 复用 StatModifier 对象，与装备词缀管线一致。
 static func get_implicit_modifiers(archetype: Archetype) -> Array[StatModifier]:

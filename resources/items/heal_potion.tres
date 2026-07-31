@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+category = "active"
+item_id = "heal_potion"
+item_name = "治疗药剂"
+description = "立即恢复 30 点生命值。"
+icon = "❤️"
+effect = "heal"
+value = 30
+charges = 1
