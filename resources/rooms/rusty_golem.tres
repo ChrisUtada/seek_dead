@@ -11,4 +11,4 @@ jam = 0.2
 lock = 0.15
 chaos = 0.15
 heavy = 0.2
-element = "none"
+element = "ice"

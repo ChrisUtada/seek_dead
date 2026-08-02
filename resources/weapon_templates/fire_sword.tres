@@ -9,7 +9,7 @@
 [sub_resource type="Resource" id="sw0"]
 script = ExtResource("sw")
 symbol = ExtResource("s0")
-weight = 5.0
+weight = 7.0
 
 [sub_resource type="Resource" id="sw1"]
 script = ExtResource("sw")

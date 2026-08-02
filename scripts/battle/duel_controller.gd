@@ -119,6 +119,8 @@ var selected_consumables: Array = []      # 玩家勾选的消耗品路径
 var selected_charms: Array = []           # 玩家勾选的护符路径
 var selected_buffs: Array = []            # 玩家勾选的主动增益路径（Phase C）
 
+const STATUS_NAMES := {"burn": "燃", "frost": "霜", "poison": "毒"}
+
 # Phase C 主动增益运行时：SymbolData -> 剩余回合数（本房内有效，进房清空）
 var player_buffs: Dictionary = {}
 
@@ -404,7 +406,10 @@ func _apply_charms() -> void:
 		if cd != null and cd.effect == "purify":
 			pm += cd.value
 	purify_max_base = pm + charm_purify_bonus
-	hud._log("护符已装配：伤害+%d / 护盾+%d / 抗扰+%d / 净化+%d" % [charm_power_bonus, charm_room_shield, charm_interf_resist, charm_purify_bonus])
+	var charm_log = "护符已装配：伤害+%d / 护盾+%d / 抗扰+%d / 净化+%d" % [charm_power_bonus, charm_room_shield, charm_interf_resist, charm_purify_bonus]
+	if charm_damage_mult != 1.0:
+		charm_log += " / 伤害×%s" % ElementCounter.fmt_mult(charm_damage_mult)
+	hud._log(charm_log)
 
 
 func _on_reload_loadout_pressed() -> void:
@@ -883,13 +888,19 @@ func _enemy_turn() -> void:
 
 
 func _enemy_deal_damage(raw: int) -> void:
-	var blocked = min(player_shield, raw)
+	# 敌人 debuff 减益（元素驱动）：frost/poison = 敌人减攻。本函数是对敌人伤害的唯一闸口，
+	# 且 _enemy_turn 在玩家结算之后，故当回合挂的 debuff 当回合生效。
+	var atk_down = 1.0 - min(0.5, enemy_status.get("frost", 0) * 0.2 + enemy_status.get("poison", 0) * 0.2)
+	var eff = int(round(float(raw) * atk_down))
+	if atk_down < 1.0:
+		hud._log("敌人被削弱：攻击×%s" % ElementCounter.fmt_mult(atk_down))
+	var blocked = min(player_shield, eff)
 	player_shield -= blocked
-	var dealt = raw - blocked
+	var dealt = eff - blocked
 	player_hp -= dealt
 	if dealt > 0:
 		hud._popup("-%d" % dealt, Palette.POP_DAMAGE, hud._player_panel_anchor())
-	hud._log("敌人攻击 %d（盾挡 %d，受 %d）" % [raw, blocked, dealt])
+	hud._log("敌人攻击 %d（盾挡 %d，受 %d）" % [eff, blocked, dealt])
 
 
 func _tick_status() -> void:
@@ -1074,10 +1085,14 @@ func _push_dmg_line(acc: Dictionary, sym: SymbolData, elem: String, flat, bonus,
 		parts.append("基础%d" % int(flat))
 	if mult > 1:
 		parts.append("连线%d" % mult)
-	if em > 1.0:
-		parts.append("克制×%s" % ElementCounter.fmt_mult(em))
-	elif em < 1.0:
-		parts.append("抗性×%s" % ElementCounter.fmt_mult(em))
+	# S-结算核查：带元素的符号永远显式写出克制关系（含中性×1.0），让"抗性数值"不再隐形
+	if elem != "none":
+		if em > 1.0:
+			parts.append("克制×%s" % ElementCounter.fmt_mult(em))
+		elif em < 1.0:
+			parts.append("抗性×%s" % ElementCounter.fmt_mult(em))
+		else:
+			parts.append("中性×1.0")
 	var etxt = "" if elem == "none" else "·" + ElementCounter.label(elem)
 	var line = "   %s %s%s  %s = %d" % [sym.label, sym.name, etxt, " × ".join(parts), int(round(v))]
 	if crit:
@@ -1318,7 +1333,7 @@ func _status_element(st: String) -> String:
 func _status_summary(stacks: Dictionary) -> String:
 	var parts: Array = []
 	for st in stacks.keys():
-		parts.append("%s+%d" % [st, stacks[st]])
+		parts.append("%s+%d" % [STATUS_NAMES.get(st, st), stacks[st]])
 	return "/".join(parts)
 
 

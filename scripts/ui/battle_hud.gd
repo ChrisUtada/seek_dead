@@ -1050,6 +1050,9 @@ func _refresh_meta() -> void:
 	var parts := []
 	if controller.run_power_bonus + controller.charm_power_bonus > 0:
 		parts.append("伤害+%d" % (controller.run_power_bonus + controller.charm_power_bonus))
+	# 护符乘区（damage_mult 类型，如 rage_charm ×1.5）此前漏显示 → 带乘区护符时概览空显示"无"
+	if controller.charm_damage_mult != 1.0:
+		parts.append("护符×%s" % ElementCounter.fmt_mult(controller.charm_damage_mult))
 	if controller.purify_max_base > 0:
 		parts.append("净化上限%d" % controller.purify_max_base)
 	if controller.charm_room_shield > 0:
