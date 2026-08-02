@@ -364,7 +364,7 @@ func _build_loadout_screen() -> void:
 	var title = _label("⚙ 整备 · 选择携带物品", TypeScale.LEAD)
 	title.add_theme_color_override("font_color", Palette.TITLE)
 	root.add_child(title)
-	var rule = _label("武器 %d+ 把（无硬上限·受总槽 %d 约束） · 物品（主动 0–%d · 被动 0–%d） · 增益 0–%d · 总槽 %d  |  武器/增益=进转轮的符号来源 · 物品=可携带（主动消耗 · 被动护符）" % [controller.LOADOUT_MIN, controller.TOTAL_MAX, controller.CONSUMABLE_MAX, controller.CHARM_MAX, controller.BUFF_MAX, controller.TOTAL_MAX], 10)
+	var rule = _label("武器 %d–%d 把 · 物品（主动 0–%d · 被动 0–%d） · 增益 0–%d · 总槽 %d  |  武器/增益=进转轮的符号来源 · 物品=可携带（主动消耗 · 被动护符）" % [controller.LOADOUT_MIN, controller.LOADOUT_MAX, controller.CONSUMABLE_MAX, controller.CHARM_MAX, controller.BUFF_MAX, controller.TOTAL_MAX], 10)
 	rule.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	root.add_child(rule)
 
@@ -722,7 +722,7 @@ func _make_shop_card(offer: Dictionary) -> Button:
 	var cur = controller._sel_arr(offer["kind"]).size()
 	var total_full = controller._total_selected() >= controller.TOTAL_MAX   # S9：与购买函数总闸门一致，避免武器卡"看似可点却买不到"
 	var can_buy = (not offer["sold"]) and controller.gold >= offer["price"] and cur < cap and not total_full
-	var status = "已购入" if offer["sold"] else ("金币不足" if controller.gold < offer["price"] else ("总槽已满" if total_full else ("槽位已满" if cur >= cap else "%d 金" % offer["price"])))
+	var status = "已购入" if offer["sold"] else ("金币不足" if controller.gold < offer["price"] else (("总槽已满 %d/%d" % [controller._total_selected(), controller.TOTAL_MAX]) if total_full else ("槽位已满" if cur >= cap else "%d 金" % offer["price"])))
 	var pl = _label(status, TypeScale.TINY)
 	pl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	if offer["sold"]:
