@@ -591,7 +591,7 @@ func _roll_shop() -> void:
 	shop_offers = []
 	for i in n:
 		var c = candidates[i]
-		shop_offers.append({"path": c["path"], "kind": c["kind"], "price": _shop_price(c["kind"], c["kind"] == "weapon" ? selected_loadout.size() : 0), "name": _shop_name(c["path"], c["kind"]), "sold": false})
+		shop_offers.append({"path": c["path"], "kind": c["kind"], "price": _shop_price(c["kind"], selected_loadout.size() if c["kind"] == "weapon" else 0), "name": _shop_name(c["path"], c["kind"]), "sold": false})
 
 func _on_shop_buy_pressed(offer: Dictionary) -> void:
 	if offer["sold"]:
