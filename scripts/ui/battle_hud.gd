@@ -365,14 +365,14 @@ func _build_loadout_screen() -> void:
 	var title = _label("⚙ 整备 · 选择携带物品", TypeScale.LEAD)
 	title.add_theme_color_override("font_color", Palette.TITLE)
 	root.add_child(title)
-	var rule = _label("四类各自独立槽位、互不算总（任一类满槽不影响他类） · 槽位条 ◆已装备 ◇空位 ·未解锁 ＋可继续扩（商店「买即开槽」） · 天花板 武器%s·增益%s·消耗品%s·护符%s（进池类无上限：转轮稀释+递增价自然刹车；不进池类零代价故硬限）  |  武器·增益=进转轮的符号来源 · 消耗品=战斗中主动使用 · 护符=全局乘区" % [controller._cap_text("weapon"), controller._cap_text("buff"), controller._cap_text("active"), controller._cap_text("passive")], 10)
+	var rule = _label("四类独立槽位 · 武器/增益=进转轮(稀释自然刹车·无硬顶) · 消耗品/护符=不进池(硬限) · 买即开槽扩槽", 10)
 	rule.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	root.add_child(rule)
 
 	# 四分类并列卡片区：每类一列、各自一条槽位条，杜绝跨类合计的视觉暗示
 	var cat_box = HBoxContainer.new()
 	cat_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	cat_box.add_theme_constant_override("separation", 8)
+	cat_box.add_theme_constant_override("separation", 6)
 	root.add_child(cat_box)
 
 	loadout_cards = []
@@ -416,21 +416,21 @@ func _add_loadout_column(parent: Control, title: String, pool: Array, category: 
 	var panel = PanelContainer.new()
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	panel.custom_minimum_size = Vector2(236, 0)   # 四列并排：236*4 + 间隔 < 1280 设计宽
+	panel.custom_minimum_size = Vector2(250, 0)   # 四列并排：250*4 + 间隔 < 1280 设计宽
 	var style = StyleBoxFlat.new()
 	style.bg_color = Palette.CARD_BG
 	style.border_color = Palette.PANEL_BORDER
 	style.set_border_width_all(1)
 	style.set_corner_radius_all(6)
-	style.content_margin_left = 6
-	style.content_margin_right = 6
-	style.content_margin_top = 8
-	style.content_margin_bottom = 8
+	style.content_margin_left = 5
+	style.content_margin_right = 5
+	style.content_margin_top = 6
+	style.content_margin_bottom = 6
 	panel.add_theme_stylebox_override("panel", style)
 	parent.add_child(panel)
 
 	var v = VBoxContainer.new()
-	v.add_theme_constant_override("separation", 6)
+	v.add_theme_constant_override("separation", 4)
 	panel.add_child(v)
 
 	var title_label = _label("%s 0/%d" % [title, controller._cat_max(category)], 12)
@@ -439,7 +439,7 @@ func _add_loadout_column(parent: Control, title: String, pool: Array, category: 
 
 	# 槽位条：按该类天花板画满格子，直观呈现「还能扩几格」
 	var strip = HBoxContainer.new()
-	strip.add_theme_constant_override("separation", 4)
+	strip.add_theme_constant_override("separation", 2)
 	loadout_slot_strips[category] = strip
 	v.add_child(strip)
 	_refresh_slot_strip(category)
@@ -455,8 +455,8 @@ func _add_loadout_column(parent: Control, title: String, pool: Array, category: 
 	# 实际渲染时会按 ScrollContainer 可用宽度进一步扩展）。
 	var list = VBoxContainer.new()
 	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	list.custom_minimum_size = Vector2(190, 0)
-	list.add_theme_constant_override("separation", 6)
+	list.custom_minimum_size = Vector2(0, 0)
+	list.add_theme_constant_override("separation", 4)
 	scroll.add_child(list)
 	for path in pool:
 		var data: Resource = load(path)
@@ -505,24 +505,24 @@ func _refresh_slot_strip(category: String) -> void:
 		elif i < unlocked:
 			glyph = "◇"
 			tint = Palette.MUTED
-		var g = _label(glyph, 15)
+		var g = _label(glyph, 12)
 		g.add_theme_color_override("font_color", tint)
 		strip.add_child(g)
 	if uncapped:
-		var plus = _label("＋", 15)
+		var plus = _label("＋", 12)
 		plus.add_theme_color_override("font_color", Palette.PANEL_BORDER)
 		strip.add_child(plus)
 
 
 func _make_item_card(data: Resource, path: String, kind: String) -> Dictionary:
 	var btn = UI_BUTTON.instantiate()
-	btn.custom_minimum_size = Vector2(140, 110)
+	btn.custom_minimum_size = Vector2(0, 66)
 	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	btn.text = ""
 	var vb = VBoxContainer.new()
 	vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	vb.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	vb.add_theme_constant_override("separation", 3)
+	vb.add_theme_constant_override("separation", 1)
 	btn.add_child(vb)
 
 	var name := ""
@@ -561,18 +561,15 @@ func _make_item_card(data: Resource, path: String, kind: String) -> Dictionary:
 
 	var nl = _label(name, TypeScale.META)
 	nl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	nl.custom_minimum_size = Vector2(120, 0)
 	nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	vb.add_child(nl)
 	var l1 = _label(line1, TypeScale.TINY)
 	l1.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	l1.custom_minimum_size = Vector2(120, 0)
 	l1.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	vb.add_child(l1)
 	if line2 != "":
 		var l2 = _label(line2, TypeScale.CAPTION)
 		l2.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		l2.custom_minimum_size = Vector2(120, 0)
 		l2.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		l2.add_theme_color_override("font_color", Palette.MUTED_DIM)
 		vb.add_child(l2)
