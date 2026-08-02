@@ -19,6 +19,7 @@ var cells = []   # 展示用 Button 引用 [reel][row]
 var cell_badges = []   # 每格右上角匹配角标 Label 引用 [reel][row]
 var loadout_screen
 var loadout_columns: Dictionary = {}  # col_category -> VBoxContainer for refresh
+var loadout_slot_strips: Dictionary = {}   # category -> HBoxContainer（槽位条 ◆已装备/◇空位/·未解锁）
 var loadout_cards := []                   # 卡片元数据列表 {path, btn, selected, kind}
 var loadout_count_label
 var loadout_confirm_btn
@@ -364,27 +365,29 @@ func _build_loadout_screen() -> void:
 	var title = _label("⚙ 整备 · 选择携带物品", TypeScale.LEAD)
 	title.add_theme_color_override("font_color", Palette.TITLE)
 	root.add_child(title)
-	var rule = _label("武器 初始%d(商店金币可扩至%d) · 物品（主动 0–%d · 被动 0–%d） · 增益 0–%d  |  四类各自独立槽位、互不算总 · 武器/增益=进转轮的符号来源 · 物品=可携带（主动消耗 · 被动护符）" % [controller.loadout_max, controller.WEAPON_MAX, controller.CONSUMABLE_MAX, controller.CHARM_MAX, controller.BUFF_MAX], 10)
+	var rule = _label("四类各自独立槽位、互不算总（任一类满槽不影响他类） · 槽位条 ◆已装备 ◇空位 ·未解锁（商店「买即开槽」扩） · 天花板 武器%d·增益%d·消耗品%d·护符%d  |  武器·增益=进转轮的符号来源 · 消耗品=战斗中主动使用 · 护符=全局乘区" % [controller.WEAPON_CAP, controller.BUFF_CAP, controller.CONSUMABLE_CAP, controller.CHARM_CAP], 10)
 	rule.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	root.add_child(rule)
 
-	# 两分类并列卡片区
+	# 四分类并列卡片区：每类一列、各自一条槽位条，杜绝跨类合计的视觉暗示
 	var cat_box = HBoxContainer.new()
 	cat_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	cat_box.add_theme_constant_override("separation", 10)
+	cat_box.add_theme_constant_override("separation", 8)
 	root.add_child(cat_box)
 
 	loadout_cards = []
 	loadout_columns = {}
+	loadout_slot_strips = {}
 	_add_loadout_column(cat_box, "武器", controller.WEAPON_POOL, "weapon", 1)
 	_add_loadout_column(cat_box, "增益", controller.BUFF_POOL, "buff", 1)
-	_add_loadout_column(cat_box, "物品", controller.ITEM_POOL, "item", 1)
+	_add_loadout_column(cat_box, "消耗品", _item_pool_of("active"), "active", 1)
+	_add_loadout_column(cat_box, "护符", _item_pool_of("passive"), "passive", 1)
 
 	# 底部：计数 + 铁砧点数 + 铁砧按钮 + 确认（始终可见）
 	var bot = HBoxContainer.new()
 	bot.add_theme_constant_override("separation", 10)
 	root.add_child(bot)
-	loadout_count_label = _label("武器 0/%d · 增益 0/%d · 物品 0/%d · 合计 0" % [controller.loadout_max, controller.BUFF_MAX, controller.CONSUMABLE_MAX + controller.CHARM_MAX], TypeScale.META)
+	loadout_count_label = _label("武器 0/%d · 增益 0/%d · 消耗品 0/%d · 护符 0/%d" % [controller.loadout_max, controller.buff_max, controller.consumable_max, controller.charm_max], TypeScale.META)
 	loadout_count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	bot.add_child(loadout_count_label)
 	var bot_spacer = Control.new()
@@ -413,7 +416,7 @@ func _add_loadout_column(parent: Control, title: String, pool: Array, category: 
 	var panel = PanelContainer.new()
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	panel.custom_minimum_size = Vector2(320, 0)
+	panel.custom_minimum_size = Vector2(236, 0)   # 四列并排：236*4 + 间隔 < 1280 设计宽
 	var style = StyleBoxFlat.new()
 	style.bg_color = Palette.CARD_BG
 	style.border_color = Palette.PANEL_BORDER
@@ -434,6 +437,13 @@ func _add_loadout_column(parent: Control, title: String, pool: Array, category: 
 	loadout_columns[category] = title_label
 	v.add_child(title_label)
 
+	# 槽位条：按该类天花板画满格子，直观呈现「还能扩几格」
+	var strip = HBoxContainer.new()
+	strip.add_theme_constant_override("separation", 4)
+	loadout_slot_strips[category] = strip
+	v.add_child(strip)
+	_refresh_slot_strip(category)
+
 	var scroll = ScrollContainer.new()
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -445,7 +455,7 @@ func _add_loadout_column(parent: Control, title: String, pool: Array, category: 
 	# 实际渲染时会按 ScrollContainer 可用宽度进一步扩展）。
 	var list = VBoxContainer.new()
 	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	list.custom_minimum_size = Vector2(280, 0)
+	list.custom_minimum_size = Vector2(190, 0)
 	list.add_theme_constant_override("separation", 6)
 	scroll.add_child(list)
 	for path in pool:
@@ -458,6 +468,42 @@ func _add_loadout_column(parent: Control, title: String, pool: Array, category: 
 		var card = _make_item_card(data, path, kind)
 		list.add_child(card["btn"])
 		loadout_cards.append(card)
+
+
+# 从 ITEM_POOL 按 category 过滤：消耗品(active) 与 护符(passive) 各自独立成列
+func _item_pool_of(category: String) -> Array:
+	var out := []
+	for p in controller.ITEM_POOL:
+		var d = load(p)
+		if d is ItemData and d.category == category:
+			out.append(p)
+	return out
+
+
+# 刷新某类槽位条：天花板 = 格子总数，当前上限 = 已解锁边界，已选数 = 已装备边界
+#   ◆ 已装备(绿) · ◇ 已解锁空位(常规) · · 未解锁(暗，需商店「买即开槽」)
+func _refresh_slot_strip(category: String) -> void:
+	if not loadout_slot_strips.has(category):
+		return
+	var strip: HBoxContainer = loadout_slot_strips[category]
+	for c in strip.get_children():
+		strip.remove_child(c)
+		c.queue_free()
+	var used = controller._sel_arr(category).size()
+	var unlocked = controller._cat_max(category)
+	var ceiling = controller._cat_cap(category)
+	for i in ceiling:
+		var glyph := "·"
+		var tint := Palette.PANEL_BORDER
+		if i < used:
+			glyph = "◆"
+			tint = Palette.CARD_SEL_BORDER
+		elif i < unlocked:
+			glyph = "◇"
+			tint = Palette.MUTED
+		var g = _label(glyph, 15)
+		g.add_theme_color_override("font_color", tint)
+		strip.add_child(g)
 
 
 func _make_item_card(data: Resource, path: String, kind: String) -> Dictionary:
@@ -530,9 +576,9 @@ func _make_item_card(data: Resource, path: String, kind: String) -> Dictionary:
 # 卡片点击：三分类通用 toggle（受各自分类上限约束，互不算总）
 func _update_loadout_cards_visual() -> void:
 	var wfull = controller.selected_loadout.size() >= controller._cat_max("weapon")
-	var cfull = controller.selected_consumables.size() >= controller.CONSUMABLE_MAX
-	var hfull = controller.selected_charms.size() >= controller.CHARM_MAX
-	var bfull = controller.selected_buffs.size() >= controller.BUFF_MAX
+	var cfull = controller.selected_consumables.size() >= controller._cat_max("active")
+	var hfull = controller.selected_charms.size() >= controller._cat_max("passive")
+	var bfull = controller.selected_buffs.size() >= controller._cat_max("buff")
 	for card in loadout_cards:
 		var sb = StyleBoxFlat.new()
 		if card["selected"]:
@@ -553,19 +599,17 @@ func _update_loadout_cards_visual() -> void:
 
 
 func _update_loadout_count() -> void:
-	var items = controller.selected_consumables.size() + controller.selected_charms.size()
-	var total = controller._total_selected()
-	loadout_count_label.text = "武器 %d/%d · 增益 %d/%d · 物品 %d/%d · 合计 %d" % [
+	# 四类各自独立计数，不再出现任何跨类合计
+	loadout_count_label.text = "武器 %d/%d · 增益 %d/%d · 消耗品 %d/%d · 护符 %d/%d" % [
 		controller.selected_loadout.size(), controller._cat_max("weapon"),
-		controller.selected_buffs.size(), controller.BUFF_MAX,
-		items, controller.CONSUMABLE_MAX + controller.CHARM_MAX,
-		total]
-	if loadout_columns.has("weapon"):
-		loadout_columns["weapon"].text = "武器 %d/%d" % [controller.selected_loadout.size(), controller._cat_max("weapon")]
-	if loadout_columns.has("buff"):
-		loadout_columns["buff"].text = "增益 %d/%d" % [controller.selected_buffs.size(), controller.BUFF_MAX]
-	if loadout_columns.has("item"):
-		loadout_columns["item"].text = "物品 %d/%d" % [items, controller.CONSUMABLE_MAX + controller.CHARM_MAX]
+		controller.selected_buffs.size(), controller._cat_max("buff"),
+		controller.selected_consumables.size(), controller._cat_max("active"),
+		controller.selected_charms.size(), controller._cat_max("passive")]
+	var titles = {"weapon": "武器", "buff": "增益", "active": "消耗品", "passive": "护符"}
+	for cat in titles:
+		if loadout_columns.has(cat):
+			loadout_columns[cat].text = "%s %d/%d" % [titles[cat], controller._sel_arr(cat).size(), controller._cat_max(cat)]
+		_refresh_slot_strip(cat)
 	var ok = controller.selected_loadout.size() >= controller.LOADOUT_MIN
 	loadout_confirm_btn.disabled = not ok
 	loadout_confirm_btn.text = ("确认开战 ▶" if ok else "至少选 %d 把武器 ▶" % controller.LOADOUT_MIN)
@@ -721,9 +765,10 @@ func _make_shop_card(offer: Dictionary) -> Button:
 	cc.add_child(vb)
 	var kind_name = {"weapon": "武器", "passive": "护符", "active": "物品", "buff": "增益"}.get(offer["kind"], "物品")
 	vb.add_child(_label("%s · %s" % [kind_name, offer["name"]], 12))
-	var cap = controller._cat_max(offer["kind"])
-	var cur = controller._sel_arr(offer["kind"]).size()
-	var can_grow_slot = (offer["kind"] == "weapon") and (controller.loadout_max < controller.WEAPON_MAX)
+	var cap = controller._cat_max(offer["kind"])          # 该类当前上限
+	var cur = controller._sel_arr(offer["kind"]).size()   # 该类已持数
+	var ceiling = controller._cat_cap(offer["kind"])      # 该类天花板
+	var can_grow_slot = cap < ceiling                     # 该类仍可「买即开槽」
 	var slot_full = (cur >= cap) and not can_grow_slot
 	var can_buy = (not offer["sold"]) and controller.gold >= offer["price"] and not slot_full
 	var status: String
@@ -732,9 +777,9 @@ func _make_shop_card(offer: Dictionary) -> Button:
 	elif controller.gold < offer["price"]:
 		status = "金币不足"
 	elif slot_full:
-		status = "槽位已满"
-	elif offer["kind"] == "weapon" and cur >= cap:
-		status = "开槽 %d 金" % offer["price"]   # 本次购买会扩武器槽
+		status = "槽位已满 %d/%d" % [cur, ceiling]
+	elif cur >= cap:
+		status = "开槽 %d 金" % offer["price"]   # 本次购买会把该类槽 +1
 	else:
 		status = "%d 金" % offer["price"]
 	var pl = _label(status, TypeScale.TINY)

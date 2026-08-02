@@ -55,24 +55,29 @@ var ITEM_POOL: Array = []
 # Phase C 主动增益：携带后其符号进入转轮，连线命中施加限时增益
 var BUFF_POOL: Array = []
 
-# 携带约束（Phase G 收紧）：四类各自占【独立槽位】，互不算总、不共享上限。
-#   · 武器：初始上限 2（开局免费配给），商店花金币买武器可逐步扩槽（买武器即开槽），
-#     封顶 WEAPON_MAX；带越多废铁越多/按停越难、自身即刹车（进池稀释效应）。
-#   · 增益(buff)：进池类，符号挤占转轮带，死压 0–1。
-#   · 消耗品(active)：不进池，仅界面负担，宽松 0–2。
-#   · 护符(passive)：不进池，但「唯一收集乘区」，硬上限 3、不成长（混合护符负面即其平衡刹车）。
-# 四类上限彼此独立（武器 2→5 / 增益 1 / 消耗品 2 / 护符 3），不存在「总槽」概念；
-# 取舍张力来自各自内部（如武器越扩越贵、护符满 3 即封顶），而非跨类合计。
-# 注：护符为「唯一收集乘区」，硬上限 3、不成长。故无需「护符槽成长」通道（旧 Phase G 1→4 计划已废弃）。
+# 携带约束（Phase G）：四类各自占【独立槽位】，互不算总、不共享上限。
+# 【初始配额】武器 2 · 增益 1 · 消耗品 1 · 护符 1（合计 5——仅为初始值之和，**不是**共享闸门；
+#   任一类满槽绝不影响其他类，杜绝旧 TOTAL_MAX 时代「带满护符就买不了武器」的误判）。
+# 【成长方式】统一「买即开槽」：商店购买某类物品时，若该类当前槽位已满且未触天花板，
+#   本次购买直接把该类上限 +1（不单独售卖抽象的「槽扩展」商品）。
+#   节奏闸门 = 同类价格随已持数递增（见 _shop_price 的 step 表）。
+# 【天花板差异化依据】
+#   · 武器(weapon)：进池类，带越多废铁越多/按停越难，稀释效应自身即刹车 → 5
+#   · 增益(buff)：进池类中挤占转轮带最凶 → 1（初始即满，不成长）
+#   · 消耗品(active)：不进池，仅界面负担 → 2
+#   · 护符(passive)：不进池、零代价、无自然刹车，但为「唯一收集乘区」须稀缺 → 3
 const LOADOUT_MIN := 1
-var loadout_max := 2   # 武器槽上限（初始 2；商店花金币买武器逐步扩槽，封顶 WEAPON_MAX）
-const CONSUMABLE_MIN := 0
-const CONSUMABLE_MAX := 2
-const CHARM_MIN := 0
-const CHARM_MAX := 3
-const BUFF_MIN := 0
-const BUFF_MAX := 1
-const WEAPON_MAX := 5   # 武器槽天花板（仅约束武器扩槽，与其他三类无关）
+# 初始配额（每局开局值；_full_reset 与 _shop_price 的加价起点均以此为准）
+const SLOT_INIT := {"weapon": 2, "buff": 1, "active": 1, "passive": 1}
+const WEAPON_CAP     := 5   # 武器槽天花板
+const BUFF_CAP       := 1   # 增益槽天花板（初始即满，不成长）
+const CONSUMABLE_CAP := 2   # 消耗品槽天花板
+const CHARM_CAP      := 3   # 护符槽天花板
+# 各类当前上限：每局从初始配额起步，商店「买即开槽」逐步逼近天花板（_full_reset 重置）
+var loadout_max    := 2
+var buff_max       := 1
+var consumable_max := 1
+var charm_max      := 1
 
 const REELS = 3
 const ROWS = 1
@@ -360,14 +365,33 @@ func _sel_arr(cat: String) -> Array:
 	return []
 
 
+# 该类【当前】上限（随商店「买即开槽」成长）
 func _cat_max(cat: String) -> int:
 	match cat:
 		"weapon":  return loadout_max
-		"active":  return CONSUMABLE_MAX
-		"passive": return CHARM_MAX
-		"buff":    return BUFF_MAX
-		"item":    return CONSUMABLE_MAX + CHARM_MAX
-	return 99
+		"active":  return consumable_max
+		"passive": return charm_max
+		"buff":    return buff_max
+	return 0
+
+
+# 该类【天花板】（当前上限的成长终点，恒定不变）
+func _cat_cap(cat: String) -> int:
+	match cat:
+		"weapon":  return WEAPON_CAP
+		"active":  return CONSUMABLE_CAP
+		"passive": return CHARM_CAP
+		"buff":    return BUFF_CAP
+	return 0
+
+
+# 「买即开槽」：把该类当前上限 +1（不越过天花板）
+func _grow_slot(cat: String) -> void:
+	match cat:
+		"weapon":  loadout_max    = min(loadout_max + 1, WEAPON_CAP)
+		"active":  consumable_max = min(consumable_max + 1, CONSUMABLE_CAP)
+		"passive": charm_max      = min(charm_max + 1, CHARM_CAP)
+		"buff":    buff_max       = min(buff_max + 1, BUFF_CAP)
 
 
 func _cat_name(cat: String) -> String:
@@ -376,12 +400,7 @@ func _cat_name(cat: String) -> String:
 		"active":  return "消耗品"
 		"passive": return "护符"
 		"buff":    return "增益"
-		"item":    return "物品"
 	return cat
-
-
-func _total_selected() -> int:
-	return selected_loadout.size() + selected_consumables.size() + selected_charms.size() + selected_buffs.size()
 
 
 func _confirm_loadout() -> void:
@@ -557,8 +576,11 @@ func _award_gold(is_boss: bool) -> void:
 func _shop_price(kind: String, owned := 0) -> int:
 	var base = {"weapon": 8, "passive": 10, "active": 5, "buff": 6}.get(kind, 6)
 	var price = base + randi_range(-1, 2)
-	if kind == "weapon":
-		price += max(0, owned - 1) * 5   # 金币控制槽成长：第 3 把起每把 +5，越往后越贵，自然抑制
+	# 金币是「买即开槽」的节奏闸门：填满初始配额之前按原价（只是补空位），
+	# 从「首次扩槽」那一件起逐级加价 —— 故加价起点按各类初始配额对齐，而非一律第 2 件。
+	# 护符步进最大（唯一收集乘区，须最贵）；增益步进 0（天花板 1，本就买不到第 2 个）。
+	var step = {"weapon": 5, "passive": 8, "active": 4, "buff": 0}.get(kind, 4)
+	price += max(0, owned - int(SLOT_INIT.get(kind, 1)) + 1) * step
 	return max(3, price)
 
 func _shop_name(path: String, kind: String) -> String:
@@ -586,7 +608,7 @@ func _roll_shop() -> void:
 	shop_offers = []
 	for i in n:
 		var c = candidates[i]
-		shop_offers.append({"path": c["path"], "kind": c["kind"], "price": _shop_price(c["kind"], selected_loadout.size() if c["kind"] == "weapon" else 0), "name": _shop_name(c["path"], c["kind"]), "sold": false})
+		shop_offers.append({"path": c["path"], "kind": c["kind"], "price": _shop_price(c["kind"], _sel_arr(c["kind"]).size()), "name": _shop_name(c["path"], c["kind"]), "sold": false})
 
 func _on_shop_buy_pressed(offer: Dictionary) -> void:
 	if offer["sold"]:
@@ -597,23 +619,21 @@ func _on_shop_buy_pressed(offer: Dictionary) -> void:
 		hud._log("已拥有 %s，无法重复购买" % offer["name"])
 		return
 	var w = arr.size()
-	var cap = _cat_max(kind)            # 武器 = loadout_max（初始 2，商店可扩），其余 = 固定上限
-	# 已达当前分类上限：武器可「买武器开槽」再扩 1（封顶 WEAPON_MAX）；其他类直接拒
-	if w >= cap:
-		if kind == "weapon" and loadout_max < WEAPON_MAX:
-			pass                          # 允许扩槽购买，继续走金币校验
-		else:
-			hud._log("%s槽位已满，无法购买" % _cat_name(kind))
-			return
+	var cap = _cat_max(kind)            # 该类当前上限
+	var ceiling = _cat_cap(kind)        # 该类天花板
+	# 「买即开槽」（四类通用）：该类槽满时，只要未触天花板，本次购买即扩槽 1 格；触顶才拒绝
+	if w >= cap and cap >= ceiling:
+		hud._log("%s槽位已满 %d/%d（已达天花板），无法购买" % [_cat_name(kind), w, ceiling])
+		return
 	if gold < offer["price"]:
 		hud._log("金币不足（需 %d）" % offer["price"])
 		return
 	gold -= offer["price"]
 	arr.append(offer["path"])
 	offer["sold"] = true
-	if kind == "weapon" and w >= cap:   # 本次是扩槽购买 → 武器槽 +1（封顶 WEAPON_MAX）
-		loadout_max = min(loadout_max + 1, WEAPON_MAX)
-		hud._log("购买 %s（武器槽 +1 → %d/%d，-%d 金，余 %d）" % [offer["name"], loadout_max, WEAPON_MAX, offer["price"], gold])
+	if w >= cap:                        # 本次是扩槽购买 → 该类槽 +1
+		_grow_slot(kind)
+		hud._log("购买 %s（%s槽 +1 → %d/%d，-%d 金，余 %d）" % [offer["name"], _cat_name(kind), _cat_max(kind), ceiling, offer["price"], gold])
 	else:
 		hud._log("购买 %s（-%d 金，余 %d）" % [offer["name"], offer["price"], gold])
 	if kind == "active":   # 消耗品：立即写入可用次数，使新购物品当即可用
@@ -665,7 +685,11 @@ func _on_anvil_back_pressed() -> void:
 func _full_reset() -> void:
 	player_hp = player_hp_max
 	gold = 4                                 # S6：新一局金币清零（每局清零，见 §11）
-	loadout_max = 2                          # 新一局武器槽回到初始 2（商店金币可再扩槽）
+	# 新一局四类槽位回到初始配额（商店「买即开槽」可再逐步扩至各自天花板）
+	loadout_max = int(SLOT_INIT["weapon"])
+	buff_max = int(SLOT_INIT["buff"])
+	consumable_max = int(SLOT_INIT["active"])
+	charm_max = int(SLOT_INIT["passive"])
 	# M4：开新一局，重置本局加成层
 	run_symbol_bonus = {}
 	run_power_bonus = 0
