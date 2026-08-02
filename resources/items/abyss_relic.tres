@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+category = "passive"
+item_id = "abyss_relic"
+item_name = "深渊之瞳"
+description = "深渊监视者的瞳：本局所有伤害 ×1.15。"
+icon = "👁"
+effect = "damage_mult"
+value = 0
+mult_value = 1.15

@@ -16,3 +16,5 @@ extends Resource
 @export var kind: String = "normal"    # normal|elite|boss（房间类型；boss 由 _is_boss_room 判定专属机制）
 @export var gimmick_script: Script      # BOSS 专属机制脚本（extends BossGimmick）；非 BOSS 房留空。_start_room 实例化并赋值 current_gimmick
 @export var act: int = 1                # 幕号（1/2/3）；_build_run 按幕分组抽房（每幕 2 normal + 1 elite + 1 boss）
+@export var boss_reward_weapons: Array[String] = []   # BOSS 战利品·主题武器池（武器 .tres 路径）；空则按 element 从 WEAPON_POOL 取未持有者
+@export var boss_relic_path: String = ""              # BOSS 战利品·专属信物（ItemData passive .tres 路径），占护符槽 1/3；空则不掉信物

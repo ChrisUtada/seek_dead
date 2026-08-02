@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+category = "passive"
+item_id = "whisper_relic"
+item_name = "呓语残页"
+description = "呓语教徒的残页：本局抗扰 +2。"
+icon = "🔮"
+effect = "interference_resist"
+value = 2

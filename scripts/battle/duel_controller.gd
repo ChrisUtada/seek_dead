@@ -513,6 +513,15 @@ func _on_reward_skip_pressed() -> void:
 	hud._refresh_meta()
 
 
+func _on_boss_reward_chosen(cand: Dictionary) -> void:
+	hud.reward_screen.visible = false
+	_apply_boss_reward(cand)
+	_award_meta(true)    # M5：Boss 通关发放铁砧点数（含额外）
+	_award_gold(true)    # S6+S8：清房金币 + 利息
+	_full_reset()        # 通关后开新一局（金币随局清零）
+	hud._refresh_meta()
+
+
 func _roll_rewards() -> Array:
 	# REWARD_POOL 现为 RewardData 资源数组；元素只读不修改，用浅拷贝即可（避免深拷贝复制资源）。
 	var copy = REWARD_POOL.duplicate()
@@ -523,6 +532,45 @@ func _roll_rewards() -> Array:
 		var idx = randi() % copy.size()
 		out.append(copy[idx])
 		copy.remove_at(idx)
+	return out
+
+
+# BOSS 战利品：从主题池+混合券抽 3 张候选卡（dict 结构，供 HUD 直接渲染）。
+# 候选构成：① 主题新武器（未持有，进池）② 武器强化券（meta 升级，不进池）③ Boss 信物（占护符槽，若未占满）
+func _roll_boss_rewards(room) -> Array:
+	var cands := []
+	# ① 主题新武器：房间指定池（空则按 element 从全部武器取）中，玩家尚未持有的
+	var src: Array = room.boss_reward_weapons if (room.boss_reward_weapons.size() > 0) else WEAPON_POOL
+	for p in src:
+		if not selected_loadout.has(p):
+			var wd: WeaponData = load(p)
+			var elem = wd.element if wd != null else "none"
+			cands.append({
+				"kind": "boss_weapon", "path": p,
+				"icon": ElementCounter.label(elem),
+				"label": (wd.weapon_name if wd != null else p.get_file().get_basename()),
+				"desc": "新武器 · 进入转轮带（无数量上限）",
+			})
+	# ② 武器强化券：不进池，给全部持有武器各 +1 符号权重（铁砧永久升级）
+	if selected_loadout.size() > 0:
+		cands.append({
+			"kind": "forge_voucher", "path": "",
+			"icon": "🔨", "label": "武器强化券",
+			"desc": "全部武器符号权重 +1（永久）",
+		})
+	# ③ Boss 信物：占护符槽 1/3（CHARM_CAP），护符槽满则不出
+	if room.boss_relic_path != "" and _sel_arr("passive").size() < _cat_max("passive"):
+		var rd: ItemData = load(room.boss_relic_path)
+		cands.append({
+			"kind": "boss_relic", "path": room.boss_relic_path,
+			"icon": (rd.icon if rd != null else "🏆"),
+			"label": (rd.item_name if rd != null else "Boss 信物"),
+			"desc": (rd.description if rd != null else "专属信物 · 占护符槽"),
+		})
+	cands.shuffle()
+	var out := []
+	for i in min(3, cands.size()):
+		out.append(cands[i])
 	return out
 
 
@@ -555,6 +603,34 @@ func _apply_reward(id: String) -> void:
 		"power":
 			run_power_bonus += 1
 			hud._log("奖励：本局符号伤害 +1（当前 +%d）" % run_power_bonus)
+
+
+# BOSS 战利品结算（主题池+混合券三选一）：新武器(进池) / 武器强化券(meta升级,不进池) / Boss信物(占护符槽1/3)
+func _apply_boss_reward(cand: Dictionary) -> void:
+	match cand.get("kind", ""):
+		"boss_weapon":
+			var p = cand.get("path", "")
+			if p != "" and not selected_loadout.has(p):
+				selected_loadout.append(p)          # 武器无上限（UNCAPPED），免费获得即自动开槽
+				_build_pool(selected_loadout)        # 重建符号池（新武器注入转轮带）
+				hud._log("BOSS 战利品：获得武器 %s（已加入转轮带）" % cand.get("label", p))
+		"forge_voucher":
+			if selected_loadout.is_empty():
+				hud._log("BOSS 战利品：无持有武器，强化券失效")
+				return
+			for wpath in selected_loadout:
+				meta["weapon_upgrades"][wpath] = meta["weapon_upgrades"].get(wpath, 0) + 1
+			_build_pool(selected_loadout)
+			hud._log("BOSS 战利品：武器强化券——全部武器符号权重 +1（铁砧永久升级）")
+		"boss_relic":
+			var p = cand.get("path", "")
+			if p != "" and not selected_charms.has(p):
+				if _sel_arr("passive").size() >= _cat_max("passive"):
+					hud._log("BOSS 战利品：护符槽已满，信物无法拾取")
+					return
+				selected_charms.append(p)            # 占护符槽 1/3（CHARM_CAP）
+				_apply_charms()                     # 重算护符被动（伤害乘区等随持有变化）
+				hud._log("BOSS 战利品：获得专属信物 %s（占护符槽）" % cand.get("label", p))
 
 
 # ---------------------------------------------------------------------------

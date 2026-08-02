@@ -688,14 +688,20 @@ func _build_reward_screen() -> void:
 
 func _show_reward_screen(is_boss: bool) -> void:
 	controller.reward_is_boss = is_boss
-	controller.reward_choices = controller._roll_rewards()
 	# 清理旧卡片
 	for c in reward_grid.get_children():
 		reward_grid.remove_child(c)
 		c.queue_free()
-	reward_title_label.text = ("★ 通关！选择一项残余物奖励" if is_boss else "胜利！选择一项房奖励")
-	for rw in controller.reward_choices:
-		reward_grid.add_child(_make_reward_card(rw))
+	if is_boss:
+		controller.reward_choices = controller._roll_boss_rewards(controller.ROOMS[controller.room_index])
+		reward_title_label.text = "★ BOSS 战利品！选择一项（主题武器 / 强化券 / 信物）"
+		for rw in controller.reward_choices:
+			reward_grid.add_child(_make_boss_reward_card(rw))
+	else:
+		controller.reward_choices = controller._roll_rewards()
+		reward_title_label.text = "胜利！选择一项房奖励"
+		for rw in controller.reward_choices:
+			reward_grid.add_child(_make_reward_card(rw))
 	reward_screen.visible = true
 
 
@@ -716,6 +722,27 @@ func _make_reward_card(rw: RewardData) -> Button:
 	dl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vb.add_child(dl)
 	btn.connect("pressed", controller._on_reward_chosen.bind(rw.id))
+	return btn
+
+
+# BOSS 战利品卡（候选为 dict，点击调 _on_boss_reward_chosen）
+func _make_boss_reward_card(cand: Dictionary) -> Button:
+	var btn = UI_BUTTON.instantiate()
+	btn.custom_minimum_size = Vector2(96, 64)
+	btn.text = ""
+	var cc = CenterContainer.new()
+	cc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	cc.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	btn.add_child(cc)
+	var vb = VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 2)
+	cc.add_child(vb)
+	vb.add_child(_label("%s %s" % [cand.get("icon", ""), cand.get("label", "")], 13))
+	var dl = _label(cand.get("desc", ""), TypeScale.TINY)
+	dl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	dl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vb.add_child(dl)
+	btn.connect("pressed", controller._on_boss_reward_chosen.bind(cand))
 	return btn
 
 
