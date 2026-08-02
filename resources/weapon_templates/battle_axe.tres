@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://dkgpb1yi42sdb" path="res://scripts/equipment/weapon_data.gd" id="1"]
 [ext_resource type="Script" uid="uid://b7ejpof4wrtqt" path="res://scripts/battle/symbol_weight.gd" id="sw"]
-[ext_resource type="Resource" path="res://resources/symbols/slash.tres" id="s0"]
+[ext_resource type="Resource" path="res://resources/symbols/axe_slash.tres" id="s0"]
 [ext_resource type="Resource" path="res://resources/symbols/trash.tres" id="s1"]
 
 [sub_resource type="Resource" id="sw0"]
