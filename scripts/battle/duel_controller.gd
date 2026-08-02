@@ -52,19 +52,29 @@ var ITEM_POOL: Array = []
 # Phase C 主动增益：携带后其符号进入转轮，连线命中施加限时增益
 var BUFF_POOL: Array = []
 
-# 携带约束（与策划案 v0.4 定稿一致）：武器硬下限≥1；分类容量上限；总槽≈8（Phase C 起含增益）。
+# 携带约束（Phase G 收紧）：按「进池 / 不进池」两把尺子分开管，而不是按总数一刀切。
+#   · 进池类（武器 / 增益）：符号会挤进同一条转轮带 → 带多了稀释克制乘区、稀释 special
+#     三连、拉长带子让「按停到目标符号」变难。故上限压得很死：武器 1–2、增益 0–1。
+#   · 不进池类（消耗品 / 护符）：只影响界面负担与乘区收集，尺度可宽松。
+#   · TOTAL_MAX 是真正的取舍闸门：分类上限之和 = 2+1+2+2 = 7 > 5，逼玩家「想带的比能带的多」。
+# 注：Phase G 规划护符槽随进度成长（1→4），届时 TOTAL_MAX 需同步上调，否则护符成长吃不满。
 const LOADOUT_MIN := 1
-const LOADOUT_MAX := 5
+const LOADOUT_MAX := 2
 const CONSUMABLE_MIN := 0
-const CONSUMABLE_MAX := 3
+const CONSUMABLE_MAX := 2
 const CHARM_MIN := 0
 const CHARM_MAX := 2
 const BUFF_MIN := 0
-const BUFF_MAX := 2
-const TOTAL_MAX := 8
+const BUFF_MAX := 1
+const TOTAL_MAX := 5
 
 const REELS = 3
 const ROWS = 1
+
+# 房间难度曲线（ante）：敌方 HP/ATK 随房间序号 n 指数缩放（1+α)^n。
+# 玩家膨胀（武器升级/护符）需敌方同步变肉，否则中期秒怪、游戏结束。初值待真机调参。
+const ANTE_ALPHA_HP := 0.15
+const ANTE_ALPHA_ATK := 0.10
 
 # M4 房奖励池（每清一房随机 3 选 1；Boss 房走同池但标为「残余物」）。
 # Phase D 资源化：改为扫描 resources/rewards/*.tres（RewardData），见 _ready 内填充。
@@ -77,12 +87,30 @@ var ROOMS: Array = []
 
 # grid[reel][row] = SymbolData 引用
 var grid = []
+# grid_elem[reel][row] = 该格符号的「有效元素」（武器元素继承后的实际元素，用于逐符号克制结算）
+var grid_elem = []
 
-# 合并后的加权符号池：元素为 [SymbolData, weight]
+# 合并后的加权符号池：元素为 [SymbolData, weight, element]（element = 有效元素）
 var pool: Array = []
 var loadout_names: Array = []
-var _special_element: String = "none"   # 当前池内特殊符号的属性元素（取自武器 reel_element）
 var _busy: bool = false                 # 旋转序列进行中，防重入
+var _eval_adv := false                  # _evaluate 阶段2：本回合是否触发过「克制」
+var _eval_dis := false                  # _evaluate 阶段2：本回合是否触发过「抵抗」
+
+# —— 实体转轮带（方案 A）：权重 = 带子上该符号的格子数，落点由停止时机决定 ——
+var reel_strips: Array = []            # [reel] -> Array[ [SymbolData, element] ]
+var reel_cursor: Array = []            # [reel] -> 当前带子索引（旋转时递增，取模长度）
+var reel_stopped: Array = []           # [reel] -> 该列是否已停
+var _locked_prev_sym: Array = []       # [reel] -> 锁轮保留的上一轮符号
+var _locked_prev_elem: Array = []      # [reel] -> 锁轮保留的上一轮有效元素
+var _spinning := false                 # 旋转进行中（供输入分支判断）
+var _spin_timer: Timer                 # 旋转节拍器（每跳推进一格 + 加速）
+var _spin_ticks := 0                   # 已跳次数（用于加速上限）
+const _SPIN_BASE_WAIT := 0.09          # 起始每跳间隔（秒）
+const _SPIN_MIN_WAIT := 0.035          # 最快每跳间隔（越转越快，到此封顶后恒速）
+const _STRIP_MIN_CELLS := 30           # 转轮带最小格数（整份平铺补足，不改变符号占比）
+# 注：不设自动停止上限——转轮何时停完全由玩家决定，不操作就一直转。
+signal spin_finished                   # 全部转轮停下后发出，_on_spin_pressed 等待它
 
 # 整备（M3–M6）：玩家自由勾选武器 / 消耗品 / 护符三分类
 var in_loadout := false
@@ -131,6 +159,7 @@ var charm_power_bonus: int = 0         # 锋锐护符：本局所有伤害符号
 var charm_room_shield: int = 0         # 守望护符：每房开局护盾 +N
 var charm_interf_resist: int = 0       # 抗扰护符：本局敌人干扰概率降低（等效抗扰等级）
 var charm_purify_bonus: int = 0        # 丰沛护符：净化上限 +N
+var charm_damage_mult: float = 1.0      # Phase G v2.0：护符全局乘区（joker），默认 ×1.0
 
 # 流程状态
 var game_state = "playing"             # playing | won | lost | cleared
@@ -182,11 +211,18 @@ func _ready() -> void:
 	hud._build_reward_screen()
 	hud._build_anvil_screen()
 	hud._show_loadout_screen()
+	# 方案 A：旋转节拍器（转轮带滚动 + 加速 + 停止时机判定）
+	_spin_timer = Timer.new()
+	_spin_timer.one_shot = false
+	_spin_timer.connect("timeout", _on_spin_tick)
+	add_child(_spin_timer)
 func _build_pool(loadout: Array) -> void:
 	pool = []
 	loadout_names = []
-	_special_element = "none"
-	var merged := {}   # resource_path -> [SymbolData, 总权重]（跨武器累加）
+	# 合并键 = resource_path + "|" + 有效元素。
+	# 关键：slash.tres 等符号被多把武器共享（同 resource_path），但火武器/无属性武器继承出的
+	# 有效元素不同，必须按「符号+有效元素」双键分离，否则元素会冲突（Phase G v2.0 武器元素化）。
+	var merged := {}   # key -> [SymbolData, 总权重, 有效元素]（跨武器累加）
 	for path in loadout:
 		var wd: WeaponData = load(path)
 		if wd == null:
@@ -199,16 +235,15 @@ func _build_pool(loadout: Array) -> void:
 			if sw == null or sw.symbol == null:
 				continue
 			var sp: String = sw.symbol.resource_path
-			if not merged.has(sp):
-				merged[sp] = [sw.symbol, 0.0]
-			merged[sp][1] += float(sw.weight)
-			# 记录特殊符号的属性元素（用于单向克制）
-			if sw.symbol.kind == "special" and wd.reel_element != "none":
-				_special_element = wd.reel_element
-		# M5 铁砧：武器升级 → 主符号（权重最高者）额外加成
+			var eff: String = _eff_element(sw.symbol, wd)
+			var mkey: String = sp + "|" + eff
+			if not merged.has(mkey):
+				merged[mkey] = [sw.symbol, 0.0, eff]
+			merged[mkey][1] += float(sw.weight)
+		# M5 铁砧：武器升级 → 主符号（权重最高者）额外加成（按「符号+有效元素」定位，避免共享符号冲突）
 		var bonus = meta["weapon_upgrades"].get(path, 0)
 		if bonus > 0 and not wd.reel.is_empty():
-			var dom_path = ""
+			var dom_sym: SymbolData = null
 			var domw = -1.0
 			for sw in wd.reel:
 				if sw == null or sw.symbol == null:
@@ -216,49 +251,48 @@ func _build_pool(loadout: Array) -> void:
 				var w = float(sw.weight)
 				if w > domw:
 					domw = w
-					dom_path = sw.symbol.resource_path
-			if dom_path != "":
-				if not merged.has(dom_path):
-					merged[dom_path] = [load(dom_path), 0.0]
-				merged[dom_path][1] += float(bonus)
+					dom_sym = sw.symbol
+			if dom_sym != null:
+				var deff: String = _eff_element(dom_sym, wd)
+				var dkey: String = dom_sym.resource_path + "|" + deff
+				if not merged.has(dkey):
+					merged[dkey] = [dom_sym, 0.0, deff]
+				merged[dkey][1] += float(bonus)
 	# Phase C：所携带的主动增益，其符号同样注入转轮池（与武器符号同池竞争）
 	for path in selected_buffs:
 		var bd: BuffData = load(path)
 		if bd == null or bd.symbol == null:
 			continue
 		var bp: String = bd.symbol.resource_path
-		if not merged.has(bp):
-			merged[bp] = [bd.symbol, 0.0]
-		merged[bp][1] += float(bd.weight)
-	for sp in merged.keys():
-		pool.append([merged[sp][0], merged[sp][1]])
-	# M4 本局符号权重加成（符号灌注奖励叠加）— run_symbol_bonus 以 resource_path 为键
+		var beff: String = bd.symbol.element if bd.symbol.element != "none" else "none"
+		var bkey: String = bp + "|" + beff
+		if not merged.has(bkey):
+			merged[bkey] = [bd.symbol, 0.0, beff]
+		merged[bkey][1] += float(bd.weight)
+	for key in merged.keys():
+		pool.append(merged[key])
+	# F-0 属性聚合层：符号权重修正（本局符号灌注 + Phase F 词缀），run_symbol_bonus 以 resource_path 为键
 	for spath in run_symbol_bonus.keys():
 		var found = false
 		for p in pool:
 			if p[0].resource_path == spath:
-				p[1] += float(run_symbol_bonus[spath])
+				p[1] += _agg_symbol_weight_mod(p[0])
 				found = true
 				break
 		if not found:
-			pool.append([load(spath), float(run_symbol_bonus[spath])])
+			pool.append([load(spath), _agg_symbol_weight_mod(load(spath)), "none"])
 	# 符号图例（每符号名称/类型/元素 + 敌人属性）
 	if hud.legend_container != null:
 		hud._refresh_legend()
 
 
-func _weighted_random_sym() -> SymbolData:
-	if pool.is_empty():
-		return TRASH_SYMBOL
-	var total := 0.0
-	for p in pool:
-		total += p[1]
-	var r := randf() * total
-	for p in pool:
-		r -= p[1]
-		if r < 0:
-			return p[0]
-	return pool[0][0]
+# 计算某符号的「有效元素」（Phase G v2.0 武器元素化）：
+# - special 符号：优先用武器 reel_element（特殊符号属性），否则用符号自身 element
+# - 其余符号：自身 element 非 none 用之，否则继承武器 element（火武器 → 伤害符号带火）
+func _eff_element(sym: SymbolData, wd: WeaponData) -> String:
+	if sym.kind == "special":
+		return wd.reel_element if wd.reel_element != "none" else sym.element
+	return sym.element if sym.element != "none" else wd.element
 
 
 # 乱权：临时扭曲权重池（削弱最高权重符号、增强废铁），spin 后由 _restore_pool 还原
@@ -274,7 +308,7 @@ func _apply_chaos_pool() -> void:
 			w *= 2.0
 		elif w >= max_w * 0.99:
 			w *= 0.35
-		chaotic.append([p[0], w])
+		chaotic.append([p[0], w, p[2]])
 	pool = chaotic
 
 
@@ -353,6 +387,7 @@ func _apply_charms() -> void:
 	charm_room_shield = 0
 	charm_interf_resist = 0
 	charm_purify_bonus = 0
+	charm_damage_mult = 1.0
 	for path in selected_charms:
 		var cd: Resource = load(path)
 		if cd == null:
@@ -362,6 +397,7 @@ func _apply_charms() -> void:
 			"room_shield":          charm_room_shield += cd.value
 			"interference_resist":  charm_interf_resist += cd.value
 			"purify_bonus":         charm_purify_bonus += cd.value
+			"damage_mult":          charm_damage_mult *= cd.mult_value
 	var pm = 0
 	for path in selected_consumables:
 		var cd: Resource = load(path)
@@ -524,9 +560,12 @@ func _start_room(idx: int) -> void:
 	room_index = idx
 	var r: RoomData = ROOMS[idx]
 	enemy_name = r.name
-	enemy_hp_max = r.hp
+	# ante 难度曲线：RoomData.hp/atk 视为基础值，按房间序号 idx 缩放（(1+α)^idx）
+	var hp_scale = pow(1.0 + ANTE_ALPHA_HP, idx)
+	var atk_scale = pow(1.0 + ANTE_ALPHA_ATK, idx)
+	enemy_hp_max = int(round(float(r.hp) * hp_scale))
 	enemy_hp = enemy_hp_max
-	enemy_atk = r.atk
+	enemy_atk = int(round(float(r.atk) * atk_scale))
 	enemy_jam = r.jam
 	enemy_lock = r.lock
 	enemy_chaos = r.chaos
@@ -560,6 +599,7 @@ func _start_room(idx: int) -> void:
 	turn_count = 1
 	enemy_intent = {}
 	hud._hide_overlay()
+	_build_strips()
 	_reset_grid(true)
 	_begin_player_turn()
 	_refresh_consumable_panel()           # 双重保险：同步按钮禁用状态与当前战斗状态
@@ -589,9 +629,10 @@ func _on_spin_pressed() -> void:
 		return
 	_busy = true
 	turn_count += 1
-	# 阶段 0：旋转（刷新转轮，暂不结算）
-	_do_spin_core()
-	await get_tree().create_timer(0.45).timeout
+	# 阶段 0：旋转（实体转轮带滚动，玩家按停止键锁定落点；不立即结算）
+	_begin_spin()
+	await spin_finished
+	await get_tree().create_timer(0.25).timeout
 	# 阶段 1+2：结算（先防御/增益/状态，后攻击；含飘字）
 	await _evaluate()
 	if enemy_hp <= 0:
@@ -633,27 +674,172 @@ func _on_spin_pressed() -> void:
 	_busy = false
 
 
-# 旋转 + 结算核心（SPIN 与重转卷轴共用）
-func _do_spin_core() -> void:
-	var chaos_this_spin = pending_chaos
-	if chaos_this_spin:
+# ---------------------------------------------------------------------------
+# 方案 A：实体转轮带 + 停止时机（SPIN 与重转卷轴共用）
+# 权重 = 带子上该符号的格子数；落点由玩家按停时机决定，而非后台加权随机。
+# ---------------------------------------------------------------------------
+
+# 开始一次旋转：构建转轮带、随机起点、启动节拍器。结果在 spin_finished 后结算。
+func _begin_spin() -> void:
+	var chaos = pending_chaos
+	if chaos:
 		_apply_chaos_pool()
-	for reel in REELS:
-		for row in ROWS:
-			var sym: SymbolData
-			if reel == pending_jam_reel:
-				sym = TRASH_SYMBOL
-			elif reel == pending_lock_reel:
-				sym = grid[reel][row]
-			else:
-				sym = _weighted_random_sym()
-			grid[reel][row] = sym
-			hud._refresh_cell(reel, row)
+	_build_strips()
+	if chaos:
+		_restore_pool()
+	reel_cursor = []
+	reel_stopped = []
+	_locked_prev_sym = []
+	_locked_prev_elem = []
+	for r in REELS:
+		var len = reel_strips[r].size() if reel_strips.size() > r and not reel_strips[r].is_empty() else 1
+		reel_cursor.append(randi() % len)
+		reel_stopped.append(false)
+		# 锁轮列：保留旋转前该列的符号与有效元素
+		_locked_prev_sym.append(grid[r][0] if grid.size() > r and grid[r].size() > 0 else TRASH_SYMBOL)
+		_locked_prev_elem.append(grid_elem[r][0] if grid_elem.size() > r and grid_elem[r].size() > 0 else "none")
+		# 旋转期间允许点击该列以停止
+		if hud.cells.size() > r and hud.cells[r].size() > 0:
+			hud.cells[r][0].disabled = false
+	_spinning = true
+	_spin_ticks = 0
+	hud._clear_damage_breakdown()   # S2：新一轮开始，先清掉上一回合的分解
+	_spin_timer.wait_time = _SPIN_BASE_WAIT
+	_spin_timer.start()
+	hud._log("转轮旋转中——按【空格】逐列停止，或点击某一列单独停下（不停就一直转）")
+
+
+# 由合并符号池构建每列转轮带：权重 → 带子上该符号的格子数。每列拿到一份洗牌副本（同构成、异顺序）。
+func _build_strips() -> void:
+	reel_strips = []
+	if pool.is_empty():
+		for r in REELS:
+			reel_strips.append([[TRASH_SYMBOL, "none"]])
+		return
+	var base := []
+	for p in pool:
+		var w = int(round(p[1]))
+		if w < 1:
+			w = 1
+		for _i in w:
+			base.append([p[0], p[2]])
+	if base.is_empty():
+		base = [[TRASH_SYMBOL, "none"]]
+	# 最小带长保护：武器砍到 1–2 把后带子可能只有 10 格左右，最高速下每秒循环近 3 圈，
+	# 玩家能看出重复、观感发晕。整份平铺到 _STRIP_MIN_CELLS 以上——只拉长周期，
+	# 各符号占比（即命中概率）完全不变。
+	if base.size() < _STRIP_MIN_CELLS:
+		var unit = base.duplicate(true)
+		while base.size() < _STRIP_MIN_CELLS:
+			base.append_array(unit.duplicate(true))
+	for r in REELS:
+		var copy = base.duplicate(true)
+		for i in range(copy.size() - 1, 0, -1):
+			var j = randi() % (i + 1)
+			var tmp = copy[i]
+			copy[i] = copy[j]
+			copy[j] = tmp
+		reel_strips.append(copy)
+
+
+# 节拍器回调：推进仍在旋转的转轮并逐步加速。没有自动停止——只有玩家按停才会锁定。
+func _on_spin_tick() -> void:
+	if not _spinning:
+		return
+	_spin_ticks += 1
+	var any_moving := false
+	for r in REELS:
+		if not reel_stopped[r]:
+			var len = reel_strips[r].size() if reel_strips.size() > r and not reel_strips[r].is_empty() else 1
+			reel_cursor[r] = (reel_cursor[r] + 1) % len
+			_write_reel_cell(r)
+			any_moving = true
+	if not any_moving:
+		_finish_spin()
+		return
+	var w = max(_SPIN_MIN_WAIT, _SPIN_BASE_WAIT - _spin_ticks * 0.0015)
+	_spin_timer.wait_time = w
+
+
+# 把当前带子位置的符号写入展示格（旋转中每跳调用，复用既有 _refresh_cell）。
+func _write_reel_cell(r: int) -> void:
+	var strip = reel_strips[r] if reel_strips.size() > r else null
+	if strip == null or strip.is_empty():
+		grid[r][0] = TRASH_SYMBOL
+		grid_elem[r][0] = "none"
+	else:
+		var idx = reel_cursor[r] % strip.size()
+		grid[r][0] = strip[idx][0]
+		grid_elem[r][0] = strip[idx][1]
+	hud._refresh_cell(r, 0)
+
+
+# 锁定某列：pos<0 表示锁定在当前带子位置（按停时机）。注废/锁轮列覆盖结果。
+func _lock_reel(r: int, pos: int) -> void:
+	if r < 0 or r >= REELS or reel_stopped[r]:
+		return
+	if r == pending_jam_reel:
+		grid[r][0] = TRASH_SYMBOL
+		grid_elem[r][0] = "none"
+		pending_jam_reel = -1
+	elif r == pending_lock_reel:
+		grid[r][0] = _locked_prev_sym[r]
+		grid_elem[r][0] = _locked_prev_elem[r]
+		pending_lock_reel = -1
+	else:
+		var strip = reel_strips[r]
+		var idx = (pos if pos >= 0 else reel_cursor[r]) % strip.size()
+		grid[r][0] = strip[idx][0]
+		grid_elem[r][0] = strip[idx][1]
+	reel_stopped[r] = true
+	hud._refresh_cell(r, 0)
+	if hud.cells.size() > r and hud.cells[r].size() > 0:
+		hud.cells[r][0].disabled = true
+	var all := true
+	for rr in REELS:
+		if not reel_stopped[rr]:
+			all = false
+			break
+	if all:
+		_finish_spin()
+
+
+# 停止下一列（空格）：依次锁定尚未停下的列，时机由玩家掌握。
+func _stop_next_reel() -> void:
+	for r in REELS:
+		if not reel_stopped[r]:
+			_lock_reel(r, -1)
+			return
+
+
+# 全部转轮停下：停止节拍器、复位交互态、发信号让结算继续。
+func _finish_spin() -> void:
+	if not _spinning:
+		return
+	_spinning = false
+	_spin_timer.stop()
+	for r in REELS:
+		if hud.cells.size() > r and hud.cells[r].size() > 0:
+			hud.cells[r][0].disabled = true
 	pending_jam_reel = -1
 	pending_lock_reel = -1
 	pending_chaos = false
-	if chaos_this_spin:
-		_restore_pool()
+	emit_signal("spin_finished")
+
+
+# SPIN 按钮：旋转中=停止下一列，否则开始旋转。
+func _on_spin_button_pressed() -> void:
+	if _spinning:
+		_stop_next_reel()
+	else:
+		_on_spin_pressed()
+
+
+# 点击某列直接锁定该列（旋转中有效）。
+func _on_reel_clicked(r: int) -> void:
+	if not _spinning or reel_stopped[r]:
+		return
+	_lock_reel(r, -1)
 
 
 # 重转卷轴：免费重转一次（不触发敌人回合）
@@ -661,8 +847,11 @@ func _free_spin() -> void:
 	if _busy:
 		return
 	_busy = true
-	_do_spin_core()
+	_begin_spin()
+	await spin_finished
+	await get_tree().create_timer(0.25).timeout
 	await _evaluate()
+	_busy = false
 	if enemy_hp <= 0:
 		hud._log("★ 重转触发击败 %s！" % enemy_name)
 		game_state = "won"
@@ -830,62 +1019,112 @@ func _retry_room() -> void:
 # ---------------------------------------------------------------------------
 func _reset_grid(fill_random: bool) -> void:
 	hud._clear_badges()
+	hud._clear_damage_breakdown()
+	grid_elem = []
 	for reel in REELS:
+		grid_elem.append([])
 		for row in ROWS:
+			grid_elem[reel].append("none")
 			grid[reel][row] = TRASH_SYMBOL
-			if fill_random:
-				grid[reel][row] = _weighted_random_sym()
+			if fill_random and reel_strips.size() > reel and not reel_strips[reel].is_empty():
+				var idx = randi() % reel_strips[reel].size()
+				grid[reel][row] = reel_strips[reel][idx][0]
+				grid_elem[reel][row] = reel_strips[reel][idx][1]
 			hud._refresh_cell(reel, row)
 
 
-func _contribute(sym: SymbolData, mult: int, acc: Dictionary) -> void:
-	var flat = sym.base + run_power_bonus + charm_power_bonus + _buff_power()   # M6 锋锐护符 + Phase C 狂怒增益
+func _contribute(sym: SymbolData, mult: int, acc: Dictionary, elem: String) -> void:
+	var bonus = _agg_power_flat()             # F-0 聚合层：本局加成 + 护符 + 狂怒增益 + (Phase F 词缀)
+	var flat = sym.base + bonus
+	# 逐符号元素克制倍率（Phase G v2.0：通用元素乘区，奖罚并存·温和）
+	var em = ElementCounter.multiplier(elem, enemy_element)
+	if em > 1.0:
+		_eval_adv = true
+	elif em < 1.0:
+		_eval_dis = true
 	match sym.kind:
-		"damage":  acc["dmg"]     += flat * mult
+		"damage":
+			var dv = flat * mult * em
+			acc["dmg"] += dv
+			_push_dmg_line(acc, sym, elem, flat, bonus, mult, em, dv, false)
 		"shield":  acc["shield"]  += sym.base * mult
 		"heal":    acc["heal"]    += sym.base * mult
 		"status":  acc["status_stacks"][sym.status_type] = acc["status_stacks"].get(sym.status_type, 0) + mult
 		"special":
-			# special 降级：1 同即生效（base×c），3 同额外追加一次 base
-			var v = flat * mult
-			if mult >= 3:
-				v += flat
-			acc["special"] += v
+			# special 降级：1 同即生效（base×c），3 同额外追加一次 base；均吃元素倍率
+			var sv = flat * mult * em
+			var crit = mult >= 3
+			if crit:
+				sv += flat * em
+			acc["special"] += sv
+			_push_dmg_line(acc, sym, elem, flat, bonus, mult, em, sv, crit)
 		_: pass
+
+
+# S2：伤害分解行（§5.2 标为 P0——"爽感的一半来自看懂这一下为什么这么大"；
+# 同时是 ante 调参（ANTE_ALPHA_HP/ATK）的唯一 debug 依据）。
+# 逐符号记录「基础 × 连线 × 克制 = 小计」，回合级乘区（护符/增益/强袭）在 _evaluate 汇总。
+func _push_dmg_line(acc: Dictionary, sym: SymbolData, elem: String, flat, bonus, mult: int, em: float, v: float, crit: bool) -> void:
+	if not acc.has("lines"):
+		return
+	var parts := []
+	if bonus > 0:
+		parts.append("基础%d(=%d+%d)" % [int(flat), int(sym.base), int(bonus)])
+	else:
+		parts.append("基础%d" % int(flat))
+	if mult > 1:
+		parts.append("连线%d" % mult)
+	if em > 1.0:
+		parts.append("克制×%s" % ElementCounter.fmt_mult(em))
+	elif em < 1.0:
+		parts.append("抗性×%s" % ElementCounter.fmt_mult(em))
+	var etxt = "" if elem == "none" else "·" + ElementCounter.label(elem)
+	var line = "   %s %s%s  %s = %d" % [sym.label, sym.name, etxt, " × ".join(parts), int(round(v))]
+	if crit:
+		line += "（含三连追加 +%d）" % int(round(flat * em))
+	acc["lines"].append(line)
 
 
 # 结算：分两阶段（先防御/增益/状态，后攻击），接单向属性克制与强袭药剂。
 func _evaluate() -> void:
 	hud._clear_badges()
-	var acc = { "dmg": 0, "shield": 0, "heal": 0, "status_stacks": {}, "special": 0 }
+	var acc = { "dmg": 0, "shield": 0, "heal": 0, "status_stacks": {}, "special": 0, "lines": [] }
+	_eval_adv = false
+	_eval_dis = false
 
-	var row_syms: Array = []
-	for p in PAYLINES[0]:
-		row_syms.append(grid[p[0]][p[1]])
+	# 按「符号 + 有效元素」计数（解决共享符号跨武器元素冲突；HUD 角标据此展示）
 	var counts = {}
-	for s in row_syms:
-		counts[s] = counts.get(s, 0) + 1
+	for p in PAYLINES[0]:
+		var sym: SymbolData = grid[p[0]][p[1]]
+		var elem: String = grid_elem[p[0]][p[1]]
+		var key: String = sym.resource_path + "|" + elem
+		if not counts.has(key):
+			counts[key] = [sym, elem, 0]
+		counts[key][2] += 1
 	# Phase C：先结算 buff 符号（本回合即生效，命中当回合就吃到增益）
-	for s in counts:
+	for key in counts:
+		var s: SymbolData = counts[key][0]
 		if s == TRASH_SYMBOL or s.kind != "buff":
 			continue
-		_grant_buff(s, counts[s])
-	# 再结算常规符号（此时 _contribute 读到的已是含新增益的加成）
-	for s in counts:
+		_grant_buff(s, counts[key][2])
+	# 再结算常规符号（此时 _contribute 读到的已是含新增益的加成，并按各自有效元素吃克制）
+	for key in counts:
+		var s: SymbolData = counts[key][0]
+		var elem: String = counts[key][1]
+		var c: int = counts[key][2]
 		if s == TRASH_SYMBOL or s.kind == "buff":
 			continue
-		var c = counts[s]
 		if s.kind == "special" and c < 1:
 			continue
-		_contribute(s, c, acc)
+		_contribute(s, c, acc, elem)
 
 	# 匹配角标（×N，N>=2）
 	hud._update_match_badges(counts)
 
 	# —— 阶段 1：防御 / 增益 / 状态先落地 ——
-	# Phase C：铁壁(shield)/回春(regen) 按回合生效，并入本回合护盾与治疗
-	acc["shield"] += int(_buff_shield())
-	acc["heal"] += int(_buff_regen())
+	# Phase C：铁壁(shield)/回春(regen) 按回合生效，并入本回合护盾与治疗（F-0 聚合层）
+	acc["shield"] += int(_agg_shield())
+	acc["heal"] += int(_agg_regen())
 	for st in acc["status_stacks"].keys():
 		enemy_status[st] = enemy_status.get(st, 0) + acc["status_stacks"][st]
 	if acc["shield"] > 0:
@@ -903,17 +1142,40 @@ func _evaluate() -> void:
 	hud._refresh_meta()
 	await get_tree().create_timer(0.45).timeout
 
-	# —— 阶段 2：攻击结算（单向克制 + 强袭药剂）——
-	var sp_mult = ElementCounter.multiplier(_special_element, enemy_element)
-	# Phase C：迅捷(damage_mult) 对本回合总伤害做乘算
-	var buff_mult = _buff_damage_mult()
-	var total = int((acc["dmg"] + acc["special"] * sp_mult) * assault_next_spin * buff_mult)
+	# —— 阶段 2：攻击结算（逐符号克制已在 _contribute 计入；此处只乘护符/强袭）——
+	# Phase C：迅捷(damage_mult) 对本回合总伤害做乘算（F-0 聚合层，含护符乘区）
+	var buff_mult = _agg_damage_mult()
+	var assault = assault_next_spin
+	var subtotal = acc["dmg"] + acc["special"]
+	var total = int(subtotal * assault * buff_mult)
 	assault_next_spin = 1
+	# S2：输出伤害分解——逐符号明细 + 回合级乘区汇总（走中栏独立面板，不进战斗日志）
+	if acc["lines"].is_empty():
+		hud._clear_damage_breakdown()
+	else:
+		var blk := ["🔍 伤害分解"]
+		blk.append_array(acc["lines"])
+		var tail := []
+		var cm = charm_damage_mult
+		var bm = _buff_damage_mult()
+		if cm != 1.0:
+			tail.append("护符×%s" % ElementCounter.fmt_mult(cm))
+		if bm != 1.0:
+			tail.append("增益×%s" % ElementCounter.fmt_mult(bm))
+		if assault != 1:
+			tail.append("强袭×%s" % ElementCounter.fmt_mult(float(assault)))
+		if tail.is_empty():
+			blk.append("   合计 = %d" % total)
+		else:
+			blk.append("   小计 %d × %s = %d" % [int(round(subtotal)), " × ".join(tail), total])
+		hud._show_damage_breakdown("\n".join(blk))
 	if total > 0:
 		enemy_hp -= total
 		var elem_tag := ""
-		if acc["special"] > 0 and sp_mult != 1.0:
-			elem_tag = ElementCounter.tag(_special_element, enemy_element)
+		if _eval_adv:
+			elem_tag += " [克制]"
+		if _eval_dis:
+			elem_tag += " [抵抗]"
 		if buff_mult != 1.0:
 			elem_tag += "⚡"
 		hud._popup("-%d%s" % [total, elem_tag], Palette.POP_DAMAGE, hud._enemy_panel_anchor())
@@ -922,6 +1184,49 @@ func _evaluate() -> void:
 	# Phase C：回合末递减增益剩余回合
 	_tick_buffs()
 
+
+# ---------------------------------------------------------------------------
+# 属性聚合层 (F-0) — 所有「修正轴」的统一查询入口
+# ---------------------------------------------------------------------------
+# 背景：M4 本局加成(run_*)、M6 护符(charm_*)、Phase C 增益(_buff_*) 各自独立地
+# 散落在 _contribute / _evaluate / _build_pool 中，每加一类修正就要在三四处各插一刀。
+# 本层把「加法标量 / 乘法标量 / 符号权重」三类轴统一成一组 _agg_* 查询，
+# 调用方只认聚合层、不认具体来源。
+#
+# 新增一条修正轴（如 Phase F 词缀）只需在对应 _agg_* 末尾加一行求和，战斗结算零改动。
+# 当前各 _affix_* 为占位（返回中性值），接入后改为遍历 player_affixes。
+#
+# 注意：本层只聚合「每符号 / 每回合」类修正。房开局护盾（守望护符 charm_room_shield
+# / 守望结界 run_shield_next）与抗扰 / 净化上限等是「房间级」修正，仍在各自原位处理，
+# 不进入此层。铁砧转轮升级(meta.weapon_upgrades)是「武器级」权重，在 _build_pool 内处理。
+# ---------------------------------------------------------------------------
+var player_affixes: Array = []   # Phase F 接入点：整备确认时填入武器实例词缀；当前空
+
+# —— 加法型标量轴（多个来源直接相加）——
+func _agg_power_flat() -> float:
+	return float(run_power_bonus) + float(charm_power_bonus) + _buff_power() + _affix_power()
+
+func _agg_shield() -> float:
+	return _buff_shield() + _affix_shield()
+
+func _agg_regen() -> float:
+	return _buff_regen() + _affix_regen()
+
+# —— 乘法型轴（各乘区独立相乘，基值 1.0）——
+func _agg_damage_mult() -> float:
+	# 护符全局乘区（joker）× 增益乘区（Phase C）× 词缀乘区（占位）
+	return charm_damage_mult * _buff_damage_mult() * _affix_damage_mult()
+
+# —— 符号权重轴（本局符号灌注 + 全局词缀；武器级权重见 _build_pool）——
+func _agg_symbol_weight_mod(sym: SymbolData) -> float:
+	return float(run_symbol_bonus.get(sym.resource_path, 0.0)) + _affix_symbol_weight(sym)
+
+# —— Phase F 词缀占位（当前返回中性值，接入后改为遍历 player_affixes 求和）——
+func _affix_power() -> float:                     return 0.0
+func _affix_shield() -> float:                    return 0.0
+func _affix_regen() -> float:                     return 0.0
+func _affix_damage_mult() -> float:               return 1.0
+func _affix_symbol_weight(sym: SymbolData) -> float: return 0.0
 
 # ---------------------------------------------------------------------------
 # Phase C 主动增益：符号自描述（sym.buff_effect / buff_value / buff_turns），零查表
@@ -1024,4 +1329,7 @@ func _input(event) -> void:
 	if in_loadout:
 		return
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_SPACE:
-		_on_spin_pressed()
+		if _spinning:
+			_stop_next_reel()
+		else:
+			_on_spin_pressed()

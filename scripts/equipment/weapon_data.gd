@@ -49,6 +49,10 @@ enum WeaponType { MELEE, RANGED }
 # 该武器特殊符号（kind=="special"）的属性元素（fire/ice/poison/light/dark/none）。
 # 用于单向属性克制：玩家特殊符号元素 → 敌人元素。普通伤害符号恒为 none（中性）。
 @export var reel_element: String = "none"
+# 武器元素（Phase G v2.0 武器元素化）。普通伤害/治疗/护盾/状态符号若自身 element 为
+# "none"，则继承此值；special 符号优先用 reel_element（见 duel_controller._eff_element）。
+# 中性开局武器保持 "none"，其符号恒为中性。
+@export var element: String = "none"
 
 
 # ⚠️ 死代码 / 预留接口（Phase D 死代码治理，与 equipment/enums.gd、stat_modifier.gd 同族）：

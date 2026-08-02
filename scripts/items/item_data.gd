@@ -12,6 +12,7 @@ extends Resource
 @export var description: String = ""
 @export var icon: String = "🧪"          # 展示用 emoji
 @export var category: String = "active"  # active / passive
-@export var effect: String = ""          # 主动: purify/heal/assault/reroll；被动: damage_bonus/room_shield/interference_resist/purify_bonus
-@export var value: int = 0               # 效果数值
+@export var effect: String = ""          # 主动: purify/heal/assault/reroll；被动: damage_bonus/room_shield/interference_resist/purify_bonus/damage_mult
+@export var value: int = 0               # 效果数值（加成型）
+@export var mult_value: float = 1.0      # 乘区类效果数值（被动 damage_mult：如 1.5 = 全局 ×1.5）
 @export var charges: int = 1             # 主动物品每房可用次数（开局回满）；被动物品忽略

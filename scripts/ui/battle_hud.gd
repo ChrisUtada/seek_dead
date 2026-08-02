@@ -52,6 +52,9 @@ var overlay_label
 var overlay_button
 var legend_box
 var legend_container
+# S2：伤害分解面板（中栏，转轮正下方；每次结算整体替换，不走战斗日志）
+var dmg_breakdown_box
+var dmg_breakdown_label
 var player_panel          # 左：玩家面板（飘字锚点）
 var enemy_panel           # 右：敌人面板（飘字锚点）
 
@@ -201,6 +204,7 @@ func _build_ui() -> void:
 			cell.mouse_filter = Control.MOUSE_FILTER_STOP
 			cell.connect("mouse_entered", _on_cell_hover.bind(reel, row))
 			cell.connect("mouse_exited", _on_cell_unhover)
+			cell.connect("pressed", controller._on_reel_clicked.bind(reel))
 			grid_container.add_child(cell)
 			cells[reel].append(cell)
 			controller.grid[reel].append(TRASH_SYMBOL)
@@ -216,6 +220,26 @@ func _build_ui() -> void:
 	enemy_status_label = _label("状态: 无", TypeScale.META)
 	intent_box.add_child(enemy_intent_label)
 	intent_box.add_child(enemy_status_label)
+
+	# S2：伤害分解面板。放在中栏（最宽、正对转轮），每回合整体替换。
+	# 不走战斗日志的原因：_log 是 push_front（多行会倒序）、上限 10 条、右栏仅 170px 宽会挤爆。
+	dmg_breakdown_box = PanelContainer.new()
+	var dstyle = StyleBoxFlat.new()
+	dstyle.bg_color = Palette.PANEL_BG_ALT
+	dstyle.border_color = Palette.PANEL_BORDER
+	dstyle.set_border_width_all(1)
+	dstyle.set_corner_radius_all(6)
+	dstyle.content_margin_left = 8
+	dstyle.content_margin_right = 8
+	dstyle.content_margin_top = 4
+	dstyle.content_margin_bottom = 4
+	dmg_breakdown_box.add_theme_stylebox_override("panel", dstyle)
+	dmg_breakdown_box.visible = false
+	center.add_child(dmg_breakdown_box)
+	dmg_breakdown_label = _label("", TypeScale.TINY)
+	dmg_breakdown_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	dmg_breakdown_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	dmg_breakdown_box.add_child(dmg_breakdown_label)
 
 	# 符号图例（每符号名称/类型/元素 + 敌人属性），帮助理解"符号作用"
 	legend_box = PanelContainer.new()
@@ -272,7 +296,7 @@ func _build_ui() -> void:
 	spin.text = "SPIN (空格)"
 	spin.custom_minimum_size = Vector2(140, 48)
 	spin.add_theme_font_size_override("font_size", TypeScale.SUBTITLE)
-	spin.connect("pressed", controller._on_spin_pressed)
+	spin.connect("pressed", controller._on_spin_button_pressed)
 	bot.add_child(spin)
 
 	var purify = UI_BUTTON.instantiate()
@@ -754,15 +778,31 @@ func _build_symbol_tooltip() -> void:
 	add_child(symbol_tooltip)
 
 
+# 读某格的「有效元素」——即符号继承武器 element 之后的结果（controller.grid_elem）。
+# 注意：不能读 SymbolData.element（符号原生元素）。共享 .tres（如 slash）在火剑下
+# 有效元素是 fire、在铁剑下是 none，只有 grid_elem 与 _contribute 的结算口径一致。
+func _cell_element(reel: int, row: int) -> String:
+	if controller == null:
+		return "none"
+	if controller.grid_elem.size() <= reel:
+		return "none"
+	if controller.grid_elem[reel].size() <= row:
+		return "none"
+	return controller.grid_elem[reel][row]
+
+
 func _on_cell_hover(reel: int, row: int) -> void:
 	if symbol_tooltip == null or controller == null:
 		return
 	if controller.grid.size() <= reel or controller.grid[reel].size() <= row:
 		return
 	var s: SymbolData = controller.grid[reel][row]
-	var elem = s.element
+	# S1 修复：原先读 s.element（符号原生元素），火剑的斩击会显示"无属性"，
+	# 而结算按 fire 吃 ×1.5——tooltip 与实际伤害对不上。改读有效元素。
+	var elem = _cell_element(reel, row)
 	var rel = ElementCounter.relation(elem, controller.enemy_element)
-	var rel_text = ("" if elem == "none" else " · 对敌%s" % rel)
+	var rel_mult = ElementCounter.multiplier(elem, controller.enemy_element)
+	var rel_text = ("" if elem == "none" else " · 对敌%s ×%s" % [rel, ElementCounter.fmt_mult(rel_mult)])
 	symbol_tooltip_label.text = "%s %s" % [s.label, s.name]
 	if s.kind == "buff":
 		# Phase C：增益符号显示效果与持续回合，而非属性克制
@@ -816,11 +856,11 @@ func _clear_badges() -> void:
 
 func _update_match_badges(counts: Dictionary) -> void:
 	_clear_badges()
-	for s in counts:
-		if s == TRASH_SYMBOL:
-			continue
-		var c = counts[s]
-		if c < 2:
+	for key in counts:
+		var entry = counts[key]
+		var s: SymbolData = entry[0]
+		var c = entry[2]
+		if s == TRASH_SYMBOL or c < 2:
 			continue
 		for reel in controller.REELS:
 			for row in controller.ROWS:
@@ -839,17 +879,38 @@ func _refresh_legend() -> void:
 	for c in legend_container.get_children():
 		legend_container.remove_child(c)
 		c.queue_free()
-	var et = _label("敌人属性：%s" % ElementCounter.label(controller.enemy_element), TypeScale.META)
-	et.add_theme_color_override("font_color", ElementCounter.color(controller.enemy_element))
+	# S3：敌人栏改为「弱点 / 抗性」视角。原先只显示"敌人属性：火"，玩家还得
+	# 自己在脑子里跑一遍五元环才知道该带什么武器——这里直接把结论摆出来。
+	var eelem: String = controller.enemy_element
+	var et = _label("敌人 %s" % ElementCounter.label(eelem), TypeScale.META)
+	et.add_theme_color_override("font_color", ElementCounter.color(eelem))
 	et.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	legend_container.add_child(et)
+	var ewk := ElementCounter.weakness(eelem)
+	var ers := ElementCounter.resists(eelem)
+	if ewk == "none":
+		var en = _label("无属性 · 不吃克制（任何元素均 ×1.0）", TypeScale.TINY)
+		en.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		en.add_theme_color_override("font_color", ElementCounter.color("none"))
+		legend_container.add_child(en)
+	else:
+		var lw = _label("弱 %s ×%s" % [ElementCounter.label(ewk), ElementCounter.fmt_mult(ElementCounter.MULT_ADVANTAGE)], TypeScale.TINY)
+		lw.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		lw.add_theme_color_override("font_color", ElementCounter.color(ewk))
+		legend_container.add_child(lw)
+		var lr = _label("抗 %s ×%s" % [ElementCounter.label(ers), ElementCounter.fmt_mult(ElementCounter.MULT_RESIST)], TypeScale.TINY)
+		lr.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		lr.add_theme_color_override("font_color", ElementCounter.color(ers))
+		legend_container.add_child(lr)
 	var seen := {}
 	for p in controller.pool:
 		var d: SymbolData = p[0]
-		if seen.has(d.resource_path):
+		var pelem: String = p[2] if p.size() > 2 else d.element
+		var key = d.resource_path + "|" + pelem
+		if seen.has(key):
 			continue
-		seen[d.resource_path] = true
-		var elem = d.element
+		seen[key] = true
+		var elem = pelem
 		var kindname = _kind_name(d.kind)
 		var t = "%s %s · %s%s" % [d.label, d.name, kindname, ("" if elem == "none" else " · " + ElementCounter.label(elem))]
 		var tint = ElementCounter.color(elem)
@@ -867,7 +928,8 @@ func _refresh_legend() -> void:
 func _legend_signature() -> String:
 	var ids := []
 	for p in controller.pool:
-		ids.append(p[0].resource_path)
+		var pelem: String = p[2] if p.size() > 2 else "none"
+		ids.append(p[0].resource_path + "|" + pelem)
 	ids.sort()
 	return "%s|%s" % [",".join(ids), controller.enemy_element]
 
@@ -910,18 +972,67 @@ func _player_panel_anchor() -> Control:
 	return player_panel
 
 
+# S2：显示本回合伤害分解（整块替换；传空则隐藏面板）
+func _show_damage_breakdown(text: String) -> void:
+	if dmg_breakdown_box == null:
+		return
+	if text.strip_edges().is_empty():
+		dmg_breakdown_box.visible = false
+		dmg_breakdown_label.text = ""
+		return
+	dmg_breakdown_label.text = text
+	dmg_breakdown_box.visible = true
+
+
+func _clear_damage_breakdown() -> void:
+	_show_damage_breakdown("")
+
+
 func _enemy_panel_anchor() -> Control:
 	return enemy_panel
+
+
+# S4：元素样式缓存。旋转最高速约 28 跳/秒 × 3 列，若每次 new StyleBoxFlat
+# 会产生大量短命对象；按元素各缓存一份即可（StyleBox 可跨按钮共享）。
+var _cell_style_cache := {}
+
+
+func _cell_style(elem: String) -> StyleBoxFlat:
+	if _cell_style_cache.has(elem):
+		return _cell_style_cache[elem]
+	var sb = StyleBoxFlat.new()
+	sb.set_corner_radius_all(6)
+	if elem == "none":
+		sb.bg_color = Palette.CELL_BG
+		sb.border_color = Palette.PANEL_BORDER
+		sb.set_border_width_all(1)
+	else:
+		var ec: Color = ElementCounter.color(elem)
+		sb.bg_color = Palette.CELL_BG.lerp(ec, 0.14)
+		sb.border_color = ec
+		sb.set_border_width_all(3)
+	_cell_style_cache[elem] = sb
+	return sb
 
 
 func _refresh_cell(reel: int, row: int) -> void:
 	var b: Button = cells[reel][row]
 	var s: SymbolData = controller.grid[reel][row]
+	# S4：按「有效元素」着色。同一个 slash.tres 在火剑下是火、在铁剑下是无属性，
+	# 靠边框/底色一眼分辨谁吃 ×1.5；元素为 none 时回落符号自身配色。
+	var elem = _cell_element(reel, row)
 	b.text = s.label
-	b.add_theme_color_override("font_color", s.color)
-	var sb = StyleBoxFlat.new()
-	sb.bg_color = Palette.CELL_BG
+	var fc: Color = s.color if elem == "none" else s.color.lerp(ElementCounter.color(elem), 0.55)
+	# 格子在非旋转期是 disabled 态，只覆盖 font_color 会被主题的禁用色盖掉，四态都要给。
+	b.add_theme_color_override("font_color", fc)
+	b.add_theme_color_override("font_disabled_color", fc)
+	b.add_theme_color_override("font_hover_color", fc)
+	b.add_theme_color_override("font_pressed_color", fc)
+	var sb = _cell_style(elem)
 	b.add_theme_stylebox_override("normal", sb)
+	b.add_theme_stylebox_override("hover", sb)
+	b.add_theme_stylebox_override("pressed", sb)
+	b.add_theme_stylebox_override("disabled", sb)
 
 
 func _refresh_meta() -> void:
