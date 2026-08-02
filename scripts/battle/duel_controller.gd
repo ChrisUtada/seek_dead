@@ -342,10 +342,10 @@ func _on_card_toggled(card: Dictionary) -> void:
 		card["selected"] = false
 		arr.erase(card["path"])
 	else:
-	if arr.size() >= _cat_max(cat):
-		hud._log("%s已达上限 %d" % [_cat_name(cat), _cat_max(cat)])
-		return
-	card["selected"] = true
+		if arr.size() >= _cat_max(cat):
+			hud._log("%s已达上限 %d" % [_cat_name(cat), _cat_max(cat)])
+			return
+		card["selected"] = true
 		arr.append(card["path"])
 	hud._update_loadout_cards_visual()
 	hud._update_loadout_count()
