@@ -55,16 +55,18 @@ var ITEM_POOL: Array = []
 # Phase C 主动增益：携带后其符号进入转轮，连线命中施加限时增益
 var BUFF_POOL: Array = []
 
-# 携带约束（Phase G 收紧）：按「进池 / 不进池」两把尺子分开管，而不是按总数一刀切。
+# 携带约束（Phase G 收紧 + S9 槽位成长）：按「进池 / 不进池」两把尺子分开管，而不是按总数一刀切。
 #   · 进池类（武器 / 增益）：符号会挤进同一条转轮带 → 带多了稀释克制乘区、稀释 special
-#     三连、拉长带子让「按停到目标符号」变难。故上限压得很死：武器 1–2、增益 0–1。
+#     三连、拉长带子让「按停到目标符号」变难。故增益死压 0–1；武器则不再设独立硬上限（见下 S9）。
 #   · 不进池类：消耗品只影响界面负担，尺度可宽松；护符虽不进池，但是「唯一收集乘区」，
 #     须严格限量（见下「护符硬上限」注），不可照搬消耗品的宽松尺度。
-#   · TOTAL_MAX 是真正的取舍闸门：分类上限之和 = 2+1+2+3 = 8 > 5，逼玩家「想带的比能带的多」。
+#   · TOTAL_MAX 是真正的取舍闸门：分类名义上限之和 = 5(武器)+1+2+3 = 11 > 5，逼玩家「想带的比能带的多」。
 # 注：护符为「唯一收集乘区」，硬上限 3、不成长。未来混合护符（正负并存）的负面即其平衡刹车，
 #     故无需「护符槽成长」通道（旧 Phase G 的 1→4 成长计划已废弃）。
+# S9 武器槽成长（用户拍板）：武器**无独立硬上限**，买武器直接开槽——上限统一为 TOTAL_MAX 剩余空间；
+#   金币通过「商店武器价随已持数递增」控制槽成长节奏；废铁权重/转轮稀释/按停难度为自然刹车（§7.2）。
+#   原则统一：有自然刹车的进池类（武器）用经济软约束，无刹车的（护符）用硬上限。
 const LOADOUT_MIN := 1
-const LOADOUT_MAX := 2
 const CONSUMABLE_MIN := 0
 const CONSUMABLE_MAX := 2
 const CHARM_MIN := 0
@@ -364,7 +366,7 @@ func _sel_arr(cat: String) -> Array:
 
 func _cat_max(cat: String) -> int:
 	match cat:
-		"weapon":  return LOADOUT_MAX
+		"weapon":  return TOTAL_MAX   # S9：武器无独立硬上限，上限=全局总槽（_total_selected 总闸门二次约束）
 		"active":  return CONSUMABLE_MAX
 		"passive": return CHARM_MAX
 		"buff":    return BUFF_MAX
@@ -556,9 +558,13 @@ func _award_gold(is_boss: bool) -> void:
 	gold += total
 	hud._log("金币 +%d（清房 %d + 利息 %d，共 %d）" % [total, base, interest, gold])
 
-func _shop_price(kind: String) -> int:
+func _shop_price(kind: String, owned := 0) -> int:
 	var base = {"weapon": 8, "passive": 10, "active": 5, "buff": 6}.get(kind, 6)
-	return max(3, base + randi_range(-1, 2))
+	var price = base + randi_range(-1, 2)
+	# S9：武器价随已持数量递增（金币控制槽位成长）。第 N 把附加 (N-1)*6，使追加武器成本显著上升。
+	if kind == "weapon":
+		price += owned * 6
+	return max(3, price)
 
 func _shop_name(path: String, kind: String) -> String:
 	var d = load(path)
@@ -585,7 +591,7 @@ func _roll_shop() -> void:
 	shop_offers = []
 	for i in n:
 		var c = candidates[i]
-		shop_offers.append({"path": c["path"], "kind": c["kind"], "price": _shop_price(c["kind"]), "name": _shop_name(c["path"], c["kind"]), "sold": false})
+		shop_offers.append({"path": c["path"], "kind": c["kind"], "price": _shop_price(c["kind"], c["kind"] == "weapon" ? selected_loadout.size() : 0), "name": _shop_name(c["path"], c["kind"]), "sold": false})
 
 func _on_shop_buy_pressed(offer: Dictionary) -> void:
 	if offer["sold"]:
@@ -597,6 +603,9 @@ func _on_shop_buy_pressed(offer: Dictionary) -> void:
 	var cap = _cat_max(offer["kind"])
 	if arr.size() >= cap:
 		hud._log("%s槽位已满，无法购买" % _cat_name(offer["kind"]))
+		return
+	if _total_selected() >= TOTAL_MAX:   # S9：与整备屏一致，商店也受全局总槽约束（修此前可超总槽的潜在缺口）
+		hud._log("总槽已达上限 %d" % TOTAL_MAX)
 		return
 	if gold < offer["price"]:
 		hud._log("金币不足（需 %d）" % offer["price"])

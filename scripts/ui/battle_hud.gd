@@ -364,7 +364,7 @@ func _build_loadout_screen() -> void:
 	var title = _label("⚙ 整备 · 选择携带物品", TypeScale.LEAD)
 	title.add_theme_color_override("font_color", Palette.TITLE)
 	root.add_child(title)
-	var rule = _label("武器 %d–%d 把 · 物品（主动 0–%d · 被动 0–%d） · 增益 0–%d · 总槽 %d  |  武器/增益=进转轮的符号来源 · 物品=可携带（主动消耗 · 被动护符）" % [controller.LOADOUT_MIN, controller.LOADOUT_MAX, controller.CONSUMABLE_MAX, controller.CHARM_MAX, controller.BUFF_MAX, controller.TOTAL_MAX], 10)
+	var rule = _label("武器 %d+ 把（无硬上限·受总槽 %d 约束） · 物品（主动 0–%d · 被动 0–%d） · 增益 0–%d · 总槽 %d  |  武器/增益=进转轮的符号来源 · 物品=可携带（主动消耗 · 被动护符）" % [controller.LOADOUT_MIN, controller.TOTAL_MAX, controller.CONSUMABLE_MAX, controller.CHARM_MAX, controller.BUFF_MAX, controller.TOTAL_MAX], 10)
 	rule.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	root.add_child(rule)
 
@@ -529,7 +529,7 @@ func _make_item_card(data: Resource, path: String, kind: String) -> Dictionary:
 
 # 卡片点击：三分类通用 toggle（受分类上限与总槽约束）
 func _update_loadout_cards_visual() -> void:
-	var wfull = controller.selected_loadout.size() >= controller.LOADOUT_MAX
+	var wfull = controller.selected_loadout.size() >= controller._cat_max("weapon")
 	var cfull = controller.selected_consumables.size() >= controller.CONSUMABLE_MAX
 	var hfull = controller.selected_charms.size() >= controller.CHARM_MAX
 	var bfull = controller.selected_buffs.size() >= controller.BUFF_MAX
@@ -558,7 +558,7 @@ func _update_loadout_count() -> void:
 	var items = controller.selected_consumables.size() + controller.selected_charms.size()
 	loadout_count_label.text = "武器 %d · 增益 %d · 物品 %d · 总 %d/%d" % [controller.selected_loadout.size(), controller.selected_buffs.size(), items, t, controller.TOTAL_MAX]
 	if loadout_columns.has("weapon"):
-		loadout_columns["weapon"].text = "武器 %d/%d" % [controller.selected_loadout.size(), controller.LOADOUT_MAX]
+		loadout_columns["weapon"].text = "武器 %d/%d" % [controller.selected_loadout.size(), controller._cat_max("weapon")]
 	if loadout_columns.has("buff"):
 		loadout_columns["buff"].text = "增益 %d/%d" % [controller.selected_buffs.size(), controller.BUFF_MAX]
 	if loadout_columns.has("item"):
