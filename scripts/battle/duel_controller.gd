@@ -55,24 +55,24 @@ var ITEM_POOL: Array = []
 # Phase C 主动增益：携带后其符号进入转轮，连线命中施加限时增益
 var BUFF_POOL: Array = []
 
-# 携带约束（Phase G 收紧）：按「进池 / 不进池」两把尺子分开管，而不是按总数一刀切。
-#   · 进池类（武器 / 增益）：符号会挤进同一条转轮带 → 带多了稀释克制乘区、稀释 special
-#     三连、拉长带子让「按停到目标符号」变难。故增益死压 0–1；武器初始上限 2（开局免费配给），
-#     后续在商店花金币买武器可逐步扩槽（买武器即开槽），封顶 TOTAL_MAX；带越多废铁越多/按停越难、自身即刹车。
-#   · 不进池类：消耗品只影响界面负担，尺度可宽松；护符虽不进池，但是「唯一收集乘区」，
-#     须严格限量（见下「护符硬上限」注），不可照搬消耗品的宽松尺度。
-#   · TOTAL_MAX 是真正的取舍闸门：分类名义上限之和 = 2(武器)+1+2+3 = 8 > 5，逼玩家「想带的比能带的多」。
-# 注：护符为「唯一收集乘区」，硬上限 3、不成长。未来混合护符（正负并存）的负面即其平衡刹车，
-#     故无需「护符槽成长」通道（旧 Phase G 的 1→4 成长计划已废弃）。
+# 携带约束（Phase G 收紧）：四类各自占【独立槽位】，互不算总、不共享上限。
+#   · 武器：初始上限 2（开局免费配给），商店花金币买武器可逐步扩槽（买武器即开槽），
+#     封顶 WEAPON_MAX；带越多废铁越多/按停越难、自身即刹车（进池稀释效应）。
+#   · 增益(buff)：进池类，符号挤占转轮带，死压 0–1。
+#   · 消耗品(active)：不进池，仅界面负担，宽松 0–2。
+#   · 护符(passive)：不进池，但「唯一收集乘区」，硬上限 3、不成长（混合护符负面即其平衡刹车）。
+# 四类上限彼此独立（武器 2→5 / 增益 1 / 消耗品 2 / 护符 3），不存在「总槽」概念；
+# 取舍张力来自各自内部（如武器越扩越贵、护符满 3 即封顶），而非跨类合计。
+# 注：护符为「唯一收集乘区」，硬上限 3、不成长。故无需「护符槽成长」通道（旧 Phase G 1→4 计划已废弃）。
 const LOADOUT_MIN := 1
-var loadout_max := 2   # 武器槽上限（初始 2；商店花金币买武器逐步扩槽，封顶 TOTAL_MAX）
+var loadout_max := 2   # 武器槽上限（初始 2；商店花金币买武器逐步扩槽，封顶 WEAPON_MAX）
 const CONSUMABLE_MIN := 0
 const CONSUMABLE_MAX := 2
 const CHARM_MIN := 0
 const CHARM_MAX := 3
 const BUFF_MIN := 0
 const BUFF_MAX := 1
-const TOTAL_MAX := 5
+const WEAPON_MAX := 5   # 武器槽天花板（仅约束武器扩槽，与其他三类无关）
 
 const REELS = 3
 const ROWS = 1
@@ -342,13 +342,10 @@ func _on_card_toggled(card: Dictionary) -> void:
 		card["selected"] = false
 		arr.erase(card["path"])
 	else:
-		if arr.size() >= _cat_max(cat):
-			hud._log("%s已达上限 %d" % [_cat_name(cat), _cat_max(cat)])
-			return
-		if _total_selected() >= TOTAL_MAX:
-			hud._log("总槽已达上限 %d" % TOTAL_MAX)
-			return
-		card["selected"] = true
+	if arr.size() >= _cat_max(cat):
+		hud._log("%s已达上限 %d" % [_cat_name(cat), _cat_max(cat)])
+		return
+	card["selected"] = true
 		arr.append(card["path"])
 	hud._update_loadout_cards_visual()
 	hud._update_loadout_count()
@@ -600,26 +597,23 @@ func _on_shop_buy_pressed(offer: Dictionary) -> void:
 		hud._log("已拥有 %s，无法重复购买" % offer["name"])
 		return
 	var w = arr.size()
-	var cap = _cat_max(kind)            # 武器 = loadout_max（初始 2），其余 = 固定上限
-	# 已达当前分类上限：武器可「买武器开槽」再扩 1（受 TOTAL_MAX 约束）；其他类直接拒
+	var cap = _cat_max(kind)            # 武器 = loadout_max（初始 2，商店可扩），其余 = 固定上限
+	# 已达当前分类上限：武器可「买武器开槽」再扩 1（封顶 WEAPON_MAX）；其他类直接拒
 	if w >= cap:
-		if kind == "weapon" and loadout_max < TOTAL_MAX:
-			pass                          # 允许扩槽购买，继续走总槽/金币校验
+		if kind == "weapon" and loadout_max < WEAPON_MAX:
+			pass                          # 允许扩槽购买，继续走金币校验
 		else:
 			hud._log("%s槽位已满，无法购买" % _cat_name(kind))
 			return
-	if _total_selected() >= TOTAL_MAX:   # 全局总槽闸门（四类共享 5 格）
-		hud._log("总槽已达上限 %d" % TOTAL_MAX)
-		return
 	if gold < offer["price"]:
 		hud._log("金币不足（需 %d）" % offer["price"])
 		return
 	gold -= offer["price"]
 	arr.append(offer["path"])
 	offer["sold"] = true
-	if kind == "weapon" and w >= cap:   # 本次是扩槽购买 → 武器槽 +1（封顶 TOTAL_MAX）
-		loadout_max = min(loadout_max + 1, TOTAL_MAX)
-		hud._log("购买 %s（武器槽 +1 → %d/%d，-%d 金，余 %d）" % [offer["name"], loadout_max, TOTAL_MAX, offer["price"], gold])
+	if kind == "weapon" and w >= cap:   # 本次是扩槽购买 → 武器槽 +1（封顶 WEAPON_MAX）
+		loadout_max = min(loadout_max + 1, WEAPON_MAX)
+		hud._log("购买 %s（武器槽 +1 → %d/%d，-%d 金，余 %d）" % [offer["name"], loadout_max, WEAPON_MAX, offer["price"], gold])
 	else:
 		hud._log("购买 %s（-%d 金，余 %d）" % [offer["name"], offer["price"], gold])
 	if kind == "active":   # 消耗品：立即写入可用次数，使新购物品当即可用

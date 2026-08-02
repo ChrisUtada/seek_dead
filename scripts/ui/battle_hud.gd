@@ -364,7 +364,7 @@ func _build_loadout_screen() -> void:
 	var title = _label("⚙ 整备 · 选择携带物品", TypeScale.LEAD)
 	title.add_theme_color_override("font_color", Palette.TITLE)
 	root.add_child(title)
-	var rule = _label("武器 上限%d(商店金币可扩至%d) · 物品（主动 0–%d · 被动 0–%d） · 增益 0–%d · 总槽 %d  |  武器/增益=进转轮的符号来源 · 物品=可携带（主动消耗 · 被动护符）" % [controller.loadout_max, controller.TOTAL_MAX, controller.CONSUMABLE_MAX, controller.CHARM_MAX, controller.BUFF_MAX, controller.TOTAL_MAX], 10)
+	var rule = _label("武器 初始%d(商店金币可扩至%d) · 物品（主动 0–%d · 被动 0–%d） · 增益 0–%d  |  四类各自独立槽位、互不算总 · 武器/增益=进转轮的符号来源 · 物品=可携带（主动消耗 · 被动护符）" % [controller.loadout_max, controller.WEAPON_MAX, controller.CONSUMABLE_MAX, controller.CHARM_MAX, controller.BUFF_MAX], 10)
 	rule.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	root.add_child(rule)
 
@@ -384,7 +384,7 @@ func _build_loadout_screen() -> void:
 	var bot = HBoxContainer.new()
 	bot.add_theme_constant_override("separation", 10)
 	root.add_child(bot)
-	loadout_count_label = _label("武器 0 · 增益 0 · 物品 0 · 总 0/8", TypeScale.META)
+	loadout_count_label = _label("武器 0/%d · 增益 0/%d · 物品 0/%d · 合计 0" % [controller.loadout_max, controller.BUFF_MAX, controller.CONSUMABLE_MAX + controller.CHARM_MAX], TypeScale.META)
 	loadout_count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	bot.add_child(loadout_count_label)
 	var bot_spacer = Control.new()
@@ -527,13 +527,12 @@ func _make_item_card(data: Resource, path: String, kind: String) -> Dictionary:
 	return card
 
 
-# 卡片点击：三分类通用 toggle（受分类上限与总槽约束）
+# 卡片点击：三分类通用 toggle（受各自分类上限约束，互不算总）
 func _update_loadout_cards_visual() -> void:
 	var wfull = controller.selected_loadout.size() >= controller._cat_max("weapon")
 	var cfull = controller.selected_consumables.size() >= controller.CONSUMABLE_MAX
 	var hfull = controller.selected_charms.size() >= controller.CHARM_MAX
 	var bfull = controller.selected_buffs.size() >= controller.BUFF_MAX
-	var tfull = controller._total_selected() >= controller.TOTAL_MAX
 	for card in loadout_cards:
 		var sb = StyleBoxFlat.new()
 		if card["selected"]:
@@ -546,7 +545,7 @@ func _update_loadout_cards_visual() -> void:
 			sb.border_color = Palette.CARD_NORM_BORDER
 			sb.set_border_width_all(1)
 			var cf = (card["kind"] == "weapon" and wfull) or (card["kind"] == "active" and cfull) or (card["kind"] == "passive" and hfull) or (card["kind"] == "buff" and bfull)
-			card["btn"].disabled = (cf or tfull)
+			card["btn"].disabled = cf
 		card["btn"].add_theme_stylebox_override("normal", sb)
 		card["btn"].add_theme_stylebox_override("hover", sb)
 		card["btn"].add_theme_stylebox_override("pressed", sb)
@@ -554,16 +553,20 @@ func _update_loadout_cards_visual() -> void:
 
 
 func _update_loadout_count() -> void:
-	var t = controller._total_selected()
 	var items = controller.selected_consumables.size() + controller.selected_charms.size()
-	loadout_count_label.text = "武器 %d · 增益 %d · 物品 %d · 总 %d/%d" % [controller.selected_loadout.size(), controller.selected_buffs.size(), items, t, controller.TOTAL_MAX]
+	var total = controller._total_selected()
+	loadout_count_label.text = "武器 %d/%d · 增益 %d/%d · 物品 %d/%d · 合计 %d" % [
+		controller.selected_loadout.size(), controller._cat_max("weapon"),
+		controller.selected_buffs.size(), controller.BUFF_MAX,
+		items, controller.CONSUMABLE_MAX + controller.CHARM_MAX,
+		total]
 	if loadout_columns.has("weapon"):
 		loadout_columns["weapon"].text = "武器 %d/%d" % [controller.selected_loadout.size(), controller._cat_max("weapon")]
 	if loadout_columns.has("buff"):
 		loadout_columns["buff"].text = "增益 %d/%d" % [controller.selected_buffs.size(), controller.BUFF_MAX]
 	if loadout_columns.has("item"):
 		loadout_columns["item"].text = "物品 %d/%d" % [items, controller.CONSUMABLE_MAX + controller.CHARM_MAX]
-	var ok = controller.selected_loadout.size() >= controller.LOADOUT_MIN and t <= controller.TOTAL_MAX
+	var ok = controller.selected_loadout.size() >= controller.LOADOUT_MIN
 	loadout_confirm_btn.disabled = not ok
 	loadout_confirm_btn.text = ("确认开战 ▶" if ok else "至少选 %d 把武器 ▶" % controller.LOADOUT_MIN)
 
@@ -720,17 +723,14 @@ func _make_shop_card(offer: Dictionary) -> Button:
 	vb.add_child(_label("%s · %s" % [kind_name, offer["name"]], 12))
 	var cap = controller._cat_max(offer["kind"])
 	var cur = controller._sel_arr(offer["kind"]).size()
-	var total_full = controller._total_selected() >= controller.TOTAL_MAX
-	var can_grow_slot = (offer["kind"] == "weapon") and (controller.loadout_max < controller.TOTAL_MAX)
+	var can_grow_slot = (offer["kind"] == "weapon") and (controller.loadout_max < controller.WEAPON_MAX)
 	var slot_full = (cur >= cap) and not can_grow_slot
-	var can_buy = (not offer["sold"]) and controller.gold >= offer["price"] and not slot_full and not total_full
+	var can_buy = (not offer["sold"]) and controller.gold >= offer["price"] and not slot_full
 	var status: String
 	if offer["sold"]:
 		status = "已购入"
 	elif controller.gold < offer["price"]:
 		status = "金币不足"
-	elif total_full:
-		status = "总槽已满 %d/%d" % [controller._total_selected(), controller.TOTAL_MAX]
 	elif slot_full:
 		status = "槽位已满"
 	elif offer["kind"] == "weapon" and cur >= cap:
