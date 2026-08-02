@@ -125,6 +125,7 @@ var _spin_ticks := 0                   # 已跳次数（用于加速上限）
 const _SPIN_BASE_WAIT := 0.15          # 起始每跳间隔（秒）——调慢以便看清落点、凑三连 special
 const _SPIN_MIN_WAIT := 0.06           # 最快每跳间隔（封顶也调慢，整体更易控）
 const _STRIP_MIN_CELLS := 30           # 转轮带最小格数（整份平铺补足，不改变符号占比）
+const SPECIAL_TRIPLE_CRIT := 2.0        # special 三连暴击倍率：连线数轴上唯一可控的战斗内爆发（清晰可见，不做黑箱级联）
 # 注：不设自动停止上限——转轮何时停完全由玩家决定，不操作就一直转。
 signal spin_finished                   # 全部转轮停下后发出，_on_spin_pressed 等待它
 
@@ -1340,11 +1341,11 @@ func _contribute(sym: SymbolData, mult: int, acc: Dictionary, elem: String) -> v
 		"heal":    acc["heal"]    += sym.base * mult
 		"status":  acc["status_stacks"][sym.status_type] = acc["status_stacks"].get(sym.status_type, 0) + mult
 		"special":
-			# special 降级：1 同即生效（base×c），3 同额外追加一次 base；均吃元素倍率
+			# special：1 同即生效（base×连线数×克制）；三连触发暴击倍率（连线数轴上唯一可控的战斗内爆发）
 			var sv = flat * mult * em
 			var crit = mult >= 3
 			if crit:
-				sv += flat * em
+				sv *= SPECIAL_TRIPLE_CRIT
 				acc["special_triple"] = true   # S10 T5 钩子埋点：三连发生标记，供 BOSS 机制感知
 			acc["special"] += sv
 			_push_dmg_line(acc, sym, elem, flat, bonus, mult, em, sv, crit)
@@ -1375,7 +1376,7 @@ func _push_dmg_line(acc: Dictionary, sym: SymbolData, elem: String, flat, bonus,
 	var etxt = "" if elem == "none" else "·" + ElementCounter.label(elem)
 	var line = "   %s %s%s  %s = %d" % [sym.label, sym.name, etxt, " × ".join(parts), int(round(v))]
 	if crit:
-		line += "（含三连追加 +%d）" % int(round(flat * em))
+		line += "（⚡暴击 ×%s）" % ElementCounter.fmt_mult(SPECIAL_TRIPLE_CRIT)
 	acc["lines"].append(line)
 
 
