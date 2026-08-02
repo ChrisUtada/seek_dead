@@ -4,13 +4,13 @@
 
 [resource]
 script = ExtResource("1")
-name = "腐化史莱姆"
-hp = 90
-atk = 11
-jam = 0.15
-lock = 0.1
-chaos = 0.1
-heavy = 0.15
-element = "poison"
-kind = "normal"
-act = 1
+name = "深渊咏者"
+hp = 240
+atk = 18
+jam = 0.22
+lock = 0.16
+chaos = 0.16
+heavy = 0.22
+element = "dark"
+kind = "elite"
+act = 2

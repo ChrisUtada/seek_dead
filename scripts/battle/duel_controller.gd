@@ -98,7 +98,8 @@ var REWARD_POOL: Array = []
 # 房间序列（肉鸽逐房推进）。
 # jam=注废意图概率, lock=锁轮意图概率, chaos=乱权意图概率, heavy=重击意图概率, 其余=普攻。
 # Phase D 资源化：改为扫描 resources/rooms/*.tres（RoomData），见 _ready 内填充。
-var ROOMS: Array = []
+var ALL_ROOMS: Array = []          # 全量房间池（扫描收集；_build_run 从中按幕抽 12 房）
+var ROOMS: Array = []             # 当前一局的 12 房序列（每局 _full_reset 时由 _build_run 重建）
 
 # grid[reel][row] = SymbolData 引用
 var grid = []
@@ -228,7 +229,7 @@ func _ready() -> void:
 	WEAPON_POOL = ResourceScan.scan_paths("res://resources/weapon_templates/")
 	ITEM_POOL = ResourceScan.scan_paths("res://resources/items/")
 	BUFF_POOL = ResourceScan.scan_paths("res://resources/buffs/")
-	ROOMS = _sort_rooms(ResourceScan.scan_resources("res://resources/rooms/", "RoomData"))
+	ALL_ROOMS = _sort_rooms(ResourceScan.scan_resources("res://resources/rooms/", "RoomData"))
 	REWARD_POOL = ResourceScan.scan_resources("res://resources/rewards/", "RewardData")
 	hud = BATTLE_HUD.instantiate()
 	add_child(hud)
@@ -762,6 +763,7 @@ func _full_reset() -> void:
 	run_symbol_bonus = {}
 	run_power_bonus = 0
 	run_shield_next = 0
+	ROOMS = _build_run()                 # S10 T3：每局从全量池按幕抽 12 房
 	_build_pool(selected_loadout)
 	_start_room(0)
 
@@ -770,6 +772,35 @@ func _full_reset() -> void:
 # 否则插入熔毁之间等中间房型会让 BOSS 判定错位）。
 func _is_boss_room(idx: int) -> bool:
 	return idx >= 0 and idx < ROOMS.size() and ROOMS[idx].kind == "boss"
+
+
+# S10 T3：每局运行时从全量池构建 12 房（3 幕 × 2 normal + 1 elite + 1 boss）。
+# 房间序列不再依赖文件名字母序或固定数组；每局随机、按幕分组（幕内顺序：普通→普通→精英→BOSS）。
+# 未抽中的房间留作内容广度（不同 run 体验不同）。
+func _build_run() -> Array:
+	var by_act := {}   # act -> {kind: [RoomData,...]}
+	for r in ALL_ROOMS:
+		var a = int(r.act)
+		if not by_act.has(a):
+			by_act[a] = {"normal": [], "elite": [], "boss": []}
+		by_act[a][r.kind].append(r)
+	var run: Array = []
+	for a in [1, 2, 3]:
+		if not by_act.has(a):
+			continue
+		var grp = by_act[a]
+		var normals = grp["normal"].duplicate()
+		normals.shuffle()
+		for i in range(min(2, normals.size())):
+			run.append(normals[i])
+		var elites = grp["elite"].duplicate()
+		if not elites.is_empty():
+			elites.shuffle()
+			run.append(elites[0])
+		var bosses = grp["boss"].duplicate()
+		if not bosses.is_empty():
+			run.append(bosses[0])
+	return run
 
 
 # 房间序列排序：normal/elite 在前、boss 殿后（同档按 resource_path 稳定排序）。

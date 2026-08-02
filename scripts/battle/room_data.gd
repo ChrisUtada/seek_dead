@@ -15,3 +15,4 @@ extends Resource
 @export var element: String = "none"  # fire|ice|poison|light|dark|none（单向克制：敌人属性）
 @export var kind: String = "normal"    # normal|elite|boss（房间类型；boss 由 _is_boss_room 判定专属机制）
 @export var gimmick_script: Script      # BOSS 专属机制脚本（extends BossGimmick）；非 BOSS 房留空。_start_room 实例化并赋值 current_gimmick
+@export var act: int = 1                # 幕号（1/2/3）；_build_run 按幕分组抽房（每幕 2 normal + 1 elite + 1 boss）

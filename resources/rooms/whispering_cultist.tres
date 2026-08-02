@@ -6,12 +6,13 @@
 [resource]
 script = ExtResource("1")
 name = "呓语教徒"
-hp = 165
-atk = 16
+hp = 290
+atk = 20
 jam = 0.25
 lock = 0.2
 chaos = 0.2
 heavy = 0.2
 element = "dark"
 kind = "boss"
+act = 2
 gimmick_script = ExtResource("2")
