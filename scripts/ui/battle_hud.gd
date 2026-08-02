@@ -780,15 +780,15 @@ func _build_meta_screen() -> void:
 	var v = Screen.build_scaffold(meta_screen, Palette.BG_REWARD, {"l": 18, "r": 18, "t": 14, "b": 14}, 6)
 	v.add_child(_label("★ 通关一局！选择一项元进度升级（持久生效）", TypeScale.OVERLAY))
 	v.add_child(_label("武器基础伤害线性成长 × 护符伤害乘区增值——下一局起爆炸", TypeScale.META))
-	var scroll = ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	v.add_child(scroll)
+	var center = CenterContainer.new()      # 三选一固定 ≤3 张，居中呈现（不需要滚动）
+	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	v.add_child(center)
 	meta_grid = GridContainer.new()
 	meta_grid.columns = 3
-	meta_grid.add_theme_constant_override("h_separation", 8)
-	meta_grid.add_theme_constant_override("v_separation", 8)
-	scroll.add_child(meta_grid)
+	meta_grid.add_theme_constant_override("h_separation", 12)
+	meta_grid.add_theme_constant_override("v_separation", 12)
+	center.add_child(meta_grid)
 	add_child(meta_screen)
 	meta_screen.visible = false
 
@@ -805,7 +805,7 @@ func _show_meta_choice() -> void:
 
 func _make_meta_card(opt: Dictionary) -> Button:
 	var btn = UI_BUTTON.instantiate()
-	btn.custom_minimum_size = Vector2(96, 64)
+	btn.custom_minimum_size = Vector2(210, 92)   # 仅 3 张、覆盖层空间充足，放大提升可读性
 	btn.text = ""
 	var cc = CenterContainer.new()
 	cc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -818,6 +818,7 @@ func _make_meta_card(opt: Dictionary) -> Button:
 	var dl = _label(opt.get("desc", ""), TypeScale.TINY)
 	dl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	dl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	dl.custom_minimum_size = Vector2(190, 0)     # 约束宽度，保证长描述换行而非撑破卡片
 	vb.add_child(dl)
 	btn.connect("pressed", controller._on_meta_choice_chosen.bind(opt))
 	return btn

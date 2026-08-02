@@ -135,6 +135,7 @@ const WEAPON_BASE_STEP := 3              # 每级武器基础伤害 +3（线性�
 const CHARM_MULT_STEP := 0.12            # 每级护符伤害乘区 +0.12（乘数增值，复利但封顶）
 const CHARM_MULT_CAP := 6.0              # 总护符乘区硬上限（防失控膨胀）
 const META_ANVIL_BONUS := 2              # 元进度三选一选「铁砧点数」时获得的点数
+const META_CHOICE_COUNT := 3             # 每局结束元进度候选张数（三选一，候选池随机抽）
 # 注：不设自动停止上限——转轮何时停完全由玩家决定，不操作就一直转。
 signal spin_finished                   # 全部转轮停下后发出，_on_spin_pressed 等待它
 
@@ -523,10 +524,10 @@ func _on_reward_chosen(id: String) -> void:
 	_apply_reward(id)
 	_award_meta(reward_is_boss)    # M5：房间通关发放铁砧点数
 	_award_gold(reward_is_boss)    # S6+S8：清房金币 + 利息
-	if reward_is_boss:
-		_show_meta_choice()        # 通关一局→元进度三选一（持久生效）
+	if _is_run_final(room_index):
+		_show_meta_choice()        # 通关整局（最终 BOSS）→元进度三选一（持久生效）
 	else:
-		hud._show_shop_screen()    # S7：房间之间进入商店
+		hud._show_shop_screen()    # S7：房间之间进入商店（含幕一/幕二 BOSS 之后）
 	hud._refresh_meta()
 
 
@@ -534,7 +535,7 @@ func _on_reward_skip_pressed() -> void:
 	hud.reward_screen.visible = false
 	_award_meta(reward_is_boss)    # M5：房间通关发放铁砧点数（即使跳过奖励）
 	_award_gold(reward_is_boss)    # S6+S8：清房金币 + 利息
-	if reward_is_boss:
+	if _is_run_final(room_index):
 		_show_meta_choice()
 	else:
 		hud._show_shop_screen()    # S7：房间之间进入商店
@@ -546,7 +547,10 @@ func _on_boss_reward_chosen(cand: Dictionary) -> void:
 	_apply_boss_reward(cand)
 	_award_meta(true)    # M5：Boss 通关发放铁砧点数（含额外）
 	_award_gold(true)    # S6+S8：清房金币 + 利息
-	_show_meta_choice()  # 通关一局→元进度三选一（持久生效）
+	if _is_run_final(room_index):
+		_show_meta_choice()      # 通关整局（最终 BOSS）→元进度三选一（持久生效）
+	else:
+		hud._show_shop_screen()  # 幕一/幕二 BOSS：照常进商店并推进下一房
 	hud._refresh_meta()
 
 
@@ -554,36 +558,38 @@ func _on_boss_reward_chosen(cand: Dictionary) -> void:
 # 每局结束元进度三选一（膨胀双轨：武器 base 线性 × 护符乘数增值，持久跨局）
 # ---------------------------------------------------------------------------
 func _roll_meta_choices() -> Array:
-	var out := []
-	# 武器：每把持有武器一个卡（基础伤害 +WEAPON_BASE_STEP，线性，随护符/连锁放大）
+	var pool := []
+	# 武器：本局携带的每把武器一张候选（基础伤害 +WEAPON_BASE_STEP，线性，随护符/连锁放大）
 	for p in selected_loadout:
 		var wd: WeaponData = load(p)
 		if wd == null:
 			continue
 		var cur = meta["weapon_base_bonus"].get(p, 0)
-		out.append({
+		pool.append({
 			"kind": "weapon", "path": p,
 			"icon": "🗡", "label": wd.weapon_name,
 			"desc": "基础伤害 +%d（已 +%d，随护符/连锁放大）" % [WEAPON_BASE_STEP, cur],
 		})
-	# 护符：每个持有护符一个卡（伤害乘区 +CHARM_MULT_STEP/级，封顶）
+	# 护符：仅乘区型（effect == damage_mult）可升级——其余效果没有升级通道，不出假选项
 	for p in selected_charms:
 		var cd: Resource = load(p)
-		if cd == null:
+		if cd == null or cd.effect != "damage_mult":
 			continue
 		var clv = meta["charm_upgrades"].get(p, 0)
-		out.append({
+		pool.append({
 			"kind": "charm", "path": p,
 			"icon": "🔮", "label": cd.item_name,
-			"desc": "伤害乘区 +%s（Lv%d，总乘区封顶×%s）" % [ElementCounter.fmt_mult(1.0 + CHARM_MULT_STEP), clv, ElementCounter.fmt_mult(CHARM_MULT_CAP)],
+			"desc": "伤害乘区 ×%s（Lv%d→%d，总乘区封顶×%s）" % [
+				ElementCounter.fmt_mult(1.0 + CHARM_MULT_STEP), clv, clv + 1, ElementCounter.fmt_mult(CHARM_MULT_CAP)],
 		})
-	# 铁砧点数
-	out.append({
+	# 铁砧点数：兜底候选，保证候选池永不为空
+	pool.append({
 		"kind": "anvil", "path": "",
 		"icon": "🔨", "label": "铁砧点数 +%d" % META_ANVIL_BONUS,
 		"desc": "永久铁砧点数，用于铁砧锻造武器权重",
 	})
-	return out
+	pool.shuffle()
+	return pool.slice(0, META_CHOICE_COUNT)   # 三选一：候选不足时全出
 
 
 func _show_meta_choice() -> void:
@@ -939,6 +945,12 @@ func _is_boss_room(idx: int) -> bool:
 	return idx >= 0 and idx < ROOMS.size() and ROOMS[idx].kind == "boss"
 
 
+# 是否为本局最后一间房（=通关整局）。S10 起一局有 3 个幕 BOSS，只有最后一个才结束 run：
+# 幕一/幕二 BOSS 通关后照常进商店并推进下一房，否则幕二幕三永远进不去。
+func _is_run_final(idx: int) -> bool:
+	return idx >= ROOMS.size() - 1
+
+
 # S10 T3：每局运行时从全量池构建 12 房（3 幕 × 2 normal + 1 elite + 1 boss）。
 # 房间序列不再依赖文件名字母序或固定数组；每局随机、按幕分组（幕内顺序：普通→普通→精英→BOSS）。
 # 未抽中的房间留作内容广度（不同 run 体验不同）。
@@ -981,6 +993,9 @@ func _sort_rooms(rms: Array) -> Array:
 
 
 func _start_room(idx: int) -> void:
+	if idx >= ROOMS.size():                 # 兜底：越界视为通关整局，走元进度三选一而非崩溃
+		_show_meta_choice()
+		return
 	_apply_charms()                         # S7：每次开房重算护符被动（含商店购入的护符）
 	_build_pool(selected_loadout)           # S7：重建符号池（含商店购入的武器）
 	room_index = idx
