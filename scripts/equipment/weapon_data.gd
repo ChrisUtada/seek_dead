@@ -55,32 +55,3 @@ enum WeaponType { MELEE, RANGED }
 @export var element: String = "none"
 
 
-# ⚠️ 死代码 / 预留接口（Phase D 死代码治理，与 equipment/enums.gd、stat_modifier.gd 同族）：
-# 以下 Archetype/WeaponType 枚举与 get_implicit_modifiers/_mod 是「原实时武器 · 词缀管线」的残余，
-# 【老虎机对决流程零调用】—— duel_controller 只读取 reel / reel_element / weapon_name，
-# 从不会调用 get_implicit_modifiers，也不依赖 archetype/weapon_type。保留为 Phase F 词缀系统预留，
-# 切勿误认为活跃逻辑。
-## 返回 archetype 对应的隐式修正列表。
-## 复用 StatModifier 对象，与装备词缀管线一致。
-static func get_implicit_modifiers(archetype: Archetype) -> Array[StatModifier]:
-	var result: Array[StatModifier] = []
-	match archetype:
-		Archetype.LIGHT:
-			result.append(_mod(EquipmentEnums.StatTarget.ATTACK_SPEED, EquipmentEnums.ModifierType.MUL, 0.10))
-			result.append(_mod(EquipmentEnums.StatTarget.ATTACK_DAMAGE, EquipmentEnums.ModifierType.MUL, -0.20))
-		Archetype.HEAVY:
-			result.append(_mod(EquipmentEnums.StatTarget.ATTACK_DAMAGE, EquipmentEnums.ModifierType.MUL, 0.20))
-			result.append(_mod(EquipmentEnums.StatTarget.ATTACK_SPEED, EquipmentEnums.ModifierType.MUL, -0.10))
-		Archetype.MAGIC:
-			result.append(_mod(EquipmentEnums.StatTarget.ATTACK_DAMAGE, EquipmentEnums.ModifierType.MUL, 0.15))
-			result.append(_mod(EquipmentEnums.StatTarget.ATTACK_SPEED, EquipmentEnums.ModifierType.MUL, -0.10))
-		# MEDIUM: 无隐式修正
-	return result
-
-
-static func _mod(target: int, type: int, value: float) -> StatModifier:
-	var m = StatModifier.new()
-	m.target_stat = target
-	m.modifier_type = type
-	m.value = value
-	return m

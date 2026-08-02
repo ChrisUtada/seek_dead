@@ -1585,41 +1585,32 @@ func _evaluate() -> void:
 # 本层把「加法标量 / 乘法标量 / 符号权重」三类轴统一成一组 _agg_* 查询，
 # 调用方只认聚合层、不认具体来源。
 #
-# 新增一条修正轴（如 Phase F 词缀）只需在对应 _agg_* 末尾加一行求和，战斗结算零改动。
-# 当前各 _affix_* 为占位（返回中性值），接入后改为遍历 player_affixes。
+# 新增一条修正轴只需在对应 _agg_* 末尾加一行求和，战斗结算零改动。
 #
 # 注意：本层只聚合「每符号 / 每回合」类修正。房开局护盾（守望护符 charm_room_shield
 # / 守望结界 run_shield_next）与抗扰 / 净化上限等是「房间级」修正，仍在各自原位处理，
 # 不进入此层。铁砧转轮升级(meta.weapon_upgrades)是「武器级」权重，在 _build_pool 内处理。
 # ---------------------------------------------------------------------------
-var player_affixes: Array = []   # Phase F 接入点：整备确认时填入武器实例词缀；当前空
 
 # —— 加法型标量轴（多个来源直接相加）——
 func _agg_power_flat() -> float:
-	return float(run_power_bonus) + float(charm_power_bonus) + _buff_power() + _affix_power()
+	return float(run_power_bonus) + float(charm_power_bonus) + _buff_power()
 
 func _agg_shield() -> float:
-	return _buff_shield() + _affix_shield() + float(charm_shield_trickle)
+	return _buff_shield() + float(charm_shield_trickle)
 
 
 func _agg_regen() -> float:
-	return _buff_regen() + _affix_regen()
+	return _buff_regen()
 
 # —— 乘法型轴（各乘区独立相乘，基值 1.0）——
 func _agg_damage_mult() -> float:
-	# 护符全局乘区（joker）× 增益乘区（Phase C）× 词缀乘区（占位）
-	return charm_damage_mult * _buff_damage_mult() * _affix_damage_mult()
+	# 护符全局乘区（joker）× 增益乘区（Phase C）
+	return charm_damage_mult * _buff_damage_mult()
 
-# —— 符号权重轴（本局符号灌注 + 全局词缀；武器级权重见 _build_pool）——
+# —— 符号权重轴（本局符号灌注；武器级权重见 _build_pool）——
 func _agg_symbol_weight_mod(sym: SymbolData) -> float:
-	return float(run_symbol_bonus.get(sym.resource_path, 0.0)) + _affix_symbol_weight(sym)
-
-# —— Phase F 词缀占位（当前返回中性值，接入后改为遍历 player_affixes 求和）——
-func _affix_power() -> float:                     return 0.0
-func _affix_shield() -> float:                    return 0.0
-func _affix_regen() -> float:                     return 0.0
-func _affix_damage_mult() -> float:               return 1.0
-func _affix_symbol_weight(sym: SymbolData) -> float: return 0.0
+	return float(run_symbol_bonus.get(sym.resource_path, 0.0))
 
 # ---------------------------------------------------------------------------
 # Phase C 主动增益：符号自描述（sym.buff_effect / buff_value / buff_turns），零查表
