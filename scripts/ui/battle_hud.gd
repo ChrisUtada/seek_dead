@@ -52,6 +52,7 @@ var log_scroll
 var player_hp_label
 var player_shield_label
 var enemy_name_label
+var boss_badge            # BOSS 战标识（金色徽章，仅 BOSS 房显示）
 var enemy_hp_label
 var enemy_intent_label
 var enemy_status_label
@@ -283,6 +284,10 @@ func _build_ui() -> void:
 	var etitle = _label("敌人", TypeScale.BODY)
 	etitle.add_theme_color_override("font_color", Palette.ENEMY)
 	rpv.add_child(etitle)
+	boss_badge = _label("★ BOSS", TypeScale.BODY)
+	boss_badge.add_theme_color_override("font_color", Palette.ACCENT_GOLD)
+	boss_badge.visible = false
+	rpv.add_child(boss_badge)
 	enemy_name_label = _label("—", TypeScale.MEDIUM)
 	enemy_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	enemy_hp_label = _label("HP 0/0", TypeScale.META)
@@ -1285,13 +1290,15 @@ func _refresh_cell(reel: int, row: int) -> void:
 
 func _refresh_meta() -> void:
 	loadout_label.text = "已装备: " + ("/".join(controller.loadout_names) if not controller.loadout_names.is_empty() else "—")
-	room_label.text = "房间: %d/%d" % [controller.room_index + 1, controller.ROOMS.size()]
+	var is_boss = controller._is_boss_room(controller.room_index)
+	room_label.text = "房间: %d/%d%s" % [controller.room_index + 1, controller.ROOMS.size(), " · ★BOSS" if is_boss else ""]
 	turn_label.text = "回合: %d" % controller.turn_count
 	player_hp_label.text = "HP %d/%d" % [controller.player_hp, controller.player_hp_max]
 	player_shield_label.text = "护盾 %d" % controller.player_shield
 	player_buff_label.text = "增益: " + controller._buff_summary()
 	gold_label.text = "金币 %d" % controller.gold
 	enemy_name_label.text = controller.enemy_name
+	boss_badge.visible = is_boss
 	enemy_hp_label.text = "HP %d/%d" % [max(controller.enemy_hp, 0), controller.enemy_hp_max]
 	enemy_status_label.text = "状态: " + ("无" if controller.enemy_status.is_empty() else controller._status_summary(controller.enemy_status))
 	purify_label.text = "%d/%d" % [controller.purify_charges, controller.purify_max_base]
