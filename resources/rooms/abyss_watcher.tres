@@ -1,6 +1,7 @@
-[gd_resource type="Resource" script_class="RoomData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="RoomData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/battle/room_data.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/battle/gimmicks/abyss_erosion_gimmick.gd" id="2"]
 
 [resource]
 script = ExtResource("1")
@@ -13,3 +14,4 @@ chaos = 0.25
 heavy = 0.3
 element = "light"
 kind = "boss"
+gimmick_script = ExtResource("2")

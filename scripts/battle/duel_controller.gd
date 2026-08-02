@@ -121,11 +121,16 @@ var _locked_prev_elem: Array = []      # [reel] -> 锁轮保留的上一轮有�
 var _spinning := false                 # 旋转进行中（供输入分支判断）
 var _spin_timer: Timer                 # 旋转节拍器（每跳推进一格 + 加速）
 var _spin_ticks := 0                   # 已跳次数（用于加速上限）
-const _SPIN_BASE_WAIT := 0.09          # 起始每跳间隔（秒）
-const _SPIN_MIN_WAIT := 0.035          # 最快每跳间隔（越转越快，到此封顶后恒速）
+const _SPIN_BASE_WAIT := 0.15          # 起始每跳间隔（秒）——调慢以便看清落点、凑三连 special
+const _SPIN_MIN_WAIT := 0.06           # 最快每跳间隔（封顶也调慢，整体更易控）
 const _STRIP_MIN_CELLS := 30           # 转轮带最小格数（整份平铺补足，不改变符号占比）
 # 注：不设自动停止上限——转轮何时停完全由玩家决定，不操作就一直转。
 signal spin_finished                   # 全部转轮停下后发出，_on_spin_pressed 等待它
+
+var current_gimmick = null              # 当前房间 BOSS 机制实例（S10 T2 赋值；非 BOSS 房为 null，钩子空安全跳过）
+var boss_dmg_mult := 1.0                # S10 T2：玩家→敌人伤害倍率（rust_armor 熔铸护甲减伤），每玩家回合由 gimmick 设定，默认 1.0
+var boss_atk_mult := 1.0                # S10 T2：敌人→玩家伤害倍率（whisper_lock 呓语锁轮强化），每玩家回合重置为 1.0 后由 gimmick 命中时设 1.5
+var boss_trash := 0                     # S10 T2：深渊侵蚀注入的额外废铁格数（每列），_build_strips 落实，默认 0
 
 # 整备（M3–M6）：玩家自由勾选武器 / 消耗品 / 护符三分类
 var in_loadout := false
@@ -821,6 +826,14 @@ func _start_room(idx: int) -> void:
 	hud._hide_overlay()
 	_build_strips()
 	_reset_grid(true)
+	# S10 T2：BOSS 机制实例化（仅 BOSS 房；非 BOSS 房置 null，钩子调用处显式判空跳过）
+	current_gimmick = null
+	boss_dmg_mult = 1.0
+	boss_atk_mult = 1.0
+	boss_trash = 0
+	if _is_boss_room(idx) and r.gimmick_script != null:
+		current_gimmick = r.gimmick_script.new()
+		current_gimmick.on_room_start(self)
 	_begin_player_turn()
 	_refresh_consumable_panel()           # 双重保险：同步按钮禁用状态与当前战斗状态
 	hud._refresh_meta()
@@ -842,6 +855,11 @@ func _begin_player_turn() -> void:
 		enemy_intent = {"type": "heavy", "value": enemy_atk * 2}
 	else:
 		enemy_intent = {"type": "attack", "value": enemy_atk}
+	# S10 T2：每玩家回合重置 BOSS 倍率，再由 gimmick 钩子按本回合状态设定
+	boss_dmg_mult = 1.0
+	boss_atk_mult = 1.0
+	if current_gimmick != null:
+		current_gimmick.on_turn_begin(self)
 
 
 func _on_spin_pressed() -> void:
@@ -952,6 +970,9 @@ func _build_strips() -> void:
 		var unit = base.duplicate(true)
 		while base.size() < _STRIP_MIN_CELLS:
 			base.append_array(unit.duplicate(true))
+	# S10 T2：深渊侵蚀注入额外废铁（boss_trash 格/列，由 gimmick 累积设定）
+	for _i in boss_trash:
+		base.append([TRASH_SYMBOL, "none"])
 	for r in REELS:
 		var copy = base.duplicate(true)
 		for i in range(copy.size() - 1, 0, -1):
@@ -977,7 +998,7 @@ func _on_spin_tick() -> void:
 	if not any_moving:
 		_finish_spin()
 		return
-	var w = max(_SPIN_MIN_WAIT, _SPIN_BASE_WAIT - _spin_ticks * 0.0015)
+	var w = max(_SPIN_MIN_WAIT, _SPIN_BASE_WAIT - _spin_ticks * 0.0010)
 	_spin_timer.wait_time = w
 
 
@@ -1106,7 +1127,9 @@ func _enemy_deal_damage(raw: int) -> void:
 	# 敌人 debuff 减益（元素驱动）：frost/poison = 敌人减攻。本函数是对敌人伤害的唯一闸口，
 	# 且 _enemy_turn 在玩家结算之后，故当回合挂的 debuff 当回合生效。
 	var atk_down = 1.0 - min(0.5, enemy_status.get("frost", 0) * 0.2 + enemy_status.get("poison", 0) * 0.2)
-	var eff = int(round(float(raw) * atk_down))
+	var eff = int(round(float(raw) * atk_down * boss_atk_mult))
+	if boss_atk_mult != 1.0:
+		hud._log("🔒 呓语强化：敌人攻击 ×%s" % ElementCounter.fmt_mult(boss_atk_mult))
 	if atk_down < 1.0:
 		hud._log("敌人被削弱：攻击×%s" % ElementCounter.fmt_mult(atk_down))
 	var blocked = min(player_shield, eff)
@@ -1291,6 +1314,7 @@ func _contribute(sym: SymbolData, mult: int, acc: Dictionary, elem: String) -> v
 			var crit = mult >= 3
 			if crit:
 				sv += flat * em
+				acc["special_triple"] = true   # S10 T5 钩子埋点：三连发生标记，供 BOSS 机制感知
 			acc["special"] += sv
 			_push_dmg_line(acc, sym, elem, flat, bonus, mult, em, sv, crit)
 		_: pass
@@ -1390,12 +1414,19 @@ func _evaluate() -> void:
 	hud._refresh_meta()
 	await get_tree().create_timer(0.45).timeout
 
+	# S10 T5 钩子点：special 三连发生后通知当前 BOSS 机制。
+	# current_gimmick 仅在 BOSS 房由 T2 的 BossGimmick 子类赋值；非 BOSS 房为 null，显式判空跳过（避免 ?. 在某些 4.x 不兼容）。
+	if acc.get("special_triple", false):
+		hud._log("⚡ special 三连触发")
+		if current_gimmick != null:
+			current_gimmick.on_special_triple(self)
+
 	# —— 阶段 2：攻击结算（逐符号克制已在 _contribute 计入；此处只乘护符/强袭）——
 	# Phase C：迅捷(damage_mult) 对本回合总伤害做乘算（F-0 聚合层，含护符乘区）
 	var buff_mult = _agg_damage_mult()
 	var assault = assault_next_spin
 	var subtotal = acc["dmg"] + acc["special"]
-	var total = int(subtotal * assault * buff_mult)
+	var total = int(subtotal * assault * buff_mult * boss_dmg_mult)
 	assault_next_spin = 1
 	# S2：输出伤害分解——逐符号明细 + 回合级乘区汇总（走中栏独立面板，不进战斗日志）
 	if acc["lines"].is_empty():
@@ -1412,6 +1443,8 @@ func _evaluate() -> void:
 			tail.append("增益×%s" % ElementCounter.fmt_mult(bm))
 		if assault != 1:
 			tail.append("强袭×%s" % ElementCounter.fmt_mult(float(assault)))
+		if boss_dmg_mult != 1.0:
+			tail.append("护甲×%s" % ElementCounter.fmt_mult(boss_dmg_mult))
 		if tail.is_empty():
 			blk.append("   合计 = %d" % total)
 		else:
@@ -1419,6 +1452,8 @@ func _evaluate() -> void:
 		hud._show_damage_breakdown("\n".join(blk))
 	if total > 0:
 		enemy_hp -= total
+		if current_gimmick != null:
+			current_gimmick.on_damaged(self, total)
 		var elem_tag := ""
 		if _eval_adv:
 			elem_tag += " [克制]"
