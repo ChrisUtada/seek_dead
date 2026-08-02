@@ -561,9 +561,10 @@ func _award_gold(is_boss: bool) -> void:
 func _shop_price(kind: String, owned := 0) -> int:
 	var base = {"weapon": 8, "passive": 10, "active": 5, "buff": 6}.get(kind, 6)
 	var price = base + randi_range(-1, 2)
-	# S9：武器价随已持数量递增（金币控制槽位成长）。第 N 把附加 (N-1)*6，使追加武器成本显著上升。
+	# S9：武器价随已持数量递增（金币控制槽位成长）。超出起始下限的每把 +5——前几把仍可负担、
+	# 越往后越贵，使金币自然成为槽成长闸门，而非一次性买满。原 *6 过陡，首店即买不起。
 	if kind == "weapon":
-		price += owned * 6
+		price += max(0, owned - 1) * 5
 	return max(3, price)
 
 func _shop_name(path: String, kind: String) -> String:

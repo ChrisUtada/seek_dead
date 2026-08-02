@@ -720,8 +720,9 @@ func _make_shop_card(offer: Dictionary) -> Button:
 	vb.add_child(_label("%s · %s" % [kind_name, offer["name"]], 12))
 	var cap = controller._cat_max(offer["kind"])
 	var cur = controller._sel_arr(offer["kind"]).size()
-	var can_buy = (not offer["sold"]) and controller.gold >= offer["price"] and cur < cap
-	var status = "已购入" if offer["sold"] else ("金币不足" if controller.gold < offer["price"] else ("槽位已满" if cur >= cap else "%d 金" % offer["price"]))
+	var total_full = controller._total_selected() >= controller.TOTAL_MAX   # S9：与购买函数总闸门一致，避免武器卡"看似可点却买不到"
+	var can_buy = (not offer["sold"]) and controller.gold >= offer["price"] and cur < cap and not total_full
+	var status = "已购入" if offer["sold"] else ("金币不足" if controller.gold < offer["price"] else ("总槽已满" if total_full else ("槽位已满" if cur >= cap else "%d 金" % offer["price"])))
 	var pl = _label(status, TypeScale.TINY)
 	pl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	if offer["sold"]:
