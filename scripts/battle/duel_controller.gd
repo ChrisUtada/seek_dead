@@ -611,6 +611,7 @@ func _apply_boss_reward(cand: Dictionary) -> void:
 		"boss_weapon":
 			var p = cand.get("path", "")
 			if p != "" and not selected_loadout.has(p):
+				_grow_slot("weapon")                 # 免费武器自动开槽（武器 UNCAPPED，无天花板限制）
 				selected_loadout.append(p)          # 武器无上限（UNCAPPED），免费获得即自动开槽
 				_build_pool(selected_loadout)        # 重建符号池（新武器注入转轮带）
 				hud._log("BOSS 战利品：获得武器 %s（已加入转轮带）" % cand.get("label", p))

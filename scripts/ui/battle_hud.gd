@@ -636,10 +636,32 @@ func _update_loadout_count() -> void:
 
 func _show_loadout_screen() -> void:
 	controller.in_loadout = true
+	_sync_card_selection()      # 从数组重建卡片 selected 标志（防止 Boss 奖励等外部路径直接改数组导致不同步）
 	_update_loadout_cards_visual()
 	_update_loadout_count()
 	_update_loadout_anvil()
 	loadout_screen.visible = true
+
+
+# 每次打开整备屏时，从 controller 的四个选中数组重建所有卡片的 selected 标志。
+# 必须做：Boss 奖励（_apply_boss_reward）会直接 append 到 selected_loadout / selected_charms
+# 而不经过 _on_card_toggled，导致卡片标志与数组不同步——不同步会使 wfull 误判、
+# 点掉武器后全部卡片仍被 disabled 锁死。
+func _sync_card_selection() -> void:
+	var weapons = controller.selected_loadout
+	var consumables = controller.selected_consumables
+	var charms = controller.selected_charms
+	var buffs = controller.selected_buffs
+	for card in loadout_cards:
+		match card["kind"]:
+			"weapon":
+				card["selected"] = weapons.has(card["path"])
+			"active":
+				card["selected"] = consumables.has(card["path"])
+			"passive":
+				card["selected"] = charms.has(card["path"])
+			"buff":
+				card["selected"] = buffs.has(card["path"])
 
 
 func _update_loadout_anvil() -> void:
