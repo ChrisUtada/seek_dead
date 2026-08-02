@@ -109,6 +109,7 @@ var grid_elem = []
 # 合并后的加权符号池：元素为 [SymbolData, weight, element]（element = 有效元素）
 var pool: Array = []
 var loadout_names: Array = []
+var _weapon_base_map: Dictionary = {}    # 符号 resource_path -> 该武器 base 加成(取 max)，由 _build_pool 构建（膨胀双轨·武器线性）
 var _busy: bool = false                 # 旋转序列进行中，防重入
 var _eval_adv := false                  # _evaluate 阶段2：本回合是否触发过「克制」
 var _eval_dis := false                  # _evaluate 阶段2：本回合是否触发过「抵抗」
@@ -129,6 +130,11 @@ const _STRIP_MIN_CELLS := 30           # 转轮带最小格数（整份平铺补
 const SPECIAL_TRIPLE_CRIT := 2.0        # special 三连暴击倍率：连线数轴上唯一可控的战斗内爆发（清晰可见，不做黑箱级联）
 const CHAIN_MAX := 4                      # 连锁重触发上限：special 三连最多再免费重转 3 次（共 4 发）
 const CHAIN_STEP := 1.5                   # 连锁倍率：每多一层 ×1.5（叠在 special×CRIT 之上，封顶 ≈ ×3.4）
+# —— 每局结束元进度升级（膨胀双轨：武器 base 线性成长 × 护符乘数增值）——
+const WEAPON_BASE_STEP := 3              # 每级武器基础伤害 +3（线性，随护符/连锁放大）
+const CHARM_MULT_STEP := 0.12            # 每级护符伤害乘区 +0.12（乘数增值，复利但封顶）
+const CHARM_MULT_CAP := 6.0              # 总护符乘区硬上限（防失控膨胀）
+const META_ANVIL_BONUS := 2              # 元进度三选一选「铁砧点数」时获得的点数
 # 注：不设自动停止上限——转轮何时停完全由玩家决定，不操作就一直转。
 signal spin_finished                   # 全部转轮停下后发出，_on_spin_pressed 等待它
 
@@ -208,7 +214,7 @@ var paid_price: Dictionary = {}
 # M5 元进度（铁砧锻造 + 存档持久化，跨局保留）
 # weapon_upgrades: weapon_path -> int（该武器主符号额外权重，转轮升级）
 # interference_resist: int（抗干扰等级，降低敌人干扰概率）
-var meta: Dictionary = {"anvil_points": 0, "weapon_upgrades": {}, "interference_resist": 0}
+var meta: Dictionary = {"anvil_points": 0, "weapon_upgrades": {}, "interference_resist": 0, "weapon_base_bonus": {}, "charm_upgrades": {}}
 const ANVIL_SAVE_KEY := "anvil_meta"   # 铁砧元进度存于 SaveSystem.lobby_data
 
 # 仅 1 行 3 格。特殊符号需 3 同才触发；普通符号单颗即结算，出现 n 次 ×n。
@@ -244,6 +250,7 @@ func _ready() -> void:
 	hud._build_reward_screen()
 	hud._build_anvil_screen()
 	hud._build_shop_screen()      # S7：商店覆盖层（购入 + 卖出，统一整备闭环）
+	hud._build_meta_screen()      # 每局结束元进度三选一覆盖层
 	hud._show_loadout_screen()
 	# 方案 A：旋转节拍器（转轮带滚动 + 加速 + 停止时机判定）
 	_spin_timer = Timer.new()
@@ -292,6 +299,20 @@ func _build_pool(loadout: Array) -> void:
 				if not merged.has(dkey):
 					merged[dkey] = [dom_sym, 0.0, deff]
 				merged[dkey][1] += float(bonus)
+	# 膨胀双轨·武器线性：构建「符号 resource_path -> 该武器 base 加成(取 max)」映射（共享符号取最高，避免重复计数）
+	_weapon_base_map = {}
+	for path in loadout:
+		var bb = meta["weapon_base_bonus"].get(path, 0)
+		if bb <= 0:
+			continue
+		var wd: WeaponData = load(path)
+		if wd == null or wd.reel == null:
+			continue
+		for sw in wd.reel:
+			if sw == null or sw.symbol == null:
+				continue
+			var sp = sw.symbol.resource_path
+			_weapon_base_map[sp] = max(_weapon_base_map.get(sp, 0), bb)
 	# Phase C：所携带的主动增益，其符号同样注入转轮池（与武器符号同池竞争）
 	for path in selected_buffs:
 		var bd: BuffData = load(path)
@@ -464,7 +485,9 @@ func _apply_charms() -> void:
 			"interference_resist":  charm_interf_resist += cd.value
 			"purify_bonus":         charm_purify_bonus += cd.value
 			"shield":               charm_shield_trickle += cd.value   # 守备护符：每回合护盾涓流
-			"damage_mult":          charm_damage_mult *= cd.mult_value
+			"damage_mult":
+				var clv = meta["charm_upgrades"].get(path, 0)
+				charm_damage_mult *= cd.mult_value * (1.0 + CHARM_MULT_STEP * clv)   # 护符乘数增值（膨胀双轨·封顶在循环后）
 		# 混合护符的负面效果（未来卡用）：与正面同枚举、加成型数值取反、乘区型乘 downside_mult
 		if cd.downside_effect != "":
 			match cd.downside_effect:
@@ -474,6 +497,8 @@ func _apply_charms() -> void:
 				"purify_bonus":         charm_purify_bonus -= cd.downside_value
 				"shield":               charm_shield_trickle -= cd.downside_value
 				"damage_mult":          charm_damage_mult *= cd.downside_mult
+	# 总护符乘区硬上限（防失控膨胀）
+	charm_damage_mult = min(charm_damage_mult, CHARM_MULT_CAP)
 	var pm = 0
 	for path in selected_consumables:
 		var cd: Resource = load(path)
@@ -499,7 +524,7 @@ func _on_reward_chosen(id: String) -> void:
 	_award_meta(reward_is_boss)    # M5：房间通关发放铁砧点数
 	_award_gold(reward_is_boss)    # S6+S8：清房金币 + 利息
 	if reward_is_boss:
-		_full_reset()              # 通关后开新一局（金币随局清零）
+		_show_meta_choice()        # 通关一局→元进度三选一（持久生效）
 	else:
 		hud._show_shop_screen()    # S7：房间之间进入商店
 	hud._refresh_meta()
@@ -510,7 +535,7 @@ func _on_reward_skip_pressed() -> void:
 	_award_meta(reward_is_boss)    # M5：房间通关发放铁砧点数（即使跳过奖励）
 	_award_gold(reward_is_boss)    # S6+S8：清房金币 + 利息
 	if reward_is_boss:
-		_full_reset()
+		_show_meta_choice()
 	else:
 		hud._show_shop_screen()    # S7：房间之间进入商店
 	hud._refresh_meta()
@@ -521,8 +546,67 @@ func _on_boss_reward_chosen(cand: Dictionary) -> void:
 	_apply_boss_reward(cand)
 	_award_meta(true)    # M5：Boss 通关发放铁砧点数（含额外）
 	_award_gold(true)    # S6+S8：清房金币 + 利息
-	_full_reset()        # 通关后开新一局（金币随局清零）
+	_show_meta_choice()  # 通关一局→元进度三选一（持久生效）
 	hud._refresh_meta()
+
+
+# ---------------------------------------------------------------------------
+# 每局结束元进度三选一（膨胀双轨：武器 base 线性 × 护符乘数增值，持久跨局）
+# ---------------------------------------------------------------------------
+func _roll_meta_choices() -> Array:
+	var out := []
+	# 武器：每把持有武器一个卡（基础伤害 +WEAPON_BASE_STEP，线性，随护符/连锁放大）
+	for p in selected_loadout:
+		var wd: WeaponData = load(p)
+		if wd == null:
+			continue
+		var cur = meta["weapon_base_bonus"].get(p, 0)
+		out.append({
+			"kind": "weapon", "path": p,
+			"icon": "🗡", "label": wd.weapon_name,
+			"desc": "基础伤害 +%d（已 +%d，随护符/连锁放大）" % [WEAPON_BASE_STEP, cur],
+		})
+	# 护符：每个持有护符一个卡（伤害乘区 +CHARM_MULT_STEP/级，封顶）
+	for p in selected_charms:
+		var cd: Resource = load(p)
+		if cd == null:
+			continue
+		var clv = meta["charm_upgrades"].get(p, 0)
+		out.append({
+			"kind": "charm", "path": p,
+			"icon": "🔮", "label": cd.item_name,
+			"desc": "伤害乘区 +%s（Lv%d，总乘区封顶×%s）" % [ElementCounter.fmt_mult(1.0 + CHARM_MULT_STEP), clv, ElementCounter.fmt_mult(CHARM_MULT_CAP)],
+		})
+	# 铁砧点数
+	out.append({
+		"kind": "anvil", "path": "",
+		"icon": "🔨", "label": "铁砧点数 +%d" % META_ANVIL_BONUS,
+		"desc": "永久铁砧点数，用于铁砧锻造武器权重",
+	})
+	return out
+
+
+func _show_meta_choice() -> void:
+	hud._show_meta_choice()
+
+
+func _on_meta_choice_chosen(opt: Dictionary) -> void:
+	hud.meta_screen.visible = false
+	match opt["kind"]:
+		"weapon":
+			var p = opt["path"]
+			meta["weapon_base_bonus"][p] = meta["weapon_base_bonus"].get(p, 0) + WEAPON_BASE_STEP
+			hud._log("元进度：%s 基础伤害 +%d（已 +%d）" % [opt["label"], WEAPON_BASE_STEP, meta["weapon_base_bonus"][p]])
+		"charm":
+			var p = opt["path"]
+			meta["charm_upgrades"][p] = meta["charm_upgrades"].get(p, 0) + 1
+			hud._log("元进度：%s 伤害乘区提升（Lv%d）" % [opt["label"], meta["charm_upgrades"][p]])
+		"anvil":
+			meta["anvil_points"] += META_ANVIL_BONUS
+			hud._log("元进度：铁砧点数 +%d（共 %d）" % [META_ANVIL_BONUS, meta["anvil_points"]])
+	_save_meta()
+	hud._refresh_meta()
+	_full_reset()   # 元进度生效后开新一局（金币/槽位随局清零，但 meta 持久）
 
 
 func _roll_rewards() -> Array:
@@ -641,7 +725,7 @@ func _apply_boss_reward(cand: Dictionary) -> void:
 # M5 元进度（铁砧锻造 + 存档持久化）
 # ---------------------------------------------------------------------------
 func _load_meta() -> void:
-	var defaults := {"anvil_points": 0, "weapon_upgrades": {}, "interference_resist": 0}
+	var defaults := {"anvil_points": 0, "weapon_upgrades": {}, "interference_resist": 0, "weapon_base_bonus": {}, "charm_upgrades": {}}
 	var lb = SaveSystem.load_lobby_data()
 	if lb.has(ANVIL_SAVE_KEY) and lb[ANVIL_SAVE_KEY] is Dictionary:
 		var parsed: Dictionary = lb[ANVIL_SAVE_KEY]
@@ -1418,7 +1502,7 @@ func _reset_grid(fill_random: bool) -> void:
 
 
 func _contribute(sym: SymbolData, mult: int, acc: Dictionary, elem: String) -> void:
-	var bonus = _agg_power_flat()             # F-0 聚合层：本局加成 + 护符 + 狂怒增益 + (Phase F 词缀)
+	var bonus = _agg_power_flat() + _weapon_base_map.get(sym.resource_path, 0)   # F-0 聚合层 + 武器 base 线性加成（膨胀双轨）
 	var flat = sym.base + bonus
 	# 逐符号元素克制倍率（Phase G v2.0：通用元素乘区，奖罚并存·温和）
 	var em = ElementCounter.multiplier(elem, enemy_element)

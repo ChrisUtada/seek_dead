@@ -25,6 +25,8 @@ var loadout_count_label
 var loadout_confirm_btn
 var loadout_anvil_label                # M5：整备屏显示铁砧点数
 var reward_screen                       # 奖励三选一覆盖层
+var meta_screen                         # 每局结束元进度三选一覆盖层
+var meta_grid                           # 元进度三选一卡片网格
 var reward_title_label
 var reward_grid
 var reward_skip_btn
@@ -765,6 +767,59 @@ func _make_boss_reward_card(cand: Dictionary) -> Button:
 	dl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vb.add_child(dl)
 	btn.connect("pressed", controller._on_boss_reward_chosen.bind(cand))
+	return btn
+
+
+# ---------------------------------------------------------------------------
+# 每局结束元进度三选一（膨胀双轨：武器 base 线性 × 护符乘数增值，持久跨局）
+# ---------------------------------------------------------------------------
+func _build_meta_screen() -> void:
+	meta_screen = Control.new()
+	meta_screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	meta_screen.mouse_filter = Control.MOUSE_FILTER_STOP
+	var v = Screen.build_scaffold(meta_screen, Palette.BG_REWARD, {"l": 18, "r": 18, "t": 14, "b": 14}, 6)
+	v.add_child(_label("★ 通关一局！选择一项元进度升级（持久生效）", TypeScale.OVERLAY))
+	v.add_child(_label("武器基础伤害线性成长 × 护符伤害乘区增值——下一局起爆炸", TypeScale.META))
+	var scroll = ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	v.add_child(scroll)
+	meta_grid = GridContainer.new()
+	meta_grid.columns = 3
+	meta_grid.add_theme_constant_override("h_separation", 8)
+	meta_grid.add_theme_constant_override("v_separation", 8)
+	scroll.add_child(meta_grid)
+	add_child(meta_screen)
+	meta_screen.visible = false
+
+
+func _show_meta_choice() -> void:
+	for c in meta_grid.get_children():
+		meta_grid.remove_child(c)
+		c.queue_free()
+	var choices = controller._roll_meta_choices()
+	for opt in choices:
+		meta_grid.add_child(_make_meta_card(opt))
+	meta_screen.visible = true
+
+
+func _make_meta_card(opt: Dictionary) -> Button:
+	var btn = UI_BUTTON.instantiate()
+	btn.custom_minimum_size = Vector2(96, 64)
+	btn.text = ""
+	var cc = CenterContainer.new()
+	cc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	cc.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	btn.add_child(cc)
+	var vb = VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 2)
+	cc.add_child(vb)
+	vb.add_child(_label("%s %s" % [opt.get("icon", ""), opt.get("label", "")], 13))
+	var dl = _label(opt.get("desc", ""), TypeScale.TINY)
+	dl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	dl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vb.add_child(dl)
+	btn.connect("pressed", controller._on_meta_choice_chosen.bind(opt))
 	return btn
 
 
