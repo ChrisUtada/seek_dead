@@ -53,5 +53,3 @@ enum WeaponType { MELEE, RANGED }
 # "none"，则继承此值；special 符号优先用 reel_element（见 duel_controller._eff_element）。
 # 中性开局武器保持 "none"，其符号恒为中性。
 @export var element: String = "none"
-
-

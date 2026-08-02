@@ -112,6 +112,7 @@ var loadout_names: Array = []
 var _busy: bool = false                 # 旋转序列进行中，防重入
 var _eval_adv := false                  # _evaluate 阶段2：本回合是否触发过「克制」
 var _eval_dis := false                  # _evaluate 阶段2：本回合是否触发过「抵抗」
+var _last_special_triple := false        # 上一次 _evaluate 是否触发 special 三连（供连锁重触发循环读取）
 
 # —— 实体转轮带（方案 A）：权重 = 带子上该符号的格子数，落点由停止时机决定 ——
 var reel_strips: Array = []            # [reel] -> Array[ [SymbolData, element] ]
@@ -126,6 +127,8 @@ const _SPIN_BASE_WAIT := 0.15          # 起始每跳间隔（秒）——调慢
 const _SPIN_MIN_WAIT := 0.06           # 最快每跳间隔（封顶也调慢，整体更易控）
 const _STRIP_MIN_CELLS := 30           # 转轮带最小格数（整份平铺补足，不改变符号占比）
 const SPECIAL_TRIPLE_CRIT := 2.0        # special 三连暴击倍率：连线数轴上唯一可控的战斗内爆发（清晰可见，不做黑箱级联）
+const CHAIN_MAX := 4                      # 连锁重触发上限：special 三连最多再免费重转 3 次（共 4 发）
+const CHAIN_STEP := 1.5                   # 连锁倍率：每多一层 ×1.5（叠在 special×CRIT 之上，封顶 ≈ ×3.4）
 # 注：不设自动停止上限——转轮何时停完全由玩家决定，不操作就一直转。
 signal spin_finished                   # 全部转轮停下后发出，_on_spin_pressed 等待它
 
@@ -981,7 +984,21 @@ func _on_spin_pressed() -> void:
 	await spin_finished
 	await get_tree().create_timer(0.25).timeout
 	# 阶段 1+2：结算（先防御/增益/状态，后攻击；含飘字）
-	await _evaluate()
+	# 连锁重触发（① 数值爆炸）：special 三连后免费重转，倍率逐层 ×1.5，封顶 CHAIN_MAX 发。
+	# 重转全部用 fresh 随机——连锁是否续上完全看 RNG 是否再给 special 三连，是可见的尖峰而非黑箱。
+	var _chain := 0
+	while true:
+		await _evaluate(1.0 if _chain == 0 else CHAIN_STEP ** _chain)
+		if not _last_special_triple or enemy_hp <= 0:
+			break
+		_chain += 1
+		if _chain >= CHAIN_MAX:
+			break
+		hud._log("⚡ 连锁 ×%d！免费重转…" % (_chain + 1))
+		hud._popup("⚡连锁 ×%d" % (_chain + 1), Palette.POP_DAMAGE, hud._enemy_panel_anchor())
+		_begin_spin()
+		await spin_finished
+		await get_tree().create_timer(0.25).timeout
 	if enemy_hp <= 0:
 		hud._log("★ 击败 %s！" % enemy_name)
 		game_state = "won"
@@ -1458,7 +1475,8 @@ func _push_dmg_line(acc: Dictionary, sym: SymbolData, elem: String, flat, bonus,
 
 
 # 结算：分两阶段（先防御/增益/状态，后攻击），接单向属性克制与强袭药剂。
-func _evaluate() -> void:
+# chain_mult：连锁重触发倍率（仅作用于 special 部分），由 _on_spin_pressed 的连锁循环逐层传入，默认 1.0。
+func _evaluate(chain_mult := 1.0) -> void:
 	hud._clear_badges()
 	var acc = { "dmg": 0, "shield": 0, "heal": 0, "status_stacks": {}, "special": 0, "lines": [] }
 	_eval_adv = false
@@ -1529,12 +1547,13 @@ func _evaluate() -> void:
 		hud._log("⚡ special 三连触发")
 		if current_gimmick != null:
 			current_gimmick.on_special_triple(self)
+	_last_special_triple = acc.get("special_triple", false)
 
 	# —— 阶段 2：攻击结算（逐符号克制已在 _contribute 计入；此处只乘护符/强袭）——
 	# Phase C：迅捷(damage_mult) 对本回合总伤害做乘算（F-0 聚合层，含护符乘区）
 	var buff_mult = _agg_damage_mult()
 	var assault = assault_next_spin
-	var subtotal = acc["dmg"] + acc["special"]
+	var subtotal = acc["dmg"] + acc["special"] * chain_mult
 	var total = int(subtotal * assault * buff_mult * boss_dmg_mult)
 	assault_next_spin = 1
 	# S2：输出伤害分解——逐符号明细 + 回合级乘区汇总（走中栏独立面板，不进战斗日志）
@@ -1554,6 +1573,8 @@ func _evaluate() -> void:
 			tail.append("强袭×%s" % ElementCounter.fmt_mult(float(assault)))
 		if boss_dmg_mult != 1.0:
 			tail.append("护甲×%s" % ElementCounter.fmt_mult(boss_dmg_mult))
+		if chain_mult != 1.0:
+			tail.append("连锁×%s" % ElementCounter.fmt_mult(chain_mult))
 		if tail.is_empty():
 			blk.append("   合计 = %d" % total)
 		else:
