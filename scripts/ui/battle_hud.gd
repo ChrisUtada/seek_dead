@@ -365,7 +365,7 @@ func _build_loadout_screen() -> void:
 	var title = _label("⚙ 整备 · 选择携带物品", TypeScale.LEAD)
 	title.add_theme_color_override("font_color", Palette.TITLE)
 	root.add_child(title)
-	var rule = _label("四类各自独立槽位、互不算总（任一类满槽不影响他类） · 槽位条 ◆已装备 ◇空位 ·未解锁（商店「买即开槽」扩） · 天花板 武器%d·增益%d·消耗品%d·护符%d  |  武器·增益=进转轮的符号来源 · 消耗品=战斗中主动使用 · 护符=全局乘区" % [controller.WEAPON_CAP, controller.BUFF_CAP, controller.CONSUMABLE_CAP, controller.CHARM_CAP], 10)
+	var rule = _label("四类各自独立槽位、互不算总（任一类满槽不影响他类） · 槽位条 ◆已装备 ◇空位 ·未解锁 ＋可继续扩（商店「买即开槽」） · 天花板 武器%s·增益%s·消耗品%s·护符%s（进池类无上限：转轮稀释+递增价自然刹车；不进池类零代价故硬限）  |  武器·增益=进转轮的符号来源 · 消耗品=战斗中主动使用 · 护符=全局乘区" % [controller._cap_text("weapon"), controller._cap_text("buff"), controller._cap_text("active"), controller._cap_text("passive")], 10)
 	rule.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	root.add_child(rule)
 
@@ -492,7 +492,11 @@ func _refresh_slot_strip(category: String) -> void:
 	var used = controller._sel_arr(category).size()
 	var unlocked = controller._cat_max(category)
 	var ceiling = controller._cat_cap(category)
-	for i in ceiling:
+	var uncapped = (ceiling == controller.UNCAPPED)
+	# 无天花板（进池类 武器/增益）：只画已解锁的格子，末尾以 ＋ 表示可继续「买即开槽」（无限）
+	# 有天花板（不进池类 消耗品/护符）：按天花板画满，· 表示尚未解锁的格子
+	var cells = unlocked if uncapped else ceiling
+	for i in cells:
 		var glyph := "·"
 		var tint := Palette.PANEL_BORDER
 		if i < used:
@@ -504,6 +508,10 @@ func _refresh_slot_strip(category: String) -> void:
 		var g = _label(glyph, 15)
 		g.add_theme_color_override("font_color", tint)
 		strip.add_child(g)
+	if uncapped:
+		var plus = _label("＋", 15)
+		plus.add_theme_color_override("font_color", Palette.PANEL_BORDER)
+		strip.add_child(plus)
 
 
 func _make_item_card(data: Resource, path: String, kind: String) -> Dictionary:
@@ -598,17 +606,21 @@ func _update_loadout_cards_visual() -> void:
 		card["btn"].add_theme_stylebox_override("disabled", sb)
 
 
+# 单类计数文本：「名称 已装备/当前上限」；无天花板的进池类补 ＋ 表示仍可继续扩槽
+func _cat_count_text(cat: String, label: String) -> String:
+	var grow = "＋" if controller._cat_cap(cat) == controller.UNCAPPED else ""
+	return "%s %d/%d%s" % [label, controller._sel_arr(cat).size(), controller._cat_max(cat), grow]
+
+
 func _update_loadout_count() -> void:
 	# 四类各自独立计数，不再出现任何跨类合计
-	loadout_count_label.text = "武器 %d/%d · 增益 %d/%d · 消耗品 %d/%d · 护符 %d/%d" % [
-		controller.selected_loadout.size(), controller._cat_max("weapon"),
-		controller.selected_buffs.size(), controller._cat_max("buff"),
-		controller.selected_consumables.size(), controller._cat_max("active"),
-		controller.selected_charms.size(), controller._cat_max("passive")]
+	loadout_count_label.text = "%s · %s · %s · %s" % [
+		_cat_count_text("weapon", "武器"), _cat_count_text("buff", "增益"),
+		_cat_count_text("active", "消耗品"), _cat_count_text("passive", "护符")]
 	var titles = {"weapon": "武器", "buff": "增益", "active": "消耗品", "passive": "护符"}
 	for cat in titles:
 		if loadout_columns.has(cat):
-			loadout_columns[cat].text = "%s %d/%d" % [titles[cat], controller._sel_arr(cat).size(), controller._cat_max(cat)]
+			loadout_columns[cat].text = _cat_count_text(cat, titles[cat])
 		_refresh_slot_strip(cat)
 	var ok = controller.selected_loadout.size() >= controller.LOADOUT_MIN
 	loadout_confirm_btn.disabled = not ok
@@ -767,8 +779,7 @@ func _make_shop_card(offer: Dictionary) -> Button:
 	vb.add_child(_label("%s · %s" % [kind_name, offer["name"]], 12))
 	var cap = controller._cat_max(offer["kind"])          # 该类当前上限
 	var cur = controller._sel_arr(offer["kind"]).size()   # 该类已持数
-	var ceiling = controller._cat_cap(offer["kind"])      # 该类天花板
-	var can_grow_slot = cap < ceiling                     # 该类仍可「买即开槽」
+	var can_grow_slot = controller._can_grow_slot(offer["kind"])   # 进池类恒 true（无天花板）
 	var slot_full = (cur >= cap) and not can_grow_slot
 	var can_buy = (not offer["sold"]) and controller.gold >= offer["price"] and not slot_full
 	var status: String
@@ -777,7 +788,7 @@ func _make_shop_card(offer: Dictionary) -> Button:
 	elif controller.gold < offer["price"]:
 		status = "金币不足"
 	elif slot_full:
-		status = "槽位已满 %d/%d" % [cur, ceiling]
+		status = "槽位已满 %d/%s" % [cur, controller._cap_text(offer["kind"])]
 	elif cur >= cap:
 		status = "开槽 %d 金" % offer["price"]   # 本次购买会把该类槽 +1
 	else:

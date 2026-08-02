@@ -61,18 +61,20 @@ var BUFF_POOL: Array = []
 # 【成长方式】统一「买即开槽」：商店购买某类物品时，若该类当前槽位已满且未触天花板，
 #   本次购买直接把该类上限 +1（不单独售卖抽象的「槽扩展」商品）。
 #   节奏闸门 = 同类价格随已持数递增（见 _shop_price 的 step 表）。
-# 【天花板差异化依据】
-#   · 武器(weapon)：进池类，带越多废铁越多/按停越难，稀释效应自身即刹车 → 5
-#   · 增益(buff)：进池类中挤占转轮带最凶 → 1（初始即满，不成长）
-#   · 消耗品(active)：不进池，仅界面负担 → 2
-#   · 护符(passive)：不进池、零代价、无自然刹车，但为「唯一收集乘区」须稀缺 → 3
+# 【天花板：按「进池 / 不进池」分野，不按类别拍脑袋】
+#   · 进池类（武器 weapon · 增益 buff）→ **无天花板**（UNCAPPED）。
+#     它们的符号会挤进同一条转轮带，带越多则：废铁占比升高、目标符号命中率被稀释、
+#     克制浓度摊薄、按停到想要的符号更难 —— 稀释效应本身就是刹车，无需人为封顶。
+#     再叠加金币线性递增价（见 _shop_price），越买越贵，双闸门足矣。
+#   · 不进池类（消耗品 active · 护符 passive）→ **硬天花板**（2 / 3）。
+#     它们不进转轮、零稀释代价、没有任何自然刹车（尤其护符是「唯一收集乘区」，
+#     纯收益、越多越强），故必须硬限量，否则乘区无限叠加直接崩坏数值。
 const LOADOUT_MIN := 1
 # 初始配额（每局开局值；_full_reset 与 _shop_price 的加价起点均以此为准）
 const SLOT_INIT := {"weapon": 2, "buff": 1, "active": 1, "passive": 1}
-const WEAPON_CAP     := 5   # 武器槽天花板
-const BUFF_CAP       := 1   # 增益槽天花板（初始即满，不成长）
-const CONSUMABLE_CAP := 2   # 消耗品槽天花板
-const CHARM_CAP      := 3   # 护符槽天花板
+const UNCAPPED := -1        # 天花板哨兵值：该类无上限，仅由稀释效应 + 金币递增价约束
+const CONSUMABLE_CAP := 2   # 消耗品槽天花板（不进池，宽松硬限）
+const CHARM_CAP      := 3   # 护符槽天花板（不进池、唯一收集乘区，严格硬限）
 # 各类当前上限：每局从初始配额起步，商店「买即开槽」逐步逼近天花板（_full_reset 重置）
 var loadout_max    := 2
 var buff_max       := 1
@@ -375,23 +377,36 @@ func _cat_max(cat: String) -> int:
 	return 0
 
 
-# 该类【天花板】（当前上限的成长终点，恒定不变）
+# 该类【天花板】（当前上限的成长终点）。返回 UNCAPPED(-1) 表示无天花板（进池类）。
 func _cat_cap(cat: String) -> int:
 	match cat:
-		"weapon":  return WEAPON_CAP
+		"weapon":  return UNCAPPED   # 进池：稀释效应自身即刹车
+		"buff":    return UNCAPPED   # 进池：同上
 		"active":  return CONSUMABLE_CAP
 		"passive": return CHARM_CAP
-		"buff":    return BUFF_CAP
 	return 0
 
 
-# 「买即开槽」：把该类当前上限 +1（不越过天花板）
+# 该类是否还能继续「买即开槽」（无天花板恒为 true）
+func _can_grow_slot(cat: String) -> bool:
+	var ceiling = _cat_cap(cat)
+	return ceiling == UNCAPPED or _cat_max(cat) < ceiling
+
+
+# 天花板的显示文本（无天花板显示 ∞），供日志与 UI 复用
+func _cap_text(cat: String) -> String:
+	var ceiling = _cat_cap(cat)
+	return "∞" if ceiling == UNCAPPED else str(ceiling)
+
+
+# 「买即开槽」：把该类当前上限 +1（有天花板则不越过）
 func _grow_slot(cat: String) -> void:
+	var ceiling = _cat_cap(cat)
 	match cat:
-		"weapon":  loadout_max    = min(loadout_max + 1, WEAPON_CAP)
-		"active":  consumable_max = min(consumable_max + 1, CONSUMABLE_CAP)
-		"passive": charm_max      = min(charm_max + 1, CHARM_CAP)
-		"buff":    buff_max       = min(buff_max + 1, BUFF_CAP)
+		"weapon":  loadout_max    = (loadout_max + 1 if ceiling == UNCAPPED else min(loadout_max + 1, ceiling))
+		"buff":    buff_max       = (buff_max + 1 if ceiling == UNCAPPED else min(buff_max + 1, ceiling))
+		"active":  consumable_max = min(consumable_max + 1, ceiling)
+		"passive": charm_max      = min(charm_max + 1, ceiling)
 
 
 func _cat_name(cat: String) -> String:
@@ -578,8 +593,9 @@ func _shop_price(kind: String, owned := 0) -> int:
 	var price = base + randi_range(-1, 2)
 	# 金币是「买即开槽」的节奏闸门：填满初始配额之前按原价（只是补空位），
 	# 从「首次扩槽」那一件起逐级加价 —— 故加价起点按各类初始配额对齐，而非一律第 2 件。
-	# 护符步进最大（唯一收集乘区，须最贵）；增益步进 0（天花板 1，本就买不到第 2 个）。
-	var step = {"weapon": 5, "passive": 8, "active": 4, "buff": 0}.get(kind, 4)
+	# 步进差异：护符最大（唯一收集乘区、无天花板之外的刹车，须最贵）；
+	# 增益次之（进池挤占转轮带最凶，且无天花板，全靠价格 + 稀释双刹车）；武器居中；消耗品最低。
+	var step = {"weapon": 5, "passive": 8, "active": 4, "buff": 6}.get(kind, 4)
 	price += max(0, owned - int(SLOT_INIT.get(kind, 1)) + 1) * step
 	return max(3, price)
 
@@ -620,10 +636,10 @@ func _on_shop_buy_pressed(offer: Dictionary) -> void:
 		return
 	var w = arr.size()
 	var cap = _cat_max(kind)            # 该类当前上限
-	var ceiling = _cat_cap(kind)        # 该类天花板
-	# 「买即开槽」（四类通用）：该类槽满时，只要未触天花板，本次购买即扩槽 1 格；触顶才拒绝
-	if w >= cap and cap >= ceiling:
-		hud._log("%s槽位已满 %d/%d（已达天花板），无法购买" % [_cat_name(kind), w, ceiling])
+	# 「买即开槽」（四类通用）：该类槽满时，只要还能扩（进池类无天花板 / 不进池类未触顶），
+	# 本次购买即扩槽 1 格；仅在「有天花板且已触顶」时才拒绝。
+	if w >= cap and not _can_grow_slot(kind):
+		hud._log("%s槽位已满 %d/%s（已达天花板），无法购买" % [_cat_name(kind), w, _cap_text(kind)])
 		return
 	if gold < offer["price"]:
 		hud._log("金币不足（需 %d）" % offer["price"])
@@ -633,7 +649,7 @@ func _on_shop_buy_pressed(offer: Dictionary) -> void:
 	offer["sold"] = true
 	if w >= cap:                        # 本次是扩槽购买 → 该类槽 +1
 		_grow_slot(kind)
-		hud._log("购买 %s（%s槽 +1 → %d/%d，-%d 金，余 %d）" % [offer["name"], _cat_name(kind), _cat_max(kind), ceiling, offer["price"], gold])
+		hud._log("购买 %s（%s槽 +1 → %d/%s，-%d 金，余 %d）" % [offer["name"], _cat_name(kind), _cat_max(kind), _cap_text(kind), offer["price"], gold])
 	else:
 		hud._log("购买 %s（-%d 金，余 %d）" % [offer["name"], offer["price"], gold])
 	if kind == "active":   # 消耗品：立即写入可用次数，使新购物品当即可用
