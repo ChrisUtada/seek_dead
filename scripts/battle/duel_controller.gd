@@ -57,15 +57,15 @@ var BUFF_POOL: Array = []
 
 # 携带约束（Phase G 收紧）：按「进池 / 不进池」两把尺子分开管，而不是按总数一刀切。
 #   · 进池类（武器 / 增益）：符号会挤进同一条转轮带 → 带多了稀释克制乘区、稀释 special
-#     三连、拉长带子让「按停到目标符号」变难。故增益死压 0–1；武器上限 LOADOUT_MAX=2（初始设计，
-#     带越多废铁越多/按停越难、自身即刹车，故不大幅放开；S9「金币控制无硬上限」实验已回退）。
+#     三连、拉长带子让「按停到目标符号」变难。故增益死压 0–1；武器初始上限 2（开局免费配给），
+#     后续在商店花金币买武器可逐步扩槽（买武器即开槽），封顶 TOTAL_MAX；带越多废铁越多/按停越难、自身即刹车。
 #   · 不进池类：消耗品只影响界面负担，尺度可宽松；护符虽不进池，但是「唯一收集乘区」，
 #     须严格限量（见下「护符硬上限」注），不可照搬消耗品的宽松尺度。
 #   · TOTAL_MAX 是真正的取舍闸门：分类名义上限之和 = 2(武器)+1+2+3 = 8 > 5，逼玩家「想带的比能带的多」。
 # 注：护符为「唯一收集乘区」，硬上限 3、不成长。未来混合护符（正负并存）的负面即其平衡刹车，
 #     故无需「护符槽成长」通道（旧 Phase G 的 1→4 成长计划已废弃）。
 const LOADOUT_MIN := 1
-const LOADOUT_MAX := 2
+var loadout_max := 2   # 武器槽上限（初始 2；商店花金币买武器逐步扩槽，封顶 TOTAL_MAX）
 const CONSUMABLE_MIN := 0
 const CONSUMABLE_MAX := 2
 const CHARM_MIN := 0
@@ -365,7 +365,7 @@ func _sel_arr(cat: String) -> Array:
 
 func _cat_max(cat: String) -> int:
 	match cat:
-		"weapon":  return LOADOUT_MAX
+		"weapon":  return loadout_max
 		"active":  return CONSUMABLE_MAX
 		"passive": return CHARM_MAX
 		"buff":    return BUFF_MAX
@@ -557,9 +557,12 @@ func _award_gold(is_boss: bool) -> void:
 	gold += total
 	hud._log("金币 +%d（清房 %d + 利息 %d，共 %d）" % [total, base, interest, gold])
 
-func _shop_price(kind: String) -> int:
+func _shop_price(kind: String, owned := 0) -> int:
 	var base = {"weapon": 8, "passive": 10, "active": 5, "buff": 6}.get(kind, 6)
-	return max(3, base + randi_range(-1, 2))
+	var price = base + randi_range(-1, 2)
+	if kind == "weapon":
+		price += max(0, owned - 1) * 5   # 金币控制槽成长：第 3 把起每把 +5，越往后越贵，自然抑制
+	return max(3, price)
 
 func _shop_name(path: String, kind: String) -> String:
 	var d = load(path)
@@ -586,20 +589,26 @@ func _roll_shop() -> void:
 	shop_offers = []
 	for i in n:
 		var c = candidates[i]
-		shop_offers.append({"path": c["path"], "kind": c["kind"], "price": _shop_price(c["kind"]), "name": _shop_name(c["path"], c["kind"]), "sold": false})
+		shop_offers.append({"path": c["path"], "kind": c["kind"], "price": _shop_price(c["kind"], selected_loadout.size() if c["kind"] == "weapon" else 0), "name": _shop_name(c["path"], c["kind"]), "sold": false})
 
 func _on_shop_buy_pressed(offer: Dictionary) -> void:
 	if offer["sold"]:
 		return
-	var arr = _sel_arr(offer["kind"])
+	var kind = offer["kind"]
+	var arr = _sel_arr(kind)
 	if arr.has(offer["path"]):
 		hud._log("已拥有 %s，无法重复购买" % offer["name"])
 		return
-	var cap = _cat_max(offer["kind"])
-	if arr.size() >= cap:
-		hud._log("%s槽位已满，无法购买" % _cat_name(offer["kind"]))
-		return
-	if _total_selected() >= TOTAL_MAX:   # S9：与整备屏一致，商店也受全局总槽约束（修此前可超总槽的潜在缺口）
+	var w = arr.size()
+	var cap = _cat_max(kind)            # 武器 = loadout_max（初始 2），其余 = 固定上限
+	# 已达当前分类上限：武器可「买武器开槽」再扩 1（受 TOTAL_MAX 约束）；其他类直接拒
+	if w >= cap:
+		if kind == "weapon" and loadout_max < TOTAL_MAX:
+			pass                          # 允许扩槽购买，继续走总槽/金币校验
+		else:
+			hud._log("%s槽位已满，无法购买" % _cat_name(kind))
+			return
+	if _total_selected() >= TOTAL_MAX:   # 全局总槽闸门（四类共享 5 格）
 		hud._log("总槽已达上限 %d" % TOTAL_MAX)
 		return
 	if gold < offer["price"]:
@@ -608,12 +617,16 @@ func _on_shop_buy_pressed(offer: Dictionary) -> void:
 	gold -= offer["price"]
 	arr.append(offer["path"])
 	offer["sold"] = true
-	if offer["kind"] == "active":   # 消耗品：立即写入可用次数，使新购物品当即可用
+	if kind == "weapon" and w >= cap:   # 本次是扩槽购买 → 武器槽 +1（封顶 TOTAL_MAX）
+		loadout_max = min(loadout_max + 1, TOTAL_MAX)
+		hud._log("购买 %s（武器槽 +1 → %d/%d，-%d 金，余 %d）" % [offer["name"], loadout_max, TOTAL_MAX, offer["price"], gold])
+	else:
+		hud._log("购买 %s（-%d 金，余 %d）" % [offer["name"], offer["price"], gold])
+	if kind == "active":   # 消耗品：立即写入可用次数，使新购物品当即可用
 		var cd: Resource = load(offer["path"])
 		if cd != null:
 			consumable_charges[cd.item_id] = cd.charges
 			_rebuild_consumable_panel()
-	hud._log("购买 %s（-%d 金，余 %d）" % [offer["name"], offer["price"], gold])
 	hud._refresh_shop()
 	hud._refresh_meta()
 
@@ -658,6 +671,7 @@ func _on_anvil_back_pressed() -> void:
 func _full_reset() -> void:
 	player_hp = player_hp_max
 	gold = 4                                 # S6：新一局金币清零（每局清零，见 §11）
+	loadout_max = 2                          # 新一局武器槽回到初始 2（商店金币可再扩槽）
 	# M4：开新一局，重置本局加成层
 	run_symbol_bonus = {}
 	run_power_bonus = 0

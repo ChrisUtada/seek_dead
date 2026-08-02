@@ -364,7 +364,7 @@ func _build_loadout_screen() -> void:
 	var title = _label("⚙ 整备 · 选择携带物品", TypeScale.LEAD)
 	title.add_theme_color_override("font_color", Palette.TITLE)
 	root.add_child(title)
-	var rule = _label("武器 %d–%d 把 · 物品（主动 0–%d · 被动 0–%d） · 增益 0–%d · 总槽 %d  |  武器/增益=进转轮的符号来源 · 物品=可携带（主动消耗 · 被动护符）" % [controller.LOADOUT_MIN, controller.LOADOUT_MAX, controller.CONSUMABLE_MAX, controller.CHARM_MAX, controller.BUFF_MAX, controller.TOTAL_MAX], 10)
+	var rule = _label("武器 上限%d(商店金币可扩至%d) · 物品（主动 0–%d · 被动 0–%d） · 增益 0–%d · 总槽 %d  |  武器/增益=进转轮的符号来源 · 物品=可携带（主动消耗 · 被动护符）" % [controller.loadout_max, controller.TOTAL_MAX, controller.CONSUMABLE_MAX, controller.CHARM_MAX, controller.BUFF_MAX, controller.TOTAL_MAX], 10)
 	rule.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	root.add_child(rule)
 
@@ -720,9 +720,23 @@ func _make_shop_card(offer: Dictionary) -> Button:
 	vb.add_child(_label("%s · %s" % [kind_name, offer["name"]], 12))
 	var cap = controller._cat_max(offer["kind"])
 	var cur = controller._sel_arr(offer["kind"]).size()
-	var total_full = controller._total_selected() >= controller.TOTAL_MAX   # S9：与购买函数总闸门一致，避免武器卡"看似可点却买不到"
-	var can_buy = (not offer["sold"]) and controller.gold >= offer["price"] and cur < cap and not total_full
-	var status = "已购入" if offer["sold"] else ("金币不足" if controller.gold < offer["price"] else (("总槽已满 %d/%d" % [controller._total_selected(), controller.TOTAL_MAX]) if total_full else ("槽位已满" if cur >= cap else "%d 金" % offer["price"])))
+	var total_full = controller._total_selected() >= controller.TOTAL_MAX
+	var can_grow_slot = (offer["kind"] == "weapon") and (controller.loadout_max < controller.TOTAL_MAX)
+	var slot_full = (cur >= cap) and not can_grow_slot
+	var can_buy = (not offer["sold"]) and controller.gold >= offer["price"] and not slot_full and not total_full
+	var status: String
+	if offer["sold"]:
+		status = "已购入"
+	elif controller.gold < offer["price"]:
+		status = "金币不足"
+	elif total_full:
+		status = "总槽已满 %d/%d" % [controller._total_selected(), controller.TOTAL_MAX]
+	elif slot_full:
+		status = "槽位已满"
+	elif offer["kind"] == "weapon" and cur >= cap:
+		status = "开槽 %d 金" % offer["price"]   # 本次购买会扩武器槽
+	else:
+		status = "%d 金" % offer["price"]
 	var pl = _label(status, TypeScale.TINY)
 	pl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	if offer["sold"]:
