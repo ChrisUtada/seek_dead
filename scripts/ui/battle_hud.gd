@@ -27,6 +27,14 @@ var reward_screen                       # 奖励三选一覆盖层
 var reward_title_label
 var reward_grid
 var reward_skip_btn
+
+# S6–S8 局内经济 UI
+var gold_label                           # 玩家面板：局内金币
+var shop_screen
+var shop_title_label
+var shop_gold_label
+var shop_grid
+var shop_leave_btn
 var anvil_screen
 var anvil_title_label
 var anvil_points_label
@@ -171,6 +179,10 @@ func _build_ui() -> void:
 	ppv.add_child(player_hp_label)
 	ppv.add_child(player_shield_label)
 	ppv.add_child(player_buff_label)
+	gold_label = _label("金币 4", TypeScale.META)
+	gold_label.add_theme_color_override("font_color", Palette.ACCENT_GOLD)
+	gold_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	ppv.add_child(gold_label)
 	ppv.add_child(Control.new())  # 占位撑开
 	main.add_child(ppanel)
 
@@ -641,6 +653,89 @@ func _make_reward_card(rw: RewardData) -> Button:
 	return btn
 
 
+func _build_shop_screen() -> void:
+	shop_screen = Control.new()
+	shop_screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	shop_screen.mouse_filter = Control.MOUSE_FILTER_STOP
+	var v = Screen.build_scaffold(shop_screen, Palette.BG_REWARD, {"l": 18, "r": 18, "t": 14, "b": 14}, 6)
+	shop_title_label = _label("🛒 商店 · 用金币投资战力", TypeScale.OVERLAY)
+	v.add_child(shop_title_label)
+	shop_gold_label = _label("金币: 0", TypeScale.BODY)
+	shop_gold_label.add_theme_color_override("font_color", Palette.ACCENT_GOLD)
+	v.add_child(shop_gold_label)
+	v.add_child(_label("购买后带入后续房间（随机刷新，先到先得）", TypeScale.META))
+
+	var scroll = ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	v.add_child(scroll)
+	shop_grid = GridContainer.new()
+	shop_grid.columns = 3
+	shop_grid.add_theme_constant_override("h_separation", 8)
+	shop_grid.add_theme_constant_override("v_separation", 8)
+	scroll.add_child(shop_grid)
+
+	var bot = HBoxContainer.new()
+	v.add_child(bot)
+	var sp = Control.new()
+	sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bot.add_child(sp)
+	shop_leave_btn = UI_BUTTON.instantiate()
+	shop_leave_btn.text = "离开商店 ▶"
+	shop_leave_btn.custom_minimum_size = Vector2(140, 40)
+	shop_leave_btn.connect("pressed", controller._on_shop_leave_pressed)
+	bot.add_child(shop_leave_btn)
+
+	add_child(shop_screen)
+	shop_screen.visible = false
+
+
+func _show_shop_screen() -> void:
+	controller._roll_shop()
+	_refresh_shop()
+	shop_screen.visible = true
+
+
+func _refresh_shop() -> void:
+	shop_gold_label.text = "金币: %d" % controller.gold
+	for c in shop_grid.get_children():
+		shop_grid.remove_child(c)
+		c.queue_free()
+	for offer in controller.shop_offers:
+		shop_grid.add_child(_make_shop_card(offer))
+
+
+func _make_shop_card(offer: Dictionary) -> Button:
+	var btn = UI_BUTTON.instantiate()
+	btn.custom_minimum_size = Vector2(110, 86)
+	btn.text = ""
+	var cc = CenterContainer.new()
+	cc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	cc.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	btn.add_child(cc)
+	var vb = VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 2)
+	cc.add_child(vb)
+	var kind_name = {"weapon": "武器", "passive": "护符", "active": "物品", "buff": "增益"}.get(offer["kind"], "物品")
+	vb.add_child(_label("%s · %s" % [kind_name, offer["name"]], 12))
+	var cap = controller._cat_max(offer["kind"])
+	var cur = controller._sel_arr(offer["kind"]).size()
+	var can_buy = (not offer["sold"]) and controller.gold >= offer["price"] and cur < cap
+	var status = "已购入" if offer["sold"] else ("金币不足" if controller.gold < offer["price"] else ("槽位已满" if cur >= cap else "%d 金" % offer["price"]))
+	var pl = _label(status, TypeScale.TINY)
+	pl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	if offer["sold"]:
+		pl.add_theme_color_override("font_color", Palette.MUTED_DIM)
+	elif not can_buy:
+		pl.add_theme_color_override("font_color", Palette.ENEMY)
+	else:
+		pl.add_theme_color_override("font_color", Palette.ACCENT_GOLD)
+	vb.add_child(pl)
+	btn.disabled = not can_buy
+	btn.connect("pressed", controller._on_shop_buy_pressed.bind(offer))
+	return btn
+
+
 func _build_anvil_screen() -> void:
 	anvil_screen = Control.new()
 	anvil_screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -1042,6 +1137,7 @@ func _refresh_meta() -> void:
 	player_hp_label.text = "HP %d/%d" % [controller.player_hp, controller.player_hp_max]
 	player_shield_label.text = "护盾 %d" % controller.player_shield
 	player_buff_label.text = "增益: " + controller._buff_summary()
+	gold_label.text = "金币 %d" % controller.gold
 	enemy_name_label.text = controller.enemy_name
 	enemy_hp_label.text = "HP %d/%d" % [max(controller.enemy_hp, 0), controller.enemy_hp_max]
 	enemy_status_label.text = "状态: " + ("无" if controller.enemy_status.is_empty() else controller._status_summary(controller.enemy_status))

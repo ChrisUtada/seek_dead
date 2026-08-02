@@ -37,6 +37,9 @@ extends Control
 # ============================================================================
 
 const TRASH_SYMBOL = preload("res://resources/symbols/trash.tres")
+const GOLD_SYMBOL = preload("res://resources/symbols/gold.tres")
+const GOLD_POOL_WEIGHT := 3.0      # 金币符号在转轮池中的权重（远低于伤害符号，防稀释 DPS）
+const GOLD_PER_COIN := 1           # 每枚落在连线上的金币符号产出的金币数
 const ElementCounter = preload("res://scripts/battle/element_counter.gd")
 # Phase D 软注册表清理：文件夹自动扫描工具（替代手写路径数组）
 const ResourceScan = preload("res://scripts/utils/resource_scan.gd")
@@ -55,15 +58,17 @@ var BUFF_POOL: Array = []
 # 携带约束（Phase G 收紧）：按「进池 / 不进池」两把尺子分开管，而不是按总数一刀切。
 #   · 进池类（武器 / 增益）：符号会挤进同一条转轮带 → 带多了稀释克制乘区、稀释 special
 #     三连、拉长带子让「按停到目标符号」变难。故上限压得很死：武器 1–2、增益 0–1。
-#   · 不进池类（消耗品 / 护符）：只影响界面负担与乘区收集，尺度可宽松。
-#   · TOTAL_MAX 是真正的取舍闸门：分类上限之和 = 2+1+2+2 = 7 > 5，逼玩家「想带的比能带的多」。
-# 注：Phase G 规划护符槽随进度成长（1→4），届时 TOTAL_MAX 需同步上调，否则护符成长吃不满。
+#   · 不进池类：消耗品只影响界面负担，尺度可宽松；护符虽不进池，但是「唯一收集乘区」，
+#     须严格限量（见下「护符硬上限」注），不可照搬消耗品的宽松尺度。
+#   · TOTAL_MAX 是真正的取舍闸门：分类上限之和 = 2+1+2+3 = 8 > 5，逼玩家「想带的比能带的多」。
+# 注：护符为「唯一收集乘区」，硬上限 3、不成长。未来混合护符（正负并存）的负面即其平衡刹车，
+#     故无需「护符槽成长」通道（旧 Phase G 的 1→4 成长计划已废弃）。
 const LOADOUT_MIN := 1
 const LOADOUT_MAX := 2
 const CONSUMABLE_MIN := 0
 const CONSUMABLE_MAX := 2
 const CHARM_MIN := 0
-const CHARM_MAX := 2
+const CHARM_MAX := 3
 const BUFF_MIN := 0
 const BUFF_MAX := 1
 const TOTAL_MAX := 5
@@ -125,7 +130,7 @@ const STATUS_NAMES := {"burn": "燃", "frost": "霜", "poison": "毒"}
 var player_buffs: Dictionary = {}
 
 # 消耗品运行时（战斗中主动使用）
-var consumable_charges: Dictionary = {}   # item_id -> 剩余次数（每房回满）
+var consumable_charges: Dictionary = {}   # item_id -> 剩余次数（整备确认时按持有初始化一次；用掉即消耗，仅靠商店补给）
 var consumable_panel                      # 战斗 UI 底部消耗品按钮行
 var consumable_buttons: Array = []        # {id, data, btn}
 var assault_next_spin: int = 1            # 强袭药剂：下次转轮伤害倍率（1=正常）
@@ -133,6 +138,7 @@ var assault_next_spin: int = 1            # 强袭药剂：下次转轮伤害倍
 # 玩家状态
 var player_hp = 100
 var player_hp_max = 100
+var gold = 4                           # S6：局内金币（每局清零，见 §11）
 var player_shield = 0
 
 # 敌人 / 房间状态
@@ -159,6 +165,7 @@ var purify_charges = 0
 # M6 护符被动（整局生效，_apply_charms 在 _confirm_loadout 结算）
 var charm_power_bonus: int = 0         # 锋锐护符：本局所有伤害符号 +N
 var charm_room_shield: int = 0         # 守望护符：每房开局护盾 +N
+var charm_shield_trickle: int = 0      # 守备护符：每回合护盾涓流（整局生效，见 §8）
 var charm_interf_resist: int = 0       # 抗扰护符：本局敌人干扰概率降低（等效抗扰等级）
 var charm_purify_bonus: int = 0        # 丰沛护符：净化上限 +N
 var charm_damage_mult: float = 1.0      # Phase G v2.0：护符全局乘区（joker），默认 ×1.0
@@ -173,6 +180,7 @@ var run_power_bonus: int = 0           # 本局符号基础伤害加成（奖励
 var run_shield_next: int = 0           # 进入下一房时获得的护盾（奖励：守望结界）
 var reward_choices: Array = []         # 当前展示的 3 个奖励
 var reward_is_boss: bool = false       # 当前奖励是否来自 Boss 房（选完开新局）
+var shop_offers: Array = []            # S7：当前商店货架（随机刷新）
 
 # M5 元进度（铁砧锻造 + 存档持久化，跨局保留）
 # weapon_upgrades: weapon_path -> int（该武器主符号额外权重，转轮升级）
@@ -212,6 +220,7 @@ func _ready() -> void:
 	hud._build_loadout_screen()
 	hud._build_reward_screen()
 	hud._build_anvil_screen()
+	hud._build_shop_screen()      # S7：商店覆盖层
 	hud._show_loadout_screen()
 	# 方案 A：旋转节拍器（转轮带滚动 + 加速 + 停止时机判定）
 	_spin_timer = Timer.new()
@@ -283,6 +292,8 @@ func _build_pool(loadout: Array) -> void:
 				break
 		if not found:
 			pool.append([load(spath), _agg_symbol_weight_mod(load(spath)), "none"])
+	# 金币符号：常驻转轮资源（如废铁），落在线上的金币转化为金币（S6 经济引擎）
+	pool.append([GOLD_SYMBOL, GOLD_POOL_WEIGHT, "none"])
 	# 符号图例（每符号名称/类型/元素 + 敌人属性）
 	if hud.legend_container != null:
 		hud._refresh_legend()
@@ -378,7 +389,12 @@ func _total_selected() -> int:
 func _confirm_loadout() -> void:
 	if selected_loadout.size() < LOADOUT_MIN:
 		return
-	_apply_charms()                       # 结算护符被动 + 净化上限
+	# 消耗品：整备确认时按当前持有一次性初始化次数（每房/每局不再回满，靠商店补给）
+	consumable_charges = {}
+	for path in selected_consumables:
+		var cd: Resource = load(path)
+		if cd != null:
+			consumable_charges[cd.item_id] = cd.charges
 	hud._hide_loadout_screen()
 	_full_reset()
 
@@ -390,6 +406,7 @@ func _apply_charms() -> void:
 	charm_interf_resist = 0
 	charm_purify_bonus = 0
 	charm_damage_mult = 1.0
+	charm_shield_trickle = 0
 	for path in selected_charms:
 		var cd: Resource = load(path)
 		if cd == null:
@@ -399,14 +416,24 @@ func _apply_charms() -> void:
 			"room_shield":          charm_room_shield += cd.value
 			"interference_resist":  charm_interf_resist += cd.value
 			"purify_bonus":         charm_purify_bonus += cd.value
+			"shield":               charm_shield_trickle += cd.value   # 守备护符：每回合护盾涓流
 			"damage_mult":          charm_damage_mult *= cd.mult_value
+		# 混合护符的负面效果（未来卡用）：与正面同枚举、加成型数值取反、乘区型乘 downside_mult
+		if cd.downside_effect != "":
+			match cd.downside_effect:
+				"damage_bonus":         charm_power_bonus -= cd.downside_value
+				"room_shield":          charm_room_shield -= cd.downside_value
+				"interference_resist":  charm_interf_resist -= cd.downside_value
+				"purify_bonus":         charm_purify_bonus -= cd.downside_value
+				"shield":               charm_shield_trickle -= cd.downside_value
+				"damage_mult":          charm_damage_mult *= cd.downside_mult
 	var pm = 0
 	for path in selected_consumables:
 		var cd: Resource = load(path)
 		if cd != null and cd.effect == "purify":
 			pm += cd.value
 	purify_max_base = pm + charm_purify_bonus
-	var charm_log = "护符已装配：伤害+%d / 护盾+%d / 抗扰+%d / 净化+%d" % [charm_power_bonus, charm_room_shield, charm_interf_resist, charm_purify_bonus]
+	var charm_log = "护符已装配：伤害+%d / 开局护盾+%d / 每回合护盾+%d / 抗扰+%d / 净化+%d" % [charm_power_bonus, charm_room_shield, charm_shield_trickle, charm_interf_resist, charm_purify_bonus]
 	if charm_damage_mult != 1.0:
 		charm_log += " / 伤害×%s" % ElementCounter.fmt_mult(charm_damage_mult)
 	hud._log(charm_log)
@@ -423,20 +450,22 @@ func _on_reward_chosen(id: String) -> void:
 	hud.reward_screen.visible = false
 	_apply_reward(id)
 	_award_meta(reward_is_boss)    # M5：房间通关发放铁砧点数
+	_award_gold(reward_is_boss)    # S6+S8：清房金币 + 利息
 	if reward_is_boss:
-		_full_reset()              # 通关后开新一局
+		_full_reset()              # 通关后开新一局（金币随局清零）
 	else:
-		_start_room(room_index + 1)
+		hud._show_shop_screen()    # S7：房间之间进入商店
 	hud._refresh_meta()
 
 
 func _on_reward_skip_pressed() -> void:
 	hud.reward_screen.visible = false
 	_award_meta(reward_is_boss)    # M5：房间通关发放铁砧点数（即使跳过奖励）
+	_award_gold(reward_is_boss)    # S6+S8：清房金币 + 利息
 	if reward_is_boss:
 		_full_reset()
 	else:
-		_start_room(room_index + 1)
+		hud._show_shop_screen()    # S7：房间之间进入商店
 	hud._refresh_meta()
 
 
@@ -517,6 +546,77 @@ func _award_meta(is_boss: bool) -> void:
 	hud._log("铁砧点数 +%d（共 %d）" % [pts, meta["anvil_points"]])
 
 
+# ---------------------------------------------------------------------------
+# S6–S8 局内经济：金币 / 商店 / 利息
+# ---------------------------------------------------------------------------
+func _award_gold(is_boss: bool) -> void:
+	var base = 10 if is_boss else 5
+	var interest = mini(int(gold / 5), 5)     # S8：每 5 金 +1，上限 +5
+	var total = base + interest
+	gold += total
+	hud._log("金币 +%d（清房 %d + 利息 %d，共 %d）" % [total, base, interest, gold])
+
+func _shop_price(kind: String) -> int:
+	var base = {"weapon": 8, "passive": 10, "active": 5, "buff": 6}.get(kind, 6)
+	return max(3, base + randi_range(-1, 2))
+
+func _shop_name(path: String, kind: String) -> String:
+	var d = load(path)
+	if d == null:
+		return path.get_file().get_basename()
+	match kind:
+		"weapon": return (d as WeaponData).weapon_name if d is WeaponData else path.get_file().get_basename()
+		"buff":   return (d as BuffData).buff_name if d is BuffData else path.get_file().get_basename()
+		_:        return (d as ItemData).item_name if d is ItemData else path.get_file().get_basename()
+	return path.get_file().get_basename()
+
+func _roll_shop() -> void:
+	var candidates := []
+	for p in WEAPON_POOL:
+		candidates.append({"path": p, "kind": "weapon"})
+	for p in ITEM_POOL:
+		var d = load(p)
+		if d is ItemData:
+			candidates.append({"path": p, "kind": d.category})
+	for p in BUFF_POOL:
+		candidates.append({"path": p, "kind": "buff"})
+	candidates.shuffle()                      # 随机刷新，防背公式
+	var n = min(candidates.size(), 6)
+	shop_offers = []
+	for i in n:
+		var c = candidates[i]
+		shop_offers.append({"path": c["path"], "kind": c["kind"], "price": _shop_price(c["kind"]), "name": _shop_name(c["path"], c["kind"]), "sold": false})
+
+func _on_shop_buy_pressed(offer: Dictionary) -> void:
+	if offer["sold"]:
+		return
+	var arr = _sel_arr(offer["kind"])
+	if arr.has(offer["path"]):
+		hud._log("已拥有 %s，无法重复购买" % offer["name"])
+		return
+	var cap = _cat_max(offer["kind"])
+	if arr.size() >= cap:
+		hud._log("%s槽位已满，无法购买" % _cat_name(offer["kind"]))
+		return
+	if gold < offer["price"]:
+		hud._log("金币不足（需 %d）" % offer["price"])
+		return
+	gold -= offer["price"]
+	arr.append(offer["path"])
+	offer["sold"] = true
+	if offer["kind"] == "active":   # 消耗品：立即写入可用次数，使新购物品当即可用
+		var cd: Resource = load(offer["path"])
+		if cd != null:
+			consumable_charges[cd.item_id] = cd.charges
+			_rebuild_consumable_panel()
+	hud._log("购买 %s（-%d 金，余 %d）" % [offer["name"], offer["price"], gold])
+	hud._refresh_shop()
+	hud._refresh_meta()
+
+func _on_shop_leave_pressed() -> void:
+	hud.shop_screen.visible = false
+	_start_room(room_index + 1)
+
 func _on_anvil_weapon_pressed(path: String) -> void:
 	var lvl = meta["weapon_upgrades"].get(path, 0)
 	var cost = (lvl + 1) * 10
@@ -553,6 +653,7 @@ func _on_anvil_back_pressed() -> void:
 
 func _full_reset() -> void:
 	player_hp = player_hp_max
+	gold = 4                                 # S6：新一局金币清零（每局清零，见 §11）
 	# M4：开新一局，重置本局加成层
 	run_symbol_bonus = {}
 	run_power_bonus = 0
@@ -562,6 +663,8 @@ func _full_reset() -> void:
 
 
 func _start_room(idx: int) -> void:
+	_apply_charms()                         # S7：每次开房重算护符被动（含商店购入的护符）
+	_build_pool(selected_loadout)           # S7：重建符号池（含商店购入的武器）
 	room_index = idx
 	var r: RoomData = ROOMS[idx]
 	enemy_name = r.name
@@ -593,12 +696,7 @@ func _start_room(idx: int) -> void:
 	pending_lock_reel = -1
 	pending_chaos = false
 	purify_charges = purify_max_base      # 净化上限（净化药剂 + 丰沛护符 + 房奖励）
-	# M6：消耗品每房回满次数
-	consumable_charges = {}
-	for path in selected_consumables:
-		var cd: Resource = load(path)
-		if cd != null:
-			consumable_charges[cd.item_id] = cd.charges
+	# 消耗品次数不再每房回满：已在整备确认时一次性初始化，用掉即消耗，仅靠商店补给
 	game_state = "playing"                # 必须在重建消耗品按钮前置为 playing，否则房间过渡瞬间按钮被误判为禁用
 	_rebuild_consumable_panel()
 	turn_count = 1
@@ -896,7 +994,7 @@ func _enemy_deal_damage(raw: int) -> void:
 		hud._log("敌人被削弱：攻击×%s" % ElementCounter.fmt_mult(atk_down))
 	var blocked = min(player_shield, eff)
 	player_shield -= blocked
-	var dealt = eff - blocked
+	var dealt = max(0, eff - blocked)
 	player_hp -= dealt
 	if dealt > 0:
 		hud._popup("-%d" % dealt, Palette.POP_DAMAGE, hud._player_panel_anchor())
@@ -1010,6 +1108,15 @@ func _on_consumable_pressed(id: String) -> void:
 			hud._log("重转卷轴：免费重转！")
 			await _free_spin()
 	_refresh_consumable_panel()
+	if consumable_charges.get(id, 0) <= 0:
+		consumable_charges.erase(id)
+		for i in range(selected_consumables.size()):
+			var d = load(selected_consumables[i])
+			if d != null and d.item_id == id:
+				selected_consumables.remove_at(i)
+				break
+		_rebuild_consumable_panel()
+		hud._log("「%s」已用尽，移出持有（可于商店补给）" % id)
 	hud._refresh_meta()
 
 
@@ -1122,12 +1229,21 @@ func _evaluate() -> void:
 		if s == TRASH_SYMBOL or s.kind != "buff":
 			continue
 		_grant_buff(s, counts[key][2])
+	# 金币符号（常驻）：落在线上的金币直接转化为金币资源，不造成任何伤害
+	for key in counts:
+		var s: SymbolData = counts[key][0]
+		if s == GOLD_SYMBOL:
+			var g = GOLD_PER_COIN * counts[key][2]
+			if g > 0:
+				gold += g
+				hud._log("💰 金币 +%d" % g)
+				hud._popup("💰+%d" % g, Palette.POP_GOLD, hud._player_panel_anchor())
 	# 再结算常规符号（此时 _contribute 读到的已是含新增益的加成，并按各自有效元素吃克制）
 	for key in counts:
 		var s: SymbolData = counts[key][0]
 		var elem: String = counts[key][1]
 		var c: int = counts[key][2]
-		if s == TRASH_SYMBOL or s.kind == "buff":
+		if s == TRASH_SYMBOL or s.kind == "buff" or s == GOLD_SYMBOL:
 			continue
 		if s.kind == "special" and c < 1:
 			continue
@@ -1222,7 +1338,8 @@ func _agg_power_flat() -> float:
 	return float(run_power_bonus) + float(charm_power_bonus) + _buff_power() + _affix_power()
 
 func _agg_shield() -> float:
-	return _buff_shield() + _affix_shield()
+	return _buff_shield() + _affix_shield() + float(charm_shield_trickle)
+
 
 func _agg_regen() -> float:
 	return _buff_regen() + _affix_regen()

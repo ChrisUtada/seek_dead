@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+category = "passive"
+item_id = "guard_charm"
+item_name = "守备护符"
+description = "本局每回合获得 4 点护盾：挨打才消耗，不挨打则累积，提供稳定常驻减伤（与守望护符的开局爆发互补）。"
+icon = "🛡️"
+effect = "shield"
+value = 4
