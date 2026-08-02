@@ -13,3 +13,4 @@ extends Resource
 @export var chaos: float = 0.0    # 乱权意图概率
 @export var heavy: float = 0.0    # 重击意图概率（其余=普攻）
 @export var element: String = "none"  # fire|ice|poison|light|dark|none（单向克制：敌人属性）
+@export var kind: String = "normal"    # normal|elite|boss（房间类型；boss 由 _is_boss_room 判定专属机制）

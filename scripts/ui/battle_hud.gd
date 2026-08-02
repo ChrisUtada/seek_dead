@@ -41,6 +41,11 @@ var anvil_title_label
 var anvil_points_label
 var anvil_grid
 var anvil_back_btn
+# 商店「卖出」专用列表（与购入同屏，统一整备闭环）
+var shop_sell_weapon_list
+var shop_sell_buff_list
+var shop_sell_charm_list
+var shop_sell_consum_list
 var grid_container
 var log_label
 var log_scroll
@@ -719,17 +724,33 @@ func _build_shop_screen() -> void:
 	shop_gold_label = _label("金币: 0", TypeScale.BODY)
 	shop_gold_label.add_theme_color_override("font_color", Palette.ACCENT_GOLD)
 	v.add_child(shop_gold_label)
-	v.add_child(_label("购买后带入后续房间（随机刷新，先到先得）", TypeScale.META))
+	v.add_child(_label("购买后带入后续房间；也可卖出回收约50%金币并释放槽位（随机刷新，先到先得）", TypeScale.META))
 
 	var scroll = ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	v.add_child(scroll)
+	var inner = VBoxContainer.new()
+	inner.add_theme_constant_override("separation", 14)
+	inner.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(inner)
+
+	inner.add_child(_label("📥 购入", TypeScale.BODY))
 	shop_grid = GridContainer.new()
 	shop_grid.columns = 3
 	shop_grid.add_theme_constant_override("h_separation", 8)
 	shop_grid.add_theme_constant_override("v_separation", 8)
-	scroll.add_child(shop_grid)
+	inner.add_child(shop_grid)
+
+	inner.add_child(_label("📤 卖出（回收约50%金币 · 释放槽位）", TypeScale.BODY))
+	var sell_box = HBoxContainer.new()
+	sell_box.add_theme_constant_override("separation", 6)
+	sell_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	shop_sell_weapon_list = _sell_column(sell_box, "武器")
+	shop_sell_buff_list = _sell_column(sell_box, "增益")
+	shop_sell_charm_list = _sell_column(sell_box, "护符")
+	shop_sell_consum_list = _sell_column(sell_box, "消耗品")
+	inner.add_child(sell_box)
 
 	var bot = HBoxContainer.new()
 	v.add_child(bot)
@@ -759,6 +780,7 @@ func _refresh_shop() -> void:
 		c.queue_free()
 	for offer in controller.shop_offers:
 		shop_grid.add_child(_make_shop_card(offer))
+	_refresh_shop_sell()
 
 
 func _make_shop_card(offer: Dictionary) -> Button:
@@ -774,22 +796,23 @@ func _make_shop_card(offer: Dictionary) -> Button:
 	cc.add_child(vb)
 	var kind_name = {"weapon": "武器", "passive": "护符", "active": "物品", "buff": "增益"}.get(offer["kind"], "物品")
 	vb.add_child(_label("%s · %s" % [kind_name, offer["name"]], 12))
+	var price = controller._shop_price(offer["kind"])   # 价格随当前持有数递增；卖出回落，换装成本=买卖价差（防刷价）
 	var cap = controller._cat_max(offer["kind"])          # 该类当前上限
 	var cur = controller._sel_arr(offer["kind"]).size()   # 该类已持数
 	var can_grow_slot = controller._can_grow_slot(offer["kind"])   # 进池类恒 true（无天花板）
 	var slot_full = (cur >= cap) and not can_grow_slot
-	var can_buy = (not offer["sold"]) and controller.gold >= offer["price"] and not slot_full
+	var can_buy = (not offer["sold"]) and controller.gold >= price and not slot_full
 	var status: String
 	if offer["sold"]:
 		status = "已购入"
-	elif controller.gold < offer["price"]:
+	elif controller.gold < price:
 		status = "金币不足"
 	elif slot_full:
 		status = "槽位已满 %d/%s" % [cur, controller._cap_text(offer["kind"])]
 	elif cur >= cap:
-		status = "开槽 %d 金" % offer["price"]   # 本次购买会把该类槽 +1
+		status = "开槽 %d 金" % price   # 本次购买会把该类槽 +1
 	else:
-		status = "%d 金" % offer["price"]
+		status = "%d 金" % price
 	var pl = _label(status, TypeScale.TINY)
 	pl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	if offer["sold"]:
@@ -802,6 +825,68 @@ func _make_shop_card(offer: Dictionary) -> Button:
 	btn.disabled = not can_buy
 	btn.connect("pressed", controller._on_shop_buy_pressed.bind(offer))
 	return btn
+
+
+# 商店「卖出」区：四列列出已持有物品，点击回收约50%金币并释放槽位
+func _refresh_shop_sell() -> void:
+	_sell_fill(shop_sell_weapon_list, "weapon")
+	_sell_fill(shop_sell_buff_list, "buff")
+	_sell_fill(shop_sell_charm_list, "passive")   # 护符计价 kind = passive
+	_sell_fill(shop_sell_consum_list, "active")
+
+
+func _sell_fill(list: VBoxContainer, kind: String) -> void:
+	for c in list.get_children():
+		if c is Label:        # 保留列标题
+			continue
+		list.remove_child(c)
+		c.queue_free()
+	var owned = controller._sel_arr(kind)
+	for path in owned:
+		var name = controller._shop_name(path, kind)
+		var refund = controller._sell_price(kind, path)
+		var last = (kind == "weapon" and owned.size() <= controller.LOADOUT_MIN)
+		var sub: String
+		if last:
+			sub = "最后一把 · 不可卖"
+		else:
+			sub = "卖出 +%d 金" % refund
+		list.add_child(_make_sell_card(name, sub, last, controller._on_shop_sell_pressed.bind(path, kind)))
+
+
+func _sell_column(parent: Control, title: String) -> VBoxContainer:
+	var col = VBoxContainer.new()
+	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	col.add_theme_constant_override("separation", 3)
+	col.add_child(_label(title, TypeScale.TINY))
+	parent.add_child(col)
+	return col
+
+
+func _make_sell_card(title_text: String, sub_text: String, disabled: bool, cb: Callable) -> Button:
+	var btn = UI_BUTTON.instantiate()
+	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btn.custom_minimum_size = Vector2(0, 46)
+	btn.text = ""
+	var cc = CenterContainer.new()
+	cc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btn.add_child(cc)
+	var vb = VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 1)
+	cc.add_child(vb)
+	vb.add_child(_label(title_text, TypeScale.TINY))
+	var pl = _label(sub_text, TypeScale.TINY)
+	pl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var col := Palette.ACCENT_GOLD
+	if disabled:
+		col = Palette.MUTED_DIM
+	pl.add_theme_color_override("font_color", col)
+	vb.add_child(pl)
+	btn.disabled = disabled
+	if not cb.is_null():
+		btn.connect("pressed", cb)
+	return btn
+
 
 
 func _build_anvil_screen() -> void:

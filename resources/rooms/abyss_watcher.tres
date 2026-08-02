@@ -12,3 +12,4 @@ lock = 0.25
 chaos = 0.25
 heavy = 0.3
 element = "light"
+kind = "boss"

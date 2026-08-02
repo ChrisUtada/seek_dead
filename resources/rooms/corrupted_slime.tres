@@ -12,3 +12,4 @@ lock = 0.1
 chaos = 0.1
 heavy = 0.15
 element = "poison"
+kind = "normal"

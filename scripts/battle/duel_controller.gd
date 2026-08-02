@@ -75,6 +75,8 @@ const SLOT_INIT := {"weapon": 2, "buff": 1, "active": 1, "passive": 1}
 const UNCAPPED := -1        # 天花板哨兵值：该类无上限，仅由稀释效应 + 金币递增价约束
 const CONSUMABLE_CAP := 2   # 消耗品槽天花板（不进池，宽松硬限）
 const CHARM_CAP      := 3   # 护符槽天花板（不进池、唯一收集乘区，严格硬限）
+# 房间序列排序权重：normal/elite 在前、boss 殿后（同档按路径稳定排序）
+const ROOM_KIND_RANK := {"normal": 0, "elite": 0, "boss": 2}
 # 各类当前上限：每局从初始配额起步，商店「买即开槽」逐步逼近天花板（_full_reset 重置）
 var loadout_max    := 2
 var buff_max       := 1
@@ -84,7 +86,7 @@ var charm_max      := 1
 const REELS = 3
 const ROWS = 1
 
-# 房间难度曲线（ante）：敌方 HP/ATK 随房间序号 n 指数缩放（1+α)^n。
+# 房间难度曲线（ante）：敌方 HP/ATK 随房间序号 n 指数缩放 (1+alpha)^n。
 # 玩家膨胀（武器升级/护符）需敌方同步变肉，否则中期秒怪、游戏结束。初值待真机调参。
 const ANTE_ALPHA_HP := 0.15
 const ANTE_ALPHA_ATK := 0.10
@@ -189,6 +191,9 @@ var run_shield_next: int = 0           # 进入下一房时获得的护盾（奖
 var reward_choices: Array = []         # 当前展示的 3 个奖励
 var reward_is_boss: bool = false       # 当前奖励是否来自 Boss 房（选完开新局）
 var shop_offers: Array = []            # S7：当前商店货架（随机刷新）
+# 本局每件物品的实际购入价（path -> 金币），用于卖出时返还约50%（见 _sell_price）。
+# 新一局清空（_full_reset）。
+var paid_price: Dictionary = {}
 
 # M5 元进度（铁砧锻造 + 存档持久化，跨局保留）
 # weapon_upgrades: weapon_path -> int（该武器主符号额外权重，转轮升级）
@@ -218,7 +223,7 @@ func _ready() -> void:
 	WEAPON_POOL = ResourceScan.scan_paths("res://resources/weapon_templates/")
 	ITEM_POOL = ResourceScan.scan_paths("res://resources/items/")
 	BUFF_POOL = ResourceScan.scan_paths("res://resources/buffs/")
-	ROOMS = ResourceScan.scan_resources("res://resources/rooms/", "RoomData")
+	ROOMS = _sort_rooms(ResourceScan.scan_resources("res://resources/rooms/", "RoomData"))
 	REWARD_POOL = ResourceScan.scan_resources("res://resources/rewards/", "RewardData")
 	hud = BATTLE_HUD.instantiate()
 	add_child(hud)
@@ -228,7 +233,7 @@ func _ready() -> void:
 	hud._build_loadout_screen()
 	hud._build_reward_screen()
 	hud._build_anvil_screen()
-	hud._build_shop_screen()      # S7：商店覆盖层
+	hud._build_shop_screen()      # S7：商店覆盖层（购入 + 卖出，统一整备闭环）
 	hud._show_loadout_screen()
 	# 方案 A：旋转节拍器（转轮带滚动 + 加速 + 停止时机判定）
 	_spin_timer = Timer.new()
@@ -588,13 +593,16 @@ func _award_gold(is_boss: bool) -> void:
 	gold += total
 	hud._log("金币 +%d（清房 %d + 利息 %d，共 %d）" % [total, base, interest, gold])
 
-func _shop_price(kind: String, owned := 0) -> int:
+func _shop_price(kind: String, owned: int = -1) -> int:
+	if owned < 0:
+		owned = _sel_arr(kind).size()
+	# 金币是「买即开槽」的节奏闸门：价格随「当前持有数」递增。
+	# 售出物品会减少持有数 → 重购价格回落，换装成本自然来自买卖价差（防刷价）。
+	# 加价起点对齐各类初始配额（填满初始空位仍原价，从首次扩槽起逐级加价）。
+	# 步进差异：护符最大（唯一收集乘区、须最贵）；增益次之（进池挤占转轮带最凶）；
+	# 武器居中；消耗品最低。
 	var base = {"weapon": 8, "passive": 10, "active": 5, "buff": 6}.get(kind, 6)
 	var price = base + randi_range(-1, 2)
-	# 金币是「买即开槽」的节奏闸门：填满初始配额之前按原价（只是补空位），
-	# 从「首次扩槽」那一件起逐级加价 —— 故加价起点按各类初始配额对齐，而非一律第 2 件。
-	# 步进差异：护符最大（唯一收集乘区、无天花板之外的刹车，须最贵）；
-	# 增益次之（进池挤占转轮带最凶，且无天花板，全靠价格 + 稀释双刹车）；武器居中；消耗品最低。
 	var step = {"weapon": 5, "passive": 8, "active": 4, "buff": 6}.get(kind, 4)
 	price += max(0, owned - int(SLOT_INIT.get(kind, 1)) + 1) * step
 	return max(3, price)
@@ -624,7 +632,7 @@ func _roll_shop() -> void:
 	shop_offers = []
 	for i in n:
 		var c = candidates[i]
-		shop_offers.append({"path": c["path"], "kind": c["kind"], "price": _shop_price(c["kind"], _sel_arr(c["kind"]).size()), "name": _shop_name(c["path"], c["kind"]), "sold": false})
+		shop_offers.append({"path": c["path"], "kind": c["kind"], "name": _shop_name(c["path"], c["kind"]), "sold": false})
 
 func _on_shop_buy_pressed(offer: Dictionary) -> void:
 	if offer["sold"]:
@@ -641,17 +649,19 @@ func _on_shop_buy_pressed(offer: Dictionary) -> void:
 	if w >= cap and not _can_grow_slot(kind):
 		hud._log("%s槽位已满 %d/%s（已达天花板），无法购买" % [_cat_name(kind), w, _cap_text(kind)])
 		return
-	if gold < offer["price"]:
-		hud._log("金币不足（需 %d）" % offer["price"])
+	var price = _shop_price(kind)       # 价格随当前持有数递增（售出回落，换装成本=买卖价差）
+	if gold < price:
+		hud._log("金币不足（需 %d）" % price)
 		return
-	gold -= offer["price"]
+	gold -= price
 	arr.append(offer["path"])
+	paid_price[offer["path"]] = price   # 记录实际购入价，卖出时返还约50%
 	offer["sold"] = true
 	if w >= cap:                        # 本次是扩槽购买 → 该类槽 +1
 		_grow_slot(kind)
-		hud._log("购买 %s（%s槽 +1 → %d/%s，-%d 金，余 %d）" % [offer["name"], _cat_name(kind), _cat_max(kind), _cap_text(kind), offer["price"], gold])
+		hud._log("购买 %s（%s槽 +1 → %d/%s，-%d 金，余 %d）" % [offer["name"], _cat_name(kind), _cat_max(kind), _cap_text(kind), price, gold])
 	else:
-		hud._log("购买 %s（-%d 金，余 %d）" % [offer["name"], offer["price"], gold])
+		hud._log("购买 %s（-%d 金，余 %d）" % [offer["name"], price, gold])
 	if kind == "active":   # 消耗品：立即写入可用次数，使新购物品当即可用
 		var cd: Resource = load(offer["path"])
 		if cd != null:
@@ -660,9 +670,45 @@ func _on_shop_buy_pressed(offer: Dictionary) -> void:
 	hud._refresh_shop()
 	hud._refresh_meta()
 
+func _sell_price(kind: String, path: String) -> int:
+	# 卖出返还约50%实际购入价（高于此会刷金；低于此则换装几乎免费）。
+	# 未记录购入价（如 BOSS 免费掉落）时按当前购价50%兜底。
+	var paid = int(paid_price.get(path, -1))
+	if paid < 0:
+		paid = _shop_price(kind)
+	return max(1, int(paid * 0.5))
+
+
+func _on_shop_sell_pressed(path: String, kind: String) -> void:
+	var arr = _sel_arr(kind)
+	if not arr.has(path):
+		return
+	if kind == "weapon" and arr.size() <= LOADOUT_MIN:
+		hud._log("至少需保留 %d 把武器，无法卖出" % LOADOUT_MIN)
+		return
+	var refund = _sell_price(kind, path)
+	gold += refund
+	arr.erase(path)
+	paid_price.erase(path)
+	if kind == "weapon" or kind == "buff":
+		_build_pool(selected_loadout)       # 重建符号池（稀释转轮带）
+	elif kind == "passive":
+		_apply_charms()                      # 重算护符被动（伤害乘区等随持有变化）
+	elif kind == "active":
+		var cd: Resource = load(path)
+		if cd != null:
+			consumable_charges.erase(cd.item_id)
+		_rebuild_consumable_panel()
+	hud._log("卖出 %s（+%d 金，槽位释放）" % [_shop_name(path, kind), refund])
+	hud._refresh_shop()
+	hud._refresh_meta()
+
+
 func _on_shop_leave_pressed() -> void:
 	hud.shop_screen.visible = false
 	_start_room(room_index + 1)
+
+
 
 func _on_anvil_weapon_pressed(path: String) -> void:
 	var lvl = meta["weapon_upgrades"].get(path, 0)
@@ -706,12 +752,31 @@ func _full_reset() -> void:
 	buff_max = int(SLOT_INIT["buff"])
 	consumable_max = int(SLOT_INIT["active"])
 	charm_max = int(SLOT_INIT["passive"])
+	paid_price = {}   # 新一局购入价记录清空
 	# M4：开新一局，重置本局加成层
 	run_symbol_bonus = {}
 	run_power_bonus = 0
 	run_shield_next = 0
 	_build_pool(selected_loadout)
 	_start_room(0)
+
+
+# 房间是否为 BOSS 房：以 RoomData.kind == "boss" 判定（不再依赖「最后一间」的位置约定，
+# 否则插入熔毁之间等中间房型会让 BOSS 判定错位）。
+func _is_boss_room(idx: int) -> bool:
+	return idx >= 0 and idx < ROOMS.size() and ROOMS[idx].kind == "boss"
+
+
+# 房间序列排序：normal/elite 在前、boss 殿后（同档按 resource_path 稳定排序）。
+# 保持「扫描文件夹」资源化原则（不硬编码路径），仅对扫描结果做语义重排。
+func _sort_rooms(rms: Array) -> Array:
+	rms.sort_custom(func(a, b):
+		var ra = ROOM_KIND_RANK.get(a.kind, 0)
+		var rb = ROOM_KIND_RANK.get(b.kind, 0)
+		if ra != rb:
+			return ra < rb
+		return a.resource_path < b.resource_path)
+	return rms
 
 
 func _start_room(idx: int) -> void:
@@ -793,7 +858,7 @@ func _on_spin_pressed() -> void:
 	if enemy_hp <= 0:
 		hud._log("★ 击败 %s！" % enemy_name)
 		game_state = "won"
-		var is_boss = (room_index + 1 >= ROOMS.size())
+		var is_boss = _is_boss_room(room_index)
 		var title = ("★ 通关！\n%s 被击败" % enemy_name) if is_boss else ("★ 胜利！\n%s 被击败" % enemy_name)
 		hud._show_overlay(title, "领取奖励 ▶")
 		hud._refresh_meta()
@@ -809,7 +874,7 @@ func _on_spin_pressed() -> void:
 		# 敌人可能在自身回合被状态 DoT 结算致死
 		hud._log("★ 击败 %s！（状态结算）" % enemy_name)
 		game_state = "won"
-		var is_boss = (room_index + 1 >= ROOMS.size())
+		var is_boss = _is_boss_room(room_index)
 		var title = ("★ 通关！\n%s 被击败" % enemy_name) if is_boss else ("★ 胜利！\n%s 被击败" % enemy_name)
 		hud._show_overlay(title, "领取奖励 ▶")
 		_busy = false
@@ -1010,7 +1075,7 @@ func _free_spin() -> void:
 	if enemy_hp <= 0:
 		hud._log("★ 重转触发击败 %s！" % enemy_name)
 		game_state = "won"
-		var is_boss = (room_index + 1 >= ROOMS.size())
+		var is_boss = _is_boss_room(room_index)
 		var title = ("★ 通关！\n%s 被击败" % enemy_name) if is_boss else ("★ 胜利！\n%s 被击败" % enemy_name)
 		hud._show_overlay(title, "领取奖励 ▶")
 	hud._refresh_meta()
@@ -1174,7 +1239,7 @@ func _on_consumable_pressed(id: String) -> void:
 
 func _on_overlay_button_pressed() -> void:
 	match game_state:
-		"won":    hud._show_reward_screen(room_index + 1 >= ROOMS.size())   # M4：胜利→房奖励三选一
+		"won":    hud._show_reward_screen(_is_boss_room(room_index))   # M4：胜利→房奖励三选一
 		"lost":   _retry_room()
 		"cleared": _full_reset()
 

@@ -12,3 +12,4 @@ lock = 0.15
 chaos = 0.15
 heavy = 0.2
 element = "ice"
+kind = "normal"
