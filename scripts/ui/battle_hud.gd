@@ -408,7 +408,7 @@ func _build_loadout_screen() -> void:
 	var bot = HBoxContainer.new()
 	bot.add_theme_constant_override("separation", 10)
 	root.add_child(bot)
-	loadout_count_label = _label("武器 0/%d · 技能 0/%d · 消耗品 0/%d · 护符 0/%d" % [controller.loadout_max, controller.skill_max, controller.consumable_max, controller.charm_max], TypeScale.META)
+	loadout_count_label = _label("武器 0/%d · 技能 0/%d · 消耗品 0/%d · 护符 0/%d" % [controller.loadout_max, controller.skill_max, controller.CONSUMABLE_CAP, controller.charm_max], TypeScale.META)
 	loadout_count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	bot.add_child(loadout_count_label)
 	var bot_spacer = Control.new()
@@ -603,7 +603,7 @@ func _make_item_card(data: Resource, path: String, kind: String) -> Dictionary:
 # 卡片点击：三分类通用 toggle（受各自分类上限约束，互不算总）
 func _update_loadout_cards_visual() -> void:
 	var wfull = controller.selected_loadout.size() >= controller._cat_max("weapon")
-	var cfull = controller.selected_consumables.size() >= controller._cat_max("active")
+	var cfull = controller.consumable_slots.size() >= controller._cat_max("active")
 	var hfull = controller.selected_charms.size() >= controller._cat_max("passive")
 	var bfull = controller.selected_skills.size() >= controller._cat_max("skill")
 	for card in loadout_cards:
@@ -918,7 +918,7 @@ func _make_shop_card(offer: Dictionary) -> Button:
 	vb.add_child(_label("%s%s · %s" % [_source_tag(offer["kind"]), kind_name, offer["name"]], 12))
 	var price = controller._shop_price(offer["kind"])   # 价格随当前持有数递增；卖出回落，换装成本=买卖价差（防刷价）
 	var cap = controller._cat_max(offer["kind"])          # 该类当前上限
-	var cur = controller._sel_arr(offer["kind"]).size()   # 该类已持数
+	var cur = controller.consumable_slots.size() if (offer["kind"] == "active") else controller._sel_arr(offer["kind"]).size()   # 消耗品按腰带实占数
 	var can_grow_slot = controller._can_grow_slot(offer["kind"])   # 进池类恒 true（无天花板）
 	var slot_full = (cur >= cap) and not can_grow_slot
 	var can_buy = (not offer["sold"]) and controller.gold >= price and not slot_full
@@ -961,6 +961,14 @@ func _sell_fill(list: VBoxContainer, kind: String) -> void:
 			continue
 		list.remove_child(c)
 		c.queue_free()
+	if kind == "active":
+		# 消耗品：按腰带实例逐格列出（同类重复各占一格），点击按 uid 卖出
+		for slot in controller.consumable_slots:
+			var name = _source_tag(kind) + controller._shop_name(slot["path"], kind)
+			var refund = controller._sell_price(kind, slot["uid"])
+			var sub = "卖出 +%d 金" % refund
+			list.add_child(_make_sell_card(name, sub, false, controller._on_shop_sell_pressed.bind(slot["uid"], kind)))
+		return
 	var owned = controller._sel_arr(kind)
 	for path in owned:
 		var name = _source_tag(kind) + controller._shop_name(path, kind)

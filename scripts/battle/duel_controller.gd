@@ -73,14 +73,13 @@ const LOADOUT_MIN := 1
 # 初始配额（每局开局值；_full_reset 与 _shop_price 的加价起点均以此为准）
 const SLOT_INIT := {"weapon": 2, "skill": 1, "active": 1, "passive": 1}
 const UNCAPPED := -1        # 天花板哨兵值：该类无上限，仅由稀释效应 + 金币递增价约束
-const CONSUMABLE_CAP := 2   # 消耗品槽天花板（不进池，宽松硬限）
+const CONSUMABLE_CAP := 4   # 消耗品腰带上限（不进池，硬限；每格独立持有、允许同类重复占格）
 const CHARM_CAP      := 3   # 护符槽天花板（不进池、唯一收集乘区，严格硬限）
 # 房间序列排序权重：normal/elite 在前、boss 殿后（同档按路径稳定排序）
 const ROOM_KIND_RANK := {"normal": 0, "elite": 0, "boss": 2}
 # 各类当前上限：每局从初始配额起步，商店「买即开槽」逐步逼近天花板（_full_reset 重置）
 var loadout_max    := 2
 var skill_max      := 1
-var consumable_max := 1
 var charm_max      := 1
 
 const REELS = 3
@@ -159,9 +158,10 @@ const STATUS_NAMES := {"burn": "燃", "frost": "霜", "poison": "毒"}
 var player_buffs: Dictionary = {}
 
 # 消耗品运行时（战斗中主动使用）
-var consumable_charges: Dictionary = {}   # item_id -> 剩余次数（整备确认时按持有初始化一次；用掉即消耗，仅靠商店补给）
+var consumable_slots: Array = []          # 消耗品腰带实例：[{path, item_id, charges, uid}]，上限 CONSUMABLE_CAP，允许同类重复占格
+var _consumable_uid := 0                   # 腰带格唯一 id 计数器（卖出/使用精准定位，避免同类重复撞 key）
 var consumable_panel                      # 战斗 UI 底部消耗品按钮行
-var consumable_buttons: Array = []        # {id, data, btn}
+var consumable_buttons: Array = []        # {uid, data, btn}
 var assault_next_spin: int = 1            # 强袭药剂：下次转轮伤害倍率（1=正常）
 
 # 玩家状态
@@ -411,7 +411,7 @@ func _sel_arr(cat: String) -> Array:
 func _cat_max(cat: String) -> int:
 	match cat:
 		"weapon":  return loadout_max
-		"active":  return consumable_max
+		"active":  return CONSUMABLE_CAP
 		"passive": return charm_max
 		"skill":    return skill_max
 	return 0
@@ -445,7 +445,6 @@ func _grow_slot(cat: String) -> void:
 	match cat:
 		"weapon":  loadout_max    = (loadout_max + 1 if ceiling == UNCAPPED else min(loadout_max + 1, ceiling))
 		"skill":    skill_max      = (skill_max + 1 if ceiling == UNCAPPED else min(skill_max + 1, ceiling))
-		"active":  consumable_max = min(consumable_max + 1, ceiling)
 		"passive": charm_max      = min(charm_max + 1, ceiling)
 
 
@@ -461,12 +460,13 @@ func _cat_name(cat: String) -> String:
 func _confirm_loadout() -> void:
 	if selected_loadout.size() < LOADOUT_MIN:
 		return
-	# 消耗品：整备确认时按当前持有一次性初始化次数（每房/每局不再回满，靠商店补给）
-	consumable_charges = {}
+	# 消耗品：整备确认时把去重勾选清单实例化为腰带格（每格独立 charges；允许后续商店重复购买同类）
+	consumable_slots = []
 	for path in selected_consumables:
 		var cd: Resource = load(path)
 		if cd != null:
-			consumable_charges[cd.item_id] = cd.charges
+			_consumable_uid += 1
+			consumable_slots.append({"path": path, "item_id": cd.item_id, "charges": cd.charges, "uid": "c%d" % _consumable_uid})
 	hud._hide_loadout_screen()
 	_full_reset()
 
@@ -507,8 +507,8 @@ func _apply_charms() -> void:
 	# 总护符乘区硬上限（防失控膨胀）
 	charm_damage_mult = min(charm_damage_mult, CHARM_MULT_CAP)
 	var pm = 0
-	for path in selected_consumables:
-		var cd: Resource = load(path)
+	for slot in consumable_slots:
+		var cd: Resource = load(slot["path"])
 		if cd != null and cd.effect == "purify":
 			pm += cd.value
 	purify_max_base = pm + charm_purify_bonus
@@ -778,7 +778,11 @@ func _award_gold(is_boss: bool) -> void:
 
 func _shop_price(kind: String, owned: int = -1) -> int:
 	if owned < 0:
-		owned = _sel_arr(kind).size()
+		# 消耗品按【腰带实占数】递增价（含商店重复购买同类），而非去重勾选数
+		if kind == "active":
+			owned = consumable_slots.size()
+		else:
+			owned = _sel_arr(kind).size()
 	# 金币是「买即开槽」的节奏闸门：价格随「当前持有数」递增。
 	# 售出物品会减少持有数 → 重购价格回落，换装成本自然来自买卖价差（防刷价）。
 	# 加价起点对齐各类初始配额（填满初始空位仍原价，从首次扩槽起逐级加价）。
@@ -821,6 +825,30 @@ func _on_shop_buy_pressed(offer: Dictionary) -> void:
 	if offer["sold"]:
 		return
 	var kind = offer["kind"]
+	# 消耗品：腰带实例模型（每个格子独立，允许同类重复占格，上限 CONSUMABLE_CAP）
+	if kind == "active":
+		if consumable_slots.size() >= CONSUMABLE_CAP:
+			hud._log("消耗品腰带已满 %d/%d，无法购买" % [consumable_slots.size(), CONSUMABLE_CAP])
+			return
+		var price = _shop_price(kind)
+		if gold < price:
+			hud._log("金币不足（需 %d）" % price)
+			return
+		gold -= price
+		var cd: Resource = load(offer["path"])
+		if cd != null:
+			_consumable_uid += 1
+			var uid = "c%d" % _consumable_uid
+			consumable_slots.append({"path": offer["path"], "item_id": cd.item_id, "charges": cd.charges, "uid": uid})
+			paid_price[uid] = price
+			_rebuild_consumable_panel()
+			hud._log("购买 %s（腰带 %d/%d，-%d 金，余 %d）" % [offer["name"], consumable_slots.size(), CONSUMABLE_CAP, price, gold])
+		else:
+			hud._log("购买失败：资源缺失 %s" % offer["name"])
+		offer["sold"] = true
+		hud._refresh_shop()
+		hud._refresh_meta()
+		return
 	var arr = _sel_arr(kind)
 	if arr.has(offer["path"]):
 		hud._log("已拥有 %s，无法重复购买" % offer["name"])
@@ -845,11 +873,6 @@ func _on_shop_buy_pressed(offer: Dictionary) -> void:
 		hud._log("购买 %s（%s槽 +1 → %d/%s，-%d 金，余 %d）" % [offer["name"], _cat_name(kind), _cat_max(kind), _cap_text(kind), price, gold])
 	else:
 		hud._log("购买 %s（-%d 金，余 %d）" % [offer["name"], price, gold])
-	if kind == "active":   # 消耗品：立即写入可用次数，使新购物品当即可用
-		var cd: Resource = load(offer["path"])
-		if cd != null:
-			consumable_charges[cd.item_id] = cd.charges
-			_rebuild_consumable_panel()
 	hud._refresh_shop()
 	hud._refresh_meta()
 
@@ -863,6 +886,25 @@ func _sell_price(kind: String, path: String) -> int:
 
 
 func _on_shop_sell_pressed(path: String, kind: String) -> void:
+	# 消耗品：按腰带格 uid 精准定位卖出（同类重复各占一格）
+	if kind == "active":
+		var target = -1
+		for i in range(consumable_slots.size()):
+			if consumable_slots[i]["uid"] == path:
+				target = i
+				break
+		if target < 0:
+			return
+		var slot = consumable_slots[target]
+		var refund = _sell_price(kind, slot["uid"])
+		gold += refund
+		consumable_slots.remove_at(target)
+		paid_price.erase(slot["uid"])
+		_rebuild_consumable_panel()
+		hud._log("卖出 %s（+%d 金，腰带位释放）" % [_shop_name(slot["path"], kind), refund])
+		hud._refresh_shop()
+		hud._refresh_meta()
+		return
 	var arr = _sel_arr(kind)
 	if not arr.has(path):
 		return
@@ -877,11 +919,6 @@ func _on_shop_sell_pressed(path: String, kind: String) -> void:
 		_build_pool(selected_loadout)       # 重建符号池（稀释转轮带）
 	elif kind == "passive":
 		_apply_charms()                      # 重算护符被动（伤害乘区等随持有变化）
-	elif kind == "active":
-		var cd: Resource = load(path)
-		if cd != null:
-			consumable_charges.erase(cd.item_id)
-		_rebuild_consumable_panel()
 	hud._log("卖出 %s（+%d 金，槽位释放）" % [_shop_name(path, kind), refund])
 	hud._refresh_shop()
 	hud._refresh_meta()
@@ -933,7 +970,6 @@ func _full_reset() -> void:
 	# 新一局四类槽位回到初始配额（商店「买即开槽」可再逐步扩至各自天花板）
 	loadout_max = int(SLOT_INIT["weapon"])
 	skill_max = int(SLOT_INIT["skill"])
-	consumable_max = int(SLOT_INIT["active"])
 	charm_max = int(SLOT_INIT["passive"])
 	paid_price = {}   # 新一局购入价记录清空
 	# M4：开新一局，重置本局加成层
@@ -1422,46 +1458,55 @@ func _intent_name(t: String) -> String:
 # ---------------------------------------------------------------------------
 # 根据整备携带的消耗品，重建战斗 UI 底部按钮行（每房调用一次）
 func _rebuild_consumable_panel() -> void:
+	if consumable_panel == null:
+		return
 	for c in consumable_panel.get_children():
 		consumable_panel.remove_child(c)
 		c.queue_free()
 	consumable_buttons = []
-	if selected_consumables.is_empty():
+	if consumable_slots.is_empty():
 		return
-	for path in selected_consumables:
-		var cd: Resource = load(path)
+	for slot in consumable_slots:
+		var cd: Resource = load(slot["path"])
 		if cd == null:
 			continue
 		var btn = UI_BUTTON.instantiate()
 		btn.custom_minimum_size = Vector2(86, 30)
 		btn.add_theme_font_size_override("font_size", TypeScale.TINY)
-		btn.connect("pressed", _on_consumable_pressed.bind(cd.item_id))
+		btn.connect("pressed", _on_consumable_pressed.bind(slot["uid"]))
 		consumable_panel.add_child(btn)
-		consumable_buttons.append({"id": cd.item_id, "data": cd, "btn": btn})
+		consumable_buttons.append({"uid": slot["uid"], "data": cd, "btn": btn})
 	_refresh_consumable_panel()
 
 
 func _refresh_consumable_panel() -> void:
+	var left_map := {}
+	for slot in consumable_slots:
+		left_map[slot["uid"]] = slot["charges"]
 	for m in consumable_buttons:
-		var left = consumable_charges.get(m["id"], 0)
+		var left = left_map.get(m["uid"], 0)
 		m["btn"].text = "%s%s(%d)" % [m["data"].icon, m["data"].item_name, left]
 		m["btn"].disabled = (left <= 0 or game_state != "playing" or in_loadout)
 
 
-func _on_consumable_pressed(id: String) -> void:
+func _on_consumable_pressed(uid: String) -> void:
 	if in_loadout or game_state != "playing" or _busy:
 		return
-	if consumable_charges.get(id, 0) <= 0:
-		hud._log("「%s」已用尽" % id)
-		return
-	var data: Resource = null
-	for m in consumable_buttons:
-		if m["id"] == id:
-			data = m["data"]
+	var target = -1
+	for i in range(consumable_slots.size()):
+		if consumable_slots[i]["uid"] == uid:
+			target = i
 			break
+	if target < 0:
+		return
+	var slot = consumable_slots[target]
+	if slot["charges"] <= 0:
+		hud._log("「%s」已用尽" % slot["item_id"])
+		return
+	var data: Resource = load(slot["path"])
 	if data == null:
 		return
-	consumable_charges[id] -= 1
+	slot["charges"] -= 1
 	match data.effect:
 		"purify":
 			if enemy_intent.get("type") in ["jam", "lock", "chaos"]:
@@ -1479,15 +1524,10 @@ func _on_consumable_pressed(id: String) -> void:
 			hud._log("重转卷轴：免费重转！")
 			await _free_spin()
 	_refresh_consumable_panel()
-	if consumable_charges.get(id, 0) <= 0:
-		consumable_charges.erase(id)
-		for i in range(selected_consumables.size()):
-			var d = load(selected_consumables[i])
-			if d != null and d.item_id == id:
-				selected_consumables.remove_at(i)
-				break
+	if slot["charges"] <= 0:
+		consumable_slots.remove_at(target)
 		_rebuild_consumable_panel()
-		hud._log("「%s」已用尽，移出持有（可于商店补给）" % id)
+		hud._log("「%s」已用尽，移出腰带（可于商店补给）" % slot["item_id"])
 	hud._refresh_meta()
 
 
