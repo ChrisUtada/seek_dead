@@ -13,8 +13,8 @@ extends Resource
 @export var status_type: String = ""        # 仅 kind=="status"：burn | frost | poison
 @export var color: Color = Color(0.7, 0.7, 0.75, 1)
 
-# Phase C — 仅 kind=="buff"：主动增益符号自带效果，符号自描述。
-# 结算时 _evaluate 直接读这三个字段，无需从 BuffData 回查，保持零查表。
+# Phase C — 仅 kind=="buff"：主动技能符号自带效果，符号自描述。
+# 结算时 _evaluate 直接读这三个字段，无需从 SkillData 回查，保持零查表。
 @export var buff_effect: String = ""        # power | shield | regen | damage_mult
 @export var buff_value: float = 0.0         # damage_mult 为倍率（如 1.5），其余为整数值
 @export var buff_turns: int = 2             # 命中一次可持续回合数（含命中当回合）

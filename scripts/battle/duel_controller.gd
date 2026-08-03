@@ -52,8 +52,8 @@ const UI_BUTTON = preload("res://scenes/ui/ui_button.tscn")
 # 不再手写路径数组（见 _ready 内的 ResourceScan 填充）。默认空，待 _ready 填充。
 var WEAPON_POOL: Array = []
 var ITEM_POOL: Array = []
-# Phase C 主动增益：携带后其符号进入转轮，连线命中施加限时增益
-var BUFF_POOL: Array = []
+# Phase C 主动技能：携带后其符号进入转轮，连线命中施加限时增益
+var SKILL_POOL: Array = []
 
 # 携带约束（Phase G）：四类各自占【独立槽位】，互不算总、不共享上限。
 # 【初始配额】武器 2 · 增益 1 · 消耗品 1 · 护符 1（合计 5——仅为初始值之和，**不是**共享闸门；
@@ -62,7 +62,7 @@ var BUFF_POOL: Array = []
 #   本次购买直接把该类上限 +1（不单独售卖抽象的「槽扩展」商品）。
 #   节奏闸门 = 同类价格随已持数递增（见 _shop_price 的 step 表）。
 # 【天花板：按「进池 / 不进池」分野，不按类别拍脑袋】
-#   · 进池类（武器 weapon · 增益 buff）→ **无天花板**（UNCAPPED）。
+#   · 进池类（武器 weapon · 技能 skill）→ **无天花板**（UNCAPPED）。
 #     它们的符号会挤进同一条转轮带，带越多则：废铁占比升高、目标符号命中率被稀释、
 #     克制浓度摊薄、按停到想要的符号更难 —— 稀释效应本身就是刹车，无需人为封顶。
 #     再叠加金币线性递增价（见 _shop_price），越买越贵，双闸门足矣。
@@ -71,7 +71,7 @@ var BUFF_POOL: Array = []
 #     纯收益、越多越强），故必须硬限量，否则乘区无限叠加直接崩坏数值。
 const LOADOUT_MIN := 1
 # 初始配额（每局开局值；_full_reset 与 _shop_price 的加价起点均以此为准）
-const SLOT_INIT := {"weapon": 2, "buff": 1, "active": 1, "passive": 1}
+const SLOT_INIT := {"weapon": 2, "skill": 1, "active": 1, "passive": 1}
 const UNCAPPED := -1        # 天花板哨兵值：该类无上限，仅由稀释效应 + 金币递增价约束
 const CONSUMABLE_CAP := 2   # 消耗品槽天花板（不进池，宽松硬限）
 const CHARM_CAP      := 3   # 护符槽天花板（不进池、唯一收集乘区，严格硬限）
@@ -79,7 +79,7 @@ const CHARM_CAP      := 3   # 护符槽天花板（不进池、唯一收集乘�
 const ROOM_KIND_RANK := {"normal": 0, "elite": 0, "boss": 2}
 # 各类当前上限：每局从初始配额起步，商店「买即开槽」逐步逼近天花板（_full_reset 重置）
 var loadout_max    := 2
-var buff_max       := 1
+var skill_max      := 1
 var consumable_max := 1
 var charm_max      := 1
 
@@ -90,6 +90,8 @@ const ROWS = 1
 # 玩家膨胀（武器升级/护符）需敌方同步变肉，否则中期秒怪、游戏结束。初值待真机调参。
 const ANTE_ALPHA_HP := 0.15
 const ANTE_ALPHA_ATK := 0.10
+const TEST_PLAYER_DMG_MULT := 1.5   # ⚠ 测试用临时倍率：拉高玩家总伤害，便于打通幕三 BOSS 验证 run 收尾/元进度三选一。正式平衡时改回 1.0 或整行删除。
+const TEST_STATUS_DMG_MULT := 3.0   # ⚠ 测试用临时倍率：拉高给敌人的状态 DoT（灼烧/毒）伤害，原 base 仅 3~4/层/回合，幕三 BOSS 血量高时几乎可忽略。正式平衡时改回 1.0 或整行删除。
 
 # M4 房奖励池（每清一房随机 3 选 1；Boss 房走同池但标为「残余物」）。
 # Phase D 资源化：改为扫描 resources/rewards/*.tres（RewardData），见 _ready 内填充。
@@ -149,7 +151,7 @@ var in_loadout := false
 var selected_loadout: Array = []          # 玩家勾选的武器路径
 var selected_consumables: Array = []      # 玩家勾选的消耗品路径
 var selected_charms: Array = []           # 玩家勾选的护符路径
-var selected_buffs: Array = []            # 玩家勾选的主动增益路径（Phase C）
+var selected_skills: Array = []           # 玩家勾选的主动技能路径（Phase C 重构：原「增益」改名「技能」）
 
 const STATUS_NAMES := {"burn": "燃", "frost": "霜", "poison": "毒"}
 
@@ -193,6 +195,7 @@ var purify_charges = 0
 var charm_power_bonus: int = 0         # 锋锐护符：本局所有伤害符号 +N
 var charm_room_shield: int = 0         # 守望护符：每房开局护盾 +N
 var charm_shield_trickle: int = 0      # 守备护符：每回合护盾涓流（整局生效，见 §8）
+var charm_heal_trickle: int = 0       # 回春护符：每回合回复（与瞬回药剂互补）
 var charm_interf_resist: int = 0       # 抗扰护符：本局敌人干扰概率降低（等效抗扰等级）
 var charm_purify_bonus: int = 0        # 丰沛护符：净化上限 +N
 var charm_damage_mult: float = 1.0      # Phase G v2.0：护符全局乘区（joker），默认 ×1.0
@@ -239,7 +242,7 @@ func _ready() -> void:
 	# Phase D：文件夹自动扫描内容池（替代手写路径数组）。必须在构建整备界面之前完成。
 	WEAPON_POOL = ResourceScan.scan_paths("res://resources/weapon_templates/")
 	ITEM_POOL = ResourceScan.scan_paths("res://resources/items/")
-	BUFF_POOL = ResourceScan.scan_paths("res://resources/buffs/")
+	SKILL_POOL = ResourceScan.scan_paths("res://resources/skills/")
 	ALL_ROOMS = _sort_rooms(ResourceScan.scan_resources("res://resources/rooms/", "RoomData"))
 	REWARD_POOL = ResourceScan.scan_resources("res://resources/rewards/", "RewardData")
 	hud = BATTLE_HUD.instantiate()
@@ -314,17 +317,17 @@ func _build_pool(loadout: Array) -> void:
 				continue
 			var sp = sw.symbol.resource_path
 			_weapon_base_map[sp] = max(_weapon_base_map.get(sp, 0), bb)
-	# Phase C：所携带的主动增益，其符号同样注入转轮池（与武器符号同池竞争）
-	for path in selected_buffs:
-		var bd: BuffData = load(path)
-		if bd == null or bd.symbol == null:
+	# Phase C：所携带的主动技能，其符号同样注入转轮池（与武器符号同池竞争）
+	for path in selected_skills:
+		var sd: SkillData = load(path)
+		if sd == null or sd.symbol == null:
 			continue
-		var bp: String = bd.symbol.resource_path
-		var beff: String = bd.symbol.element if bd.symbol.element != "none" else "none"
+		var bp: String = sd.symbol.resource_path
+		var beff: String = sd.symbol.element if sd.symbol.element != "none" else "none"
 		var bkey: String = bp + "|" + beff
 		if not merged.has(bkey):
-			merged[bkey] = [bd.symbol, 0.0, beff]
-		merged[bkey][1] += float(bd.weight)
+			merged[bkey] = [sd.symbol, 0.0, beff]
+		merged[bkey][1] += float(sd.weight)
 	for key in merged.keys():
 		pool.append(merged[key])
 	# F-0 属性聚合层：符号权重修正（本局符号灌注 + Phase F 词缀），run_symbol_bonus 以 resource_path 为键
@@ -400,7 +403,7 @@ func _sel_arr(cat: String) -> Array:
 		"weapon":  return selected_loadout
 		"active":  return selected_consumables
 		"passive": return selected_charms
-		"buff":    return selected_buffs
+		"skill":    return selected_skills
 	return []
 
 
@@ -410,7 +413,7 @@ func _cat_max(cat: String) -> int:
 		"weapon":  return loadout_max
 		"active":  return consumable_max
 		"passive": return charm_max
-		"buff":    return buff_max
+		"skill":    return skill_max
 	return 0
 
 
@@ -418,7 +421,7 @@ func _cat_max(cat: String) -> int:
 func _cat_cap(cat: String) -> int:
 	match cat:
 		"weapon":  return UNCAPPED   # 进池：稀释效应自身即刹车
-		"buff":    return UNCAPPED   # 进池：同上
+		"skill":    return UNCAPPED   # 进池：同上
 		"active":  return CONSUMABLE_CAP
 		"passive": return CHARM_CAP
 	return 0
@@ -441,7 +444,7 @@ func _grow_slot(cat: String) -> void:
 	var ceiling = _cat_cap(cat)
 	match cat:
 		"weapon":  loadout_max    = (loadout_max + 1 if ceiling == UNCAPPED else min(loadout_max + 1, ceiling))
-		"buff":    buff_max       = (buff_max + 1 if ceiling == UNCAPPED else min(buff_max + 1, ceiling))
+		"skill":    skill_max      = (skill_max + 1 if ceiling == UNCAPPED else min(skill_max + 1, ceiling))
 		"active":  consumable_max = min(consumable_max + 1, ceiling)
 		"passive": charm_max      = min(charm_max + 1, ceiling)
 
@@ -451,7 +454,7 @@ func _cat_name(cat: String) -> String:
 		"weapon":  return "武器"
 		"active":  return "消耗品"
 		"passive": return "护符"
-		"buff":    return "增益"
+		"skill":    return "技能"
 	return cat
 
 
@@ -476,6 +479,7 @@ func _apply_charms() -> void:
 	charm_purify_bonus = 0
 	charm_damage_mult = 1.0
 	charm_shield_trickle = 0
+	charm_heal_trickle = 0
 	for path in selected_charms:
 		var cd: Resource = load(path)
 		if cd == null:
@@ -486,6 +490,7 @@ func _apply_charms() -> void:
 			"interference_resist":  charm_interf_resist += cd.value
 			"purify_bonus":         charm_purify_bonus += cd.value
 			"shield":               charm_shield_trickle += cd.value   # 守备护符：每回合护盾涓流
+			"heal":                charm_heal_trickle += cd.value    # 回春护符：每回合回复
 			"damage_mult":
 				var clv = meta["charm_upgrades"].get(path, 0)
 				charm_damage_mult *= cd.mult_value * (1.0 + CHARM_MULT_STEP * clv)   # 护符乘数增值（膨胀双轨·封顶在循环后）
@@ -497,6 +502,7 @@ func _apply_charms() -> void:
 				"interference_resist":  charm_interf_resist -= cd.downside_value
 				"purify_bonus":         charm_purify_bonus -= cd.downside_value
 				"shield":               charm_shield_trickle -= cd.downside_value
+				"heal":                charm_heal_trickle -= cd.downside_value
 				"damage_mult":          charm_damage_mult *= cd.downside_mult
 	# 总护符乘区硬上限（防失控膨胀）
 	charm_damage_mult = min(charm_damage_mult, CHARM_MULT_CAP)
@@ -506,7 +512,7 @@ func _apply_charms() -> void:
 		if cd != null and cd.effect == "purify":
 			pm += cd.value
 	purify_max_base = pm + charm_purify_bonus
-	var charm_log = "护符已装配：伤害+%d / 开局护盾+%d / 每回合护盾+%d / 抗扰+%d / 净化+%d" % [charm_power_bonus, charm_room_shield, charm_shield_trickle, charm_interf_resist, charm_purify_bonus]
+	var charm_log = "护符已装配：伤害+%d / 开局护盾+%d / 每回合护盾+%d / 每回合回血+%d / 抗扰+%d / 净化+%d" % [charm_power_bonus, charm_room_shield, charm_shield_trickle, charm_heal_trickle, charm_interf_resist, charm_purify_bonus]
 	if charm_damage_mult != 1.0:
 		charm_log += " / 伤害×%s" % ElementCounter.fmt_mult(charm_damage_mult)
 	hud._log(charm_log)
@@ -778,9 +784,9 @@ func _shop_price(kind: String, owned: int = -1) -> int:
 	# 加价起点对齐各类初始配额（填满初始空位仍原价，从首次扩槽起逐级加价）。
 	# 步进差异：护符最大（唯一收集乘区、须最贵）；增益次之（进池挤占转轮带最凶）；
 	# 武器居中；消耗品最低。
-	var base = {"weapon": 8, "passive": 10, "active": 5, "buff": 6}.get(kind, 6)
+	var base = {"weapon": 8, "passive": 10, "active": 5, "skill": 6}.get(kind, 6)
 	var price = base + randi_range(-1, 2)
-	var step = {"weapon": 5, "passive": 8, "active": 4, "buff": 6}.get(kind, 4)
+	var step = {"weapon": 5, "passive": 8, "active": 4, "skill": 6}.get(kind, 4)
 	price += max(0, owned - int(SLOT_INIT.get(kind, 1)) + 1) * step
 	return max(3, price)
 
@@ -790,7 +796,7 @@ func _shop_name(path: String, kind: String) -> String:
 		return path.get_file().get_basename()
 	match kind:
 		"weapon": return (d as WeaponData).weapon_name if d is WeaponData else path.get_file().get_basename()
-		"buff":   return (d as BuffData).buff_name if d is BuffData else path.get_file().get_basename()
+		"skill":  return (d as SkillData).buff_name if d is SkillData else path.get_file().get_basename()
 		_:        return (d as ItemData).item_name if d is ItemData else path.get_file().get_basename()
 	return path.get_file().get_basename()
 
@@ -802,8 +808,8 @@ func _roll_shop() -> void:
 		var d = load(p)
 		if d is ItemData:
 			candidates.append({"path": p, "kind": d.category})
-	for p in BUFF_POOL:
-		candidates.append({"path": p, "kind": "buff"})
+	for p in SKILL_POOL:
+		candidates.append({"path": p, "kind": "skill"})
 	candidates.shuffle()                      # 随机刷新，防背公式
 	var n = min(candidates.size(), 6)
 	shop_offers = []
@@ -867,7 +873,7 @@ func _on_shop_sell_pressed(path: String, kind: String) -> void:
 	gold += refund
 	arr.erase(path)
 	paid_price.erase(path)
-	if kind == "weapon" or kind == "buff":
+	if kind == "weapon" or kind == "skill":
 		_build_pool(selected_loadout)       # 重建符号池（稀释转轮带）
 	elif kind == "passive":
 		_apply_charms()                      # 重算护符被动（伤害乘区等随持有变化）
@@ -926,7 +932,7 @@ func _full_reset() -> void:
 	gold = 4                                 # S6：新一局金币清零（每局清零，见 §11）
 	# 新一局四类槽位回到初始配额（商店「买即开槽」可再逐步扩至各自天花板）
 	loadout_max = int(SLOT_INIT["weapon"])
-	buff_max = int(SLOT_INIT["buff"])
+	skill_max = int(SLOT_INIT["skill"])
 	consumable_max = int(SLOT_INIT["active"])
 	charm_max = int(SLOT_INIT["passive"])
 	paid_price = {}   # 新一局购入价记录清空
@@ -1020,7 +1026,7 @@ func _start_room(idx: int) -> void:
 		enemy_lock *= rf
 		enemy_chaos *= rf
 	enemy_status = {}
-	player_buffs = {}                     # Phase C：主动增益不跨房保留
+	player_buffs = {}                     # Phase C：主动技能不跨房保留
 	player_shield = 0
 	player_shield += run_shield_next      # M4：上一房奖励的结界在本房开局生效
 	player_shield += charm_room_shield    # M6：守望护符每房开局护盾
@@ -1371,7 +1377,7 @@ func _tick_status() -> void:
 	for st in enemy_status.keys():
 		var base = _status_base(st)
 		var mult = ElementCounter.multiplier(_status_element(st), enemy_element)
-		dot += int(round(enemy_status[st] * base * mult))
+		dot += int(round(enemy_status[st] * base * mult * TEST_STATUS_DMG_MULT))
 		enemy_status[st] = max(0, enemy_status[st] - 1)
 		if enemy_status[st] <= 0:
 			enemy_status.erase(st)
@@ -1653,7 +1659,7 @@ func _evaluate(chain_mult := 1.0) -> void:
 	var buff_mult = _agg_damage_mult()
 	var assault = assault_next_spin
 	var subtotal = acc["dmg"] + acc["special"] * chain_mult
-	var total = int(subtotal * assault * buff_mult * boss_dmg_mult)
+	var total = int(subtotal * assault * buff_mult * boss_dmg_mult * TEST_PLAYER_DMG_MULT)
 	assault_next_spin = 1
 	# S2：输出伤害分解——逐符号明细 + 回合级乘区汇总（走中栏独立面板，不进战斗日志）
 	if acc["lines"].is_empty():
@@ -1721,7 +1727,7 @@ func _agg_shield() -> float:
 
 
 func _agg_regen() -> float:
-	return _buff_regen()
+	return _buff_regen() + float(charm_heal_trickle)
 
 # —— 乘法型轴（各乘区独立相乘，基值 1.0）——
 func _agg_damage_mult() -> float:
@@ -1740,7 +1746,7 @@ func _grant_buff(sym: SymbolData, mult: int) -> void:
 	var add = max(1, sym.buff_turns) * mult
 	player_buffs[sym] = int(player_buffs.get(sym, 0)) + add
 	hud._popup("%s+%d" % [sym.label, add], Palette.POP_BUFF, hud._player_panel_anchor())
-	hud._log("增益：%s %s（剩余 %d 回合）" % [sym.label, sym.name, player_buffs[sym]])
+	hud._log("技能：%s %s（剩余 %d 回合）" % [sym.label, sym.name, player_buffs[sym]])
 
 
 # 按效果类型聚合当前生效的增益值（加法型）

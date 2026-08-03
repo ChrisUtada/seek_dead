@@ -1,6 +1,6 @@
-[gd_resource type="Resource" script_class="BuffData" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="SkillData" load_steps=3 format=3]
 
-[ext_resource type="Script" path="res://scripts/items/buff_data.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/items/skill_data.gd" id="1"]
 [ext_resource type="Resource" path="res://resources/symbols/buff_haste.tres" id="2"]
 
 [resource]

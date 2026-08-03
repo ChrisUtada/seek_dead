@@ -45,7 +45,7 @@ var anvil_grid
 var anvil_back_btn
 # 商店「卖出」专用列表（与购入同屏，统一整备闭环）
 var shop_sell_weapon_list
-var shop_sell_buff_list
+var shop_sell_skill_list
 var shop_sell_charm_list
 var shop_sell_consum_list
 var grid_container
@@ -130,9 +130,18 @@ func _kind_name(kind: String) -> String:
 		"heal":    return "治疗"
 		"status":  return "状态"
 		"special": return "特殊"
-		"buff":    return "增益"
+		"skill":    return "技能"
 		"trash":   return "废铁"
 		_:         return kind
+
+func _source_tag(kind: String) -> String:
+	# 来源标签：让玩家一眼看懂「同一效果为何出现在不同分类（常驻/主动/转轮）」
+	match kind:
+		"weapon":  return "【武器】"
+		"passive": return "【常驻】"
+		"active":  return "【主动】"
+		"skill":   return "【转轮】"
+		_:         return ""
 
 
 func _build_ui() -> void:
@@ -181,7 +190,7 @@ func _build_ui() -> void:
 	player_hp_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	player_shield_label = _label("护盾 0", TypeScale.META)
 	player_shield_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	player_buff_label = _label("增益: 无", TypeScale.TINY)
+	player_buff_label = _label("技能: 无", TypeScale.TINY)
 	player_buff_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	player_buff_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	player_buff_label.add_theme_color_override("font_color", Palette.POP_BUFF)
@@ -377,7 +386,7 @@ func _build_loadout_screen() -> void:
 	var title = _label("⚙ 整备 · 选择携带物品", TypeScale.LEAD)
 	title.add_theme_color_override("font_color", Palette.TITLE)
 	root.add_child(title)
-	var rule = _label("四类独立槽位 · 武器/增益=进转轮(稀释自然刹车·无硬顶) · 消耗品/护符=不进池(硬限) · 买即开槽扩槽", 10)
+	var rule = _label("四类独立槽位 · 武器/技能=进转轮(稀释自然刹车·无硬顶) · 消耗品/护符=不进池(硬限) · 买即开槽扩槽", 10)
 	rule.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	root.add_child(rule)
 
@@ -391,7 +400,7 @@ func _build_loadout_screen() -> void:
 	loadout_columns = {}
 	loadout_slot_strips = {}
 	_add_loadout_column(cat_box, "武器", controller.WEAPON_POOL, "weapon", 1)
-	_add_loadout_column(cat_box, "增益", controller.BUFF_POOL, "buff", 1)
+	_add_loadout_column(cat_box, "技能", controller.SKILL_POOL, "skill", 1)
 	_add_loadout_column(cat_box, "消耗品", _item_pool_of("active"), "active", 1)
 	_add_loadout_column(cat_box, "护符", _item_pool_of("passive"), "passive", 1)
 
@@ -399,7 +408,7 @@ func _build_loadout_screen() -> void:
 	var bot = HBoxContainer.new()
 	bot.add_theme_constant_override("separation", 10)
 	root.add_child(bot)
-	loadout_count_label = _label("武器 0/%d · 增益 0/%d · 消耗品 0/%d · 护符 0/%d" % [controller.loadout_max, controller.buff_max, controller.consumable_max, controller.charm_max], TypeScale.META)
+	loadout_count_label = _label("武器 0/%d · 技能 0/%d · 消耗品 0/%d · 护符 0/%d" % [controller.loadout_max, controller.skill_max, controller.consumable_max, controller.charm_max], TypeScale.META)
 	loadout_count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	bot.add_child(loadout_count_label)
 	var bot_spacer = Control.new()
@@ -475,8 +484,8 @@ func _add_loadout_column(parent: Control, title: String, pool: Array, category: 
 		var kind := "weapon"
 		if data is ItemData:
 			kind = data.category
-		elif data is BuffData:
-			kind = "buff"
+		elif data is SkillData:
+			kind = "skill"
 		var card = _make_item_card(data, path, kind)
 		list.add_child(card["btn"])
 		loadout_cards.append(card)
@@ -559,7 +568,7 @@ func _make_item_card(data: Resource, path: String, kind: String) -> Dictionary:
 					if sw != null and sw.symbol != null and sw.symbol.kind == "special":
 						line2 = "特殊: %s" % sw.symbol.name
 						break
-	elif kind == "buff":
+	elif kind == "skill":
 		name = data.buff_name if (data != null) else path.get_file().get_basename()
 		if data != null:
 			line1 = "%s %s" % [data.icon, data.description]
@@ -571,6 +580,7 @@ func _make_item_card(data: Resource, path: String, kind: String) -> Dictionary:
 			line1 = "%s %s" % [data.icon, data.description]
 			line2 = "持有 %d" % data.charges if (kind == "active" and data.get("charges") != null) else "被动"
 
+	name = _source_tag(kind) + name
 	var nl = _label(name, TypeScale.META)
 	nl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -595,7 +605,7 @@ func _update_loadout_cards_visual() -> void:
 	var wfull = controller.selected_loadout.size() >= controller._cat_max("weapon")
 	var cfull = controller.selected_consumables.size() >= controller._cat_max("active")
 	var hfull = controller.selected_charms.size() >= controller._cat_max("passive")
-	var bfull = controller.selected_buffs.size() >= controller._cat_max("buff")
+	var bfull = controller.selected_skills.size() >= controller._cat_max("skill")
 	for card in loadout_cards:
 		var sb = StyleBoxFlat.new()
 		if card["selected"]:
@@ -607,7 +617,7 @@ func _update_loadout_cards_visual() -> void:
 			sb.bg_color = Palette.CARD_NORM_BG
 			sb.border_color = Palette.CARD_NORM_BORDER
 			sb.set_border_width_all(1)
-			var cf = (card["kind"] == "weapon" and wfull) or (card["kind"] == "active" and cfull) or (card["kind"] == "passive" and hfull) or (card["kind"] == "buff" and bfull)
+			var cf = (card["kind"] == "weapon" and wfull) or (card["kind"] == "active" and cfull) or (card["kind"] == "passive" and hfull) or (card["kind"] == "skill" and bfull)
 			card["btn"].disabled = cf
 		card["btn"].add_theme_stylebox_override("normal", sb)
 		card["btn"].add_theme_stylebox_override("hover", sb)
@@ -624,9 +634,9 @@ func _cat_count_text(cat: String, label: String) -> String:
 func _update_loadout_count() -> void:
 	# 四类各自独立计数，不再出现任何跨类合计
 	loadout_count_label.text = "%s · %s · %s · %s" % [
-		_cat_count_text("weapon", "武器"), _cat_count_text("buff", "增益"),
+		_cat_count_text("weapon", "武器"), _cat_count_text("skill", "技能"),
 		_cat_count_text("active", "消耗品"), _cat_count_text("passive", "护符")]
-	var titles = {"weapon": "武器", "buff": "增益", "active": "消耗品", "passive": "护符"}
+	var titles = {"weapon": "武器", "skill": "技能", "active": "消耗品", "passive": "护符"}
 	for cat in titles:
 		if loadout_columns.has(cat):
 			loadout_columns[cat].text = _cat_count_text(cat, titles[cat])
@@ -653,7 +663,7 @@ func _sync_card_selection() -> void:
 	var weapons = controller.selected_loadout
 	var consumables = controller.selected_consumables
 	var charms = controller.selected_charms
-	var buffs = controller.selected_buffs
+	var skills = controller.selected_skills
 	for card in loadout_cards:
 		match card["kind"]:
 			"weapon":
@@ -662,8 +672,8 @@ func _sync_card_selection() -> void:
 				card["selected"] = consumables.has(card["path"])
 			"passive":
 				card["selected"] = charms.has(card["path"])
-			"buff":
-				card["selected"] = buffs.has(card["path"])
+			"skill":
+				card["selected"] = skills.has(card["path"])
 
 
 func _update_loadout_anvil() -> void:
@@ -857,7 +867,7 @@ func _build_shop_screen() -> void:
 	sell_box.add_theme_constant_override("separation", 6)
 	sell_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	shop_sell_weapon_list = _sell_column(sell_box, "武器")
-	shop_sell_buff_list = _sell_column(sell_box, "增益")
+	shop_sell_skill_list = _sell_column(sell_box, "技能")
 	shop_sell_charm_list = _sell_column(sell_box, "护符")
 	shop_sell_consum_list = _sell_column(sell_box, "消耗品")
 	inner.add_child(sell_box)
@@ -904,8 +914,8 @@ func _make_shop_card(offer: Dictionary) -> Button:
 	var vb = VBoxContainer.new()
 	vb.add_theme_constant_override("separation", 2)
 	cc.add_child(vb)
-	var kind_name = {"weapon": "武器", "passive": "护符", "active": "物品", "buff": "增益"}.get(offer["kind"], "物品")
-	vb.add_child(_label("%s · %s" % [kind_name, offer["name"]], 12))
+	var kind_name = {"weapon": "武器", "passive": "护符", "active": "物品", "skill": "技能"}.get(offer["kind"], "物品")
+	vb.add_child(_label("%s%s · %s" % [_source_tag(offer["kind"]), kind_name, offer["name"]], 12))
 	var price = controller._shop_price(offer["kind"])   # 价格随当前持有数递增；卖出回落，换装成本=买卖价差（防刷价）
 	var cap = controller._cat_max(offer["kind"])          # 该类当前上限
 	var cur = controller._sel_arr(offer["kind"]).size()   # 该类已持数
@@ -940,7 +950,7 @@ func _make_shop_card(offer: Dictionary) -> Button:
 # 商店「卖出」区：四列列出已持有物品，点击回收约50%金币并释放槽位
 func _refresh_shop_sell() -> void:
 	_sell_fill(shop_sell_weapon_list, "weapon")
-	_sell_fill(shop_sell_buff_list, "buff")
+	_sell_fill(shop_sell_skill_list, "skill")
 	_sell_fill(shop_sell_charm_list, "passive")   # 护符计价 kind = passive
 	_sell_fill(shop_sell_consum_list, "active")
 
@@ -953,7 +963,7 @@ func _sell_fill(list: VBoxContainer, kind: String) -> void:
 		c.queue_free()
 	var owned = controller._sel_arr(kind)
 	for path in owned:
-		var name = controller._shop_name(path, kind)
+		var name = _source_tag(kind) + controller._shop_name(path, kind)
 		var refund = controller._sell_price(kind, path)
 		var last = (kind == "weapon" and owned.size() <= controller.LOADOUT_MIN)
 		var sub: String
@@ -1165,7 +1175,7 @@ func _on_cell_hover(reel: int, row: int) -> void:
 	if s.kind == "buff":
 		# Phase C：增益符号显示效果与持续回合，而非属性克制
 		var vtxt = ("×%.1f" % s.buff_value) if s.buff_effect == "damage_mult" else ("+%d" % int(s.buff_value))
-		symbol_tooltip_detail.text = "增益 · %s %s · 持续 %d 回合" % [controller._buff_effect_name(s.buff_effect), vtxt, s.buff_turns]
+		symbol_tooltip_detail.text = "技能 · %s %s · 持续 %d 回合" % [controller._buff_effect_name(s.buff_effect), vtxt, s.buff_turns]
 	else:
 		symbol_tooltip_detail.text = "%s · %s%s" % [_kind_name(s.kind), (ElementCounter.label(elem) if elem != "none" else "无属性"), rel_text]
 	# 定位到格子上方并夹紧屏幕边界
@@ -1275,7 +1285,7 @@ func _refresh_legend() -> void:
 		if d.kind == "buff":
 			# Phase C：增益符号在图例里展示效果与持续回合，用符号自身配色
 			var vtxt = ("×%.1f" % d.buff_value) if d.buff_effect == "damage_mult" else ("+%d" % int(d.buff_value))
-			t = "%s %s · 增益 · %s %s（%d 回合）" % [d.label, d.name, controller._buff_effect_name(d.buff_effect), vtxt, d.buff_turns]
+			t = "%s %s · 技能 · %s %s（%d 回合）" % [d.label, d.name, controller._buff_effect_name(d.buff_effect), vtxt, d.buff_turns]
 			tint = d.color
 		var l = _label(t, TypeScale.TINY)
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -1400,7 +1410,7 @@ func _refresh_meta() -> void:
 	turn_label.text = "回合: %d" % controller.turn_count
 	player_hp_label.text = "HP %d/%d" % [controller.player_hp, controller.player_hp_max]
 	player_shield_label.text = "护盾 %d" % controller.player_shield
-	player_buff_label.text = "增益: " + controller._buff_summary()
+	player_buff_label.text = "【转轮】技能: " + controller._buff_summary()
 	gold_label.text = "金币 %d" % controller.gold
 	enemy_name_label.text = controller.enemy_name
 	boss_badge.visible = is_boss

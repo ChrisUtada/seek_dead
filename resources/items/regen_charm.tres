@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+category = "passive"
+item_id = "regen_charm"
+item_name = "回春护符"
+description = "本局每回合回复 6 HP，提供稳定常驻续航（与瞬回药剂互补）。"
+icon = "🌿"
+effect = "heal"
+value = 6
