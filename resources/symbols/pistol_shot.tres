@@ -10,4 +10,5 @@ kind = "damage"
 base = 8.0
 element = "none"
 status_type = ""
+pierce_armor = true
 color = Color(0.95, 0.85, 0.30, 1)

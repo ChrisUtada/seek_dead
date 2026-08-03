@@ -64,6 +64,7 @@ var player_shield_label
 var enemy_name_label
 var boss_badge            # BOSS 战标识（金色徽章，仅 BOSS 房显示）
 var enemy_hp_label
+var enemy_armor_label    # 护甲（扁平池：先破甲后掉血；无护甲时隐藏）
 var enemy_intent_label
 var enemy_status_label
 var player_buff_label     # Phase C：玩家当前生效的主动增益
@@ -311,8 +312,13 @@ func _build_ui() -> void:
 	enemy_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	enemy_hp_label = _label("HP 0/0", TypeScale.META)
 	enemy_hp_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	enemy_armor_label = _label("护甲 0/0", TypeScale.META)
+	enemy_armor_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	enemy_armor_label.add_theme_color_override("font_color", Palette.ARMOR)
+	enemy_armor_label.visible = false
 	rpv.add_child(enemy_name_label)
 	rpv.add_child(enemy_hp_label)
+	rpv.add_child(enemy_armor_label)
 
 	var log_title = _label("战斗日志", TypeScale.META)
 	log_title.add_theme_color_override("font_color", Palette.MUTED)
@@ -1535,6 +1541,9 @@ func _refresh_meta() -> void:
 	enemy_name_label.text = controller.enemy_name
 	boss_badge.visible = is_boss
 	enemy_hp_label.text = "HP %d/%d" % [max(controller.enemy_hp, 0), controller.enemy_hp_max]
+	# 护甲（扁平池）：有护甲才显示；破甲后剩 0 也显示（提示已破甲窗口），仅无护甲敌人隐藏
+	enemy_armor_label.visible = controller.enemy_armor_max > 0
+	enemy_armor_label.text = "护甲 %d/%d" % [max(controller.enemy_armor, 0), controller.enemy_armor_max]
 	enemy_status_label.text = "状态: " + ("无" if controller.enemy_status.is_empty() else controller._status_summary(controller.enemy_status))
 	purify_label.text = "%d/%d" % [controller.purify_charges, controller.purify_max_base]
 	# M4+M6 本局加成概览

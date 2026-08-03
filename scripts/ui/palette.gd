@@ -36,6 +36,7 @@ const POP_STATUS := Color(1.00, 0.60, 0.30)  # 状态
 const POP_DAMAGE := Color(1.00, 0.50, 0.40)  # 伤害
 const POP_BUFF   := Color(0.85, 0.65, 1.00)  # 主动增益（Phase C）
 const POP_GOLD   := Color(1.00, 0.80, 0.15)  # 金币（转轮经济引擎）
+const ARMOR      := Color(0.75, 0.80, 0.90, 1)  # 护甲（扁平池：先破甲后掉血）
 
 # ---- 装备卡选中/常态样式 ----
 const CARD_SEL_BG      := Color(0.20, 0.32, 0.22, 1)  # 选中底

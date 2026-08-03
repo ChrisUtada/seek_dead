@@ -15,6 +15,7 @@ heavy = 0.2
 element = "dark"
 kind = "boss"
 act = 2
+armor = 25
 gimmick_script = ExtResource("2")
 boss_reward_weapons = Array[String](["res://resources/weapon_templates/poison_dagger.tres", "res://resources/weapon_templates/pistol.tres", "res://resources/weapon_templates/dagger.tres"])
 boss_relic_path = "res://resources/items/whisper_relic.tres"

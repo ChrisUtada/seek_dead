@@ -14,3 +14,4 @@ heavy = 0.12
 element = "light"
 kind = "normal"
 act = 1
+armor = 16

@@ -159,7 +159,6 @@ const GOLD_UPGRADE_DEFS := [
 signal spin_finished                   # 全部转轮停下后发出，_on_spin_pressed 等待它
 
 var current_gimmick = null              # 当前房间 BOSS 机制实例（S10 T2 赋值；非 BOSS 房为 null，钩子空安全跳过）
-var boss_dmg_mult := 1.0                # S10 T2：玩家→敌人伤害倍率（rust_armor 熔铸护甲减伤），每玩家回合由 gimmick 设定，默认 1.0
 var boss_atk_mult := 1.0                # S10 T2：敌人→玩家伤害倍率（whisper_lock 呓语锁轮强化），每玩家回合重置为 1.0 后由 gimmick 命中时设 1.5
 var boss_trash := 0                     # S10 T2：深渊侵蚀注入的额外废铁格数（每列），_build_strips 落实，默认 0
 
@@ -193,6 +192,8 @@ var room_index = 0
 var enemy_name = "敌人"
 var enemy_hp = 120
 var enemy_hp_max = 120
+var enemy_armor_max = 0                # 护甲上限（扁平池；来自 RoomData.armor × ante，BOSS 机制可成长）
+var enemy_armor = 0                    # 当前护甲：伤害先破甲后掉血；0 = 无护甲
 var enemy_atk = 14
 var enemy_jam = 0.2
 var enemy_lock = 0.1
@@ -1138,6 +1139,9 @@ func _start_room(idx: int) -> void:
 	enemy_chaos = r.chaos
 	enemy_heavy = r.heavy
 	enemy_element = r.element if r.element != "" else "none"   # 单向克制：敌人属性（仅供玩家符号克制判定）
+	# 护甲（扁平池）：随 ante 缩放；BOSS 机制可在此基础上成长（如锈蚀傀儡熔铸护甲）
+	enemy_armor_max = int(round(float(r.armor) * hp_scale)) if r.armor > 0 else 0
+	enemy_armor = enemy_armor_max
 	# M5+M6 抗干扰：铁砧 + 抗扰护符 共同降低敌人干扰概率（每级 -12%，最低保留 25%）
 	var total_resist = meta["interference_resist"] + charm_interf_resist
 	if total_resist > 0:
@@ -1166,7 +1170,6 @@ func _start_room(idx: int) -> void:
 	_reset_grid(true)
 	# S10 T2：BOSS 机制实例化（仅 BOSS 房；非 BOSS 房置 null，钩子调用处显式判空跳过）
 	current_gimmick = null
-	boss_dmg_mult = 1.0
 	boss_atk_mult = 1.0
 	boss_trash = 0
 	if _is_boss_room(idx) and r.gimmick_script != null:
@@ -1194,7 +1197,6 @@ func _begin_player_turn() -> void:
 	else:
 		enemy_intent = {"type": "attack", "value": enemy_atk}
 	# S10 T2：每玩家回合重置 BOSS 倍率，再由 gimmick 钩子按本回合状态设定
-	boss_dmg_mult = 1.0
 	boss_atk_mult = 1.0
 	if current_gimmick != null:
 		current_gimmick.on_turn_begin(self)
@@ -1493,6 +1495,36 @@ func _enemy_deal_damage(raw: int) -> void:
 	hud._log("敌人攻击 %d（盾挡 %d，受 %d）" % [eff, blocked, dealt])
 
 
+# 对敌人造成伤害（先破甲后掉血）：非穿透先扣护甲、溢出进 HP；穿透直接扣 HP。返回实际造成的总值。
+func _apply_enemy_damage(amount: float, pierce: bool) -> float:
+	var dmg = max(0, int(round(amount)))
+	if dmg <= 0:
+		return 0.0
+	if pierce:
+		enemy_hp -= dmg
+		return float(dmg)
+	var to_armor = min(enemy_armor, float(dmg))
+	enemy_armor -= to_armor
+	var to_hp = dmg - to_armor
+	enemy_hp -= to_hp
+	return float(dmg)
+
+
+# 反制即爆发（Plan C）：
+# · "special" = 通用破甲：清空敌人护甲，开启「伤害直击 HP」的爆发窗口（所有敌人通用破绽）。
+# · "element" = 进阶核爆：克制元素三连，除破甲外再追加一次直接打血（穿透）的核爆伤害。
+func _on_counter(kind: String) -> void:
+	if enemy_armor > 0:
+		hud._log("💥 %s破甲！护甲清零（%d）" % ["special 三连" if kind == "special" else "克制元素三连", int(enemy_armor)])
+		enemy_armor = 0
+	if kind == "element":
+		var burst = int(enemy_hp_max * 0.20)
+		if burst > 0:
+			_apply_enemy_damage(burst, true)
+			hud._popup("💥克制核爆!-%d" % burst, Palette.POP_DAMAGE, hud._enemy_panel_anchor())
+			hud._log("⚡ 克制元素三连触发核爆：%d 伤害（穿透护甲）" % burst)
+
+
 func _tick_status() -> void:
 	var dot = 0
 	for st in enemy_status.keys():
@@ -1656,12 +1688,18 @@ func _contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> vo
 	var em = ElementCounter.multiplier(elem, enemy_element)
 	if em > 1.0:
 		_eval_adv = true
+		# 反制即爆发（Plan C）：克制元素连线/三连标记，供 _evaluate 触发核爆
+		if raw >= 2:
+			acc["counter_triple"] = true
 	elif em < 1.0:
 		_eval_dis = true
 	match sym.kind:
 		"damage":
 			var dv = flat * mult * em
-			acc["dmg"] += dv
+			if sym.pierce_armor:
+				acc["pierce"] += dv     # 穿透护甲：直接扣 HP
+			else:
+				acc["dmg"] += dv
 			_push_dmg_line(acc, sym, elem, flat, bonus, mult, em, dv, false)
 		"shield":  acc["shield"]  += sym.base * mult
 		"heal":    acc["heal"]    += sym.base * mult
@@ -1673,7 +1711,10 @@ func _contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> vo
 			if crit:
 				sv *= SPECIAL_TRIPLE_CRIT
 				acc["special_triple"] = true   # S10 T5 钩子埋点：三连发生标记，供 BOSS 机制感知
-			acc["special"] += sv
+			if sym.pierce_armor:
+				acc["pierce"] += sv
+			else:
+				acc["special"] += sv
 			_push_dmg_line(acc, sym, elem, flat, bonus, mult, em, sv, crit)
 		_: pass
 
@@ -1710,7 +1751,7 @@ func _push_dmg_line(acc: Dictionary, sym: SymbolData, elem: String, flat, bonus,
 # chain_mult：连锁重触发倍率（仅作用于 special 部分），由 _on_spin_pressed 的连锁循环逐层传入，默认 1.0。
 func _evaluate(chain_mult := 1.0) -> void:
 	hud._clear_badges()
-	var acc = { "dmg": 0, "shield": 0, "heal": 0, "status_stacks": {}, "special": 0, "lines": [] }
+	var acc = { "dmg": 0, "shield": 0, "heal": 0, "status_stacks": {}, "special": 0, "lines": [], "pierce": 0.0, "counter_triple": false }
 	_eval_adv = false
 	_eval_dis = false
 
@@ -1773,21 +1814,29 @@ func _evaluate(chain_mult := 1.0) -> void:
 	hud._refresh_meta()
 	await get_tree().create_timer(0.45).timeout
 
-	# S10 T5 钩子点：special 三连发生后通知当前 BOSS 机制。
+	# S10 T5 钩子点 + 反制即爆发（Plan C）：special 三连 = 通用破甲；克制元素三连 = 进阶核爆。
 	# current_gimmick 仅在 BOSS 房由 T2 的 BossGimmick 子类赋值；非 BOSS 房为 null，显式判空跳过（避免 ?. 在某些 4.x 不兼容）。
 	if acc.get("special_triple", false):
 		hud._log("⚡ special 三连触发")
 		if current_gimmick != null:
-			current_gimmick.on_special_triple(self)
+			current_gimmick.on_special_triple(self)   # BOSS 自定义（如保留），通用破甲由 _on_counter 处理
 	_last_special_triple = acc.get("special_triple", false)
+	# 反制即爆发：克制元素三连（element）给核爆；否则 special 三连给通用破甲（清护甲窗口）
+	if acc.get("counter_triple", false):
+		_on_counter("element")
+	elif acc.get("special_triple", false):
+		_on_counter("special")
 
-	# —— 阶段 2：攻击结算（逐符号克制已在 _contribute 计入；此处只乘护符/强袭）——
+	# —— 阶段 2：攻击结算（先破甲后掉血；穿透符号直接扣 HP）——
 	# Phase C：迅捷(damage_mult) 对本回合总伤害做乘算（F-0 聚合层，含护符乘区）
 	var buff_mult = _agg_damage_mult()
 	var assault = assault_next_spin
-	var subtotal = acc["dmg"] + acc["special"] * chain_mult
-	var total = int(subtotal * assault * buff_mult * boss_dmg_mult * TEST_PLAYER_DMG_MULT)
+	var normal_subtotal = acc["dmg"] + acc["special"] * chain_mult
+	var pierce_subtotal = acc.get("pierce", 0.0)
+	var normal_total = int(normal_subtotal * assault * buff_mult * TEST_PLAYER_DMG_MULT)
+	var pierce_total = int(pierce_subtotal * assault * buff_mult * TEST_PLAYER_DMG_MULT)
 	assault_next_spin = 1
+	var total = normal_total + pierce_total
 	# S2：输出伤害分解——逐符号明细 + 回合级乘区汇总（走中栏独立面板，不进战斗日志）
 	if acc["lines"].is_empty():
 		hud._clear_damage_breakdown()
@@ -1806,17 +1855,21 @@ func _evaluate(chain_mult := 1.0) -> void:
 			tail.append("共鸣×%s" % ElementCounter.fmt_mult(jf))
 		if assault != 1:
 			tail.append("强袭×%s" % ElementCounter.fmt_mult(float(assault)))
-		if boss_dmg_mult != 1.0:
-			tail.append("护甲×%s" % ElementCounter.fmt_mult(boss_dmg_mult))
 		if chain_mult != 1.0:
 			tail.append("连锁×%s" % ElementCounter.fmt_mult(chain_mult))
+		if pierce_total > 0:
+			tail.append("穿透×直接HP")
 		if tail.is_empty():
 			blk.append("   合计 = %d" % total)
 		else:
-			blk.append("   小计 %d × %s = %d" % [int(round(subtotal)), " × ".join(tail), total])
+			blk.append("   小计 %d × %s = %d" % [int(round(normal_subtotal + pierce_subtotal)), " × ".join(tail), total])
 		hud._show_damage_breakdown("\n".join(blk))
+	# 先破甲后掉血：非穿透先扣护甲溢出进 HP；穿透直接扣 HP
+	if normal_total > 0:
+		_apply_enemy_damage(normal_total, false)
+	if pierce_total > 0:
+		_apply_enemy_damage(pierce_total, true)
 	if total > 0:
-		enemy_hp -= total
 		if current_gimmick != null:
 			current_gimmick.on_damaged(self, total)
 		var elem_tag := ""
@@ -1827,7 +1880,8 @@ func _evaluate(chain_mult := 1.0) -> void:
 		if buff_mult != 1.0:
 			elem_tag += "⚡"
 		hud._popup("-%d%s" % [total, elem_tag], Palette.POP_DAMAGE, hud._enemy_panel_anchor())
-		hud._log("连线造成 %d 伤害%s" % [total, elem_tag])
+		hud._log("连线造成 %d 伤害%s（护甲剩 %d）" % [total, elem_tag, int(enemy_armor)])
+	hud._refresh_meta()   # 伤害落地后立即刷新：HP/护甲即时变化（破甲窗口需即时可见）
 	await get_tree().create_timer(0.55).timeout
 	# Phase C：回合末递减增益剩余回合
 	_tick_buffs()

@@ -44,14 +44,13 @@ duel_controller 生命周期：
       └─ else: current_gimmick = null   ← 所有钩子调用处判空跳过
 
   _begin_player_turn()                 ← 每回合开始
-      ├─ boss_dmg_mult = 1.0           ← 先重置（见 §5 坑①）
-      ├─ boss_atk_mult = 1.0
-      └─ current_gimmick?.on_turn_begin(self)
+      ├─ boss_atk_mult = 1.0           ← 先重置（见 §5 坑①）
+      └─ current_gimmick?.on_turn_begin(self)   ← 护甲成长等逐回合效果（rust_armor 在此叠甲）
 
   _evaluate()（结算）
-      ├─ total *= boss_dmg_mult         ← 玩家→敌人伤害倍率
+      ├─ _apply_enemy_damage(total, pierce)   ← 先破甲后掉血；pierce 直接扣 HP（见 §10.6）
       ├─ current_gimmick?.on_damaged(self, total)   ← 敌人受伤后
-      └─ if 三连: current_gimmick?.on_special_triple(self)
+      └─ if 三连: current_gimmick?.on_special_triple(self) + _on_counter（破甲/核爆，见 §10.6）
 
   _enemy_deal_damage()                 ← 敌人→玩家
       └─ eff *= boss_atk_mult
@@ -82,8 +81,11 @@ func on_room_start(ctrl) -> void:
 
 func on_turn_begin(ctrl) -> void:
     _turns += 1
-    # 例：每回合给玩家伤害叠减伤（必须每回合重设，见 §5 坑①）
-    ctrl.boss_dmg_mult = max(0.3, 1.0 - _turns * 0.1)
+    # 例：每 2 回合给敌人叠护甲（成长型护甲池；先破甲后掉血，见 §10.6 / 数值框架 §10.6）
+    # 注意：护甲是敌人属性，增/减都在 enemy_armor / enemy_armor_max 上操作
+    if _turns % 2 == 0:
+        ctrl.enemy_armor_max += 8
+        ctrl.enemy_armor += 8
 
 func on_special_triple(ctrl) -> void:
     ctrl.hud._log("三连触发！")
@@ -132,7 +134,7 @@ gimmick_script = ExtResource("2")
 
 | BOSS | 脚本 | 可调参数（脚本顶部 `const`） |
 |---|---|---|
-| 熔铸护甲 | `rust_armor_gimmick.gd` | `MAX_STACKS`（层数上限）、`REDUCTION_PER_STACK`（每层减伤比例） |
+| 熔铸护甲 | `rust_armor_gimmick.gd` | `MAX_STACKS`（叠甲层数上限）、`ARMOR_PER_STACK`（每层护甲点数，叠加在 `RoomData.armor` 之上） |
 | 呓语锁轮 | `whisper_lock_gimmick.gd` | `LOCK_EVERY`（锁轮频率回合）、`ATTACK_MULT`（强化倍数） |
 | 深渊侵蚀 | `abyss_erosion_gimmick.gd` | `BASE_RATIO`、`LOW_HP_BONUS`、`MAX_TRASH`（废铁上限） |
 
@@ -142,7 +144,7 @@ gimmick_script = ExtResource("2")
 
 ## 5. 三个必踩的坑
 
-1. **倍率每回合会被重置**：`duel_controller` 在每回合开始先把 `boss_dmg_mult` / `boss_atk_mult` 归 1.0（见源码 859–860 行）。想让减伤 / 强化**持续生效**，必须在 `on_turn_begin` 里**每回合重设**（rust_armor 就是这么干的）。一次性效果（如呓语只在第 3 回合 ×1.5）在命中时设即可。
+1. **攻击倍率每回合会被重置**：`duel_controller` 在每回合开始先把 `boss_atk_mult` 归 1.0（见源码）。敌人**护甲**是独立扁平池（`enemy_armor` / `enemy_armor_max`，来自 `RoomData.armor`），不在每回合重置——若想让护甲**持续成长**，在 `on_turn_begin` 里逐回合叠加（rust_armor 就是这么干的）；若想让护甲**被打掉后保持空窗**，靠 `_on_counter("special")`（special 三连）或穿透符号破甲即可，无需 gimmick 干预。一次性效果（如呓语只在第 3 回合 ×1.5）在命中时设即可。
 2. **`pending_lock_reel` 是"下一轮固定该列"**：设置后于对应回合钉死该列并自动清零（源码 1029 行），不是永久锁。设 `-1` 表示无锁。
 3. **`.uid` 文件**：Godot 打开项目后会为每个 `.gd` 生成同名 `.uid`。建议把它和脚本一起提交，保证跨机器一致（本仓库 T2 的 4 个 `.uid` 已随文档提交补全）。
 
@@ -155,7 +157,7 @@ gimmick_script = ExtResource("2")
 | 钩子 | 触发时机 | 典型用途 |
 |---|---|---|
 | `on_room_start(ctrl)` | 进房一次 | 清状态、`hud._log` 开场白、`boss_trash = 0` |
-| `on_turn_begin(ctrl)` | 每个玩家回合开始 | 推栈 / 锁轮 / 注废铁 / 设 `boss_dmg_mult` / `boss_atk_mult` |
+| `on_turn_begin(ctrl)` | 每个玩家回合开始 | 推栈 / 锁轮 / 注废铁 / 叠敌人护甲 / 设 `boss_atk_mult` |
 | `on_damaged(ctrl, dmg)` | 敌人受玩家伤害后 | 读 `dmg`、`enemy_hp`、`pool`，做反伤 / 阶段转换 |
 | `on_special_triple(ctrl)` | 玩家打出 special 三连 | 清层数、爆发、阶段切换 |
 
@@ -163,7 +165,7 @@ gimmick_script = ExtResource("2")
 
 | 字段 | 含义 |
 |---|---|
-| `boss_dmg_mult` | 玩家→敌人伤害倍率（每回合重置为 1.0） |
+| `enemy_armor` / `enemy_armor_max` | 敌人护甲扁平池（先破甲后掉血；可被 `_on_counter`/穿透符号清零，见 §10.6） |
 | `boss_atk_mult` | 敌人→玩家伤害倍率（每回合重置为 1.0） |
 | `boss_trash` | 额外废铁格数 / 列，在 `_build_strips` 落实（注意设上限防失控） |
 | `pending_lock_reel` | 锁定列索引（`-1` 无；生效一次后自动清零） |
@@ -183,7 +185,7 @@ gimmick_script = ExtResource("2")
 - 动态改变 payline 数量 / 转轮列数
 - 每回合偷金币 / 改商店
 
-做法：在 `duel_controller.gd` 加一个 `var` + 在合适生命周期位置接线（参考现有 `boss_dmg_mult` 的接线：声明 → `_start_room` 重置 → 调用点应用 → 日志）。**改动前先说明意图**，避免破坏既有结算链路。
+做法：若新机制需要前所未有的维度（如给玩家上 debuff、改 payline），才在 `duel_controller.gd` 加 `var` + 在合适生命周期位置接线（参考既有支点：声明 → `_start_room` 重置 → 调用点应用 → 日志）。**改动前先说明意图**，避免破坏既有结算链路。敌人护甲类机制无需改核心——直接读写 `ctrl.enemy_armor` / `ctrl.enemy_armor_max` 即可（见 §10.6、`rust_armor_gimmick.gd`）。
 
 ---
 
@@ -191,7 +193,7 @@ gimmick_script = ExtResource("2")
 
 | BOSS | 机制 | 设计意图 | 验证点 |
 |---|---|---|---|
-| 锈蚀傀儡·熔铸护甲 | 每 2 回合叠 1 层减伤（30%/层，最多 3 层 = 90%）；special 三连清空全部层数 | 教玩家主动追求 special 三连 | 打它伤害越来越低；三连后日志「击碎熔铸护甲」、伤害恢复 |
+| 锈蚀傀儡·熔铸护甲 | 每 2 回合叠 1 层护甲（+8/层，上限 3 层，叠加在 `RoomData.armor` 之上）；special 三连清空全部护甲（开直击HP窗口）；穿透符号绕过护甲 | 教玩家主动追求 special 三连 / 用穿透符号破甲 | 打它先掉护甲再掉血；三连后日志「破甲！护甲清零」、后续伤害直击 HP |
 | 呓语教徒·呓语锁轮 | 每 3 回合必锁 1 列（无视抗扰）+ 当回合敌人攻击 ×1.5 | 逼玩家保留净化次数 / 应对锁轮 | 第 3/6 回合某列钉死、攻击段冒「呓语强化 ×1.5」 |
 | 深渊监视者·深渊侵蚀 | 每回合按符号池大小比例注废铁，HP 越低注越快（上限 24 格/列） | 强化「稀释刹车」，与「进池类无天花板」对抗 | 带武器越多废铁越多；残血时注入加速 |
 
