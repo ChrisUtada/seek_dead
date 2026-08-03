@@ -30,4 +30,4 @@ attack_speed = 2.5
 attack_range = 500.0
 bullet_speed = 700.0
 max_ammo = 30
-reel = Array[ExtResource("sw")]([SubResource("sw0"), SubResource("sw2")])
+symbols = Array[ExtResource("sw")]([SubResource("sw0"), SubResource("sw2")])

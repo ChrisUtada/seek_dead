@@ -30,4 +30,4 @@ attack_speed = 0.8
 attack_range = 100.0
 cleave_angle = 70.0
 knockback_force = 350.0
-reel = Array[ExtResource("sw")]([SubResource("sw0"), SubResource("sw2")])
+symbols = Array[ExtResource("sw")]([SubResource("sw0"), SubResource("sw2")])

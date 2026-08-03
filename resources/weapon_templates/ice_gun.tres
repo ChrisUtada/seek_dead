@@ -42,6 +42,6 @@ ammo_per_shot = 1
 status_effect_type = 2
 status_effect_damage = 0.0
 status_effect_duration = 2.0
-reel = Array[ExtResource("sw")]([SubResource("sw0"), SubResource("sw1"), SubResource("sw3")])
+symbols = Array[ExtResource("sw")]([SubResource("sw0"), SubResource("sw1"), SubResource("sw3")])
 reel_element = "ice"
 element = "ice"

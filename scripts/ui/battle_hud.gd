@@ -567,9 +567,9 @@ func _make_item_card(data: Resource, path: String, kind: String) -> Dictionary:
 		name = data.weapon_name if (data != null) else path.get_file().get_basename()
 		if data != null:
 			var wd := data as WeaponData
-			if wd != null and wd.reel != null and not wd.reel.is_empty():
+			if wd != null and wd.symbols != null and not wd.symbols.is_empty():
 				var parts := []
-				for sw in wd.reel:
+				for sw in wd.symbols:
 					if sw == null or sw.symbol == null:
 						continue
 					parts.append("%s×%d" % [sw.symbol.label, int(sw.weight)])
@@ -577,8 +577,8 @@ func _make_item_card(data: Resource, path: String, kind: String) -> Dictionary:
 		line2 = "特殊: 无"
 		if data != null:
 			var wd := data as WeaponData
-			if wd != null and wd.reel != null:
-				for sw in wd.reel:
+			if wd != null and wd.symbols != null:
+				for sw in wd.symbols:
 					if sw != null and sw.symbol != null and sw.symbol.kind == "special":
 						line2 = "特殊: %s" % sw.symbol.name
 						break

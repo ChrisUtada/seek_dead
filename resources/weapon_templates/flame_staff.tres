@@ -30,6 +30,6 @@ damage_type = 3
 attack_speed = 1.0
 attack_range = 400.0
 bullet_speed = 500.0
-reel = Array[ExtResource("sw")]([SubResource("sw0"), SubResource("sw1")])
+symbols = Array[ExtResource("sw")]([SubResource("sw0"), SubResource("sw1")])
 reel_element = "fire"
 element = "fire"

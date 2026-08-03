@@ -45,7 +45,8 @@ enum WeaponType { MELEE, RANGED }
 # -- 老虎机战斗符号池（资源化，零注册表） --
 # 该武器作为"转轮"时持有的符号与各自权重。每个元素直接引用 SymbolData 资源，
 # 无 id 查表、无全局 CATALOG。加符=新建 SymbolData .tres，不改代码。
-@export var reel: Array[SymbolWeight] = []
+# （P2：原字段名 reel → symbols，统一为物品中心模型符号容器名；频率由 kind 派生，权重仅作武器内参考。）
+@export var symbols: Array[SymbolWeight] = []
 # 该武器特殊符号（kind=="special"）的属性元素（fire/ice/poison/light/dark/none）。
 # 用于单向属性克制：玩家特殊符号元素 → 敌人元素。普通伤害符号恒为 none（中性）。
 @export var reel_element: String = "none"

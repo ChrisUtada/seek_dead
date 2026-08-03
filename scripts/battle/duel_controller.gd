@@ -2,7 +2,7 @@ extends Control
 # ============================================================================
 # 官方对决控制器（DuelController）
 # 由原型 prototypes/reel_combat/reel_combat.gd 迁移而来（M0–M6 完整闭环）。
-# 符号数据层：scripts/battle/symbol_data.gd（SymbolData 资源）、WeaponData.reel、
+# 符号数据层：scripts/battle/symbol_data.gd（SymbolData 资源）、WeaponData.symbols、
 #   8 把武器 .tres、ItemData（合并原 ConsumableData/CharmData）+ 8 个 .tres。
 # 与原型唯一差异：铁砧元进度存档由 user://reel_combat_save.json 改为
 #   SaveSystem.lobby_data["anvil_meta"]（与项目统一 JSON 存档）。
@@ -17,7 +17,7 @@ extends Control
 #   · DoT 细化（灼烧/毒跨回合持续、回合末衰减、HUD 显示层数）
 #   · 干扰反制接入（M3 的轻量切片）：敌人 jam 注入废铁占据一列，
 #     玩家用「净化」次数抵消（每房回满，M3 将由消耗品承接）
-# 仍：1 行 3 格、符号池来自 WeaponData.reel、单符号必结算+匹配倍率、无锁定。
+# 仍：1 行 3 格、符号池来自 WeaponData.symbols、单符号必结算+匹配倍率、无锁定。
 # 按 F6 运行试玩。
 #
 # M3 增量（整备选物 UI）：
@@ -121,6 +121,7 @@ var grid_elem = []
 var pool: Array = []
 var loadout_names: Array = []
 var _weapon_base_map: Dictionary = {}    # 符号 resource_path -> 该武器 base 加成(取 max)，由 _build_pool 构建（膨胀双轨·武器线性）
+var _pool_miss_frac: float = 0.15        # P2：转轮废铁（miss）占比，由 _build_pool 按武器命中率算定（docs/物品中心重构方案.md §6）
 var _busy: bool = false                 # 旋转序列进行中，防重入
 var _eval_adv := false                  # _evaluate 阶段2：本回合是否触发过「克制」
 var _eval_dis := false                  # _evaluate 阶段2：本回合是否触发过「抵抗」
@@ -138,20 +139,36 @@ var _spin_ticks := 0                   # 已跳次数（用于加速上限）
 const _SPIN_BASE_WAIT := 0.15          # 起始每跳间隔（秒）——调慢以便看清落点、凑三连 special
 const _SPIN_MIN_WAIT := 0.06           # 最快每跳间隔（封顶也调慢，整体更易控）
 const _STRIP_MIN_CELLS := 30           # 转轮带最小格数（整份平铺补足，不改变符号占比）
-# S2（符号规范 §2 G2）：稀有度档位保底——治理层直接读 SymbolData.rarity_tier 强制。
-# 武器/技能无上限 → 轮长随携带数膨胀 → 低权 RARE 符号被埋成"整房不出现"。保底保证 RARE 档
-# 在任何携带规模下都占 ≥ RARE_FLOOR_FRAC 的带格（或至少 RARE_MIN_CELLS 格），使"整房不出现"不可能。
-const RARE_FLOOR_FRAC := 0.025   # RARE 档保底下限（§2：≥2.5%）
-const RARE_MIN_CELLS  := 2       # RARE 档保底绝对下限（§2：≥2 格）
-const RARE_CEIL_FRAC := 0.06     # RARE 档频率上限（§2：≤6%；S6 多源 special 推高后锁回此档）
-const MAX_SYMBOL_FRAC := 0.12    # S4：单符号（非 filler）最大占比，防 burn 式垄断（§5 异常#3）
-const TRASH_BASE_FRAC := 0.15    # S5 G5：池级稀释预算基线（act1 稀释占比），替代原各武器手写 trash(~24%)
-const TRASH_ACT_STEP := 0.04     # S5 G5：每幕稀释预算增量（act2=19% / act3=23%），随难度刹车增强
-# —— 符号规范 S3（G1 档位治理）/ S8（WILD + KPI）——
-const UNCOMMON_FLOOR_FRAC := 0.06  # S3 G1：UNCOMMON 档保底下限（§2 目标 8–12%，保底取 6%，保证防御/治疗符号不被埋）
-const UNCOMMON_MIN_CELLS := 1     # S3 G1：每 UNCOMMON 符号至少 1 格（§2：UNCOMMON 保底 ≥1 格）
-const WILD_FRAC := 0.025          # S8：WILD 百搭对齐符占比（common，受控；帮补 special 连线、不让 RARE 变多）
-const KPI_EXPLOSION_PER_ROOM := 1.0  # S8 RTP 式 KPI：special 三连期望每房 ≥1 次（反推 RARE 下限锚点，调参优先动 RARE_FLOOR_FRAC）
+# P2 频率层（docs/物品中心重构方案.md §4）：频率 = f(kind)，稀有度只定强度（见 LoadoutItem）。
+# 旧 S2/S3/S4/S5/S6 的 rarity_tier 治理与 act 稀释预算在此退役——符号出现次数改由 kind 预算决定，
+# 跨武器共享符号不再累加垄断（根因消除），"神装打不出去"的退化也被避开。
+# 每 kind 在「非废铁带长」中的份额（求和 = 1.0）。special 恒低频——它是唯一局内乘区，必须稀有（无论武器多神）。
+const KIND_SHARE := {
+	"damage":  0.55,
+	"status":  0.13,
+	"special": 0.06,
+	"buff":    0.10,
+	"shield":  0.06,
+	"heal":    0.06,
+	"gold":    0.04,
+}
+# 每 kind 占「整条带长」上限（防某类符号垄断整轮；低于或等于 KIND_SHARE 对应值则永不触发）
+const KIND_CEIL := {
+	"damage":  0.55,
+	"status":  0.18,
+	"special": 0.08,
+	"buff":    0.16,
+	"shield":  0.12,
+	"heal":    0.12,
+	"gold":    0.10,
+}
+# miss（废铁）占比来自武器命中率，人为留底以防转轮变无脑（§12：命中率不能趋近 100%）。
+const MISS_FLOOR := 0.08          # 废铁占比下限（转轮永远有 miss）
+const MISS_CEIL  := 0.30          # 废铁占比上限（防低命中武器把转轮打成纯废铁）
+const _STRIP_TARGET := 48         # 频率层目标带长（与 _STRIP_MIN_CELLS 取大）
+# —— 符号规范 S8（WILD + KPI）——
+const WILD_FRAC := 0.025          # S8：WILD 百搭对齐符占比（common，受控；帮补 special 连线、不让 special 变多）
+const KPI_EXPLOSION_PER_ROOM := 1.0  # S8 RTP 式 KPI：special 三连期望每房 ≥1 次（反推 special 预算锚点，调参优先动 KIND_SHARE["special"]）
 const SPECIAL_TRIPLE_CRIT := 2.0        # special 三连暴击倍率：连线数轴上唯一可控的战斗内爆发（清晰可见，不做黑箱级联）
 const CHAIN_MAX := 4                      # 连锁重触发上限：special 三连最多再免费重转 3 次（共 4 发）
 const CHAIN_STEP := 1.5                   # 连锁倍率：每多一层 ×1.5（叠在 special×CRIT 之上，封顶 ≈ ×3.4）
@@ -320,9 +337,9 @@ func _build_pool(loadout: Array) -> void:
 			hud._log("⚠ 找不到武器: " + path)
 			continue
 		loadout_names.append(wd.weapon_name)
-		if wd.reel == null or wd.reel.is_empty():
+		if wd.symbols == null or wd.symbols.is_empty():
 			continue
-		for sw in wd.reel:
+		for sw in wd.symbols:
 			if sw == null or sw.symbol == null:
 				continue
 			var sp: String = sw.symbol.resource_path
@@ -333,10 +350,10 @@ func _build_pool(loadout: Array) -> void:
 			merged[mkey][1] += float(sw.weight)
 		# M5 铁砧：武器升级 → 主符号（权重最高者）额外加成（按「符号+有效元素」定位，避免共享符号冲突）
 		var bonus = meta["weapon_upgrades"].get(path, 0)
-		if bonus > 0 and not wd.reel.is_empty():
+		if bonus > 0 and not wd.symbols.is_empty():
 			var dom_sym: SymbolData = null
 			var domw = -1.0
-			for sw in wd.reel:
+			for sw in wd.symbols:
 				if sw == null or sw.symbol == null:
 					continue
 				var w = float(sw.weight)
@@ -356,9 +373,9 @@ func _build_pool(loadout: Array) -> void:
 		if bb <= 0:
 			continue
 		var wd: WeaponData = load(path)
-		if wd == null or wd.reel == null:
+		if wd == null or wd.symbols == null:
 			continue
-		for sw in wd.reel:
+		for sw in wd.symbols:
 			if sw == null or sw.symbol == null:
 				continue
 			var sp = sw.symbol.resource_path
@@ -391,6 +408,20 @@ func _build_pool(loadout: Array) -> void:
 	# 符号图例（每符号名称/类型/元素 + 敌人属性）
 	if hud.legend_container != null:
 		hud._refresh_legend()
+	# P2（docs/物品中心重构方案.md §6）：废铁（miss）占比由武器命中率决定，取代 S5 全局 act 稀释。
+	# 取所有携带武器「不命中率」的均值作为整体 miss 占比，并人为留底（转轮永远有 miss，§12）。
+	var miss_sum := 0.0
+	var miss_n := 0
+	for path in loadout:
+		var wd: WeaponData = load(path)
+		if wd == null:
+			continue
+		miss_sum += (1.0 - wd.hit_rate)
+		miss_n += 1
+	var mf := 0.15
+	if miss_n > 0:
+		mf = miss_sum / float(miss_n)
+	_pool_miss_frac = clamp(mf, MISS_FLOOR, MISS_CEIL)
 
 
 # 计算某符号的「有效元素」（Phase G v2.0 武器元素化）：
@@ -402,7 +433,8 @@ func _eff_element(sym: SymbolData, wd: WeaponData) -> String:
 	return sym.element if sym.element != "none" else wd.element
 
 
-# 乱权：临时扭曲权重池（削弱最高权重符号、增强废铁），spin 后由 _restore_pool 还原
+# 乱权：P2 前靠扭曲权重削弱优势符号；频率=f(kind) 后权重不再决定格数，本函数对转轮构成已无直接影响
+# （其意图改由 _build_strips 的 pending_chaos 临时拉高废铁占比实现）。保留以不动敌人触发链路。
 func _apply_chaos_pool() -> void:
 	_pool_backup = pool.duplicate(true)
 	var max_w = 0.0
@@ -1349,35 +1381,67 @@ func _begin_spin() -> void:
 	hud._log("转轮旋转中——按【空格】逐列停止，或点击某一列单独停下（不停就一直转）")
 
 
-# 由合并符号池构建每列转轮带：权重 → 带子上该符号的格子数。每列拿到一份洗牌副本（同构成、异顺序）。
+# 由合并符号池构建每列转轮带：频率 = f(kind)（docs/物品中心重构方案.md §4）。
+# 符号格数不再由各武器手写权重累加决定，而是按 kind 分到固定频率预算；
+# 废铁（miss）格数由武器命中率算出的 _pool_miss_frac 决定（替 S5 全局 act 稀释）。
+# 稀有度只定强度（base_power / hit_rate / 克制），不影响出现次数——避免「神装打不出去」。
 func _build_strips() -> void:
 	reel_strips = []
 	if pool.is_empty():
 		for r in REELS:
 			reel_strips.append([[TRASH_SYMBOL, "none"]])
 		return
-	var base := []
+	# 1) 按 kind 聚合池中符号，按「符号 + 有效元素」去重（保留元素继承差异，如中性 slash vs 火 slash）
+	var by_kind := {}   # kind -> Array of [SymbolData, eff]
+	var seen := {}
 	for p in pool:
-		var w = int(round(p[1]))
-		if w < 1:
-			w = 1
-		for _i in w:
-			base.append([p[0], p[2]])
-	if base.is_empty():
-		base = [[TRASH_SYMBOL, "none"]]
-	# S5（符号规范 §4 G5）：受控稀释——trash 不再由各武器手写权重（已于 S5 移除），
-	# 改为池级按 act 注入的稀释预算，使稀释成为可调旋钮、并随幕推进增强（与 ante 曲线协同的难度刹车），
-	# 替代"挤掉符号"成为稀释来源。稀释占比恒定（不随武器数漂移），仅随 act 阶梯上升。
-	var act := 1
-	if room_index >= 0 and room_index < ROOMS.size():
-		act = ROOMS[room_index].act
-	var trash_frac: float = TRASH_BASE_FRAC + float(act - 1) * TRASH_ACT_STEP
-	var trash_count: int = int(round(base.size() * trash_frac / (1.0 - trash_frac)))
-	for _i in trash_count:
+		var sym: SymbolData = p[0]
+		if sym == null:
+			continue
+		var key: String = sym.resource_path + "|" + str(p[2])
+		if seen.has(key):
+			continue
+		seen[key] = true
+		if not by_kind.has(sym.kind):
+			by_kind[sym.kind] = []
+		by_kind[sym.kind].append([sym, p[2]])
+	# 2) 非废铁带长按 KIND_SHARE 分给各 kind；同 kind 内符号平分格数（每符号至少 1 格）
+	# P2 乱权兼容：原 S-乱权靠扭曲权重削弱优势符号，频率=f(kind) 后权重不再决定格数，
+	# 故改为「临时拉高废铁占比」——既增强废铁、又等比重缩所有符号预算（削弱整轮），忠实还原乱权意图。
+	var miss_frac: float = _pool_miss_frac
+	if pending_chaos:
+		miss_frac = min(MISS_CEIL, miss_frac + 0.20)
+	var TARGET: int = maxi(_STRIP_MIN_CELLS, _STRIP_TARGET)
+	# 先预留废铁格（保证「转轮永远有 miss」，§12），符号在剩余预算内分配
+	var miss_target: int = roundi(float(TARGET) * miss_frac)
+	var sym_budget: int = TARGET - miss_target
+	if sym_budget < 0:
+		sym_budget = 0
+	var base := []
+	for kind in by_kind.keys():
+		if not KIND_SHARE.has(kind):
+			continue
+		var syms: Array = by_kind[kind]
+		if syms.is_empty():
+			continue
+		var kcells: int = roundi(float(sym_budget) * KIND_SHARE[kind])
+		if kcells <= 0:
+			kcells = syms.size()   # 兜底：该 kind 至少每符号 1 格
+		var per: int = maxi(1, kcells / syms.size())
+		var assigned := 0
+		for i in range(syms.size()):
+			var c := per
+			if i == syms.size() - 1:
+				c = kcells - assigned   # 最后一个吸收取整误差
+			c = maxi(1, c)
+			for _j in c:
+				base.append([syms[i][0], syms[i][1]])
+			assigned += c
+	# 3) miss（废铁）格 = 预留的 miss_target + 未被武器符号用掉的剩余预算（极少符号时自然补足）
+	var miss_cells: int = miss_target + maxi(0, sym_budget - base.size())
+	for _i in miss_cells:
 		base.append([TRASH_SYMBOL, "none"])
-	# 最小带长保护：武器砍到 1–2 把后带子可能只有 10 格左右，最高速下每秒循环近 3 圈，
-	# 玩家能看出重复、观感发晕。整份平铺到 _STRIP_MIN_CELLS 以上——只拉长周期，
-	# 各符号占比（即命中概率）完全不变。
+	# 最小带长保护：整份平铺到 _STRIP_MIN_CELLS 以上——只拉长周期，各符号占比完全不变。
 	if base.size() < _STRIP_MIN_CELLS:
 		var unit = base.duplicate(true)
 		while base.size() < _STRIP_MIN_CELLS:
@@ -1385,17 +1449,13 @@ func _build_strips() -> void:
 	# S10 T2：深渊侵蚀注入额外废铁（boss_trash 格/列，由 gimmick 累积设定）
 	for _i in boss_trash:
 		base.append([TRASH_SYMBOL, "none"])
-	# S8 WILD：百搭对齐符，受控少量注入（common，不让 RARE 变多）。比例固定不随武器数漂移。
-	# 结算时（_evaluate）WILD 格并入 special 计数，帮补 special 三连（提高爽点命中、不增 RARE 频率）。
-	var wild_count: int = int(round(base.size() * WILD_FRAC))
+	# S8 WILD：百搭对齐符，受控少量注入（common，不让 special 变多）。比例固定不随武器数漂移。
+	# 结算时（_evaluate）WILD 格并入 special 计数，帮补 special 三连（提高爽点命中、不增 special 频率）。
+	var wild_count: int = roundi(float(base.size()) * WILD_FRAC)
 	for _i in wild_count:
 		base.append([WILD_SYMBOL, "none"])
-	# S4（符号规范 §5 异常#3）：单符号最大占比上限，防共享符号被多武器累加垄断
-	# （如 burn 在火焰剑+火焰法杖上累加可占 15%+）。先裁上限，再走 RARE 保底补下限。
-	_enforce_symbol_cap(base)
-	# S2（符号规范 §2 G2）：RARE 档硬保底——武器/技能无上限导致轮长膨胀时，
-	# 低权 RARE 符号会被埋到"整房不出现"。治理层读 rarity_tier 强制其占 ≥ RARE_FLOOR_FRAC 带格。
-	_enforce_tier_floor(base)
+	# P2 治理：频率按 kind 护栏（上限防垄断，下限保出现），取代旧 rarity_tier 保底与 S4 单符号上限。
+	_enforce_kind_tier(base)
 	for r in REELS:
 		var copy = base.duplicate(true)
 		for i in range(copy.size() - 1, 0, -1):
@@ -1406,85 +1466,38 @@ func _build_strips() -> void:
 		reel_strips.append(copy)
 
 
-# S4（符号规范 §5 异常#3）：单符号最大占比上限。
-# 共享符号（如 burn 被火焰剑+火焰法杖累加）可被多武器累加垄断到 15%+，破坏"各符号频率透明"哲学。
-# 治理层按 resource_path 统计每符号格数，把任意非 filler 符号占比削到 MAX_SYMBOL_FRAC 以下。
-# 注意：filler(trash) 由 G5/S5 单独治理（稀释刹车），不参与本上限；RARE 档受 RARE_CEIL_FRAC(6%) 约束，
-# 远低于本上限，故不会被误裁。裁剪只移除超额格、不改结算分支。
-func _enforce_symbol_cap(base: Array) -> void:
+# P2 治理（docs/物品中心重构方案.md §4 / §9）：频率 = f(kind) 护栏。
+# - 上限：任何 kind 占整条带长不得超过 KIND_CEIL[kind]（防某类符号垄断整轮）。
+#   符号私有化 + kind 频率后，共享符号累加垄断已从根上消失，本护栏只作频率透明性的兜底。
+# - 下限：由 _build_strips 的「每 kind 每符号至少 1 格」保证，池中存在的 kind 不会整房不出现。
+# 取代旧 S2(rarity_tier 保底) / S4(单符号上限) / S5(act 稀释) —— 那些都依赖已退役的 rarity_tier 字段。
+# 注意：filler(trash) 与 wild 不参与本护栏（trash 由命中率控制，wild 由 WILD_FRAC 控制）。
+func _enforce_kind_tier(base: Array) -> void:
 	var total := float(base.size())
-	var max_cells: int = int(total * MAX_SYMBOL_FRAC)
 	var counts := {}
 	for cell in base:
 		var sym: SymbolData = cell[0]
-		if sym == null or sym.rarity_tier == "filler":
+		if sym == null or sym == TRASH_SYMBOL or sym == WILD_SYMBOL:
 			continue
-		var key: String = sym.resource_path
-		counts[key] = counts.get(key, 0) + 1
-	for key in counts:
-		var cnt: int = counts[key]
-		if cnt <= max_cells:
+		counts[sym.kind] = counts.get(sym.kind, 0) + 1
+	for kind in counts.keys():
+		if not KIND_CEIL.has(kind):
 			continue
-		var excess: int = cnt - max_cells
+		var ceil_cells: int = roundi(total * KIND_CEIL[kind])
+		var cnt: int = counts[kind]
+		if cnt <= ceil_cells:
+			continue
+		var excess: int = cnt - ceil_cells
 		var removed := 0
 		for i in range(base.size() - 1, -1, -1):
 			if removed >= excess:
 				break
 			var sym: SymbolData = base[i][0]
-			if sym != null and sym.resource_path == key:
+			if sym != null and sym.kind == kind:
 				base.remove_at(i)
 				removed += 1
 		if hud != null:
-			hud._log("✂ 单符号上限：%s 砍至 %d 格（占比 ≈ %.0f%%）" % [key.get_file(), max_cells, max_cells / total * 100.0])
-
-
-# S2（符号规范 §2 G2）：稀有度档位保底——RARE 档硬保底。
-# base 元素为 [SymbolData, 有效元素]。读 symbol.rarity_tier，保证 RARE 档在最终带长中
-# 至少占 RARE_FLOOR_FRAC（或至少 RARE_MIN_CELLS 格），使"整房不出现"不可能发生。
-# 注意：这是「已存在 RARE 符号」的保底；当前 RARE 仅 flame_special（需携火焰法杖），
-# 若池内无任何 RARE 符号则无米之炊（多源 RARE 可用性属 S6）。武器数膨胀的稀释靠此保底吸收。
-# S2/S3（符号规范 §2 G2 / §4 G1）：稀有度档位保底——把治理统一为「通用档位护栏」，
-# 对 RARE（S2：硬保底 + 上限）与 UNCOMMON（S3：保底）分别强制，使各档频率稳定、
-# 不随武器数负向缩放（经典老虎机"7 永远占固定格"的精神）。
-func _enforce_tier_floor(base: Array) -> void:
-	_enforce_tier_floor_for(base, "rare", RARE_FLOOR_FRAC, RARE_MIN_CELLS, RARE_CEIL_FRAC)
-	_enforce_tier_floor_for(base, "uncommon", UNCOMMON_FLOOR_FRAC, UNCOMMON_MIN_CELLS, 0.0)
-
-# 通用档位护栏：对给定 tier 做「下限保底 + 上限治理」。
-# floor_frac/min_cells：该档占带长下限（取大者）；ceil_frac>0 时做上限治理（仅 RARE 用）。
-# 上限只在「既超上限、又高于保底」时裁剪，绝不下砍到保底以下（保底优先）。
-func _enforce_tier_floor_for(base: Array, tier: String, floor_frac: float, min_cells: int, ceil_frac: float) -> void:
-	var total := base.size()
-	var idx: Array = []
-	for i in range(base.size()):
-		var sym: SymbolData = base[i][0]
-		if sym != null and sym.rarity_tier == tier:
-			idx.append(i)
-	var floor_cells = max(min_cells, ceil(total * floor_frac))
-	if ceil_frac > 0.0:
-		var ceil_cells = ceil(total * ceil_frac)
-		if idx.size() > ceil_cells and idx.size() > floor_cells:
-			var excess: int = int(idx.size() - ceil_cells)
-			var removed := 0
-			for i in range(base.size() - 1, -1, -1):
-				if removed >= excess:
-					break
-				if base[i][0] != null and base[i][0].rarity_tier == tier:
-					base.remove_at(i)
-					removed += 1
-			if hud != null:
-				hud._log("🔥 %s 上限治理：%s 砍至 %d 格 / 带长 %d" % [tier.to_upper(), tier, ceil_cells, base.size()])
-			return
-	if idx.size() >= floor_cells or idx.is_empty():
-		return
-	var k := 0
-	while idx.size() < floor_cells:
-		var src: Array = base[idx[k % idx.size()]]
-		base.append([src[0], src[1]])
-		idx.append(base.size() - 1)
-		k += 1
-	if hud != null:
-		hud._log("🔥 %s 保底：%s 抬至 %d 格 / 带长 %d" % [tier.to_upper(), tier, floor_cells, base.size()])
+			hud._log("🔧 %s 频率上限：砍至 %d 格 / 带长 %d" % [kind, ceil_cells, base.size()])
 
 
 # 节拍器回调：推进仍在旋转的转轮并逐步加速。没有自动停止——只有玩家按停才会锁定。

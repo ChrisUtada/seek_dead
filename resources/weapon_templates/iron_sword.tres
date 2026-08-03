@@ -40,4 +40,4 @@ damage_type = 1
 attack_speed = 3.0
 attack_range = 80.0
 cleave_angle = 240.0
-reel = Array[ExtResource("sw")]([SubResource("sw0"), SubResource("sw1"), SubResource("sw2"), SubResource("sw4")])
+symbols = Array[ExtResource("sw")]([SubResource("sw0"), SubResource("sw1"), SubResource("sw2"), SubResource("sw4")])

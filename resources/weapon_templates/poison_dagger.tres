@@ -35,6 +35,6 @@ knockback_force = 80.0
 status_effect_type = 0
 status_effect_damage = 5.0
 status_effect_duration = 5.0
-reel = Array[ExtResource("sw")]([SubResource("sw0"), SubResource("sw2")])
+symbols = Array[ExtResource("sw")]([SubResource("sw0"), SubResource("sw2")])
 reel_element = "poison"
 element = "poison"
