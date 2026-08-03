@@ -38,6 +38,7 @@ extends Control
 
 const TRASH_SYMBOL = preload("res://resources/symbols/trash.tres")
 const GOLD_SYMBOL = preload("res://resources/symbols/gold.tres")
+const WILD_SYMBOL = preload("res://resources/symbols/wild.tres")   # S8：百搭对齐符（common，受控注入；结算时帮补 special 连线）
 const GOLD_POOL_WEIGHT := 3.0      # 金币符号在转轮池中的权重（远低于伤害符号，防稀释 DPS）
 const GOLD_PER_COIN := 1           # 每枚落在连线上的金币符号产出的金币数
 const ElementCounter = preload("res://scripts/battle/element_counter.gd")
@@ -146,6 +147,11 @@ const RARE_CEIL_FRAC := 0.06     # RARE 档频率上限（§2：≤6%；S6 多�
 const MAX_SYMBOL_FRAC := 0.12    # S4：单符号（非 filler）最大占比，防 burn 式垄断（§5 异常#3）
 const TRASH_BASE_FRAC := 0.15    # S5 G5：池级稀释预算基线（act1 稀释占比），替代原各武器手写 trash(~24%)
 const TRASH_ACT_STEP := 0.04     # S5 G5：每幕稀释预算增量（act2=19% / act3=23%），随难度刹车增强
+# —— 符号规范 S3（G1 档位治理）/ S8（WILD + KPI）——
+const UNCOMMON_FLOOR_FRAC := 0.06  # S3 G1：UNCOMMON 档保底下限（§2 目标 8–12%，保底取 6%，保证防御/治疗符号不被埋）
+const UNCOMMON_MIN_CELLS := 1     # S3 G1：每 UNCOMMON 符号至少 1 格（§2：UNCOMMON 保底 ≥1 格）
+const WILD_FRAC := 0.025          # S8：WILD 百搭对齐符占比（common，受控；帮补 special 连线、不让 RARE 变多）
+const KPI_EXPLOSION_PER_ROOM := 1.0  # S8 RTP 式 KPI：special 三连期望每房 ≥1 次（反推 RARE 下限锚点，调参优先动 RARE_FLOOR_FRAC）
 const SPECIAL_TRIPLE_CRIT := 2.0        # special 三连暴击倍率：连线数轴上唯一可控的战斗内爆发（清晰可见，不做黑箱级联）
 const CHAIN_MAX := 4                      # 连锁重触发上限：special 三连最多再免费重转 3 次（共 4 发）
 const CHAIN_STEP := 1.5                   # 连锁倍率：每多一层 ×1.5（叠在 special×CRIT 之上，封顶 ≈ ×3.4）
@@ -1379,6 +1385,11 @@ func _build_strips() -> void:
 	# S10 T2：深渊侵蚀注入额外废铁（boss_trash 格/列，由 gimmick 累积设定）
 	for _i in boss_trash:
 		base.append([TRASH_SYMBOL, "none"])
+	# S8 WILD：百搭对齐符，受控少量注入（common，不让 RARE 变多）。比例固定不随武器数漂移。
+	# 结算时（_evaluate）WILD 格并入 special 计数，帮补 special 三连（提高爽点命中、不增 RARE 频率）。
+	var wild_count: int = int(round(base.size() * WILD_FRAC))
+	for _i in wild_count:
+		base.append([WILD_SYMBOL, "none"])
 	# S4（符号规范 §5 异常#3）：单符号最大占比上限，防共享符号被多武器累加垄断
 	# （如 burn 在火焰剑+火焰法杖上累加可占 15%+）。先裁上限，再走 RARE 保底补下限。
 	_enforce_symbol_cap(base)
@@ -1432,40 +1443,48 @@ func _enforce_symbol_cap(base: Array) -> void:
 # 至少占 RARE_FLOOR_FRAC（或至少 RARE_MIN_CELLS 格），使"整房不出现"不可能发生。
 # 注意：这是「已存在 RARE 符号」的保底；当前 RARE 仅 flame_special（需携火焰法杖），
 # 若池内无任何 RARE 符号则无米之炊（多源 RARE 可用性属 S6）。武器数膨胀的稀释靠此保底吸收。
+# S2/S3（符号规范 §2 G2 / §4 G1）：稀有度档位保底——把治理统一为「通用档位护栏」，
+# 对 RARE（S2：硬保底 + 上限）与 UNCOMMON（S3：保底）分别强制，使各档频率稳定、
+# 不随武器数负向缩放（经典老虎机"7 永远占固定格"的精神）。
 func _enforce_tier_floor(base: Array) -> void:
+	_enforce_tier_floor_for(base, "rare", RARE_FLOOR_FRAC, RARE_MIN_CELLS, RARE_CEIL_FRAC)
+	_enforce_tier_floor_for(base, "uncommon", UNCOMMON_FLOOR_FRAC, UNCOMMON_MIN_CELLS, 0.0)
+
+# 通用档位护栏：对给定 tier 做「下限保底 + 上限治理」。
+# floor_frac/min_cells：该档占带长下限（取大者）；ceil_frac>0 时做上限治理（仅 RARE 用）。
+# 上限只在「既超上限、又高于保底」时裁剪，绝不下砍到保底以下（保底优先）。
+func _enforce_tier_floor_for(base: Array, tier: String, floor_frac: float, min_cells: int, ceil_frac: float) -> void:
 	var total := base.size()
-	var rare_idx: Array = []
+	var idx: Array = []
 	for i in range(base.size()):
 		var sym: SymbolData = base[i][0]
-		if sym != null and sym.rarity_tier == "rare":
-			rare_idx.append(i)
-	var floor_cells = max(RARE_MIN_CELLS, ceil(total * RARE_FLOOR_FRAC))
-	var ceil_cells = ceil(total * RARE_CEIL_FRAC)
-	# —— 上限治理（S6 配套）：多源 special 推高频率时锁回 §2 的 3–6% ——
-	# 只在"既超上限、又高于保底"时裁剪，绝不下砍到保底以下（保底优先）。
-	if rare_idx.size() > ceil_cells and rare_idx.size() > floor_cells:
-		var excess: int = int(rare_idx.size() - ceil_cells)
-		var removed := 0
-		for i in range(base.size() - 1, -1, -1):
-			if removed >= excess:
-				break
-			if base[i][0] != null and base[i][0].rarity_tier == "rare":
-				base.remove_at(i)
-				removed += 1
-		if hud != null:
-			hud._log("🔥 RARE 上限治理：rare 砍至 %d 格 / 带长 %d" % [ceil_cells, base.size()])
-		return
-	# —— 下限保底（G2）：保证"整房不出现"不可能 ——
-	if rare_idx.size() >= floor_cells or rare_idx.is_empty():
+		if sym != null and sym.rarity_tier == tier:
+			idx.append(i)
+	var floor_cells = max(min_cells, ceil(total * floor_frac))
+	if ceil_frac > 0.0:
+		var ceil_cells = ceil(total * ceil_frac)
+		if idx.size() > ceil_cells and idx.size() > floor_cells:
+			var excess: int = int(idx.size() - ceil_cells)
+			var removed := 0
+			for i in range(base.size() - 1, -1, -1):
+				if removed >= excess:
+					break
+				if base[i][0] != null and base[i][0].rarity_tier == tier:
+					base.remove_at(i)
+					removed += 1
+			if hud != null:
+				hud._log("🔥 %s 上限治理：%s 砍至 %d 格 / 带长 %d" % [tier.to_upper(), tier, ceil_cells, base.size()])
+			return
+	if idx.size() >= floor_cells or idx.is_empty():
 		return
 	var k := 0
-	while rare_idx.size() < floor_cells:
-		var src: Array = base[rare_idx[k % rare_idx.size()]]
+	while idx.size() < floor_cells:
+		var src: Array = base[idx[k % idx.size()]]
 		base.append([src[0], src[1]])
-		rare_idx.append(base.size() - 1)
+		idx.append(base.size() - 1)
 		k += 1
 	if hud != null:
-		hud._log("🔥 RARE 保底：rare 抬至 %d 格 / 带长 %d" % [floor_cells, base.size()])
+		hud._log("🔥 %s 保底：%s 抬至 %d 格 / 带长 %d" % [tier.to_upper(), tier, floor_cells, base.size()])
 
 
 # 节拍器回调：推进仍在旋转的转轮并逐步加速。没有自动停止——只有玩家按停才会锁定。
@@ -1895,6 +1914,22 @@ func _evaluate(chain_mult := 1.0) -> void:
 		if not counts.has(key):
 			counts[key] = [sym, elem, 0]
 		counts[key][2] += 1
+	# S8 WILD 百搭：把 WILD 格计数并入 special 类别，帮补 special 三连（提高爽点命中率），
+	# 但 WILD 本身为 common、少量注入，不会让 RARE 符号变多，符合经典 wild 语义。
+	# 若池内无 special（极端情况），WILD 静默丢弃，不触发任何效果。
+	var wild_total := 0
+	for key in counts.keys():
+		if counts[key][0] != null and counts[key][0].kind == "wild":
+			wild_total += counts[key][2]
+			counts.erase(key)
+	if wild_total > 0:
+		var special_key := ""
+		for key in counts:
+			if counts[key][0] != null and counts[key][0].kind == "special":
+				special_key = key
+				break
+		if special_key != "":
+			counts[special_key][2] += wild_total
 	# Phase C：先结算 buff 符号（本回合即生效，命中当回合就吃到增益）
 	for key in counts:
 		var s: SymbolData = counts[key][0]
