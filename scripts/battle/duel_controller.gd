@@ -40,9 +40,6 @@ const TRASH_SYMBOL = preload("res://resources/symbols/trash.tres")
 const GOLD_SYMBOL = preload("res://resources/symbols/gold.tres")
 const GOLD_POOL_WEIGHT := 3.0      # 金币符号在转轮池中的权重（远低于伤害符号，防稀释 DPS）
 const GOLD_PER_COIN := 1           # 每枚落在连线上的金币符号产出的金币数
-const ElementCounter = preload("res://scripts/battle/element_counter.gd")
-# Phase D 软注册表清理：文件夹自动扫描工具（替代手写路径数组）
-const ResourceScan = preload("res://scripts/utils/resource_scan.gd")
 
 # Phase 1 组件化：UI 复用场景与脚手架
 const UI_BUTTON = preload("res://scenes/ui/ui_button.tscn")
@@ -821,7 +818,7 @@ func _award_meta(is_boss: bool) -> void:
 # ---------------------------------------------------------------------------
 func _award_gold(is_boss: bool) -> void:
 	var base = 10 if is_boss else 5
-	var interest = mini(int(gold / 5), 5)     # S8：每 5 金 +1，上限 +5
+	var interest = mini(int(gold / 5.0), 5)     # S8：每 5 金 +1，上限 +5
 	var total = base + interest
 	gold += total
 	hud._log("金币 +%d（清房 %d + 利息 %d，共 %d）" % [total, base, interest, gold])
@@ -1314,8 +1311,8 @@ func _begin_spin() -> void:
 	_locked_prev_sym = []
 	_locked_prev_elem = []
 	for r in REELS:
-		var len = reel_strips[r].size() if reel_strips.size() > r and not reel_strips[r].is_empty() else 1
-		reel_cursor.append(randi() % len)
+		var strip_len = reel_strips[r].size() if reel_strips.size() > r and not reel_strips[r].is_empty() else 1
+		reel_cursor.append(randi() % strip_len)
 		reel_stopped.append(false)
 		# 锁轮列：保留旋转前该列的符号与有效元素
 		_locked_prev_sym.append(grid[r][0] if grid.size() > r and grid[r].size() > 0 else TRASH_SYMBOL)
@@ -1408,8 +1405,8 @@ func _on_spin_tick() -> void:
 	var any_moving := false
 	for r in REELS:
 		if not reel_stopped[r]:
-			var len = reel_strips[r].size() if reel_strips.size() > r and not reel_strips[r].is_empty() else 1
-			reel_cursor[r] = (reel_cursor[r] + 1) % len
+			var strip_len = reel_strips[r].size() if reel_strips.size() > r and not reel_strips[r].is_empty() else 1
+			reel_cursor[r] = (reel_cursor[r] + 1) % strip_len
 			_write_reel_cell(r)
 			any_moving = true
 	if not any_moving:
@@ -1749,10 +1746,10 @@ func _contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> vo
 	# 物品有效攻击力来自 _weapon_power_map（base_power + 元进度武器加成）；未命中映射时退化为旧模型（flat = sym.base），
 	# 保证非武器符号（异常路径）不丢伤害。BASE_POWER_REF 为归一化支点（见常量注释）。
 	var item_power: float = _weapon_power_map.get(sym.resource_path, 0.0)
-	var scale: float = item_power / BASE_POWER_REF if item_power > 0.0 else 1.0
+	var power_scale: float = item_power / BASE_POWER_REF if item_power > 0.0 else 1.0
 	# bonus = 非 sym.base 部分（base_power 缩放增量 + F-0 元进度聚合），供 _push_dmg_line 分解展示；
 	# flat = sym.base + bonus 与「sym.base × scale + _agg_power_flat()」恒等。
-	var bonus: float = sym.base * scale - sym.base + _agg_power_flat()
+	var bonus: float = sym.base * power_scale - sym.base + _agg_power_flat()
 	var flat: float = sym.base + bonus
 	# 逐符号元素克制倍率（Phase G v2.0：通用元素乘区，奖罚并存·温和）
 	var em = ElementCounter.multiplier(elem, enemy_element)
@@ -1771,8 +1768,8 @@ func _contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> vo
 			else:
 				acc["dmg"] += dv
 			_push_dmg_line(acc, sym, elem, flat, bonus, mult, em, dv, false)
-		"shield":  acc["shield"]  += sym.base * scale * mult   # P3：护盾/治疗符号同样随物品 base_power 缩放（强度轴），但不吃伤害元进度(_agg_power_flat)与元素克制
-		"heal":    acc["heal"]    += sym.base * scale * mult
+		"shield":  acc["shield"]  += sym.base * power_scale * mult   # P3：护盾/治疗符号同样随物品 base_power 缩放（强度轴），但不吃伤害元进度(_agg_power_flat)与元素克制
+		"heal":    acc["heal"]    += sym.base * power_scale * mult
 		"status":  acc["status_stacks"][sym.status_type] = acc["status_stacks"].get(sym.status_type, 0) + mult
 		"special":
 			# special：1 同即生效（base×连线数×克制）；三连触发暴击倍率（连线数轴上唯一可控的战斗内爆发）
