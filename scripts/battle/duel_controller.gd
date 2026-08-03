@@ -241,7 +241,7 @@ func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	# Phase D：文件夹自动扫描内容池（替代手写路径数组）。必须在构建整备界面之前完成。
 	WEAPON_POOL = ResourceScan.scan_paths("res://resources/weapon_templates/")
-	ITEM_POOL = ResourceScan.scan_paths("res://resources/items/")
+	ITEM_POOL = ResourceScan.scan_paths("res://resources/charms/") + ResourceScan.scan_paths("res://resources/consumables/")
 	SKILL_POOL = ResourceScan.scan_paths("res://resources/skills/")
 	ALL_ROOMS = _sort_rooms(ResourceScan.scan_resources("res://resources/rooms/", "RoomData"))
 	REWARD_POOL = ResourceScan.scan_resources("res://resources/rewards/", "RewardData")
