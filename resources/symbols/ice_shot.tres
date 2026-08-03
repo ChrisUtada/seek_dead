@@ -7,7 +7,6 @@ script = ExtResource("1")
 label = "❄️"
 name = "冰弹"
 kind = "damage"
-rarity_tier = "common"
 base = 9.0
 element = "none"
 status_type = ""

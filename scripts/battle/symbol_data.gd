@@ -7,8 +7,7 @@ extends Resource
 
 @export var label: String = ""
 @export var name: String = ""
-@export var kind: String = "damage"        # damage | shield | heal | status | special | buff | trash
-@export var rarity_tier: String = "common"  # 稀有度治理契约：common | uncommon | rare | util | filler（见 docs/符号与转轮池规范.md §2）。kind 管结算行为，rarity_tier 管频率治理，二者解耦。
+@export var kind: String = "damage"        # damage | shield | heal | status | special | buff | trash（结算行为由 kind 决定）
 @export var base: float = 0.0
 @export var element: String = "none"        # fire | ice | poison | light | dark | none（单向克制）
 @export var status_type: String = ""        # 仅 kind=="status"：burn | frost | poison

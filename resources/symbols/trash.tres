@@ -7,7 +7,6 @@ script = ExtResource("1")
 label = "🗑️"
 name = "废铁"
 kind = "trash"
-rarity_tier = "filler"
 base = 0.0
 element = "none"
 status_type = ""

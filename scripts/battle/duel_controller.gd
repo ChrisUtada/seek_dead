@@ -38,7 +38,6 @@ extends Control
 
 const TRASH_SYMBOL = preload("res://resources/symbols/trash.tres")
 const GOLD_SYMBOL = preload("res://resources/symbols/gold.tres")
-const WILD_SYMBOL = preload("res://resources/symbols/wild.tres")   # S8：百搭对齐符（common，受控注入；结算时帮补 special 连线）
 const GOLD_POOL_WEIGHT := 3.0      # 金币符号在转轮池中的权重（远低于伤害符号，防稀释 DPS）
 const GOLD_PER_COIN := 1           # 每枚落在连线上的金币符号产出的金币数
 const ElementCounter = preload("res://scripts/battle/element_counter.gd")
@@ -120,7 +119,7 @@ var grid_elem = []
 # 合并后的加权符号池：元素为 [SymbolData, weight, element]（element = 有效元素）
 var pool: Array = []
 var loadout_names: Array = []
-var _weapon_base_map: Dictionary = {}    # 符号 resource_path -> 该武器 base 加成(取 max)，由 _build_pool 构建（膨胀双轨·武器线性）
+var _weapon_power_map: Dictionary = {}   # 符号 resource_path -> 该物品有效攻击力(base_power + 元进度武器加成)，由 _build_pool 构建。P3：结算时 _contribute 读此值把「物品强度轴」灌进符号伤害（docs/物品中心重构方案.md §8）
 var _pool_miss_frac: float = 0.15        # P2：转轮废铁（miss）占比，由 _build_pool 按武器命中率算定（docs/物品中心重构方案.md §6）
 var _busy: bool = false                 # 旋转序列进行中，防重入
 var _eval_adv := false                  # _evaluate 阶段2：本回合是否触发过「克制」
@@ -166,9 +165,13 @@ const KIND_CEIL := {
 const MISS_FLOOR := 0.08          # 废铁占比下限（转轮永远有 miss）
 const MISS_CEIL  := 0.30          # 废铁占比上限（防低命中武器把转轮打成纯废铁）
 const _STRIP_TARGET := 48         # 频率层目标带长（与 _STRIP_MIN_CELLS 取大）
-# —— 符号规范 S8（WILD + KPI）——
-const WILD_FRAC := 0.025          # S8：WILD 百搭对齐符占比（common，受控；帮补 special 连线、不让 special 变多）
+# —— 符号规范 S8（KPI）——
 const KPI_EXPLOSION_PER_ROOM := 1.0  # S8 RTP 式 KPI：special 三连期望每房 ≥1 次（反推 special 预算锚点，调参优先动 KIND_SHARE["special"]）
+# P3：物品强度轴基准（docs/物品中心重构方案.md §8）。伤害 = (物品 base_power × 符号 base 偏移) × 连线 × 克制。
+# BASE_POWER_REF 是「base_power → 伤害」的归一化支点：base_power == REF 的武器，其符号伤害等于 sym.base（即旧模型数值）；
+# base_power 高于 REF 的武器（高稀有度）符号伤害按比例放大（落实「稀有度→强度」），低于则缩小。
+# 此为调参旋钮：P11 内容广度阶段会把 sym.base 重标为相对 base_power 的真正偏移比，届时可去掉 REF 归一化。
+const BASE_POWER_REF := 32.0        # 武器 base_power 支点（≈ 当前 8 武器均值，使平均武器伤害与旧模型持平）
 const SPECIAL_TRIPLE_CRIT := 2.0        # special 三连暴击倍率：连线数轴上唯一可控的战斗内爆发（清晰可见，不做黑箱级联）
 const CHAIN_MAX := 4                      # 连锁重触发上限：special 三连最多再免费重转 3 次（共 4 发）
 const CHAIN_STEP := 1.5                   # 连锁倍率：每多一层 ×1.5（叠在 special×CRIT 之上，封顶 ≈ ×3.4）
@@ -366,20 +369,21 @@ func _build_pool(loadout: Array) -> void:
 				if not merged.has(dkey):
 					merged[dkey] = [dom_sym, 0.0, deff]
 				merged[dkey][1] += float(bonus)
-	# 膨胀双轨·武器线性：构建「符号 resource_path -> 该武器 base 加成(取 max)」映射（共享符号取最高，避免重复计数）
-	_weapon_base_map = {}
+	# P3（docs/物品中心重构方案.md §8）：构建「符号 resource_path -> 该物品有效攻击力」映射。
+	# 有效攻击力 = 物品 base_power（强度轴·P1 落地）+ 元进度武器加成(meta.weapon_base_bonus，铁砧 flat 升级)。
+	# 共享符号若被多武器持有，取有效攻击力最高者（避免重复计数、且反映「最强来源」）。
+	# 结算时 _contribute 用此值把「物品强度」灌进符号伤害（base_power × sym.base 偏移）。
+	_weapon_power_map = {}
 	for path in loadout:
-		var bb = meta["weapon_base_bonus"].get(path, 0)
-		if bb <= 0:
-			continue
 		var wd: WeaponData = load(path)
 		if wd == null or wd.symbols == null:
 			continue
+		var eff: float = wd.base_power + float(meta["weapon_base_bonus"].get(path, 0))
 		for sw in wd.symbols:
 			if sw == null or sw.symbol == null:
 				continue
 			var sp = sw.symbol.resource_path
-			_weapon_base_map[sp] = max(_weapon_base_map.get(sp, 0), bb)
+			_weapon_power_map[sp] = max(_weapon_power_map.get(sp, 0.0), eff)
 	# Phase C：所携带的主动技能，其符号同样注入转轮池（与武器符号同池竞争）
 	for path in selected_skills:
 		var sd: SkillData = load(path)
@@ -1449,11 +1453,6 @@ func _build_strips() -> void:
 	# S10 T2：深渊侵蚀注入额外废铁（boss_trash 格/列，由 gimmick 累积设定）
 	for _i in boss_trash:
 		base.append([TRASH_SYMBOL, "none"])
-	# S8 WILD：百搭对齐符，受控少量注入（common，不让 special 变多）。比例固定不随武器数漂移。
-	# 结算时（_evaluate）WILD 格并入 special 计数，帮补 special 三连（提高爽点命中、不增 special 频率）。
-	var wild_count: int = roundi(float(base.size()) * WILD_FRAC)
-	for _i in wild_count:
-		base.append([WILD_SYMBOL, "none"])
 	# P2 治理：频率按 kind 护栏（上限防垄断，下限保出现），取代旧 rarity_tier 保底与 S4 单符号上限。
 	_enforce_kind_tier(base)
 	for r in REELS:
@@ -1471,13 +1470,13 @@ func _build_strips() -> void:
 #   符号私有化 + kind 频率后，共享符号累加垄断已从根上消失，本护栏只作频率透明性的兜底。
 # - 下限：由 _build_strips 的「每 kind 每符号至少 1 格」保证，池中存在的 kind 不会整房不出现。
 # 取代旧 S2(rarity_tier 保底) / S4(单符号上限) / S5(act 稀释) —— 那些都依赖已退役的 rarity_tier 字段。
-# 注意：filler(trash) 与 wild 不参与本护栏（trash 由命中率控制，wild 由 WILD_FRAC 控制）。
+# 注意：filler(trash) 不参与本护栏（trash 由命中率控制）。
 func _enforce_kind_tier(base: Array) -> void:
 	var total := float(base.size())
 	var counts := {}
 	for cell in base:
 		var sym: SymbolData = cell[0]
-		if sym == null or sym == TRASH_SYMBOL or sym == WILD_SYMBOL:
+		if sym == null or sym == TRASH_SYMBOL:
 			continue
 		counts[sym.kind] = counts.get(sym.kind, 0) + 1
 	for kind in counts.keys():
@@ -1845,8 +1844,15 @@ func _reset_grid(fill_random: bool) -> void:
 func _contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> void:
 	# 连线精通(S12)：仅当实落 ≥2（确为连线匹配）时才叠加倍率，单符号必结算不受影响
 	var mult = raw + (gold_upgrades["line"] * LINE_STEP if raw >= 2 else 0)
-	var bonus = _agg_power_flat() + _weapon_base_map.get(sym.resource_path, 0)   # F-0 聚合层 + 武器 base 线性加成（膨胀双轨）
-	var flat = sym.base + bonus
+	# P3（docs/物品中心重构方案.md §8）：伤害 = (物品 base_power × 符号 base 偏移) × 连线 × 克制。
+	# 物品有效攻击力来自 _weapon_power_map（base_power + 元进度武器加成）；未命中映射时退化为旧模型（flat = sym.base），
+	# 保证非武器符号（异常路径）不丢伤害。BASE_POWER_REF 为归一化支点（见常量注释）。
+	var item_power: float = _weapon_power_map.get(sym.resource_path, 0.0)
+	var scale: float = item_power / BASE_POWER_REF if item_power > 0.0 else 1.0
+	# bonus = 非 sym.base 部分（base_power 缩放增量 + F-0 元进度聚合），供 _push_dmg_line 分解展示；
+	# flat = sym.base + bonus 与「sym.base × scale + _agg_power_flat()」恒等。
+	var bonus: float = sym.base * scale - sym.base + _agg_power_flat()
+	var flat: float = sym.base + bonus
 	# 逐符号元素克制倍率（Phase G v2.0：通用元素乘区，奖罚并存·温和）
 	var em = ElementCounter.multiplier(elem, enemy_element)
 	if em > 1.0:
@@ -1864,8 +1870,8 @@ func _contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> vo
 			else:
 				acc["dmg"] += dv
 			_push_dmg_line(acc, sym, elem, flat, bonus, mult, em, dv, false)
-		"shield":  acc["shield"]  += sym.base * mult
-		"heal":    acc["heal"]    += sym.base * mult
+		"shield":  acc["shield"]  += sym.base * scale * mult   # P3：护盾/治疗符号同样随物品 base_power 缩放（强度轴），但不吃伤害元进度(_agg_power_flat)与元素克制
+		"heal":    acc["heal"]    += sym.base * scale * mult
 		"status":  acc["status_stacks"][sym.status_type] = acc["status_stacks"].get(sym.status_type, 0) + mult
 		"special":
 			# special：1 同即生效（base×连线数×克制）；三连触发暴击倍率（连线数轴上唯一可控的战斗内爆发）
@@ -1927,22 +1933,6 @@ func _evaluate(chain_mult := 1.0) -> void:
 		if not counts.has(key):
 			counts[key] = [sym, elem, 0]
 		counts[key][2] += 1
-	# S8 WILD 百搭：把 WILD 格计数并入 special 类别，帮补 special 三连（提高爽点命中率），
-	# 但 WILD 本身为 common、少量注入，不会让 RARE 符号变多，符合经典 wild 语义。
-	# 若池内无 special（极端情况），WILD 静默丢弃，不触发任何效果。
-	var wild_total := 0
-	for key in counts.keys():
-		if counts[key][0] != null and counts[key][0].kind == "wild":
-			wild_total += counts[key][2]
-			counts.erase(key)
-	if wild_total > 0:
-		var special_key := ""
-		for key in counts:
-			if counts[key][0] != null and counts[key][0].kind == "special":
-				special_key = key
-				break
-		if special_key != "":
-			counts[special_key][2] += wild_total
 	# Phase C：先结算 buff 符号（本回合即生效，命中当回合就吃到增益）
 	for key in counts:
 		var s: SymbolData = counts[key][0]
