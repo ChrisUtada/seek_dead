@@ -6,6 +6,10 @@
 [resource]
 script = ExtResource("1")
 buff_id = "haste"
+category = "skill"
+rarity = "common"
+base_power = 1.5
+hit_rate = 0.90
 buff_name = "迅捷印记"
 icon = "⚡"
 description = "迅符入轮：本回合总伤害 ×1.5"

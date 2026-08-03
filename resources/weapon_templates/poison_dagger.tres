@@ -19,6 +19,10 @@ weight = 1.0
 [resource]
 script = ExtResource("1")
 weapon_name = "毒匕首"
+category = "weapon"
+rarity = "uncommon"
+base_power = 18.0
+hit_rate = 0.84
 archetype = 0
 can_dual_wield = true
 weapon_type = 0

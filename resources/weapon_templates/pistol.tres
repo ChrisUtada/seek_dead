@@ -19,6 +19,10 @@ weight = 1.0
 [resource]
 script = ExtResource("1")
 weapon_name = "手枪"
+category = "weapon"
+rarity = "common"
+base_power = 20.0
+hit_rate = 0.82
 weapon_type = 1
 can_dual_wield = true
 damage = 20.0

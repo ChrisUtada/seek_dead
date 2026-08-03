@@ -1,5 +1,5 @@
 class_name SkillData
-extends Resource
+extends LoadoutItem
 
 # 主动技能（Phase C 重构：原「增益」改名「技能」，机制不变）——可携带的「符号来源」，与 WeaponData 同为符号容器。
 # 与武器的区别：武器提供多个战斗符号（Array[SymbolWeight]），

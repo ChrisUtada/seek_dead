@@ -19,6 +19,10 @@ weight = 2.0
 [resource]
 script = ExtResource("1")
 weapon_name = "火焰法杖"
+category = "weapon"
+rarity = "epic"
+base_power = 40.0
+hit_rate = 0.93
 archetype = 3
 weapon_type = 1
 damage = 40.0

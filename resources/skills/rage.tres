@@ -6,6 +6,10 @@
 [resource]
 script = ExtResource("1")
 buff_id = "rage"
+category = "skill"
+rarity = "uncommon"
+base_power = 3.0
+hit_rate = 0.90
 buff_name = "狂怒印记"
 icon = "💢"
 description = "怒符入轮：伤害符号 +3"

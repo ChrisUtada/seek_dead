@@ -25,6 +25,10 @@ weight = 1.0
 [resource]
 script = ExtResource("1")
 weapon_name = "冰霜枪"
+category = "weapon"
+rarity = "rare"
+base_power = 30.0
+hit_rate = 0.88
 archetype = 0
 can_dual_wield = true
 weapon_type = 1

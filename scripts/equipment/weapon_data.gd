@@ -1,5 +1,5 @@
 class_name WeaponData
-extends Resource
+extends LoadoutItem
 
 enum Archetype { LIGHT, MEDIUM, HEAVY, MAGIC }
 enum WeaponType { MELEE, RANGED }
