@@ -120,7 +120,8 @@ var grid_elem = []
 var pool: Array = []
 var loadout_names: Array = []
 var _weapon_power_map: Dictionary = {}   # 符号 resource_path -> 该物品有效攻击力(base_power + 元进度武器加成)，由 _build_pool 构建。P3：结算时 _contribute 读此值把「物品强度轴」灌进符号伤害（docs/物品中心重构方案.md §8）
-var _pool_miss_frac: float = 0.15        # P2：转轮废铁（miss）占比，由 _build_pool 按武器命中率算定（docs/物品中心重构方案.md §6）
+var pool_items: Array = []              # 装备自洽：每件装备一段 [ {name, hit, syms:[[SymbolData, weight, element]]} ]，_build_strips 据此生成各自的转轮子带
+
 var _busy: bool = false                 # 旋转序列进行中，防重入
 var _eval_adv := false                  # _evaluate 阶段2：本回合是否触发过「克制」
 var _eval_dis := false                  # _evaluate 阶段2：本回合是否触发过「抵抗」
@@ -138,35 +139,21 @@ var _spin_ticks := 0                   # 已跳次数（用于加速上限）
 const _SPIN_BASE_WAIT := 0.15          # 起始每跳间隔（秒）——调慢以便看清落点、凑三连 special
 const _SPIN_MIN_WAIT := 0.06           # 最快每跳间隔（封顶也调慢，整体更易控）
 const _STRIP_MIN_CELLS := 30           # 转轮带最小格数（整份平铺补足，不改变符号占比）
-# P2 频率层（docs/物品中心重构方案.md §4）：频率 = f(kind)，稀有度只定强度（见 LoadoutItem）。
-# 旧 S2/S3/S4/S5/S6 的 rarity_tier 治理与 act 稀释预算在此退役——符号出现次数改由 kind 预算决定，
-# 跨武器共享符号不再累加垄断（根因消除），"神装打不出去"的退化也被避开。
-# 每 kind 在「非废铁带长」中的份额（求和 = 1.0）。special 恒低频——它是唯一局内乘区，必须稀有（无论武器多神）。
-const KIND_SHARE := {
-	"damage":  0.55,
-	"status":  0.13,
-	"special": 0.06,
-	"buff":    0.10,
-	"shield":  0.06,
-	"heal":    0.06,
-	"gold":    0.04,
-}
-# 每 kind 占「整条带长」上限（防某类符号垄断整轮；低于或等于 KIND_SHARE 对应值则永不触发）
-const KIND_CEIL := {
-	"damage":  0.55,
-	"status":  0.18,
-	"special": 0.08,
-	"buff":    0.16,
-	"shield":  0.12,
-	"heal":    0.12,
-	"gold":    0.10,
-}
+# 频率层（装备自洽 / 直觉模型，见下方 _ITEM_STRIP_TARGET）：频率由每件装备自身 weight 决定，
+# 稀有度只定强度（见 LoadoutItem），不影响出现次数——避免「神装打不出去」。原 f(kind) 中央预算已退役。
+# 频率层（装备自洽 / 直觉模型）：频率不再由中央 f(kind) 预算决定，
+# 而是「每件装备用自身 weight 决定自己符号多常出现、用自身命中率决定自己转轮的废铁占比」。
+# 每件装备生成一段等长（_ITEM_STRIP_TARGET）的「自洽子带」，拼成共享转轮带——
+# 共享符号不再跨装备累加权重（垄断根因消除），稀有度仍只定强度（base_power / hit_rate），不影响出现次数。
+const _ITEM_STRIP_TARGET := 16   # 每件装备转轮子带长（频率由该装备自身 weight 定，各装备等权、互不挤压）
+const _GOLD_CELLS := 2           # 金币符号常驻格数（经济引擎，与装备频率解耦）
+
 # miss（废铁）占比来自武器命中率，人为留底以防转轮变无脑（§12：命中率不能趋近 100%）。
 const MISS_FLOOR := 0.08          # 废铁占比下限（转轮永远有 miss）
 const MISS_CEIL  := 0.30          # 废铁占比上限（防低命中武器把转轮打成纯废铁）
-const _STRIP_TARGET := 48         # 频率层目标带长（与 _STRIP_MIN_CELLS 取大）
 # —— 符号规范 S8（KPI）——
-const KPI_EXPLOSION_PER_ROOM := 1.0  # S8 RTP 式 KPI：special 三连期望每房 ≥1 次（反推 special 预算锚点，调参优先动 KIND_SHARE["special"]）
+const KPI_EXPLOSION_PER_ROOM := 1.0  # S8 RTP 式 KPI：special 三连期望每房 >=1 次（反推 special 频率锚点，调参优先调高各装备 special 符号的 weight）
+
 # P3：物品强度轴基准（docs/物品中心重构方案.md §8）。伤害 = (物品 base_power × 符号 base 偏移) × 连线 × 克制。
 # BASE_POWER_REF 是「base_power → 伤害」的归一化支点：base_power == REF 的武器，其符号伤害等于 sym.base（即旧模型数值）；
 # base_power 高于 REF 的武器（高稀有度）符号伤害按比例放大（落实「稀有度→强度」），低于则缩小。
@@ -250,7 +237,6 @@ var enemy_element: String = "none"     # 敌人属性元素（用于单向克制
 var pending_jam_reel = -1              # 敌人注废 → 下一轮强制废铁列索引（-1 无）
 var pending_lock_reel = -1             # 敌人锁轮 → 下一轮该列固定为当前符号（-1 无）
 var pending_chaos = false              # 敌人乱权 → 下一轮权重削弱优势符号
-var _pool_backup: Array = []           # chaos 临时池备份（spin 后还原）
 # 净化上限 = 携带「净化药剂」数值 + 丰沛护符加成 + 房奖励增量；每房回满到该值
 var purify_max_base = 0
 var purify_charges = 0
@@ -261,7 +247,7 @@ var charm_room_shield: int = 0         # 守望护符：每房开局护盾 +N
 var charm_shield_trickle: int = 0      # 守备护符：每回合护盾涓流（整局生效，见 §8）
 var charm_heal_trickle: int = 0       # 回春护符：每回合回复（与瞬回药剂互补）
 var charm_interf_resist: int = 0       # 抗扰护符：本局敌人干扰概率降低（等效抗扰等级）
-var charm_purify_bonus: int = 0        # 丰沛护符：净化上限 +N
+
 var charm_damage_mult: float = 1.0      # Phase G v2.0：护符全局乘区（joker），默认 ×1.0
 
 # 流程状态
@@ -330,51 +316,11 @@ func _ready() -> void:
 	add_child(_spin_timer)
 func _build_pool(loadout: Array) -> void:
 	pool = []
+	pool_items = []
 	loadout_names = []
-	# 合并键 = resource_path + "|" + 有效元素。
-	# 关键：slash.tres 等符号被多把武器共享（同 resource_path），但火武器/无属性武器继承出的
-	# 有效元素不同，必须按「符号+有效元素」双键分离，否则元素会冲突（Phase G v2.0 武器元素化）。
-	var merged := {}   # key -> [SymbolData, 总权重, 有效元素]（跨武器累加）
-	for path in loadout:
-		var wd: WeaponData = load(path)
-		if wd == null:
-			hud._log("⚠ 找不到武器: " + path)
-			continue
-		loadout_names.append(wd.weapon_name)
-		if wd.symbols == null or wd.symbols.is_empty():
-			continue
-		for sw in wd.symbols:
-			if sw == null or sw.symbol == null:
-				continue
-			var sp: String = sw.symbol.resource_path
-			var eff: String = _eff_element(sw.symbol, wd)
-			var mkey: String = sp + "|" + eff
-			if not merged.has(mkey):
-				merged[mkey] = [sw.symbol, 0.0, eff]
-			merged[mkey][1] += float(sw.weight)
-		# M5 铁砧：武器升级 → 主符号（权重最高者）额外加成（按「符号+有效元素」定位，避免共享符号冲突）
-		var bonus = meta["weapon_upgrades"].get(path, 0)
-		if bonus > 0 and not wd.symbols.is_empty():
-			var dom_sym: SymbolData = null
-			var domw = -1.0
-			for sw in wd.symbols:
-				if sw == null or sw.symbol == null:
-					continue
-				var w = float(sw.weight)
-				if w > domw:
-					domw = w
-					dom_sym = sw.symbol
-			if dom_sym != null:
-				var deff: String = _eff_element(dom_sym, wd)
-				var dkey: String = dom_sym.resource_path + "|" + deff
-				if not merged.has(dkey):
-					merged[dkey] = [dom_sym, 0.0, deff]
-				merged[dkey][1] += float(bonus)
-	# P3（docs/物品中心重构方案.md §8）：构建「符号 resource_path -> 该物品有效攻击力」映射。
-	# 有效攻击力 = 物品 base_power（强度轴·P1 落地）+ 元进度武器加成(meta.weapon_base_bonus，铁砧 flat 升级)。
-	# 共享符号若被多武器持有，取有效攻击力最高者（避免重复计数、且反映「最强来源」）。
-	# 结算时 _contribute 用此值把「物品强度」灌进符号伤害（base_power × sym.base 偏移）。
 	_weapon_power_map = {}
+	# 强度轴映射（P3，未变）：符号 resource_path -> 该物品有效攻击力(base_power + 元进度武器加成)；
+	# 共享符号若被多装备持有，取最高者（反映「最强来源」）。结算时 _contribute 读此值把强度轴灌进符号伤害。
 	for path in loadout:
 		var wd: WeaponData = load(path)
 		if wd == null or wd.symbols == null:
@@ -385,8 +331,6 @@ func _build_pool(loadout: Array) -> void:
 				continue
 			var sp = sw.symbol.resource_path
 			_weapon_power_map[sp] = max(_weapon_power_map.get(sp, 0.0), eff)
-	# Phase C：主动技能符号同样按「技能 base_power」缩放（补 P3 缺口：原仅武器参与功率映射）。
-	# 共享符号若同时被武器与技能持有，取有效攻击力最高者（反映「最强来源」）。
 	for path in selected_skills:
 		var sd: SkillData = load(path)
 		if sd == null or sd.symbol == null:
@@ -394,48 +338,49 @@ func _build_pool(loadout: Array) -> void:
 		var eff: float = sd.base_power + float(meta["weapon_base_bonus"].get(path, 0))
 		var sp = sd.symbol.resource_path
 		_weapon_power_map[sp] = max(_weapon_power_map.get(sp, 0.0), eff)
-	# Phase C：所携带的主动技能，其符号同样注入转轮池（与武器符号同池竞争）
-	for path in selected_skills:
-		var sd: SkillData = load(path)
-		if sd == null or sd.symbol == null:
-			continue
-		var bp: String = sd.symbol.resource_path
-		var beff: String = sd.symbol.element if sd.symbol.element != "none" else "none"
-		var bkey: String = bp + "|" + beff
-		if not merged.has(bkey):
-			merged[bkey] = [sd.symbol, 0.0, beff]
-		merged[bkey][1] += float(sd.weight)
-	for key in merged.keys():
-		pool.append(merged[key])
-	# F-0 属性聚合层：符号权重修正（本局符号灌注 + Phase F 词缀），run_symbol_bonus 以 resource_path 为键
-	for spath in run_symbol_bonus.keys():
-		var found = false
-		for p in pool:
-			if p[0].resource_path == spath:
-				p[1] += _agg_symbol_weight_mod(p[0])
-				found = true
-				break
-		if not found:
-			pool.append([load(spath), _agg_symbol_weight_mod(load(spath)), "none"])
-	# 金币符号：常驻转轮资源（如废铁），落在线上的金币转化为金币（S6 经济引擎）
-	pool.append([GOLD_SYMBOL, GOLD_POOL_WEIGHT, "none"])
-	# 符号图例（每符号名称/类型/元素 + 敌人属性）
-	if hud.legend_container != null:
-		hud._refresh_legend()
-	# P2（docs/物品中心重构方案.md §6）：废铁（miss）占比由武器命中率决定，取代 S5 全局 act 稀释。
-	# 取所有携带武器「不命中率」的均值作为整体 miss 占比，并人为留底（转轮永远有 miss，§12）。
-	var miss_sum := 0.0
-	var miss_n := 0
+	# —— 装备自洽（docs/物品中心重构方案.md §4 重构）：频率不再由中央 f(kind) 预算决定，
+	# 而是「每件装备用自身 weight 决定自己符号多常出现、用自身命中率决定自己转轮的废铁占比」。
+	# 每件装备生成一段等长的「自洽子带」，拼成共享转轮带；共享符号不再跨装备累加权重（垄断根因消除），
+	# 稀有度仍只定强度（base_power / hit_rate），不影响出现次数（「神装打不出去」退化被避开）。
 	for path in loadout:
 		var wd: WeaponData = load(path)
 		if wd == null:
 			continue
-		miss_sum += (1.0 - clamp(wd.hit_rate + float(meta["weapon_hit_bonus"].get(path, 0.0)), 0.0, 1.0))
-		miss_n += 1
-	var mf := 0.15
-	if miss_n > 0:
-		mf = miss_sum / float(miss_n)
-	_pool_miss_frac = clamp(mf, MISS_FLOOR, MISS_CEIL)
+		loadout_names.append(wd.weapon_name)
+		if wd.symbols == null or wd.symbols.is_empty():
+			continue
+		var syms := []
+		for sw in wd.symbols:
+			if sw == null or sw.symbol == null:
+				continue
+			syms.append([sw.symbol, float(sw.weight), _eff_element(sw.symbol, wd)])
+		# M5 铁砧：武器升级 -> 主符号（权重最高者）额外加成，直接提升该武器主符号出现频率
+		var bonus = meta["weapon_upgrades"].get(path, 0)
+		if bonus > 0 and not syms.is_empty():
+			var di = 0; var dw = -1.0
+			for i in syms.size():
+				if syms[i][1] > dw:
+					dw = syms[i][1]; di = i
+		syms[di][1] += float(bonus)
+		var hit: float = clamp(wd.hit_rate + float(meta["weapon_hit_bonus"].get(path, 0.0)), 0.0, 1.0)
+		pool_items.append({"name": wd.weapon_name, "hit": hit, "syms": syms})
+	# 主动技能同样作为「装备」生成自己的符号段（与武器等权、频率由自身 weight 定）
+	for path in selected_skills:
+		var sd: SkillData = load(path)
+		if sd == null or sd.symbol == null:
+			continue
+		var eff_elem: String = sd.symbol.element if sd.symbol.element != "none" else "none"
+		var hit: float = clamp(sd.hit_rate + float(meta["weapon_hit_bonus"].get(path, 0.0)), 0.0, 1.0)
+		pool_items.append({"name": ("技能" + sd.icon), "hit": hit, "syms": [[sd.symbol, float(sd.weight), eff_elem]]})
+	# 扁平池（供图例 / 状态查询 / 奖励随机 等 legacy 消费者；weight 仅作展示/兼容）
+	for it in pool_items:
+		for s in it["syms"]:
+			pool.append([s[0], s[1], s[2]])
+	pool.append([GOLD_SYMBOL, GOLD_POOL_WEIGHT, "none"])
+	# 符号图例（每符号名称/类型/元素 + 敌人属性）
+	if hud.legend_container != null:
+		hud._refresh_legend()
+
 
 
 # 计算某符号的「有效元素」（Phase G v2.0 武器元素化）：
@@ -447,28 +392,9 @@ func _eff_element(sym: SymbolData, wd: WeaponData) -> String:
 	return sym.element if sym.element != "none" else wd.element
 
 
-# 乱权：P2 前靠扭曲权重削弱优势符号；频率=f(kind) 后权重不再决定格数，本函数对转轮构成已无直接影响
-# （其意图改由 _build_strips 的 pending_chaos 临时拉高废铁占比实现）。保留以不动敌人触发链路。
-func _apply_chaos_pool() -> void:
-	_pool_backup = pool.duplicate(true)
-	var max_w = 0.0
-	for p in pool:
-		max_w = max(max_w, p[1])
-	var chaotic := []
-	for p in pool:
-		var w = p[1]
-		if p[0] == TRASH_SYMBOL:
-			w *= 2.0
-		elif w >= max_w * 0.99:
-			w *= 0.35
-		chaotic.append([p[0], w, p[2]])
-	pool = chaotic
+# 乱权（敌人 chaos 意图）：原靠扭曲权重池削弱优势符号；装备自洽后权重即频率，
+# 故改为在 _build_strips 向整带注入额外废铁（等比重削弱所有装备），见 pending_chaos 处理。
 
-
-func _restore_pool() -> void:
-	if not _pool_backup.is_empty():
-		pool = _pool_backup
-		_pool_backup = []
 
 
 # ---------------------------------------------------------------------------
@@ -1382,12 +1308,6 @@ func _on_spin_pressed() -> void:
 
 # 开始一次旋转：构建转轮带、随机起点、启动节拍器。结果在 spin_finished 后结算。
 func _begin_spin() -> void:
-	var chaos = pending_chaos
-	if chaos:
-		_apply_chaos_pool()
-	_build_strips()
-	if chaos:
-		_restore_pool()
 	reel_cursor = []
 	reel_stopped = []
 	_locked_prev_sym = []
@@ -1410,76 +1330,61 @@ func _begin_spin() -> void:
 	hud._log("转轮旋转中——按【空格】逐列停止，或点击某一列单独停下（不停就一直转）")
 
 
-# 由合并符号池构建每列转轮带：频率 = f(kind)（docs/物品中心重构方案.md §4）。
-# 符号格数不再由各武器手写权重累加决定，而是按 kind 分到固定频率预算；
-# 废铁（miss）格数由武器命中率算出的 _pool_miss_frac 决定（替 S5 全局 act 稀释）。
-# 稀有度只定强度（base_power / hit_rate / 克制），不影响出现次数——避免「神装打不出去」。
+# 装备自洽（docs/物品中心重构方案.md §4 重构）：由「每件装备生成自己的转轮子带」拼接成共享转轮带。
+# 频率 = 该装备自身 weight（权重越大越常出现）；废铁占比 = 1 - 该装备自身命中率（夹在 MISS_FLOOR/CEIL）。
+# 共享符号不再跨装备累加权重，垄断根因结构性消除；稀有度仍只定强度，不影响出现次数。
+# 结算/连锁/special 三连等下游逻辑完全不变（仍按 REELS x ROWS 落子统计）。
 func _build_strips() -> void:
 	reel_strips = []
-	if pool.is_empty():
+	if pool_items.is_empty():
 		for r in REELS:
 			reel_strips.append([[TRASH_SYMBOL, "none"]])
 		return
-	# 1) 按 kind 聚合池中符号，按「符号 + 有效元素」去重（保留元素继承差异，如中性 slash vs 火 slash）
-	var by_kind := {}   # kind -> Array of [SymbolData, eff]
-	var seen := {}
-	for p in pool:
-		var sym: SymbolData = p[0]
-		if sym == null:
-			continue
-		var key: String = sym.resource_path + "|" + str(p[2])
-		if seen.has(key):
-			continue
-		seen[key] = true
-		if not by_kind.has(sym.kind):
-			by_kind[sym.kind] = []
-		by_kind[sym.kind].append([sym, p[2]])
-	# 2) 非废铁带长按 KIND_SHARE 分给各 kind；同 kind 内符号平分格数（每符号至少 1 格）
-	# P2 乱权兼容：原 S-乱权靠扭曲权重削弱优势符号，频率=f(kind) 后权重不再决定格数，
-	# 故改为「临时拉高废铁占比」——既增强废铁、又等比重缩所有符号预算（削弱整轮），忠实还原乱权意图。
-	var miss_frac: float = _pool_miss_frac
-	if pending_chaos:
-		miss_frac = min(MISS_CEIL, miss_frac + 0.20)
-	var TARGET: int = maxi(_STRIP_MIN_CELLS, _STRIP_TARGET)
-	# 先预留废铁格（保证「转轮永远有 miss」，§12），符号在剩余预算内分配
-	var miss_target: int = roundi(float(TARGET) * miss_frac)
-	var sym_budget: int = TARGET - miss_target
-	if sym_budget < 0:
-		sym_budget = 0
 	var base := []
-	for kind in by_kind.keys():
-		if not KIND_SHARE.has(kind):
-			continue
-		var syms: Array = by_kind[kind]
+	for it in pool_items:
+		var syms: Array = it["syms"]
 		if syms.is_empty():
 			continue
-		var kcells: int = roundi(float(sym_budget) * KIND_SHARE[kind])
-		if kcells <= 0:
-			kcells = syms.size()   # 兜底：该 kind 至少每符号 1 格
-		var per: int = maxi(1, kcells / syms.size())
-		var assigned := 0
-		for i in range(syms.size()):
-			var c := per
-			if i == syms.size() - 1:
-				c = kcells - assigned   # 最后一个吸收取整误差
-			c = maxi(1, c)
-			for _j in c:
-				base.append([syms[i][0], syms[i][1]])
-			assigned += c
-	# 3) miss（废铁）格 = 预留的 miss_target + 未被武器符号用掉的剩余预算（极少符号时自然补足）
-	var miss_cells: int = miss_target + maxi(0, sym_budget - base.size())
-	for _i in miss_cells:
+		# F-0 符号权重修正（本局符号灌注 / 词缀）落在该装备自己的段内
+		var mod := []
+		for s in syms:
+			var w = max(0.0, s[1] + _agg_symbol_weight_mod(s[0]))
+			mod.append([s[0], w, s[2]])
+		var wsum: float = 0.0
+		for s in mod:
+			wsum += s[1]
+		if wsum <= 0.0:
+			continue
+		var target: int = _ITEM_STRIP_TARGET
+		# 按自身 weight 分配符号格（每符号至少 1 格，权重越大越常出现）
+		var cells := []
+		for s in mod:
+			var cnt: int = maxi(1, roundi(float(target) * s[1] / wsum))
+			for _c in cnt:
+				cells.append([s[0], s[2]])
+		# 废铁占比 = 1 - 该装备自身命中率（转轮永远有 miss，MISS_FLOOR/CEIL 兜底）
+		var miss_frac: float = clamp(1.0 - float(it["hit"]), MISS_FLOOR, MISS_CEIL)
+		var miss_cnt: int = roundi(float(target) * miss_frac)
+		for _c in miss_cnt:
+			cells.append([TRASH_SYMBOL, "none"])
+		base.append_array(cells)
+	# 金币常驻（经济引擎，与装备频率解耦）
+	for _c in _GOLD_CELLS:
+		base.append([GOLD_SYMBOL, "none"])
+	# 敌人乱权：向整带注入额外废铁（等比重削弱所有装备，忠实还原「削弱优势」意图）
+	if pending_chaos:
+		var extra: int = roundi(float(base.size()) * 0.20)
+		for _c in extra:
+			base.append([TRASH_SYMBOL, "none"])
+	# S10 T2：深渊侵蚀注入额外废铁
+	for _i in boss_trash:
 		base.append([TRASH_SYMBOL, "none"])
-	# 最小带长保护：整份平铺到 _STRIP_MIN_CELLS 以上——只拉长周期，各符号占比完全不变。
+	# 最小带长保护：整份平铺到 _STRIP_MIN_CELLS 以上——只拉长周期，各符号占比完全不变
 	if base.size() < _STRIP_MIN_CELLS:
 		var unit = base.duplicate(true)
 		while base.size() < _STRIP_MIN_CELLS:
 			base.append_array(unit.duplicate(true))
-	# S10 T2：深渊侵蚀注入额外废铁（boss_trash 格/列，由 gimmick 累积设定）
-	for _i in boss_trash:
-		base.append([TRASH_SYMBOL, "none"])
-	# P2 治理：频率按 kind 护栏（上限防垄断，下限保出现），取代旧 rarity_tier 保底与 S4 单符号上限。
-	_enforce_kind_tier(base)
+	# 3 根转轮 = base 的洗牌副本（落点由玩家停止时机决定）
 	for r in REELS:
 		var copy = base.duplicate(true)
 		for i in range(copy.size() - 1, 0, -1):
@@ -1490,38 +1395,8 @@ func _build_strips() -> void:
 		reel_strips.append(copy)
 
 
-# P2 治理（docs/物品中心重构方案.md §4 / §9）：频率 = f(kind) 护栏。
-# - 上限：任何 kind 占整条带长不得超过 KIND_CEIL[kind]（防某类符号垄断整轮）。
-#   符号私有化 + kind 频率后，共享符号累加垄断已从根上消失，本护栏只作频率透明性的兜底。
-# - 下限：由 _build_strips 的「每 kind 每符号至少 1 格」保证，池中存在的 kind 不会整房不出现。
-# 取代旧 S2(rarity_tier 保底) / S4(单符号上限) / S5(act 稀释) —— 那些都依赖已退役的 rarity_tier 字段。
-# 注意：filler(trash) 不参与本护栏（trash 由命中率控制）。
-func _enforce_kind_tier(base: Array) -> void:
-	var total := float(base.size())
-	var counts := {}
-	for cell in base:
-		var sym: SymbolData = cell[0]
-		if sym == null or sym == TRASH_SYMBOL:
-			continue
-		counts[sym.kind] = counts.get(sym.kind, 0) + 1
-	for kind in counts.keys():
-		if not KIND_CEIL.has(kind):
-			continue
-		var ceil_cells: int = roundi(total * KIND_CEIL[kind])
-		var cnt: int = counts[kind]
-		if cnt <= ceil_cells:
-			continue
-		var excess: int = cnt - ceil_cells
-		var removed := 0
-		for i in range(base.size() - 1, -1, -1):
-			if removed >= excess:
-				break
-			var sym: SymbolData = base[i][0]
-			if sym != null and sym.kind == kind:
-				base.remove_at(i)
-				removed += 1
-		if hud != null:
-			hud._log("🔧 %s 频率上限：砍至 %d 格 / 带长 %d" % [kind, ceil_cells, base.size()])
+# 装备自洽后频率由每件装备自身 weight 决定（见 _build_strips），中央 f(kind) 护栏已退役；
+# 垄断根因（共享符号跨装备累加权重）被 per-item 子带结构性消除，无需 kind 上限兜底。
 
 
 # 节拍器回调：推进仍在旋转的转轮并逐步加速。没有自动停止——只有玩家按停才会锁定。
