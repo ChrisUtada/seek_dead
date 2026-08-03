@@ -1396,7 +1396,7 @@ func _enforce_tier_floor(base: Array) -> void:
 	# —— 上限治理（S6 配套）：多源 special 推高频率时锁回 §2 的 3–6% ——
 	# 只在"既超上限、又高于保底"时裁剪，绝不下砍到保底以下（保底优先）。
 	if rare_idx.size() > ceil_cells and rare_idx.size() > floor_cells:
-		var excess := rare_idx.size() - ceil_cells
+		var excess: int = int(rare_idx.size() - ceil_cells)
 		var removed := 0
 		for i in range(base.size() - 1, -1, -1):
 			if removed >= excess:
