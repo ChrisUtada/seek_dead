@@ -38,6 +38,14 @@ var shop_title_label
 var shop_gold_label
 var shop_grid
 var shop_leave_btn
+# S12：商店三页签（购入/卖出/升级）与升级页容器
+var shop_tab_buy_btn
+var shop_tab_sell_btn
+var shop_tab_up_btn
+var shop_buy_panel
+var shop_sell_panel
+var shop_up_panel
+var shop_up_grid
 var anvil_screen
 var anvil_title_label
 var anvil_points_label
@@ -844,7 +852,18 @@ func _build_shop_screen() -> void:
 	shop_gold_label = _label("金币: 0", TypeScale.BODY)
 	shop_gold_label.add_theme_color_override("font_color", Palette.ACCENT_GOLD)
 	v.add_child(shop_gold_label)
-	v.add_child(_label("购买后带入后续房间；也可卖出回收约50%金币并释放槽位（随机刷新，先到先得）", TypeScale.META))
+	v.add_child(_label("金币投资战力 · 购入带装备 / 卖出回收 / 升级深化乘区（每局清零）", TypeScale.META))
+
+	# 三页签
+	var tab_bar = HBoxContainer.new()
+	tab_bar.add_theme_constant_override("separation", 6)
+	v.add_child(tab_bar)
+	shop_tab_buy_btn = _shop_tab_btn("📥 购入", "buy")
+	shop_tab_sell_btn = _shop_tab_btn("📤 卖出", "sell")
+	shop_tab_up_btn = _shop_tab_btn("⬆ 升级", "up")
+	tab_bar.add_child(shop_tab_buy_btn)
+	tab_bar.add_child(shop_tab_sell_btn)
+	tab_bar.add_child(shop_tab_up_btn)
 
 	var scroll = ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -855,14 +874,23 @@ func _build_shop_screen() -> void:
 	inner.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(inner)
 
-	inner.add_child(_label("📥 购入", TypeScale.BODY))
+	# 购入页
+	shop_buy_panel = VBoxContainer.new()
+	shop_buy_panel.add_theme_constant_override("separation", 6)
+	shop_buy_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	shop_buy_panel.add_child(_label("📥 购入（带入后续房间）", TypeScale.BODY))
 	shop_grid = GridContainer.new()
 	shop_grid.columns = 3
 	shop_grid.add_theme_constant_override("h_separation", 8)
 	shop_grid.add_theme_constant_override("v_separation", 8)
-	inner.add_child(shop_grid)
+	shop_buy_panel.add_child(shop_grid)
+	inner.add_child(shop_buy_panel)
 
-	inner.add_child(_label("📤 卖出（回收约50%金币 · 释放槽位）", TypeScale.BODY))
+	# 卖出页
+	shop_sell_panel = VBoxContainer.new()
+	shop_sell_panel.add_theme_constant_override("separation", 6)
+	shop_sell_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	shop_sell_panel.add_child(_label("📤 卖出（回收约50%金币 · 释放槽位）", TypeScale.BODY))
 	var sell_box = HBoxContainer.new()
 	sell_box.add_theme_constant_override("separation", 6)
 	sell_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -870,7 +898,20 @@ func _build_shop_screen() -> void:
 	shop_sell_skill_list = _sell_column(sell_box, "技能")
 	shop_sell_charm_list = _sell_column(sell_box, "护符")
 	shop_sell_consum_list = _sell_column(sell_box, "消耗品")
-	inner.add_child(sell_box)
+	shop_sell_panel.add_child(sell_box)
+	inner.add_child(shop_sell_panel)
+
+	# 升级页（S12：深化已有乘区，不新增第4乘区）
+	shop_up_panel = VBoxContainer.new()
+	shop_up_panel.add_theme_constant_override("separation", 6)
+	shop_up_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	shop_up_panel.add_child(_label("⬆ 金币升级（深化已有乘区 · 每局清零）", TypeScale.BODY))
+	shop_up_grid = GridContainer.new()
+	shop_up_grid.columns = 2
+	shop_up_grid.add_theme_constant_override("h_separation", 8)
+	shop_up_grid.add_theme_constant_override("v_separation", 8)
+	shop_up_panel.add_child(shop_up_grid)
+	inner.add_child(shop_up_panel)
 
 	var bot = HBoxContainer.new()
 	v.add_child(bot)
@@ -885,6 +926,7 @@ func _build_shop_screen() -> void:
 
 	add_child(shop_screen)
 	shop_screen.visible = false
+	_show_shop_tab("buy")
 
 
 func _show_shop_screen() -> void:
@@ -901,6 +943,7 @@ func _refresh_shop() -> void:
 	for offer in controller.shop_offers:
 		shop_grid.add_child(_make_shop_card(offer))
 	_refresh_shop_sell()
+	_refresh_shop_up()
 
 
 func _make_shop_card(offer: Dictionary) -> Button:
@@ -1017,6 +1060,73 @@ func _make_sell_card(title_text: String, sub_text: String, disabled: bool, cb: C
 		btn.connect("pressed", cb)
 	return btn
 
+
+
+# ---------------------------------------------------------------------------
+# S12 商店三页签（购入 / 卖出 / 升级）与金币升级页
+# ---------------------------------------------------------------------------
+func _shop_tab_btn(text: String, tab: String) -> Button:
+	var b = UI_BUTTON.instantiate()
+	b.text = text
+	b.custom_minimum_size = Vector2(110, 34)
+	b.add_theme_font_size_override("font_size", TypeScale.META)
+	b.connect("pressed", _show_shop_tab.bind(tab))
+	return b
+
+
+func _show_shop_tab(tab: String) -> void:
+	if shop_buy_panel == null:
+		return
+	shop_buy_panel.visible = (tab == "buy")
+	shop_sell_panel.visible = (tab == "sell")
+	shop_up_panel.visible = (tab == "up")
+	var active = Palette.ACCENT_GOLD
+	var idle = Palette.MUTED
+	if shop_tab_buy_btn != null:
+		shop_tab_buy_btn.add_theme_color_override("font_color", active if tab == "buy" else idle)
+	if shop_tab_sell_btn != null:
+		shop_tab_sell_btn.add_theme_color_override("font_color", active if tab == "sell" else idle)
+	if shop_tab_up_btn != null:
+		shop_tab_up_btn.add_theme_color_override("font_color", active if tab == "up" else idle)
+	if tab == "up":
+		_refresh_shop_up()
+
+
+func _refresh_shop_up() -> void:
+	if shop_up_grid == null:
+		return
+	for c in shop_up_grid.get_children():
+		shop_up_grid.remove_child(c)
+		c.queue_free()
+	for u in controller._gold_upgrade_defs():
+		shop_up_grid.add_child(_make_upgrade_card(u))
+
+
+func _make_upgrade_card(u: Dictionary) -> Button:
+	var btn = UI_BUTTON.instantiate()
+	btn.custom_minimum_size = Vector2(150, 104)
+	btn.text = ""
+	var cc = CenterContainer.new()
+	cc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	cc.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	btn.add_child(cc)
+	var vb = VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 2)
+	cc.add_child(vb)
+	vb.add_child(_label("%s %s Lv%d/%d" % [u["icon"], u["name"], u["level"], u["max"]], 12))
+	var dl = _label(u["desc"], TypeScale.TINY)
+	dl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	dl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	dl.custom_minimum_size = Vector2(140, 0)
+	vb.add_child(dl)
+	var status = "已满级" if u["maxed"] else ("%d 金" % u["cost"])
+	var pl = _label(status, TypeScale.TINY)
+	pl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	pl.add_theme_color_override("font_color", Palette.MUTED_DIM if u["maxed"] else (Palette.ACCENT_GOLD if u["can_afford"] else Palette.ENEMY))
+	vb.add_child(pl)
+	btn.disabled = (u["maxed"] or not u["can_afford"])
+	btn.connect("pressed", controller._on_gold_upgrade_pressed.bind(u["id"]))
+	return btn
 
 
 func _build_anvil_screen() -> void:

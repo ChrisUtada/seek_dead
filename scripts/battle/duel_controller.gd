@@ -137,6 +137,24 @@ const CHARM_MULT_STEP := 0.12            # 每级护符伤害乘区 +0.12（乘�
 const CHARM_MULT_CAP := 6.0              # 总护符乘区硬上限（防失控膨胀）
 const META_ANVIL_BONUS := 2              # 元进度三选一选「铁砧点数」时获得的点数
 const META_CHOICE_COUNT := 3             # 每局结束元进度候选张数（三选一，候选池随机抽）
+
+# S12 局内金币升级（深化已有乘区，不新增第4乘区；每局清零，管局内临时）
+# 设计：爆炸感来自「在现有 3 乘区(连线/护符·增益/克制)内做深」，而非开第 4 条独立乘区。
+#   · 锋锐研磨(power)：+基础伤害（喂入全部乘区，线性保底）
+#   · 连线精通(line)：匹配连线倍率 +N（深化 lane1，仅 ≥2 的同符号生效）
+#   · 护符共鸣(joker)：本局伤害乘区 ×(1+N·step)，并入 buff_mult（深化 lane2·护符/增益同轨）
+#   · 壁垒(shield)：每房开局护盾 +N（韧性保底，少量）
+const POWER_STEP := 3           # 锋锐研磨：每级 +3 本局基础伤害
+const LINE_STEP  := 1           # 连线精通：每级 +1 连线倍率
+const JOKER_STEP := 0.25        # 护符共鸣：每级 +0.25 本局伤害乘区（封顶见 JOKER_CAP_FACTOR）
+const JOKER_CAP_FACTOR := 3.0   # 共鸣乘区硬上限（1 + maxlv*step ≤ 此值）
+const SHIELD_STEP := 5          # 壁垒：每级 +5 每房开局护盾
+const GOLD_UPGRADE_DEFS := [
+	{"id":"power",  "icon":"🗡", "name":"锋锐研磨", "base":6,  "step":4, "max":6},
+	{"id":"line",   "icon":"🔗", "name":"连线精通", "base":8,  "step":6, "max":4},
+	{"id":"joker",  "icon":"🔮", "name":"护符共鸣", "base":12, "step":8, "max":4},
+	{"id":"shield", "icon":"🛡", "name":"壁垒",     "base":5,  "step":3, "max":5},
+]
 # 注：不设自动停止上限——转轮何时停完全由玩家决定，不操作就一直转。
 signal spin_finished                   # 全部转轮停下后发出，_on_spin_pressed 等待它
 
@@ -214,6 +232,8 @@ var shop_offers: Array = []            # S7：当前商店货架（随机刷新�
 # 本局每件物品的实际购入价（path -> 金币），用于卖出时返还约50%（见 _sell_price）。
 # 新一局清空（_full_reset）。
 var paid_price: Dictionary = {}
+# S12：局内金币升级等级（每局清零，管局内临时）。效果经聚合层/结算读取，不单独存字段。
+var gold_upgrades := {"power": 0, "line": 0, "joker": 0, "shield": 0}
 
 # M5 元进度（铁砧锻造 + 存档持久化，跨局保留）
 # weapon_upgrades: weapon_path -> int（该武器主符号额外权重，转轮升级）
@@ -925,6 +945,68 @@ func _on_shop_sell_pressed(path: String, kind: String) -> void:
 	hud._refresh_meta()
 
 
+# ---------------------------------------------------------------------------
+# S12 局内金币升级（深化已有乘区 · 每局清零 · 管局内临时）
+# 效果经聚合层(_agg_*)与 _start_room 读取；此处仅管等级/价格/购买。
+# ---------------------------------------------------------------------------
+func _gold_upgrade_def(id: String) -> Dictionary:
+	for d in GOLD_UPGRADE_DEFS:
+		if d["id"] == id:
+			return d
+	return {}
+
+
+func _gold_upgrade_cost(id: String) -> int:
+	var d = _gold_upgrade_def(id)
+	if d.is_empty():
+		return 999
+	var lvl = gold_upgrades.get(id, 0)
+	return max(1, int(d["base"]) + lvl * int(d["step"]))
+
+
+func _gold_upgrade_desc(d: Dictionary, lvl: int) -> String:
+	match d["id"]:
+		"power":  return "本局所有伤害符号基础 +%d（当前 +%d）" % [POWER_STEP, lvl * POWER_STEP]
+		"line":   return "连线倍率 +%d（2连变×%d、3连变×%d，仅匹配生效）" % [LINE_STEP, 2 + LINE_STEP, 3 + LINE_STEP]
+		"joker":  return "本局伤害乘区 ×%s（与护符/增益同轨，当前 ×%s）" % [ElementCounter.fmt_mult(1.0 + JOKER_STEP), ElementCounter.fmt_mult(1.0 + min(float(lvl) * JOKER_STEP, JOKER_CAP_FACTOR - 1.0))]
+		"shield": return "每房开局护盾 +%d（当前 +%d）" % [SHIELD_STEP, lvl * SHIELD_STEP]
+	return ""
+
+
+func _gold_upgrade_defs() -> Array:
+	var out := []
+	for d in GOLD_UPGRADE_DEFS:
+		var id = d["id"]
+		var lvl = gold_upgrades.get(id, 0)
+		var cost = _gold_upgrade_cost(id)
+		var maxed = lvl >= int(d["max"])
+		out.append({
+			"id": id, "icon": d["icon"], "name": d["name"],
+			"desc": _gold_upgrade_desc(d, lvl), "level": lvl, "max": int(d["max"]),
+			"cost": cost, "maxed": maxed, "can_afford": (not maxed) and gold >= cost,
+		})
+	return out
+
+
+func _on_gold_upgrade_pressed(id: String) -> void:
+	var d = _gold_upgrade_def(id)
+	if d.is_empty():
+		return
+	var lvl = gold_upgrades.get(id, 0)
+	if lvl >= int(d["max"]):
+		hud._log("金币升级「%s」已满级" % d["name"])
+		return
+	var cost = _gold_upgrade_cost(id)
+	if gold < cost:
+		hud._log("金币不足（%s 需 %d，现有 %d）" % [d["name"], cost, gold])
+		return
+	gold -= cost
+	gold_upgrades[id] = lvl + 1
+	hud._log("金币升级 %s → Lv%d（-%d 金，余 %d）" % [d["name"], gold_upgrades[id], cost, gold])
+	hud._refresh_shop()
+	hud._refresh_meta()
+
+
 func _on_shop_leave_pressed() -> void:
 	hud.shop_screen.visible = false
 	_start_room(room_index + 1)
@@ -973,6 +1055,7 @@ func _full_reset() -> void:
 	skill_max = int(SLOT_INIT["skill"])
 	charm_max = int(SLOT_INIT["passive"])
 	paid_price = {}   # 新一局购入价记录清空
+	gold_upgrades = {"power": 0, "line": 0, "joker": 0, "shield": 0}   # S12：局内金币升级每局清零
 	# M4：开新一局，重置本局加成层
 	run_symbol_bonus = {}
 	run_power_bonus = 0
@@ -1067,6 +1150,7 @@ func _start_room(idx: int) -> void:
 	player_shield = 0
 	player_shield += run_shield_next      # M4：上一房奖励的结界在本房开局生效
 	player_shield += charm_room_shield    # M6：守望护符每房开局护盾
+	player_shield += gold_upgrades["shield"] * SHIELD_STEP   # S12：壁垒——每房开局护盾（韧性保底）
 	run_shield_next = 0
 	pending_jam_reel = -1
 	pending_lock_reel = -1
@@ -1563,7 +1647,9 @@ func _reset_grid(fill_random: bool) -> void:
 			hud._refresh_cell(reel, row)
 
 
-func _contribute(sym: SymbolData, mult: int, acc: Dictionary, elem: String) -> void:
+func _contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> void:
+	# 连线精通(S12)：仅当实落 ≥2（确为连线匹配）时才叠加倍率，单符号必结算不受影响
+	var mult = raw + (gold_upgrades["line"] * LINE_STEP if raw >= 2 else 0)
 	var bonus = _agg_power_flat() + _weapon_base_map.get(sym.resource_path, 0)   # F-0 聚合层 + 武器 base 线性加成（膨胀双轨）
 	var flat = sym.base + bonus
 	# 逐符号元素克制倍率（Phase G v2.0：通用元素乘区，奖罚并存·温和）
@@ -1583,7 +1669,7 @@ func _contribute(sym: SymbolData, mult: int, acc: Dictionary, elem: String) -> v
 		"special":
 			# special：1 同即生效（base×连线数×克制）；三连触发暴击倍率（连线数轴上唯一可控的战斗内爆发）
 			var sv = flat * mult * em
-			var crit = mult >= 3
+			var crit = raw >= 3   # 暴击按实落数判定（连线精通不假造三连暴击）
 			if crit:
 				sv *= SPECIAL_TRIPLE_CRIT
 				acc["special_triple"] = true   # S10 T5 钩子埋点：三连发生标记，供 BOSS 机制感知
@@ -1711,10 +1797,13 @@ func _evaluate(chain_mult := 1.0) -> void:
 		var tail := []
 		var cm = charm_damage_mult
 		var bm = _buff_damage_mult()
+		var jf = 1.0 + min(float(gold_upgrades["joker"]) * JOKER_STEP, JOKER_CAP_FACTOR - 1.0)
 		if cm != 1.0:
 			tail.append("护符×%s" % ElementCounter.fmt_mult(cm))
 		if bm != 1.0:
 			tail.append("增益×%s" % ElementCounter.fmt_mult(bm))
+		if jf != 1.0:
+			tail.append("共鸣×%s" % ElementCounter.fmt_mult(jf))
 		if assault != 1:
 			tail.append("强袭×%s" % ElementCounter.fmt_mult(float(assault)))
 		if boss_dmg_mult != 1.0:
@@ -1761,7 +1850,7 @@ func _evaluate(chain_mult := 1.0) -> void:
 
 # —— 加法型标量轴（多个来源直接相加）——
 func _agg_power_flat() -> float:
-	return float(run_power_bonus) + float(charm_power_bonus) + _buff_power()
+	return float(run_power_bonus) + float(charm_power_bonus) + _buff_power() + float(gold_upgrades["power"]) * POWER_STEP
 
 func _agg_shield() -> float:
 	return _buff_shield() + float(charm_shield_trickle)
@@ -1772,8 +1861,9 @@ func _agg_regen() -> float:
 
 # —— 乘法型轴（各乘区独立相乘，基值 1.0）——
 func _agg_damage_mult() -> float:
-	# 护符全局乘区（joker）× 增益乘区（Phase C）
-	return charm_damage_mult * _buff_damage_mult()
+	# 护符全局乘区（joker）× 增益乘区（Phase C）× 金币共鸣（S12·深化 lane2，不新增乘区）
+	var j = 1.0 + min(float(gold_upgrades["joker"]) * JOKER_STEP, JOKER_CAP_FACTOR - 1.0)
+	return charm_damage_mult * _buff_damage_mult() * j
 
 # —— 符号权重轴（本局符号灌注；武器级权重见 _build_pool）——
 func _agg_symbol_weight_mod(sym: SymbolData) -> float:
