@@ -143,6 +143,7 @@ const _STRIP_MIN_CELLS := 30           # 转轮带最小格数（整份平铺补
 const RARE_FLOOR_FRAC := 0.025   # RARE 档保底下限（§2：≥2.5%）
 const RARE_MIN_CELLS  := 2       # RARE 档保底绝对下限（§2：≥2 格）
 const RARE_CEIL_FRAC := 0.06     # RARE 档频率上限（§2：≤6%；S6 多源 special 推高后锁回此档）
+const MAX_SYMBOL_FRAC := 0.12    # S4：单符号（非 filler）最大占比，防 burn 式垄断（§5 异常#3）
 const SPECIAL_TRIPLE_CRIT := 2.0        # special 三连暴击倍率：连线数轴上唯一可控的战斗内爆发（清晰可见，不做黑箱级联）
 const CHAIN_MAX := 4                      # 连锁重触发上限：special 三连最多再免费重转 3 次（共 4 发）
 const CHAIN_STEP := 1.5                   # 连锁倍率：每多一层 ×1.5（叠在 special×CRIT 之上，封顶 ≈ ×3.4）
@@ -1366,6 +1367,9 @@ func _build_strips() -> void:
 	# S10 T2：深渊侵蚀注入额外废铁（boss_trash 格/列，由 gimmick 累积设定）
 	for _i in boss_trash:
 		base.append([TRASH_SYMBOL, "none"])
+	# S4（符号规范 §5 异常#3）：单符号最大占比上限，防共享符号被多武器累加垄断
+	# （如 burn 在火焰剑+火焰法杖上累加可占 15%+）。先裁上限，再走 RARE 保底补下限。
+	_enforce_symbol_cap(base)
 	# S2（符号规范 §2 G2）：RARE 档硬保底——武器/技能无上限导致轮长膨胀时，
 	# 低权 RARE 符号会被埋到"整房不出现"。治理层读 rarity_tier 强制其占 ≥ RARE_FLOOR_FRAC 带格。
 	_enforce_tier_floor(base)
@@ -1377,6 +1381,38 @@ func _build_strips() -> void:
 			copy[i] = copy[j]
 			copy[j] = tmp
 		reel_strips.append(copy)
+
+
+# S4（符号规范 §5 异常#3）：单符号最大占比上限。
+# 共享符号（如 burn 被火焰剑+火焰法杖累加）可被多武器累加垄断到 15%+，破坏"各符号频率透明"哲学。
+# 治理层按 resource_path 统计每符号格数，把任意非 filler 符号占比削到 MAX_SYMBOL_FRAC 以下。
+# 注意：filler(trash) 由 G5/S5 单独治理（稀释刹车），不参与本上限；RARE 档受 RARE_CEIL_FRAC(6%) 约束，
+# 远低于本上限，故不会被误裁。裁剪只移除超额格、不改结算分支。
+func _enforce_symbol_cap(base: Array) -> void:
+	var total := float(base.size())
+	var max_cells: int = int(total * MAX_SYMBOL_FRAC)
+	var counts := {}
+	for cell in base:
+		var sym: SymbolData = cell[0]
+		if sym == null or sym.rarity_tier == "filler":
+			continue
+		var key: String = sym.resource_path
+		counts[key] = counts.get(key, 0) + 1
+	for key in counts:
+		var cnt: int = counts[key]
+		if cnt <= max_cells:
+			continue
+		var excess: int = cnt - max_cells
+		var removed := 0
+		for i in range(base.size() - 1, -1, -1):
+			if removed >= excess:
+				break
+			var sym: SymbolData = base[i][0]
+			if sym != null and sym.resource_path == key:
+				base.remove_at(i)
+				removed += 1
+		if hud != null:
+			hud._log("✂ 单符号上限：%s 砍至 %d 格（占比 ≈ %.0f%%）" % [key.get_file(), max_cells, max_cells / total * 100.0])
 
 
 # S2（符号规范 §2 G2）：稀有度档位保底——RARE 档硬保底。
