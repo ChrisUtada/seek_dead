@@ -411,7 +411,7 @@ func _sel_arr(cat: String) -> Array:
 func _cat_max(cat: String) -> int:
 	match cat:
 		"weapon":  return loadout_max
-		"active":  return CONSUMABLE_CAP
+		"active":  return int(SLOT_INIT["active"])   # 整备勾选上限 = 1（腰带容量见 CONSUMABLE_CAP）
 		"passive": return charm_max
 		"skill":    return skill_max
 	return 0
@@ -422,7 +422,7 @@ func _cat_cap(cat: String) -> int:
 	match cat:
 		"weapon":  return UNCAPPED   # 进池：稀释效应自身即刹车
 		"skill":    return UNCAPPED   # 进池：同上
-		"active":  return CONSUMABLE_CAP
+		"active":  return int(SLOT_INIT["active"])   # 整备天花板 = 1（消耗品不「买即开槽」，改为腰带追加，容量见 CONSUMABLE_CAP）
 		"passive": return CHARM_CAP
 	return 0
 

@@ -408,7 +408,7 @@ func _build_loadout_screen() -> void:
 	var bot = HBoxContainer.new()
 	bot.add_theme_constant_override("separation", 10)
 	root.add_child(bot)
-	loadout_count_label = _label("武器 0/%d · 技能 0/%d · 消耗品 0/%d · 护符 0/%d" % [controller.loadout_max, controller.skill_max, controller.CONSUMABLE_CAP, controller.charm_max], TypeScale.META)
+	loadout_count_label = _label("武器 0/%d · 技能 0/%d · 消耗品 0/%d · 护符 0/%d" % [controller.loadout_max, controller.skill_max, controller._cat_max("active"), controller.charm_max], TypeScale.META)
 	loadout_count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	bot.add_child(loadout_count_label)
 	var bot_spacer = Control.new()
@@ -603,7 +603,7 @@ func _make_item_card(data: Resource, path: String, kind: String) -> Dictionary:
 # 卡片点击：三分类通用 toggle（受各自分类上限约束，互不算总）
 func _update_loadout_cards_visual() -> void:
 	var wfull = controller.selected_loadout.size() >= controller._cat_max("weapon")
-	var cfull = controller.consumable_slots.size() >= controller._cat_max("active")
+	var cfull = controller._sel_arr("active").size() >= controller._cat_max("active")
 	var hfull = controller.selected_charms.size() >= controller._cat_max("passive")
 	var bfull = controller.selected_skills.size() >= controller._cat_max("skill")
 	for card in loadout_cards:
@@ -917,9 +917,10 @@ func _make_shop_card(offer: Dictionary) -> Button:
 	var kind_name = {"weapon": "武器", "passive": "护符", "active": "物品", "skill": "技能"}.get(offer["kind"], "物品")
 	vb.add_child(_label("%s%s · %s" % [_source_tag(offer["kind"]), kind_name, offer["name"]], 12))
 	var price = controller._shop_price(offer["kind"])   # 价格随当前持有数递增；卖出回落，换装成本=买卖价差（防刷价）
-	var cap = controller._cat_max(offer["kind"])          # 该类当前上限
-	var cur = controller.consumable_slots.size() if (offer["kind"] == "active") else controller._sel_arr(offer["kind"]).size()   # 消耗品按腰带实占数
-	var can_grow_slot = controller._can_grow_slot(offer["kind"])   # 进池类恒 true（无天花板）
+	var is_active = (offer["kind"] == "active")
+	var cap = controller.CONSUMABLE_CAP if is_active else controller._cat_max(offer["kind"])          # 消耗品按腰带总容量 4；其余按整备上限
+	var cur = controller.consumable_slots.size() if is_active else controller._sel_arr(offer["kind"]).size()   # 消耗品按腰带实占数
+	var can_grow_slot = (not is_active) and controller._can_grow_slot(offer["kind"])   # 消耗品不「开槽」、仅追加腰带格
 	var slot_full = (cur >= cap) and not can_grow_slot
 	var can_buy = (not offer["sold"]) and controller.gold >= price and not slot_full
 	var status: String
@@ -928,7 +929,8 @@ func _make_shop_card(offer: Dictionary) -> Button:
 	elif controller.gold < price:
 		status = "金币不足"
 	elif slot_full:
-		status = "槽位已满 %d/%s" % [cur, controller._cap_text(offer["kind"])]
+		var cap_txt = controller.CONSUMABLE_CAP if is_active else controller._cap_text(offer["kind"])
+		status = "槽位已满 %d/%s" % [cur, cap_txt]
 	elif cur >= cap:
 		status = "开槽 %d 金" % price   # 本次购买会把该类槽 +1
 	else:
