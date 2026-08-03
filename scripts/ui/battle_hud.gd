@@ -574,20 +574,23 @@ func _make_item_card(data: Resource, path: String, kind: String) -> Dictionary:
 						continue
 					parts.append("%s×%d" % [sw.symbol.label, int(sw.weight)])
 				line1 = " ".join(parts)
-		line2 = "特殊: 无"
-		if data != null:
-			var wd := data as WeaponData
+			# P5：整备屏显示强度轴（攻击力 + 命中率 + 特殊符号），让玩家理解「稀有度→强度」
+			var sp_name := "无"
 			if wd != null and wd.symbols != null:
 				for sw in wd.symbols:
 					if sw != null and sw.symbol != null and sw.symbol.kind == "special":
-						line2 = "特殊: %s" % sw.symbol.name
+						sp_name = sw.symbol.name
 						break
+			line2 = "攻击力 %d · 命中 %.0f%% · 特殊 %s" % [int(wd.base_power), wd.hit_rate * 100.0, sp_name]
 	elif kind == "skill":
 		name = data.buff_name if (data != null) else path.get_file().get_basename()
 		if data != null:
 			line1 = "%s %s" % [data.icon, data.description]
+			# P5：技能同样显示强度轴（攻击力 + 命中率）
+			var sym_txt := "无符号"
 			if data.symbol != null:
-				line2 = "符号 %s×%d · 持续 %d 回合" % [data.symbol.label, int(data.weight), data.symbol.buff_turns]
+				sym_txt = "符号 %s×%d · 持续 %d 回合" % [data.symbol.label, int(data.weight), data.symbol.buff_turns]
+			line2 = "攻击力 %d · 命中 %.0f%% · %s" % [int(data.base_power), data.hit_rate * 100.0, sym_txt]
 	else:
 		name = data.item_name if (data != null) else path.get_file().get_basename()
 		if data != null:
@@ -809,7 +812,7 @@ func _build_meta_screen() -> void:
 	meta_screen.mouse_filter = Control.MOUSE_FILTER_STOP
 	var v = Screen.build_scaffold(meta_screen, Palette.BG_REWARD, {"l": 18, "r": 18, "t": 14, "b": 14}, 6)
 	v.add_child(_label("★ 通关一局！选择一项元进度升级（持久生效）", TypeScale.OVERLAY))
-	v.add_child(_label("武器基础伤害线性成长 × 护符伤害乘区增值——下一局起爆炸", TypeScale.META))
+	v.add_child(_label("武器基础伤害 / 命中率 线性成长 × 护符伤害乘区增值——下一局起爆炸", TypeScale.META))
 	var center = CenterContainer.new()      # 三选一固定 ≤3 张，居中呈现（不需要滚动）
 	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL

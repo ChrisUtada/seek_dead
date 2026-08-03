@@ -177,6 +177,7 @@ const CHAIN_MAX := 4                      # 连锁重触发上限：special 三�
 const CHAIN_STEP := 1.5                   # 连锁倍率：每多一层 ×1.5（叠在 special×CRIT 之上，封顶 ≈ ×3.4）
 # —— 每局结束元进度升级（膨胀双轨：武器 base 线性成长 × 护符乘数增值）——
 const WEAPON_BASE_STEP := 3              # 每级武器基础伤害 +3（线性，随护符/连锁放大）
+const WEAPON_HIT_STEP := 0.05            # P5：每级武器命中率 +5%（降低废铁占比，MISS_FLOOR 兜底保证转轮永远有 miss）
 const CHARM_MULT_STEP := 0.12            # 每级护符伤害乘区 +0.12（乘数增值，复利但封顶）
 const CHARM_MULT_CAP := 6.0              # 总护符乘区硬上限（防失控膨胀）
 const META_ANVIL_BONUS := 2              # 元进度三选一选「铁砧点数」时获得的点数
@@ -283,7 +284,7 @@ var gold_upgrades := {"power": 0, "line": 0, "joker": 0, "shield": 0}
 # M5 元进度（铁砧锻造 + 存档持久化，跨局保留）
 # weapon_upgrades: weapon_path -> int（该武器主符号额外权重，转轮升级）
 # interference_resist: int（抗干扰等级，降低敌人干扰概率）
-var meta: Dictionary = {"anvil_points": 0, "weapon_upgrades": {}, "interference_resist": 0, "weapon_base_bonus": {}, "charm_upgrades": {}}
+var meta: Dictionary = {"anvil_points": 0, "weapon_upgrades": {}, "interference_resist": 0, "weapon_base_bonus": {}, "charm_upgrades": {}, "weapon_hit_bonus": {}}
 const ANVIL_SAVE_KEY := "anvil_meta"   # 铁砧元进度存于 SaveSystem.lobby_data
 
 # 仅 1 行 3 格。特殊符号需 3 同才触发；普通符号单颗即结算，出现 n 次 ×n。
@@ -384,6 +385,15 @@ func _build_pool(loadout: Array) -> void:
 				continue
 			var sp = sw.symbol.resource_path
 			_weapon_power_map[sp] = max(_weapon_power_map.get(sp, 0.0), eff)
+	# Phase C：主动技能符号同样按「技能 base_power」缩放（补 P3 缺口：原仅武器参与功率映射）。
+	# 共享符号若同时被武器与技能持有，取有效攻击力最高者（反映「最强来源」）。
+	for path in selected_skills:
+		var sd: SkillData = load(path)
+		if sd == null or sd.symbol == null:
+			continue
+		var eff: float = sd.base_power + float(meta["weapon_base_bonus"].get(path, 0))
+		var sp = sd.symbol.resource_path
+		_weapon_power_map[sp] = max(_weapon_power_map.get(sp, 0.0), eff)
 	# Phase C：所携带的主动技能，其符号同样注入转轮池（与武器符号同池竞争）
 	for path in selected_skills:
 		var sd: SkillData = load(path)
@@ -420,7 +430,7 @@ func _build_pool(loadout: Array) -> void:
 		var wd: WeaponData = load(path)
 		if wd == null:
 			continue
-		miss_sum += (1.0 - wd.hit_rate)
+		miss_sum += (1.0 - clamp(wd.hit_rate + float(meta["weapon_hit_bonus"].get(path, 0.0)), 0.0, 1.0))
 		miss_n += 1
 	var mf := 0.15
 	if miss_n > 0:
@@ -670,6 +680,17 @@ func _roll_meta_choices() -> Array:
 			"desc": "伤害乘区 ×%s（Lv%d→%d，总乘区封顶×%s）" % [
 				ElementCounter.fmt_mult(1.0 + CHARM_MULT_STEP), clv, clv + 1, ElementCounter.fmt_mult(CHARM_MULT_CAP)],
 		})
+	# P5：武器命中率升级候选（与攻击力并列的强度轴升级，降低废铁占比，MISS_FLOOR 兜底）
+	for p in selected_loadout:
+		var wd: WeaponData = load(p)
+		if wd == null:
+			continue
+		var cur = meta["weapon_hit_bonus"].get(p, 0.0)
+		meta_pool.append({
+			"kind": "weapon_hit", "path": p,
+			"icon": "🎯", "label": wd.weapon_name,
+			"desc": "命中率 +%d%%（已 +%d%%，废铁更少）" % [int(WEAPON_HIT_STEP * 100), int(cur * 100)],
+		})
 	# 铁砧点数：兜底候选，保证候选池永不为空
 	meta_pool.append({
 		"kind": "anvil", "path": "",
@@ -691,6 +712,10 @@ func _on_meta_choice_chosen(opt: Dictionary) -> void:
 			var p = opt["path"]
 			meta["weapon_base_bonus"][p] = meta["weapon_base_bonus"].get(p, 0) + WEAPON_BASE_STEP
 			hud._log("元进度：%s 基础伤害 +%d（已 +%d）" % [opt["label"], WEAPON_BASE_STEP, meta["weapon_base_bonus"][p]])
+		"weapon_hit":
+			var p = opt["path"]
+			meta["weapon_hit_bonus"][p] = clamp(meta["weapon_hit_bonus"].get(p, 0.0) + WEAPON_HIT_STEP, 0.0, 1.0)
+			hud._log("元进度：%s 命中率 +%d%%（已 +%d%%）" % [opt["label"], int(WEAPON_HIT_STEP * 100), int(meta["weapon_hit_bonus"][p] * 100)])
 		"charm":
 			var p = opt["path"]
 			meta["charm_upgrades"][p] = meta["charm_upgrades"].get(p, 0) + 1
@@ -835,7 +860,7 @@ func _apply_boss_reward(cand: Dictionary) -> void:
 # M5 元进度（铁砧锻造 + 存档持久化）
 # ---------------------------------------------------------------------------
 func _load_meta() -> void:
-	var defaults := {"anvil_points": 0, "weapon_upgrades": {}, "interference_resist": 0, "weapon_base_bonus": {}, "charm_upgrades": {}}
+	var defaults := {"anvil_points": 0, "weapon_upgrades": {}, "interference_resist": 0, "weapon_base_bonus": {}, "charm_upgrades": {}, "weapon_hit_bonus": {}}
 	var lb = SaveSystem.load_lobby_data()
 	if lb.has(ANVIL_SAVE_KEY) and lb[ANVIL_SAVE_KEY] is Dictionary:
 		var parsed: Dictionary = lb[ANVIL_SAVE_KEY]

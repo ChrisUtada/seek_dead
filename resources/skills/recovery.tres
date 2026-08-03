@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="SkillData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/items/skill_data.gd" id="1"]
+[ext_resource type="Resource" path="res://resources/symbols/heal.tres" id="2"]
+
+[resource]
+script = ExtResource("1")
+buff_id = ""
+category = "skill"
+rarity = "common"
+base_power = 32.0
+hit_rate = 0.90
+buff_name = "治疗术"
+icon = "✚"
+description = "回复术：落线时恢复生命（随技能强度缩放）"
+symbol = ExtResource("2")
+weight = 3.0

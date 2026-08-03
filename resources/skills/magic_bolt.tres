@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="SkillData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/items/skill_data.gd" id="1"]
+[ext_resource type="Resource" path="res://resources/symbols/arcane_bolt.tres" id="2"]
+
+[resource]
+script = ExtResource("1")
+buff_id = ""
+category = "skill"
+rarity = "uncommon"
+base_power = 28.0
+hit_rate = 0.88
+buff_name = "奥术飞弹"
+icon = "✦"
+description = "远程奥术弹：落线时造成 light 属性伤害（命中率随技能）"
+symbol = ExtResource("2")
+weight = 3.0
