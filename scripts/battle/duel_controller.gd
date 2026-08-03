@@ -85,12 +85,16 @@ var charm_max      := 1
 const REELS = 3
 const ROWS = 1
 
-# 房间难度曲线（ante）：敌方 HP/ATK 随房间序号 n 指数缩放 (1+alpha)^n。
-# 玩家膨胀（武器升级/护符）需敌方同步变肉，否则中期秒怪、游戏结束。初值待真机调参。
-const ANTE_ALPHA_HP := 0.15
-const ANTE_ALPHA_ATK := 0.10
-const TEST_PLAYER_DMG_MULT := 1.5   # ⚠ 测试用临时倍率：拉高玩家总伤害，便于打通幕三 BOSS 验证 run 收尾/元进度三选一。正式平衡时改回 1.0 或整行删除。
-const TEST_STATUS_DMG_MULT := 3.0   # ⚠ 测试用临时倍率：拉高给敌人的状态 DoT（灼烧/毒）伤害，原 base 仅 3~4/层/回合，幕三 BOSS 血量高时几乎可忽略。正式平衡时改回 1.0 或整行删除。
+# 房间难度曲线（ante）：按「幕间台阶 × 幕内爬升」两段缩放，取代原单一 α 全局 idx 缩放。
+# 等价关系：原 1.15^idx（每幕恰 4 房，idx=4*(act-1)+幕内位置）= (1.15^4)^(act-1)·1.15^(幕内位置)
+#   = ACT_STEP^(act-1) · ROOM_STEP^(幕内位置)。解耦两个旋钮，且对幕内房数变化稳健（boss 永远幕内位置=3=天然峰值）。
+# 当前常量刻意保留用户 F6 验证过的手感（漂移 <0.1%）：幕1/2/3 BOSS 缩放后 HP ≈ 266/771/2140。
+const ANTE_ACT_STEP_HP  := 1.75   # 幕间台阶：每进一幕敌方 HP ×1.75（原 1.15^4）
+const ANTE_ACT_STEP_ATK := 1.46   # 幕间台阶：每进一幕敌方 ATK ×1.46（原 1.10^4）
+const ANTE_ROOM_STEP_HP := 1.15   # 幕内爬升：同幕每过一房敌方 HP ×1.15
+const ANTE_ROOM_STEP_ATK := 1.10  # 幕内爬升：同幕每过一房敌方 ATK ×1.10
+const TEST_PLAYER_DMG_MULT := 1.5   # 玩家直击总伤害永久倍率（F6 验证手感合理，保留为正式平衡值）。
+const TEST_STATUS_DMG_MULT := 3.0  # 给敌人的状态 DoT（灼烧/毒）永久倍率（原 base 仅 3~4/层/回合，幕三 BOSS 高血量下需此倍率才可见；F6 验证合理，保留）。
 
 # M4 房奖励池（每清一房随机 3 选 1；Boss 房走同池但标为「残余物」）。
 # Phase D 资源化：改为扫描 resources/rewards/*.tres（RewardData），见 _ready 内填充。
@@ -1150,9 +1154,16 @@ func _start_room(idx: int) -> void:
 	room_index = idx
 	var r: RoomData = ROOMS[idx]
 	enemy_name = r.name
-	# ante 难度曲线：RoomData.hp/atk 视为基础值，按房间序号 idx 缩放（(1+α)^idx）
-	var hp_scale = pow(1.0 + ANTE_ALPHA_HP, idx)
-	var atk_scale = pow(1.0 + ANTE_ALPHA_ATK, idx)
+	# ante 难度曲线：RoomData.hp/atk 视为基础值，按「幕间台阶 × 幕内爬升」缩放。
+	# act = RoomData.act（1/2/3）；幕内位置 = 本房之前与本房同幕房数 - 1（boss 恒为 3 = 幕内峰值）。
+	var a = r.act
+	var ria = 0   # room-in-act：同幕内序号（0 起）
+	for i in range(room_index + 1):
+		if ROOMS[i].act == a:
+			ria += 1
+	ria -= 1
+	var hp_scale = pow(ANTE_ACT_STEP_HP, a - 1) * pow(ANTE_ROOM_STEP_HP, ria)
+	var atk_scale = pow(ANTE_ACT_STEP_ATK, a - 1) * pow(ANTE_ROOM_STEP_ATK, ria)
 	enemy_hp_max = int(round(float(r.hp) * hp_scale))
 	enemy_hp = enemy_hp_max
 	enemy_atk = int(round(float(r.atk) * atk_scale))
@@ -1742,7 +1753,7 @@ func _contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> vo
 
 
 # S2：伤害分解行（§5.2 标为 P0——"爽感的一半来自看懂这一下为什么这么大"；
-# 同时是 ante 调参（ANTE_ALPHA_HP/ATK）的唯一 debug 依据）。
+# 同时是 ante 调参（ANTE_ACT_STEP_HP/ATK、ANTE_ROOM_STEP_HP/ATK）的唯一 debug 依据）。
 # 逐符号记录「基础 × 连线 × 克制 = 小计」，回合级乘区（护符/增益/强袭）在 _evaluate 汇总。
 func _push_dmg_line(acc: Dictionary, sym: SymbolData, elem: String, flat, bonus, mult: int, em: float, v: float, crit: bool) -> void:
 	if not acc.has("lines"):
