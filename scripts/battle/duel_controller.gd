@@ -360,7 +360,8 @@ func _build_pool(loadout: Array) -> void:
 		if bonus > 0 and not syms.is_empty():
 			var di = 0; var dw = -1.0
 			for i in syms.size():
-				if syms[i][1] > dw:/n					dw = syms[i][1]; di = i
+				if syms[i][1] > dw:
+					dw = syms[i][1]; di = i
 			syms[di][1] += float(bonus)
 		var hit: float = clamp(wd.hit_rate + float(meta["weapon_hit_bonus"].get(path, 0.0)), 0.0, 1.0)
 		pool_items.append({"name": wd.weapon_name, "hit": hit, "syms": syms})
