@@ -137,6 +137,11 @@ var _spin_ticks := 0                   # 已跳次数（用于加速上限）
 const _SPIN_BASE_WAIT := 0.15          # 起始每跳间隔（秒）——调慢以便看清落点、凑三连 special
 const _SPIN_MIN_WAIT := 0.06           # 最快每跳间隔（封顶也调慢，整体更易控）
 const _STRIP_MIN_CELLS := 30           # 转轮带最小格数（整份平铺补足，不改变符号占比）
+# S2（符号规范 §2 G2）：稀有度档位保底——治理层直接读 SymbolData.rarity_tier 强制。
+# 武器/技能无上限 → 轮长随携带数膨胀 → 低权 RARE 符号被埋成"整房不出现"。保底保证 RARE 档
+# 在任何携带规模下都占 ≥ RARE_FLOOR_FRAC 的带格（或至少 RARE_MIN_CELLS 格），使"整房不出现"不可能。
+const RARE_FLOOR_FRAC := 0.025   # RARE 档保底下限（§2：≥2.5%）
+const RARE_MIN_CELLS  := 2       # RARE 档保底绝对下限（§2：≥2 格）
 const SPECIAL_TRIPLE_CRIT := 2.0        # special 三连暴击倍率：连线数轴上唯一可控的战斗内爆发（清晰可见，不做黑箱级联）
 const CHAIN_MAX := 4                      # 连锁重触发上限：special 三连最多再免费重转 3 次（共 4 发）
 const CHAIN_STEP := 1.5                   # 连锁倍率：每多一层 ×1.5（叠在 special×CRIT 之上，封顶 ≈ ×3.4）
@@ -1360,6 +1365,9 @@ func _build_strips() -> void:
 	# S10 T2：深渊侵蚀注入额外废铁（boss_trash 格/列，由 gimmick 累积设定）
 	for _i in boss_trash:
 		base.append([TRASH_SYMBOL, "none"])
+	# S2（符号规范 §2 G2）：RARE 档硬保底——武器/技能无上限导致轮长膨胀时，
+	# 低权 RARE 符号会被埋到"整房不出现"。治理层读 rarity_tier 强制其占 ≥ RARE_FLOOR_FRAC 带格。
+	_enforce_tier_floor(base)
 	for r in REELS:
 		var copy = base.duplicate(true)
 		for i in range(copy.size() - 1, 0, -1):
@@ -1368,6 +1376,31 @@ func _build_strips() -> void:
 			copy[i] = copy[j]
 			copy[j] = tmp
 		reel_strips.append(copy)
+
+
+# S2（符号规范 §2 G2）：稀有度档位保底——RARE 档硬保底。
+# base 元素为 [SymbolData, 有效元素]。读 symbol.rarity_tier，保证 RARE 档在最终带长中
+# 至少占 RARE_FLOOR_FRAC（或至少 RARE_MIN_CELLS 格），使"整房不出现"不可能发生。
+# 注意：这是「已存在 RARE 符号」的保底；当前 RARE 仅 flame_special（需携火焰法杖），
+# 若池内无任何 RARE 符号则无米之炊（多源 RARE 可用性属 S6）。武器数膨胀的稀释靠此保底吸收。
+func _enforce_tier_floor(base: Array) -> void:
+	var total := base.size()
+	var rare_idx: Array = []
+	for i in range(base.size()):
+		var sym: SymbolData = base[i][0]
+		if sym != null and sym.rarity_tier == "rare":
+			rare_idx.append(i)
+	var needed = max(RARE_MIN_CELLS, ceil(total * RARE_FLOOR_FRAC))
+	if rare_idx.size() >= needed or rare_idx.is_empty():
+		return
+	var k := 0
+	while rare_idx.size() < needed:
+		var src: Array = base[rare_idx[k % rare_idx.size()]]
+		base.append([src[0], src[1]])
+		rare_idx.append(base.size() - 1)
+		k += 1
+	if hud != null:
+		hud._log("🔥 RARE 保底：rare 抬至 %d 格 / 带长 %d" % [needed, base.size()])
 
 
 # 节拍器回调：推进仍在旋转的转轮并逐步加速。没有自动停止——只有玩家按停才会锁定。
