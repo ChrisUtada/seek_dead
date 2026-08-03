@@ -7,6 +7,7 @@ script = ExtResource("1")
 label = "🔥"
 name = "燃"
 kind = "status"
+rarity_tier = "common"
 base = 4.0
 element = "fire"
 status_type = "burn"

@@ -7,6 +7,7 @@ script = ExtResource("1")
 label = "💰"
 name = "金币"
 kind = "gold"
+rarity_tier = "util"
 base = 0.0
 element = "none"
 status_type = ""

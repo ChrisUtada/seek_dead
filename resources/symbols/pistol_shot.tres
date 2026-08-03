@@ -7,6 +7,7 @@ script = ExtResource("1")
 label = "🔫"
 name = "弹"
 kind = "damage"
+rarity_tier = "common"
 base = 8.0
 element = "none"
 status_type = ""

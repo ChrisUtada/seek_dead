@@ -7,6 +7,7 @@ script = ExtResource("1")
 label = "☠️"
 name = "毒"
 kind = "status"
+rarity_tier = "common"
 base = 3.0
 element = "poison"
 status_type = "poison"
