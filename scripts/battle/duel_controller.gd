@@ -870,9 +870,9 @@ func _on_shop_buy_pressed(offer: Dictionary) -> void:
 	offer["sold"] = true
 	if w >= cap:                        # 本次是扩槽购买 → 该类槽 +1
 		_grow_slot(kind)
-		hud._log("购买 %s（%s槽 +1 → %d/%s，-%d 金，余 %d）" % [offer["name"], _cat_name(kind), _cat_max(kind), _cap_text(kind), price, gold])
+		hud._log("购买 %s（%s槽 +1 → %d/%s，-%d 金，余 %d）" % [offer["name"], _cat_name(kind), _cat_max(kind), _cap_text(kind), buy_price, gold])
 	else:
-		hud._log("购买 %s（-%d 金，余 %d）" % [offer["name"], price, gold])
+		hud._log("购买 %s（-%d 金，余 %d）" % [offer["name"], buy_price, gold])
 	hud._refresh_shop()
 	hud._refresh_meta()
 
@@ -920,7 +920,7 @@ func _on_shop_sell_pressed(path: String, kind: String) -> void:
 		_build_pool(selected_loadout)       # 重建符号池（稀释转轮带）
 	elif kind == "passive":
 		_apply_charms()                      # 重算护符被动（伤害乘区等随持有变化）
-	hud._log("卖出 %s（+%d 金，槽位释放）" % [_shop_name(path, kind), refund])
+	hud._log("卖出 %s（+%d 金，槽位释放）" % [_shop_name(path, kind), sell_refund])
 	hud._refresh_shop()
 	hud._refresh_meta()
 
