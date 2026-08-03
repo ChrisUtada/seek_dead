@@ -247,6 +247,7 @@ var charm_room_shield: int = 0         # 守望护符：每房开局护盾 +N
 var charm_shield_trickle: int = 0      # 守备护符：每回合护盾涓流（整局生效，见 §8）
 var charm_heal_trickle: int = 0       # 回春护符：每回合回复（与瞬回药剂互补）
 var charm_interf_resist: int = 0       # 抗扰护符：本局敌人干扰概率降低（等效抗扰等级）
+var charm_purify_bonus: int = 0        # 丰沛护符：本局净化上限 +N
 
 var charm_damage_mult: float = 1.0      # Phase G v2.0：护符全局乘区（joker），默认 ×1.0
 
@@ -359,9 +360,8 @@ func _build_pool(loadout: Array) -> void:
 		if bonus > 0 and not syms.is_empty():
 			var di = 0; var dw = -1.0
 			for i in syms.size():
-				if syms[i][1] > dw:
-					dw = syms[i][1]; di = i
-		syms[di][1] += float(bonus)
+				if syms[i][1] > dw:/n					dw = syms[i][1]; di = i
+			syms[di][1] += float(bonus)
 		var hit: float = clamp(wd.hit_rate + float(meta["weapon_hit_bonus"].get(path, 0.0)), 0.0, 1.0)
 		pool_items.append({"name": wd.weapon_name, "hit": hit, "syms": syms})
 	# 主动技能同样作为「装备」生成自己的符号段（与武器等权、频率由自身 weight 定）
