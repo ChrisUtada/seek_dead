@@ -142,6 +142,7 @@ const _STRIP_MIN_CELLS := 30           # 转轮带最小格数（整份平铺补
 # 在任何携带规模下都占 ≥ RARE_FLOOR_FRAC 的带格（或至少 RARE_MIN_CELLS 格），使"整房不出现"不可能。
 const RARE_FLOOR_FRAC := 0.025   # RARE 档保底下限（§2：≥2.5%）
 const RARE_MIN_CELLS  := 2       # RARE 档保底绝对下限（§2：≥2 格）
+const RARE_CEIL_FRAC := 0.06     # RARE 档频率上限（§2：≤6%；S6 多源 special 推高后锁回此档）
 const SPECIAL_TRIPLE_CRIT := 2.0        # special 三连暴击倍率：连线数轴上唯一可控的战斗内爆发（清晰可见，不做黑箱级联）
 const CHAIN_MAX := 4                      # 连锁重触发上限：special 三连最多再免费重转 3 次（共 4 发）
 const CHAIN_STEP := 1.5                   # 连锁倍率：每多一层 ×1.5（叠在 special×CRIT 之上，封顶 ≈ ×3.4）
@@ -1390,17 +1391,33 @@ func _enforce_tier_floor(base: Array) -> void:
 		var sym: SymbolData = base[i][0]
 		if sym != null and sym.rarity_tier == "rare":
 			rare_idx.append(i)
-	var needed = max(RARE_MIN_CELLS, ceil(total * RARE_FLOOR_FRAC))
-	if rare_idx.size() >= needed or rare_idx.is_empty():
+	var floor_cells = max(RARE_MIN_CELLS, ceil(total * RARE_FLOOR_FRAC))
+	var ceil_cells = ceil(total * RARE_CEIL_FRAC)
+	# —— 上限治理（S6 配套）：多源 special 推高频率时锁回 §2 的 3–6% ——
+	# 只在"既超上限、又高于保底"时裁剪，绝不下砍到保底以下（保底优先）。
+	if rare_idx.size() > ceil_cells and rare_idx.size() > floor_cells:
+		var excess := rare_idx.size() - ceil_cells
+		var removed := 0
+		for i in range(base.size() - 1, -1, -1):
+			if removed >= excess:
+				break
+			if base[i][0] != null and base[i][0].rarity_tier == "rare":
+				base.remove_at(i)
+				removed += 1
+		if hud != null:
+			hud._log("🔥 RARE 上限治理：rare 砍至 %d 格 / 带长 %d" % [ceil_cells, base.size()])
+		return
+	# —— 下限保底（G2）：保证"整房不出现"不可能 ——
+	if rare_idx.size() >= floor_cells or rare_idx.is_empty():
 		return
 	var k := 0
-	while rare_idx.size() < needed:
+	while rare_idx.size() < floor_cells:
 		var src: Array = base[rare_idx[k % rare_idx.size()]]
 		base.append([src[0], src[1]])
 		rare_idx.append(base.size() - 1)
 		k += 1
 	if hud != null:
-		hud._log("🔥 RARE 保底：rare 抬至 %d 格 / 带长 %d" % [needed, base.size()])
+		hud._log("🔥 RARE 保底：rare 抬至 %d 格 / 带长 %d" % [floor_cells, base.size()])
 
 
 # 节拍器回调：推进仍在旋转的转轮并逐步加速。没有自动停止——只有玩家按停才会锁定。

@@ -7,6 +7,7 @@ script = ExtResource("1")
 label = "💥"
 name = "特殊"
 kind = "special"
+rarity_tier = "rare"
 base = 25.0
 element = "none"
 status_type = ""
