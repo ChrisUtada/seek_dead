@@ -740,11 +740,17 @@ func _show_reward_screen(is_boss: bool) -> void:
 	for c in reward_grid.get_children():
 		reward_grid.remove_child(c)
 		c.queue_free()
+	var kind = controller.ROOMS[controller.room_index].kind
 	if is_boss:
 		controller.reward_choices = controller._roll_boss_rewards(controller.ROOMS[controller.room_index])
 		reward_title_label.text = "★ BOSS 战利品！选择一项（主题武器 / 强化券 / 信物）"
 		for rw in controller.reward_choices:
 			reward_grid.add_child(_make_boss_reward_card(rw))
+	elif kind == "elite":
+		controller.reward_choices = controller._roll_elite_rewards()
+		reward_title_label.text = "⚔ 精英房 · 战前补给（选择一项备战）"
+		for rw in controller.reward_choices:
+			reward_grid.add_child(_make_reward_card(rw))
 	else:
 		controller.reward_choices = controller._roll_rewards()
 		reward_title_label.text = "胜利！选择一项房奖励"

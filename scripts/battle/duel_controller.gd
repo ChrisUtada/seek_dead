@@ -96,6 +96,11 @@ const TEST_STATUS_DMG_MULT := 3.0   # ⚠ 测试用临时倍率：拉高给敌�
 # Phase D 资源化：改为扫描 resources/rewards/*.tres（RewardData），见 _ready 内填充。
 var REWARD_POOL: Array = []
 
+# T6 精英房专属「战前补给」奖励池（扫描 resources/rewards/elite/）。
+# 精英房卡在每个 BOSS 前，定位为「补给锚点」而非普通小增益 / BOSS 战力飞跃，
+# 故与普通房奖励池解耦，提供 金币囤 / 铁砧点 / 结界备战 三类 prep 选项。
+var ELITE_REWARD_POOL: Array = []
+
 # 房间序列（肉鸽逐房推进）。
 # jam=注废意图概率, lock=锁轮意图概率, chaos=乱权意图概率, heavy=重击意图概率, 其余=普攻。
 # Phase D 资源化：改为扫描 resources/rooms/*.tres（RoomData），见 _ready 内填充。
@@ -266,6 +271,7 @@ func _ready() -> void:
 	SKILL_POOL = ResourceScan.scan_paths("res://resources/skills/")
 	ALL_ROOMS = _sort_rooms(ResourceScan.scan_resources("res://resources/rooms/", "RoomData"))
 	REWARD_POOL = ResourceScan.scan_resources("res://resources/rewards/", "RewardData")
+	ELITE_REWARD_POOL = ResourceScan.scan_resources("res://resources/rewards/elite/", "RewardData")
 	hud = BATTLE_HUD.instantiate()
 	add_child(hud)
 	hud.controller = self
@@ -655,6 +661,12 @@ func _roll_rewards() -> Array:
 	return out
 
 
+# T6 精英房「战前补给」三选一：精英池恰为 3 项（金币囤 / 铁砧点 / 结界备战），
+# 直接全量返回供玩家三选一，保证每次精英都能看到全部 prep 选项。
+func _roll_elite_rewards() -> Array:
+	return ELITE_REWARD_POOL.duplicate()
+
+
 # BOSS 战利品：从主题池+混合券抽 3 张候选卡（dict 结构，供 HUD 直接渲染）。
 # 候选构成：① 主题新武器（未持有，进池）② 武器强化券（meta 升级，不进池）③ Boss 信物（占护符槽，若未占满）
 func _roll_boss_rewards(room) -> Array:
@@ -723,6 +735,16 @@ func _apply_reward(id: String) -> void:
 		"power":
 			run_power_bonus += 1
 			hud._log("奖励：本局符号伤害 +1（当前 +%d）" % run_power_bonus)
+		# T6 精英房「战前补给」三类选项
+		"elite_gold":
+			gold += 18
+			hud._log("精英战利：金币 +18（共 %d）" % gold)
+		"elite_anvil":
+			meta["anvil_points"] += 2
+			hud._log("精英战利：铁砧点数 +2（共 %d）" % meta["anvil_points"])
+		"elite_ward":
+			run_shield_next += 30
+			hud._log("精英战利：下一房 +30 护盾")
 
 
 # BOSS 战利品结算（主题池+混合券三选一）：新武器(进池) / 武器强化券(meta升级,不进池) / Boss信物(占护符槽1/3)
