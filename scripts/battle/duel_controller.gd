@@ -564,14 +564,14 @@ func _on_boss_reward_chosen(cand: Dictionary) -> void:
 # 每局结束元进度三选一（膨胀双轨：武器 base 线性 × 护符乘数增值，持久跨局）
 # ---------------------------------------------------------------------------
 func _roll_meta_choices() -> Array:
-	var pool := []
+	var meta_pool := []
 	# 武器：本局携带的每把武器一张候选（基础伤害 +WEAPON_BASE_STEP，线性，随护符/连锁放大）
 	for p in selected_loadout:
 		var wd: WeaponData = load(p)
 		if wd == null:
 			continue
 		var cur = meta["weapon_base_bonus"].get(p, 0)
-		pool.append({
+		meta_pool.append({
 			"kind": "weapon", "path": p,
 			"icon": "🗡", "label": wd.weapon_name,
 			"desc": "基础伤害 +%d（已 +%d，随护符/连锁放大）" % [WEAPON_BASE_STEP, cur],
@@ -582,20 +582,20 @@ func _roll_meta_choices() -> Array:
 		if cd == null or cd.effect != "damage_mult":
 			continue
 		var clv = meta["charm_upgrades"].get(p, 0)
-		pool.append({
+		meta_pool.append({
 			"kind": "charm", "path": p,
 			"icon": "🔮", "label": cd.item_name,
 			"desc": "伤害乘区 ×%s（Lv%d→%d，总乘区封顶×%s）" % [
 				ElementCounter.fmt_mult(1.0 + CHARM_MULT_STEP), clv, clv + 1, ElementCounter.fmt_mult(CHARM_MULT_CAP)],
 		})
 	# 铁砧点数：兜底候选，保证候选池永不为空
-	pool.append({
+	meta_pool.append({
 		"kind": "anvil", "path": "",
 		"icon": "🔨", "label": "铁砧点数 +%d" % META_ANVIL_BONUS,
 		"desc": "永久铁砧点数，用于铁砧锻造武器权重",
 	})
-	pool.shuffle()
-	return pool.slice(0, META_CHOICE_COUNT)   # 三选一：候选不足时全出
+	meta_pool.shuffle()
+	return meta_pool.slice(0, META_CHOICE_COUNT)   # 三选一：候选不足时全出
 
 
 func _show_meta_choice() -> void:
@@ -802,7 +802,6 @@ func _shop_name(path: String, kind: String) -> String:
 		"weapon": return (d as WeaponData).weapon_name if d is WeaponData else path.get_file().get_basename()
 		"skill":  return (d as SkillData).buff_name if d is SkillData else path.get_file().get_basename()
 		_:        return (d as ItemData).item_name if d is ItemData else path.get_file().get_basename()
-	return path.get_file().get_basename()
 
 func _roll_shop() -> void:
 	var candidates := []
@@ -825,24 +824,25 @@ func _on_shop_buy_pressed(offer: Dictionary) -> void:
 	if offer["sold"]:
 		return
 	var kind = offer["kind"]
+	var buy_price := 0
 	# 消耗品：腰带实例模型（每个格子独立，允许同类重复占格，上限 CONSUMABLE_CAP）
 	if kind == "active":
 		if consumable_slots.size() >= CONSUMABLE_CAP:
 			hud._log("消耗品腰带已满 %d/%d，无法购买" % [consumable_slots.size(), CONSUMABLE_CAP])
 			return
-		var price = _shop_price(kind)
-		if gold < price:
-			hud._log("金币不足（需 %d）" % price)
+		buy_price = _shop_price(kind)
+		if gold < buy_price:
+			hud._log("金币不足（需 %d）" % buy_price)
 			return
-		gold -= price
+		gold -= buy_price
 		var cd: Resource = load(offer["path"])
 		if cd != null:
 			_consumable_uid += 1
 			var uid = "c%d" % _consumable_uid
 			consumable_slots.append({"path": offer["path"], "item_id": cd.item_id, "charges": cd.charges, "uid": uid})
-			paid_price[uid] = price
+			paid_price[uid] = buy_price
 			_rebuild_consumable_panel()
-			hud._log("购买 %s（腰带 %d/%d，-%d 金，余 %d）" % [offer["name"], consumable_slots.size(), CONSUMABLE_CAP, price, gold])
+			hud._log("购买 %s（腰带 %d/%d，-%d 金，余 %d）" % [offer["name"], consumable_slots.size(), CONSUMABLE_CAP, buy_price, gold])
 		else:
 			hud._log("购买失败：资源缺失 %s" % offer["name"])
 		offer["sold"] = true
@@ -860,13 +860,13 @@ func _on_shop_buy_pressed(offer: Dictionary) -> void:
 	if w >= cap and not _can_grow_slot(kind):
 		hud._log("%s槽位已满 %d/%s（已达天花板），无法购买" % [_cat_name(kind), w, _cap_text(kind)])
 		return
-	var price = _shop_price(kind)       # 价格随当前持有数递增（售出回落，换装成本=买卖价差）
-	if gold < price:
-		hud._log("金币不足（需 %d）" % price)
+	buy_price = _shop_price(kind)       # 价格随当前持有数递增（售出回落，换装成本=买卖价差）
+	if gold < buy_price:
+		hud._log("金币不足（需 %d）" % buy_price)
 		return
-	gold -= price
+	gold -= buy_price
 	arr.append(offer["path"])
-	paid_price[offer["path"]] = price   # 记录实际购入价，卖出时返还约50%
+	paid_price[offer["path"]] = buy_price   # 记录实际购入价，卖出时返还约50%
 	offer["sold"] = true
 	if w >= cap:                        # 本次是扩槽购买 → 该类槽 +1
 		_grow_slot(kind)
@@ -886,6 +886,7 @@ func _sell_price(kind: String, path: String) -> int:
 
 
 func _on_shop_sell_pressed(path: String, kind: String) -> void:
+	var sell_refund := 0
 	# 消耗品：按腰带格 uid 精准定位卖出（同类重复各占一格）
 	if kind == "active":
 		var target = -1
@@ -896,12 +897,12 @@ func _on_shop_sell_pressed(path: String, kind: String) -> void:
 		if target < 0:
 			return
 		var slot = consumable_slots[target]
-		var refund = _sell_price(kind, slot["uid"])
-		gold += refund
+		sell_refund = _sell_price(kind, slot["uid"])
+		gold += sell_refund
 		consumable_slots.remove_at(target)
 		paid_price.erase(slot["uid"])
 		_rebuild_consumable_panel()
-		hud._log("卖出 %s（+%d 金，腰带位释放）" % [_shop_name(slot["path"], kind), refund])
+		hud._log("卖出 %s（+%d 金，腰带位释放）" % [_shop_name(slot["path"], kind), sell_refund])
 		hud._refresh_shop()
 		hud._refresh_meta()
 		return
@@ -911,8 +912,8 @@ func _on_shop_sell_pressed(path: String, kind: String) -> void:
 	if kind == "weapon" and arr.size() <= LOADOUT_MIN:
 		hud._log("至少需保留 %d 把武器，无法卖出" % LOADOUT_MIN)
 		return
-	var refund = _sell_price(kind, path)
-	gold += refund
+	sell_refund = _sell_price(kind, path)
+	gold += sell_refund
 	arr.erase(path)
 	paid_price.erase(path)
 	if kind == "weapon" or kind == "skill":
