@@ -144,6 +144,8 @@ const RARE_FLOOR_FRAC := 0.025   # RARE 档保底下限（§2：≥2.5%）
 const RARE_MIN_CELLS  := 2       # RARE 档保底绝对下限（§2：≥2 格）
 const RARE_CEIL_FRAC := 0.06     # RARE 档频率上限（§2：≤6%；S6 多源 special 推高后锁回此档）
 const MAX_SYMBOL_FRAC := 0.12    # S4：单符号（非 filler）最大占比，防 burn 式垄断（§5 异常#3）
+const TRASH_BASE_FRAC := 0.15    # S5 G5：池级稀释预算基线（act1 稀释占比），替代原各武器手写 trash(~24%)
+const TRASH_ACT_STEP := 0.04     # S5 G5：每幕稀释预算增量（act2=19% / act3=23%），随难度刹车增强
 const SPECIAL_TRIPLE_CRIT := 2.0        # special 三连暴击倍率：连线数轴上唯一可控的战斗内爆发（清晰可见，不做黑箱级联）
 const CHAIN_MAX := 4                      # 连锁重触发上限：special 三连最多再免费重转 3 次（共 4 发）
 const CHAIN_STEP := 1.5                   # 连锁倍率：每多一层 ×1.5（叠在 special×CRIT 之上，封顶 ≈ ×3.4）
@@ -1357,6 +1359,16 @@ func _build_strips() -> void:
 			base.append([p[0], p[2]])
 	if base.is_empty():
 		base = [[TRASH_SYMBOL, "none"]]
+	# S5（符号规范 §4 G5）：受控稀释——trash 不再由各武器手写权重（已于 S5 移除），
+	# 改为池级按 act 注入的稀释预算，使稀释成为可调旋钮、并随幕推进增强（与 ante 曲线协同的难度刹车），
+	# 替代"挤掉符号"成为稀释来源。稀释占比恒定（不随武器数漂移），仅随 act 阶梯上升。
+	var act := 1
+	if room_index >= 0 and room_index < ROOMS.size():
+		act = ROOMS[room_index].act
+	var trash_frac: float = TRASH_BASE_FRAC + float(act - 1) * TRASH_ACT_STEP
+	var trash_count: int = int(round(base.size() * trash_frac / (1.0 - trash_frac)))
+	for _i in trash_count:
+		base.append([TRASH_SYMBOL, "none"])
 	# 最小带长保护：武器砍到 1–2 把后带子可能只有 10 格左右，最高速下每秒循环近 3 圈，
 	# 玩家能看出重复、观感发晕。整份平铺到 _STRIP_MIN_CELLS 以上——只拉长周期，
 	# 各符号占比（即命中概率）完全不变。

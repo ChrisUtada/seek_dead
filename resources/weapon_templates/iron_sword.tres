@@ -1,11 +1,10 @@
-[gd_resource type="Resource" script_class="WeaponData" load_steps=13 format=3]
+[gd_resource type="Resource" script_class="WeaponData" load_steps=11 format=3]
 
 [ext_resource type="Script" uid="uid://dkgpb1yi42sdb" path="res://scripts/equipment/weapon_data.gd" id="1"]
 [ext_resource type="Script" uid="uid://b7ejpof4wrtqt" path="res://scripts/battle/symbol_weight.gd" id="sw"]
 [ext_resource type="Resource" path="res://resources/symbols/iron_slash.tres" id="s0"]
 [ext_resource type="Resource" path="res://resources/symbols/block.tres" id="s1"]
 [ext_resource type="Resource" path="res://resources/symbols/heal.tres" id="s2"]
-[ext_resource type="Resource" path="res://resources/symbols/trash.tres" id="s3"]
 [ext_resource type="Resource" path="res://resources/symbols/special.tres" id="s4"]
 
 [sub_resource type="Resource" id="sw0"]
@@ -23,10 +22,6 @@ script = ExtResource("sw")
 symbol = ExtResource("s2")
 weight = 1.0
 
-[sub_resource type="Resource" id="sw3"]
-script = ExtResource("sw")
-symbol = ExtResource("s3")
-weight = 2.0
 
 [sub_resource type="Resource" id="sw4"]
 script = ExtResource("sw")
@@ -41,4 +36,4 @@ damage_type = 1
 attack_speed = 3.0
 attack_range = 80.0
 cleave_angle = 240.0
-reel = Array[ExtResource("sw")]([SubResource("sw0"), SubResource("sw1"), SubResource("sw2"), SubResource("sw3"), SubResource("sw4")])
+reel = Array[ExtResource("sw")]([SubResource("sw0"), SubResource("sw1"), SubResource("sw2"), SubResource("sw4")])
