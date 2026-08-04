@@ -1970,25 +1970,24 @@ func _evaluate(chain_mult := 1.0) -> void:
 # ---------------------------------------------------------------------------
 
 # —— 加法型标量轴（多个来源直接相加）——
+# —— P0：以下结算聚合已抽到 BattleMath（参数化纯函数），controller 仅留薄包装，零行为变化 ——
 func _agg_power_flat() -> float:
-	return float(run_power_bonus) + float(charm_power_bonus) + _buff_power() + float(gold_upgrades["power"]) * POWER_STEP
+	return BattleMath.agg_power_flat(run_power_bonus, charm_power_bonus, player_buffs, gold_upgrades, POWER_STEP)
 
 func _agg_shield() -> float:
-	return _buff_shield() + float(charm_shield_trickle)
+	return BattleMath.agg_shield(player_buffs, charm_shield_trickle)
 
 
 func _agg_regen() -> float:
-	return _buff_regen() + float(charm_heal_trickle)
+	return BattleMath.agg_regen(player_buffs, charm_heal_trickle)
 
 # —— 乘法型轴（各乘区独立相乘，基值 1.0）——
 func _agg_damage_mult() -> float:
-	# 护符全局乘区（joker）× 增益乘区（Phase C）× 金币共鸣（S12·深化 lane2，不新增乘区）
-	var j = 1.0 + min(float(gold_upgrades["joker"]) * JOKER_STEP, JOKER_CAP_FACTOR - 1.0)
-	return charm_damage_mult * _buff_damage_mult() * j
+	return BattleMath.agg_damage_mult(charm_damage_mult, player_buffs, gold_upgrades, JOKER_STEP, JOKER_CAP_FACTOR)
 
 # —— 符号权重轴（本局符号灌注；武器级权重见 _build_pool）——
 func _agg_symbol_weight_mod(sym: SymbolData) -> float:
-	return float(run_symbol_bonus.get(sym.resource_path, 0.0))
+	return BattleMath.agg_symbol_weight_mod(run_symbol_bonus, sym)
 
 # ---------------------------------------------------------------------------
 # Phase C 主动增益：符号自描述（sym.buff_effect / buff_value / buff_turns），零查表
@@ -2003,32 +2002,24 @@ func _grant_buff(sym: SymbolData, mult: int) -> void:
 
 # 按效果类型聚合当前生效的增益值（加法型）
 func _buff_sum(effect: String) -> float:
-	var v = 0.0
-	for sym in player_buffs.keys():
-		if sym.buff_effect == effect:
-			v += sym.buff_value
-	return v
+	return BattleMath.buff_sum(player_buffs, effect)
 
 
 func _buff_power() -> float:
-	return _buff_sum("power")
+	return BattleMath.buff_power(player_buffs)
 
 
 func _buff_shield() -> float:
-	return _buff_sum("shield")
+	return BattleMath.buff_shield(player_buffs)
 
 
 func _buff_regen() -> float:
-	return _buff_sum("regen")
+	return BattleMath.buff_regen(player_buffs)
 
 
 # 乘法型增益（多个同时生效则连乘）
 func _buff_damage_mult() -> float:
-	var m = 1.0
-	for sym in player_buffs.keys():
-		if sym.buff_effect == "damage_mult":
-			m *= sym.buff_value
-	return m
+	return BattleMath.buff_damage_mult(player_buffs)
 
 
 func _tick_buffs() -> void:
@@ -2043,45 +2034,24 @@ func _tick_buffs() -> void:
 
 
 func _buff_summary() -> String:
-	if player_buffs.is_empty():
-		return "无"
-	var parts: Array = []
-	for sym in player_buffs.keys():
-		parts.append("%s%d" % [sym.label, int(player_buffs[sym])])
-	return " ".join(parts)
+	return BattleMath.buff_summary(player_buffs)
 
 
 func _buff_effect_name(effect: String) -> String:
-	match effect:
-		"power":       return "伤害符号加成"
-		"shield":      return "每回合护盾"
-		"regen":       return "每回合回血"
-		"damage_mult": return "总伤害倍率"
-		_:             return effect
+	return BattleMath.buff_effect_name(effect)
 
 
 func _status_base(type_str: String) -> float:
-	for p in pool:
-		var d: SymbolData = p[0]
-		if d.kind == "status" and d.status_type == type_str:
-			return d.base
-	return 0.0
+	return BattleMath.status_base(pool, type_str)
 
 
 # 状态类型对应的属性元素（用于 DoT 单向克制）
 func _status_element(st: String) -> String:
-	for p in pool:
-		var d: SymbolData = p[0]
-		if d.kind == "status" and d.status_type == st:
-			return d.element
-	return "none"
+	return BattleMath.status_element(pool, st)
 
 
 func _status_summary(stacks: Dictionary) -> String:
-	var parts: Array = []
-	for st in stacks.keys():
-		parts.append("%s+%d" % [STATUS_NAMES.get(st, st), stacks[st]])
-	return "/".join(parts)
+	return BattleMath.status_summary(stacks, STATUS_NAMES)
 
 
 # ---------------------------------------------------------------------------
