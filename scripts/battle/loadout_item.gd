@@ -18,3 +18,6 @@ extends Resource
 @export var rarity: String = "common"     # 强度档位 common|uncommon|rare|epic（只定强度，不定频率）
 @export var base_power: float = 10.0      # 攻击力 / 效能（升级主通道；P3 结算改读此字段取代 weapon.damage 缝合）
 @export var hit_rate: float = 0.85        # 命中率（1 - hit_rate = 废铁 miss 格占比；P2 按此注入转轮）
+@export var crit_mult: float = 2.0        # 三连暴击倍率（方案A：确定性，符号/元素凑齐 3 连即按此倍率结算；
+# 落在强度轴由 .tres 定义，取代硬编码 SPECIAL_TRIPLE_CRIT；稀有度高的装备可给更高值（2.5~3.0）制造强度纹理。
+# 仅设计期属性，非战斗内新开乘区，符合「膨胀/策略放 build 层」铁律）

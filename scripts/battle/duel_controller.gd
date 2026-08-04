@@ -117,6 +117,7 @@ var grid_elem = []
 var pool: Array = []
 var loadout_names: Array = []
 var _weapon_power_map: Dictionary = {}   # 符号 resource_path -> 该物品有效攻击力(base_power + 元进度武器加成)，由 _build_pool 构建。P3：结算时 _contribute 读此值把「物品强度轴」灌进符号伤害（docs/物品中心重构方案.md §8）
+var _item_crit_map: Dictionary = {}   # 符号 resource_path -> 该物品三连暴击倍率(crit_mult)，由 _build_pool 构建（方案 A）。普通/special 三连均按此倍率结算，共享符号取最高 crit_mult。
 var pool_items: Array = []              # 装备自洽：每件装备一段 [ {name, hit, syms:[[SymbolData, weight, element]]} ]，_build_strips 据此生成各自的转轮子带
 
 var _busy: bool = false                 # 旋转序列进行中，防重入
@@ -156,7 +157,6 @@ const _GOLD_CELLS := 2           # 金币符号常驻格数（经济引擎，与
 # base_power 高于 REF 的武器（高稀有度）符号伤害按比例放大（落实「稀有度→强度」），低于则缩小。
 # 此为调参旋钮：P11 内容广度阶段会把 sym.base 重标为相对 base_power 的真正偏移比，届时可去掉 REF 归一化。
 @export var BASE_POWER_REF: float = 32.0        # 武器 base_power 支点（≈ 当前 8 武器均值，使平均武器伤害与旧模型持平）
-@export var SPECIAL_TRIPLE_CRIT: float = 2.0        # special 三连暴击倍率：连线数轴上唯一可控的战斗内爆发（清晰可见，不做黑箱级联）
 @export var CHAIN_MAX: int = 4                      # 连锁重触发上限：special 三连最多再免费重转 3 次（共 4 发）
 @export var CHAIN_STEP: float = 1.5                   # 连锁倍率：每多一层 ×1.5（叠在 special×CRIT 之上，封顶 ≈ ×3.4）
 # —— 每局结束元进度升级（膨胀双轨：武器 base 线性成长 × 护符乘数增值）——
@@ -378,6 +378,7 @@ func _build_pool(loadout: Array) -> void:
 	pool_items = []
 	loadout_names = []
 	_weapon_power_map = {}
+	_item_crit_map = {}
 	# 强度轴映射（P3，未变）：符号 resource_path -> 该物品有效攻击力(base_power + 元进度武器加成)；
 	# 共享符号若被多装备持有，取最高者（反映「最强来源」）。结算时 _contribute 读此值把强度轴灌进符号伤害。
 	for path in loadout:
@@ -390,6 +391,7 @@ func _build_pool(loadout: Array) -> void:
 				continue
 			var sp = sw.symbol.resource_path
 			_weapon_power_map[sp] = max(_weapon_power_map.get(sp, 0.0), eff)
+			_item_crit_map[sp] = max(_item_crit_map.get(sp, 1.0), wd.crit_mult)
 	for path in selected_skills:
 		var sd: SkillData = load(path)
 		if sd == null or sd.symbol == null:
@@ -397,6 +399,7 @@ func _build_pool(loadout: Array) -> void:
 		var eff: float = sd.base_power + float(meta["weapon_base_bonus"].get(path, 0))
 		var sp = sd.symbol.resource_path
 		_weapon_power_map[sp] = max(_weapon_power_map.get(sp, 0.0), eff)
+		_item_crit_map[sp] = max(_item_crit_map.get(sp, 1.0), sd.crit_mult)
 	# —— 装备自洽（docs/物品中心重构方案.md §4 重构）：频率不再由中央 f(kind) 预算决定，
 	# 而是「每件装备用自身 weight 决定自己符号多常出现、用自身命中率决定自己转轮的废铁占比」。
 	# 每件装备生成一段等长的「自洽子带」，拼成共享转轮带；共享符号不再跨装备累加权重（垄断根因消除），
@@ -1818,36 +1821,38 @@ func _contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> vo
 			acc["counter_triple"] = true
 	elif em < 1.0:
 		_eval_dis = true
+	var crit_mult_val: float = _item_crit_map.get(sym.resource_path, 1.0) if raw >= 3 else 1.0
 	match sym.kind:
 		"damage":
 			var dv = flat * mult * em
+			if crit_mult_val > 1.0:
+				dv *= crit_mult_val
 			if sym.pierce_armor:
 				acc["pierce"] += dv     # 穿透护甲：直接扣 HP
 			else:
 				acc["dmg"] += dv
-			_push_dmg_line(acc, sym, elem, flat, bonus, mult, em, dv, false)
-		"shield":  acc["shield"]  += sym.base * power_scale * mult   # P3：护盾/治疗符号同样随物品 base_power 缩放（强度轴），但不吃伤害元进度(_agg_power_flat)与元素克制
-		"heal":    acc["heal"]    += sym.base * power_scale * mult
-		"status":  acc["status_stacks"][sym.status_type] = acc["status_stacks"].get(sym.status_type, 0) + mult
+			_push_dmg_line(acc, sym, elem, flat, bonus, mult, em, dv, crit_mult_val)
+		"shield":  acc["shield"]  += sym.base * power_scale * mult * crit_mult_val   # P3：护盾/治疗符号同样随物品 base_power 缩放（强度轴），但不吃伤害元进度(_agg_power_flat)与元素克制；三连按 crit_mult 暴击（方案 A）
+		"heal":    acc["heal"]    += sym.base * power_scale * mult * crit_mult_val
+		"status":  acc["status_stacks"][sym.status_type] = acc["status_stacks"].get(sym.status_type, 0) + mult * crit_mult_val
 		"special":
-			# special：1 同即生效（base×连线数×克制）；三连触发暴击倍率（连线数轴上唯一可控的战斗内爆发）
+			# special：1 同即生效（base×连线数×克制）；三连触发暴击倍率（方案 A 统一为 crit_mult_val，普通/special 同源，保留破甲+连锁）
 			var sv = flat * mult * em
-			var crit = raw >= 3   # 暴击按实落数判定（连线精通不假造三连暴击）
-			if crit:
-				sv *= SPECIAL_TRIPLE_CRIT
+			if crit_mult_val > 1.0:
+				sv *= crit_mult_val
 				acc["special_triple"] = true   # S10 T5 钩子埋点：三连发生标记，供 BOSS 机制感知
 			if sym.pierce_armor:
 				acc["pierce"] += sv
 			else:
 				acc["special"] += sv
-			_push_dmg_line(acc, sym, elem, flat, bonus, mult, em, sv, crit)
+			_push_dmg_line(acc, sym, elem, flat, bonus, mult, em, sv, crit_mult_val)
 		_: pass
 
 
 # S2：伤害分解行（§5.2 标为 P0——"爽感的一半来自看懂这一下为什么这么大"；
 # 同时是 ante 调参（ANTE_ACT_STEP_HP/ATK、ANTE_ROOM_STEP_HP/ATK）的唯一 debug 依据）。
 # 逐符号记录「基础 × 连线 × 克制 = 小计」，回合级乘区（护符/增益/强袭）在 _evaluate 汇总。
-func _push_dmg_line(acc: Dictionary, sym: SymbolData, elem: String, flat, bonus, mult: int, em: float, v: float, crit: bool) -> void:
+func _push_dmg_line(acc: Dictionary, sym: SymbolData, elem: String, flat, bonus, mult: int, em: float, v: float, crit_mult_val: float = 1.0) -> void:
 	if not acc.has("lines"):
 		return
 	var parts := []
@@ -1867,8 +1872,8 @@ func _push_dmg_line(acc: Dictionary, sym: SymbolData, elem: String, flat, bonus,
 			parts.append("中性×1.0")
 	var etxt = "" if elem == "none" else "·" + ElementCounter.label(elem)
 	var line = "   %s %s%s  %s = %d" % [sym.label, sym.name, etxt, " × ".join(parts), int(round(v))]
-	if crit:
-		line += "（⚡暴击 ×%s）" % ElementCounter.fmt_mult(SPECIAL_TRIPLE_CRIT)
+	if crit_mult_val > 1.0:
+		line += "（⚡暴击 ×%s）" % ElementCounter.fmt_mult(crit_mult_val)
 	acc["lines"].append(line)
 
 
