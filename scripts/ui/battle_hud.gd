@@ -60,8 +60,7 @@ var reward_title_label
 var reward_grid
 var reward_skip_btn
 
-# S6–S8 局内经济 UI
-var gold_label                           # 玩家面板：局内金币
+# S6–S8 局内经济 UI（覆盖层内节点，仍代码构建，P3b-2 抽独立 .tscn）
 var shop_screen
 var shop_title_label
 var shop_gold_label
@@ -85,35 +84,37 @@ var shop_sell_weapon_list
 var shop_sell_skill_list
 var shop_sell_charm_list
 var shop_sell_consum_list
-var grid_container
-var log_label
-var log_scroll
-var player_hp_label
-var player_shield_label
-var enemy_name_label
-var boss_badge            # BOSS 战标识（金色徽章，仅 BOSS 房显示）
-var enemy_hp_label
-var enemy_armor_label    # 护甲（扁平池：先破甲后掉血；无护甲时隐藏）
-var enemy_intent_label
-var enemy_status_label
-var player_buff_label     # Phase C：玩家当前生效的主动增益
-var loadout_label
-var room_label
-var turn_label
-var run_label
-var purify_label
+
+# ---- 主 HUD 静态节点（P3b-1）：battle_hud.tscn 编辑器提供，@onready % 引用 ----
+@onready var grid_container = %GridContainer
+@onready var log_label = %LogLabel
+@onready var log_scroll = %LogScroll
+@onready var player_hp_label = %PlayerHpLabel
+@onready var player_shield_label = %PlayerShieldLabel
+@onready var player_buff_label = %PlayerBuffLabel
+@onready var enemy_name_label = %EnemyNameLabel
+@onready var boss_badge = %BossBadge
+@onready var enemy_hp_label = %EnemyHpLabel
+@onready var enemy_armor_label = %EnemyArmorLabel
+@onready var enemy_intent_label = %EnemyIntentLabel
+@onready var enemy_status_label = %EnemyStatusLabel
+@onready var dmg_breakdown_box = %DmgBreakdownBox
+@onready var dmg_breakdown_label = %DmgBreakdownLabel
+@onready var legend_box = %LegendBox
+@onready var legend_container = %LegendContainer
+@onready var player_panel = %PlayerPanel
+@onready var enemy_panel = %EnemyPanel
+@onready var loadout_label = %LoadoutLabel
+@onready var room_label = %RoomLabel
+@onready var turn_label = %TurnLabel
+@onready var run_label = %RunLabel
+@onready var gold_label = %GoldLabel
+@onready var purify_label = %PurifyLabel
+
+# 覆盖层 / tooltip / popup（P3b-1 仍代码构建，后续 P3b-2 抽独立 .tscn）
 var overlay
 var overlay_label
 var overlay_button
-var legend_box
-var legend_container
-# S2：伤害分解面板（中栏，转轮正下方；每次结算整体替换，不走战斗日志）
-var dmg_breakdown_box
-var dmg_breakdown_label
-var player_panel          # 左：玩家面板（飘字锚点）
-var enemy_panel           # 右：敌人面板（飘字锚点）
-
-# ---- Phase 3：悬停 tooltip / 飘字对象池 ----
 var symbol_tooltip                  # 转轮格子悬停提示面板
 var symbol_tooltip_label
 var symbol_tooltip_detail
@@ -183,82 +184,11 @@ func _source_tag(kind: String) -> String:
 
 
 func _build_ui() -> void:
-	var root = Screen.build_scaffold(self, Palette.BG_MAIN, {"l": 10, "r": 10, "t": 8, "b": 8}, 6)
+	# 主 HUD 静态骨架（背景/标题/信息栏/三栏/底部栏）已由 battle_hud.tscn 编辑器提供，
+	# 这里仅做动态内容：转轮格子创建 + 底部按钮信号连接 + 飘字/tooltip 浮层。
 
-	# 标题
-	var title_label = _label("Seek Dead · 老虎机对决", TypeScale.TITLE)
-	title_label.add_theme_color_override("font_color", Palette.TITLE)
-	root.add_child(title_label)
-
-	# 信息栏：房间 / 回合 / 本局加成（单行，不占用垂直空间）
-	var info = HBoxContainer.new()
-	info.add_theme_constant_override("separation", 10)
-	root.add_child(info)
-	room_label = _label("房间: 1/1", TypeScale.META)
-	room_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	turn_label = _label("回合: 1", TypeScale.META)
-	turn_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	run_label = _label("本局加成: —", TypeScale.TINY)
-	run_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	var info_spacer = Control.new()
-	info_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	info.add_child(room_label)
-	info.add_child(turn_label)
-	info.add_child(info_spacer)
-	info.add_child(run_label)
-
-	loadout_label = _label("已装备: —", TypeScale.TINY)
-	loadout_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	root.add_child(loadout_label)
-
-	# 主区域：玩家面板 | 转轮+意图 | 敌人面板+日志
-	var main = HBoxContainer.new()
-	main.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	main.add_theme_constant_override("separation", 10)
-	root.add_child(main)
-
-	# 左：玩家面板（固定宽度，视觉分组）
-	var ppanel = _make_side_panel(130)
-	var ppv = ppanel.get_child(0)
-	ppv.add_theme_constant_override("separation", 4)
-	var ptitle = _label("玩家", TypeScale.BODY)
-	ptitle.add_theme_color_override("font_color", Palette.PLAYER)
-	ppv.add_child(ptitle)
-	player_hp_label = _label("HP 100/100", TypeScale.MEDIUM)
-	player_hp_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	player_shield_label = _label("护盾 0", TypeScale.META)
-	player_shield_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	player_buff_label = _label("技能: 无", TypeScale.TINY)
-	player_buff_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	player_buff_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	player_buff_label.add_theme_color_override("font_color", Palette.POP_BUFF)
-	ppv.add_child(player_hp_label)
-	ppv.add_child(player_shield_label)
-	ppv.add_child(player_buff_label)
-	gold_label = _label("金币 4", TypeScale.META)
-	gold_label.add_theme_color_override("font_color", Palette.ACCENT_GOLD)
-	gold_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	ppv.add_child(gold_label)
-	ppv.add_child(Control.new())  # 占位撑开
-	main.add_child(ppanel)
-
-	# 中：转轮 + 敌人意图/状态
-	player_panel = ppanel
-	var center = VBoxContainer.new()
-	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	center.add_theme_constant_override("separation", 8)
-	main.add_child(center)
-
-	var reel_center = CenterContainer.new()
-	reel_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	center.add_child(reel_center)
-	grid_container = GridContainer.new()
+	# 转轮格子：GridContainer 由 .tscn 提供，按 REELS×ROWS 实例化 symbol_cell。
 	grid_container.columns = controller.state.REELS
-	grid_container.add_theme_constant_override("h_separation", 10)
-	grid_container.add_theme_constant_override("v_separation", 10)
-	reel_center.add_child(grid_container)
-
 	for reel in controller.state.REELS:
 		cells.append([])
 		controller.grid.append([])
@@ -280,146 +210,23 @@ func _build_ui() -> void:
 			var badge = cell.get_node("Badge")
 			cell_badges[reel].append(badge)
 
-	var intent_box = HBoxContainer.new()
-	intent_box.add_theme_constant_override("separation", 14)
-	intent_box.alignment = BoxContainer.ALIGNMENT_CENTER
-	center.add_child(intent_box)
-	enemy_intent_label = _label("意图: —", TypeScale.MEDIUM)
-	enemy_status_label = _label("状态: 无", TypeScale.META)
-	intent_box.add_child(enemy_intent_label)
-	intent_box.add_child(enemy_status_label)
-
-	# S2：伤害分解面板。放在中栏（最宽、正对转轮），每回合整体替换。
-	# 不走战斗日志的原因：_log 是 push_front（多行会倒序）、上限 10 条、右栏仅 170px 宽会挤爆。
-	dmg_breakdown_box = PanelContainer.new()
-	var dstyle = StyleBoxFlat.new()
-	dstyle.bg_color = Palette.PANEL_BG_ALT
-	dstyle.border_color = Palette.PANEL_BORDER
-	dstyle.set_border_width_all(1)
-	dstyle.set_corner_radius_all(6)
-	dstyle.content_margin_left = 8
-	dstyle.content_margin_right = 8
-	dstyle.content_margin_top = 4
-	dstyle.content_margin_bottom = 4
-	dmg_breakdown_box.add_theme_stylebox_override("panel", dstyle)
-	dmg_breakdown_box.visible = false
-	center.add_child(dmg_breakdown_box)
-	dmg_breakdown_label = _label("", TypeScale.TINY)
-	dmg_breakdown_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	dmg_breakdown_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	dmg_breakdown_box.add_child(dmg_breakdown_label)
-
-	# 符号图例（每符号名称/类型/元素 + 敌人属性），帮助理解"符号作用"
-	legend_box = PanelContainer.new()
-	var lstyle = StyleBoxFlat.new()
-	lstyle.bg_color = Palette.PANEL_BG_ALT
-	lstyle.border_color = Palette.PANEL_BORDER
-	lstyle.set_border_width_all(1)
-	lstyle.set_corner_radius_all(6)
-	lstyle.content_margin_left = 8
-	lstyle.content_margin_right = 8
-	lstyle.content_margin_top = 6
-	lstyle.content_margin_bottom = 6
-	legend_box.add_theme_stylebox_override("panel", lstyle)
-	center.add_child(legend_box)
-	legend_container = VBoxContainer.new()
-	legend_container.add_theme_constant_override("separation", 2)
-	legend_box.add_child(legend_container)
-
-	# 右：敌人面板 + 日志
-	var rpanel = _make_side_panel(170)
-	var rpv = rpanel.get_child(0)
-	rpv.add_theme_constant_override("separation", 4)
-	var etitle = _label("敌人", TypeScale.BODY)
-	etitle.add_theme_color_override("font_color", Palette.ENEMY)
-	rpv.add_child(etitle)
-	boss_badge = _label("★ BOSS", TypeScale.BODY)
-	boss_badge.add_theme_color_override("font_color", Palette.ACCENT_GOLD)
-	boss_badge.visible = false
-	rpv.add_child(boss_badge)
-	enemy_name_label = _label("—", TypeScale.MEDIUM)
-	enemy_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	enemy_hp_label = _label("HP 0/0", TypeScale.META)
-	enemy_hp_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	enemy_armor_label = _label("护甲 0/0", TypeScale.META)
-	enemy_armor_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	enemy_armor_label.add_theme_color_override("font_color", Palette.ARMOR)
-	enemy_armor_label.visible = false
-	rpv.add_child(enemy_name_label)
-	rpv.add_child(enemy_hp_label)
-	rpv.add_child(enemy_armor_label)
-
-	var log_title = _label("战斗日志", TypeScale.META)
-	log_title.add_theme_color_override("font_color", Palette.MUTED)
-	rpv.add_child(log_title)
-	log_scroll = ScrollContainer.new()
-	log_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	log_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	log_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	rpv.add_child(log_scroll)
-	log_label = Label.new()
-	log_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	log_label.add_theme_font_size_override("font_size", TypeScale.TINY)
-	log_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	log_scroll.add_child(log_label)
-	main.add_child(rpanel)
-	enemy_panel = rpanel
-
-	# 底部操作栏：始终可见，不被日志或内容挤出
-	var bot = HBoxContainer.new()
-	bot.add_theme_constant_override("separation", 8)
-	root.add_child(bot)
-	var spin = UI_BUTTON.instantiate()
-	spin.text = "SPIN (空格)"
-	spin.custom_minimum_size = Vector2(140, 48)
-	spin.add_theme_font_size_override("font_size", TypeScale.SUBTITLE)
-	spin.pressed.connect(spin_requested.emit)
-	bot.add_child(spin)
-
-	var purify = UI_BUTTON.instantiate()
-	purify.text = "净化 (Ctrl+P)"
-	purify.custom_minimum_size = Vector2(110, 44)
-	purify.add_theme_font_size_override("font_size", TypeScale.META)
-	purify.shortcut = _make_shortcut(KEY_P, true)
-	purify.connect("pressed", controller._on_purify_pressed)
-	bot.add_child(purify)
-	purify_label = _label("2", TypeScale.META)
-	bot.add_child(purify_label)
-
-	controller.consumable_panel = HBoxContainer.new()
-	controller.consumable_panel.add_theme_constant_override("separation", 6)
-	bot.add_child(controller.consumable_panel)
-
-	var bot_spacer = Control.new()
-	bot_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	bot.add_child(bot_spacer)
-
-	var re_eq = UI_BUTTON.instantiate()
-	re_eq.text = "整备 (Ctrl+E)"
-	re_eq.custom_minimum_size = Vector2(110, 40)
-	re_eq.add_theme_font_size_override("font_size", TypeScale.META)
-	re_eq.shortcut = _make_shortcut(KEY_E, true)
-	re_eq.connect("pressed", controller._on_reload_loadout_pressed)
-	bot.add_child(re_eq)
-	var reset = UI_BUTTON.instantiate()
-	reset.text = "重置 (Ctrl+R)"
-	reset.custom_minimum_size = Vector2(110, 40)
-	reset.add_theme_font_size_override("font_size", TypeScale.META)
-	reset.shortcut = _make_shortcut(KEY_R, true)
-	reset.connect("pressed", controller._full_reset)
-	bot.add_child(reset)
+	# 底部操作栏按钮：由 .tscn 提供，这里连信号与快捷键。
+	%SpinButton.pressed.connect(spin_requested.emit)
+	%PurifyButton.shortcut = _make_shortcut(KEY_P, true)
+	%PurifyButton.connect("pressed", controller._on_purify_pressed)
+	%ReloadButton.shortcut = _make_shortcut(KEY_E, true)
+	%ReloadButton.connect("pressed", controller._on_reload_loadout_pressed)
+	%ResetButton.shortcut = _make_shortcut(KEY_R, true)
+	%ResetButton.connect("pressed", controller._full_reset)
+	controller.consumable_panel = %ConsumablePanel
 
 	_build_overlay()
 	# Phase 3：键盘焦点链（Tab/方向键可在底部操作间移动）
-	_chain_focus([spin, purify, re_eq, reset])
+	_chain_focus([%SpinButton, %PurifyButton, %ReloadButton, %ResetButton])
 	# Phase 3：悬停 tooltip 与飘字对象池浮层
 	_build_symbol_tooltip()
 	_build_popup_layer()
 
-
-# ---------------------------------------------------------------------------
-# 整备界面（M3–M6）：武器 / 消耗品 / 护符 三分类自由勾选
-# ---------------------------------------------------------------------------
 func _build_loadout_screen() -> void:
 	loadout_screen = Control.new()
 	loadout_screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
