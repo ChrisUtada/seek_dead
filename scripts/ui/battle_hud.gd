@@ -232,7 +232,7 @@ func _build_ui() -> void:
 
 	for reel in controller.state.REELS:
 		cells.append([])
-		controller.state.grid.append([])
+		controller.grid.append([])
 		cell_badges.append([])
 		for row in controller.state.ROWS:
 			var cell = SYMBOL_CELL.instantiate()
@@ -246,7 +246,7 @@ func _build_ui() -> void:
 			cell.connect("pressed", controller._on_reel_clicked.bind(reel))
 			grid_container.add_child(cell)
 			cells[reel].append(cell)
-			controller.state.grid[reel].append(TRASH_SYMBOL)
+			controller.grid[reel].append(TRASH_SYMBOL)
 			# 匹配角标（右上角锚定，封装在 symbol_cell.tscn 的 Badge 子节点）
 			var badge = cell.get_node("Badge")
 			cell_badges[reel].append(badge)
@@ -664,7 +664,7 @@ func _update_loadout_count() -> void:
 
 
 func _show_loadout_screen() -> void:
-	controller.state.in_loadout = true
+	controller.in_loadout = true
 	_sync_card_selection()      # 从数组重建卡片 selected 标志（防止 Boss 奖励等外部路径直接改数组导致不同步）
 	_update_loadout_cards_visual()
 	_update_loadout_count()
@@ -699,7 +699,7 @@ func _update_loadout_anvil() -> void:
 
 
 func _hide_loadout_screen() -> void:
-	controller.state.in_loadout = false
+	controller.in_loadout = false
 	loadout_screen.visible = false
 
 
@@ -738,26 +738,26 @@ func _build_reward_screen() -> void:
 
 
 func _show_reward_screen(is_boss: bool) -> void:
-	controller.state.reward_is_boss = is_boss
+	controller.reward_is_boss = is_boss
 	# 清理旧卡片
 	for c in reward_grid.get_children():
 		reward_grid.remove_child(c)
 		c.queue_free()
-	var kind = controller.state.ROOMS[controller.state.room_index].kind
+	var kind = controller.ROOMS[controller.room_index].kind
 	if is_boss:
-		controller.state.reward_choices = controller._roll_boss_rewards(controller.state.ROOMS[controller.state.room_index])
+		controller.reward_choices = controller._roll_boss_rewards(controller.ROOMS[controller.room_index])
 		reward_title_label.text = "★ BOSS 战利品！选择一项（主题武器 / 强化券 / 信物）"
-		for rw in controller.state.reward_choices:
+		for rw in controller.reward_choices:
 			reward_grid.add_child(_make_boss_reward_card(rw))
 	elif kind == "elite":
-		controller.state.reward_choices = controller._roll_elite_rewards()
+		controller.reward_choices = controller._roll_elite_rewards()
 		reward_title_label.text = "⚔ 精英房 · 战前补给（选择一项备战）"
-		for rw in controller.state.reward_choices:
+		for rw in controller.reward_choices:
 			reward_grid.add_child(_make_reward_card(rw))
 	else:
-		controller.state.reward_choices = controller._roll_rewards()
+		controller.reward_choices = controller._roll_rewards()
 		reward_title_label.text = "胜利！选择一项房奖励"
-		for rw in controller.state.reward_choices:
+		for rw in controller.reward_choices:
 			reward_grid.add_child(_make_reward_card(rw))
 	reward_screen.visible = true
 
