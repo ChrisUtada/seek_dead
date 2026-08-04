@@ -225,16 +225,16 @@ func _build_ui() -> void:
 	reel_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	center.add_child(reel_center)
 	grid_container = GridContainer.new()
-	grid_container.columns = controller.REELS
+	grid_container.columns = controller.state.REELS
 	grid_container.add_theme_constant_override("h_separation", 10)
 	grid_container.add_theme_constant_override("v_separation", 10)
 	reel_center.add_child(grid_container)
 
-	for reel in controller.REELS:
+	for reel in controller.state.REELS:
 		cells.append([])
-		controller.grid.append([])
+		controller.state.grid.append([])
 		cell_badges.append([])
-		for row in controller.ROWS:
+		for row in controller.state.ROWS:
 			var cell = SYMBOL_CELL.instantiate()
 			cell.custom_minimum_size = Vector2(84, 84)
 			cell.add_theme_font_size_override("font_size", TypeScale.REEL)
@@ -246,7 +246,7 @@ func _build_ui() -> void:
 			cell.connect("pressed", controller._on_reel_clicked.bind(reel))
 			grid_container.add_child(cell)
 			cells[reel].append(cell)
-			controller.grid[reel].append(TRASH_SYMBOL)
+			controller.state.grid[reel].append(TRASH_SYMBOL)
 			# 匹配角标（右上角锚定，封装在 symbol_cell.tscn 的 Badge 子节点）
 			var badge = cell.get_node("Badge")
 			cell_badges[reel].append(badge)
@@ -357,9 +357,9 @@ func _build_ui() -> void:
 	purify_label = _label("2", TypeScale.META)
 	bot.add_child(purify_label)
 
-	controller.consumable_panel = HBoxContainer.new()
-	controller.consumable_panel.add_theme_constant_override("separation", 6)
-	bot.add_child(controller.consumable_panel)
+	controller.state.consumable_panel = HBoxContainer.new()
+	controller.state.consumable_panel.add_theme_constant_override("separation", 6)
+	bot.add_child(controller.state.consumable_panel)
 
 	var bot_spacer = Control.new()
 	bot_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -413,8 +413,8 @@ func _build_loadout_screen() -> void:
 	loadout_cards = []
 	loadout_columns = {}
 	loadout_slot_strips = {}
-	_add_loadout_column(cat_box, "武器", controller.WEAPON_POOL, "weapon", 1)
-	_add_loadout_column(cat_box, "技能", controller.SKILL_POOL, "skill", 1)
+	_add_loadout_column(cat_box, "武器", controller.state.WEAPON_POOL, "weapon", 1)
+	_add_loadout_column(cat_box, "技能", controller.state.SKILL_POOL, "skill", 1)
 	_add_loadout_column(cat_box, "消耗品", _item_pool_of("active"), "active", 1)
 	_add_loadout_column(cat_box, "护符", _item_pool_of("passive"), "passive", 1)
 
@@ -422,7 +422,7 @@ func _build_loadout_screen() -> void:
 	var bot = HBoxContainer.new()
 	bot.add_theme_constant_override("separation", 10)
 	root.add_child(bot)
-	loadout_count_label = _label("武器 0/%d · 技能 0/%d · 消耗品 0/%d · 护符 0/%d" % [controller.loadout_max, controller.skill_max, controller._cat_max("active"), controller.charm_max], TypeScale.META)
+	loadout_count_label = _label("武器 0/%d · 技能 0/%d · 消耗品 0/%d · 护符 0/%d" % [controller.state.loadout_max, controller.state.skill_max, controller._cat_max("active"), controller.state.charm_max], TypeScale.META)
 	loadout_count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	bot.add_child(loadout_count_label)
 	var bot_spacer = Control.new()
@@ -508,7 +508,7 @@ func _add_loadout_column(parent: Control, title: String, pool: Array, category: 
 # 从 ITEM_POOL 按 category 过滤：消耗品(active) 与 护符(passive) 各自独立成列
 func _item_pool_of(category: String) -> Array:
 	var out := []
-	for p in controller.ITEM_POOL:
+	for p in controller.state.ITEM_POOL:
 		var d = load(p)
 		if d is ItemData and d.category == category:
 			out.append(p)
@@ -527,7 +527,7 @@ func _refresh_slot_strip(category: String) -> void:
 	var used = controller._sel_arr(category).size()
 	var unlocked = controller._cat_max(category)
 	var ceiling = controller._cat_cap(category)
-	var uncapped = (ceiling == controller.UNCAPPED)
+	var uncapped = (ceiling == controller.state.UNCAPPED)
 	# 无天花板（进池类 武器/增益）：只画已解锁的格子，末尾以 ＋ 表示可继续「买即开槽」（无限）
 	# 有天花板（不进池类 消耗品/护符）：按天花板画满，· 表示尚未解锁的格子
 	var cells = unlocked if uncapped else ceiling
@@ -619,10 +619,10 @@ func _make_item_card(data: Resource, path: String, kind: String) -> Dictionary:
 
 # 卡片点击：三分类通用 toggle（受各自分类上限约束，互不算总）
 func _update_loadout_cards_visual() -> void:
-	var wfull = controller.selected_loadout.size() >= controller._cat_max("weapon")
+	var wfull = controller.state.selected_loadout.size() >= controller._cat_max("weapon")
 	var cfull = controller._sel_arr("active").size() >= controller._cat_max("active")
-	var hfull = controller.selected_charms.size() >= controller._cat_max("passive")
-	var bfull = controller.selected_skills.size() >= controller._cat_max("skill")
+	var hfull = controller.state.selected_charms.size() >= controller._cat_max("passive")
+	var bfull = controller.state.selected_skills.size() >= controller._cat_max("skill")
 	for card in loadout_cards:
 		var sb = StyleBoxFlat.new()
 		if card["selected"]:
@@ -644,7 +644,7 @@ func _update_loadout_cards_visual() -> void:
 
 # 单类计数文本：「名称 已装备/当前上限」；无天花板的进池类补 ＋ 表示仍可继续扩槽
 func _cat_count_text(cat: String, label: String) -> String:
-	var grow = "＋" if controller._cat_cap(cat) == controller.UNCAPPED else ""
+	var grow = "＋" if controller._cat_cap(cat) == controller.state.UNCAPPED else ""
 	return "%s %d/%d%s" % [label, controller._sel_arr(cat).size(), controller._cat_max(cat), grow]
 
 
@@ -658,13 +658,13 @@ func _update_loadout_count() -> void:
 		if loadout_columns.has(cat):
 			loadout_columns[cat].text = _cat_count_text(cat, titles[cat])
 		_refresh_slot_strip(cat)
-	var ok = controller.selected_loadout.size() >= controller.LOADOUT_MIN
+	var ok = controller.state.selected_loadout.size() >= controller.state.LOADOUT_MIN
 	loadout_confirm_btn.disabled = not ok
-	loadout_confirm_btn.text = ("确认开战 ▶" if ok else "至少选 %d 把武器 ▶" % controller.LOADOUT_MIN)
+	loadout_confirm_btn.text = ("确认开战 ▶" if ok else "至少选 %d 把武器 ▶" % controller.state.LOADOUT_MIN)
 
 
 func _show_loadout_screen() -> void:
-	controller.in_loadout = true
+	controller.state.in_loadout = true
 	_sync_card_selection()      # 从数组重建卡片 selected 标志（防止 Boss 奖励等外部路径直接改数组导致不同步）
 	_update_loadout_cards_visual()
 	_update_loadout_count()
@@ -677,10 +677,10 @@ func _show_loadout_screen() -> void:
 # 而不经过 _on_card_toggled，导致卡片标志与数组不同步——不同步会使 wfull 误判、
 # 点掉武器后全部卡片仍被 disabled 锁死。
 func _sync_card_selection() -> void:
-	var weapons = controller.selected_loadout
-	var consumables = controller.selected_consumables
-	var charms = controller.selected_charms
-	var skills = controller.selected_skills
+	var weapons = controller.state.selected_loadout
+	var consumables = controller.state.selected_consumables
+	var charms = controller.state.selected_charms
+	var skills = controller.state.selected_skills
 	for card in loadout_cards:
 		match card["kind"]:
 			"weapon":
@@ -695,11 +695,11 @@ func _sync_card_selection() -> void:
 
 func _update_loadout_anvil() -> void:
 	if loadout_anvil_label != null:
-		loadout_anvil_label.text = "铁砧点数: %d" % controller.meta["anvil_points"]
+		loadout_anvil_label.text = "铁砧点数: %d" % controller.state.meta["anvil_points"]
 
 
 func _hide_loadout_screen() -> void:
-	controller.in_loadout = false
+	controller.state.in_loadout = false
 	loadout_screen.visible = false
 
 
@@ -738,26 +738,26 @@ func _build_reward_screen() -> void:
 
 
 func _show_reward_screen(is_boss: bool) -> void:
-	controller.reward_is_boss = is_boss
+	controller.state.reward_is_boss = is_boss
 	# 清理旧卡片
 	for c in reward_grid.get_children():
 		reward_grid.remove_child(c)
 		c.queue_free()
-	var kind = controller.ROOMS[controller.room_index].kind
+	var kind = controller.state.ROOMS[controller.state.room_index].kind
 	if is_boss:
-		controller.reward_choices = controller._roll_boss_rewards(controller.ROOMS[controller.room_index])
+		controller.state.reward_choices = controller._roll_boss_rewards(controller.state.ROOMS[controller.state.room_index])
 		reward_title_label.text = "★ BOSS 战利品！选择一项（主题武器 / 强化券 / 信物）"
-		for rw in controller.reward_choices:
+		for rw in controller.state.reward_choices:
 			reward_grid.add_child(_make_boss_reward_card(rw))
 	elif kind == "elite":
-		controller.reward_choices = controller._roll_elite_rewards()
+		controller.state.reward_choices = controller._roll_elite_rewards()
 		reward_title_label.text = "⚔ 精英房 · 战前补给（选择一项备战）"
-		for rw in controller.reward_choices:
+		for rw in controller.state.reward_choices:
 			reward_grid.add_child(_make_reward_card(rw))
 	else:
-		controller.reward_choices = controller._roll_rewards()
+		controller.state.reward_choices = controller._roll_rewards()
 		reward_title_label.text = "胜利！选择一项房奖励"
-		for rw in controller.reward_choices:
+		for rw in controller.state.reward_choices:
 			reward_grid.add_child(_make_reward_card(rw))
 	reward_screen.visible = true
 
@@ -951,11 +951,11 @@ func _show_shop_screen() -> void:
 
 
 func _refresh_shop() -> void:
-	shop_gold_label.text = "金币: %d" % controller.gold
+	shop_gold_label.text = "金币: %d" % controller.state.gold
 	for c in shop_grid.get_children():
 		shop_grid.remove_child(c)
 		c.queue_free()
-	for offer in controller.shop_offers:
+	for offer in controller.state.shop_offers:
 		shop_grid.add_child(_make_shop_card(offer))
 	_refresh_shop_sell()
 	_refresh_shop_up()
@@ -976,18 +976,18 @@ func _make_shop_card(offer: Dictionary) -> Button:
 	vb.add_child(_label("%s%s · %s" % [_source_tag(offer["kind"]), kind_name, offer["name"]], 12))
 	var price = controller._shop_price(offer["kind"])   # 价格随当前持有数递增；卖出回落，换装成本=买卖价差（防刷价）
 	var is_active = (offer["kind"] == "active")
-	var cap = controller.CONSUMABLE_CAP if is_active else controller._cat_max(offer["kind"])          # 消耗品按腰带总容量 4；其余按整备上限
-	var cur = controller.consumable_slots.size() if is_active else controller._sel_arr(offer["kind"]).size()   # 消耗品按腰带实占数
+	var cap = controller.state.CONSUMABLE_CAP if is_active else controller._cat_max(offer["kind"])          # 消耗品按腰带总容量 4；其余按整备上限
+	var cur = controller.state.consumable_slots.size() if is_active else controller._sel_arr(offer["kind"]).size()   # 消耗品按腰带实占数
 	var can_grow_slot = (not is_active) and controller._can_grow_slot(offer["kind"])   # 消耗品不「开槽」、仅追加腰带格
 	var slot_full = (cur >= cap) and not can_grow_slot
-	var can_buy = (not offer["sold"]) and controller.gold >= price and not slot_full
+	var can_buy = (not offer["sold"]) and controller.state.gold >= price and not slot_full
 	var status: String
 	if offer["sold"]:
 		status = "已购入"
-	elif controller.gold < price:
+	elif controller.state.gold < price:
 		status = "金币不足"
 	elif slot_full:
-		var cap_txt = controller.CONSUMABLE_CAP if is_active else controller._cap_text(offer["kind"])
+		var cap_txt = controller.state.CONSUMABLE_CAP if is_active else controller._cap_text(offer["kind"])
 		status = "槽位已满 %d/%s" % [cur, cap_txt]
 	elif cur >= cap:
 		status = "开槽 %d 金" % price   # 本次购买会把该类槽 +1
@@ -1023,7 +1023,7 @@ func _sell_fill(list: VBoxContainer, kind: String) -> void:
 		c.queue_free()
 	if kind == "active":
 		# 消耗品：按腰带实例逐格列出（同类重复各占一格），点击按 uid 卖出
-		for slot in controller.consumable_slots:
+		for slot in controller.state.consumable_slots:
 			var name = _source_tag(kind) + controller._shop_name(slot["path"], kind)
 			var refund = controller._sell_price(kind, slot["uid"])
 			var sub = "卖出 +%d 金" % refund
@@ -1033,7 +1033,7 @@ func _sell_fill(list: VBoxContainer, kind: String) -> void:
 	for path in owned:
 		var name = _source_tag(kind) + controller._shop_name(path, kind)
 		var refund = controller._sell_price(kind, path)
-		var last = (kind == "weapon" and owned.size() <= controller.LOADOUT_MIN)
+		var last = (kind == "weapon" and owned.size() <= controller.state.LOADOUT_MIN)
 		var sub: String
 		if last:
 			sub = "最后一把 · 不可卖"
@@ -1187,16 +1187,16 @@ func _show_anvil_screen() -> void:
 
 
 func _refresh_anvil() -> void:
-	anvil_points_label.text = "铁砧点数: %d" % controller.meta["anvil_points"]
+	anvil_points_label.text = "铁砧点数: %d" % controller.state.meta["anvil_points"]
 	# 清理旧卡片
 	for c in anvil_grid.get_children():
 		anvil_grid.remove_child(c)
 		c.queue_free()
 	# 武器转轮升级
-	for path in controller.WEAPON_POOL:
+	for path in controller.state.WEAPON_POOL:
 		var wd: Resource = load(path)
 		var wname = wd.weapon_name if (wd != null) else path.get_file().get_basename()
-		var lvl = controller.meta["weapon_upgrades"].get(path, 0)
+		var lvl = controller.state.meta["weapon_upgrades"].get(path, 0)
 		var cost = (lvl + 1) * 10
 		var btn = UI_BUTTON.instantiate()
 		btn.custom_minimum_size = Vector2(96, 56)
@@ -1214,7 +1214,7 @@ func _refresh_anvil() -> void:
 		btn.connect("pressed", controller._on_anvil_weapon_pressed.bind(path))
 		anvil_grid.add_child(btn)
 	# 抗干扰
-	var rl = controller.meta["interference_resist"]
+	var rl = controller.state.meta["interference_resist"]
 	var rcost = (rl + 1) * 15
 	var rbtn = UI_BUTTON.instantiate()
 	rbtn.custom_minimum_size = Vector2(96, 56)
@@ -1281,30 +1281,30 @@ func _build_symbol_tooltip() -> void:
 	add_child(symbol_tooltip)
 
 
-# 读某格的「有效元素」——即符号继承武器 element 之后的结果（controller.grid_elem）。
+# 读某格的「有效元素」——即符号继承武器 element 之后的结果（controller.state.grid_elem）。
 # 注意：不能读 SymbolData.element（符号原生元素）。共享 .tres（如 slash）在火剑下
 # 有效元素是 fire、在铁剑下是 none，只有 grid_elem 与 _contribute 的结算口径一致。
 func _cell_element(reel: int, row: int) -> String:
 	if controller == null:
 		return "none"
-	if controller.grid_elem.size() <= reel:
+	if controller.state.grid_elem.size() <= reel:
 		return "none"
-	if controller.grid_elem[reel].size() <= row:
+	if controller.state.grid_elem[reel].size() <= row:
 		return "none"
-	return controller.grid_elem[reel][row]
+	return controller.state.grid_elem[reel][row]
 
 
 func _on_cell_hover(reel: int, row: int) -> void:
 	if symbol_tooltip == null or controller == null:
 		return
-	if controller.grid.size() <= reel or controller.grid[reel].size() <= row:
+	if controller.state.grid.size() <= reel or controller.state.grid[reel].size() <= row:
 		return
-	var s: SymbolData = controller.grid[reel][row]
+	var s: SymbolData = controller.state.grid[reel][row]
 	# S1 修复：原先读 s.element（符号原生元素），火剑的斩击会显示"无属性"，
 	# 而结算按 fire 吃 ×1.5——tooltip 与实际伤害对不上。改读有效元素。
 	var elem = _cell_element(reel, row)
-	var rel = ElementCounter.relation(elem, controller.enemy_element)
-	var rel_mult = ElementCounter.multiplier(elem, controller.enemy_element)
+	var rel = ElementCounter.relation(elem, controller.state.enemy_element)
+	var rel_mult = ElementCounter.multiplier(elem, controller.state.enemy_element)
 	var rel_text = ("" if elem == "none" else " · 对敌%s ×%s" % [rel, ElementCounter.fmt_mult(rel_mult)])
 	symbol_tooltip_label.text = "%s %s" % [s.label, s.name]
 	if s.kind == "buff":
@@ -1351,8 +1351,8 @@ func _build_popup_layer() -> void:
 # 房间 / 流程
 # ---------------------------------------------------------------------------
 func _clear_badges() -> void:
-	for reel in controller.REELS:
-		for row in controller.ROWS:
+	for reel in controller.state.REELS:
+		for row in controller.state.ROWS:
 			if cell_badges.size() > reel and cell_badges[reel].size() > row:
 				cell_badges[reel][row].text = ""
 
@@ -1365,9 +1365,9 @@ func _update_match_badges(counts: Dictionary) -> void:
 		var c = entry[2]
 		if s == TRASH_SYMBOL or c < 2:
 			continue
-		for reel in controller.REELS:
-			for row in controller.ROWS:
-				if controller.grid[reel][row] == s:
+		for reel in controller.state.REELS:
+			for row in controller.state.ROWS:
+				if controller.state.grid[reel][row] == s:
 					cell_badges[reel][row].text = "×%d" % c
 
 
@@ -1384,7 +1384,7 @@ func _refresh_legend() -> void:
 		c.queue_free()
 	# S3：敌人栏改为「弱点 / 抗性」视角。原先只显示"敌人属性：火"，玩家还得
 	# 自己在脑子里跑一遍五元环才知道该带什么武器——这里直接把结论摆出来。
-	var eelem: String = controller.enemy_element
+	var eelem: String = controller.state.enemy_element
 	var et = _label("敌人 %s" % ElementCounter.label(eelem), TypeScale.META)
 	et.add_theme_color_override("font_color", ElementCounter.color(eelem))
 	et.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -1406,7 +1406,7 @@ func _refresh_legend() -> void:
 		lr.add_theme_color_override("font_color", ElementCounter.color(ers))
 		legend_container.add_child(lr)
 	var seen := {}
-	for p in controller.pool:
+	for p in controller.state.pool:
 		var d: SymbolData = p[0]
 		var pelem: String = p[2] if p.size() > 2 else d.element
 		var key = d.resource_path + "|" + pelem
@@ -1430,11 +1430,11 @@ func _refresh_legend() -> void:
 
 func _legend_signature() -> String:
 	var ids := []
-	for p in controller.pool:
+	for p in controller.state.pool:
 		var pelem: String = p[2] if p.size() > 2 else "none"
 		ids.append(p[0].resource_path + "|" + pelem)
 	ids.sort()
-	return "%s|%s" % [",".join(ids), controller.enemy_element]
+	return "%s|%s" % [",".join(ids), controller.state.enemy_element]
 
 
 # 飘字：在 anchor 面板顶部中央弹出并上浮淡出（Phase 3：固定对象池借出/归还）
@@ -1520,7 +1520,7 @@ func _cell_style(elem: String) -> StyleBoxFlat:
 
 func _refresh_cell(reel: int, row: int) -> void:
 	var b: Button = cells[reel][row]
-	var s: SymbolData = controller.grid[reel][row]
+	var s: SymbolData = controller.state.grid[reel][row]
 	# S4：按「有效元素」着色。同一个 slash.tres 在火剑下是火、在铁剑下是无属性，
 	# 靠边框/底色一眼分辨谁吃 ×1.5；元素为 none 时回落符号自身配色。
 	var elem = _cell_element(reel, row)
@@ -1539,51 +1539,51 @@ func _refresh_cell(reel: int, row: int) -> void:
 
 
 func _refresh_meta() -> void:
-	loadout_label.text = "已装备: " + ("/".join(controller.loadout_names) if not controller.loadout_names.is_empty() else "—")
-	var is_boss = controller._is_boss_room(controller.room_index)
-	room_label.text = "房间: %d/%d%s" % [controller.room_index + 1, controller.ROOMS.size(), " · ★BOSS" if is_boss else ""]
-	turn_label.text = "回合: %d" % controller.turn_count
-	player_hp_label.text = "HP %d/%d" % [controller.player_hp, controller.player_hp_max]
-	player_shield_label.text = "护盾 %d" % controller.player_shield
+	loadout_label.text = "已装备: " + ("/".join(controller.state.loadout_names) if not controller.state.loadout_names.is_empty() else "—")
+	var is_boss = controller._is_boss_room(controller.state.room_index)
+	room_label.text = "房间: %d/%d%s" % [controller.state.room_index + 1, controller.state.ROOMS.size(), " · ★BOSS" if is_boss else ""]
+	turn_label.text = "回合: %d" % controller.state.turn_count
+	player_hp_label.text = "HP %d/%d" % [controller.state.player_hp, controller.state.player_hp_max]
+	player_shield_label.text = "护盾 %d" % controller.state.player_shield
 	player_buff_label.text = "【转轮】技能: " + controller._buff_summary()
-	gold_label.text = "金币 %d" % controller.gold
-	enemy_name_label.text = controller.enemy_name
+	gold_label.text = "金币 %d" % controller.state.gold
+	enemy_name_label.text = controller.state.enemy_name
 	boss_badge.visible = is_boss
-	enemy_hp_label.text = "HP %d/%d" % [max(controller.enemy_hp, 0), controller.enemy_hp_max]
+	enemy_hp_label.text = "HP %d/%d" % [max(controller.state.enemy_hp, 0), controller.state.enemy_hp_max]
 	# 护甲（扁平池）：有护甲才显示；破甲后剩 0 也显示（提示已破甲窗口），仅无护甲敌人隐藏
-	enemy_armor_label.visible = controller.enemy_armor_max > 0
-	enemy_armor_label.text = "护甲 %d/%d" % [max(controller.enemy_armor, 0), controller.enemy_armor_max]
-	enemy_status_label.text = "状态: " + ("无" if controller.enemy_status.is_empty() else controller._status_summary(controller.enemy_status))
-	purify_label.text = "%d/%d" % [controller.purify_charges, controller.purify_max_base]
+	enemy_armor_label.visible = controller.state.enemy_armor_max > 0
+	enemy_armor_label.text = "护甲 %d/%d" % [max(controller.state.enemy_armor, 0), controller.state.enemy_armor_max]
+	enemy_status_label.text = "状态: " + ("无" if controller.state.enemy_status.is_empty() else controller._status_summary(controller.state.enemy_status))
+	purify_label.text = "%d/%d" % [controller.state.purify_charges, controller.state.purify_max_base]
 	# M4+M6 本局加成概览
 	var parts := []
-	if controller.run_power_bonus + controller.charm_power_bonus > 0:
-		parts.append("伤害+%d" % (controller.run_power_bonus + controller.charm_power_bonus))
+	if controller.state.run_power_bonus + controller.state.charm_power_bonus > 0:
+		parts.append("伤害+%d" % (controller.state.run_power_bonus + controller.state.charm_power_bonus))
 	# 护符乘区（damage_mult 类型，如 rage_charm ×1.5）此前漏显示 → 带乘区护符时概览空显示"无"
-	if controller.charm_damage_mult != 1.0:
-		parts.append("护符×%s" % ElementCounter.fmt_mult(controller.charm_damage_mult))
-	if controller.purify_max_base > 0:
-		parts.append("净化上限%d" % controller.purify_max_base)
-	if controller.charm_room_shield > 0:
-		parts.append("护盾+%d" % controller.charm_room_shield)
-	if controller.charm_interf_resist > 0:
-		parts.append("抗扰+%d" % controller.charm_interf_resist)
-	if not controller.run_symbol_bonus.is_empty():
+	if controller.state.charm_damage_mult != 1.0:
+		parts.append("护符×%s" % ElementCounter.fmt_mult(controller.state.charm_damage_mult))
+	if controller.state.purify_max_base > 0:
+		parts.append("净化上限%d" % controller.state.purify_max_base)
+	if controller.state.charm_room_shield > 0:
+		parts.append("护盾+%d" % controller.state.charm_room_shield)
+	if controller.state.charm_interf_resist > 0:
+		parts.append("抗扰+%d" % controller.state.charm_interf_resist)
+	if not controller.state.run_symbol_bonus.is_empty():
 		var sp := []
-		for spath in controller.run_symbol_bonus.keys():
+		for spath in controller.state.run_symbol_bonus.keys():
 			var sym: SymbolData = load(spath)
-			sp.append("%s+%d" % [sym.name, controller.run_symbol_bonus[spath]])
+			sp.append("%s+%d" % [sym.name, controller.state.run_symbol_bonus[spath]])
 		parts.append("符号:" + "/".join(sp))
-	if controller.run_shield_next > 0:
-		parts.append("下房盾+%d" % controller.run_shield_next)
+	if controller.state.run_shield_next > 0:
+		parts.append("下房盾+%d" % controller.state.run_shield_next)
 	run_label.text = "本局加成: " + ("无" if parts.is_empty() else " / ".join(parts))
-	if controller.enemy_intent.is_empty():
+	if controller.state.enemy_intent.is_empty():
 		enemy_intent_label.text = "意图: —"
 	else:
-		var t = controller.enemy_intent["type"]
+		var t = controller.state.enemy_intent["type"]
 		match t:
-			"attack": enemy_intent_label.text = "意图: ⚔ 攻击 %d" % controller.enemy_intent["value"]
-			"heavy":  enemy_intent_label.text = "意图: 💥 重击 %d" % controller.enemy_intent["value"]
+			"attack": enemy_intent_label.text = "意图: ⚔ 攻击 %d" % controller.state.enemy_intent["value"]
+			"heavy":  enemy_intent_label.text = "意图: 💥 重击 %d" % controller.state.enemy_intent["value"]
 			"jam":    enemy_intent_label.text = "意图: ☣ 注废（可净化）"
 			"lock":   enemy_intent_label.text = "意图: 🔒 锁轮（可净化）"
 			"chaos":  enemy_intent_label.text = "意图: 🌀 乱权（可净化）"
@@ -1602,8 +1602,8 @@ func _hide_overlay() -> void:
 
 
 func _log(msg: String) -> void:
-	controller.logs.push_front(msg)
-	if controller.logs.size() > 10:
-		controller.logs.pop_back()
+	controller.state.logs.push_front(msg)
+	if controller.state.logs.size() > 10:
+		controller.state.logs.pop_back()
 	if log_label != null:
-		log_label.text = "\n".join(controller.logs)
+		log_label.text = "\n".join(controller.state.logs)

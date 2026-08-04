@@ -282,6 +282,66 @@ var PAYLINES = [
 
 var logs: Array = []
 
+# —— P1：只读状态快照（HUD 渲染只从此读，不再直读下方私有字段）——
+var state: BattleState:
+	get:
+		return _build_state()
+
+func _build_state() -> BattleState:
+	var s := BattleState.new()
+	s.grid = grid
+	s.grid_elem = grid_elem
+	s.reward_choices = reward_choices
+	s.room_index = room_index
+	s.REELS = REELS
+	s.meta = meta
+	s.logs = logs
+	s.gold = gold
+	s.enemy_intent = enemy_intent
+	s.enemy_element = enemy_element
+	s.selected_loadout = selected_loadout
+	s.run_symbol_bonus = run_symbol_bonus
+	s.ROWS = ROWS
+	s.ROOMS = ROOMS
+	s.purify_max_base = purify_max_base
+	s.LOADOUT_MIN = LOADOUT_MIN
+	s.consumable_panel = consumable_panel
+	s.WEAPON_POOL = WEAPON_POOL
+	s.UNCAPPED = UNCAPPED
+	s.selected_skills = selected_skills
+	s.selected_charms = selected_charms
+	s.run_shield_next = run_shield_next
+	s.run_power_bonus = run_power_bonus
+	s.pool = pool
+	s.loadout_names = loadout_names
+	s.in_loadout = in_loadout
+	s.enemy_status = enemy_status
+	s.enemy_armor_max = enemy_armor_max
+	s.consumable_slots = consumable_slots
+	s.CONSUMABLE_CAP = CONSUMABLE_CAP
+	s.charm_room_shield = charm_room_shield
+	s.charm_power_bonus = charm_power_bonus
+	s.charm_interf_resist = charm_interf_resist
+	s.charm_damage_mult = charm_damage_mult
+	s.turn_count = turn_count
+	s.SKILL_POOL = SKILL_POOL
+	s.skill_max = skill_max
+	s.shop_offers = shop_offers
+	s.selected_consumables = selected_consumables
+	s.reward_is_boss = reward_is_boss
+	s.purify_charges = purify_charges
+	s.player_shield = player_shield
+	s.player_hp_max = player_hp_max
+	s.player_hp = player_hp
+	s.loadout_max = loadout_max
+	s.ITEM_POOL = ITEM_POOL
+	s.enemy_name = enemy_name
+	s.enemy_hp_max = enemy_hp_max
+	s.enemy_hp = enemy_hp
+	s.enemy_armor = enemy_armor
+	s.charm_max = charm_max
+	return s
+
 
 
 const BATTLE_HUD = preload("res://scenes/ui/battle_hud.tscn")
