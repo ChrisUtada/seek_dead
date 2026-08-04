@@ -38,8 +38,8 @@ extends Control
 
 const TRASH_SYMBOL = preload("res://resources/symbols/trash.tres")
 const GOLD_SYMBOL = preload("res://resources/symbols/gold.tres")
-const GOLD_POOL_WEIGHT := 3.0      # 金币符号在转轮池中的权重（远低于伤害符号，防稀释 DPS）
-const GOLD_PER_COIN := 1           # 每枚落在连线上的金币符号产出的金币数
+@export var GOLD_POOL_WEIGHT: float = 3.0      # 金币符号在转轮池中的权重（远低于伤害符号，防稀释 DPS）
+@export var GOLD_PER_COIN: int = 1           # 每枚落在连线上的金币符号产出的金币数
 
 # Phase 1 组件化：UI 复用场景与脚手架
 const UI_BUTTON = preload("res://scenes/ui/ui_button.tscn")
@@ -86,10 +86,10 @@ const ROWS = 1
 # 等价关系：原 1.15^idx（每幕恰 4 房，idx=4*(act-1)+幕内位置）= (1.15^4)^(act-1)·1.15^(幕内位置)
 #   = ACT_STEP^(act-1) · ROOM_STEP^(幕内位置)。解耦两个旋钮，且对幕内房数变化稳健（boss 永远幕内位置=3=天然峰值）。
 # 当前常量刻意保留用户 F6 验证过的手感（漂移 <0.1%）：幕1/2/3 BOSS 缩放后 HP ≈ 266/771/2140。
-const ANTE_ACT_STEP_HP  := 1.75   # 幕间台阶：每进一幕敌方 HP ×1.75（原 1.15^4）
-const ANTE_ACT_STEP_ATK := 1.46   # 幕间台阶：每进一幕敌方 ATK ×1.46（原 1.10^4）
-const ANTE_ROOM_STEP_HP := 1.15   # 幕内爬升：同幕每过一房敌方 HP ×1.15
-const ANTE_ROOM_STEP_ATK := 1.10  # 幕内爬升：同幕每过一房敌方 ATK ×1.10
+@export var ANTE_ACT_STEP_HP: float = 1.75   # 幕间台阶：每进一幕敌方 HP ×1.75（原 1.15^4）
+@export var ANTE_ACT_STEP_ATK: float = 1.46   # 幕间台阶：每进一幕敌方 ATK ×1.46（原 1.10^4）
+@export var ANTE_ROOM_STEP_HP: float = 1.15   # 幕内爬升：同幕每过一房敌方 HP ×1.15
+@export var ANTE_ROOM_STEP_ATK: float = 1.10  # 幕内爬升：同幕每过一房敌方 ATK ×1.10
 const TEST_PLAYER_DMG_MULT := 1.5   # 玩家直击总伤害永久倍率（F6 验证手感合理，保留为正式平衡值）。
 const TEST_STATUS_DMG_MULT := 3.0  # 给敌人的状态 DoT（灼烧/毒）永久倍率（原 base 仅 3~4/层/回合，幕三 BOSS 高血量下需此倍率才可见；F6 验证合理，保留）。
 
@@ -146,26 +146,26 @@ const _ITEM_STRIP_TARGET := 16   # 每件装备转轮子带长（频率由该装
 const _GOLD_CELLS := 2           # 金币符号常驻格数（经济引擎，与装备频率解耦）
 
 # miss（废铁）占比来自武器命中率，人为留底以防转轮变无脑（§12：命中率不能趋近 100%）。
-const MISS_FLOOR := 0.08          # 废铁占比下限（转轮永远有 miss）
-const MISS_CEIL  := 0.30          # 废铁占比上限（防低命中武器把转轮打成纯废铁）
+@export var MISS_FLOOR: float = 0.08          # 废铁占比下限（转轮永远有 miss）
+@export var MISS_CEIL: float = 0.30          # 废铁占比上限（防低命中武器把转轮打成纯废铁）
 # —— 符号规范 S8（KPI）——
-const KPI_EXPLOSION_PER_ROOM := 1.0  # S8 RTP 式 KPI：special 三连期望每房 >=1 次（反推 special 频率锚点，调参优先调高各装备 special 符号的 weight）
+@export var KPI_EXPLOSION_PER_ROOM: float = 1.0  # S8 RTP 式 KPI：special 三连期望每房 >=1 次（反推 special 频率锚点，调参优先调高各装备 special 符号的 weight）
 
 # P3：物品强度轴基准（docs/物品中心重构方案.md §8）。伤害 = (物品 base_power × 符号 base 偏移) × 连线 × 克制。
 # BASE_POWER_REF 是「base_power → 伤害」的归一化支点：base_power == REF 的武器，其符号伤害等于 sym.base（即旧模型数值）；
 # base_power 高于 REF 的武器（高稀有度）符号伤害按比例放大（落实「稀有度→强度」），低于则缩小。
 # 此为调参旋钮：P11 内容广度阶段会把 sym.base 重标为相对 base_power 的真正偏移比，届时可去掉 REF 归一化。
-const BASE_POWER_REF := 32.0        # 武器 base_power 支点（≈ 当前 8 武器均值，使平均武器伤害与旧模型持平）
-const SPECIAL_TRIPLE_CRIT := 2.0        # special 三连暴击倍率：连线数轴上唯一可控的战斗内爆发（清晰可见，不做黑箱级联）
-const CHAIN_MAX := 4                      # 连锁重触发上限：special 三连最多再免费重转 3 次（共 4 发）
-const CHAIN_STEP := 1.5                   # 连锁倍率：每多一层 ×1.5（叠在 special×CRIT 之上，封顶 ≈ ×3.4）
+@export var BASE_POWER_REF: float = 32.0        # 武器 base_power 支点（≈ 当前 8 武器均值，使平均武器伤害与旧模型持平）
+@export var SPECIAL_TRIPLE_CRIT: float = 2.0        # special 三连暴击倍率：连线数轴上唯一可控的战斗内爆发（清晰可见，不做黑箱级联）
+@export var CHAIN_MAX: int = 4                      # 连锁重触发上限：special 三连最多再免费重转 3 次（共 4 发）
+@export var CHAIN_STEP: float = 1.5                   # 连锁倍率：每多一层 ×1.5（叠在 special×CRIT 之上，封顶 ≈ ×3.4）
 # —— 每局结束元进度升级（膨胀双轨：武器 base 线性成长 × 护符乘数增值）——
-const WEAPON_BASE_STEP := 3              # 每级武器基础伤害 +3（线性，随护符/连锁放大）
-const WEAPON_HIT_STEP := 0.05            # P5：每级武器命中率 +5%（降低废铁占比，MISS_FLOOR 兜底保证转轮永远有 miss）
-const CHARM_MULT_STEP := 0.12            # 每级护符伤害乘区 +0.12（乘数增值，复利但封顶）
-const CHARM_MULT_CAP := 6.0              # 总护符乘区硬上限（防失控膨胀）
-const META_ANVIL_BONUS := 2              # 元进度三选一选「铁砧点数」时获得的点数
-const META_CHOICE_COUNT := 3             # 每局结束元进度候选张数（三选一，候选池随机抽）
+@export var WEAPON_BASE_STEP: int = 3              # 每级武器基础伤害 +3（线性，随护符/连锁放大）
+@export var WEAPON_HIT_STEP: float = 0.05            # P5：每级武器命中率 +5%（降低废铁占比，MISS_FLOOR 兜底保证转轮永远有 miss）
+@export var CHARM_MULT_STEP: float = 0.12            # 每级护符伤害乘区 +0.12（乘数增值，复利但封顶）
+@export var CHARM_MULT_CAP: float = 6.0              # 总护符乘区硬上限（防失控膨胀）
+@export var META_ANVIL_BONUS: int = 2              # 元进度三选一选「铁砧点数」时获得的点数
+@export var META_CHOICE_COUNT: int = 3             # 每局结束元进度候选张数（三选一，候选池随机抽）
 
 # S12 局内金币升级（深化已有乘区，不新增第4乘区；每局清零，管局内临时）
 # 设计：爆炸感来自「在现有 3 乘区(连线/护符·增益/克制)内做深」，而非开第 4 条独立乘区。
@@ -173,11 +173,11 @@ const META_CHOICE_COUNT := 3             # 每局结束元进度候选张数（�
 #   · 连线精通(line)：匹配连线倍率 +N（深化 lane1，仅 ≥2 的同符号生效）
 #   · 护符共鸣(joker)：本局伤害乘区 ×(1+N·step)，并入 buff_mult（深化 lane2·护符/增益同轨）
 #   · 壁垒(shield)：每房开局护盾 +N（韧性保底，少量）
-const POWER_STEP := 3           # 锋锐研磨：每级 +3 本局基础伤害
-const LINE_STEP  := 1           # 连线精通：每级 +1 连线倍率
-const JOKER_STEP := 0.25        # 护符共鸣：每级 +0.25 本局伤害乘区（封顶见 JOKER_CAP_FACTOR）
-const JOKER_CAP_FACTOR := 3.0   # 共鸣乘区硬上限（1 + maxlv*step ≤ 此值）
-const SHIELD_STEP := 5          # 壁垒：每级 +5 每房开局护盾
+@export var POWER_STEP: int = 3           # 锋锐研磨：每级 +3 本局基础伤害
+@export var LINE_STEP: int = 1           # 连线精通：每级 +1 连线倍率
+@export var JOKER_STEP: float = 0.25        # 护符共鸣：每级 +0.25 本局伤害乘区（封顶见 JOKER_CAP_FACTOR）
+@export var JOKER_CAP_FACTOR: float = 3.0   # 共鸣乘区硬上限（1 + maxlv*step ≤ 此值）
+@export var SHIELD_STEP: int = 5          # 壁垒：每级 +5 每房开局护盾
 const GOLD_UPGRADE_DEFS := [
 	{"id":"power",  "icon":"🗡", "name":"锋锐研磨", "base":6,  "step":4, "max":6},
 	{"id":"line",   "icon":"🔗", "name":"连线精通", "base":8,  "step":6, "max":4},
