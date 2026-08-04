@@ -14,6 +14,35 @@ const ItemData = preload("res://scripts/items/item_data.gd")
 
 var controller   # DuelController 引用（运行时由 _ready 设置）
 
+# ---- 意图信号（HUD → controller，单向数据流；P2 解耦）----
+# HUD 只发「用户想做什么」，不调用 controller 私有方法、不读 controller 字段名。
+signal spin_requested                         # 点击「旋转」按钮
+signal reel_clicked(col: int)                # 点击某一列转轮
+signal buy_requested(offer: Dictionary)      # 商店购入
+signal sell_requested(uid_or_path: String, kind: String)  # 卖出（消耗品按 uid，其余按 path）
+signal reward_chosen(id: String)             # 房奖励三选一
+signal boss_reward_chosen(cand: Dictionary)  # BOSS 战利品三选一
+signal reward_skip_requested                 # 跳过房奖励
+
+# ---- 公开语义接口（controller → HUD 单向调用，替代直接戳私有节点/字段；P2 解耦）----
+func build_all() -> void:
+	_build_ui()
+	_build_loadout_screen()
+	_build_reward_screen()
+	_build_anvil_screen()
+	_build_shop_screen()
+	_build_meta_screen()
+	_show_loadout_screen()
+
+func set_reel_enabled(reel: int, enabled: bool) -> void:
+	if cells.size() > reel and cells[reel].size() > 0:
+		cells[reel][0].disabled = not enabled
+
+func hide_reward_screen() -> void: reward_screen.visible = false
+func hide_meta_screen() -> void: meta_screen.visible = false
+func hide_shop_screen() -> void: shop_screen.visible = false
+func hide_anvil_screen() -> void: anvil_screen.visible = false
+
 # ---- UI 节点引用 ----
 var cells = []   # 展示用 Button 引用 [reel][row]
 var cell_badges = []   # 每格右上角匹配角标 Label 引用 [reel][row]
@@ -243,7 +272,7 @@ func _build_ui() -> void:
 			cell.mouse_filter = Control.MOUSE_FILTER_STOP
 			cell.connect("mouse_entered", _on_cell_hover.bind(reel, row))
 			cell.connect("mouse_exited", _on_cell_unhover)
-			cell.connect("pressed", controller._on_reel_clicked.bind(reel))
+			cell.pressed.connect(reel_clicked.emit.bind(reel))
 			grid_container.add_child(cell)
 			cells[reel].append(cell)
 			controller.grid[reel].append(TRASH_SYMBOL)
@@ -344,7 +373,7 @@ func _build_ui() -> void:
 	spin.text = "SPIN (空格)"
 	spin.custom_minimum_size = Vector2(140, 48)
 	spin.add_theme_font_size_override("font_size", TypeScale.SUBTITLE)
-	spin.connect("pressed", controller._on_spin_button_pressed)
+	spin.pressed.connect(spin_requested.emit)
 	bot.add_child(spin)
 
 	var purify = UI_BUTTON.instantiate()
@@ -730,7 +759,7 @@ func _build_reward_screen() -> void:
 	reward_skip_btn = UI_BUTTON.instantiate()
 	reward_skip_btn.text = "跳过 ▶"
 	reward_skip_btn.custom_minimum_size = Vector2(120, 40)
-	reward_skip_btn.connect("pressed", controller._on_reward_skip_pressed)
+	reward_skip_btn.pressed.connect(reward_skip_requested.emit)
 	bot.add_child(reward_skip_btn)
 
 	add_child(reward_screen)
@@ -778,7 +807,7 @@ func _make_reward_card(rw: RewardData) -> Button:
 	dl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	dl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vb.add_child(dl)
-	btn.connect("pressed", controller._on_reward_chosen.bind(rw.id))
+	btn.pressed.connect(reward_chosen.emit.bind(rw.id))
 	return btn
 
 
@@ -799,7 +828,7 @@ func _make_boss_reward_card(cand: Dictionary) -> Button:
 	dl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	dl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vb.add_child(dl)
-	btn.connect("pressed", controller._on_boss_reward_chosen.bind(cand))
+	btn.pressed.connect(boss_reward_chosen.emit.bind(cand))
 	return btn
 
 
@@ -1003,7 +1032,7 @@ func _make_shop_card(offer: Dictionary) -> Button:
 		pl.add_theme_color_override("font_color", Palette.ACCENT_GOLD)
 	vb.add_child(pl)
 	btn.disabled = not can_buy
-	btn.connect("pressed", controller._on_shop_buy_pressed.bind(offer))
+	btn.pressed.connect(buy_requested.emit.bind(offer))
 	return btn
 
 
@@ -1027,7 +1056,7 @@ func _sell_fill(list: VBoxContainer, kind: String) -> void:
 			var name = _source_tag(kind) + controller._shop_name(slot["path"], kind)
 			var refund = controller._sell_price(kind, slot["uid"])
 			var sub = "卖出 +%d 金" % refund
-			list.add_child(_make_sell_card(name, sub, false, controller._on_shop_sell_pressed.bind(slot["uid"], kind)))
+			list.add_child(_make_sell_card(name, sub, false, sell_requested.emit.bind(slot["uid"], kind)))
 		return
 	var owned = controller._sel_arr(kind)
 	for path in owned:
@@ -1039,7 +1068,7 @@ func _sell_fill(list: VBoxContainer, kind: String) -> void:
 			sub = "最后一把 · 不可卖"
 		else:
 			sub = "卖出 +%d 金" % refund
-		list.add_child(_make_sell_card(name, sub, last, controller._on_shop_sell_pressed.bind(path, kind)))
+		list.add_child(_make_sell_card(name, sub, last, sell_requested.emit.bind(path, kind)))
 
 
 func _sell_column(parent: Control, title: String) -> VBoxContainer:

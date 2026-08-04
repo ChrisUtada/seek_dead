@@ -359,13 +359,15 @@ func _ready() -> void:
 	add_child(hud)
 	hud.controller = self
 	_load_meta()
-	hud._build_ui()
-	hud._build_loadout_screen()
-	hud._build_reward_screen()
-	hud._build_anvil_screen()
-	hud._build_shop_screen()      # S7：商店覆盖层（购入 + 卖出，统一整备闭环）
-	hud._build_meta_screen()      # 每局结束元进度三选一覆盖层
-	hud._show_loadout_screen()
+	hud.build_all()   # P2：HUD 自构建全部界面（build_all 内部调各 _build_* + _show_loadout_screen），controller 不再戳私有构建方法
+	# P2：HUD 意图信号 → controller 处理器（HUD 不再调用 controller 私有方法）
+	hud.spin_requested.connect(_on_spin_button_pressed)
+	hud.reel_clicked.connect(_on_reel_clicked)
+	hud.buy_requested.connect(_on_shop_buy_pressed)
+	hud.sell_requested.connect(_on_shop_sell_pressed)
+	hud.reward_chosen.connect(_on_reward_chosen)
+	hud.boss_reward_chosen.connect(_on_boss_reward_chosen)
+	hud.reward_skip_requested.connect(_on_reward_skip_pressed)
 	# 方案 A：旋转节拍器（转轮带滚动 + 加速 + 停止时机判定）
 	_spin_timer = Timer.new()
 	_spin_timer.one_shot = false
@@ -601,7 +603,7 @@ func _on_reload_loadout_pressed() -> void:
 # M4 房奖励三选一界面（Roguelike 构筑）
 # ---------------------------------------------------------------------------
 func _on_reward_chosen(id: String) -> void:
-	hud.reward_screen.visible = false
+	hud.hide_reward_screen()
 	_apply_reward(id)
 	_award_meta(reward_is_boss)    # M5：房间通关发放铁砧点数
 	_award_gold(reward_is_boss)    # S6+S8：清房金币 + 利息
@@ -613,7 +615,7 @@ func _on_reward_chosen(id: String) -> void:
 
 
 func _on_reward_skip_pressed() -> void:
-	hud.reward_screen.visible = false
+	hud.hide_reward_screen()
 	_award_meta(reward_is_boss)    # M5：房间通关发放铁砧点数（即使跳过奖励）
 	_award_gold(reward_is_boss)    # S6+S8：清房金币 + 利息
 	if _is_run_final(room_index):
@@ -624,7 +626,7 @@ func _on_reward_skip_pressed() -> void:
 
 
 func _on_boss_reward_chosen(cand: Dictionary) -> void:
-	hud.reward_screen.visible = false
+	hud.hide_reward_screen()
 	_apply_boss_reward(cand)
 	_award_meta(true)    # M5：Boss 通关发放铁砧点数（含额外）
 	_award_gold(true)    # S6+S8：清房金币 + 利息
@@ -689,7 +691,7 @@ func _show_meta_choice() -> void:
 
 
 func _on_meta_choice_chosen(opt: Dictionary) -> void:
-	hud.meta_screen.visible = false
+	hud.hide_meta_screen()
 	match opt["kind"]:
 		"weapon":
 			var p = opt["path"]
@@ -1094,7 +1096,7 @@ func _on_gold_upgrade_pressed(id: String) -> void:
 
 
 func _on_shop_leave_pressed() -> void:
-	hud.shop_screen.visible = false
+	hud.hide_shop_screen()
 	_start_room(room_index + 1)
 
 
@@ -1129,7 +1131,7 @@ func _on_anvil_resist_pressed() -> void:
 
 
 func _on_anvil_back_pressed() -> void:
-	hud.anvil_screen.visible = false
+	hud.hide_anvil_screen()
 	hud._update_loadout_anvil()
 
 
@@ -1377,8 +1379,7 @@ func _begin_spin() -> void:
 		_locked_prev_sym.append(grid[r][0] if grid.size() > r and grid[r].size() > 0 else TRASH_SYMBOL)
 		_locked_prev_elem.append(grid_elem[r][0] if grid_elem.size() > r and grid_elem[r].size() > 0 else "none")
 		# 旋转期间允许点击该列以停止
-		if hud.cells.size() > r and hud.cells[r].size() > 0:
-			hud.cells[r][0].disabled = false
+		hud.set_reel_enabled(r, true)
 	_spinning = true
 	_spin_ticks = 0
 	hud._clear_damage_breakdown()   # S2：新一轮开始，先清掉上一回合的分解
@@ -1507,8 +1508,7 @@ func _lock_reel(r: int, pos: int) -> void:
 		grid_elem[r][0] = strip[idx][1]
 	reel_stopped[r] = true
 	hud._refresh_cell(r, 0)
-	if hud.cells.size() > r and hud.cells[r].size() > 0:
-		hud.cells[r][0].disabled = true
+	hud.set_reel_enabled(r, false)
 	var all := true
 	for rr in REELS:
 		if not reel_stopped[rr]:
@@ -1533,8 +1533,7 @@ func _finish_spin() -> void:
 	_spinning = false
 	_spin_timer.stop()
 	for r in REELS:
-		if hud.cells.size() > r and hud.cells[r].size() > 0:
-			hud.cells[r][0].disabled = true
+		hud.set_reel_enabled(r, false)
 	pending_jam_reel = -1
 	pending_lock_reel = -1
 	pending_chaos = false
