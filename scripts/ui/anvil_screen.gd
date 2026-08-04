@@ -86,5 +86,5 @@ func refresh() -> void:
 	rbtn.connect("pressed", controller._on_anvil_resist_pressed)
 	anvil_grid.add_child(rbtn)
 
-func hide() -> void:
+func hide_screen() -> void:
 	visible = false

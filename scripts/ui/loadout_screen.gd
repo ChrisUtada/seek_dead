@@ -219,6 +219,6 @@ func _update_loadout_anvil() -> void:
 	if loadout_anvil_label != null:
 		loadout_anvil_label.text = "铁砧点数: %d" % controller.state.meta["anvil_points"]
 
-func hide() -> void:
+func hide_screen() -> void:
 	controller.in_loadout = false
 	visible = false

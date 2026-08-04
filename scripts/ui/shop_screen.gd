@@ -136,5 +136,5 @@ func _refresh_shop_up() -> void:
 	for u in controller._gold_upgrade_defs():
 		up_grid.add_child(hud._make_upgrade_card(u))
 
-func hide() -> void:
+func hide_screen() -> void:
 	visible = false

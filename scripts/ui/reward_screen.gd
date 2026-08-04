@@ -54,5 +54,5 @@ func show_screen(is_boss: bool) -> void:
 			reward_grid.add_child(hud._make_reward_card(rw))
 	visible = true
 
-func hide() -> void:
+func hide_screen() -> void:
 	visible = false

@@ -43,10 +43,10 @@ func set_reel_enabled(reel: int, enabled: bool) -> void:
 	if cells.size() > reel and cells[reel].size() > 0:
 		cells[reel][0].disabled = not enabled
 
-func hide_reward_screen() -> void: reward_screen.hide()
-func hide_meta_screen() -> void: meta_screen.hide()
-func hide_shop_screen() -> void: shop_screen.hide()
-func hide_anvil_screen() -> void: anvil_screen.hide()
+func hide_reward_screen() -> void: reward_screen.hide_screen()
+func hide_meta_screen() -> void: meta_screen.hide_screen()
+func hide_shop_screen() -> void: shop_screen.hide_screen()
+func hide_anvil_screen() -> void: anvil_screen.hide_screen()
 
 # ---- UI 节点引用 ----
 var cells = []   # 展示用 Button 引用 [reel][row]
@@ -210,7 +210,7 @@ func _build_loadout_screen() -> void:
 	loadout_screen = LOADOUT_SCENE.instantiate()
 	add_child(loadout_screen)   # 必须先入树：configure 内访问 @onready 节点
 	loadout_screen.configure(controller, self)
-	loadout_screen.hide()
+	loadout_screen.hide_screen()
 
 
 func _item_pool_of(category: String) -> Array:
@@ -296,7 +296,7 @@ func _show_loadout_screen() -> void:
 	loadout_screen.show_screen()
 
 func _hide_loadout_screen() -> void:
-	loadout_screen.hide()
+	loadout_screen.hide_screen()
 
 func _update_loadout_cards_visual() -> void:
 	loadout_screen._update_loadout_cards_visual()
@@ -312,7 +312,7 @@ func _build_reward_screen() -> void:
 	reward_screen = REWARD_SCENE.instantiate()
 	add_child(reward_screen)   # 必须先入树：configure 内访问 @onready 节点
 	reward_screen.configure(controller, self)
-	reward_screen.hide()
+	reward_screen.hide_screen()
 
 
 func _show_reward_screen(is_boss: bool) -> void:
@@ -367,7 +367,7 @@ func _build_meta_screen() -> void:
 	meta_screen = META_SCENE.instantiate()
 	add_child(meta_screen)   # 必须先入树：configure 内访问 @onready 节点
 	meta_screen.configure(controller, self)
-	meta_screen.hide()
+	meta_screen.hide_screen()
 
 
 func _show_meta_choice() -> void:
@@ -399,7 +399,7 @@ func _build_shop_screen() -> void:
 	shop_screen = SHOP_SCENE.instantiate()
 	add_child(shop_screen)   # 必须先入树：configure 内访问 @onready 节点
 	shop_screen.configure(controller, self)
-	shop_screen.hide()
+	shop_screen.hide_screen()
 
 
 func _show_shop_screen() -> void:
@@ -514,7 +514,7 @@ func _build_anvil_screen() -> void:
 	anvil_screen = ANVIL_SCENE.instantiate()
 	add_child(anvil_screen)   # 必须先入树：configure 内访问 @onready 节点
 	anvil_screen.configure(controller, self)
-	anvil_screen.hide()
+	anvil_screen.hide_screen()
 
 
 func _show_anvil_screen() -> void:

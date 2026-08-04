@@ -33,5 +33,5 @@ func show_choice() -> void:
 		meta_grid.add_child(hud._make_meta_card(opt))
 	visible = true
 
-func hide() -> void:
+func hide_screen() -> void:
 	visible = false
