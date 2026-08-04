@@ -85,31 +85,33 @@ var shop_sell_skill_list
 var shop_sell_charm_list
 var shop_sell_consum_list
 
-# ---- 主 HUD 静态节点（P3b-1）：battle_hud.tscn 编辑器提供，@onready % 引用 ----
-@onready var grid_container = %GridContainer
-@onready var log_label = %LogLabel
-@onready var log_scroll = %LogScroll
-@onready var player_hp_label = %PlayerHpLabel
-@onready var player_shield_label = %PlayerShieldLabel
-@onready var player_buff_label = %PlayerBuffLabel
-@onready var enemy_name_label = %EnemyNameLabel
-@onready var boss_badge = %BossBadge
-@onready var enemy_hp_label = %EnemyHpLabel
-@onready var enemy_armor_label = %EnemyArmorLabel
-@onready var enemy_intent_label = %EnemyIntentLabel
-@onready var enemy_status_label = %EnemyStatusLabel
-@onready var dmg_breakdown_box = %DmgBreakdownBox
-@onready var dmg_breakdown_label = %DmgBreakdownLabel
-@onready var legend_box = %LegendBox
-@onready var legend_container = %LegendContainer
-@onready var player_panel = %PlayerPanel
-@onready var enemy_panel = %EnemyPanel
-@onready var loadout_label = %LoadoutLabel
-@onready var room_label = %RoomLabel
-@onready var turn_label = %TurnLabel
-@onready var run_label = %RunLabel
-@onready var gold_label = %GoldLabel
-@onready var purify_label = %PurifyLabel
+# ---- 主 HUD 静态节点（P3b-1）：battle_hud.tscn 编辑器提供，脚本按节点路径引用 ----
+# 注：手写 .tscn 的 %Name 唯一名在含 instance= 覆盖节点的场景里注册不可靠，
+#     故改用确定性 $节点路径（.tscn 结构改动时同步更新此处路径）。
+@onready var grid_container = $Margin/Content/MainRow/CenterCol/ReelCenter/GridContainer
+@onready var log_label = $Margin/Content/MainRow/EnemyPanel/VBox/LogScroll/LogLabel
+@onready var log_scroll = $Margin/Content/MainRow/EnemyPanel/VBox/LogScroll
+@onready var player_hp_label = $Margin/Content/MainRow/PlayerPanel/VBox/PlayerHpLabel
+@onready var player_shield_label = $Margin/Content/MainRow/PlayerPanel/VBox/PlayerShieldLabel
+@onready var player_buff_label = $Margin/Content/MainRow/PlayerPanel/VBox/PlayerBuffLabel
+@onready var enemy_name_label = $Margin/Content/MainRow/EnemyPanel/VBox/EnemyNameLabel
+@onready var boss_badge = $Margin/Content/MainRow/EnemyPanel/VBox/BossBadge
+@onready var enemy_hp_label = $Margin/Content/MainRow/EnemyPanel/VBox/EnemyHpLabel
+@onready var enemy_armor_label = $Margin/Content/MainRow/EnemyPanel/VBox/EnemyArmorLabel
+@onready var enemy_intent_label = $Margin/Content/MainRow/CenterCol/IntentBox/EnemyIntentLabel
+@onready var enemy_status_label = $Margin/Content/MainRow/CenterCol/IntentBox/EnemyStatusLabel
+@onready var dmg_breakdown_box = $Margin/Content/MainRow/CenterCol/DmgBreakdownBox
+@onready var dmg_breakdown_label = $Margin/Content/MainRow/CenterCol/DmgBreakdownBox/DmgBreakdownLabel
+@onready var legend_box = $Margin/Content/MainRow/CenterCol/LegendBox
+@onready var legend_container = $Margin/Content/MainRow/CenterCol/LegendBox/LegendContainer
+@onready var player_panel = $Margin/Content/MainRow/PlayerPanel
+@onready var enemy_panel = $Margin/Content/MainRow/EnemyPanel
+@onready var loadout_label = $Margin/Content/LoadoutLabel
+@onready var room_label = $Margin/Content/InfoBar/RoomLabel
+@onready var turn_label = $Margin/Content/InfoBar/TurnLabel
+@onready var run_label = $Margin/Content/InfoBar/RunLabel
+@onready var gold_label = $Margin/Content/MainRow/PlayerPanel/VBox/GoldLabel
+@onready var purify_label = $Margin/Content/BottomBar/PurifyLabel
 
 # 覆盖层 / tooltip / popup（P3b-1 仍代码构建，后续 P3b-2 抽独立 .tscn）
 var overlay
@@ -211,18 +213,22 @@ func _build_ui() -> void:
 			cell_badges[reel].append(badge)
 
 	# 底部操作栏按钮：由 .tscn 提供，这里连信号与快捷键。
-	%SpinButton.pressed.connect(spin_requested.emit)
-	%PurifyButton.shortcut = _make_shortcut(KEY_P, true)
-	%PurifyButton.connect("pressed", controller._on_purify_pressed)
-	%ReloadButton.shortcut = _make_shortcut(KEY_E, true)
-	%ReloadButton.connect("pressed", controller._on_reload_loadout_pressed)
-	%ResetButton.shortcut = _make_shortcut(KEY_R, true)
-	%ResetButton.connect("pressed", controller._full_reset)
-	controller.consumable_panel = %ConsumablePanel
+	var spin_btn = $Margin/Content/BottomBar/SpinButton
+	var purify_btn = $Margin/Content/BottomBar/PurifyButton
+	var reload_btn = $Margin/Content/BottomBar/ReloadButton
+	var reset_btn = $Margin/Content/BottomBar/ResetButton
+	spin_btn.pressed.connect(spin_requested.emit)
+	purify_btn.shortcut = _make_shortcut(KEY_P, true)
+	purify_btn.connect("pressed", controller._on_purify_pressed)
+	reload_btn.shortcut = _make_shortcut(KEY_E, true)
+	reload_btn.connect("pressed", controller._on_reload_loadout_pressed)
+	reset_btn.shortcut = _make_shortcut(KEY_R, true)
+	reset_btn.connect("pressed", controller._full_reset)
+	controller.consumable_panel = $Margin/Content/BottomBar/ConsumablePanel
 
 	_build_overlay()
 	# Phase 3：键盘焦点链（Tab/方向键可在底部操作间移动）
-	_chain_focus([%SpinButton, %PurifyButton, %ReloadButton, %ResetButton])
+	_chain_focus([spin_btn, purify_btn, reload_btn, reset_btn])
 	# Phase 3：悬停 tooltip 与飘字对象池浮层
 	_build_symbol_tooltip()
 	_build_popup_layer()
