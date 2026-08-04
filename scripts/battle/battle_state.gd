@@ -22,7 +22,6 @@ var ROWS: int = 1
 var ROOMS: Array = []
 var purify_max_base: int = 0
 var LOADOUT_MIN: int = 1
-var consumable_panel: Node = null
 var WEAPON_POOL: Array = []
 var UNCAPPED: int = -1
 var selected_skills: Array = []

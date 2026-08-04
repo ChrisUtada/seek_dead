@@ -357,9 +357,9 @@ func _build_ui() -> void:
 	purify_label = _label("2", TypeScale.META)
 	bot.add_child(purify_label)
 
-	controller.state.consumable_panel = HBoxContainer.new()
-	controller.state.consumable_panel.add_theme_constant_override("separation", 6)
-	bot.add_child(controller.state.consumable_panel)
+	controller.consumable_panel = HBoxContainer.new()
+	controller.consumable_panel.add_theme_constant_override("separation", 6)
+	bot.add_child(controller.consumable_panel)
 
 	var bot_spacer = Control.new()
 	bot_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL

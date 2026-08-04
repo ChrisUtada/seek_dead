@@ -305,7 +305,6 @@ func _build_state() -> BattleState:
 	s.ROOMS = ROOMS
 	s.purify_max_base = purify_max_base
 	s.LOADOUT_MIN = LOADOUT_MIN
-	s.consumable_panel = consumable_panel
 	s.WEAPON_POOL = WEAPON_POOL
 	s.UNCAPPED = UNCAPPED
 	s.selected_skills = selected_skills
