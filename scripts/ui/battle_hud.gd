@@ -11,6 +11,11 @@ const UI_PANEL = preload("res://scenes/ui/ui_panel.tscn")
 const SYMBOL_CELL = preload("res://scenes/ui/symbol_cell.tscn")
 const Screen = preload("res://scripts/ui/screen.gd")
 const ItemData = preload("res://scripts/items/item_data.gd")
+const META_SCENE = preload("res://scenes/ui/meta_screen.tscn")
+const REWARD_SCENE = preload("res://scenes/ui/reward_screen.tscn")
+const ANVIL_SCENE = preload("res://scenes/ui/anvil_screen.tscn")
+const SHOP_SCENE = preload("res://scenes/ui/shop_screen.tscn")
+const LOADOUT_SCENE = preload("res://scenes/ui/loadout_screen.tscn")
 
 var controller   # DuelController 引用（运行时由 _ready 设置）
 
@@ -38,52 +43,20 @@ func set_reel_enabled(reel: int, enabled: bool) -> void:
 	if cells.size() > reel and cells[reel].size() > 0:
 		cells[reel][0].disabled = not enabled
 
-func hide_reward_screen() -> void: reward_screen.visible = false
-func hide_meta_screen() -> void: meta_screen.visible = false
-func hide_shop_screen() -> void: shop_screen.visible = false
-func hide_anvil_screen() -> void: anvil_screen.visible = false
+func hide_reward_screen() -> void: reward_screen.hide()
+func hide_meta_screen() -> void: meta_screen.hide()
+func hide_shop_screen() -> void: shop_screen.hide()
+func hide_anvil_screen() -> void: anvil_screen.hide()
 
 # ---- UI 节点引用 ----
 var cells = []   # 展示用 Button 引用 [reel][row]
 var cell_badges = []   # 每格右上角匹配角标 Label 引用 [reel][row]
-var loadout_screen
-var loadout_columns: Dictionary = {}  # col_category -> VBoxContainer for refresh
-var loadout_slot_strips: Dictionary = {}   # category -> HBoxContainer（槽位条 ◆已装备/◇空位/·未解锁）
-var loadout_cards := []                   # 卡片元数据列表 {path, btn, selected, kind}
-var loadout_count_label
-var loadout_confirm_btn
-var loadout_anvil_label                # M5：整备屏显示铁砧点数
-var reward_screen                       # 奖励三选一覆盖层
-var meta_screen                         # 每局结束元进度三选一覆盖层
-var meta_grid                           # 元进度三选一卡片网格
-var reward_title_label
-var reward_grid
-var reward_skip_btn
+var loadout_screen                     # 整备覆盖层（loadout_screen.tscn 实例）
+var reward_screen                       # 奖励三选一覆盖层（reward_screen.tscn 实例）
+var meta_screen                         # 每局结束元进度三选一覆盖层（meta_screen.tscn 实例）
 
-# S6–S8 局内经济 UI（覆盖层内节点，仍代码构建，P3b-2 抽独立 .tscn）
-var shop_screen
-var shop_title_label
-var shop_gold_label
-var shop_grid
-var shop_leave_btn
-# S12：商店三页签（购入/卖出/升级）与升级页容器
-var shop_tab_buy_btn
-var shop_tab_sell_btn
-var shop_tab_up_btn
-var shop_buy_panel
-var shop_sell_panel
-var shop_up_panel
-var shop_up_grid
-var anvil_screen
-var anvil_title_label
-var anvil_points_label
-var anvil_grid
-var anvil_back_btn
-# 商店「卖出」专用列表（与购入同屏，统一整备闭环）
-var shop_sell_weapon_list
-var shop_sell_skill_list
-var shop_sell_charm_list
-var shop_sell_consum_list
+var shop_screen                         # 商店覆盖层（shop_screen.tscn 实例）
+var anvil_screen                        # 铁砧锻造覆盖层（anvil_screen.tscn 实例）
 
 # ---- 主 HUD 静态节点（P3b-1）：battle_hud.tscn 编辑器提供，脚本按节点路径引用 ----
 # 注：手写 .tscn 的 %Name 唯一名在含 instance= 覆盖节点的场景里注册不可靠，
@@ -234,120 +207,12 @@ func _build_ui() -> void:
 	_build_popup_layer()
 
 func _build_loadout_screen() -> void:
-	loadout_screen = Control.new()
-	loadout_screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	loadout_screen.mouse_filter = Control.MOUSE_FILTER_STOP
-	var root = Screen.build_scaffold(loadout_screen, Palette.BG_LOADOUT, {"l": 10, "r": 10, "t": 8, "b": 8}, 6)
-
-	var title = _label("⚙ 整备 · 选择携带物品", TypeScale.LEAD)
-	title.add_theme_color_override("font_color", Palette.TITLE)
-	root.add_child(title)
-	var rule = _label("四类独立槽位 · 武器/技能=进转轮(稀释自然刹车·无硬顶) · 消耗品/护符=不进池(硬限) · 买即开槽扩槽", 10)
-	rule.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	root.add_child(rule)
-
-	# 四分类并列卡片区：每类一列、各自一条槽位条，杜绝跨类合计的视觉暗示
-	var cat_box = HBoxContainer.new()
-	cat_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	cat_box.add_theme_constant_override("separation", 6)
-	root.add_child(cat_box)
-
-	loadout_cards = []
-	loadout_columns = {}
-	loadout_slot_strips = {}
-	_add_loadout_column(cat_box, "武器", controller.state.WEAPON_POOL, "weapon", 1)
-	_add_loadout_column(cat_box, "技能", controller.state.SKILL_POOL, "skill", 1)
-	_add_loadout_column(cat_box, "消耗品", _item_pool_of("active"), "active", 1)
-	_add_loadout_column(cat_box, "护符", _item_pool_of("passive"), "passive", 1)
-
-	# 底部：计数 + 铁砧点数 + 铁砧按钮 + 确认（始终可见）
-	var bot = HBoxContainer.new()
-	bot.add_theme_constant_override("separation", 10)
-	root.add_child(bot)
-	loadout_count_label = _label("武器 0/%d · 技能 0/%d · 消耗品 0/%d · 护符 0/%d" % [controller.state.loadout_max, controller.state.skill_max, controller._cat_max("active"), controller.state.charm_max], TypeScale.META)
-	loadout_count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	bot.add_child(loadout_count_label)
-	var bot_spacer = Control.new()
-	bot_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	bot.add_child(bot_spacer)
-	loadout_anvil_label = _label("铁砧点数: 0", TypeScale.TINY)
-	bot.add_child(loadout_anvil_label)
-	var anvil_btn = UI_BUTTON.instantiate()
-	anvil_btn.text = "🔨 铁砧"
-	anvil_btn.custom_minimum_size = Vector2(90, 36)
-	anvil_btn.add_theme_font_size_override("font_size", TypeScale.TINY)
-	anvil_btn.connect("pressed", _show_anvil_screen)
-	bot.add_child(anvil_btn)
-	loadout_confirm_btn = UI_BUTTON.instantiate()
-	loadout_confirm_btn.text = "确认开战 ▶"
-	loadout_confirm_btn.custom_minimum_size = Vector2(120, 40)
-	loadout_confirm_btn.add_theme_font_size_override("font_size", TypeScale.MEDIUM)
-	loadout_confirm_btn.connect("pressed", controller._confirm_loadout)
-	bot.add_child(loadout_confirm_btn)
-
-	add_child(loadout_screen)
-	loadout_screen.visible = false
+	loadout_screen = LOADOUT_SCENE.instantiate()
+	add_child(loadout_screen)   # 必须先入树：configure 内访问 @onready 节点
+	loadout_screen.configure(controller, self)
+	loadout_screen.hide()
 
 
-func _add_loadout_column(parent: Control, title: String, pool: Array, category: String, _columns: int) -> void:
-	var panel = PanelContainer.new()
-	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	panel.custom_minimum_size = Vector2(250, 0)   # 四列并排：250*4 + 间隔 < 1280 设计宽
-	var style = StyleBoxFlat.new()
-	style.bg_color = Palette.CARD_BG
-	style.border_color = Palette.PANEL_BORDER
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(6)
-	style.content_margin_left = 5
-	style.content_margin_right = 5
-	style.content_margin_top = 6
-	style.content_margin_bottom = 6
-	panel.add_theme_stylebox_override("panel", style)
-	parent.add_child(panel)
-
-	var v = VBoxContainer.new()
-	v.add_theme_constant_override("separation", 4)
-	panel.add_child(v)
-
-	var title_label = _label("%s 0/%d" % [title, controller._cat_max(category)], 12)
-	loadout_columns[category] = title_label
-	v.add_child(title_label)
-
-	# 槽位条：按该类天花板画满格子，直观呈现「还能扩几格」
-	var strip = HBoxContainer.new()
-	strip.add_theme_constant_override("separation", 2)
-	loadout_slot_strips[category] = strip
-	v.add_child(strip)
-	_refresh_slot_strip(category)
-
-	var scroll = ScrollContainer.new()
-	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	v.add_child(scroll)
-
-	# 单列纵向列表（固定最小宽度 170 设计 px，确保文字不会竖排；
-	# 实际渲染时会按 ScrollContainer 可用宽度进一步扩展）。
-	var list = VBoxContainer.new()
-	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	list.custom_minimum_size = Vector2(0, 0)
-	list.add_theme_constant_override("separation", 4)
-	scroll.add_child(list)
-	for path in pool:
-		var data: Resource = load(path)
-		var kind := "weapon"
-		if data is ItemData:
-			kind = data.category
-		elif data is SkillData:
-			kind = "skill"
-		var card = _make_item_card(data, path, kind)
-		list.add_child(card["btn"])
-		loadout_cards.append(card)
-
-
-# 从 ITEM_POOL 按 category 过滤：消耗品(active) 与 护符(passive) 各自独立成列
 func _item_pool_of(category: String) -> Array:
 	var out := []
 	for p in controller.state.ITEM_POOL:
@@ -355,40 +220,6 @@ func _item_pool_of(category: String) -> Array:
 		if d is ItemData and d.category == category:
 			out.append(p)
 	return out
-
-
-# 刷新某类槽位条：天花板 = 格子总数，当前上限 = 已解锁边界，已选数 = 已装备边界
-#   ◆ 已装备(绿) · ◇ 已解锁空位(常规) · · 未解锁(暗，需商店「买即开槽」)
-func _refresh_slot_strip(category: String) -> void:
-	if not loadout_slot_strips.has(category):
-		return
-	var strip: HBoxContainer = loadout_slot_strips[category]
-	for c in strip.get_children():
-		strip.remove_child(c)
-		c.queue_free()
-	var used = controller._sel_arr(category).size()
-	var unlocked = controller._cat_max(category)
-	var ceiling = controller._cat_cap(category)
-	var uncapped = (ceiling == controller.state.UNCAPPED)
-	# 无天花板（进池类 武器/增益）：只画已解锁的格子，末尾以 ＋ 表示可继续「买即开槽」（无限）
-	# 有天花板（不进池类 消耗品/护符）：按天花板画满，· 表示尚未解锁的格子
-	var cells = unlocked if uncapped else ceiling
-	for i in cells:
-		var glyph := "·"
-		var tint := Palette.PANEL_BORDER
-		if i < used:
-			glyph = "◆"
-			tint = Palette.CARD_SEL_BORDER
-		elif i < unlocked:
-			glyph = "◇"
-			tint = Palette.MUTED
-		var g = _label(glyph, 12)
-		g.add_theme_color_override("font_color", tint)
-		strip.add_child(g)
-	if uncapped:
-		var plus = _label("＋", 12)
-		plus.add_theme_color_override("font_color", Palette.PANEL_BORDER)
-		strip.add_child(plus)
 
 
 func _make_item_card(data: Resource, path: String, kind: String) -> Dictionary:
@@ -459,149 +290,33 @@ func _make_item_card(data: Resource, path: String, kind: String) -> Dictionary:
 	return card
 
 
-# 卡片点击：三分类通用 toggle（受各自分类上限约束，互不算总）
-func _update_loadout_cards_visual() -> void:
-	var wfull = controller.state.selected_loadout.size() >= controller._cat_max("weapon")
-	var cfull = controller._sel_arr("active").size() >= controller._cat_max("active")
-	var hfull = controller.state.selected_charms.size() >= controller._cat_max("passive")
-	var bfull = controller.state.selected_skills.size() >= controller._cat_max("skill")
-	for card in loadout_cards:
-		var sb = StyleBoxFlat.new()
-		if card["selected"]:
-			sb.bg_color = Palette.CARD_SEL_BG
-			sb.border_color = Palette.CARD_SEL_BORDER
-			sb.set_border_width_all(2)
-			card["btn"].disabled = false
-		else:
-			sb.bg_color = Palette.CARD_NORM_BG
-			sb.border_color = Palette.CARD_NORM_BORDER
-			sb.set_border_width_all(1)
-			var cf = (card["kind"] == "weapon" and wfull) or (card["kind"] == "active" and cfull) or (card["kind"] == "passive" and hfull) or (card["kind"] == "skill" and bfull)
-			card["btn"].disabled = cf
-		card["btn"].add_theme_stylebox_override("normal", sb)
-		card["btn"].add_theme_stylebox_override("hover", sb)
-		card["btn"].add_theme_stylebox_override("pressed", sb)
-		card["btn"].add_theme_stylebox_override("disabled", sb)
-
-
-# 单类计数文本：「名称 已装备/当前上限」；无天花板的进池类补 ＋ 表示仍可继续扩槽
-func _cat_count_text(cat: String, label: String) -> String:
-	var grow = "＋" if controller._cat_cap(cat) == controller.state.UNCAPPED else ""
-	return "%s %d/%d%s" % [label, controller._sel_arr(cat).size(), controller._cat_max(cat), grow]
-
-
-func _update_loadout_count() -> void:
-	# 四类各自独立计数，不再出现任何跨类合计
-	loadout_count_label.text = "%s · %s · %s · %s" % [
-		_cat_count_text("weapon", "武器"), _cat_count_text("skill", "技能"),
-		_cat_count_text("active", "消耗品"), _cat_count_text("passive", "护符")]
-	var titles = {"weapon": "武器", "skill": "技能", "active": "消耗品", "passive": "护符"}
-	for cat in titles:
-		if loadout_columns.has(cat):
-			loadout_columns[cat].text = _cat_count_text(cat, titles[cat])
-		_refresh_slot_strip(cat)
-	var ok = controller.state.selected_loadout.size() >= controller.state.LOADOUT_MIN
-	loadout_confirm_btn.disabled = not ok
-	loadout_confirm_btn.text = ("确认开战 ▶" if ok else "至少选 %d 把武器 ▶" % controller.state.LOADOUT_MIN)
-
-
+# 整备屏已抽独立 loadout_screen.tscn（P3b-2）；以下仅保留薄包装，
+# 供 duel_controller 按原接口调用，实际逻辑在 loadout_screen.gd。
 func _show_loadout_screen() -> void:
-	controller.in_loadout = true
-	_sync_card_selection()      # 从数组重建卡片 selected 标志（防止 Boss 奖励等外部路径直接改数组导致不同步）
-	_update_loadout_cards_visual()
-	_update_loadout_count()
-	_update_loadout_anvil()
-	loadout_screen.visible = true
-
-
-# 每次打开整备屏时，从 controller 的四个选中数组重建所有卡片的 selected 标志。
-# 必须做：Boss 奖励（_apply_boss_reward）会直接 append 到 selected_loadout / selected_charms
-# 而不经过 _on_card_toggled，导致卡片标志与数组不同步——不同步会使 wfull 误判、
-# 点掉武器后全部卡片仍被 disabled 锁死。
-func _sync_card_selection() -> void:
-	var weapons = controller.state.selected_loadout
-	var consumables = controller.state.selected_consumables
-	var charms = controller.state.selected_charms
-	var skills = controller.state.selected_skills
-	for card in loadout_cards:
-		match card["kind"]:
-			"weapon":
-				card["selected"] = weapons.has(card["path"])
-			"active":
-				card["selected"] = consumables.has(card["path"])
-			"passive":
-				card["selected"] = charms.has(card["path"])
-			"skill":
-				card["selected"] = skills.has(card["path"])
-
-
-func _update_loadout_anvil() -> void:
-	if loadout_anvil_label != null:
-		loadout_anvil_label.text = "铁砧点数: %d" % controller.state.meta["anvil_points"]
-
+	loadout_screen.show_screen()
 
 func _hide_loadout_screen() -> void:
-	controller.in_loadout = false
-	loadout_screen.visible = false
+	loadout_screen.hide()
+
+func _update_loadout_cards_visual() -> void:
+	loadout_screen._update_loadout_cards_visual()
+
+func _update_loadout_count() -> void:
+	loadout_screen._update_loadout_count()
+
+func _update_loadout_anvil() -> void:
+	loadout_screen._update_loadout_anvil()
 
 
 func _build_reward_screen() -> void:
-	reward_screen = Control.new()
-	reward_screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	reward_screen.mouse_filter = Control.MOUSE_FILTER_STOP
-	var v = Screen.build_scaffold(reward_screen, Palette.BG_REWARD, {"l": 18, "r": 18, "t": 14, "b": 14}, 6)
-	reward_title_label = _label("", TypeScale.OVERLAY)
-	v.add_child(reward_title_label)
-	v.add_child(_label("选择一项奖励带入后续房间（Roguelike 构筑，跳过则不取）", TypeScale.META))
-
-	var scroll = ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	v.add_child(scroll)
-	reward_grid = GridContainer.new()
-	reward_grid.columns = 3
-	reward_grid.add_theme_constant_override("h_separation", 8)
-	reward_grid.add_theme_constant_override("v_separation", 8)
-	scroll.add_child(reward_grid)
-
-	var bot = HBoxContainer.new()
-	v.add_child(bot)
-	var sp = Control.new()
-	sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	bot.add_child(sp)
-	reward_skip_btn = UI_BUTTON.instantiate()
-	reward_skip_btn.text = "跳过 ▶"
-	reward_skip_btn.custom_minimum_size = Vector2(120, 40)
-	reward_skip_btn.pressed.connect(reward_skip_requested.emit)
-	bot.add_child(reward_skip_btn)
-
-	add_child(reward_screen)
-	reward_screen.visible = false
+	reward_screen = REWARD_SCENE.instantiate()
+	add_child(reward_screen)   # 必须先入树：configure 内访问 @onready 节点
+	reward_screen.configure(controller, self)
+	reward_screen.hide()
 
 
 func _show_reward_screen(is_boss: bool) -> void:
-	controller.reward_is_boss = is_boss
-	# 清理旧卡片
-	for c in reward_grid.get_children():
-		reward_grid.remove_child(c)
-		c.queue_free()
-	var kind = controller.ROOMS[controller.room_index].kind
-	if is_boss:
-		controller.reward_choices = controller._roll_boss_rewards(controller.ROOMS[controller.room_index])
-		reward_title_label.text = "★ BOSS 战利品！选择一项（主题武器 / 强化券 / 信物）"
-		for rw in controller.reward_choices:
-			reward_grid.add_child(_make_boss_reward_card(rw))
-	elif kind == "elite":
-		controller.reward_choices = controller._roll_elite_rewards()
-		reward_title_label.text = "⚔ 精英房 · 战前补给（选择一项备战）"
-		for rw in controller.reward_choices:
-			reward_grid.add_child(_make_reward_card(rw))
-	else:
-		controller.reward_choices = controller._roll_rewards()
-		reward_title_label.text = "胜利！选择一项房奖励"
-		for rw in controller.reward_choices:
-			reward_grid.add_child(_make_reward_card(rw))
-	reward_screen.visible = true
+	reward_screen.show_screen(is_boss)
 
 
 func _make_reward_card(rw: RewardData) -> Button:
@@ -649,33 +364,14 @@ func _make_boss_reward_card(cand: Dictionary) -> Button:
 # 每局结束元进度三选一（膨胀双轨：武器 base 线性 × 护符乘数增值，持久跨局）
 # ---------------------------------------------------------------------------
 func _build_meta_screen() -> void:
-	meta_screen = Control.new()
-	meta_screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	meta_screen.mouse_filter = Control.MOUSE_FILTER_STOP
-	var v = Screen.build_scaffold(meta_screen, Palette.BG_REWARD, {"l": 18, "r": 18, "t": 14, "b": 14}, 6)
-	v.add_child(_label("★ 通关一局！选择一项元进度升级（持久生效）", TypeScale.OVERLAY))
-	v.add_child(_label("武器基础伤害 / 命中率 线性成长 × 护符伤害乘区增值——下一局起爆炸", TypeScale.META))
-	var center = CenterContainer.new()      # 三选一固定 ≤3 张，居中呈现（不需要滚动）
-	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	v.add_child(center)
-	meta_grid = GridContainer.new()
-	meta_grid.columns = 3
-	meta_grid.add_theme_constant_override("h_separation", 12)
-	meta_grid.add_theme_constant_override("v_separation", 12)
-	center.add_child(meta_grid)
-	add_child(meta_screen)
-	meta_screen.visible = false
+	meta_screen = META_SCENE.instantiate()
+	add_child(meta_screen)   # 必须先入树：configure 内访问 @onready 节点
+	meta_screen.configure(controller, self)
+	meta_screen.hide()
 
 
 func _show_meta_choice() -> void:
-	for c in meta_grid.get_children():
-		meta_grid.remove_child(c)
-		c.queue_free()
-	var choices = controller._roll_meta_choices()
-	for opt in choices:
-		meta_grid.add_child(_make_meta_card(opt))
-	meta_screen.visible = true
+	meta_screen.show_choice()
 
 
 func _make_meta_card(opt: Dictionary) -> Button:
@@ -700,107 +396,18 @@ func _make_meta_card(opt: Dictionary) -> Button:
 
 
 func _build_shop_screen() -> void:
-	shop_screen = Control.new()
-	shop_screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	shop_screen.mouse_filter = Control.MOUSE_FILTER_STOP
-	var v = Screen.build_scaffold(shop_screen, Palette.BG_REWARD, {"l": 18, "r": 18, "t": 14, "b": 14}, 6)
-	shop_title_label = _label("🛒 商店 · 用金币投资战力", TypeScale.OVERLAY)
-	v.add_child(shop_title_label)
-	shop_gold_label = _label("金币: 0", TypeScale.BODY)
-	shop_gold_label.add_theme_color_override("font_color", Palette.ACCENT_GOLD)
-	v.add_child(shop_gold_label)
-	v.add_child(_label("金币投资战力 · 购入带装备 / 卖出回收 / 升级深化乘区（每局清零）", TypeScale.META))
-
-	# 三页签
-	var tab_bar = HBoxContainer.new()
-	tab_bar.add_theme_constant_override("separation", 6)
-	v.add_child(tab_bar)
-	shop_tab_buy_btn = _shop_tab_btn("📥 购入", "buy")
-	shop_tab_sell_btn = _shop_tab_btn("📤 卖出", "sell")
-	shop_tab_up_btn = _shop_tab_btn("⬆ 升级", "up")
-	tab_bar.add_child(shop_tab_buy_btn)
-	tab_bar.add_child(shop_tab_sell_btn)
-	tab_bar.add_child(shop_tab_up_btn)
-
-	var scroll = ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	v.add_child(scroll)
-	var inner = VBoxContainer.new()
-	inner.add_theme_constant_override("separation", 14)
-	inner.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.add_child(inner)
-
-	# 购入页
-	shop_buy_panel = VBoxContainer.new()
-	shop_buy_panel.add_theme_constant_override("separation", 6)
-	shop_buy_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	shop_buy_panel.add_child(_label("📥 购入（带入后续房间）", TypeScale.BODY))
-	shop_grid = GridContainer.new()
-	shop_grid.columns = 3
-	shop_grid.add_theme_constant_override("h_separation", 8)
-	shop_grid.add_theme_constant_override("v_separation", 8)
-	shop_buy_panel.add_child(shop_grid)
-	inner.add_child(shop_buy_panel)
-
-	# 卖出页
-	shop_sell_panel = VBoxContainer.new()
-	shop_sell_panel.add_theme_constant_override("separation", 6)
-	shop_sell_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	shop_sell_panel.add_child(_label("📤 卖出（回收约50%金币 · 释放槽位）", TypeScale.BODY))
-	var sell_box = HBoxContainer.new()
-	sell_box.add_theme_constant_override("separation", 6)
-	sell_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	shop_sell_weapon_list = _sell_column(sell_box, "武器")
-	shop_sell_skill_list = _sell_column(sell_box, "技能")
-	shop_sell_charm_list = _sell_column(sell_box, "护符")
-	shop_sell_consum_list = _sell_column(sell_box, "消耗品")
-	shop_sell_panel.add_child(sell_box)
-	inner.add_child(shop_sell_panel)
-
-	# 升级页（S12：深化已有乘区，不新增第4乘区）
-	shop_up_panel = VBoxContainer.new()
-	shop_up_panel.add_theme_constant_override("separation", 6)
-	shop_up_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	shop_up_panel.add_child(_label("⬆ 金币升级（深化已有乘区 · 每局清零）", TypeScale.BODY))
-	shop_up_grid = GridContainer.new()
-	shop_up_grid.columns = 2
-	shop_up_grid.add_theme_constant_override("h_separation", 8)
-	shop_up_grid.add_theme_constant_override("v_separation", 8)
-	shop_up_panel.add_child(shop_up_grid)
-	inner.add_child(shop_up_panel)
-
-	var bot = HBoxContainer.new()
-	v.add_child(bot)
-	var sp = Control.new()
-	sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	bot.add_child(sp)
-	shop_leave_btn = UI_BUTTON.instantiate()
-	shop_leave_btn.text = "离开商店 ▶"
-	shop_leave_btn.custom_minimum_size = Vector2(140, 40)
-	shop_leave_btn.connect("pressed", controller._on_shop_leave_pressed)
-	bot.add_child(shop_leave_btn)
-
-	add_child(shop_screen)
-	shop_screen.visible = false
-	_show_shop_tab("buy")
+	shop_screen = SHOP_SCENE.instantiate()
+	add_child(shop_screen)   # 必须先入树：configure 内访问 @onready 节点
+	shop_screen.configure(controller, self)
+	shop_screen.hide()
 
 
 func _show_shop_screen() -> void:
-	controller._roll_shop()
-	_refresh_shop()
-	shop_screen.visible = true
+	shop_screen.show_screen()
 
 
 func _refresh_shop() -> void:
-	shop_gold_label.text = "金币: %d" % controller.state.gold
-	for c in shop_grid.get_children():
-		shop_grid.remove_child(c)
-		c.queue_free()
-	for offer in controller.state.shop_offers:
-		shop_grid.add_child(_make_shop_card(offer))
-	_refresh_shop_sell()
-	_refresh_shop_up()
+	shop_screen.refresh()
 
 
 func _make_shop_card(offer: Dictionary) -> Button:
@@ -850,49 +457,6 @@ func _make_shop_card(offer: Dictionary) -> Button:
 
 
 # 商店「卖出」区：四列列出已持有物品，点击回收约50%金币并释放槽位
-func _refresh_shop_sell() -> void:
-	_sell_fill(shop_sell_weapon_list, "weapon")
-	_sell_fill(shop_sell_skill_list, "skill")
-	_sell_fill(shop_sell_charm_list, "passive")   # 护符计价 kind = passive
-	_sell_fill(shop_sell_consum_list, "active")
-
-
-func _sell_fill(list: VBoxContainer, kind: String) -> void:
-	for c in list.get_children():
-		if c is Label:        # 保留列标题
-			continue
-		list.remove_child(c)
-		c.queue_free()
-	if kind == "active":
-		# 消耗品：按腰带实例逐格列出（同类重复各占一格），点击按 uid 卖出
-		for slot in controller.state.consumable_slots:
-			var name = _source_tag(kind) + controller._shop_name(slot["path"], kind)
-			var refund = controller._sell_price(kind, slot["uid"])
-			var sub = "卖出 +%d 金" % refund
-			list.add_child(_make_sell_card(name, sub, false, sell_requested.emit.bind(slot["uid"], kind)))
-		return
-	var owned = controller._sel_arr(kind)
-	for path in owned:
-		var name = _source_tag(kind) + controller._shop_name(path, kind)
-		var refund = controller._sell_price(kind, path)
-		var last = (kind == "weapon" and owned.size() <= controller.state.LOADOUT_MIN)
-		var sub: String
-		if last:
-			sub = "最后一把 · 不可卖"
-		else:
-			sub = "卖出 +%d 金" % refund
-		list.add_child(_make_sell_card(name, sub, last, sell_requested.emit.bind(path, kind)))
-
-
-func _sell_column(parent: Control, title: String) -> VBoxContainer:
-	var col = VBoxContainer.new()
-	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	col.add_theme_constant_override("separation", 3)
-	col.add_child(_label(title, TypeScale.TINY))
-	parent.add_child(col)
-	return col
-
-
 func _make_sell_card(title_text: String, sub_text: String, disabled: bool, cb: Callable) -> Button:
 	var btn = UI_BUTTON.instantiate()
 	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -917,46 +481,6 @@ func _make_sell_card(title_text: String, sub_text: String, disabled: bool, cb: C
 		btn.connect("pressed", cb)
 	return btn
 
-
-
-# ---------------------------------------------------------------------------
-# S12 商店三页签（购入 / 卖出 / 升级）与金币升级页
-# ---------------------------------------------------------------------------
-func _shop_tab_btn(text: String, tab: String) -> Button:
-	var b = UI_BUTTON.instantiate()
-	b.text = text
-	b.custom_minimum_size = Vector2(110, 34)
-	b.add_theme_font_size_override("font_size", TypeScale.META)
-	b.connect("pressed", _show_shop_tab.bind(tab))
-	return b
-
-
-func _show_shop_tab(tab: String) -> void:
-	if shop_buy_panel == null:
-		return
-	shop_buy_panel.visible = (tab == "buy")
-	shop_sell_panel.visible = (tab == "sell")
-	shop_up_panel.visible = (tab == "up")
-	var active = Palette.ACCENT_GOLD
-	var idle = Palette.MUTED
-	if shop_tab_buy_btn != null:
-		shop_tab_buy_btn.add_theme_color_override("font_color", active if tab == "buy" else idle)
-	if shop_tab_sell_btn != null:
-		shop_tab_sell_btn.add_theme_color_override("font_color", active if tab == "sell" else idle)
-	if shop_tab_up_btn != null:
-		shop_tab_up_btn.add_theme_color_override("font_color", active if tab == "up" else idle)
-	if tab == "up":
-		_refresh_shop_up()
-
-
-func _refresh_shop_up() -> void:
-	if shop_up_grid == null:
-		return
-	for c in shop_up_grid.get_children():
-		shop_up_grid.remove_child(c)
-		c.queue_free()
-	for u in controller._gold_upgrade_defs():
-		shop_up_grid.add_child(_make_upgrade_card(u))
 
 
 func _make_upgrade_card(u: Dictionary) -> Button:
@@ -987,95 +511,18 @@ func _make_upgrade_card(u: Dictionary) -> Button:
 
 
 func _build_anvil_screen() -> void:
-	anvil_screen = Control.new()
-	anvil_screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	anvil_screen.mouse_filter = Control.MOUSE_FILTER_STOP
-	var v = Screen.build_scaffold(anvil_screen, Palette.BG_ANVIL, {"l": 12, "r": 12, "t": 10, "b": 10}, 4)
-	anvil_title_label = _label("🔨 铁砧锻造 · 元进度", TypeScale.BODY)
-	v.add_child(anvil_title_label)
-	anvil_points_label = _label("铁砧点数: 0", TypeScale.META)
-	v.add_child(anvil_points_label)
-	v.add_child(_label("消耗点数永久强化转轮 / 抗干扰（跨局保留）", TypeScale.CAPTION))
-
-	var scroll = ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	v.add_child(scroll)
-	anvil_grid = GridContainer.new()
-	anvil_grid.columns = 3
-	anvil_grid.add_theme_constant_override("h_separation", 6)
-	anvil_grid.add_theme_constant_override("v_separation", 6)
-	scroll.add_child(anvil_grid)
-
-	var bot = HBoxContainer.new()
-	v.add_child(bot)
-	var sp = Control.new()
-	sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	bot.add_child(sp)
-	anvil_back_btn = UI_BUTTON.instantiate()
-	anvil_back_btn.text = "返回整备"
-	anvil_back_btn.custom_minimum_size = Vector2(120, 40)
-	anvil_back_btn.add_theme_font_size_override("font_size", TypeScale.MEDIUM)
-	anvil_back_btn.connect("pressed", controller._on_anvil_back_pressed)
-	bot.add_child(anvil_back_btn)
-
-	add_child(anvil_screen)
-	anvil_screen.visible = false
+	anvil_screen = ANVIL_SCENE.instantiate()
+	add_child(anvil_screen)   # 必须先入树：configure 内访问 @onready 节点
+	anvil_screen.configure(controller, self)
+	anvil_screen.hide()
 
 
 func _show_anvil_screen() -> void:
-	_refresh_anvil()
-	anvil_screen.visible = true
+	anvil_screen.show_screen()
 
 
 func _refresh_anvil() -> void:
-	anvil_points_label.text = "铁砧点数: %d" % controller.state.meta["anvil_points"]
-	# 清理旧卡片
-	for c in anvil_grid.get_children():
-		anvil_grid.remove_child(c)
-		c.queue_free()
-	# 武器转轮升级
-	for path in controller.state.WEAPON_POOL:
-		var wd: Resource = load(path)
-		var wname = wd.weapon_name if (wd != null) else path.get_file().get_basename()
-		var lvl = controller.state.meta["weapon_upgrades"].get(path, 0)
-		var cost = (lvl + 1) * 10
-		var btn = UI_BUTTON.instantiate()
-		btn.custom_minimum_size = Vector2(96, 56)
-		btn.text = ""
-		var cc = CenterContainer.new()
-		cc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		cc.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		btn.add_child(cc)
-		var vb = VBoxContainer.new()
-		vb.add_theme_constant_override("separation", 1)
-		cc.add_child(vb)
-		vb.add_child(_label(wname, TypeScale.META))
-		vb.add_child(_label("转轮 Lv%d" % lvl, TypeScale.CAPTION))
-		vb.add_child(_label("升级 %d 点" % cost, TypeScale.CAPTION))
-		btn.connect("pressed", controller._on_anvil_weapon_pressed.bind(path))
-		anvil_grid.add_child(btn)
-	# 抗干扰
-	var rl = controller.state.meta["interference_resist"]
-	var rcost = (rl + 1) * 15
-	var rbtn = UI_BUTTON.instantiate()
-	rbtn.custom_minimum_size = Vector2(96, 56)
-	rbtn.text = ""
-	var rcc = CenterContainer.new()
-	rcc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	rcc.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	rbtn.add_child(rcc)
-	var rvb = VBoxContainer.new()
-	rvb.add_theme_constant_override("separation", 1)
-	rcc.add_child(rvb)
-	rvb.add_child(_label("锤炼意志", TypeScale.META))
-	rvb.add_child(_label("抗干扰 Lv%d/5" % rl, TypeScale.CAPTION))
-	if rl >= 5:
-		rvb.add_child(_label("已满级", TypeScale.CAPTION))
-	else:
-		rvb.add_child(_label("升级 %d 点" % rcost, TypeScale.CAPTION))
-	rbtn.connect("pressed", controller._on_anvil_resist_pressed)
-	anvil_grid.add_child(rbtn)
+	anvil_screen.refresh()
 
 
 func _build_overlay() -> void:
