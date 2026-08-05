@@ -1111,6 +1111,7 @@ func _on_shop_leave_pressed() -> void:
 # ---------------------------------------------------------------------------
 func _enter_interroom() -> void:
 	in_interroom = true
+	hud._hide_overlay()    # 防御性：确保胜利弹层已关闭，避免顶栏被其遮挡/重触发
 	hud.set_interroom_enabled(true)
 
 
@@ -1794,6 +1795,7 @@ func _on_consumable_pressed(uid: String) -> void:
 
 
 func _on_overlay_button_pressed() -> void:
+	hud._hide_overlay()    # 关闭胜利/失败弹层（否则 game_state 仍 "won"，后续会被再次触发重弹奖励屏）
 	match game_state:
 		"won":    hud._show_reward_screen(_is_boss_room(room_index))   # M4：胜利→房奖励三选一
 		"lost":   _retry_room()
