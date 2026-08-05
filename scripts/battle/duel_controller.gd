@@ -1359,9 +1359,7 @@ func _on_spin_pressed() -> void:
 	if enemy_hp <= 0:
 		hud._log("★ 击败 %s！" % enemy_name)
 		game_state = "won"
-		var is_boss = _is_boss_room(room_index)
-		var title = ("★ 通关！\n%s 被击败" % enemy_name) if is_boss else ("★ 胜利！\n%s 被击败" % enemy_name)
-		hud._show_overlay(title, "领取奖励 ▶")
+		hud._show_reward_screen(_is_boss_room(room_index))
 		hud._refresh_meta()
 		_busy = false
 		return
@@ -1375,9 +1373,7 @@ func _on_spin_pressed() -> void:
 		# 敌人可能在自身回合被状态 DoT 结算致死
 		hud._log("★ 击败 %s！（状态结算）" % enemy_name)
 		game_state = "won"
-		var is_boss = _is_boss_room(room_index)
-		var title = ("★ 通关！\n%s 被击败" % enemy_name) if is_boss else ("★ 胜利！\n%s 被击败" % enemy_name)
-		hud._show_overlay(title, "领取奖励 ▶")
+		hud._show_reward_screen(_is_boss_room(room_index))
 		_busy = false
 		return
 	if player_hp <= 0:
@@ -1603,9 +1599,7 @@ func _free_spin() -> void:
 	if enemy_hp <= 0:
 		hud._log("★ 重转触发击败 %s！" % enemy_name)
 		game_state = "won"
-		var is_boss = _is_boss_room(room_index)
-		var title = ("★ 通关！\n%s 被击败" % enemy_name) if is_boss else ("★ 胜利！\n%s 被击败" % enemy_name)
-		hud._show_overlay(title, "领取奖励 ▶")
+		hud._show_reward_screen(_is_boss_room(room_index))
 	hud._refresh_meta()
 	_busy = false
 
@@ -1806,9 +1800,8 @@ func _on_consumable_pressed(uid: String) -> void:
 
 
 func _on_overlay_button_pressed() -> void:
-	hud._hide_overlay()    # 关闭胜利/失败弹层（否则 game_state 仍 "won"，后续会被再次触发重弹奖励屏）
+	hud._hide_overlay()    # 关闭失败/通关弹层
 	match game_state:
-		"won":    hud._show_reward_screen(_is_boss_room(room_index))   # M4：胜利→房奖励三选一
 		"lost":   _retry_room()
 		"cleared": _full_reset()
 
