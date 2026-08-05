@@ -56,6 +56,13 @@ func set_interroom_enabled(on: bool) -> void:
 func hide_reward_screen() -> void: reward_screen.hide_screen()
 func hide_meta_screen() -> void: meta_screen.hide_screen()
 func hide_shop_screen() -> void: shop_screen.hide_screen()
+func shop_screen_is_open() -> bool:
+	if shop_screen == null:
+		return false
+	return shop_screen.is_shown()
+func set_shop_button_text(t: String) -> void:
+	if interroom_shop_btn != null:
+		interroom_shop_btn.text = t
 func hide_anvil_screen() -> void: anvil_screen.hide_screen()
 
 # ---- UI 节点引用 ----

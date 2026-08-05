@@ -1099,6 +1099,7 @@ func _on_gold_upgrade_pressed(id: String) -> void:
 
 func _on_shop_leave_pressed() -> void:
 	hud.hide_shop_screen()
+	hud.set_shop_button_text("🛒 商店")
 	_enter_interroom()      # 离开商店回房间歇态，不自动进下一房（玩家可再开或点 ▶）
 
 
@@ -1114,10 +1115,20 @@ func _enter_interroom() -> void:
 func _on_shop_requested() -> void:
 	if not in_interroom:
 		return
-	hud._show_shop_screen()
+	# 🛒 按钮在抽屉展开/收起间切换
+	if hud.shop_screen_is_open():
+		hud.hide_shop_screen()
+		hud.set_shop_button_text("🛒 商店")
+	else:
+		hud._show_shop_screen()
+		hud.set_shop_button_text("🛒 收起")
 
 
 func _on_next_room_pressed() -> void:
+	# 若抽屉仍展开，进下一房前先收起，避免遮挡新房间
+	if hud.shop_screen_is_open():
+		hud.hide_shop_screen()
+		hud.set_shop_button_text("🛒 商店")
 	in_interroom = false
 	hud.set_interroom_enabled(false)
 	_start_room(room_index + 1)

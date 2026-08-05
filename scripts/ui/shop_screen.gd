@@ -8,6 +8,8 @@ class_name ShopScreen
 var controller
 var hud: BattleHud
 const UI_BUTTON = preload("res://scenes/ui/ui_button.tscn")
+const DRAWER_W := 420          # 抽屉宽度（右侧 docked）
+var _open := false             # 抽屉是否处于展开态（供外部 toggle 判断）
 
 @onready var bg = $Bg
 @onready var title_label = $Margin/Content/TitleLabel
@@ -50,7 +52,7 @@ func configure(ctrl, h: BattleHud) -> void:
 	sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bot.add_child(sp)
 	var leave_btn = UI_BUTTON.instantiate()
-	leave_btn.text = "离开商店 ▶"
+	leave_btn.text = "关闭 ✕"
 	leave_btn.custom_minimum_size = Vector2(140, 40)
 	leave_btn.connect("pressed", controller._on_shop_leave_pressed)
 	bot.add_child(leave_btn)
@@ -68,6 +70,16 @@ func show_screen() -> void:
 	controller._roll_shop()
 	refresh()
 	visible = true
+	_open = true
+	# 从右缘滑入：收起态 offset_left=0（零宽），展开到 -DRAWER_W
+	offset_left = 0.0
+	var tw = create_tween()
+	tw.tween_property(self, "offset_left", -DRAWER_W, 0.22).set_ease(Tween.EASE_OUT)
+
+
+func is_shown() -> bool:
+	return _open
+
 
 func refresh() -> void:
 	gold_label.text = "金币: %d" % controller.state.gold
@@ -137,4 +149,10 @@ func _refresh_shop_up() -> void:
 		up_grid.add_child(hud._make_upgrade_card(u))
 
 func hide_screen() -> void:
-	visible = false
+	if not visible:
+		return
+	_open = false
+	# 滑回右缘后隐藏
+	var tw = create_tween()
+	tw.tween_property(self, "offset_left", 0.0, 0.18).set_ease(Tween.EASE_IN)
+	tw.tween_callback(func(): visible = false)
