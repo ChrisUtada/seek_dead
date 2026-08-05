@@ -72,10 +72,10 @@ var loadout_screen                     # 整备覆盖层（loadout_screen.tscn �
 # 消耗品腰带 4 个固定格子（2x2），由 hud._refresh_consumable_panel 同步状态；
 # consumable_panel 字段（controller 持有）已废弃，HUD 内聚管理 cell。
 @onready var consumable_cells: Array = [
-	$Margin/Content/MainRow/CenterStage/ReelDock/ConsumablePanel/Cell1,
-	$Margin/Content/MainRow/CenterStage/ReelDock/ConsumablePanel/Cell2,
-	$Margin/Content/MainRow/CenterStage/ReelDock/ConsumablePanel/Cell3,
-	$Margin/Content/MainRow/CenterStage/ReelDock/ConsumablePanel/Cell4,
+	$Margin/Content/MainRow/CenterStage/ReelDock/TopRow/ConsumablePanel/Cell1,
+	$Margin/Content/MainRow/CenterStage/ReelDock/TopRow/ConsumablePanel/Cell2,
+	$Margin/Content/MainRow/CenterStage/ReelDock/TopRow/ConsumablePanel/Cell3,
+	$Margin/Content/MainRow/CenterStage/ReelDock/TopRow/ConsumablePanel/Cell4,
 ]
 var reward_screen                       # 奖励三选一覆盖层（reward_screen.tscn 实例）
 var meta_screen                         # 每局结束元进度三选一覆盖层（meta_screen.tscn 实例）
@@ -90,11 +90,13 @@ var interroom_next_btn
 # ---- 主 HUD 静态节点（P3b-1）：battle_hud.tscn 编辑器提供，脚本按节点路径引用 ----
 # 注：手写 .tscn 的 %Name 唯一名在含 instance= 覆盖节点的场景里注册不可靠，
 #     故改用确定性 $节点路径（.tscn 结构改动时同步更新此处路径）。
-@onready var grid_container = $Margin/Content/MainRow/CenterStage/ReelDock/ReelCenter/GridContainer
+@onready var grid_container = $Margin/Content/MainRow/CenterStage/ReelDock/TopRow/ReelCenter/GridContainer
 @onready var log_label = $Margin/Content/LogBar/LogScroll/LogLabel
 @onready var log_scroll = $Margin/Content/LogBar/LogScroll
 @onready var player_hp_label = $Margin/Content/MainRow/PlayerPanel/VBox/PlayerHpLabel
 @onready var player_shield_label = $Margin/Content/MainRow/PlayerPanel/VBox/PlayerShieldLabel
+@onready var weapons_row = $Margin/Content/MainRow/PlayerPanel/VBox/GearBox/WeaponsRow
+@onready var charms_row = $Margin/Content/MainRow/PlayerPanel/VBox/GearBox/CharmsRow
 @onready var player_buff_label = $Margin/Content/MainRow/PlayerPanel/VBox/PlayerBuffLabel
 @onready var enemy_name_label = $Margin/Content/MainRow/EnemyPanel/VBox/EnemyNameLabel
 @onready var boss_badge = $Margin/Content/MainRow/EnemyPanel/VBox/BossBadge
@@ -217,9 +219,9 @@ func _build_ui() -> void:
 			var badge = cell.get_node("Badge")
 			cell_badges[reel].append(badge)
 
-	# 底部操作栏按钮：由 .tscn 提供，这里连信号与快捷键。
-	var spin_btn = $Margin/Content/MainRow/CenterStage/ReelDock/SpinButton
-	var reset_btn = $Margin/Content/MainRow/CenterStage/ReelDock/ResetButton
+	# 底部操作栏按钮（SpinBar 在转轮下方居中）：由 .tscn 提供，这里连信号与快捷键。
+	var spin_btn = $Margin/Content/MainRow/CenterStage/ReelDock/SpinBar/SpinButton
+	var reset_btn = $Margin/Content/MainRow/CenterStage/ReelDock/SpinBar/ResetButton
 	spin_btn.pressed.connect(spin_requested.emit)
 	reset_btn.shortcut = _make_shortcut(KEY_R, true)
 	reset_btn.connect("pressed", controller._full_reset)
@@ -913,6 +915,7 @@ func _refresh_cell(reel: int, row: int) -> void:
 
 func _refresh_meta() -> void:
 	loadout_label.text = "已装备: " + ("/".join(controller.state.loadout_names) if not controller.state.loadout_names.is_empty() else "—")
+	_refresh_gear_icons()
 	var is_boss = controller._is_boss_room(controller.state.room_index)
 	room_label.text = "房间: %d/%d%s" % [controller.state.room_index + 1, controller.state.ROOMS.size(), " · ★BOSS" if is_boss else ""]
 	turn_label.text = "回合: %d" % controller.state.turn_count
@@ -978,6 +981,55 @@ func _log(msg: String) -> void:
 		controller.state.logs.pop_back()
 	if log_label != null:
 		log_label.text = "\n".join(controller.state.logs)
+
+
+# 玩家面板装备图标刷新：武器取首个符号 label emoji（无符号回退 ⚔️），
+# 护符取 ItemData.icon emoji。tooltip = 名字(+ 描述)。每次清空旧的 WIcon_/CIcon_
+# 子节点后重建（数量极小，1~2 武器 + 0~3 护符，无性能问题）。
+func _refresh_gear_icons() -> void:
+	if weapons_row == null or charms_row == null:
+		return
+	for child in weapons_row.get_children().duplicate():
+		if child.name.begins_with("WIcon_"):
+			weapons_row.remove_child(child)
+			child.queue_free()
+	for child in charms_row.get_children().duplicate():
+		if child.name.begins_with("CIcon_"):
+			charms_row.remove_child(child)
+			child.queue_free()
+	for path in controller.state.selected_loadout:
+		var wd = load(path)
+		if wd == null:
+			continue
+		var icon := "⚔️"
+		if "symbols" in wd and wd.symbols != null and not wd.symbols.is_empty():
+			for sw in wd.symbols:
+				if sw != null and sw.symbol != null:
+					icon = sw.symbol.label
+					break
+		var tip: String = wd.weapon_name if "weapon_name" in wd else path.get_file().get_basename()
+		var lbl = Label.new()
+		lbl.name = "WIcon_" + path.get_file().get_basename()
+		lbl.text = icon
+		lbl.add_theme_font_size_override("font_size", 18)
+		lbl.tooltip_text = tip
+		lbl.mouse_filter = Control.MOUSE_FILTER_STOP
+		weapons_row.add_child(lbl)
+	for path in controller.state.selected_charms:
+		var cd = load(path)
+		if cd == null:
+			continue
+		var icon_str: String = cd.get("icon") if cd.get("icon") != null else ""
+		var icon: String = icon_str if icon_str != "" else "🛡"
+		var name_str: String = cd.get("item_name") if cd.get("item_name") != null else path.get_file().get_basename()
+		var desc_str: String = cd.get("description") if cd.get("description") != null else ""
+		var lbl = Label.new()
+		lbl.name = "CIcon_" + path.get_file().get_basename()
+		lbl.text = icon
+		lbl.add_theme_font_size_override("font_size", 18)
+		lbl.tooltip_text = name_str + (" · " + desc_str if desc_str != "" else "")
+		lbl.mouse_filter = Control.MOUSE_FILTER_STOP
+		charms_row.add_child(lbl)
 
 
 # 4 格子刷新：按 consumable_slots 顺序填，缺位留空占位文案
