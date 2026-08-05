@@ -1491,7 +1491,7 @@ func _on_spin_pressed() -> void:
 	if player_hp <= 0:
 		hud._log("✖ 你被 %s 击倒。" % enemy_name)
 		game_state = "lost"
-		hud._show_overlay("✖ 失败\n你倒在了 %s 面前" % enemy_name, "重试本房 ↺")
+		hud._show_overlay("✖ 失败\n你倒在了 %s 面前" % enemy_name, "返回整备 ▶")
 		hud._refresh_meta()
 		_busy = false
 		return
@@ -1868,13 +1868,17 @@ func _on_consumable_pressed(uid: String) -> void:
 func _on_overlay_button_pressed() -> void:
 	hud._hide_overlay()    # 关闭失败/通关弹层
 	match game_state:
-		"lost":   _retry_room()
+		"lost":   _return_to_loadout()
 		"cleared": _full_reset()
 
 
-func _retry_room() -> void:
-	player_hp = player_hp_max
-	_start_room(room_index)
+func _return_to_loadout() -> void:
+	# 玩家死亡 = 本局结束，回到整备页重选装备后开新 run（不再重开本房）。
+	# 先落盘，确保当局铁砧点数 drip / 商店购买 / 铁砧授予等写入 owned_* 的进度不丢失。
+	_save_meta()
+	# selected_* 保留上局勾选，玩家可在整备页调整；确认开战时 _full_reset 重置本局状态。
+	game_state = "playing"   # 解除 lost 终态，避免整备/铁砧界面误读终局
+	hud._show_loadout_screen()
 
 
 # ---------------------------------------------------------------------------

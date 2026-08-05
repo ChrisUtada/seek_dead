@@ -224,7 +224,7 @@ func _build_ui() -> void:
 
 	# 底部操作栏按钮（SpinBar 在转轮下方居中）：由 .tscn 提供，这里连信号与快捷键。
 	# 注：原"重置"按钮（Ctrl+R → _full_reset 放弃整局重开）已删除——其为无确认的一键自毁本局陷阱，
-	# 重开本局有正统入口（失败弹层→重试本房 / 通关弹层→开新 run），无需常驻按钮。
+	# 失败/通关均有正统出口：失败弹层→返回整备（重选装备开新 run）/ 通关弹层→开新 run，无需常驻按钮。
 	var spin_btn = $Margin/Content/MainRow/CenterStage/ReelDock/SpinBar/SpinButton
 	spin_btn.pressed.connect(spin_requested.emit)
 	# 消耗品 4 格子：连信号（点击格子=使用该格消耗品）
