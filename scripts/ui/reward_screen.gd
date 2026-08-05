@@ -9,16 +9,16 @@ var controller
 var hud: BattleHud
 const UI_BUTTON = preload("res://scenes/ui/ui_button.tscn")
 
-@onready var bg = $Bg
-@onready var title_label = $Margin/Content/TitleLabel
-@onready var sub_label = $Margin/Content/SubLabel
-@onready var reward_grid = $Margin/Content/Scroll/RewardGrid
-@onready var bot = $Margin/Content/Bot
+@onready var dimmer = $Dimmer
+@onready var title_label = $Center/Dialog/Margin/Content/TitleLabel
+@onready var sub_label = $Center/Dialog/Margin/Content/SubLabel
+@onready var reward_grid = $Center/Dialog/Margin/Content/Scroll/RewardGrid
+@onready var bot = $Center/Dialog/Margin/Content/Bot
 
 func configure(ctrl, h: BattleHud) -> void:
 	controller = ctrl
 	hud = h
-	bg.color = Palette.BG_REWARD
+	dimmer.color = Palette.BG_OVERLAY
 	title_label.add_theme_font_size_override("font_size", TypeScale.OVERLAY)
 	sub_label.text = "选择一项奖励带入后续房间（Roguelike 构筑，跳过则不取）"
 	sub_label.add_theme_font_size_override("font_size", TypeScale.META)
