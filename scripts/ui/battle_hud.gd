@@ -71,11 +71,13 @@ var cell_badges = []   # 每格右上角匹配角标 Label 引用 [reel][row]
 var loadout_screen                     # 整备覆盖层（loadout_screen.tscn 实例）
 # 消耗品腰带 4 个固定格子（2x2），由 hud._refresh_consumable_panel 同步状态；
 # consumable_panel 字段（controller 持有）已废弃，HUD 内聚管理 cell。
+# 位置：左栏 PlayerPanel/VBox（GearBox 之后、PlayerBuffLabel 之前），保持 4 格子 2x2 形态
+# 与 CONSUMABLE_CAP=4 对齐，玩家一眼能数清剩余消耗品。
 @onready var consumable_cells: Array = [
-	$Margin/Content/MainRow/CenterStage/ReelDock/TopRow/ConsumablePanel/Cell1,
-	$Margin/Content/MainRow/CenterStage/ReelDock/TopRow/ConsumablePanel/Cell2,
-	$Margin/Content/MainRow/CenterStage/ReelDock/TopRow/ConsumablePanel/Cell3,
-	$Margin/Content/MainRow/CenterStage/ReelDock/TopRow/ConsumablePanel/Cell4,
+	$Margin/Content/MainRow/PlayerPanel/VBox/ConsumablePanel/Cell1,
+	$Margin/Content/MainRow/PlayerPanel/VBox/ConsumablePanel/Cell2,
+	$Margin/Content/MainRow/PlayerPanel/VBox/ConsumablePanel/Cell3,
+	$Margin/Content/MainRow/PlayerPanel/VBox/ConsumablePanel/Cell4,
 ]
 var reward_screen                       # 奖励三选一覆盖层（reward_screen.tscn 实例）
 var meta_screen                         # 每局结束元进度三选一覆盖层（meta_screen.tscn 实例）

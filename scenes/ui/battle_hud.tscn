@@ -166,6 +166,39 @@ text = "🛡"
 theme_override_font_sizes/font_size = 13
 theme_override_colors/font_color = Color(0.55, 0.85, 0.95, 1)
 
+[node name="ConsumableTitle" type="Label" parent="Margin/Content/MainRow/PlayerPanel/VBox"]
+layout_mode = 2
+text = "消耗品"
+horizontal_alignment = 0
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.75, 0.65, 0.95, 1)
+
+[node name="ConsumablePanel" type="GridContainer" parent="Margin/Content/MainRow/PlayerPanel/VBox"]
+layout_mode = 2
+columns = 2
+theme_override_constants/h_separation = 4
+theme_override_constants/v_separation = 4
+
+[node name="Cell1" parent="Margin/Content/MainRow/PlayerPanel/VBox/ConsumablePanel" instance=ExtResource("3_btn")]
+custom_minimum_size = Vector2(58, 44)
+text = "—"
+theme_override_font_sizes/font_size = 12
+
+[node name="Cell2" parent="Margin/Content/MainRow/PlayerPanel/VBox/ConsumablePanel" instance=ExtResource("3_btn")]
+custom_minimum_size = Vector2(58, 44)
+text = "—"
+theme_override_font_sizes/font_size = 12
+
+[node name="Cell3" parent="Margin/Content/MainRow/PlayerPanel/VBox/ConsumablePanel" instance=ExtResource("3_btn")]
+custom_minimum_size = Vector2(58, 44)
+text = "—"
+theme_override_font_sizes/font_size = 12
+
+[node name="Cell4" parent="Margin/Content/MainRow/PlayerPanel/VBox/ConsumablePanel" instance=ExtResource("3_btn")]
+custom_minimum_size = Vector2(58, 44)
+text = "—"
+theme_override_font_sizes/font_size = 12
+
 [node name="PlayerBuffLabel" type="Label" parent="Margin/Content/MainRow/PlayerPanel/VBox"]
 layout_mode = 2
 unique_name = true
@@ -229,32 +262,6 @@ theme_override_constants/separation = 6
 layout_mode = 2
 alignment = 1
 theme_override_constants/separation = 8
-
-[node name="ConsumablePanel" type="GridContainer" parent="Margin/Content/MainRow/CenterStage/ReelDock/TopRow"]
-layout_mode = 2
-columns = 2
-theme_override_constants/h_separation = 4
-theme_override_constants/v_separation = 4
-
-[node name="Cell1" parent="Margin/Content/MainRow/CenterStage/ReelDock/TopRow/ConsumablePanel" instance=ExtResource("3_btn")]
-custom_minimum_size = Vector2(86, 52)
-text = "—"
-theme_override_font_sizes/font_size = 13
-
-[node name="Cell2" parent="Margin/Content/MainRow/CenterStage/ReelDock/TopRow/ConsumablePanel" instance=ExtResource("3_btn")]
-custom_minimum_size = Vector2(86, 52)
-text = "—"
-theme_override_font_sizes/font_size = 13
-
-[node name="Cell3" parent="Margin/Content/MainRow/CenterStage/ReelDock/TopRow/ConsumablePanel" instance=ExtResource("3_btn")]
-custom_minimum_size = Vector2(86, 52)
-text = "—"
-theme_override_font_sizes/font_size = 13
-
-[node name="Cell4" parent="Margin/Content/MainRow/CenterStage/ReelDock/TopRow/ConsumablePanel" instance=ExtResource("3_btn")]
-custom_minimum_size = Vector2(86, 52)
-text = "—"
-theme_override_font_sizes/font_size = 13
 
 [node name="ReelCenter" type="CenterContainer" parent="Margin/Content/MainRow/CenterStage/ReelDock/TopRow"]
 layout_mode = 2
