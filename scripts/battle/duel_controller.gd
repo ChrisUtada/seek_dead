@@ -807,15 +807,18 @@ func _save_meta() -> void:
 func _seed_default_owned() -> void:
 	# 新档/迁移：owned_* 为空时用当前全池种子填充，保证整备屏有可选范围。
 	# Gungeon 化可改为只给基础子集（如 WEAPON_POOL 前 N 个）。
-	# 测试开关 TEST_SMALL_OWNED：把拥有池压到 3 武器/4 护符，便于观察铁砧抽新/图鉴成长（关掉恢复正式全池）。
+	# 测试开关 TEST_SMALL_OWNED：仅在 owned 为空时把拥有池压到 3 武器/4 护符（便于观察铁砧抽新）；
+	#   关掉恢复正式全池。仅「空时」播种，铁砧授予的新件不会被重载后抹掉（要恢复全池请清存档）。
 	if TEST_SMALL_OWNED:
-		meta["owned_weapons"] = WEAPON_POOL.slice(0, TEST_SMALL_OWNED_WEAPONS)
-		var ps := []
-		for p in ITEM_POOL:
-			var d = load(p)
-			if d is ItemData and d.category == "passive":
-				ps.append(p)
-		meta["owned_charms"] = ps.slice(0, TEST_SMALL_OWNED_CHARMS)
+		if meta["owned_weapons"].is_empty():
+			meta["owned_weapons"] = WEAPON_POOL.slice(0, TEST_SMALL_OWNED_WEAPONS)
+		if meta["owned_charms"].is_empty():
+			var ps := []
+			for p in ITEM_POOL:
+				var d = load(p)
+				if d is ItemData and d.category == "passive":
+					ps.append(p)
+			meta["owned_charms"] = ps.slice(0, TEST_SMALL_OWNED_CHARMS)
 		_save_meta()
 		return
 	if meta["owned_weapons"].is_empty():
@@ -1149,6 +1152,7 @@ func _on_anvil_roll_pressed() -> void:
 	_save_meta()
 	# 注意：不在此处刷新铁砧屏——由 anvil_screen 旋转动画收尾后自行 refresh
 	hud._refresh_meta()
+	hud._refresh_loadout_cards()
 	hud._update_loadout_anvil()
 
 func _roll_anvil_cell() -> Dictionary:
@@ -1200,13 +1204,14 @@ func _anvil_rarity_weight(p: String) -> float:
 	return float(ANVIL_RARITY_WEIGHT.get(r, ANVIL_RARITY_WEIGHT["common"]))
 
 func _anvil_pool() -> Array:
+	# 铁砧池 = 武器 + 护符(passive) 仅此两类；消耗品(active)/技能不进池（设计：铁砧只产武器或护符）
 	var pool := []
 	for p in WEAPON_POOL:
 		pool.append(p)
 	for p in ITEM_POOL:
-		pool.append(p)
-	for p in SKILL_POOL:
-		pool.append(p)
+		var d = load(p)
+		if d is ItemData and d.category == "passive":
+			pool.append(p)
 	return pool
 
 func _anvil_is_owned(p: String) -> bool:

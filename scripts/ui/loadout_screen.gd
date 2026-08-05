@@ -59,10 +59,7 @@ func configure(ctrl, h: BattleHud) -> void:
 	loadout_cards = []
 	loadout_columns = {}
 	loadout_slot_strips = {}
-	_add_loadout_column(cat_box, "武器", controller._owned_arr("weapon"), "weapon", 1)
-	_add_loadout_column(cat_box, "技能", controller._owned_arr("skill"), "skill", 1)
-	_add_loadout_column(cat_box, "消耗品", controller._owned_arr("active"), "active", 1)
-	_add_loadout_column(cat_box, "护符", controller._owned_arr("passive"), "passive", 1)
+	_rebuild_loadout()
 
 func _add_loadout_column(parent: Control, title: String, pool: Array, category: String, _columns: int) -> void:
 	var panel = PanelContainer.new()
@@ -192,13 +189,26 @@ func _update_loadout_count() -> void:
 
 func show_screen() -> void:
 	controller.in_loadout = true
-	_sync_card_selection()      # 从数组重建卡片 selected 标志（防止 Boss 奖励等外部路径直接改数组导致不同步）
-	_update_loadout_cards_visual()
-	_update_loadout_count()
+	_rebuild_loadout()          # 每次打开从最新 owned_* 重建四列，确保铁砧新获得的装备出现
 	_update_loadout_anvil()
 	visible = true
 
-# 每次打开整备屏时，从 controller 的四个选中数组重建所有卡片的 selected 标志。
+# 从当前 owned_* 重建四列卡片（铁砧授予后 owned 变化需重建才显示新装备）
+func _rebuild_loadout() -> void:
+	for c in cat_box.get_children():
+		cat_box.remove_child(c)
+		c.queue_free()
+	loadout_cards = []
+	loadout_columns = {}
+	loadout_slot_strips = {}
+	_add_loadout_column(cat_box, "武器", controller._owned_arr("weapon"), "weapon", 1)
+	_add_loadout_column(cat_box, "技能", controller._owned_arr("skill"), "skill", 1)
+	_add_loadout_column(cat_box, "消耗品", controller._owned_arr("active"), "active", 1)
+	_add_loadout_column(cat_box, "护符", controller._owned_arr("passive"), "passive", 1)
+	_sync_card_selection()
+	_update_loadout_cards_visual()
+	_update_loadout_count()
+
 func _sync_card_selection() -> void:
 	var weapons = controller.state.selected_loadout
 	var consumables = controller.state.selected_consumables
