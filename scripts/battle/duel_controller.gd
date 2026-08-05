@@ -27,12 +27,11 @@ extends Control
 #   · 消耗品 / 护符分类在 UI 框架中预留（M3 后续接入实际数据）
 # M3 干扰系统增量（本版）：
 #   · 敌人干扰分支扩展为 注废(jam) / 锁轮(lock) / 乱权(chaos) 三类（攻击 attack / 重击 heavy 不变）
-#   · 净化接成消耗品：整备携带「净化药剂 ×N」决定净化上限，每房回满到携带量
-#   · 意图 HUD 含干扰图标与「可净化」提示；净化可清除任意一类干扰意图
+#   · 净化完全走消耗品「净化药剂」（腰带里每瓶 charges 用完即移出），意图 HUD 提示用净化药剂
 # M4 增量（房间 + Roguelike 构筑）：
 #   · 跑通一局（Run）：HP 跨房保留；每清一房弹出「房奖励」三选一界面（Roguelike 构筑）
 #   · 本局加成层：符号权重加成(run_symbol_bonus) / 符号伤害加成(run_power_bonus) / 下一房护盾(run_shield_next)
-#   · 奖励池 REWARD_POOL：治疗 / 最大HP / 净化上限 / 符号灌注 / 守望结界 / 锋锐打磨
+#   · 奖励池 REWARD_POOL：治疗 / 最大HP / 符号灌注 / 守望结界 / 锋锐打磨
 #   · Boss 房（最后一房）击败 → 通关 → 领取残余物奖励 → 开新一局
 # ============================================================================
 
@@ -207,8 +206,7 @@ var player_buffs: Dictionary = {}
 # 消耗品运行时（战斗中主动使用）
 var consumable_slots: Array = []          # 消耗品腰带实例：[{path, item_id, charges, uid}]，上限 CONSUMABLE_CAP，允许同类重复占格
 var _consumable_uid := 0                   # 腰带格唯一 id 计数器（卖出/使用精准定位，避免同类重复撞 key）
-var consumable_panel                      # 战斗 UI 底部消耗品按钮行
-var consumable_buttons: Array = []        # {uid, data, btn}
+# 4 格子（2x2）由 HUD 自管（hud.consumable_cells），controller 不再持有引用
 var assault_next_spin: int = 1            # 强袭药剂：下次转轮伤害倍率（1=正常）
 
 # 玩家状态
@@ -235,9 +233,7 @@ var enemy_element: String = "none"     # 敌人属性元素（用于单向克制
 var pending_jam_reel = -1              # 敌人注废 → 下一轮强制废铁列索引（-1 无）
 var pending_lock_reel = -1             # 敌人锁轮 → 下一轮该列固定为当前符号（-1 无）
 var pending_chaos = false              # 敌人乱权 → 下一轮权重削弱优势符号
-# 净化上限 = 携带「净化药剂」数值 + 丰沛护符加成 + 房奖励增量；每房回满到该值
-var purify_max_base = 0
-var purify_charges = 0
+# 净化完全走消耗品（净化药剂·charges 用尽即移出腰带），不再有"净化上限/净化次数"局内缓存
 
 # M6 护符被动（整局生效，_apply_charms 在 _confirm_loadout 结算）
 var charm_power_bonus: int = 0         # 锋锐护符：本局所有伤害符号 +N
@@ -245,7 +241,7 @@ var charm_room_shield: int = 0         # 守望护符：每房开局护盾 +N
 var charm_shield_trickle: int = 0      # 守备护符：每回合护盾涓流（整局生效，见 §8）
 var charm_heal_trickle: int = 0       # 回春护符：每回合回复（与瞬回药剂互补）
 var charm_interf_resist: int = 0       # 抗扰护符：本局敌人干扰概率降低（等效抗扰等级）
-var charm_purify_bonus: int = 0        # 丰沛护符：本局净化上限 +N
+# 净化完全走消耗品，「丰沛护符·净化上限」机制已废除（charm_purify_bonus 字段随之删除，purify_charm.tres 已删除）
 
 var charm_damage_mult: float = 1.0      # Phase G v2.0：护符全局乘区（joker），默认 ×1.0
 
@@ -304,7 +300,6 @@ func _build_state() -> BattleState:
 	s.run_symbol_bonus = run_symbol_bonus
 	s.ROWS = ROWS
 	s.ROOMS = ROOMS
-	s.purify_max_base = purify_max_base
 	s.LOADOUT_MIN = LOADOUT_MIN
 	s.WEAPON_POOL = WEAPON_POOL
 	s.UNCAPPED = UNCAPPED
@@ -329,7 +324,6 @@ func _build_state() -> BattleState:
 	s.shop_offers = shop_offers
 	s.selected_consumables = selected_consumables
 	s.reward_is_boss = reward_is_boss
-	s.purify_charges = purify_charges
 	s.player_shield = player_shield
 	s.player_hp_max = player_hp_max
 	s.player_hp = player_hp
@@ -554,12 +548,11 @@ func _confirm_loadout() -> void:
 	_full_reset()
 
 
-# 结算护符被动（整局生效）与净化上限（净化药剂 + 丰沛护符）
+# 结算护符被动（整局生效）
 func _apply_charms() -> void:
 	charm_power_bonus = 0
 	charm_room_shield = 0
 	charm_interf_resist = 0
-	charm_purify_bonus = 0
 	charm_damage_mult = 1.0
 	charm_shield_trickle = 0
 	charm_heal_trickle = 0
@@ -571,7 +564,7 @@ func _apply_charms() -> void:
 			"damage_bonus":         charm_power_bonus += cd.value
 			"room_shield":          charm_room_shield += cd.value
 			"interference_resist":  charm_interf_resist += cd.value
-			"purify_bonus":         charm_purify_bonus += cd.value
+			# "purify_bonus" 丰沛护符已删除（净化完全走消耗品）
 			"shield":               charm_shield_trickle += cd.value   # 守备护符：每回合护盾涓流
 			"heal":                charm_heal_trickle += cd.value    # 回春护符：每回合回复
 			"damage_mult":
@@ -583,19 +576,12 @@ func _apply_charms() -> void:
 				"damage_bonus":         charm_power_bonus -= cd.downside_value
 				"room_shield":          charm_room_shield -= cd.downside_value
 				"interference_resist":  charm_interf_resist -= cd.downside_value
-				"purify_bonus":         charm_purify_bonus -= cd.downside_value
 				"shield":               charm_shield_trickle -= cd.downside_value
 				"heal":                charm_heal_trickle -= cd.downside_value
 				"damage_mult":          charm_damage_mult *= cd.downside_mult
 	# 总护符乘区硬上限（防失控膨胀）
 	charm_damage_mult = min(charm_damage_mult, CHARM_MULT_CAP)
-	var pm = 0
-	for slot in consumable_slots:
-		var cd: Resource = load(slot["path"])
-		if cd != null and cd.effect == "purify":
-			pm += cd.value
-	purify_max_base = pm + charm_purify_bonus
-	var charm_log = "护符已装配：伤害+%d / 开局护盾+%d / 每回合护盾+%d / 每回合回血+%d / 抗扰+%d / 净化+%d" % [charm_power_bonus, charm_room_shield, charm_shield_trickle, charm_heal_trickle, charm_interf_resist, charm_purify_bonus]
+	var charm_log = "护符已装配：伤害+%d / 开局护盾+%d / 每回合护盾+%d / 每回合回血+%d / 抗扰+%d" % [charm_power_bonus, charm_room_shield, charm_shield_trickle, charm_heal_trickle, charm_interf_resist]
 	if charm_damage_mult != 1.0:
 		charm_log += " / 伤害×%s" % ElementCounter.fmt_mult(charm_damage_mult)
 	hud._log(charm_log)
@@ -783,9 +769,7 @@ func _apply_reward(id: String) -> void:
 			player_hp_max += 20
 			player_hp = player_hp_max
 			hud._log("奖励：最大 HP +20 并回满")
-		"purify":
-			purify_max_base += 1
-			hud._log("奖励：净化上限 +1（当前 %d）" % purify_max_base)
+		# "purify" 净化上限奖励已删除（净化完全走消耗品）
 		"symbol":
 			var cand := []
 			for p in pool:
@@ -951,7 +935,7 @@ func _on_shop_buy_pressed(offer: Dictionary) -> void:
 			var uid = "c%d" % _consumable_uid
 			consumable_slots.append({"path": offer["path"], "item_id": cd.item_id, "charges": cd.charges, "uid": uid})
 			paid_price[uid] = buy_price
-			_rebuild_consumable_panel()
+			_refresh_consumable_panel()
 			hud._log("购买 %s（腰带 %d/%d，-%d 金，余 %d）" % [offer["name"], consumable_slots.size(), CONSUMABLE_CAP, buy_price, gold])
 		else:
 			hud._log("购买失败：资源缺失 %s" % offer["name"])
@@ -1011,7 +995,7 @@ func _on_shop_sell_pressed(path: String, kind: String) -> void:
 		gold += sell_refund
 		consumable_slots.remove_at(target)
 		paid_price.erase(slot["uid"])
-		_rebuild_consumable_panel()
+		_refresh_consumable_panel()
 		hud._log("卖出 %s（+%d 金，腰带位释放）" % [_shop_name(slot["path"], kind), sell_refund])
 		hud._refresh_shop()
 		hud._refresh_meta()
@@ -1288,10 +1272,9 @@ func _start_room(idx: int) -> void:
 	pending_jam_reel = -1
 	pending_lock_reel = -1
 	pending_chaos = false
-	purify_charges = purify_max_base      # 净化上限（净化药剂 + 丰沛护符 + 房奖励）
-	# 消耗品次数不再每房回满：已在整备确认时一次性初始化，用掉即消耗，仅靠商店补给
+	# 净化完全走消耗品（净化药剂·charges 用尽即移出腰带），无需每房回满
 	game_state = "playing"                # 必须在重建消耗品按钮前置为 playing，否则房间过渡瞬间按钮被误判为禁用
-	_rebuild_consumable_panel()
+	_refresh_consumable_panel()
 	turn_count = 1
 	enemy_intent = {}
 	hud._hide_overlay()
@@ -1690,27 +1673,6 @@ func _tick_status() -> void:
 		hud._log("状态结算 %d 伤害（灼烧/毒·含克制）" % dot)
 
 
-func _on_purify_pressed() -> void:
-	if in_loadout or in_interroom or _busy:
-		return
-	if game_state != "playing":
-		return
-	if enemy_intent.is_empty():
-		hud._log("当前敌人无意图，无需净化")
-		return
-	if enemy_intent.get("type") not in ["jam", "lock", "chaos"]:
-		hud._log("当前意图不可净化（攻击/重击）")
-		return
-	if purify_charges <= 0:
-		hud._log("净化次数已用尽（整备携带的净化药剂不足）")
-		return
-	purify_charges -= 1
-	var t = enemy_intent.get("type")
-	enemy_intent = {"type": "none", "value": 0}
-	hud._log("净化成功：抵消了敌人的%s" % _intent_name(t))
-	hud._refresh_meta()
-
-
 func _intent_name(t: String) -> String:
 	match t:
 		"jam":   return "注废"
@@ -1724,37 +1686,10 @@ func _intent_name(t: String) -> String:
 # ---------------------------------------------------------------------------
 # M6 消耗品：战斗中主动使用
 # ---------------------------------------------------------------------------
-# 根据整备携带的消耗品，重建战斗 UI 底部按钮行（每房调用一次）
-func _rebuild_consumable_panel() -> void:
-	if consumable_panel == null:
-		return
-	for c in consumable_panel.get_children():
-		consumable_panel.remove_child(c)
-		c.queue_free()
-	consumable_buttons = []
-	if consumable_slots.is_empty():
-		return
-	for slot in consumable_slots:
-		var cd: Resource = load(slot["path"])
-		if cd == null:
-			continue
-		var btn = UI_BUTTON.instantiate()
-		btn.custom_minimum_size = Vector2(86, 30)
-		btn.add_theme_font_size_override("font_size", TypeScale.TINY)
-		btn.connect("pressed", _on_consumable_pressed.bind(slot["uid"]))
-		consumable_panel.add_child(btn)
-		consumable_buttons.append({"uid": slot["uid"], "data": cd, "btn": btn})
-	_refresh_consumable_panel()
-
-
+# 4 格子（2x2）由 HUD 自管，本函数只触发刷新同步状态（不增删 cell，charges 用尽直接移出 slots 即可）
 func _refresh_consumable_panel() -> void:
-	var left_map := {}
-	for slot in consumable_slots:
-		left_map[slot["uid"]] = slot["charges"]
-	for m in consumable_buttons:
-		var left = left_map.get(m["uid"], 0)
-		m["btn"].text = "%s%s(%d)" % [m["data"].icon, m["data"].item_name, left]
-		m["btn"].disabled = (left <= 0 or game_state != "playing" or in_loadout)
+	if hud != null and hud.has_method("_refresh_consumable_panel"):
+		hud._refresh_consumable_panel()
 
 
 func _on_consumable_pressed(uid: String) -> void:
@@ -1777,11 +1712,13 @@ func _on_consumable_pressed(uid: String) -> void:
 	slot["charges"] -= 1
 	match data.effect:
 		"purify":
+			# 净化完全走消耗品：扣 1 charges，抵消当前干扰意图（如果有）；data.value 字段已废弃
 			if enemy_intent.get("type") in ["jam", "lock", "chaos"]:
+				var t = enemy_intent.get("type")
 				enemy_intent = {"type": "none", "value": 0}
-				hud._log("净化药剂：抵消了敌人的干扰意图")
-			purify_charges += data.value
-			hud._log("净化药剂：恢复 %d 点净化次数（现 %d）" % [data.value, purify_charges])
+				hud._log("净化药剂：抵消了敌人的%s" % _intent_name(t))
+			else:
+				hud._log("净化药剂：当前无干扰意图可抵消")
 		"heal":
 			player_hp = min(player_hp_max, player_hp + data.value)
 			hud._log("治疗药剂：回复 %d HP（现 %d）" % [data.value, player_hp])
@@ -1794,7 +1731,7 @@ func _on_consumable_pressed(uid: String) -> void:
 	_refresh_consumable_panel()
 	if slot["charges"] <= 0:
 		consumable_slots.remove_at(target)
-		_rebuild_consumable_panel()
+		_refresh_consumable_panel()   # 4 cell 永远在位，只刷状态；charges=0 槽位自动变空
 		hud._log("「%s」已用尽，移出腰带（可于商店补给）" % slot["item_id"])
 	hud._refresh_meta()
 
@@ -2060,7 +1997,7 @@ func _evaluate(chain_mult := 1.0) -> void:
 # 新增一条修正轴只需在对应 _agg_* 末尾加一行求和，战斗结算零改动。
 #
 # 注意：本层只聚合「每符号 / 每回合」类修正。房开局护盾（守望护符 charm_room_shield
-# / 守望结界 run_shield_next）与抗扰 / 净化上限等是「房间级」修正，仍在各自原位处理，
+# / 守望结界 run_shield_next）与抗扰等是「房间级」修正，仍在各自原位处理，
 # 不进入此层。铁砧转轮升级(meta.weapon_upgrades)是「武器级」权重，在 _build_pool 内处理。
 # ---------------------------------------------------------------------------
 

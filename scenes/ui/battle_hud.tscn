@@ -198,10 +198,31 @@ layout_mode = 2
 size_flags_horizontal = 1
 theme_override_constants/separation = 8
 
-[node name="ConsumablePanel" type="HBoxContainer" parent="Margin/Content/MainRow/CenterStage/ReelDock"]
+[node name="ConsumablePanel" type="GridContainer" parent="Margin/Content/MainRow/CenterStage/ReelDock"]
 layout_mode = 2
-unique_name = true
-theme_override_constants/separation = 6
+columns = 2
+theme_override_constants/h_separation = 4
+theme_override_constants/v_separation = 4
+
+[node name="Cell1" parent="Margin/Content/MainRow/CenterStage/ReelDock/ConsumablePanel" instance=ExtResource("3_btn")]
+custom_minimum_size = Vector2(86, 52)
+text = "—"
+theme_override_font_sizes/font_size = 13
+
+[node name="Cell2" parent="Margin/Content/MainRow/CenterStage/ReelDock/ConsumablePanel" instance=ExtResource("3_btn")]
+custom_minimum_size = Vector2(86, 52)
+text = "—"
+theme_override_font_sizes/font_size = 13
+
+[node name="Cell3" parent="Margin/Content/MainRow/CenterStage/ReelDock/ConsumablePanel" instance=ExtResource("3_btn")]
+custom_minimum_size = Vector2(86, 52)
+text = "—"
+theme_override_font_sizes/font_size = 13
+
+[node name="Cell4" parent="Margin/Content/MainRow/CenterStage/ReelDock/ConsumablePanel" instance=ExtResource("3_btn")]
+custom_minimum_size = Vector2(86, 52)
+text = "—"
+theme_override_font_sizes/font_size = 13
 
 [node name="ReelCenter" type="CenterContainer" parent="Margin/Content/MainRow/CenterStage/ReelDock"]
 layout_mode = 2
@@ -220,23 +241,6 @@ unique_name = true
 custom_minimum_size = Vector2(140, 48)
 text = "SPIN (空格)"
 theme_override_font_sizes/font_size = 18
-
-[node name="PurifyButton" parent="Margin/Content/MainRow/CenterStage/ReelDock" instance=ExtResource("3_btn")]
-layout_mode = 2
-unique_name = true
-custom_minimum_size = Vector2(110, 44)
-text = "净化 (Ctrl+P)"
-theme_override_font_sizes/font_size = 14
-
-[node name="PurifyLabel" type="Label" parent="Margin/Content/MainRow/CenterStage/ReelDock"]
-layout_mode = 2
-unique_name = true
-text = "2"
-theme_override_font_sizes/font_size = 14
-
-[node name="BotSpacer" type="Control" parent="Margin/Content/MainRow/CenterStage/ReelDock"]
-layout_mode = 2
-size_flags_horizontal = 0
 
 [node name="ResetButton" parent="Margin/Content/MainRow/CenterStage/ReelDock" instance=ExtResource("3_btn")]
 layout_mode = 2

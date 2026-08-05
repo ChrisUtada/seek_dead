@@ -2,7 +2,7 @@ extends BossGimmick
 
 # 幕二 BOSS·呓语教徒「呓语锁轮」：
 # 每 3 回合必锁 1 列（直接置 pending_lock_reel，无视抗扰减免）且当回合敌人攻击 ×1.5。
-# 设计意图：逼玩家保留净化次数 / 应对锁轮。
+# 设计意图：逼玩家在 4 格子腰带里为「净化药剂」留出位置，应对锁轮。
 
 const LOCK_EVERY := 3
 const ATTACK_MULT := 1.5

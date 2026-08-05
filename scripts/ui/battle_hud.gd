@@ -69,6 +69,14 @@ func hide_anvil_screen() -> void: anvil_screen.hide_screen()
 var cells = []   # 展示用 Button 引用 [reel][row]
 var cell_badges = []   # 每格右上角匹配角标 Label 引用 [reel][row]
 var loadout_screen                     # 整备覆盖层（loadout_screen.tscn 实例）
+# 消耗品腰带 4 个固定格子（2x2），由 hud._refresh_consumable_panel 同步状态；
+# consumable_panel 字段（controller 持有）已废弃，HUD 内聚管理 cell。
+@onready var consumable_cells: Array = [
+	$Margin/Content/MainRow/CenterStage/ReelDock/ConsumablePanel/Cell1,
+	$Margin/Content/MainRow/CenterStage/ReelDock/ConsumablePanel/Cell2,
+	$Margin/Content/MainRow/CenterStage/ReelDock/ConsumablePanel/Cell3,
+	$Margin/Content/MainRow/CenterStage/ReelDock/ConsumablePanel/Cell4,
+]
 var reward_screen                       # 奖励三选一覆盖层（reward_screen.tscn 实例）
 var meta_screen                         # 每局结束元进度三选一覆盖层（meta_screen.tscn 实例）
 
@@ -105,7 +113,6 @@ var interroom_next_btn
 @onready var turn_label = $Margin/Content/InfoBar/TurnLabel
 @onready var run_label = $Margin/Content/InfoBar/RunLabel
 @onready var gold_label = $Margin/Content/MainRow/PlayerPanel/VBox/GoldLabel
-@onready var purify_label = $Margin/Content/MainRow/CenterStage/ReelDock/PurifyLabel
 
 var animator = null   # P4 战斗动画器（tween 驱动立绘演出），_build_ui 末尾创建
 
@@ -212,18 +219,20 @@ func _build_ui() -> void:
 
 	# 底部操作栏按钮：由 .tscn 提供，这里连信号与快捷键。
 	var spin_btn = $Margin/Content/MainRow/CenterStage/ReelDock/SpinButton
-	var purify_btn = $Margin/Content/MainRow/CenterStage/ReelDock/PurifyButton
 	var reset_btn = $Margin/Content/MainRow/CenterStage/ReelDock/ResetButton
 	spin_btn.pressed.connect(spin_requested.emit)
-	purify_btn.shortcut = _make_shortcut(KEY_P, true)
-	purify_btn.connect("pressed", controller._on_purify_pressed)
 	reset_btn.shortcut = _make_shortcut(KEY_R, true)
 	reset_btn.connect("pressed", controller._full_reset)
-	controller.consumable_panel = $Margin/Content/MainRow/CenterStage/ReelDock/ConsumablePanel
+	# 消耗品 4 格子：连信号（点击格子=使用该格消耗品）
+	for i in range(consumable_cells.size()):
+		consumable_cells[i].pressed.connect(_on_consumable_cell_pressed.bind(i))
+	# 净化按钮已删除（净化完全走消耗品·净化药剂，charges 用尽即移出腰带）
+	# 4 格子初次刷新（带空占位文案）
+	_refresh_consumable_panel()
 
 	_build_overlay()
-	# Phase 3：键盘焦点链（Tab/方向键可在底部操作间移动）
-	_chain_focus([spin_btn, purify_btn, reset_btn])
+	# Phase 3：键盘焦点链（Tab/方向键可在底部操作间移动；净化按钮已删，仅 SPIN/重置）
+	_chain_focus([spin_btn, reset_btn])
 	# Phase 3：悬停 tooltip 与飘字对象池浮层
 	_build_symbol_tooltip()
 	_build_popup_layer()
@@ -918,7 +927,6 @@ func _refresh_meta() -> void:
 	enemy_armor_label.visible = controller.state.enemy_armor_max > 0
 	enemy_armor_label.text = "护甲 %d/%d" % [max(controller.state.enemy_armor, 0), controller.state.enemy_armor_max]
 	enemy_status_label.text = "状态: " + ("无" if controller.state.enemy_status.is_empty() else controller._status_summary(controller.state.enemy_status))
-	purify_label.text = "%d/%d" % [controller.state.purify_charges, controller.state.purify_max_base]
 	# M4+M6 本局加成概览
 	var parts := []
 	if controller.state.run_power_bonus + controller.state.charm_power_bonus > 0:
@@ -926,8 +934,7 @@ func _refresh_meta() -> void:
 	# 护符乘区（damage_mult 类型，如 rage_charm ×1.5）此前漏显示 → 带乘区护符时概览空显示"无"
 	if controller.state.charm_damage_mult != 1.0:
 		parts.append("护符×%s" % ElementCounter.fmt_mult(controller.state.charm_damage_mult))
-	if controller.state.purify_max_base > 0:
-		parts.append("净化上限%d" % controller.state.purify_max_base)
+	# 净化已走消耗品（净化药剂 charges 用完即移出），不再有"净化上限"局内缓存；消耗品状态在 4 格子自显
 	if controller.state.charm_room_shield > 0:
 		parts.append("护盾+%d" % controller.state.charm_room_shield)
 	if controller.state.charm_interf_resist > 0:
@@ -948,10 +955,10 @@ func _refresh_meta() -> void:
 		match t:
 			"attack": enemy_intent_label.text = "意图: ⚔ 攻击 %d" % controller.state.enemy_intent["value"]
 			"heavy":  enemy_intent_label.text = "意图: 💥 重击 %d" % controller.state.enemy_intent["value"]
-			"jam":    enemy_intent_label.text = "意图: ☣ 注废（可净化）"
-			"lock":   enemy_intent_label.text = "意图: 🔒 锁轮（可净化）"
-			"chaos":  enemy_intent_label.text = "意图: 🌀 乱权（可净化）"
-			"none":   enemy_intent_label.text = "意图: ✔ 已净化(无)"
+			"jam":    enemy_intent_label.text = "意图: ☣ 注废（用净化药剂）"
+			"lock":   enemy_intent_label.text = "意图: 🔒 锁轮（用净化药剂）"
+			"chaos":  enemy_intent_label.text = "意图: 🌀 乱权（用净化药剂）"
+			"none":   enemy_intent_label.text = "意图: —"
 			_:        enemy_intent_label.text = "意图: —"
 
 
@@ -971,3 +978,37 @@ func _log(msg: String) -> void:
 		controller.state.logs.pop_back()
 	if log_label != null:
 		log_label.text = "\n".join(controller.state.logs)
+
+
+# 4 格子刷新：按 consumable_slots 顺序填，缺位留空占位文案
+# - 有消耗品：显示 emoji + 名字 + charges 角标；按 game_state/in_loadout 决定是否禁用
+# - 空格子：显示 "—"，禁用（仅占位）
+func _refresh_consumable_panel() -> void:
+	if consumable_cells.is_empty():
+		return
+	# 与 controller._on_consumable_pressed 守卫保持一致：playing 状态 + 非整备
+	var can_use = (controller.state.game_state == "playing") and (not controller.state.in_loadout)
+	for i in range(consumable_cells.size()):
+		var cell = consumable_cells[i]
+		if i < controller.state.consumable_slots.size():
+			var slot = controller.state.consumable_slots[i]
+			var cd: Resource = load(slot["path"])
+			if cd != null:
+				cell.text = "%s %s" % [cd.icon, cd.item_name]
+				cell.tooltip_text = "%s · %s · 剩 %d 次" % [cd.item_name, cd.description, slot["charges"]]
+			else:
+				cell.text = "?"
+				cell.tooltip_text = "资源缺失"
+			cell.disabled = not can_use or slot["charges"] <= 0
+		else:
+			cell.text = "—"
+			cell.tooltip_text = "消耗品空位"
+			cell.disabled = true   # 空位不响应点击
+
+
+# 4 格子点击：调 controller._on_consumable_pressed(uid) 让 controller 走统一扣减+结算路径
+func _on_consumable_cell_pressed(cell_index: int) -> void:
+	if cell_index < 0 or cell_index >= controller.state.consumable_slots.size():
+		return
+	var uid = controller.state.consumable_slots[cell_index]["uid"]
+	controller._on_consumable_pressed(uid)

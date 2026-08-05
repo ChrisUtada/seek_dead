@@ -56,7 +56,7 @@
 | 中央舞台 | `Control`（含两个 `TextureRect`） | 占中，`size_flags_vertical=EXPAND_FILL` | 预留 `player_sprite` / `enemy_sprite` 节点供 P4 动画引用 |
 | 左栏 | `VBoxContainer` | 左上，`anchor_right=0.22` | 护符 + 增益列表 |
 | 右栏 | `VBoxContainer` | 右上，`anchor_left=0.78` | 敌人 HP/意图/护甲 |
-| 转轮区（CenterStage 内） | `HBoxContainer`(ReelDock) | `CenterStage` 子节点（StageRow 下、BottomRow 上），`size_flags_horizontal=SHRINK_CENTER` 整组居中 | 消耗品腰带(4槽) + 转轮 + SPIN 居中（不再贴右缘，移除右推 BotSpacer） |
+| 转轮区（CenterStage 内） | `HBoxContainer`(ReelDock) | `CenterStage` 子节点（StageRow 下、BottomRow 上），`size_flags_horizontal=SHRINK_CENTER` 整组居中 | 消耗品腰带(**4 槽 2x2 格子**)+ 转轮 + SPIN 居中（不再贴右缘，移除右推 BotSpacer；常驻净化按钮已废，净化完全走消耗品·净化药剂，点击格子使用） |
 | 伤害日志条 | `ScrollContainer`（薄） | 中央舞台下方叠加 | 半透明，仅显示最近 N 行 |
 
 ### 1.3 不变部分

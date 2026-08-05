@@ -101,7 +101,8 @@
 **方案**：
 - 日志/图例字号下限提到 12px（建议 13）。
 - 用 `Palette` 统一前景色，避免浅灰小字（`Color(0.70,0.70,0.75)` 在深色底 OK，但 10px 仍偏小）。
-- 给净化/整备/重置按钮加 `shortcut`（如 `Ctrl+P` / `Ctrl+E` / `Ctrl+R`），并设 `focus_mode` 与合理 `focus_neighbor`。
+- 给整备/重置按钮加 `shortcut`（如 `Ctrl+E` / `Ctrl+R`），并设 `focus_mode` 与合理 `focus_neighbor`。
+- 净化按钮已废除（净化完全走消耗品「净化药剂」，从 4 格子腰带主动点击使用）—— 故无 `Ctrl+P` 绑定。
 - 转轮格子 `mouse_default_cursor_shape = CURSOR_HELP`，hover 时 `hud.show_tooltip(symbol_id)` 弹出名称/类型/元素/元素关系。
 **落地位置**：`symbol_cell.tscn` + `_build_ui`。
 
