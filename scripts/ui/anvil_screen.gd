@@ -1,9 +1,8 @@
 extends Control
 class_name AnvilScreen
 
-# anvil_screen — 铁砧锻造（元进度永久强化）覆盖层（P3b-2 抽独立场景）
-# 静态骨架由 anvil_screen.tscn 提供；本脚本负责显隐 / 填数据（武器转轮升级 + 抗干扰）。
-# 卡片构造复用 HUD 的 _label，按钮用 UI_BUTTON 组件；信号直接连 controller 铁砧方法。
+# anvil_screen — 铁砧纯 gacha 覆盖层（§6 纯 gacha 定案：抽装备注入 owned_* 拥有池）
+# 静态骨架由 anvil_screen.tscn 提供；本脚本负责显隐 / 填数据 / 摇按钮 / mini-reel 结果显示。
 
 var controller
 var hud: BattleHud
@@ -13,20 +12,27 @@ const UI_BUTTON = preload("res://scenes/ui/ui_button.tscn")
 @onready var title_label = $Margin/Content/TitleLabel
 @onready var points_label = $Margin/Content/PointsLabel
 @onready var sub_label = $Margin/Content/SubLabel
-@onready var anvil_grid = $Margin/Content/Scroll/AnvilGrid
+@onready var info_label = $Margin/Content/InfoLabel
+@onready var reel_box = $Margin/Content/ReelBox
 @onready var bot = $Margin/Content/Bot
 
 func configure(ctrl, h: BattleHud) -> void:
 	controller = ctrl
 	hud = h
 	bg.color = Palette.BG_ANVIL
-	title_label.text = "🔨 铁砧锻造 · 元进度"
+	title_label.text = "🔨 铁砧 · 抽装备"
 	title_label.add_theme_font_size_override("font_size", TypeScale.BODY)
-	sub_label.text = "消耗点数永久强化转轮 / 抗干扰（跨局保留）"
+	sub_label.text = "消耗铁砧点数摇 3 格，抽到的装备进入拥有池（盘外永久保留）"
 	sub_label.add_theme_font_size_override("font_size", TypeScale.CAPTION)
 	var sp = Control.new()
 	sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bot.add_child(sp)
+	var roll_btn = UI_BUTTON.instantiate()
+	roll_btn.text = "🔨 摇动 (%d点)" % controller.ANVIL_ROLL_COST
+	roll_btn.custom_minimum_size = Vector2(170, 48)
+	roll_btn.add_theme_font_size_override("font_size", TypeScale.MEDIUM)
+	roll_btn.connect("pressed", controller._on_anvil_roll_pressed)
+	bot.add_child(roll_btn)
 	var back_btn = UI_BUTTON.instantiate()
 	back_btn.text = "返回整备"
 	back_btn.custom_minimum_size = Vector2(120, 40)
@@ -39,52 +45,48 @@ func show_screen() -> void:
 	visible = true
 
 func refresh() -> void:
-	points_label.text = "铁砧点数: %d" % controller.state.meta["anvil_points"]
-	for c in anvil_grid.get_children():
-		anvil_grid.remove_child(c)
+	var meta = controller.state.meta
+	points_label.text = "铁砧点数: %d" % meta["anvil_points"]
+	var pool = controller._anvil_pool()
+	var owned = 0
+	for p in pool:
+		if controller._anvil_is_owned(p):
+			owned += 1
+	var not_yet = pool.size() - owned
+	var pity = meta["anvil_pity"]
+	var pity_txt = ""
+	if not_yet > 0 and pity >= controller.ANVIL_PITY_MAX:
+		pity_txt = "（保底触发：下次必出未拥有）"
+	info_label.text = "图鉴 %.0f%%  已拥有 %d / 全池 %d\n未拥有 %d 件 · 连续重复 %d/%d %s" % [
+		controller._anvil_collection_pct() * 100, owned, pool.size(), not_yet, pity, controller.ANVIL_PITY_MAX, pity_txt]
+	for c in reel_box.get_children():
+		reel_box.remove_child(c)
 		c.queue_free()
-	# 武器转轮升级
-	for path in controller.state.WEAPON_POOL:
-		var wd: Resource = load(path)
-		var wname = wd.weapon_name if (wd != null) else path.get_file().get_basename()
-		var lvl = controller.state.meta["weapon_upgrades"].get(path, 0)
-		var cost = (lvl + 1) * 10
-		var btn = UI_BUTTON.instantiate()
-		btn.custom_minimum_size = Vector2(96, 56)
-		btn.text = ""
-		var cc = CenterContainer.new()
-		cc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		cc.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		btn.add_child(cc)
-		var vb = VBoxContainer.new()
-		vb.add_theme_constant_override("separation", 1)
-		cc.add_child(vb)
-		vb.add_child(hud._label(wname, TypeScale.META))
-		vb.add_child(hud._label("转轮 Lv%d" % lvl, TypeScale.CAPTION))
-		vb.add_child(hud._label("升级 %d 点" % cost, TypeScale.CAPTION))
-		btn.connect("pressed", controller._on_anvil_weapon_pressed.bind(path))
-		anvil_grid.add_child(btn)
-	# 抗干扰
-	var rl = controller.state.meta["interference_resist"]
-	var rcost = (rl + 1) * 15
-	var rbtn = UI_BUTTON.instantiate()
-	rbtn.custom_minimum_size = Vector2(96, 56)
-	rbtn.text = ""
-	var rcc = CenterContainer.new()
-	rcc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	rcc.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	rbtn.add_child(rcc)
-	var rvb = VBoxContainer.new()
-	rvb.add_theme_constant_override("separation", 1)
-	rcc.add_child(rvb)
-	rvb.add_child(hud._label("锤炼意志", TypeScale.META))
-	rvb.add_child(hud._label("抗干扰 Lv%d/5" % rl, TypeScale.CAPTION))
-	if rl >= 5:
-		rvb.add_child(hud._label("已满级", TypeScale.CAPTION))
+	for d in controller.last_anvil_drops:
+		reel_box.add_child(_make_cell(d))
+
+func _make_cell(d: Dictionary) -> Control:
+	var cc = CenterContainer.new()
+	cc.custom_minimum_size = Vector2(160, 90)
+	var panel = PanelContainer.new()
+	panel.custom_minimum_size = Vector2(156, 86)
+	var style = StyleBoxFlat.new()
+	style.bg_color = Palette.CARD_BG
+	style.border_color = Palette.PANEL_BORDER
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(6)
+	panel.add_theme_stylebox_override("panel", style)
+	var vb = VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 2)
+	panel.add_child(vb)
+	if d.get("kind", "") == "blank":
+		vb.add_child(hud._label("空白格", TypeScale.META))
 	else:
-		rvb.add_child(hud._label("升级 %d 点" % rcost, TypeScale.CAPTION))
-	rbtn.connect("pressed", controller._on_anvil_resist_pressed)
-	anvil_grid.add_child(rbtn)
+		vb.add_child(hud._label(d.get("name", "?"), TypeScale.META))
+		var tag = "✨ 新获取" if d.get("is_new", false) else "↺ 重复"
+		vb.add_child(hud._label("%s · %s" % [d.get("rarity", "?"), tag], TypeScale.CAPTION))
+	cc.add_child(panel)
+	return cc
 
 func hide_screen() -> void:
 	visible = false

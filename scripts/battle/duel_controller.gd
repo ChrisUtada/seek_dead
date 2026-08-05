@@ -164,6 +164,14 @@ const _GOLD_CELLS := 2           # 金币符号常驻格数（经济引擎，与
 @export var CHARM_MULT_STEP: float = 0.12            # 每级护符伤害乘区 +0.12（乘数增值，复利但封顶）
 @export var CHARM_MULT_CAP: float = 6.0              # 总护符乘区硬上限（防失控膨胀）
 @export var META_ANVIL_BONUS: int = 2              # 元进度三选一选「铁砧点数」时获得的点数
+@export var ANVIL_ROLL_COST: int = 10
+@export var ANVIL_BLANK_CHANCE: float = 0.10
+@export var ANVIL_PITY_MAX: int = 10
+@export var ANVIL_PER_RUN_CAP: int = 40
+@export var ANVIL_DUPE_REFUND: Dictionary = {"common": 3, "uncommon": 5, "rare": 7, "epic": 10}
+@export var ANVIL_RARITY_WEIGHT: Dictionary = {"common": 100, "uncommon": 40, "rare": 12, "epic": 3}
+@export var ANVIL_MILESTONE_PCT: Array = [0.25, 0.5, 0.75, 1.0]
+@export var ANVIL_MILESTONE_BONUS: Array = [50, 100, 150, 200]
 @export var META_CHOICE_COUNT: int = 3             # 每局结束元进度候选张数（三选一，候选池随机抽）
 
 # S12 局内金币升级（深化已有乘区，不新增第4乘区；每局清零，管局内临时）
@@ -265,7 +273,9 @@ var gold_upgrades := {"power": 0, "line": 0, "joker": 0, "shield": 0}
 # M5 元进度（铁砧锻造 + 存档持久化，跨局保留）
 # weapon_upgrades: weapon_path -> int（该武器主符号额外权重，转轮升级）
 # interference_resist: int（抗干扰等级，降低敌人干扰概率）
-var meta: Dictionary = {"anvil_points": 0, "weapon_upgrades": {}, "interference_resist": 0, "weapon_base_bonus": {}, "charm_upgrades": {}, "weapon_hit_bonus": {}}
+var meta: Dictionary = {"anvil_points": 0, "weapon_upgrades": {}, "interference_resist": 0, "weapon_base_bonus": {}, "charm_upgrades": {}, "weapon_hit_bonus": {}, "owned_weapons": [], "owned_charms": [], "owned_consumables": [], "anvil_pity": 0, "first_clears": {}, "collection_milestones": []}
+var anvil_run_awarded: int = 0   # 本局铁砧点数 drip 累计（不持久，_full_reset 清零）
+var last_anvil_drops: Array = []   # 最近一次铁砧摇动结果（非持久，仅供 UI 显示）
 const ANVIL_SAVE_KEY := "anvil_meta"   # 铁砧元进度存于 SaveSystem.lobby_data
 
 # 仅 1 行 3 格。特殊符号需 3 同才触发；普通符号单颗即结算，出现 n 次 ×n。
@@ -355,6 +365,7 @@ func _ready() -> void:
 	add_child(hud)
 	hud.controller = self
 	_load_meta()
+	_seed_default_owned()
 	hud.build_all()   # P2：HUD 自构建全部界面（build_all 内部调各 _build_* + _show_loadout_screen），controller 不再戳私有构建方法
 	# P2：HUD 意图信号 → controller 处理器（HUD 不再调用 controller 私有方法）
 	hud.spin_requested.connect(_on_spin_button_pressed)
@@ -630,48 +641,13 @@ func _on_boss_reward_chosen(cand: Dictionary) -> void:
 # 每局结束元进度三选一（膨胀双轨：武器 base 线性 × 护符乘数增值，持久跨局）
 # ---------------------------------------------------------------------------
 func _roll_meta_choices() -> Array:
-	var meta_pool := []
-	# 武器：本局携带的每把武器一张候选（基础伤害 +WEAPON_BASE_STEP，线性，随护符/连锁放大）
-	for p in selected_loadout:
-		var wd: WeaponData = load(p)
-		if wd == null:
-			continue
-		var cur = meta["weapon_base_bonus"].get(p, 0)
-		meta_pool.append({
-			"kind": "weapon", "path": p,
-			"icon": "🗡", "label": wd.weapon_name,
-			"desc": "基础伤害 +%d（已 +%d，随护符/连锁放大）" % [WEAPON_BASE_STEP, cur],
-		})
-	# 护符：仅乘区型（effect == damage_mult）可升级——其余效果没有升级通道，不出假选项
-	for p in selected_charms:
-		var cd: Resource = load(p)
-		if cd == null or cd.effect != "damage_mult":
-			continue
-		var clv = meta["charm_upgrades"].get(p, 0)
-		meta_pool.append({
-			"kind": "charm", "path": p,
-			"icon": "🔮", "label": cd.item_name,
-			"desc": "伤害乘区 ×%s（Lv%d→%d，总乘区封顶×%s）" % [
-				ElementCounter.fmt_mult(1.0 + CHARM_MULT_STEP), clv, clv + 1, ElementCounter.fmt_mult(CHARM_MULT_CAP)],
-		})
-	# P5：武器命中率升级候选（与攻击力并列的强度轴升级，降低废铁占比，MISS_FLOOR 兜底）
-	for p in selected_loadout:
-		var wd: WeaponData = load(p)
-		if wd == null:
-			continue
-		var cur = meta["weapon_hit_bonus"].get(p, 0.0)
-		meta_pool.append({
-			"kind": "weapon_hit", "path": p,
-			"icon": "🎯", "label": wd.weapon_name,
-			"desc": "命中率 +%d%%（已 +%d%%，废铁更少）" % [int(WEAPON_HIT_STEP * 100), int(cur * 100)],
-		})
-	# 铁砧点数：兜底候选，保证候选池永不为空
-	meta_pool.append({
+	# T6：武器/护符/命中率等 per-item 旋钮入口已退役（§6 铁砧纯 gacha 定案）。
+	# 元进度三选一只保留「铁砧点数」兜底候选，避免给出无生效通道的假选项。
+	var meta_pool := [{
 		"kind": "anvil", "path": "",
 		"icon": "🔨", "label": "铁砧点数 +%d" % META_ANVIL_BONUS,
-		"desc": "永久铁砧点数，用于铁砧锻造武器权重",
-	})
-	meta_pool.shuffle()
+		"desc": "永久铁砧点数，用于铁砧抽取装备（盘外成长）",
+	}]
 	return meta_pool.slice(0, META_CHOICE_COUNT)   # 三选一：候选不足时全出
 
 
@@ -682,18 +658,6 @@ func _show_meta_choice() -> void:
 func _on_meta_choice_chosen(opt: Dictionary) -> void:
 	hud.hide_meta_screen()
 	match opt["kind"]:
-		"weapon":
-			var p = opt["path"]
-			meta["weapon_base_bonus"][p] = meta["weapon_base_bonus"].get(p, 0) + WEAPON_BASE_STEP
-			hud._log("元进度：%s 基础伤害 +%d（已 +%d）" % [opt["label"], WEAPON_BASE_STEP, meta["weapon_base_bonus"][p]])
-		"weapon_hit":
-			var p = opt["path"]
-			meta["weapon_hit_bonus"][p] = clamp(meta["weapon_hit_bonus"].get(p, 0.0) + WEAPON_HIT_STEP, 0.0, 1.0)
-			hud._log("元进度：%s 命中率 +%d%%（已 +%d%%）" % [opt["label"], int(WEAPON_HIT_STEP * 100), int(meta["weapon_hit_bonus"][p] * 100)])
-		"charm":
-			var p = opt["path"]
-			meta["charm_upgrades"][p] = meta["charm_upgrades"].get(p, 0) + 1
-			hud._log("元进度：%s 伤害乘区提升（Lv%d）" % [opt["label"], meta["charm_upgrades"][p]])
 		"anvil":
 			meta["anvil_points"] += META_ANVIL_BONUS
 			hud._log("元进度：铁砧点数 +%d（共 %d）" % [META_ANVIL_BONUS, meta["anvil_points"]])
@@ -722,7 +686,7 @@ func _roll_elite_rewards() -> Array:
 
 
 # BOSS 战利品：从主题池+混合券抽 3 张候选卡（dict 结构，供 HUD 直接渲染）。
-# 候选构成：① 主题新武器（未持有，进池）② 武器强化券（meta 升级，不进池）③ Boss 信物（占护符槽，若未占满）
+	# 候选构成：① 主题新武器（未持有，进池）② Boss 信物（占护符槽，若未占满）
 func _roll_boss_rewards(room) -> Array:
 	var cands := []
 	# ① 主题新武器：房间指定池（空则按 element 从全部武器取）中，玩家尚未持有的
@@ -737,13 +701,6 @@ func _roll_boss_rewards(room) -> Array:
 				"label": (wd.weapon_name if wd != null else p.get_file().get_basename()),
 				"desc": "新武器 · 进入转轮带（无数量上限）",
 			})
-	# ② 武器强化券：不进池，给全部持有武器各 +1 符号权重（铁砧永久升级）
-	if selected_loadout.size() > 0:
-		cands.append({
-			"kind": "forge_voucher", "path": "",
-			"icon": "🔨", "label": "武器强化券",
-			"desc": "全部武器符号权重 +1（永久）",
-		})
 	# ③ Boss 信物：占护符槽 1/3（CHARM_CAP），护符槽满则不出
 	if room.boss_relic_path != "" and _sel_arr("passive").size() < _cat_max("passive"):
 		var rd: ItemData = load(room.boss_relic_path)
@@ -809,14 +766,6 @@ func _apply_boss_reward(cand: Dictionary) -> void:
 				selected_loadout.append(p)          # 武器无上限（UNCAPPED），免费获得即自动开槽
 				_build_pool(selected_loadout)        # 重建符号池（新武器注入转轮带）
 				hud._log("BOSS 战利品：获得武器 %s（已加入转轮带）" % cand.get("label", p))
-		"forge_voucher":
-			if selected_loadout.is_empty():
-				hud._log("BOSS 战利品：无持有武器，强化券失效")
-				return
-			for wpath in selected_loadout:
-				meta["weapon_upgrades"][wpath] = meta["weapon_upgrades"].get(wpath, 0) + 1
-			_build_pool(selected_loadout)
-			hud._log("BOSS 战利品：武器强化券——全部武器符号权重 +1（铁砧永久升级）")
 		"boss_relic":
 			var p = cand.get("path", "")
 			if p != "" and not selected_charms.has(p):
@@ -832,7 +781,7 @@ func _apply_boss_reward(cand: Dictionary) -> void:
 # M5 元进度（铁砧锻造 + 存档持久化）
 # ---------------------------------------------------------------------------
 func _load_meta() -> void:
-	var defaults := {"anvil_points": 0, "weapon_upgrades": {}, "interference_resist": 0, "weapon_base_bonus": {}, "charm_upgrades": {}, "weapon_hit_bonus": {}}
+	var defaults := {"anvil_points": 0, "weapon_upgrades": {}, "interference_resist": 0, "weapon_base_bonus": {}, "charm_upgrades": {}, "weapon_hit_bonus": {}, "owned_weapons": [], "owned_charms": [], "owned_consumables": [], "anvil_pity": 0, "first_clears": {}, "collection_milestones": []}
 	var lb = SaveSystem.load_lobby_data()
 	if lb.has(ANVIL_SAVE_KEY) and lb[ANVIL_SAVE_KEY] is Dictionary:
 		var parsed: Dictionary = lb[ANVIL_SAVE_KEY]
@@ -852,13 +801,56 @@ func _save_meta() -> void:
 	SaveSystem.save_lobby_data(lb)
 	SaveSystem.flush_lobby_data()   # 关键节点立即落盘，避免丢失
 
+func _seed_default_owned() -> void:
+	# 新档/迁移：owned_* 为空时用当前全池种子填充，保证整备屏有可选范围。
+	# Gungeon 化可改为只给基础子集（如 WEAPON_POOL 前 N 个）。
+	if meta["owned_weapons"].is_empty():
+		meta["owned_weapons"] = WEAPON_POOL.duplicate()
+	if meta["owned_charms"].is_empty():
+		var ps := []
+		for p in ITEM_POOL:
+			var d = load(p)
+			if d is ItemData and d.category == "passive":
+				ps.append(p)
+		meta["owned_charms"] = ps
+	if meta["owned_consumables"].is_empty():
+		var cs := []
+		for p in ITEM_POOL:
+			var d = load(p)
+			if d is ItemData and d.category == "active":
+				cs.append(p)
+		meta["owned_consumables"] = cs
+	_save_meta()
+
+func _owned_arr(kind: String) -> Array:
+	# 整备屏/商店读取拥有池（盘外跨局）。skills 暂用全池（待扩 owned_skills）。
+	match kind:
+		"weapon":  return meta["owned_weapons"]
+		"passive": return meta["owned_charms"]
+		"active":  return meta["owned_consumables"]
+		"skill":   return SKILL_POOL
+		_:         return []
+
+
 
 # 房间通关（含 Boss）发放铁砧点数并持久化；is_boss 给额外奖励
 func _award_meta(is_boss: bool) -> void:
-	var pts = 8 + (25 if is_boss else 0)
-	meta["anvil_points"] += pts
+	# T6：Hades 式铁砧点数 drip——清房+1 / 精英+3 / BOSS+5，本局封顶 ANVIL_PER_RUN_CAP。
+	var amt: int = 5
+	if not is_boss:
+		var kind = "normal"
+		if room_index >= 0 and room_index < ROOMS.size():
+			kind = ROOMS[room_index].kind
+		amt = 3 if kind == "elite" else 1
+	var remain = ANVIL_PER_RUN_CAP - anvil_run_awarded
+	if remain <= 0:
+		hud._log("铁砧点数本局已达上限 %d（本次 +0）" % ANVIL_PER_RUN_CAP)
+		return
+	amt = mini(amt, remain)
+	anvil_run_awarded += amt
+	meta["anvil_points"] += amt
 	_save_meta()
-	hud._log("铁砧点数 +%d（共 %d）" % [pts, meta["anvil_points"]])
+	hud._log("铁砧点数 +%d（本局 %d/%d，共 %d）" % [amt, anvil_run_awarded, ANVIL_PER_RUN_CAP, meta["anvil_points"]])
 
 
 # ---------------------------------------------------------------------------
@@ -935,6 +927,8 @@ func _on_shop_buy_pressed(offer: Dictionary) -> void:
 			_consumable_uid += 1
 			var uid = "c%d" % _consumable_uid
 			consumable_slots.append({"path": offer["path"], "item_id": cd.item_id, "charges": cd.charges, "uid": uid})
+			if not meta["owned_consumables"].has(offer["path"]):
+				meta["owned_consumables"].append(offer["path"])
 			paid_price[uid] = buy_price
 			_refresh_consumable_panel()
 			hud._log("购买 %s（腰带 %d/%d，-%d 金，余 %d）" % [offer["name"], consumable_slots.size(), CONSUMABLE_CAP, buy_price, gold])
@@ -961,6 +955,9 @@ func _on_shop_buy_pressed(offer: Dictionary) -> void:
 		return
 	gold -= buy_price
 	arr.append(offer["path"])
+	var owned_key = "owned_weapons" if kind != "passive" else "owned_charms"
+	if not meta[owned_key].has(offer["path"]):
+		meta[owned_key].append(offer["path"])
 	paid_price[offer["path"]] = buy_price   # 记录实际购入价，卖出时返还约50%
 	offer["sold"] = true
 	if w >= cap:                        # 本次是扩槽购买 → 该类槽 +1
@@ -1120,34 +1117,147 @@ func _on_next_room_pressed() -> void:
 
 
 
-func _on_anvil_weapon_pressed(path: String) -> void:
-	var lvl = meta["weapon_upgrades"].get(path, 0)
-	var cost = (lvl + 1) * 10
-	if meta["anvil_points"] < cost:
-		hud._log("铁砧点数不足（%s 需 %d）" % [path.get_file().get_basename(), cost])
+func _on_anvil_roll_pressed() -> void:
+	# 铁砧纯 gacha：扣点数 → 摇 3 格 → 结算 → 刷新 UI（§6 纯 gacha 定案）
+	if meta["anvil_points"] < ANVIL_ROLL_COST:
+		hud._log("铁砧点数不足（需 %d）" % ANVIL_ROLL_COST)
 		return
-	meta["anvil_points"] -= cost
-	meta["weapon_upgrades"][path] = lvl + 1
+	meta["anvil_points"] -= ANVIL_ROLL_COST
+	var drops := []
+	for i in 3:
+		drops.append(_roll_anvil_cell())
+	_resolve_anvil_drops(drops)
+	last_anvil_drops = drops
 	_save_meta()
 	hud._refresh_anvil()
-	hud._log("铁砧：%s 转轮升级 Lv%d" % [path.get_file().get_basename(), lvl + 1])
+	hud._refresh_meta()
+	hud._update_loadout_anvil()
 
+func _roll_anvil_cell() -> Dictionary:
+	# 单格：10% 空白；保底触发且仍有未拥有 → 强制从 not-yet-owned 抽；否则按 rarity 加权抽
+	if randf() < ANVIL_BLANK_CHANCE:
+		return {"kind": "blank"}
+	var pool = _anvil_pool()
+	var not_yet = _anvil_not_yet_owned(pool)
+	if meta["anvil_pity"] >= ANVIL_PITY_MAX and not_yet.size() > 0:
+		var p = not_yet[randi() % not_yet.size()]
+		return _anvil_drop_for(p)
+	var total := 0.0
+	var weights := []
+	for p in pool:
+		var w = _anvil_rarity_weight(p)
+		weights.append(w)
+		total += w
+	var r := randf() * total
+	var acc := 0.0
+	for i in pool.size():
+		acc += weights[i]
+		if r <= acc:
+			return _anvil_drop_for(pool[i])
+	return _anvil_drop_for(pool[pool.size() - 1])
 
-func _on_anvil_resist_pressed() -> void:
-	var rl = meta["interference_resist"]
-	if rl >= 5:
-		hud._log("抗干扰已满级")
-		return
-	var cost = (rl + 1) * 15
-	if meta["anvil_points"] < cost:
-		hud._log("铁砧点数不足（抗干扰需 %d）" % cost)
-		return
-	meta["anvil_points"] -= cost
-	meta["interference_resist"] = rl + 1
-	_save_meta()
-	hud._refresh_anvil()
-	hud._log("铁砧：抗干扰 Lv%d（敌人干扰概率降低）" % (rl + 1))
+func _anvil_drop_for(p: String) -> Dictionary:
+	var res = load(p)
+	var kind := "weapon"
+	var rarity := "common"
+	var name := p.get_file().get_basename()
+	if res != null and "rarity" in res:
+		rarity = res.rarity
+	if res is WeaponData:
+		kind = "weapon"
+		name = res.weapon_name
+	elif res is SkillData:
+		kind = "skill"
+		name = res.buff_name
+	elif res is ItemData:
+		kind = res.category
+		name = res.item_name
+	return {"kind": kind, "path": p, "rarity": rarity, "name": name}
 
+func _anvil_rarity_weight(p: String) -> float:
+	var res = load(p)
+	var r := "common"
+	if res != null and "rarity" in res:
+		r = res.rarity
+	return float(ANVIL_RARITY_WEIGHT.get(r, ANVIL_RARITY_WEIGHT["common"]))
+
+func _anvil_pool() -> Array:
+	var pool := []
+	for p in WEAPON_POOL:
+		pool.append(p)
+	for p in ITEM_POOL:
+		pool.append(p)
+	for p in SKILL_POOL:
+		pool.append(p)
+	return pool
+
+func _anvil_is_owned(p: String) -> bool:
+	return meta["owned_weapons"].has(p) or meta["owned_charms"].has(p) or meta["owned_consumables"].has(p)
+
+func _anvil_not_yet_owned(pool: Array) -> Array:
+	var out := []
+	for p in pool:
+		if not _anvil_is_owned(p):
+			out.append(p)
+	return out
+
+func _anvil_grant_owned(p: String) -> void:
+	var res = load(p)
+	if res is WeaponData or res is SkillData:
+		if not meta["owned_weapons"].has(p):
+			meta["owned_weapons"].append(p)
+	elif res is ItemData:
+		if res.category == "passive":
+			if not meta["owned_charms"].has(p):
+				meta["owned_charms"].append(p)
+		else:
+			if not meta["owned_consumables"].has(p):
+				meta["owned_consumables"].append(p)
+
+func _resolve_anvil_drops(drops: Array) -> void:
+	var refund := 0
+	var new_count := 0
+	for d in drops:
+		if d["kind"] == "blank":
+			d["is_new"] = false
+			continue
+		var p = d["path"]
+		if _anvil_is_owned(p):
+			var rb = int(ANVIL_DUPE_REFUND.get(d["rarity"], ANVIL_DUPE_REFUND["common"]))
+			refund += rb
+			meta["anvil_pity"] += 1
+			d["is_new"] = false
+			hud._log("铁砧重复：%s（%s，返还 %d 点）" % [d["name"], d["rarity"], rb])
+		else:
+			_anvil_grant_owned(p)
+			meta["anvil_pity"] = 0
+			new_count += 1
+			d["is_new"] = true
+			hud._log("铁砧新获取：%s（%s）" % [d["name"], d["rarity"]])
+	if refund > 0:
+		meta["anvil_points"] += refund
+	if new_count > 0:
+		_check_collection_milestones()
+
+func _anvil_collection_pct() -> float:
+	var pool = _anvil_pool()
+	if pool.is_empty():
+		return 1.0
+	var owned := 0
+	for p in pool:
+		if _anvil_is_owned(p):
+			owned += 1
+	return float(owned) / float(pool.size())
+
+func _check_collection_milestones() -> void:
+	var pct = _anvil_collection_pct()
+	for i in ANVIL_MILESTONE_PCT.size():
+		var thr = ANVIL_MILESTONE_PCT[i]
+		if pct >= thr and not meta["collection_milestones"].has(i):
+			meta["collection_milestones"].append(i)
+			var bonus = int(ANVIL_MILESTONE_BONUS[i])
+			meta["anvil_points"] += bonus
+			hud._log("收藏里程碑 %.0f%%：铁砧点数 +%d（共 %d）" % [thr * 100, bonus, meta["anvil_points"]])
 
 func _on_anvil_back_pressed() -> void:
 	hud.hide_anvil_screen()
@@ -1155,6 +1265,7 @@ func _on_anvil_back_pressed() -> void:
 
 
 func _full_reset() -> void:
+	anvil_run_awarded = 0   # 本局铁砧点数 drip 累计清零
 	player_hp = player_hp_max
 	in_interroom = false                     # opt-in 商店：新一局不可能处于房间歇态
 	gold = 4                                 # S6：新一局金币清零（每局清零，见 §11）

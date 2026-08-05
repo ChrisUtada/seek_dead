@@ -29,7 +29,7 @@ theme_override_constants/margin_bottom = 10
 
 [node name="Content" type="VBoxContainer" parent="Margin"]
 layout_mode = 2
-theme_override_constants/separation = 4
+theme_override_constants/separation = 6
 
 [node name="TitleLabel" type="Label" parent="Margin/Content"]
 layout_mode = 2
@@ -43,16 +43,14 @@ horizontal_alignment = 1
 layout_mode = 2
 horizontal_alignment = 1
 
-[node name="Scroll" type="ScrollContainer" parent="Margin/Content"]
+[node name="InfoLabel" type="Label" parent="Margin/Content"]
 layout_mode = 2
-size_flags_vertical = 3
-size_flags_horizontal = 3
+horizontal_alignment = 1
 
-[node name="AnvilGrid" type="GridContainer" parent="Margin/Content/Scroll"]
+[node name="ReelBox" type="HBoxContainer" parent="Margin/Content"]
 layout_mode = 2
-columns = 3
-theme_override_constants/h_separation = 6
-theme_override_constants/v_separation = 6
+alignment = 1
+theme_override_constants/separation = 8
 
 [node name="Bot" type="HBoxContainer" parent="Margin/Content"]
 layout_mode = 2

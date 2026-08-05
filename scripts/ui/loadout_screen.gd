@@ -59,10 +59,10 @@ func configure(ctrl, h: BattleHud) -> void:
 	loadout_cards = []
 	loadout_columns = {}
 	loadout_slot_strips = {}
-	_add_loadout_column(cat_box, "武器", controller.state.WEAPON_POOL, "weapon", 1)
-	_add_loadout_column(cat_box, "技能", controller.state.SKILL_POOL, "skill", 1)
-	_add_loadout_column(cat_box, "消耗品", hud._item_pool_of("active"), "active", 1)
-	_add_loadout_column(cat_box, "护符", hud._item_pool_of("passive"), "passive", 1)
+	_add_loadout_column(cat_box, "武器", controller._owned_arr("weapon"), "weapon", 1)
+	_add_loadout_column(cat_box, "技能", controller._owned_arr("skill"), "skill", 1)
+	_add_loadout_column(cat_box, "消耗品", controller._owned_arr("active"), "active", 1)
+	_add_loadout_column(cat_box, "护符", controller._owned_arr("passive"), "passive", 1)
 
 func _add_loadout_column(parent: Control, title: String, pool: Array, category: String, _columns: int) -> void:
 	var panel = PanelContainer.new()
