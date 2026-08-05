@@ -1,6 +1,6 @@
 # UI 重做与流程重构执行方案（P3c / 商店 opt-in / P4 动画）
 
-> 状态：**Option C 已落地（`1e4772c`）；P3c 布局重构已落地（`061b974`）；转轮位置微调（ReelDock 上移进 CenterStage 战斗画面正下方居中）；玩家立绘已用 `assets/char.png` 替换（提前 P5）；**P4 动画骨架已落地（新增 battle_animator.gd + 玩家/敌人攻击·受击·暴击/核爆演出挂接结算点）；敌人立绘已用 `assets/enemy.png` 替换（EnemySprite TextureRect）**；商店抽屉（D2）/ P5 剩余 待实施**。均待用户 F6 复验
+> 状态：**Option C 已落地（`1e4772c`）；P3c 布局重构已落地（`061b974`）；转轮位置微调（ReelDock 进 CenterStage 战斗画面正下方居中）；玩家立绘 `assets/char.png` + 敌人立绘 `assets/enemy.png` 替换（P4 同批）；**P4 动画骨架已落地（battle_animator.gd + 攻击·受击·暴击/核爆演出）**；**伤害反馈改头顶飘字**：伤害分解移出 BottomRow 改为敌人头顶多行飘字（DmgBreakdownBox 移除），扣血/治疗/护盾/金币/状态飘字锚点由侧栏面板改为角色 Sprite（头顶）；转轮+SPIN 整组居中（ReelDock `size_flags_horizontal=SHRINK_CENTER`，移除右推 BotSpacer 撑宽）**；商店抽屉（D2）待实施**。均待用户 F6 复验
 > 最后更新：2026-08-05
 > 关联基线：`2a927ba`（含 `2864c00` 方案A 三连暴击 `crit_mult`）
 > 前置已完成：P3b-2（5 套覆盖层抽独立 `.tscn`，`hide_screen()` 修复，`3f8aefb`）已推送
@@ -56,7 +56,7 @@
 | 中央舞台 | `Control`（含两个 `TextureRect`） | 占中，`size_flags_vertical=EXPAND_FILL` | 预留 `player_sprite` / `enemy_sprite` 节点供 P4 动画引用 |
 | 左栏 | `VBoxContainer` | 左上，`anchor_right=0.22` | 护符 + 增益列表 |
 | 右栏 | `VBoxContainer` | 右上，`anchor_left=0.78` | 敌人 HP/意图/护甲 |
-| 转轮区（CenterStage 内） | `HBoxContainer`(ReelDock) | `CenterStage` 子节点（StageRow 下、BottomRow 上） | 消耗品腰带(4槽) + 转轮 + SPIN，居中 |
+| 转轮区（CenterStage 内） | `HBoxContainer`(ReelDock) | `CenterStage` 子节点（StageRow 下、BottomRow 上），`size_flags_horizontal=SHRINK_CENTER` 整组居中 | 消耗品腰带(4槽) + 转轮 + SPIN 居中（不再贴右缘，移除右推 BotSpacer） |
 | 伤害日志条 | `ScrollContainer`（薄） | 中央舞台下方叠加 | 半透明，仅显示最近 N 行 |
 
 ### 1.3 不变部分
