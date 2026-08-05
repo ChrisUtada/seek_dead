@@ -123,10 +123,15 @@ func _spin_cell(lb: Label, names: Array, stop_at: float, final_d: Dictionary) ->
 	var t := 0.0
 	var step := 0.06
 	while t < stop_at:
+		# 旋转中屏幕可能被关闭/重建（返回整备、run 重置等），标签已释放则直接退出协程，避免写已释放对象
+		if not is_instance_valid(lb):
+			return
 		lb.text = names[randi() % names.size()]
 		t += step
 		await get_tree().create_timer(step).timeout
 	# 落定到本次真实结果（三连相同）
+	if not is_instance_valid(lb):
+		return
 	if final_d.get("kind", "") == "blank":
 		lb.text = "?"
 	else:
