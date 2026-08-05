@@ -1,6 +1,6 @@
 # UI 重做与流程重构执行方案（P3c / 商店 opt-in / P4 动画）
 
-> 状态：**Option C 已落地（`1e4772c`）；P3c 布局重构已落地（`061b974`）；转轮位置微调（ReelDock 上移进 CenterStage 战斗画面正下方居中）；玩家立绘已用 `assets/char.png` 提前替换占位（提前于 P5）；P4 动画 / 商店抽屉 / P5 敌人立绘替换 待实施**。均待用户 F6 复验
+> 状态：**Option C 已落地（`1e4772c`）；P3c 布局重构已落地（`061b974`）；转轮位置微调（ReelDock 上移进 CenterStage 战斗画面正下方居中）；玩家立绘已用 `assets/char.png` 替换（提前 P5）；**P4 动画骨架已落地（新增 battle_animator.gd + 玩家/敌人攻击·受击·暴击/核爆演出挂接结算点）；敌人立绘已用 `assets/enemy.png` 替换（EnemySprite TextureRect）**；商店抽屉（D2）/ P5 剩余 待实施**。均待用户 F6 复验
 > 最后更新：2026-08-05
 > 关联基线：`2a927ba`（含 `2864c00` 方案A 三连暴击 `crit_mult`）
 > 前置已完成：P3b-2（5 套覆盖层抽独立 `.tscn`，`hide_screen()` 修复，`3f8aefb`）已推送
@@ -123,7 +123,7 @@ signal next_room_requested                     # ▶ 下一房（间歇态）
 ## 3. 战斗动画规格（P4）
 
 ### 3.1 新增 `battle_animator.gd`
-- `class_name BattleAnimator`，持有 `hud` 引用，定位中央舞台的 `player_sprite` / `enemy_sprite` 节点。
+- `class_name BattleAnimator`，持有 `hud` 引用，定位中央舞台的立绘节点（实际节点名 `PlayerSprite` / `EnemySprite`，已分别引用 `assets/char.png` / `assets/enemy.png`）。
 - 全部用 `Tween` 驱动，**先占位图形（彩色方块/圆圈）跑通手感**，立绘资源（P5）后替换 `TextureRect.texture`，与 P3c/P4 解耦。
 - 挂点：在 `_evaluate` / `_contribute` / 敌人意图结算处调用对应动画方法。
 
