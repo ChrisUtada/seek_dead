@@ -7,6 +7,7 @@ extends Node
 var hud = null
 var player_sprite: Control = null
 var enemy_sprite: Control = null
+var _shake_base := Transform2D()   # 屏震基准变换，供 _apply_shake 读取
 
 func setup(p_hud) -> void:
 	hud = p_hud
@@ -77,18 +78,18 @@ func _center_pivot(c: Control) -> void:
 # 屏幕轻微震动：通过 viewport canvas_transform 偏移（不影响任何布局）
 func _shake(intensity: float) -> void:
 	var vp = get_viewport()
-	var base = vp.canvas_transform
+	_shake_base = vp.canvas_transform
 	var tw = create_tween()
 	for i in 6:
 		var o1 = Vector2(randf_range(-intensity, intensity), randf_range(-intensity, intensity))
 		var o2 = Vector2(randf_range(-intensity, intensity), randf_range(-intensity, intensity))
-		tw.tween_method(_apply_shake.bind(base), o1, o2, 0.03)
-	tw.tween_method(_apply_shake.bind(base), Vector2.ZERO, Vector2.ZERO, 0.03)
+		tw.tween_method(_apply_shake, o1, o2, 0.03)
+	tw.tween_method(_apply_shake, Vector2.ZERO, Vector2.ZERO, 0.03)
 
 
-func _apply_shake(base: Transform2D, off: Vector2) -> void:
+func _apply_shake(off: Vector2) -> void:
 	var vp = get_viewport()
-	var t = base
+	var t = _shake_base
 	t.origin += off
 	vp.canvas_transform = t
 
