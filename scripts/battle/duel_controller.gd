@@ -193,6 +193,7 @@ var boss_trash := 0                     # S10 T2：深渊侵蚀注入的额外�
 
 # 整备（M3–M6）：玩家自由勾选武器 / 消耗品 / 护符三分类
 var in_loadout := false
+var in_interroom := false   # 房间歇态：房奖励结算后、进下一房前（opt-in 商店，替代强制全屏商店）
 var selected_loadout: Array = []          # 玩家勾选的武器路径
 var selected_consumables: Array = []      # 玩家勾选的消耗品路径
 var selected_charms: Array = []           # 玩家勾选的护符路径
@@ -368,6 +369,8 @@ func _ready() -> void:
 	hud.reward_chosen.connect(_on_reward_chosen)
 	hud.boss_reward_chosen.connect(_on_boss_reward_chosen)
 	hud.reward_skip_requested.connect(_on_reward_skip_pressed)
+	hud.shop_requested.connect(_on_shop_requested)
+	hud.next_room_requested.connect(_on_next_room_pressed)
 	# 方案 A：旋转节拍器（转轮带滚动 + 加速 + 停止时机判定）
 	_spin_timer = Timer.new()
 	_spin_timer.one_shot = false
@@ -613,7 +616,7 @@ func _on_reward_chosen(id: String) -> void:
 	if _is_run_final(room_index):
 		_show_meta_choice()        # 通关整局（最终 BOSS）→元进度三选一（持久生效）
 	else:
-		hud._show_shop_screen()    # S7：房间之间进入商店（含幕一/幕二 BOSS 之后）
+		_enter_interroom()        # opt-in 商店：进入房间歇态（🛒 可选，▶ 下一房继续）
 	hud._refresh_meta()
 
 
@@ -624,7 +627,7 @@ func _on_reward_skip_pressed() -> void:
 	if _is_run_final(room_index):
 		_show_meta_choice()
 	else:
-		hud._show_shop_screen()    # S7：房间之间进入商店
+		_enter_interroom()        # opt-in 商店：进入房间歇态
 	hud._refresh_meta()
 
 
@@ -636,7 +639,7 @@ func _on_boss_reward_chosen(cand: Dictionary) -> void:
 	if _is_run_final(room_index):
 		_show_meta_choice()      # 通关整局（最终 BOSS）→元进度三选一（持久生效）
 	else:
-		hud._show_shop_screen()  # 幕一/幕二 BOSS：照常进商店并推进下一房
+		_enter_interroom()        # 幕一/幕二 BOSS：进入房间歇态（opt-in 商店）
 	hud._refresh_meta()
 
 
@@ -1100,6 +1103,26 @@ func _on_gold_upgrade_pressed(id: String) -> void:
 
 func _on_shop_leave_pressed() -> void:
 	hud.hide_shop_screen()
+	_enter_interroom()      # 离开商店回房间歇态，不自动进下一房（玩家可再开或点 ▶）
+
+
+# ---------------------------------------------------------------------------
+# opt-in 房间歇态（替代强制全屏商店）
+# ---------------------------------------------------------------------------
+func _enter_interroom() -> void:
+	in_interroom = true
+	hud.set_interroom_enabled(true)
+
+
+func _on_shop_requested() -> void:
+	if not in_interroom:
+		return
+	hud._show_shop_screen()
+
+
+func _on_next_room_pressed() -> void:
+	in_interroom = false
+	hud.set_interroom_enabled(false)
 	_start_room(room_index + 1)
 
 
@@ -1140,6 +1163,7 @@ func _on_anvil_back_pressed() -> void:
 
 func _full_reset() -> void:
 	player_hp = player_hp_max
+	in_interroom = false                     # opt-in 商店：新一局不可能处于房间歇态
 	gold = 4                                 # S6：新一局金币清零（每局清零，见 §11）
 	# 新一局四类槽位回到初始配额（商店「买即开槽」可再逐步扩至各自天花板）
 	loadout_max = int(SLOT_INIT["weapon"])
@@ -1300,7 +1324,7 @@ func _begin_player_turn() -> void:
 
 
 func _on_spin_pressed() -> void:
-	if in_loadout or game_state != "playing" or _busy:
+	if in_loadout or in_interroom or game_state != "playing" or _busy:
 		return
 	_busy = true
 	turn_count += 1
@@ -1661,7 +1685,7 @@ func _tick_status() -> void:
 
 
 func _on_purify_pressed() -> void:
-	if in_loadout or _busy:
+	if in_loadout or in_interroom or _busy:
 		return
 	if game_state != "playing":
 		return
@@ -1728,7 +1752,7 @@ func _refresh_consumable_panel() -> void:
 
 
 func _on_consumable_pressed(uid: String) -> void:
-	if in_loadout or game_state != "playing" or _busy:
+	if in_loadout or in_interroom or game_state != "playing" or _busy:
 		return
 	var target = -1
 	for i in range(consumable_slots.size()):

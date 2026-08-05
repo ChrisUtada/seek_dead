@@ -28,6 +28,8 @@ signal sell_requested(uid_or_path: String, kind: String)  # 卖出（消耗品�
 signal reward_chosen(id: String)             # 房奖励三选一
 signal boss_reward_chosen(cand: Dictionary)  # BOSS 战利品三选一
 signal reward_skip_requested                 # 跳过房奖励
+signal shop_requested                          # 🛒 打开商店（房间歇态 opt-in）
+signal next_room_requested                     # ▶ 下一房（房间歇态）
 
 # ---- 公开语义接口（controller → HUD 单向调用，替代直接戳私有节点/字段；P2 解耦）----
 func build_all() -> void:
@@ -43,6 +45,13 @@ func set_reel_enabled(reel: int, enabled: bool) -> void:
 	if cells.size() > reel and cells[reel].size() > 0:
 		cells[reel][0].disabled = not enabled
 
+
+func set_interroom_enabled(on: bool) -> void:
+	if interroom_shop_btn != null:
+		interroom_shop_btn.disabled = not on
+	if interroom_next_btn != null:
+		interroom_next_btn.disabled = not on
+
 func hide_reward_screen() -> void: reward_screen.hide_screen()
 func hide_meta_screen() -> void: meta_screen.hide_screen()
 func hide_shop_screen() -> void: shop_screen.hide_screen()
@@ -57,6 +66,10 @@ var meta_screen                         # 每局结束元进度三选一覆盖�
 
 var shop_screen                         # 商店覆盖层（shop_screen.tscn 实例）
 var anvil_screen                        # 铁砧锻造覆盖层（anvil_screen.tscn 实例）
+
+# 房间歇态按钮（opt-in 商店，默认禁用，间歇态由 controller 点亮）
+var interroom_shop_btn
+var interroom_next_btn
 
 # ---- 主 HUD 静态节点（P3b-1）：battle_hud.tscn 编辑器提供，脚本按节点路径引用 ----
 # 注：手写 .tscn 的 %Name 唯一名在含 instance= 覆盖节点的场景里注册不可靠，
@@ -205,6 +218,21 @@ func _build_ui() -> void:
 	# Phase 3：悬停 tooltip 与飘字对象池浮层
 	_build_symbol_tooltip()
 	_build_popup_layer()
+
+	# 房间歇态按钮（opt-in 商店 + 下一房）：加到顶栏末尾，默认禁用，间歇态由 controller 点亮
+	var ib = $Margin/Content/InfoBar
+	interroom_shop_btn = UI_BUTTON.instantiate()
+	interroom_shop_btn.text = "🛒 商店"
+	interroom_shop_btn.custom_minimum_size = Vector2(96, 32)
+	interroom_shop_btn.disabled = true
+	interroom_shop_btn.connect("pressed", shop_requested.emit)
+	ib.add_child(interroom_shop_btn)
+	interroom_next_btn = UI_BUTTON.instantiate()
+	interroom_next_btn.text = "▶ 下一房"
+	interroom_next_btn.custom_minimum_size = Vector2(110, 32)
+	interroom_next_btn.disabled = true
+	interroom_next_btn.connect("pressed", next_room_requested.emit)
+	ib.add_child(interroom_next_btn)
 
 func _build_loadout_screen() -> void:
 	loadout_screen = LOADOUT_SCENE.instantiate()
