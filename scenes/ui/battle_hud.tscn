@@ -1,8 +1,9 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/battle_hud.gd" id="1_hud"]
 [ext_resource type="PackedScene" path="res://scenes/ui/ui_panel.tscn" id="2_panel"]
 [ext_resource type="PackedScene" path="res://scenes/ui/ui_button.tscn" id="3_btn"]
+[ext_resource type="Texture2D" path="res://assets/enemy.png" id="5_enemy"]
 [ext_resource type="Texture2D" path="res://assets/char.png" id="4_char"]
 
 [sub_resource type="StyleBoxFlat" id="sb_dmg"]
@@ -175,7 +176,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="PlayerPlaceholder" type="TextureRect" parent="Margin/Content/MainRow/CenterStage/StageRow/PlayerCenter"]
+[node name="PlayerSprite" type="TextureRect" parent="Margin/Content/MainRow/CenterStage/StageRow/PlayerCenter"]
 layout_mode = 2
 custom_minimum_size = Vector2(120, 170)
 stretch_mode = 5
@@ -186,10 +187,11 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="EnemyPlaceholder" type="ColorRect" parent="Margin/Content/MainRow/CenterStage/StageRow/EnemyCenter"]
+[node name="EnemySprite" type="TextureRect" parent="Margin/Content/MainRow/CenterStage/StageRow/EnemyCenter"]
 layout_mode = 2
 custom_minimum_size = Vector2(120, 170)
-color = Color(0.72, 0.36, 0.38, 1)
+stretch_mode = 5
+texture = ExtResource("5_enemy")
 
 [node name="ReelDock" type="HBoxContainer" parent="Margin/Content/MainRow/CenterStage"]
 layout_mode = 2

@@ -1634,6 +1634,8 @@ func _enemy_deal_damage(raw: int) -> void:
 	player_hp -= dealt
 	if dealt > 0:
 		hud._popup("-%d" % dealt, Palette.POP_DAMAGE, hud._player_panel_anchor())
+		if hud.animator != null:
+			hud.animator.play_enemy_attack()
 	hud._log("敌人攻击 %d（盾挡 %d，受 %d）" % [eff, blocked, dealt])
 
 
@@ -1665,6 +1667,8 @@ func _on_counter(kind: String) -> void:
 			_apply_enemy_damage(burst, true)
 			hud._popup("💥克制核爆!-%d" % burst, Palette.POP_DAMAGE, hud._enemy_panel_anchor())
 			hud._log("⚡ 克制元素三连触发核爆：%d 伤害（穿透护甲）" % burst)
+	if hud.animator != null:
+		hud.animator.play_counter(kind)
 
 
 func _tick_status() -> void:
@@ -2033,6 +2037,8 @@ func _evaluate(chain_mult := 1.0) -> void:
 			elem_tag += "⚡"
 		hud._popup("-%d%s" % [total, elem_tag], Palette.POP_DAMAGE, hud._enemy_panel_anchor())
 		hud._log("连线造成 %d 伤害%s（护甲剩 %d）" % [total, elem_tag, int(enemy_armor)])
+		if hud.animator != null:
+			hud.animator.play_attack("player", "enemy")
 	hud._refresh_meta()   # 伤害落地后立即刷新：HP/护甲即时变化（破甲窗口需即时可见）
 	await get_tree().create_timer(0.55).timeout
 	# Phase C：回合末递减增益剩余回合

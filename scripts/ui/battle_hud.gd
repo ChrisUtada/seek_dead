@@ -16,6 +16,7 @@ const REWARD_SCENE = preload("res://scenes/ui/reward_screen.tscn")
 const ANVIL_SCENE = preload("res://scenes/ui/anvil_screen.tscn")
 const SHOP_SCENE = preload("res://scenes/ui/shop_screen.tscn")
 const LOADOUT_SCENE = preload("res://scenes/ui/loadout_screen.tscn")
+const BattleAnimator = preload("res://scripts/ui/battle_animator.gd")
 
 var controller   # DuelController 引用（运行时由 _ready 设置）
 
@@ -98,6 +99,8 @@ var interroom_next_btn
 @onready var run_label = $Margin/Content/InfoBar/RunLabel
 @onready var gold_label = $Margin/Content/MainRow/PlayerPanel/VBox/GoldLabel
 @onready var purify_label = $Margin/Content/MainRow/CenterStage/ReelDock/PurifyLabel
+
+var animator = null   # P4 战斗动画器（tween 驱动立绘演出），_build_ui 末尾创建
 
 # 覆盖层 / tooltip / popup（P3b-1 仍代码构建，后续 P3b-2 抽独立 .tscn）
 var overlay
@@ -230,6 +233,11 @@ func _build_ui() -> void:
 	interroom_next_btn.disabled = true
 	interroom_next_btn.connect("pressed", next_room_requested.emit)
 	ib.add_child(interroom_next_btn)
+
+	# P4：战斗动画器挂在 hud 下，setup 时缓存 PlayerSprite/EnemySprite 节点
+	animator = BattleAnimator.new()
+	add_child(animator)
+	animator.setup(self)
 
 func _build_loadout_screen() -> void:
 	loadout_screen = LOADOUT_SCENE.instantiate()
