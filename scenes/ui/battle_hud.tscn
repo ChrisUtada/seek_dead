@@ -189,6 +189,57 @@ layout_mode = 2
 custom_minimum_size = Vector2(120, 170)
 color = Color(0.72, 0.36, 0.38, 1)
 
+[node name="ReelDock" type="HBoxContainer" parent="Margin/Content/MainRow/CenterStage"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ConsumablePanel" type="HBoxContainer" parent="Margin/Content/MainRow/CenterStage/ReelDock"]
+layout_mode = 2
+unique_name = true
+theme_override_constants/separation = 6
+
+[node name="ReelCenter" type="CenterContainer" parent="Margin/Content/MainRow/CenterStage/ReelDock"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="GridContainer" type="GridContainer" parent="Margin/Content/MainRow/CenterStage/ReelDock/ReelCenter"]
+layout_mode = 2
+unique_name = true
+columns = 3
+theme_override_constants/h_separation = 10
+theme_override_constants/v_separation = 10
+
+[node name="SpinButton" parent="Margin/Content/MainRow/CenterStage/ReelDock" instance=ExtResource("3_btn")]
+layout_mode = 2
+unique_name = true
+custom_minimum_size = Vector2(140, 48)
+text = "SPIN (空格)"
+theme_override_font_sizes/font_size = 18
+
+[node name="PurifyButton" parent="Margin/Content/MainRow/CenterStage/ReelDock" instance=ExtResource("3_btn")]
+layout_mode = 2
+unique_name = true
+custom_minimum_size = Vector2(110, 44)
+text = "净化 (Ctrl+P)"
+theme_override_font_sizes/font_size = 14
+
+[node name="PurifyLabel" type="Label" parent="Margin/Content/MainRow/CenterStage/ReelDock"]
+layout_mode = 2
+unique_name = true
+text = "2"
+theme_override_font_sizes/font_size = 14
+
+[node name="BotSpacer" type="Control" parent="Margin/Content/MainRow/CenterStage/ReelDock"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ResetButton" parent="Margin/Content/MainRow/CenterStage/ReelDock" instance=ExtResource("3_btn")]
+layout_mode = 2
+unique_name = true
+custom_minimum_size = Vector2(110, 40)
+text = "重置 (Ctrl+R)"
+theme_override_font_sizes/font_size = 14
+
 [node name="BottomRow" type="VBoxContainer" parent="Margin/Content/MainRow/CenterStage"]
 layout_mode = 2
 theme_override_constants/separation = 4
@@ -292,54 +343,3 @@ text = ""
 autowrap_mode = 3
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 13
-
-[node name="ReelDock" type="HBoxContainer" parent="Margin/Content"]
-layout_mode = 2
-theme_override_constants/separation = 8
-
-[node name="ConsumablePanel" type="HBoxContainer" parent="Margin/Content/ReelDock"]
-layout_mode = 2
-unique_name = true
-theme_override_constants/separation = 6
-
-[node name="ReelCenter" type="CenterContainer" parent="Margin/Content/ReelDock"]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="GridContainer" type="GridContainer" parent="Margin/Content/ReelDock/ReelCenter"]
-layout_mode = 2
-unique_name = true
-columns = 3
-theme_override_constants/h_separation = 10
-theme_override_constants/v_separation = 10
-
-[node name="SpinButton" parent="Margin/Content/ReelDock" instance=ExtResource("3_btn")]
-layout_mode = 2
-unique_name = true
-custom_minimum_size = Vector2(140, 48)
-text = "SPIN (空格)"
-theme_override_font_sizes/font_size = 18
-
-[node name="PurifyButton" parent="Margin/Content/ReelDock" instance=ExtResource("3_btn")]
-layout_mode = 2
-unique_name = true
-custom_minimum_size = Vector2(110, 44)
-text = "净化 (Ctrl+P)"
-theme_override_font_sizes/font_size = 14
-
-[node name="PurifyLabel" type="Label" parent="Margin/Content/ReelDock"]
-layout_mode = 2
-unique_name = true
-text = "2"
-theme_override_font_sizes/font_size = 14
-
-[node name="BotSpacer" type="Control" parent="Margin/Content/ReelDock"]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="ResetButton" parent="Margin/Content/ReelDock" instance=ExtResource("3_btn")]
-layout_mode = 2
-unique_name = true
-custom_minimum_size = Vector2(110, 40)
-text = "重置 (Ctrl+R)"
-theme_override_font_sizes/font_size = 14

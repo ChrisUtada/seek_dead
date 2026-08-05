@@ -74,7 +74,7 @@ var interroom_next_btn
 # ---- 主 HUD 静态节点（P3b-1）：battle_hud.tscn 编辑器提供，脚本按节点路径引用 ----
 # 注：手写 .tscn 的 %Name 唯一名在含 instance= 覆盖节点的场景里注册不可靠，
 #     故改用确定性 $节点路径（.tscn 结构改动时同步更新此处路径）。
-@onready var grid_container = $Margin/Content/ReelDock/ReelCenter/GridContainer
+@onready var grid_container = $Margin/Content/MainRow/CenterStage/ReelDock/ReelCenter/GridContainer
 @onready var log_label = $Margin/Content/LogBar/LogScroll/LogLabel
 @onready var log_scroll = $Margin/Content/LogBar/LogScroll
 @onready var player_hp_label = $Margin/Content/MainRow/PlayerPanel/VBox/PlayerHpLabel
@@ -97,7 +97,7 @@ var interroom_next_btn
 @onready var turn_label = $Margin/Content/InfoBar/TurnLabel
 @onready var run_label = $Margin/Content/InfoBar/RunLabel
 @onready var gold_label = $Margin/Content/MainRow/PlayerPanel/VBox/GoldLabel
-@onready var purify_label = $Margin/Content/ReelDock/PurifyLabel
+@onready var purify_label = $Margin/Content/MainRow/CenterStage/ReelDock/PurifyLabel
 
 # 覆盖层 / tooltip / popup（P3b-1 仍代码构建，后续 P3b-2 抽独立 .tscn）
 var overlay
@@ -199,15 +199,15 @@ func _build_ui() -> void:
 			cell_badges[reel].append(badge)
 
 	# 底部操作栏按钮：由 .tscn 提供，这里连信号与快捷键。
-	var spin_btn = $Margin/Content/ReelDock/SpinButton
-	var purify_btn = $Margin/Content/ReelDock/PurifyButton
-	var reset_btn = $Margin/Content/ReelDock/ResetButton
+	var spin_btn = $Margin/Content/MainRow/CenterStage/ReelDock/SpinButton
+	var purify_btn = $Margin/Content/MainRow/CenterStage/ReelDock/PurifyButton
+	var reset_btn = $Margin/Content/MainRow/CenterStage/ReelDock/ResetButton
 	spin_btn.pressed.connect(spin_requested.emit)
 	purify_btn.shortcut = _make_shortcut(KEY_P, true)
 	purify_btn.connect("pressed", controller._on_purify_pressed)
 	reset_btn.shortcut = _make_shortcut(KEY_R, true)
 	reset_btn.connect("pressed", controller._full_reset)
-	controller.consumable_panel = $Margin/Content/ReelDock/ConsumablePanel
+	controller.consumable_panel = $Margin/Content/MainRow/CenterStage/ReelDock/ConsumablePanel
 
 	_build_overlay()
 	# Phase 3：键盘焦点链（Tab/方向键可在底部操作间移动）
