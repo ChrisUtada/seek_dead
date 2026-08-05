@@ -1,6 +1,6 @@
 # UI 重做与流程重构执行方案（P3c / 商店 opt-in / P4 动画）
 
-> 状态：**Option C 已落地（`1e4772c`）；P3c 布局重构已落地（`061b974`）；转轮位置微调（ReelDock 进 CenterStage 战斗画面正下方居中）；玩家立绘 `assets/char.png` + 敌人立绘 `assets/enemy.png` 替换（P4 同批）；**P4 动画骨架已落地（battle_animator.gd + 攻击·受击·暴击/核爆演出）**；**伤害反馈改头顶飘字**：伤害分解移出 BottomRow 改为敌人头顶多行飘字（DmgBreakdownBox 移除），扣血/治疗/护盾/金币/状态飘字锚点由侧栏面板改为角色 Sprite（头顶）；转轮+SPIN 整组居中（ReelDock `size_flags_horizontal=SHRINK_CENTER`，移除右推 BotSpacer 撑宽）**；**商店右侧抽屉（D2）已落地**：`shop_screen.tscn` 根节点由全屏覆盖层改为右侧 docked（收起态零宽、滑入/滑出动画 + 左侧金色描边 Edge），🛒 按钮在「商店/收起」间切换，离开按钮改「关闭 ✕」，进下一房前自动收起；逻辑（configure/refresh/show_tab）零改动**；**房奖励改为经典直接弹出**：胜利时移除「胜利浮层·领取奖励 ▶」中间闸门，3 处胜利分支（普通击杀/状态结算击杀/重转击杀）改为直接 `_show_reward_screen`，对齐杀戮尖塔式手感；失败重试/通关整局浮层保留，`_on_overlay_button_pressed` 的 `won` 死分支已清**。均待用户 F6 复验
+> 状态：**Option C 已落地（`1e4772c`）；P3c 布局重构已落地（`061b974`）；转轮位置微调（ReelDock 进 CenterStage 战斗画面正下方居中）；玩家立绘 `assets/char.png` + 敌人立绘 `assets/enemy.png` 替换（P4 同批）；**P4 动画骨架已落地（battle_animator.gd + 攻击·受击·暴击/核爆演出）**；**伤害反馈改头顶飘字**：伤害分解移出 BottomRow 改为敌人头顶多行飘字（DmgBreakdownBox 移除），扣血/治疗/护盾/金币/状态飘字锚点由侧栏面板改为角色 Sprite（头顶）；转轮+SPIN 整组居中（ReelDock `size_flags_horizontal=SHRINK_CENTER`，移除右推 BotSpacer 撑宽）**；**商店右侧抽屉（D2）已落地**：`shop_screen.tscn` 根节点由全屏覆盖层改为右侧 docked（收起态零宽、滑入/滑出动画 + 左侧金色描边 Edge），🛒 按钮在「商店/收起」间切换，离开按钮改「关闭 ✕」，进下一房前自动收起；逻辑（configure/refresh/show_tab）零改动**；**房奖励改为经典直接弹出**：胜利时移除「胜利浮层·领取奖励 ▶」中间闸门，3 处胜利分支（普通击杀/状态结算击杀/重转击杀）改为直接 `_show_reward_screen`，对齐杀戮尖塔式手感；失败重试/通关整局浮层保留，`_on_overlay_button_pressed` 的 `won` 死分支已清**；**奖励弹层改居中卡片**：`reward_screen.tscn` 由铺满全屏改为 `Dimmer`(半透明遮罩 `Palette.BG_OVERLAY`) + `CenterContainer` 居中 `PanelContainer` 卡片(金色描边圆角 `sb_dlg`)，游戏在暗化层后隐约可见，弹层面积大幅缩小**。均待用户 F6 复验
 > 最后更新：2026-08-05
 > 关联基线：`2a927ba`（含 `2864c00` 方案A 三连暴击 `crit_mult`）
 > 前置已完成：P3b-2（5 套覆盖层抽独立 `.tscn`，`hide_screen()` 修复，`3f8aefb`）已推送
@@ -60,7 +60,7 @@
 | 伤害日志条 | `ScrollContainer`（薄） | 中央舞台下方叠加 | 半透明，仅显示最近 N 行 |
 
 ### 1.3 不变部分
-- **5 套 modal 覆盖层**（整备/奖励/元进度/商店/铁砧）继续全屏——它们是决策态用，与实时动作布局不冲突。P3b-2 抽独立 `.tscn` 正是为此铺垫，**本次布局重排零波及**。
+- **覆盖层**：整备/元进度/铁砧 仍全屏（决策态，与实时动作布局不冲突）；**奖励已改为居中卡片弹层、商店已改为右侧抽屉（D2）**，二者不再铺满全屏。P3b-2 抽独立 `.tscn` 正是为此铺垫，**本次布局重排零波及**。
 - 共享卡片构造器（`_make_*_card` / `_label` / `_item_pool_of` / `_source_tag`）不动。
 
 ### 1.4 落地方式
