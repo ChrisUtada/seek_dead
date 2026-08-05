@@ -222,11 +222,10 @@ func _build_ui() -> void:
 			cell_badges[reel].append(badge)
 
 	# 底部操作栏按钮（SpinBar 在转轮下方居中）：由 .tscn 提供，这里连信号与快捷键。
+	# 注：原"重置"按钮（Ctrl+R → _full_reset 放弃整局重开）已删除——其为无确认的一键自毁本局陷阱，
+	# 重开本局有正统入口（失败弹层→重试本房 / 通关弹层→开新 run），无需常驻按钮。
 	var spin_btn = $Margin/Content/MainRow/CenterStage/ReelDock/SpinBar/SpinButton
-	var reset_btn = $Margin/Content/MainRow/CenterStage/ReelDock/SpinBar/ResetButton
 	spin_btn.pressed.connect(spin_requested.emit)
-	reset_btn.shortcut = _make_shortcut(KEY_R, true)
-	reset_btn.connect("pressed", controller._full_reset)
 	# 消耗品 4 格子：连信号（点击格子=使用该格消耗品）
 	for i in range(consumable_cells.size()):
 		consumable_cells[i].pressed.connect(_on_consumable_cell_pressed.bind(i))
@@ -235,8 +234,8 @@ func _build_ui() -> void:
 	_refresh_consumable_panel()
 
 	_build_overlay()
-	# Phase 3：键盘焦点链（Tab/方向键可在底部操作间移动；净化按钮已删，仅 SPIN/重置）
-	_chain_focus([spin_btn, reset_btn])
+	# Phase 3：键盘焦点链（Tab/方向键可在底部操作间移动；仅 SPIN）
+	_chain_focus([spin_btn])
 	# Phase 3：悬停 tooltip 与飘字对象池浮层
 	_build_symbol_tooltip()
 	_build_popup_layer()
