@@ -1123,13 +1123,17 @@ func _on_anvil_roll_pressed() -> void:
 		hud._log("铁砧点数不足（需 %d）" % ANVIL_ROLL_COST)
 		return
 	meta["anvil_points"] -= ANVIL_ROLL_COST
+	var result = _roll_anvil_cell()           # 摇出单格结果（含 blank 可能）
+	_resolve_anvil_drop(result)               # 结算一次：授予 / 返还 / 保底计数
+	# 仪式感：三格渲染为同一结果（视觉三连，但实际只授予一件）
 	var drops := []
 	for i in 3:
-		drops.append(_roll_anvil_cell())
-	_resolve_anvil_drops(drops)
+		var d = result.duplicate()
+		d["cell"] = i
+		drops.append(d)
 	last_anvil_drops = drops
 	_save_meta()
-	hud._refresh_anvil()
+	# 注意：不在此处刷新铁砧屏——由 anvil_screen 旋转动画收尾后自行 refresh
 	hud._refresh_meta()
 	hud._update_loadout_anvil()
 
@@ -1214,30 +1218,24 @@ func _anvil_grant_owned(p: String) -> void:
 			if not meta["owned_consumables"].has(p):
 				meta["owned_consumables"].append(p)
 
-func _resolve_anvil_drops(drops: Array) -> void:
-	var refund := 0
-	var new_count := 0
-	for d in drops:
-		if d["kind"] == "blank":
-			d["is_new"] = false
-			continue
-		var p = d["path"]
-		if _anvil_is_owned(p):
-			var rb = int(ANVIL_DUPE_REFUND.get(d["rarity"], ANVIL_DUPE_REFUND["common"]))
-			refund += rb
-			meta["anvil_pity"] += 1
-			d["is_new"] = false
-			hud._log("铁砧重复：%s（%s，返还 %d 点）" % [d["name"], d["rarity"], rb])
-		else:
-			_anvil_grant_owned(p)
-			meta["anvil_pity"] = 0
-			new_count += 1
-			d["is_new"] = true
-			hud._log("铁砧新获取：%s（%s）" % [d["name"], d["rarity"]])
-	if refund > 0:
-		meta["anvil_points"] += refund
-	if new_count > 0:
-		_check_collection_milestones()
+func _resolve_anvil_drop(d: Dictionary) -> void:
+	# 单格结算（仪式感三连只调用一次）：空白跳过；已拥有→按 rarity 返还+保底+1；未拥有→授予+保底清零
+	if d["kind"] == "blank":
+		d["is_new"] = false
+		return
+	var p = d["path"]
+	if _anvil_is_owned(p):
+		var rb = int(ANVIL_DUPE_REFUND.get(d["rarity"], ANVIL_DUPE_REFUND["common"]))
+		meta["anvil_points"] += rb
+		meta["anvil_pity"] += 1
+		d["is_new"] = false
+		hud._log("铁砧重复：%s（%s，返还 %d 点）" % [d["name"], d["rarity"], rb])
+	else:
+		_anvil_grant_owned(p)
+		meta["anvil_pity"] = 0
+		d["is_new"] = true
+		hud._log("铁砧新获取：%s（%s）" % [d["name"], d["rarity"]])
+	_check_collection_milestones()
 
 func _anvil_collection_pct() -> float:
 	var pool = _anvil_pool()
