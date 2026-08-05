@@ -310,6 +310,7 @@ func _build_state() -> BattleState:
 	s.pool = pool
 	s.loadout_names = loadout_names
 	s.in_loadout = in_loadout
+	s.game_state = game_state
 	s.enemy_status = enemy_status
 	s.enemy_armor_max = enemy_armor_max
 	s.consumable_slots = consumable_slots
