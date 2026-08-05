@@ -99,6 +99,7 @@ var interroom_next_btn
 @onready var player_shield_label = $Margin/Content/MainRow/PlayerPanel/VBox/PlayerShieldLabel
 @onready var weapons_row = $Margin/Content/MainRow/PlayerPanel/VBox/GearBox/WeaponsRow
 @onready var charms_row = $Margin/Content/MainRow/PlayerPanel/VBox/GearBox/CharmsRow
+@onready var skills_row = $Margin/Content/MainRow/PlayerPanel/VBox/GearBox/SkillsRow
 @onready var player_buff_label = $Margin/Content/MainRow/PlayerPanel/VBox/PlayerBuffLabel
 @onready var enemy_name_label = $Margin/Content/MainRow/EnemyPanel/VBox/EnemyNameLabel
 @onready var boss_badge = $Margin/Content/MainRow/EnemyPanel/VBox/BossBadge
@@ -985,10 +986,10 @@ func _log(msg: String) -> void:
 
 
 # 玩家面板装备图标刷新：武器取首个符号 label emoji（无符号回退 ⚔️），
-# 护符取 ItemData.icon emoji。tooltip = 名字(+ 描述)。每次清空旧的 WIcon_/CIcon_
-# 子节点后重建（数量极小，1~2 武器 + 0~3 护符，无性能问题）。
+# 护符取 ItemData.icon emoji；技能取 SkillData.icon（回退 ✦）。tooltip = 名字(+ 描述)。
+# 每次清空旧的 WIcon_/CIcon_/SIcon_ 子节点后重建（数量极小，无性能问题）。
 func _refresh_gear_icons() -> void:
-	if weapons_row == null or charms_row == null:
+	if weapons_row == null or charms_row == null or skills_row == null:
 		return
 	for child in weapons_row.get_children().duplicate():
 		if child.name.begins_with("WIcon_"):
@@ -997,6 +998,10 @@ func _refresh_gear_icons() -> void:
 	for child in charms_row.get_children().duplicate():
 		if child.name.begins_with("CIcon_"):
 			charms_row.remove_child(child)
+			child.queue_free()
+	for child in skills_row.get_children().duplicate():
+		if child.name.begins_with("SIcon_"):
+			skills_row.remove_child(child)
 			child.queue_free()
 	for path in controller.state.selected_loadout:
 		var wd = load(path)
@@ -1031,6 +1036,21 @@ func _refresh_gear_icons() -> void:
 		lbl.tooltip_text = name_str + (" · " + desc_str if desc_str != "" else "")
 		lbl.mouse_filter = Control.MOUSE_FILTER_STOP
 		charms_row.add_child(lbl)
+	for path in controller.state.selected_skills:
+		var sd = load(path)
+		if sd == null:
+			continue
+		var icon_str: String = sd.get("icon") if sd.get("icon") != null else ""
+		var icon: String = icon_str if icon_str != "" else "✦"
+		var name_str: String = sd.get("buff_name") if sd.get("buff_name") != null else path.get_file().get_basename()
+		var desc_str: String = sd.get("description") if sd.get("description") != null else ""
+		var lbl = Label.new()
+		lbl.name = "SIcon_" + path.get_file().get_basename()
+		lbl.text = icon
+		lbl.add_theme_font_size_override("font_size", 18)
+		lbl.tooltip_text = name_str + (" · " + desc_str if desc_str != "" else "")
+		lbl.mouse_filter = Control.MOUSE_FILTER_STOP
+		skills_row.add_child(lbl)
 
 
 # 4 格子刷新：按 consumable_slots 顺序填，缺位留空占位文案

@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3]
+[gd_scene load_steps=17 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/battle_hud.gd" id="1_hud"]
 [ext_resource type="PackedScene" path="res://scenes/ui/ui_panel.tscn" id="2_panel"]
@@ -165,6 +165,17 @@ layout_mode = 2
 text = "🛡"
 theme_override_font_sizes/font_size = 13
 theme_override_colors/font_color = Color(0.55, 0.85, 0.95, 1)
+
+[node name="SkillsRow" type="HBoxContainer" parent="Margin/Content/MainRow/PlayerPanel/VBox/GearBox"]
+layout_mode = 2
+unique_name = true
+theme_override_constants/separation = 3
+
+[node name="SkillsTag" type="Label" parent="Margin/Content/MainRow/PlayerPanel/VBox/GearBox/SkillsRow"]
+layout_mode = 2
+text = "✦"
+theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(0.7, 0.9, 0.7, 1)
 
 [node name="ConsumableTitle" type="Label" parent="Margin/Content/MainRow/PlayerPanel/VBox"]
 layout_mode = 2
