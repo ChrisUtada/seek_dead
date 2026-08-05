@@ -1341,7 +1341,7 @@ func _on_spin_pressed() -> void:
 		if _chain >= CHAIN_MAX:
 			break
 		hud._log("⚡ 连锁 ×%d！免费重转…" % (_chain + 1))
-		hud._popup("⚡连锁 ×%d" % (_chain + 1), Palette.POP_DAMAGE, hud._enemy_panel_anchor())
+		hud._popup("⚡连锁 ×%d" % (_chain + 1), Palette.POP_DAMAGE, hud._enemy_sprite_anchor())
 		_begin_spin()
 		await spin_finished
 		await get_tree().create_timer(0.25).timeout
@@ -1633,7 +1633,7 @@ func _enemy_deal_damage(raw: int) -> void:
 	var dealt = max(0, eff - blocked)
 	player_hp -= dealt
 	if dealt > 0:
-		hud._popup("-%d" % dealt, Palette.POP_DAMAGE, hud._player_panel_anchor())
+		hud._popup("-%d" % dealt, Palette.POP_DAMAGE, hud._player_sprite_anchor())
 		if hud.animator != null:
 			hud.animator.play_enemy_attack()
 	hud._log("敌人攻击 %d（盾挡 %d，受 %d）" % [eff, blocked, dealt])
@@ -1665,7 +1665,7 @@ func _on_counter(kind: String) -> void:
 		var burst = int(enemy_hp_max * 0.20)
 		if burst > 0:
 			_apply_enemy_damage(burst, true)
-			hud._popup("💥克制核爆!-%d" % burst, Palette.POP_DAMAGE, hud._enemy_panel_anchor())
+			hud._popup("💥克制核爆!-%d" % burst, Palette.POP_DAMAGE, hud._enemy_sprite_anchor())
 			hud._log("⚡ 克制元素三连触发核爆：%d 伤害（穿透护甲）" % burst)
 	if hud.animator != null:
 		hud.animator.play_counter(kind)
@@ -1934,7 +1934,7 @@ func _evaluate(chain_mult := 1.0) -> void:
 			if g > 0:
 				gold += g
 				hud._log("💰 金币 +%d" % g)
-				hud._popup("💰+%d" % g, Palette.POP_GOLD, hud._player_panel_anchor())
+				hud._popup("💰+%d" % g, Palette.POP_GOLD, hud._player_sprite_anchor())
 	# 再结算常规符号（此时 _contribute 读到的已是含新增益的加成，并按各自有效元素吃克制）
 	for key in counts:
 		var s: SymbolData = counts[key][0]
@@ -1957,15 +1957,15 @@ func _evaluate(chain_mult := 1.0) -> void:
 		enemy_status[st] = enemy_status.get(st, 0) + acc["status_stacks"][st]
 	if acc["shield"] > 0:
 		player_shield += acc["shield"]
-		hud._popup("🛡+%d" % acc["shield"], Palette.POP_SHIELD, hud._player_panel_anchor())
+		hud._popup("🛡+%d" % acc["shield"], Palette.POP_SHIELD, hud._player_sprite_anchor())
 		hud._log("获得 %d 护盾" % acc["shield"])
 	if acc["heal"] > 0:
 		player_hp = min(player_hp_max, player_hp + acc["heal"])
-		hud._popup("❤+%d" % acc["heal"], Palette.POP_HEAL, hud._player_panel_anchor())
+		hud._popup("❤+%d" % acc["heal"], Palette.POP_HEAL, hud._player_sprite_anchor())
 		hud._log("回复 %d HP" % acc["heal"])
 	if not acc["status_stacks"].is_empty():
 		hud._log("敌人获得状态: " + _status_summary(acc["status_stacks"]))
-		hud._popup(_status_summary(acc["status_stacks"]), Palette.POP_STATUS, hud._enemy_panel_anchor())
+		hud._popup(_status_summary(acc["status_stacks"]), Palette.POP_STATUS, hud._enemy_sprite_anchor())
 
 	hud._refresh_meta()
 	await get_tree().create_timer(0.45).timeout
@@ -2035,7 +2035,7 @@ func _evaluate(chain_mult := 1.0) -> void:
 			elem_tag += " [抵抗]"
 		if buff_mult != 1.0:
 			elem_tag += "⚡"
-		hud._popup("-%d%s" % [total, elem_tag], Palette.POP_DAMAGE, hud._enemy_panel_anchor())
+		hud._popup("-%d%s" % [total, elem_tag], Palette.POP_DAMAGE, hud._enemy_sprite_anchor())
 		hud._log("连线造成 %d 伤害%s（护甲剩 %d）" % [total, elem_tag, int(enemy_armor)])
 		if hud.animator != null:
 			hud.animator.play_attack("player", "enemy")
@@ -2087,7 +2087,7 @@ func _agg_symbol_weight_mod(sym: SymbolData) -> float:
 func _grant_buff(sym: SymbolData, mult: int) -> void:
 	var add = max(1, sym.buff_turns) * mult
 	player_buffs[sym] = int(player_buffs.get(sym, 0)) + add
-	hud._popup("%s+%d" % [sym.label, add], Palette.POP_BUFF, hud._player_panel_anchor())
+	hud._popup("%s+%d" % [sym.label, add], Palette.POP_BUFF, hud._player_sprite_anchor())
 	hud._log("技能：%s %s（剩余 %d 回合）" % [sym.label, sym.name, player_buffs[sym]])
 
 

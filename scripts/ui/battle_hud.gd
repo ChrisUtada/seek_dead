@@ -87,10 +87,10 @@ var interroom_next_btn
 @onready var enemy_armor_label = $Margin/Content/MainRow/EnemyPanel/VBox/EnemyArmorLabel
 @onready var enemy_intent_label = $Margin/Content/MainRow/EnemyPanel/VBox/EnemyIntentLabel
 @onready var enemy_status_label = $Margin/Content/MainRow/EnemyPanel/VBox/EnemyStatusLabel
-@onready var dmg_breakdown_box = $Margin/Content/MainRow/CenterStage/BottomRow/DmgBreakdownBox
-@onready var dmg_breakdown_label = $Margin/Content/MainRow/CenterStage/BottomRow/DmgBreakdownBox/DmgBreakdownLabel
 @onready var legend_box = $Margin/Content/MainRow/CenterStage/BottomRow/LegendBox
 @onready var legend_container = $Margin/Content/MainRow/CenterStage/BottomRow/LegendBox/LegendContainer
+@onready var player_sprite = $Margin/Content/MainRow/CenterStage/StageRow/PlayerCenter/PlayerSprite
+@onready var enemy_sprite = $Margin/Content/MainRow/CenterStage/StageRow/EnemyCenter/EnemySprite
 @onready var player_panel = $Margin/Content/MainRow/PlayerPanel
 @onready var enemy_panel = $Margin/Content/MainRow/EnemyPanel
 @onready var loadout_label = $Margin/Content/LoadoutLabel
@@ -112,6 +112,8 @@ var symbol_tooltip_detail
 var popup_layer                    # 飘字专用浮层（满屏，忽略鼠标）
 var _popup_pool := []              # 预建 Label 池
 var _popup_free := []              # 空闲 Label 栈
+var _bd_label: Label = null        # 伤害分解浮字（复用，飘在敌人头顶）
+var _bd_tween: Tween = null
 var _legend_sig := ""              # 图例 diff 签名缓存
 
 func _label(text: String, size: int = TypeScale.BODY) -> Label:
@@ -797,20 +799,53 @@ func _player_panel_anchor() -> Control:
 	return player_panel
 
 
-# S2：显示本回合伤害分解（整块替换；传空则隐藏面板）
+func _player_sprite_anchor() -> Control:
+	return player_sprite if player_sprite != null else player_panel
+
+
+func _enemy_sprite_anchor() -> Control:
+	return enemy_sprite if enemy_sprite != null else enemy_panel
+
+
+# S2：伤害分解改为「头顶飘字」——替代原 BottomRow 固定面板（DmgBreakdownBox 已移除）
 func _show_damage_breakdown(text: String) -> void:
-	if dmg_breakdown_box == null:
-		return
-	if text.strip_edges().is_empty():
-		dmg_breakdown_box.visible = false
-		dmg_breakdown_label.text = ""
-		return
-	dmg_breakdown_label.text = text
-	dmg_breakdown_box.visible = true
+	_float_breakdown(text)
 
 
 func _clear_damage_breakdown() -> void:
-	_show_damage_breakdown("")
+	if _bd_label != null and _bd_label.visible:
+		if _bd_tween != null and _bd_tween.is_valid():
+			_bd_tween.kill()
+		_bd_label.visible = false
+
+
+# 多行飘字：显示在敌人头顶（Sprite 上方），缓慢上浮淡出
+func _float_breakdown(text: String) -> void:
+	if popup_layer == null or text.strip_edges().is_empty():
+		return
+	var anchor = enemy_sprite if enemy_sprite != null else enemy_panel
+	if _bd_label == null:
+		_bd_label = Label.new()
+		_bd_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_bd_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_bd_label.add_theme_color_override("font_color", Color(0.86, 0.91, 1.0, 1))
+		popup_layer.add_child(_bd_label)
+	if _bd_tween != null and _bd_tween.is_valid():
+		_bd_tween.kill()
+	_bd_label.text = text
+	_bd_label.add_theme_font_size_override("font_size", 13)
+	_bd_label.visible = true
+	_bd_label.modulate = Color(1, 1, 1, 1)
+	var gp = anchor.get_global_rect()
+	var pr = popup_layer.get_global_rect()
+	var sz = _bd_label.get_minimum_size()
+	_bd_label.position = Vector2(
+		gp.position.x - pr.position.x + gp.size.x * 0.5 - sz.x * 0.5,
+		gp.position.y - pr.position.y - sz.y - 6)
+	_bd_tween = create_tween()
+	_bd_tween.tween_property(_bd_label, "position:y", _bd_label.position.y - 16, 1.2)
+	_bd_tween.parallel().tween_property(_bd_label, "modulate:a", 0.0, 1.2)
+	_bd_tween.tween_callback(func(): _bd_label.visible = false)
 
 
 func _enemy_panel_anchor() -> Control:

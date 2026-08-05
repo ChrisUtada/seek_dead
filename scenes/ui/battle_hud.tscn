@@ -195,6 +195,7 @@ texture = ExtResource("5_enemy")
 
 [node name="ReelDock" type="HBoxContainer" parent="Margin/Content/MainRow/CenterStage"]
 layout_mode = 2
+size_flags_horizontal = 1
 theme_override_constants/separation = 8
 
 [node name="ConsumablePanel" type="HBoxContainer" parent="Margin/Content/MainRow/CenterStage/ReelDock"]
@@ -235,7 +236,7 @@ theme_override_font_sizes/font_size = 14
 
 [node name="BotSpacer" type="Control" parent="Margin/Content/MainRow/CenterStage/ReelDock"]
 layout_mode = 2
-size_flags_horizontal = 3
+size_flags_horizontal = 0
 
 [node name="ResetButton" parent="Margin/Content/MainRow/CenterStage/ReelDock" instance=ExtResource("3_btn")]
 layout_mode = 2
@@ -248,19 +249,6 @@ theme_override_font_sizes/font_size = 14
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="DmgBreakdownBox" type="PanelContainer" parent="Margin/Content/MainRow/CenterStage/BottomRow"]
-layout_mode = 2
-unique_name = true
-visible = false
-theme_override_styles/panel = SubResource("sb_dmg")
-
-[node name="DmgBreakdownLabel" type="Label" parent="Margin/Content/MainRow/CenterStage/BottomRow/DmgBreakdownBox"]
-layout_mode = 2
-unique_name = true
-text = ""
-horizontal_alignment = 0
-autowrap_mode = 3
-theme_override_font_sizes/font_size = 13
 
 [node name="LegendBox" type="PanelContainer" parent="Margin/Content/MainRow/CenterStage/BottomRow"]
 layout_mode = 2
