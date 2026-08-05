@@ -1,8 +1,9 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/battle_hud.gd" id="1_hud"]
 [ext_resource type="PackedScene" path="res://scenes/ui/ui_panel.tscn" id="2_panel"]
 [ext_resource type="PackedScene" path="res://scenes/ui/ui_button.tscn" id="3_btn"]
+[ext_resource type="Texture2D" path="res://assets/char.png" id="4_char"]
 
 [sub_resource type="StyleBoxFlat" id="sb_dmg"]
 bg_color = Color(0.09, 0.09, 0.13, 0.85)
@@ -174,10 +175,11 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="PlayerPlaceholder" type="ColorRect" parent="Margin/Content/MainRow/CenterStage/StageRow/PlayerCenter"]
+[node name="PlayerPlaceholder" type="TextureRect" parent="Margin/Content/MainRow/CenterStage/StageRow/PlayerCenter"]
 layout_mode = 2
 custom_minimum_size = Vector2(120, 170)
-color = Color(0.25, 0.6, 0.62, 1)
+stretch_mode = 5
+texture = ExtResource("4_char")
 
 [node name="EnemyCenter" type="CenterContainer" parent="Margin/Content/MainRow/CenterStage/StageRow"]
 layout_mode = 2
