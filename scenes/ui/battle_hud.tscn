@@ -1,7 +1,6 @@
-[gd_scene load_steps=17 format=3]
+[gd_scene format=3 uid="uid://cbxngx2q0tsrp"]
 
 [ext_resource type="Script" path="res://scripts/ui/battle_hud.gd" id="1_hud"]
-[ext_resource type="PackedScene" path="res://scenes/ui/ui_panel.tscn" id="2_panel"]
 [ext_resource type="PackedScene" path="res://scenes/ui/ui_button.tscn" id="3_btn"]
 [ext_resource type="Texture2D" path="res://assets/enemy.png" id="5_enemy"]
 [ext_resource type="Texture2D" path="res://assets/char.png" id="4_char"]
@@ -114,10 +113,14 @@ layout_mode = 2
 size_flags_vertical = 3
 theme_override_constants/separation = 10
 
-[node name="PlayerPanel" parent="Margin/Content/MainRow" instance=ExtResource("2_panel")]
+[node name="PlayerPanel" type="PanelContainer" parent="Margin/Content/MainRow"]
 layout_mode = 2
 unique_name = true
 custom_minimum_size = Vector2(150, 0)
+
+[node name="VBox" type="VBoxContainer" parent="Margin/Content/MainRow/PlayerPanel"]
+layout_mode = 2
+theme_override_constants/separation = 4
 
 [node name="PlayerTitle" type="Label" parent="Margin/Content/MainRow/PlayerPanel/VBox"]
 layout_mode = 2
@@ -213,7 +216,7 @@ theme_override_font_sizes/font_size = 12
 [node name="PlayerBuffLabel" type="Label" parent="Margin/Content/MainRow/PlayerPanel/VBox"]
 layout_mode = 2
 unique_name = true
-text = "技能: 无"
+text = "增益: 无"
 horizontal_alignment = 0
 autowrap_mode = 3
 theme_override_font_sizes/font_size = 13
@@ -312,10 +315,14 @@ layout_mode = 2
 unique_name = true
 theme_override_constants/separation = 2
 
-[node name="EnemyPanel" parent="Margin/Content/MainRow" instance=ExtResource("2_panel")]
+[node name="EnemyPanel" type="PanelContainer" parent="Margin/Content/MainRow"]
 layout_mode = 2
 unique_name = true
 custom_minimum_size = Vector2(180, 0)
+
+[node name="VBox" type="VBoxContainer" parent="Margin/Content/MainRow/EnemyPanel"]
+layout_mode = 2
+theme_override_constants/separation = 4
 
 [node name="EnemyTitle" type="Label" parent="Margin/Content/MainRow/EnemyPanel/VBox"]
 layout_mode = 2
