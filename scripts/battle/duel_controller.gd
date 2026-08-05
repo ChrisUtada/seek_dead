@@ -601,10 +601,6 @@ func _apply_charms() -> void:
 	hud._log(charm_log)
 
 
-func _on_reload_loadout_pressed() -> void:
-	hud._show_loadout_screen()
-
-
 # ---------------------------------------------------------------------------
 # M4 房奖励三选一界面（Roguelike 构筑）
 # ---------------------------------------------------------------------------
