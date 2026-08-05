@@ -1,6 +1,6 @@
 # UI 重做与流程重构执行方案（P3c / 商店 opt-in / P4 动画）
 
-> 状态：**Option C 已落地（`1e4772c`）；P3c 布局重构已落地（`061b974`）；转轮位置微调（ReelDock 进 CenterStage 战斗画面正下方居中）；玩家立绘 `assets/char.png` + 敌人立绘 `assets/enemy.png` 替换（P4 同批）；**P4 动画骨架已落地（battle_animator.gd + 攻击·受击·暴击/核爆演出）**；**伤害反馈改头顶飘字**：伤害分解移出 BottomRow 改为敌人头顶多行飘字（DmgBreakdownBox 移除），扣血/治疗/护盾/金币/状态飘字锚点由侧栏面板改为角色 Sprite（头顶）；转轮+SPIN 整组居中（ReelDock `size_flags_horizontal=SHRINK_CENTER`，移除右推 BotSpacer 撑宽）**；商店抽屉（D2）待实施**。均待用户 F6 复验
+> 状态：**Option C 已落地（`1e4772c`）；P3c 布局重构已落地（`061b974`）；转轮位置微调（ReelDock 进 CenterStage 战斗画面正下方居中）；玩家立绘 `assets/char.png` + 敌人立绘 `assets/enemy.png` 替换（P4 同批）；**P4 动画骨架已落地（battle_animator.gd + 攻击·受击·暴击/核爆演出）**；**伤害反馈改头顶飘字**：伤害分解移出 BottomRow 改为敌人头顶多行飘字（DmgBreakdownBox 移除），扣血/治疗/护盾/金币/状态飘字锚点由侧栏面板改为角色 Sprite（头顶）；转轮+SPIN 整组居中（ReelDock `size_flags_horizontal=SHRINK_CENTER`，移除右推 BotSpacer 撑宽）**；**商店右侧抽屉（D2）已落地**：`shop_screen.tscn` 根节点由全屏覆盖层改为右侧 docked（收起态零宽、滑入/滑出动画 + 左侧金色描边 Edge），🛒 按钮在「商店/收起」间切换，离开按钮改「关闭 ✕」，进下一房前自动收起；逻辑（configure/refresh/show_tab）零改动**。均待用户 F6 复验
 > 最后更新：2026-08-05
 > 关联基线：`2a927ba`（含 `2864c00` 方案A 三连暴击 `crit_mult`）
 > 前置已完成：P3b-2（5 套覆盖层抽独立 `.tscn`，`hide_screen()` 修复，`3f8aefb`）已推送
