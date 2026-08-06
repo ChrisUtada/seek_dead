@@ -206,9 +206,9 @@ func _build_ui() -> void:
 		controller.grid.append([])
 		cell_badges.append([])
 		for row in controller.state.ROWS:
-			var cell = SYMBOL_CELL.instantiate()
-			cell.custom_minimum_size = Vector2(84, 84)
-			cell.add_theme_font_size_override("font_size", TypeScale.REEL)
+var cell = SYMBOL_CELL.instantiate()
+		cell.custom_minimum_size = Vector2(32, 32)
+		cell.add_theme_font_size_override("font_size", TypeScale.REEL)
 			cell.disabled = true   # 无锁定，格子仅作展示
 			cell.mouse_default_cursor_shape = Control.CURSOR_HELP   # Phase 3：悬停提示
 			cell.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -245,13 +245,15 @@ func _build_ui() -> void:
 	var ib = $Margin/Content/InfoBar
 	interroom_shop_btn = UI_BUTTON.instantiate()
 	interroom_shop_btn.text = "🛒 商店"
-	interroom_shop_btn.custom_minimum_size = Vector2(96, 32)
+	interroom_shop_btn.custom_minimum_size = Vector2(60, 18)
+	interroom_shop_btn.add_theme_font_size_override("font_size", TypeScale.META)
 	interroom_shop_btn.disabled = true
 	interroom_shop_btn.connect("pressed", shop_requested.emit)
 	ib.add_child(interroom_shop_btn)
 	interroom_next_btn = UI_BUTTON.instantiate()
 	interroom_next_btn.text = "▶ 下一房"
-	interroom_next_btn.custom_minimum_size = Vector2(110, 32)
+	interroom_next_btn.custom_minimum_size = Vector2(64, 18)
+	interroom_next_btn.add_theme_font_size_override("font_size", TypeScale.META)
 	interroom_next_btn.disabled = true
 	interroom_next_btn.connect("pressed", next_room_requested.emit)
 	ib.add_child(interroom_next_btn)
@@ -279,7 +281,7 @@ func _item_pool_of(category: String) -> Array:
 
 func _make_item_card(data: Resource, path: String, kind: String) -> Dictionary:
 	var btn = UI_BUTTON.instantiate()
-	btn.custom_minimum_size = Vector2(0, 66)
+	btn.custom_minimum_size = Vector2(0, 36)
 	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	btn.text = ""
 	var vb = VBoxContainer.new()
@@ -381,16 +383,16 @@ func _show_reward_screen(is_boss: bool) -> void:
 
 func _make_reward_card(rw: RewardData) -> Button:
 	var btn = UI_BUTTON.instantiate()
-	btn.custom_minimum_size = Vector2(96, 64)
+	btn.custom_minimum_size = Vector2(52, 36)
 	btn.text = ""
 	var cc = CenterContainer.new()
 	cc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	cc.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	btn.add_child(cc)
 	var vb = VBoxContainer.new()
-	vb.add_theme_constant_override("separation", 2)
+	vb.add_theme_constant_override("separation", 1)
 	cc.add_child(vb)
-	vb.add_child(_label("%s %s" % [rw.icon, rw.label], 13))
+	vb.add_child(_label("%s %s" % [rw.icon, rw.label], TypeScale.META))
 	var dl = _label(rw.desc, TypeScale.TINY)
 	dl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	dl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -402,16 +404,16 @@ func _make_reward_card(rw: RewardData) -> Button:
 # BOSS 战利品卡（候选为 dict，点击调 _on_boss_reward_chosen）
 func _make_boss_reward_card(cand: Dictionary) -> Button:
 	var btn = UI_BUTTON.instantiate()
-	btn.custom_minimum_size = Vector2(96, 64)
+	btn.custom_minimum_size = Vector2(52, 36)
 	btn.text = ""
 	var cc = CenterContainer.new()
 	cc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	cc.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	btn.add_child(cc)
 	var vb = VBoxContainer.new()
-	vb.add_theme_constant_override("separation", 2)
+	vb.add_theme_constant_override("separation", 1)
 	cc.add_child(vb)
-	vb.add_child(_label("%s %s" % [cand.get("icon", ""), cand.get("label", "")], 13))
+	vb.add_child(_label("%s %s" % [cand.get("icon", ""), cand.get("label", "")], TypeScale.META))
 	var dl = _label(cand.get("desc", ""), TypeScale.TINY)
 	dl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	dl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -436,20 +438,20 @@ func _show_meta_choice() -> void:
 
 func _make_meta_card(opt: Dictionary) -> Button:
 	var btn = UI_BUTTON.instantiate()
-	btn.custom_minimum_size = Vector2(210, 92)   # 仅 3 张、覆盖层空间充足，放大提升可读性
+	btn.custom_minimum_size = Vector2(130, 60)   # 仅 3 张、覆盖层空间充足，放大提升可读性
 	btn.text = ""
 	var cc = CenterContainer.new()
 	cc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	cc.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	btn.add_child(cc)
 	var vb = VBoxContainer.new()
-	vb.add_theme_constant_override("separation", 2)
+	vb.add_theme_constant_override("separation", 1)
 	cc.add_child(vb)
-	vb.add_child(_label("%s %s" % [opt.get("icon", ""), opt.get("label", "")], 13))
+	vb.add_child(_label("%s %s" % [opt.get("icon", ""), opt.get("label", "")], TypeScale.META))
 	var dl = _label(opt.get("desc", ""), TypeScale.TINY)
 	dl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	dl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	dl.custom_minimum_size = Vector2(190, 0)     # 约束宽度，保证长描述换行而非撑破卡片
+	dl.custom_minimum_size = Vector2(110, 0)     # 约束宽度，保证长描述换行而非撑破卡片
 	vb.add_child(dl)
 	btn.connect("pressed", controller._on_meta_choice_chosen.bind(opt))
 	return btn
@@ -472,7 +474,7 @@ func _refresh_shop() -> void:
 
 func _make_shop_card(offer: Dictionary) -> Button:
 	var btn = UI_BUTTON.instantiate()
-	btn.custom_minimum_size = Vector2(110, 86)
+	btn.custom_minimum_size = Vector2(76, 56)
 	btn.text = ""
 	var cc = CenterContainer.new()
 	cc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -520,7 +522,7 @@ func _make_shop_card(offer: Dictionary) -> Button:
 func _make_sell_card(title_text: String, sub_text: String, disabled: bool, cb: Callable) -> Button:
 	var btn = UI_BUTTON.instantiate()
 	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	btn.custom_minimum_size = Vector2(0, 46)
+	btn.custom_minimum_size = Vector2(0, 26)
 	btn.text = ""
 	var cc = CenterContainer.new()
 	cc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -545,20 +547,20 @@ func _make_sell_card(title_text: String, sub_text: String, disabled: bool, cb: C
 
 func _make_upgrade_card(u: Dictionary) -> Button:
 	var btn = UI_BUTTON.instantiate()
-	btn.custom_minimum_size = Vector2(150, 104)
+	btn.custom_minimum_size = Vector2(96, 60)
 	btn.text = ""
 	var cc = CenterContainer.new()
 	cc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	cc.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	btn.add_child(cc)
 	var vb = VBoxContainer.new()
-	vb.add_theme_constant_override("separation", 2)
+	vb.add_theme_constant_override("separation", 1)
 	cc.add_child(vb)
-	vb.add_child(_label("%s %s Lv%d/%d" % [u["icon"], u["name"], u["level"], u["max"]], 12))
+	vb.add_child(_label("%s %s Lv%d/%d" % [u["icon"], u["name"], u["level"], u["max"]], TypeScale.META))
 	var dl = _label(u["desc"], TypeScale.TINY)
 	dl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	dl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	dl.custom_minimum_size = Vector2(140, 0)
+	dl.custom_minimum_size = Vector2(90, 0)
 	vb.add_child(dl)
 	var status = "已满级" if u["maxed"] else ("%d 金" % u["cost"])
 	var pl = _label(status, TypeScale.TINY)
@@ -593,7 +595,8 @@ func _build_overlay() -> void:
 	overlay_label = _label("", TypeScale.REEL)
 	ov_v.add_child(overlay_label)
 	overlay_button = UI_BUTTON.instantiate()
-	overlay_button.custom_minimum_size = Vector2(220, 50)
+	overlay_button.custom_minimum_size = Vector2(140, 28)
+	overlay_button.add_theme_font_size_override("font_size", TypeScale.MEDIUM)
 	overlay_button.connect("pressed", controller._on_overlay_button_pressed)
 	ov_v.add_child(overlay_button)
 	add_child(overlay)
@@ -807,9 +810,9 @@ func _popup(text: String, color: Color, anchor: Control) -> void:
 	var gp = anchor.get_global_rect()
 	var pr = popup_layer.get_global_rect()
 	var w = lbl.get_minimum_size().x
-	lbl.position = Vector2(gp.position.x - pr.position.x + gp.size.x * 0.5 - w * 0.5, gp.position.y - pr.position.y + 6)
+	lbl.position = Vector2(gp.position.x - pr.position.x + gp.size.x * 0.5 - w * 0.5, gp.position.y - pr.position.y + 2)
 	var tw = create_tween()
-	tw.tween_property(lbl, "position:y", lbl.position.y - 38, 0.8)
+	tw.tween_property(lbl, "position:y", lbl.position.y - 14, 0.8)
 	tw.parallel().tween_property(lbl, "modulate:a", 0.0, 0.8)
 	tw.tween_callback(_return_popup.bind(lbl))
 
@@ -858,7 +861,7 @@ func _float_breakdown(text: String) -> void:
 	if _bd_tween != null and _bd_tween.is_valid():
 		_bd_tween.kill()
 	_bd_label.text = text
-	_bd_label.add_theme_font_size_override("font_size", 13)
+	_bd_label.add_theme_font_size_override("font_size", TypeScale.META)
 	_bd_label.visible = true
 	_bd_label.modulate = Color(1, 1, 1, 1)
 	var gp = anchor.get_global_rect()
@@ -866,9 +869,9 @@ func _float_breakdown(text: String) -> void:
 	var sz = _bd_label.get_minimum_size()
 	_bd_label.position = Vector2(
 		gp.position.x - pr.position.x + gp.size.x * 0.5 - sz.x * 0.5,
-		gp.position.y - pr.position.y - sz.y - 6)
+		gp.position.y - pr.position.y - sz.y - 2)
 	_bd_tween = create_tween()
-	_bd_tween.tween_property(_bd_label, "position:y", _bd_label.position.y - 16, 1.2)
+	_bd_tween.tween_property(_bd_label, "position:y", _bd_label.position.y - 8, 1.2)
 	_bd_tween.parallel().tween_property(_bd_label, "modulate:a", 0.0, 1.2)
 	_bd_tween.tween_callback(func(): _bd_label.visible = false)
 
@@ -1022,7 +1025,7 @@ func _refresh_gear_icons() -> void:
 		var lbl = Label.new()
 		lbl.name = "WIcon_" + path.get_file().get_basename()
 		lbl.text = icon
-		lbl.add_theme_font_size_override("font_size", 18)
+		lbl.add_theme_font_size_override("font_size", TypeScale.REEL)
 		lbl.tooltip_text = tip
 		lbl.mouse_filter = Control.MOUSE_FILTER_STOP
 		weapons_row.add_child(lbl)
@@ -1037,7 +1040,7 @@ func _refresh_gear_icons() -> void:
 		var lbl = Label.new()
 		lbl.name = "CIcon_" + path.get_file().get_basename()
 		lbl.text = icon
-		lbl.add_theme_font_size_override("font_size", 18)
+		lbl.add_theme_font_size_override("font_size", TypeScale.REEL)
 		lbl.tooltip_text = name_str + (" · " + desc_str if desc_str != "" else "")
 		lbl.mouse_filter = Control.MOUSE_FILTER_STOP
 		charms_row.add_child(lbl)
@@ -1052,7 +1055,7 @@ func _refresh_gear_icons() -> void:
 		var lbl = Label.new()
 		lbl.name = "SIcon_" + path.get_file().get_basename()
 		lbl.text = icon
-		lbl.add_theme_font_size_override("font_size", 18)
+		lbl.add_theme_font_size_override("font_size", TypeScale.REEL)
 		lbl.tooltip_text = name_str + (" · " + desc_str if desc_str != "" else "")
 		lbl.mouse_filter = Control.MOUSE_FILTER_STOP
 		skills_row.add_child(lbl)
