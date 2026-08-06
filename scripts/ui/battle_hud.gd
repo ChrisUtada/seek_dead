@@ -363,9 +363,9 @@ func _update_loadout_anvil() -> void:
 	loadout_screen._update_loadout_anvil()
 
 func _refresh_loadout_cards() -> void:
-	# 铁砧授予后 owned_* 变化，重建整备四列卡片（否则新获得的装备不出现在整备栏）
-	if loadout_screen != null:
-		loadout_screen._rebuild_loadout()
+	# 铁砧授予后 owned_* 变化：整备页开着则立即重建副屏；隐藏则下次 show_screen 自动重建
+	if loadout_screen != null and loadout_screen.visible:
+		loadout_screen.refresh_data()
 
 
 func _build_reward_screen() -> void:

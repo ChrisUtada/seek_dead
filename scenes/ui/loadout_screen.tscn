@@ -1,6 +1,12 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/loadout_screen.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://scenes/ui/ui_button.tscn" id="2_btn"]
+[ext_resource type="Texture2D" path="res://assets/wq.png" id="3_wq"]
+[ext_resource type="Texture2D" path="res://assets/jn.png" id="4_jn"]
+[ext_resource type="Texture2D" path="res://assets/xh.png" id="5_xh"]
+[ext_resource type="Texture2D" path="res://assets/hf.png" id="6_hf"]
+[ext_resource type="Texture2D" path="res://assets/tz.png" id="7_tz"]
 
 [node name="LoadoutScreen" type="Control"]
 layout_mode = 3
@@ -29,7 +35,7 @@ theme_override_constants/margin_bottom = 8
 
 [node name="Content" type="VBoxContainer" parent="Margin"]
 layout_mode = 2
-theme_override_constants/separation = 6
+theme_override_constants/separation = 4
 
 [node name="TitleLabel" type="Label" parent="Margin/Content"]
 layout_mode = 2
@@ -39,11 +45,199 @@ horizontal_alignment = 1
 layout_mode = 2
 horizontal_alignment = 0
 
-[node name="CatBox" type="HBoxContainer" parent="Margin/Content"]
+[node name="CharRow" type="HBoxContainer" parent="Margin/Content"]
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_constants/separation = 6
 
+[node name="CharWeapon" type="Button" parent="Margin/Content/CharRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+custom_minimum_size = Vector2(0, 86)
+
+[node name="CWBox" type="VBoxContainer" parent="Margin/Content/CharRow/CharWeapon"]
+layout_mode = 1
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_constants/separation = 1
+
+[node name="CWTex" type="TextureRect" parent="Margin/Content/CharRow/CharWeapon/CWBox"]
+layout_mode = 2
+size_flags_vertical = 3
+custom_minimum_size = Vector2(52, 52)
+texture = ExtResource("3_wq")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="CWName" type="Label" parent="Margin/Content/CharRow/CharWeapon/CWBox"]
+layout_mode = 2
+text = "武器"
+horizontal_alignment = 1
+
+[node name="CharSkill" type="Button" parent="Margin/Content/CharRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+custom_minimum_size = Vector2(0, 86)
+
+[node name="CSBox" type="VBoxContainer" parent="Margin/Content/CharRow/CharSkill"]
+layout_mode = 1
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_constants/separation = 1
+
+[node name="CSTex" type="TextureRect" parent="Margin/Content/CharRow/CharSkill/CSBox"]
+layout_mode = 2
+size_flags_vertical = 3
+custom_minimum_size = Vector2(52, 52)
+texture = ExtResource("4_jn")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="CSName" type="Label" parent="Margin/Content/CharRow/CharSkill/CSBox"]
+layout_mode = 2
+text = "技能"
+horizontal_alignment = 1
+
+[node name="CharActive" type="Button" parent="Margin/Content/CharRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+custom_minimum_size = Vector2(0, 86)
+
+[node name="CABox" type="VBoxContainer" parent="Margin/Content/CharRow/CharActive"]
+layout_mode = 1
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_constants/separation = 1
+
+[node name="CATex" type="TextureRect" parent="Margin/Content/CharRow/CharActive/CABox"]
+layout_mode = 2
+size_flags_vertical = 3
+custom_minimum_size = Vector2(52, 52)
+texture = ExtResource("5_xh")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="CAName" type="Label" parent="Margin/Content/CharRow/CharActive/CABox"]
+layout_mode = 2
+text = "消耗"
+horizontal_alignment = 1
+
+[node name="CharPassive" type="Button" parent="Margin/Content/CharRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+custom_minimum_size = Vector2(0, 86)
+
+[node name="CPBox" type="VBoxContainer" parent="Margin/Content/CharRow/CharPassive"]
+layout_mode = 1
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_constants/separation = 1
+
+[node name="CPTex" type="TextureRect" parent="Margin/Content/CharRow/CharPassive/CPBox"]
+layout_mode = 2
+size_flags_vertical = 3
+custom_minimum_size = Vector2(52, 52)
+texture = ExtResource("6_hf")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="CPName" type="Label" parent="Margin/Content/CharRow/CharPassive/CPBox"]
+layout_mode = 2
+text = "护符"
+horizontal_alignment = 1
+
+[node name="CharAnvil" type="Button" parent="Margin/Content/CharRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+custom_minimum_size = Vector2(0, 86)
+
+[node name="CABox" type="VBoxContainer" parent="Margin/Content/CharRow/CharAnvil"]
+layout_mode = 1
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_constants/separation = 1
+
+[node name="CATex" type="TextureRect" parent="Margin/Content/CharRow/CharAnvil/CABox"]
+layout_mode = 2
+size_flags_vertical = 3
+custom_minimum_size = Vector2(52, 52)
+texture = ExtResource("7_tz")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="CAName" type="Label" parent="Margin/Content/CharRow/CharAnvil/CABox"]
+layout_mode = 2
+text = "铁砧"
+horizontal_alignment = 1
+
 [node name="Bot" type="HBoxContainer" parent="Margin/Content"]
 layout_mode = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 8
+
+[node name="CountLabel" type="Label" parent="Margin/Content/Bot"]
+layout_mode = 2
+size_flags_horizontal = 3
+horizontal_alignment = 0
+
+[node name="Spacer" type="Control" parent="Margin/Content/Bot"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="AnvilLabel" type="Label" parent="Margin/Content/Bot"]
+layout_mode = 2
+
+[node name="ConfirmBtn" type="Button" parent="Margin/Content/Bot"]
+instance = ExtResource("2_btn")
+layout_mode = 2
+custom_minimum_size = Vector2(110, 34)
+
+[node name="SubScreen" type="Control" parent="."]
+layout_mode = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = 0
+offset_top = 0
+offset_bottom = 0
+mouse_filter = 2
+
+[node name="Panel" type="PanelContainer" parent="SubScreen"]
+layout_mode = 1
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="VBox" type="VBoxContainer" parent="SubScreen/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Head" type="Label" parent="SubScreen/Panel/VBox"]
+layout_mode = 2
+horizontal_alignment = 1
+
+[node name="Strip" type="HBoxContainer" parent="SubScreen/Panel/VBox"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 3
+
+[node name="Scroll" type="ScrollContainer" parent="SubScreen/Panel/VBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="List" type="VBoxContainer" parent="SubScreen/Panel/VBox/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
+[node name="SubHandle" type="Button" parent="."]
+layout_mode = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -28
+offset_right = -10
+offset_top = 0
+offset_bottom = 0
