@@ -37,6 +37,29 @@ content_margin_right = 8
 content_margin_top = 6
 content_margin_bottom = 6
 
+[sub_resource type="StyleBoxFlat" id="sb_frame"]
+bg_color = Color(0, 0, 0, 0)
+border_color = Color(0.10, 0.10, 0.14, 1)
+border_width_left = 10
+border_width_top = 16
+border_width_right = 10
+border_width_bottom = 10
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="sb_dot"]
+bg_color = Color(0.32, 0.32, 0.38, 1)
+border_width_left = 0
+border_width_top = 0
+border_width_right = 0
+border_width_bottom = 0
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
 [node name="BattleHud" type="Control"]
 layout_mode = 3
 anchors_preset = 15
@@ -394,3 +417,53 @@ text = ""
 autowrap_mode = 3
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 13
+
+[node name="DeviceFrame" type="Control" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+z_index = 100
+
+[node name="Border" type="Panel" parent="DeviceFrame"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("sb_frame")
+
+[node name="Dot1" type="Panel" parent="DeviceFrame"]
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_left = 220.0
+offset_right = 226.0
+offset_top = 5.0
+offset_bottom = 11.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("sb_dot")
+
+[node name="Dot2" type="Panel" parent="DeviceFrame"]
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_left = 237.0
+offset_right = 243.0
+offset_top = 5.0
+offset_bottom = 11.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("sb_dot")
+
+[node name="Dot3" type="Panel" parent="DeviceFrame"]
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_left = 254.0
+offset_right = 260.0
+offset_top = 5.0
+offset_bottom = 11.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("sb_dot")
