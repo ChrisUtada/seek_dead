@@ -140,15 +140,17 @@ func _input(event: InputEvent) -> void:
 
 # ---- UI 覆盖层 ----
 
+var _ui_layer: CanvasLayer    # 缓存引用，show/hide 时精准切换
+
 func _build_ui() -> void:
-	var layer := CanvasLayer.new()
-	layer.layer = 10
-	add_child(layer)
+	_ui_layer = CanvasLayer.new()
+	_ui_layer.layer = 10
+	add_child(_ui_layer)
 
 	ui_root = Control.new()
 	ui_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	ui_root.mouse_filter = Control.MOUSE_FILTER_IGNORE   # 空白处点击穿透到 2D 小人
-	layer.add_child(ui_root)
+	_ui_layer.add_child(ui_root)
 
 	title_label = Label.new()
 	title_label.text = "⚙ 整备 · 选择携带物品"
@@ -267,7 +269,12 @@ func configure(ctrl, h: BattleHud) -> void:
 func show_screen() -> void:
 	controller.in_loadout = true
 	hud.hide()                 # 隐藏 Game Boy 外框 + 战斗 HUD
+	# 双重防御：Node2D.visible + CanvasLayer.visible + process_mode，
+	# 避免 Godot 4.7 在某些情况下 CanvasLayer 不随父级 visible 级联。
 	visible = true
+	if _ui_layer != null:
+		_ui_layer.visible = true
+	process_mode = Node.PROCESS_MODE_INHERIT
 	_update_loadout_anvil()
 	_fill_sub(selected_char)
 	_update_loadout_count()
@@ -278,6 +285,9 @@ func show_screen() -> void:
 func hide_screen() -> void:
 	controller.in_loadout = false
 	visible = false
+	if _ui_layer != null:
+		_ui_layer.visible = false          # 显式隐藏 CanvasLayer 覆盖层
+	process_mode = Node.PROCESS_MODE_DISABLED   # 顺手停掉本节点的 _input/_process，连鼠标事件都不再接收
 	hud.show()                 # 回到战斗 HUD（含外框）
 
 
