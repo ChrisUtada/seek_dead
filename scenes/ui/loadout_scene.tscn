@@ -1,0 +1,176 @@
+[gd_scene format=3 uid="uid://vx35xcg54ubc"]
+
+[ext_resource type="Script" uid="uid://ki4wfgrl0rn5" path="res://scripts/loadout/loadout_scene.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://dlb8ne5sh8krn" path="res://assets/wq.png" id="2_wq"]
+[ext_resource type="Texture2D" uid="uid://qi7giknmgcij" path="res://assets/jn.png" id="3_jn"]
+[ext_resource type="Texture2D" uid="uid://dgm8w2f23cbs6" path="res://assets/xh.png" id="4_xh"]
+[ext_resource type="Texture2D" uid="uid://d1iy32diy2o17" path="res://assets/hf.png" id="5_hf"]
+[ext_resource type="Texture2D" uid="uid://kctq4oxl4uvp" path="res://assets/tz.png" id="6_tz"]
+
+[sub_resource type="CircleShape2D" id="ShapeCircle"]
+radius = 26.0
+
+[sub_resource type="StyleBoxFlat" id="SbPanel"]
+content_margin_left = 6.0
+content_margin_top = 4.0
+content_margin_right = 6.0
+content_margin_bottom = 4.0
+bg_color = Color(0.11, 0.11, 0.16, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.22, 0.22, 0.3, 1)
+
+[node name="LoadoutScene" type="Node2D" unique_id=1713510277]
+script = ExtResource("1_script")
+
+[node name="Bg" type="ColorRect" parent="." unique_id=1392882453]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.06, 0.06, 0.1, 1)
+
+[node name="CharsRoot" type="Node2D" parent="." unique_id=2101453205]
+
+[node name="Char_weapon" type="Area2D" parent="CharsRoot" unique_id=480578271]
+position = Vector2(72, 96)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CharsRoot/Char_weapon" unique_id=1993244107]
+shape = SubResource("ShapeCircle")
+
+[node name="Sprite2D" type="Sprite2D" parent="CharsRoot/Char_weapon" unique_id=2087350624]
+texture = ExtResource("2_wq")
+
+[node name="Char_skill" type="Area2D" parent="CharsRoot" unique_id=2094100784]
+position = Vector2(150, 70)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CharsRoot/Char_skill" unique_id=1399127629]
+shape = SubResource("ShapeCircle")
+
+[node name="Sprite2D" type="Sprite2D" parent="CharsRoot/Char_skill" unique_id=716110371]
+texture = ExtResource("3_jn")
+
+[node name="Char_active" type="Area2D" parent="CharsRoot" unique_id=2020053196]
+position = Vector2(158, 150)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CharsRoot/Char_active" unique_id=1667379688]
+shape = SubResource("ShapeCircle")
+
+[node name="Sprite2D" type="Sprite2D" parent="CharsRoot/Char_active" unique_id=1976607221]
+texture = ExtResource("4_xh")
+
+[node name="Char_passive" type="Area2D" parent="CharsRoot" unique_id=1019788801]
+position = Vector2(72, 176)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CharsRoot/Char_passive" unique_id=58393609]
+shape = SubResource("ShapeCircle")
+
+[node name="Sprite2D" type="Sprite2D" parent="CharsRoot/Char_passive" unique_id=893170789]
+texture = ExtResource("5_hf")
+
+[node name="Char_anvil" type="Area2D" parent="CharsRoot" unique_id=2087272657]
+position = Vector2(214, 112)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CharsRoot/Char_anvil" unique_id=233590344]
+shape = SubResource("ShapeCircle")
+
+[node name="Sprite2D" type="Sprite2D" parent="CharsRoot/Char_anvil" unique_id=717870009]
+texture = ExtResource("6_tz")
+
+[node name="Ring" type="Line2D" parent="CharsRoot" unique_id=724143551]
+closed = true
+width = 2.0
+default_color = Color(0.45, 0.85, 0.5, 1)
+
+[node name="UILayer" type="CanvasLayer" parent="." unique_id=1189558678]
+layer = 10
+visible = false
+
+[node name="UIRoot" type="Control" parent="UILayer" unique_id=569399633]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="TitleLabel" type="Label" parent="UILayer/UIRoot" unique_id=2094615762]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 4.0
+offset_right = 10.0
+offset_bottom = 4.0
+theme_override_colors/font_color = Color(0.9, 0.85, 0.7, 1)
+theme_override_font_sizes/font_size = 11
+text = "⚙ 整备 · 选择携带物品"
+
+[node name="RuleLabel" type="Label" parent="UILayer/UIRoot" unique_id=111708033]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 18.0
+offset_right = 10.0
+offset_bottom = 18.0
+theme_override_colors/font_color = Color(0.7, 0.7, 0.75, 1)
+theme_override_font_sizes/font_size = 8
+text = "点小人查看该类目 · 铁砧进入锻造"
+
+[node name="SubPanel" type="PanelContainer" parent="UILayer/UIRoot" unique_id=806007537]
+layout_mode = 0
+offset_left = 282.0
+offset_top = 26.0
+offset_right = 478.0
+offset_bottom = 210.0
+mouse_filter = 1
+theme_override_styles/panel = SubResource("SbPanel")
+
+[node name="SubVBox" type="VBoxContainer" parent="UILayer/UIRoot/SubPanel" unique_id=966223733]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 2
+
+[node name="SubHead" type="Label" parent="UILayer/UIRoot/SubPanel/SubVBox" unique_id=1783292457]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.85, 0.7, 1)
+theme_override_font_sizes/font_size = 10
+
+[node name="SubStrip" type="HBoxContainer" parent="UILayer/UIRoot/SubPanel/SubVBox" unique_id=1054013641]
+layout_mode = 2
+
+[node name="SubScroll" type="ScrollContainer" parent="UILayer/UIRoot/SubPanel/SubVBox" unique_id=708999683]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="SubList" type="VBoxContainer" parent="UILayer/UIRoot/SubPanel/SubVBox/SubScroll" unique_id=1061834850]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 2
+
+[node name="BottomBar" type="HBoxContainer" parent="UILayer/UIRoot" unique_id=404727251]
+layout_mode = 0
+offset_top = 216.0
+offset_right = 480.0
+offset_bottom = 270.0
+theme_override_constants/separation = 8
+
+[node name="CountLabel" type="Label" parent="UILayer/UIRoot/BottomBar" unique_id=1393023262]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.85, 0.7, 1)
+theme_override_font_sizes/font_size = 9
+
+[node name="AnvilLabel" type="Label" parent="UILayer/UIRoot/BottomBar" unique_id=450404593]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.7, 0.75, 1)
+theme_override_font_sizes/font_size = 9
+horizontal_alignment = 1
+
+[node name="ConfirmBtn" type="Button" parent="UILayer/UIRoot/BottomBar" unique_id=713096946]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 9
+text = "确认开战 ▶"
