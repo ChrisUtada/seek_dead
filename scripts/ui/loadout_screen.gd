@@ -19,12 +19,19 @@ const SUB_W := 260   # 副屏抽屉宽度（480 设计宽下占 ~54%）
 @onready var title_label = $Margin/Content/TitleLabel
 @onready var rule_label = $Margin/Content/RuleLabel
 @onready var char_buttons := {
-	"weapon": $Margin/Content/CharRow/CharWeapon,
-	"skill": $Margin/Content/CharRow/CharSkill,
-	"active": $Margin/Content/CharRow/CharActive,
-	"passive": $Margin/Content/CharRow/CharPassive,
+	"weapon": $Margin/Content/CharRow/CharWeapon/CharPanel/CharBtn,
+	"skill": $Margin/Content/CharRow/CharSkill/CharPanel/CharBtn,
+	"active": $Margin/Content/CharRow/CharActive/CharPanel/CharBtn,
+	"passive": $Margin/Content/CharRow/CharPassive/CharPanel/CharBtn,
 }
-@onready var anvil_btn = $Margin/Content/CharRow/CharAnvil
+@onready var char_panels := {
+	"weapon": $Margin/Content/CharRow/CharWeapon/CharPanel,
+	"skill": $Margin/Content/CharRow/CharSkill/CharPanel,
+	"active": $Margin/Content/CharRow/CharActive/CharPanel,
+	"passive": $Margin/Content/CharRow/CharPassive/CharPanel,
+}
+@onready var anvil_btn = $Margin/Content/CharRow/CharAnvil/CharPanel/CharBtn
+@onready var anvil_panel = $Margin/Content/CharRow/CharAnvil/CharPanel
 @onready var count_label = $Margin/Content/Bot/CountLabel
 @onready var anvil_label = $Margin/Content/Bot/AnvilLabel
 @onready var confirm_btn = $Margin/Content/Bot/ConfirmBtn
@@ -51,13 +58,13 @@ func configure(ctrl, h: BattleHud) -> void:
 	rule_label.text = "点击小人查看/装备该类目 · 再点把手收起 · 铁砧小人进入锻造"
 	rule_label.add_theme_font_size_override("font_size", TypeScale.CAPTION)
 	rule_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	# 5 个小人站
+	# 5 个小人站（TextureButton 即可点击精灵节点）
 	for cat in CHAR_CATS:
-		var b: Button = char_buttons[cat]
+		var b: TextureButton = char_buttons[cat]
 		b.pressed.connect(_on_char_pressed.bind(cat))
-		_style_char_btn(b, false)
+		_style_char_btn(b, char_panels[cat], false)
 	anvil_btn.pressed.connect(_on_anvil_pressed)
-	_style_char_btn(anvil_btn, true)
+	_style_char_btn(anvil_btn, anvil_panel, true)
 	# 副屏（抽屉）
 	sub_panel.add_theme_stylebox_override("panel", _panel_style())
 	sub_head.add_theme_font_size_override("font_size", TypeScale.META)
@@ -77,7 +84,7 @@ func configure(ctrl, h: BattleHud) -> void:
 
 # ---- 小人站 ----
 
-func _style_char_btn(btn: Button, is_anvil: bool) -> void:
+func _style_char_btn(btn: TextureButton, panel: PanelContainer, is_anvil: bool) -> void:
 	var bgc := Palette.CARD_NORM_BG
 	var bdc := Palette.CARD_NORM_BORDER
 	if is_anvil:
@@ -92,18 +99,13 @@ func _style_char_btn(btn: Button, is_anvil: bool) -> void:
 	sb.content_margin_right = 4
 	sb.content_margin_top = 4
 	sb.content_margin_bottom = 4
-	var sb_h = sb.duplicate()
-	sb_h.bg_color = bgc.lightened(0.08)
-	var sb_p = sb.duplicate()
-	sb_p.bg_color = bgc.darkened(0.10)
-	btn.add_theme_stylebox_override("normal", sb)
-	btn.add_theme_stylebox_override("hover", sb_h)
-	btn.add_theme_stylebox_override("pressed", sb_p)
+	panel.add_theme_stylebox_override("panel", sb)
+	# 待机/走动动画未来可在 TextureButton 上挂 AnimatedTexture，无需改节点类型
 
 
 func _refresh_char_highlight() -> void:
 	for cat in CHAR_CATS:
-		var b: Button = char_buttons[cat]
+		var panel: PanelContainer = char_panels[cat]
 		var sel: bool = (cat == selected_char)
 		var sb = StyleBoxFlat.new()
 		sb.bg_color = Palette.CARD_SEL_BG if sel else Palette.CARD_NORM_BG
@@ -114,9 +116,7 @@ func _refresh_char_highlight() -> void:
 		sb.content_margin_right = 4
 		sb.content_margin_top = 4
 		sb.content_margin_bottom = 4
-		b.add_theme_stylebox_override("normal", sb)
-		b.add_theme_stylebox_override("hover", sb)
-		b.add_theme_stylebox_override("pressed", sb)
+		panel.add_theme_stylebox_override("panel", sb)
 
 
 func _on_char_pressed(cat: String) -> void:

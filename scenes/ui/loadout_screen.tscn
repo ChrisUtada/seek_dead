@@ -7,7 +7,7 @@
 [ext_resource type="Texture2D" path="res://assets/xh.png" id="5_xh"]
 [ext_resource type="Texture2D" path="res://assets/hf.png" id="6_hf"]
 [ext_resource type="Texture2D" path="res://assets/tz.png" id="7_tz"]
-[ext_resource type="FontFile" path="res://assets/fonts/zpix_font.tres" id="8_zpix"]
+[ext_resource type="FontFile" path="res://assets/fonts/VonwaonBitmap-12px.tres" id="8_von"]
 
 [node name="LoadoutScreen" type="Control"]
 layout_mode = 3
@@ -47,14 +47,14 @@ theme_override_constants/separation = 4
 layout_mode = 2
 z_index = 200
 z_as_relative = false
-theme_override_fonts/font = ExtResource("8_zpix")
+theme_override_fonts/font = ExtResource("8_von")
 horizontal_alignment = 1
 
 [node name="RuleLabel" type="Label" parent="Margin/Content"]
 layout_mode = 2
 z_index = 200
 z_as_relative = false
-theme_override_fonts/font = ExtResource("8_zpix")
+theme_override_fonts/font = ExtResource("8_von")
 horizontal_alignment = 0
 
 [node name="CharRow" type="HBoxContainer" parent="Margin/Content"]
@@ -62,138 +62,123 @@ layout_mode = 2
 size_flags_vertical = 0
 theme_override_constants/separation = 6
 
-[node name="CharWeapon" type="Button" parent="Margin/Content/CharRow"]
+[node name="CharWeapon" type="VBoxContainer" parent="Margin/Content/CharRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-
-[node name="CWBox" type="VBoxContainer" parent="Margin/Content/CharRow/CharWeapon"]
-layout_mode = 1
-anchor_right = 1.0
-anchor_bottom = 1.0
-mouse_filter = 2
 theme_override_constants/separation = 2
 
-[node name="CWTex" type="TextureRect" parent="Margin/Content/CharRow/CharWeapon/CWBox"]
+[node name="CharPanel" type="PanelContainer" parent="Margin/Content/CharRow/CharWeapon"]
 layout_mode = 2
-mouse_filter = 2
-texture = ExtResource("3_wq")
-expand_mode = 0
-stretch_mode = 4
-custom_minimum_size = Vector2(32, 32)
+size_flags_vertical = 3
 
-[node name="CWName" type="Label" parent="Margin/Content/CharRow/CharWeapon/CWBox"]
+[node name="CharBtn" type="TextureButton" parent="Margin/Content/CharRow/CharWeapon/CharPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+expand = true
+texture_normal = ExtResource("3_wq")
+custom_minimum_size = Vector2(48, 48)
+
+[node name="CWName" type="Label" parent="Margin/Content/CharRow/CharWeapon"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_fonts/font = ExtResource("8_zpix")
+theme_override_fonts/font = ExtResource("8_von")
 text = "武器"
 horizontal_alignment = 1
 
-[node name="CharSkill" type="Button" parent="Margin/Content/CharRow"]
+[node name="CharSkill" type="VBoxContainer" parent="Margin/Content/CharRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-
-[node name="CSBox" type="VBoxContainer" parent="Margin/Content/CharRow/CharSkill"]
-layout_mode = 1
-anchor_right = 1.0
-anchor_bottom = 1.0
-mouse_filter = 2
 theme_override_constants/separation = 2
 
-[node name="CSTex" type="TextureRect" parent="Margin/Content/CharRow/CharSkill/CSBox"]
+[node name="CharPanel" type="PanelContainer" parent="Margin/Content/CharRow/CharSkill"]
 layout_mode = 2
-mouse_filter = 2
-texture = ExtResource("4_jn")
-expand_mode = 0
-stretch_mode = 4
-custom_minimum_size = Vector2(32, 32)
+size_flags_vertical = 3
 
-[node name="CSName" type="Label" parent="Margin/Content/CharRow/CharSkill/CSBox"]
+[node name="CharBtn" type="TextureButton" parent="Margin/Content/CharRow/CharSkill/CharPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+expand = true
+texture_normal = ExtResource("4_jn")
+custom_minimum_size = Vector2(48, 48)
+
+[node name="CSName" type="Label" parent="Margin/Content/CharRow/CharSkill"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_fonts/font = ExtResource("8_zpix")
+theme_override_fonts/font = ExtResource("8_von")
 text = "技能"
 horizontal_alignment = 1
 
-[node name="CharActive" type="Button" parent="Margin/Content/CharRow"]
+[node name="CharActive" type="VBoxContainer" parent="Margin/Content/CharRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-
-[node name="CABox" type="VBoxContainer" parent="Margin/Content/CharRow/CharActive"]
-layout_mode = 1
-anchor_right = 1.0
-anchor_bottom = 1.0
-mouse_filter = 2
 theme_override_constants/separation = 2
 
-[node name="CATex" type="TextureRect" parent="Margin/Content/CharRow/CharActive/CABox"]
+[node name="CharPanel" type="PanelContainer" parent="Margin/Content/CharRow/CharActive"]
 layout_mode = 2
-mouse_filter = 2
-texture = ExtResource("5_xh")
-expand_mode = 0
-stretch_mode = 4
-custom_minimum_size = Vector2(32, 32)
+size_flags_vertical = 3
 
-[node name="CAName" type="Label" parent="Margin/Content/CharRow/CharActive/CABox"]
+[node name="CharBtn" type="TextureButton" parent="Margin/Content/CharRow/CharActive/CharPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+expand = true
+texture_normal = ExtResource("5_xh")
+custom_minimum_size = Vector2(48, 48)
+
+[node name="CAName" type="Label" parent="Margin/Content/CharRow/CharActive"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_fonts/font = ExtResource("8_zpix")
+theme_override_fonts/font = ExtResource("8_von")
 text = "消耗"
 horizontal_alignment = 1
 
-[node name="CharPassive" type="Button" parent="Margin/Content/CharRow"]
+[node name="CharPassive" type="VBoxContainer" parent="Margin/Content/CharRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-
-[node name="CPBox" type="VBoxContainer" parent="Margin/Content/CharRow/CharPassive"]
-layout_mode = 1
-anchor_right = 1.0
-anchor_bottom = 1.0
-mouse_filter = 2
 theme_override_constants/separation = 2
 
-[node name="CPTex" type="TextureRect" parent="Margin/Content/CharRow/CharPassive/CPBox"]
+[node name="CharPanel" type="PanelContainer" parent="Margin/Content/CharRow/CharPassive"]
 layout_mode = 2
-mouse_filter = 2
-texture = ExtResource("6_hf")
-expand_mode = 0
-stretch_mode = 4
-custom_minimum_size = Vector2(32, 32)
+size_flags_vertical = 3
 
-[node name="CPName" type="Label" parent="Margin/Content/CharRow/CharPassive/CPBox"]
+[node name="CharBtn" type="TextureButton" parent="Margin/Content/CharRow/CharPassive/CharPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+expand = true
+texture_normal = ExtResource("6_hf")
+custom_minimum_size = Vector2(48, 48)
+
+[node name="CPName" type="Label" parent="Margin/Content/CharRow/CharPassive"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_fonts/font = ExtResource("8_zpix")
+theme_override_fonts/font = ExtResource("8_von")
 text = "护符"
 horizontal_alignment = 1
 
-[node name="CharAnvil" type="Button" parent="Margin/Content/CharRow"]
+[node name="CharAnvil" type="VBoxContainer" parent="Margin/Content/CharRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-
-[node name="CNBox" type="VBoxContainer" parent="Margin/Content/CharRow/CharAnvil"]
-layout_mode = 1
-anchor_right = 1.0
-anchor_bottom = 1.0
-mouse_filter = 2
 theme_override_constants/separation = 2
 
-[node name="CNTex" type="TextureRect" parent="Margin/Content/CharRow/CharAnvil/CNBox"]
+[node name="CharPanel" type="PanelContainer" parent="Margin/Content/CharRow/CharAnvil"]
 layout_mode = 2
-mouse_filter = 2
-texture = ExtResource("7_tz")
-expand_mode = 0
-stretch_mode = 4
-custom_minimum_size = Vector2(32, 32)
+size_flags_vertical = 3
 
-[node name="CNName" type="Label" parent="Margin/Content/CharRow/CharAnvil/CNBox"]
+[node name="CharBtn" type="TextureButton" parent="Margin/Content/CharRow/CharAnvil/CharPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+expand = true
+texture_normal = ExtResource("7_tz")
+custom_minimum_size = Vector2(48, 48)
+
+[node name="CNName" type="Label" parent="Margin/Content/CharRow/CharAnvil"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_fonts/font = ExtResource("8_zpix")
+theme_override_fonts/font = ExtResource("8_von")
 text = "铁砧"
 horizontal_alignment = 1
 
@@ -208,7 +193,7 @@ theme_override_constants/separation = 8
 [node name="CountLabel" type="Label" parent="Margin/Content/Bot"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_fonts/font = ExtResource("8_zpix")
+theme_override_fonts/font = ExtResource("8_von")
 horizontal_alignment = 0
 
 [node name="Spacer" type="Control" parent="Margin/Content/Bot"]
@@ -217,7 +202,7 @@ size_flags_horizontal = 3
 
 [node name="AnvilLabel" type="Label" parent="Margin/Content/Bot"]
 layout_mode = 2
-theme_override_fonts/font = ExtResource("8_zpix")
+theme_override_fonts/font = ExtResource("8_von")
 
 [node name="ConfirmBtn" type="Button" parent="Margin/Content/Bot"]
 instance = ExtResource("2_btn")
@@ -249,7 +234,7 @@ theme_override_constants/separation = 4
 
 [node name="Head" type="Label" parent="SubScreen/Panel/VBox"]
 layout_mode = 2
-theme_override_fonts/font = ExtResource("8_zpix")
+theme_override_fonts/font = ExtResource("8_von")
 horizontal_alignment = 1
 
 [node name="Strip" type="HBoxContainer" parent="SubScreen/Panel/VBox"]

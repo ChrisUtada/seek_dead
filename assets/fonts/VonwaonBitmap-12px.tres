@@ -1,4 +1,6 @@
-[gd_resource type="FontFile" format=3]
+[gd_resource type="FontFile" load_steps=2 format=3]
+
+[ext_resource type="FontFile" path="res://assets/fonts/zpix_font.tres" id="1_zpix"]
 
 [resource]
 antialiased = false
@@ -6,3 +8,4 @@ generate_mipmaps = false
 multichannel_signed_distance_field = false
 allow_system_fallback = true
 font_path = "res://assets/fonts/VonwaonBitmap-12px.ttf"
+fallbacks = [ExtResource("1_zpix")]

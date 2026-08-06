@@ -4,11 +4,10 @@
 # Phase 3（响应式）：viewport 从 640×360 升级到 1280×720 后，
 #   全阶梯同步放大 ~35-50%，保证可读性。
 # 复古掌机 P2：viewport 降至 480×270，全阶梯按 ~原值/2.4 重标定。
-# P2b：默认字体换 VonwaonBitmap-12px（12px 位图字体），全阶梯下限锁 11 避免 <11 缩小糊化。
-# P2c（E 项修复）：发现 VonwaonBitmap-12px 不含 CJK、且 allow_system_fallback=true
-#   导致中文回退到系统矢量字体 → "字体没变化"假象。改用 zpix.ttf（含 CJK，12px 像素字）
-#   作 default_font，关 antialiasing/hinting/system_fallback；并全阶梯再降一档（11→9 区间），
-#   让 9-10px 像素感更明显（zpix 像素字体在 9-10px 中文仍可读，1px=2 像素清晰点阵）。
+# 复古掌机字体方案（最终）：default_font = VonwaonBitmap-12px.tres（Latin/数字位图字），
+#   其 FontFile.fallbacks 串接 zpix_font.tres 兜底中文（两者皆像素字，观感统一）。
+#   allow_system_fallback=true 作最后安全网。全阶梯沿用 9-13px 区间，字号为 Godot 缩放位图，
+#   不另降档（VonwaonBitmap 本身 12px，缩到 9-11px 仍清晰）。
 class_name TypeScale
 extends RefCounted
 
