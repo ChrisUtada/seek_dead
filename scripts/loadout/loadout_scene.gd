@@ -80,11 +80,11 @@ func _build_world() -> void:
 	ring.position = CHAR_POS[selected_char]
 	chars_root.add_child(ring)
 	for cat in CHAR_CATS:
-		_add_char(cat, false)
-	_add_char("anvil", true)
+		_add_char(cat)
+	_add_char("anvil")
 
 
-func _add_char(cat: String, is_anvil: bool) -> void:
+func _add_char(cat: String) -> void:
 	var area := Area2D.new()
 	area.name = "Char_" + cat
 	area.position = CHAR_POS[cat]
@@ -100,10 +100,6 @@ func _add_char(cat: String, is_anvil: bool) -> void:
 		var s := SPRITE_TARGET / float(sprite.texture.get_height())
 		sprite.scale = Vector2(s, s)
 	area.add_child(sprite)
-	if is_anvil:
-		area.input_event.connect(_on_char_input.bind("anvil"))
-	else:
-		area.input_event.connect(_on_char_input.bind(cat))
 	chars_root.add_child(area)
 
 
@@ -120,12 +116,26 @@ func _make_ring() -> Line2D:
 	return r
 
 
-func _on_char_input(_vp, event, _idx, cat: String) -> void:
+# 手动命中测试：不依赖 Area2D/Control 的输入派发顺序（CanvasLayer 上的 Control 会干扰
+# Area2D 的 input_event），直接在本节点 _input 里对小人圆心做距离判定，稳定可靠。
+func _input(event: InputEvent) -> void:
+	if not visible:
+		return
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		if cat == "anvil":
+		var mb := event as InputEventMouseButton
+		var mp: Vector2 = mb.position
+		var r := SPRITE_TARGET * 0.5 + 4          # 与碰撞圆同半径
+		var dx := chars_root.position.x          # 副屏展开时小人整体左移
+		for cat in CHAR_CATS:
+			var wp: Vector2 = CHAR_POS[cat] + Vector2(dx, 0.0)
+			if mp.distance_to(wp) <= r:
+				_on_char_pressed(cat)
+				get_viewport().set_input_as_handled()
+				return
+		var ap: Vector2 = CHAR_POS["anvil"] + Vector2(dx, 0.0)
+		if mp.distance_to(ap) <= r:
 			_on_anvil_pressed()
-		else:
-			_on_char_pressed(cat)
+			get_viewport().set_input_as_handled()
 
 
 # ---- UI 覆盖层 ----
