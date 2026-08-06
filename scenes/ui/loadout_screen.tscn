@@ -71,10 +71,12 @@ size_flags_vertical = 3
 layout_mode = 1
 anchor_right = 1.0
 anchor_bottom = 1.0
+mouse_filter = 2
 theme_override_constants/separation = 2
 
 [node name="CWTex" type="TextureRect" parent="Margin/Content/CharRow/CharWeapon/CWBox"]
 layout_mode = 2
+mouse_filter = 2
 texture = ExtResource("3_wq")
 expand_mode = 0
 stretch_mode = 4
@@ -82,6 +84,7 @@ custom_minimum_size = Vector2(32, 32)
 
 [node name="CWName" type="Label" parent="Margin/Content/CharRow/CharWeapon/CWBox"]
 layout_mode = 2
+mouse_filter = 2
 theme_override_fonts/font = ExtResource("8_zpix")
 text = "武器"
 horizontal_alignment = 1
@@ -95,10 +98,12 @@ size_flags_vertical = 3
 layout_mode = 1
 anchor_right = 1.0
 anchor_bottom = 1.0
+mouse_filter = 2
 theme_override_constants/separation = 2
 
 [node name="CSTex" type="TextureRect" parent="Margin/Content/CharRow/CharSkill/CSBox"]
 layout_mode = 2
+mouse_filter = 2
 texture = ExtResource("4_jn")
 expand_mode = 0
 stretch_mode = 4
@@ -106,6 +111,7 @@ custom_minimum_size = Vector2(32, 32)
 
 [node name="CSName" type="Label" parent="Margin/Content/CharRow/CharSkill/CSBox"]
 layout_mode = 2
+mouse_filter = 2
 theme_override_fonts/font = ExtResource("8_zpix")
 text = "技能"
 horizontal_alignment = 1
@@ -119,10 +125,12 @@ size_flags_vertical = 3
 layout_mode = 1
 anchor_right = 1.0
 anchor_bottom = 1.0
+mouse_filter = 2
 theme_override_constants/separation = 2
 
 [node name="CATex" type="TextureRect" parent="Margin/Content/CharRow/CharActive/CABox"]
 layout_mode = 2
+mouse_filter = 2
 texture = ExtResource("5_xh")
 expand_mode = 0
 stretch_mode = 4
@@ -130,6 +138,7 @@ custom_minimum_size = Vector2(32, 32)
 
 [node name="CAName" type="Label" parent="Margin/Content/CharRow/CharActive/CABox"]
 layout_mode = 2
+mouse_filter = 2
 theme_override_fonts/font = ExtResource("8_zpix")
 text = "消耗"
 horizontal_alignment = 1
@@ -143,10 +152,12 @@ size_flags_vertical = 3
 layout_mode = 1
 anchor_right = 1.0
 anchor_bottom = 1.0
+mouse_filter = 2
 theme_override_constants/separation = 2
 
 [node name="CPTex" type="TextureRect" parent="Margin/Content/CharRow/CharPassive/CPBox"]
 layout_mode = 2
+mouse_filter = 2
 texture = ExtResource("6_hf")
 expand_mode = 0
 stretch_mode = 4
@@ -154,6 +165,7 @@ custom_minimum_size = Vector2(32, 32)
 
 [node name="CPName" type="Label" parent="Margin/Content/CharRow/CharPassive/CPBox"]
 layout_mode = 2
+mouse_filter = 2
 theme_override_fonts/font = ExtResource("8_zpix")
 text = "护符"
 horizontal_alignment = 1
@@ -167,10 +179,12 @@ size_flags_vertical = 3
 layout_mode = 1
 anchor_right = 1.0
 anchor_bottom = 1.0
+mouse_filter = 2
 theme_override_constants/separation = 2
 
 [node name="CNTex" type="TextureRect" parent="Margin/Content/CharRow/CharAnvil/CNBox"]
 layout_mode = 2
+mouse_filter = 2
 texture = ExtResource("7_tz")
 expand_mode = 0
 stretch_mode = 4
@@ -178,6 +192,7 @@ custom_minimum_size = Vector2(32, 32)
 
 [node name="CNName" type="Label" parent="Margin/Content/CharRow/CharAnvil/CNBox"]
 layout_mode = 2
+mouse_filter = 2
 theme_override_fonts/font = ExtResource("8_zpix")
 text = "铁砧"
 horizontal_alignment = 1
@@ -212,14 +227,19 @@ custom_minimum_size = Vector2(110, 34)
 [node name="SubScreen" type="Control" parent="."]
 layout_mode = 1
 anchor_left = 1.0
+anchor_top = 0.0
 anchor_right = 1.0
+anchor_bottom = 1.0
 offset_left = 0
 offset_top = 0
+offset_right = 0
 offset_bottom = 0
 mouse_filter = 2
 
 [node name="Panel" type="PanelContainer" parent="SubScreen"]
 layout_mode = 1
+anchor_left = 0.0
+anchor_top = 0.0
 anchor_right = 1.0
 anchor_bottom = 1.0
 
@@ -250,7 +270,9 @@ theme_override_constants/separation = 4
 [node name="SubHandle" type="Button" parent="."]
 layout_mode = 1
 anchor_left = 1.0
+anchor_top = 0.0
 anchor_right = 1.0
+anchor_bottom = 1.0
 offset_left = -28
 offset_right = -10
 offset_top = 0
