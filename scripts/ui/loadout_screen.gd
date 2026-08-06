@@ -15,6 +15,7 @@ const TITLES := {"weapon": "武器", "skill": "技能", "active": "消耗品", "
 const SUB_W := 260   # 副屏抽屉宽度（480 设计宽下占 ~54%）
 
 @onready var bg = $Bg
+@onready var margin = $Margin
 @onready var title_label = $Margin/Content/TitleLabel
 @onready var rule_label = $Margin/Content/RuleLabel
 @onready var char_buttons := {
@@ -132,7 +133,9 @@ func _on_anvil_pressed() -> void:
 
 func _panel_style() -> StyleBoxFlat:
 	var sb = StyleBoxFlat.new()
-	sb.bg_color = Palette.PANEL_BG
+	var bgc := Palette.PANEL_BG
+	bgc.a = 1.0          # 副屏必须不透明，否则主屏小人会透出 → 看起来像"副屏没拉出"
+	sb.bg_color = bgc
 	sb.border_color = Palette.PANEL_BORDER
 	sb.set_border_width_all(Palette.BORDER_WIDTH)
 	sb.set_corner_radius_all(Palette.PANEL_RADIUS)
@@ -181,9 +184,12 @@ func _set_sub_open(open: bool, instant := false) -> void:
 	sub_screen.mouse_filter = Control.MOUSE_FILTER_STOP if open else Control.MOUSE_FILTER_IGNORE
 	if instant:
 		sub_screen.offset_left = target
+		margin.offset_right = target
 	else:
 		_tween = create_tween()
 		_tween.tween_property(sub_screen, "offset_left", target, 0.18) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		_tween.parallel().tween_property(margin, "offset_right", target, 0.18) \
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
 
