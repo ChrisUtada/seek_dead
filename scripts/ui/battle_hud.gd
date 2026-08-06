@@ -281,13 +281,12 @@ func _item_pool_of(category: String) -> Array:
 
 func _make_item_card(data: Resource, path: String, kind: String) -> Dictionary:
 	var btn = UI_BUTTON.instantiate()
-	btn.custom_minimum_size = Vector2(0, 36)
+	btn.custom_minimum_size = Vector2(0, 26)
 	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	btn.text = ""
 	var vb = VBoxContainer.new()
 	vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	vb.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	vb.add_theme_constant_override("separation", 1)
+	vb.add_theme_constant_override("separation", 0)
 	btn.add_child(vb)
 
 	var name := ""
@@ -311,7 +310,7 @@ func _make_item_card(data: Resource, path: String, kind: String) -> Dictionary:
 					if sw != null and sw.symbol != null and sw.symbol.kind == "special":
 						sp_name = sw.symbol.name
 						break
-			line2 = "攻击力 %d · 命中 %.0f%% · 特殊 %s" % [int(wd.base_power), wd.hit_rate * 100.0, sp_name]
+			line2 = "攻%d 命%.0f%% 特%s" % [int(wd.base_power), wd.hit_rate * 100.0, sp_name]
 	elif kind == "skill":
 		name = data.buff_name if (data != null) else path.get_file().get_basename()
 		if data != null:
@@ -319,8 +318,8 @@ func _make_item_card(data: Resource, path: String, kind: String) -> Dictionary:
 			# P5：技能同样显示强度轴（攻击力 + 命中率）
 			var sym_txt := "无符号"
 			if data.symbol != null:
-				sym_txt = "符号 %s×%d · 持续 %d 回合" % [data.symbol.label, int(data.weight), data.symbol.buff_turns]
-			line2 = "攻击力 %d · 命中 %.0f%% · %s" % [int(data.base_power), data.hit_rate * 100.0, sym_txt]
+				sym_txt = "×%d·%dT" % [int(data.weight), data.symbol.buff_turns]
+			line2 = "攻%d 命%.0f%% %s" % [int(data.base_power), data.hit_rate * 100.0, sym_txt]
 	else:
 		name = data.item_name if (data != null) else path.get_file().get_basename()
 		if data != null:
@@ -331,15 +330,21 @@ func _make_item_card(data: Resource, path: String, kind: String) -> Dictionary:
 	var nl = _label(name, TypeScale.META)
 	nl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	nl.autowrap_mode = TextServer.AUTOWRAP_OFF
+	nl.clip_text = true
 	vb.add_child(nl)
 	var l1 = _label(line1, TypeScale.TINY)
 	l1.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	l1.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	l1.autowrap_mode = TextServer.AUTOWRAP_OFF
+	l1.clip_text = true
 	vb.add_child(l1)
 	if line2 != "":
 		var l2 = _label(line2, TypeScale.CAPTION)
 		l2.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		l2.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		l2.autowrap_mode = TextServer.AUTOWRAP_OFF
+		l2.clip_text = true
 		l2.add_theme_color_override("font_color", Palette.MUTED_DIM)
 		vb.add_child(l2)
 	var card := {"path": path, "btn": btn, "selected": false, "kind": kind}

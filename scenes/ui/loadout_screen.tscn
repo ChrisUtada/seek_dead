@@ -67,16 +67,17 @@ theme_override_constants/v_separation = 4
 [node name="CharWeapon" type="VBoxContainer" parent="Margin/Content/CharRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_vertical = 3
+size_flags_vertical = 0
 theme_override_constants/separation = 2
 
 [node name="CharPanel" type="PanelContainer" parent="Margin/Content/CharRow/CharWeapon"]
 layout_mode = 2
-size_flags_vertical = 3
+size_flags_vertical = 0
+custom_minimum_size = Vector2(56, 56)
 
 [node name="CharBtn" type="TextureButton" parent="Margin/Content/CharRow/CharWeapon/CharPanel"]
 layout_mode = 2
-size_flags_vertical = 3
+size_flags_vertical = 0
 expand = true
 texture_normal = ExtResource("3_wq")
 custom_minimum_size = Vector2(48, 48)
@@ -91,16 +92,17 @@ horizontal_alignment = 1
 [node name="CharSkill" type="VBoxContainer" parent="Margin/Content/CharRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_vertical = 3
+size_flags_vertical = 0
 theme_override_constants/separation = 2
 
 [node name="CharPanel" type="PanelContainer" parent="Margin/Content/CharRow/CharSkill"]
 layout_mode = 2
-size_flags_vertical = 3
+size_flags_vertical = 0
+custom_minimum_size = Vector2(56, 56)
 
 [node name="CharBtn" type="TextureButton" parent="Margin/Content/CharRow/CharSkill/CharPanel"]
 layout_mode = 2
-size_flags_vertical = 3
+size_flags_vertical = 0
 expand = true
 texture_normal = ExtResource("4_jn")
 custom_minimum_size = Vector2(48, 48)
@@ -115,16 +117,17 @@ horizontal_alignment = 1
 [node name="CharActive" type="VBoxContainer" parent="Margin/Content/CharRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_vertical = 3
+size_flags_vertical = 0
 theme_override_constants/separation = 2
 
 [node name="CharPanel" type="PanelContainer" parent="Margin/Content/CharRow/CharActive"]
 layout_mode = 2
-size_flags_vertical = 3
+size_flags_vertical = 0
+custom_minimum_size = Vector2(56, 56)
 
 [node name="CharBtn" type="TextureButton" parent="Margin/Content/CharRow/CharActive/CharPanel"]
 layout_mode = 2
-size_flags_vertical = 3
+size_flags_vertical = 0
 expand = true
 texture_normal = ExtResource("5_xh")
 custom_minimum_size = Vector2(48, 48)
@@ -139,16 +142,17 @@ horizontal_alignment = 1
 [node name="CharPassive" type="VBoxContainer" parent="Margin/Content/CharRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_vertical = 3
+size_flags_vertical = 0
 theme_override_constants/separation = 2
 
 [node name="CharPanel" type="PanelContainer" parent="Margin/Content/CharRow/CharPassive"]
 layout_mode = 2
-size_flags_vertical = 3
+size_flags_vertical = 0
+custom_minimum_size = Vector2(56, 56)
 
 [node name="CharBtn" type="TextureButton" parent="Margin/Content/CharRow/CharPassive/CharPanel"]
 layout_mode = 2
-size_flags_vertical = 3
+size_flags_vertical = 0
 expand = true
 texture_normal = ExtResource("6_hf")
 custom_minimum_size = Vector2(48, 48)
@@ -163,16 +167,17 @@ horizontal_alignment = 1
 [node name="CharAnvil" type="VBoxContainer" parent="Margin/Content/CharRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_vertical = 3
+size_flags_vertical = 0
 theme_override_constants/separation = 2
 
 [node name="CharPanel" type="PanelContainer" parent="Margin/Content/CharRow/CharAnvil"]
 layout_mode = 2
-size_flags_vertical = 3
+size_flags_vertical = 0
+custom_minimum_size = Vector2(56, 56)
 
 [node name="CharBtn" type="TextureButton" parent="Margin/Content/CharRow/CharAnvil/CharPanel"]
 layout_mode = 2
-size_flags_vertical = 3
+size_flags_vertical = 0
 expand = true
 texture_normal = ExtResource("7_tz")
 custom_minimum_size = Vector2(48, 48)
@@ -222,6 +227,7 @@ offset_top = 0
 offset_right = 0
 offset_bottom = 0
 mouse_filter = 2
+clip_contents = true
 
 [node name="Panel" type="PanelContainer" parent="SubScreen"]
 layout_mode = 1
