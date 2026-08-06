@@ -134,6 +134,8 @@ var _popup_free := []              # 空闲 Label 栈
 var _bd_label: Label = null        # 伤害分解浮字（复用，飘在敌人头顶）
 var _bd_tween: Tween = null
 var _legend_sig := ""              # 图例 diff 签名缓存
+var _legend_expanded := false       # 图例符号列表是否展开（默认收起，仅显示敌人属性+弱/抗 + 折叠按钮）
+var _legend_toggle_btn = null       # 图例折叠按钮（运行时建）
 
 func _label(text: String, size: int = TypeScale.BODY) -> Label:
 	var l = Label.new()
@@ -720,6 +722,7 @@ func _update_match_badges(counts: Dictionary) -> void:
 
 
 # 符号图例：每符号名称/类型/元素 + 敌人属性（Phase 3：签名未变则跳过重建）
+# 默认收起：只显示敌人属性+弱/抗 3 行 + 折叠按钮；点按钮展开看完整符号列表。
 func _refresh_legend() -> void:
 	if legend_container == null:
 		return
@@ -730,8 +733,9 @@ func _refresh_legend() -> void:
 	for c in legend_container.get_children():
 		legend_container.remove_child(c)
 		c.queue_free()
-	# S3：敌人栏改为「弱点 / 抗性」视角。原先只显示"敌人属性：火"，玩家还得
-	# 自己在脑子里跑一遍五元环才知道该带什么武器——这里直接把结论摆出来。
+	_legend_toggle_btn = null
+
+	# 敌人属性 + 弱/抗（始终显示）
 	var eelem: String = controller.state.enemy_element
 	var et = _label("敌人 %s" % ElementCounter.label(eelem), TypeScale.META)
 	et.add_theme_color_override("font_color", ElementCounter.color(eelem))
@@ -753,27 +757,50 @@ func _refresh_legend() -> void:
 		lr.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 		lr.add_theme_color_override("font_color", ElementCounter.color(ers))
 		legend_container.add_child(lr)
-	var seen := {}
+
+	# 符号去重统计（展开时才逐个渲染）
+	var seen: Dictionary = {}
 	for p in controller.state.pool:
 		var d: SymbolData = p[0]
 		var pelem: String = p[2] if p.size() > 2 else d.element
-		var key = d.resource_path + "|" + pelem
-		if seen.has(key):
-			continue
-		seen[key] = true
-		var elem = pelem
-		var kindname = _kind_name(d.kind)
-		var t = "%s %s · %s%s" % [d.label, d.name, kindname, ("" if elem == "none" else " · " + ElementCounter.label(elem))]
-		var tint = ElementCounter.color(elem)
-		if d.kind == "buff":
-			# Phase C：增益符号在图例里展示效果与持续回合，用符号自身配色
-			var vtxt = ("×%.1f" % d.buff_value) if d.buff_effect == "damage_mult" else ("+%d" % int(d.buff_value))
-			t = "%s %s · 技能 · %s %s（%d 回合）" % [d.label, d.name, controller._buff_effect_name(d.buff_effect), vtxt, d.buff_turns]
-			tint = d.color
-		var l = _label(t, TypeScale.TINY)
-		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-		l.add_theme_color_override("font_color", tint)
-		legend_container.add_child(l)
+		seen[d.resource_path + "|" + pelem] = [d, pelem]
+	var sym_count: int = seen.size()
+
+	# 展开时：渲染所有符号
+	if _legend_expanded:
+		for key in seen:
+			var arr: Array = seen[key]
+			var d: SymbolData = arr[0]
+			var pelem: String = arr[1]
+			var elem: String = pelem
+			var kindname: String = _kind_name(d.kind)
+			var t: String = "%s %s · %s%s" % [d.label, d.name, kindname, ("" if elem == "none" else " · " + ElementCounter.label(elem))]
+			var tint: Color = ElementCounter.color(elem)
+			if d.kind == "buff":
+				# Phase C：增益符号在图例里展示效果与持续回合，用符号自身配色
+				var vtxt: String = ("×%.1f" % d.buff_value) if d.buff_effect == "damage_mult" else ("+%d" % int(d.buff_value))
+				t = "%s %s · 技能 · %s %s（%d 回合）" % [d.label, d.name, controller._buff_effect_name(d.buff_effect), vtxt, d.buff_turns]
+				tint = d.color
+			var l = _label(t, TypeScale.TINY)
+			l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+			l.add_theme_color_override("font_color", tint)
+			legend_container.add_child(l)
+
+	# 折叠按钮（始终在末尾；sym_count=0 时不显示）
+	if sym_count > 0:
+		var tb: Button = Button.new()
+		tb.text = "▼ 收起符号" if _legend_expanded else "▶ 符号 (%d)" % sym_count
+		tb.pressed.connect(_on_legend_toggle)
+		tb.focus_mode = Control.FOCUS_NONE
+		tb.add_theme_font_size_override("font_size", TypeScale.TINY)
+		legend_container.add_child(tb)
+		_legend_toggle_btn = tb
+
+
+func _on_legend_toggle() -> void:
+	_legend_expanded = not _legend_expanded
+	_legend_sig = ""  # 强制重建（签名未变也要刷新）
+	_refresh_legend()
 
 
 func _legend_signature() -> String:

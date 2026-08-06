@@ -6,6 +6,6 @@
 antialiased = false
 generate_mipmaps = false
 multichannel_signed_distance_field = false
-allow_system_fallback = true
+allow_system_fallback = false
 font_path = "res://assets/fonts/VonwaonBitmap-12px.ttf"
 fallbacks = [ExtResource("1_zpix")]
