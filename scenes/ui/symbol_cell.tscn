@@ -1,4 +1,4 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [sub_resource type="StyleBoxFlat" id="sb_normal"]
 bg_color = Color(0.18, 0.18, 0.24, 1)
@@ -27,6 +27,10 @@ content_margin_bottom = 4
 [sub_resource type="Theme" id="theme_cell"]
 Button/styles/normal = SubResource("sb_normal")
 Button/styles/disabled = SubResource("sb_disabled")
+Button/fonts/font = ExtResource("zpix_cell")
+Button/fonts/font_size = 11
+
+[ext_resource type="FontFile" path="res://assets/fonts/zpix_font.tres" id="zpix_cell"]
 
 [node name="Cell" type="Button"]
 disabled = true
