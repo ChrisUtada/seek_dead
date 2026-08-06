@@ -1,10 +1,10 @@
-[gd_resource type="Resource" script_class="RewardData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="RewardData" format=3 uid="uid://coe7frgceeo1u"]
 
-[ext_resource type="Script" path="res://scripts/items/reward_data.gd" id="1"]
+[ext_resource type="Script" uid="uid://b5kpdk4k4bw46" path="res://scripts/items/reward_data.gd" id="1"]
 
 [resource]
 script = ExtResource("1")
 id = "elite_ward"
 icon = "🛡"
 label = "结界备战"
-desc = "下一房开局 +30 护盾（为 BOSS 爆发做准备）"
+desc = "下一房开局 +30 护盾"

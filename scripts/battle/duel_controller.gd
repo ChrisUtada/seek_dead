@@ -451,9 +451,8 @@ func _build_pool(loadout: Array) -> void:
 		for s in it["syms"]:
 			pool.append([s[0], s[1], s[2]])
 	pool.append([GOLD_SYMBOL, GOLD_POOL_WEIGHT, "none"])
-	# 符号图例（每符号名称/类型/元素 + 敌人属性）
-	if hud.legend_container != null:
-		hud._refresh_legend()
+	# 敌人元素/弱/抗（取代原底部 LegendBar，写入右侧 EnemyPanel 三 Label）
+	hud._update_enemy_element()
 
 
 
@@ -1420,7 +1419,7 @@ func _start_room(idx: int) -> void:
 	_begin_player_turn()
 	_refresh_consumable_panel()           # 双重保险：同步按钮禁用状态与当前战斗状态
 	hud._refresh_meta()
-	hud._refresh_legend()
+	hud._update_enemy_element()
 	hud._log("▶ 进入房间 %d/%d：%s（HP %d，攻击 %d）" % [idx + 1, ROOMS.size(), enemy_name, enemy_hp_max, enemy_atk])
 
 

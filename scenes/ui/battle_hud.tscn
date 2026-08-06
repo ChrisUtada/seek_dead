@@ -1,469 +1,388 @@
 [gd_scene format=3 uid="uid://cbxngx2q0tsrp"]
 
-[ext_resource type="Script" path="res://scripts/ui/battle_hud.gd" id="1_hud"]
+[ext_resource type="Script" uid="uid://ddxuthgtam243" path="res://scripts/ui/battle_hud.gd" id="1_hud"]
 [ext_resource type="PackedScene" path="res://scenes/ui/ui_button.tscn" id="3_btn"]
-[ext_resource type="Texture2D" path="res://assets/enemy.png" id="5_enemy"]
-[ext_resource type="Texture2D" path="res://assets/char.png" id="4_char"]
-
-[sub_resource type="StyleBoxFlat" id="sb_dmg"]
-bg_color = Color(0.09, 0.09, 0.13, 0.85)
-border_color = Color(0.22, 0.22, 0.30, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-corner_radius_top_left = 0
-corner_radius_top_right = 0
-corner_radius_bottom_right = 0
-corner_radius_bottom_left = 0
-content_margin_left = 4
-content_margin_right = 4
-content_margin_top = 2
-content_margin_bottom = 2
-
-[sub_resource type="StyleBoxFlat" id="sb_legend"]
-bg_color = Color(0.09, 0.09, 0.13, 0.85)
-border_color = Color(0.22, 0.22, 0.30, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-corner_radius_top_left = 0
-corner_radius_top_right = 0
-corner_radius_bottom_right = 0
-corner_radius_bottom_left = 0
-content_margin_left = 4
-content_margin_right = 4
-content_margin_top = 3
-content_margin_bottom = 3
+[ext_resource type="Texture2D" uid="uid://wl2j7n6un7ys" path="res://assets/char.png" id="4_char"]
+[ext_resource type="Texture2D" uid="uid://yl04f4whty6s" path="res://assets/enemy.png" id="5_enemy"]
 
 [sub_resource type="StyleBoxFlat" id="sb_frame"]
 bg_color = Color(0, 0, 0, 0)
-border_color = Color(0.10, 0.10, 0.14, 1)
 border_width_left = 10
 border_width_top = 10
 border_width_right = 10
 border_width_bottom = 10
-corner_radius_top_left = 0
-corner_radius_top_right = 0
-corner_radius_bottom_right = 0
-corner_radius_bottom_left = 0
+border_color = Color(0.1, 0.1, 0.14, 1)
 
 [sub_resource type="StyleBoxFlat" id="sb_dot"]
 bg_color = Color(0.32, 0.32, 0.38, 1)
-border_width_left = 0
-border_width_top = 0
-border_width_right = 0
-border_width_bottom = 0
-corner_radius_top_left = 0
-corner_radius_top_right = 0
-corner_radius_bottom_right = 0
-corner_radius_bottom_left = 0
 
-[node name="BattleHud" type="Control"]
+[node name="BattleHud" type="Control" unique_id=359964419]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 script = ExtResource("1_hud")
 
-[node name="Bg" type="ColorRect" parent="."]
+[node name="Bg" type="ColorRect" parent="." unique_id=256413353]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 color = Color(0.09, 0.09, 0.13, 1)
 
-[node name="Margin" type="MarginContainer" parent="."]
+[node name="Margin" type="MarginContainer" parent="." unique_id=53368100]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 theme_override_constants/margin_left = 10
-theme_override_constants/margin_right = 10
 theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 8
 
-[node name="Content" type="VBoxContainer" parent="Margin"]
+[node name="Content" type="VBoxContainer" parent="Margin" unique_id=1636078098]
 layout_mode = 2
 theme_override_constants/separation = 2
 
-[node name="TitleLabel" type="Label" parent="Margin/Content"]
+[node name="TitleLabel" type="Label" parent="Margin/Content" unique_id=1298307242]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.85, 0.7, 1)
+theme_override_font_sizes/font_size = 11
 text = "Seek Dead · 老虎机对决"
 horizontal_alignment = 1
-theme_override_font_sizes/font_size = 11
-theme_override_colors/font_color = Color(0.9, 0.85, 0.7, 1)
 
-[node name="InfoBar" type="HBoxContainer" parent="Margin/Content"]
+[node name="InfoBar" type="HBoxContainer" parent="Margin/Content" unique_id=399666215]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="RoomLabel" type="Label" parent="Margin/Content/InfoBar"]
+[node name="RoomLabel" type="Label" parent="Margin/Content/InfoBar" unique_id=26759840]
 layout_mode = 2
-unique_name = true
+theme_override_font_sizes/font_size = 9
 text = "房间: 1/1"
-horizontal_alignment = 0
-theme_override_font_sizes/font_size = 9
 
-[node name="TurnLabel" type="Label" parent="Margin/Content/InfoBar"]
+[node name="TurnLabel" type="Label" parent="Margin/Content/InfoBar" unique_id=561931368]
 layout_mode = 2
-unique_name = true
-text = "回合: 1"
-horizontal_alignment = 0
 theme_override_font_sizes/font_size = 9
+text = "回合: 1"
 
-[node name="InfoSpacer" type="Control" parent="Margin/Content/InfoBar"]
+[node name="InfoSpacer" type="Control" parent="Margin/Content/InfoBar" unique_id=823611040]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="RunLabel" type="Label" parent="Margin/Content/InfoBar"]
+[node name="RunLabel" type="Label" parent="Margin/Content/InfoBar" unique_id=11068898]
 layout_mode = 2
-unique_name = true
+theme_override_font_sizes/font_size = 9
 text = "本局加成: —"
 horizontal_alignment = 2
-theme_override_font_sizes/font_size = 9
 
-[node name="LoadoutLabel" type="Label" parent="Margin/Content"]
+[node name="LoadoutLabel" type="Label" parent="Margin/Content" unique_id=1865276221]
 layout_mode = 2
-unique_name = true
-text = "已装备: —"
-horizontal_alignment = 0
 theme_override_font_sizes/font_size = 9
+text = "已装备: —"
 
-[node name="MainRow" type="HBoxContainer" parent="Margin/Content"]
+[node name="MainRow" type="HBoxContainer" parent="Margin/Content" unique_id=275023102]
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_constants/separation = 4
 
-[node name="PlayerPanel" type="PanelContainer" parent="Margin/Content/MainRow"]
-layout_mode = 2
-unique_name = true
+[node name="PlayerPanel" type="PanelContainer" parent="Margin/Content/MainRow" unique_id=1574190775]
 custom_minimum_size = Vector2(90, 0)
+layout_mode = 2
 
-[node name="VBox" type="VBoxContainer" parent="Margin/Content/MainRow/PlayerPanel"]
+[node name="VBox" type="VBoxContainer" parent="Margin/Content/MainRow/PlayerPanel" unique_id=1534531178]
 layout_mode = 2
 theme_override_constants/separation = 2
 
-[node name="PlayerTitle" type="Label" parent="Margin/Content/MainRow/PlayerPanel/VBox"]
+[node name="PlayerTitle" type="Label" parent="Margin/Content/MainRow/PlayerPanel/VBox" unique_id=194085103]
 layout_mode = 2
-text = "玩家"
-horizontal_alignment = 0
-theme_override_font_sizes/font_size = 10
 theme_override_colors/font_color = Color(0.6, 0.85, 0.95, 1)
+theme_override_font_sizes/font_size = 10
+text = "玩家"
 
-[node name="PlayerHpLabel" type="Label" parent="Margin/Content/MainRow/PlayerPanel/VBox"]
+[node name="PlayerHpLabel" type="Label" parent="Margin/Content/MainRow/PlayerPanel/VBox" unique_id=341642241]
 layout_mode = 2
-unique_name = true
+theme_override_font_sizes/font_size = 9
 text = "HP 100/100"
-horizontal_alignment = 0
-theme_override_font_sizes/font_size = 9
 
-[node name="PlayerShieldLabel" type="Label" parent="Margin/Content/MainRow/PlayerPanel/VBox"]
+[node name="PlayerShieldLabel" type="Label" parent="Margin/Content/MainRow/PlayerPanel/VBox" unique_id=739103580]
 layout_mode = 2
-unique_name = true
-text = "护盾 0"
-horizontal_alignment = 0
 theme_override_font_sizes/font_size = 9
+text = "护盾 0"
 
-[node name="GearBox" type="VBoxContainer" parent="Margin/Content/MainRow/PlayerPanel/VBox"]
+[node name="GearBox" type="VBoxContainer" parent="Margin/Content/MainRow/PlayerPanel/VBox" unique_id=108381182]
 layout_mode = 2
 theme_override_constants/separation = 1
 
-[node name="WeaponsRow" type="HBoxContainer" parent="Margin/Content/MainRow/PlayerPanel/VBox/GearBox"]
+[node name="WeaponsRow" type="HBoxContainer" parent="Margin/Content/MainRow/PlayerPanel/VBox/GearBox" unique_id=31706021]
 layout_mode = 2
-unique_name = true
 theme_override_constants/separation = 2
 
-[node name="WeaponsTag" type="Label" parent="Margin/Content/MainRow/PlayerPanel/VBox/GearBox/WeaponsRow"]
+[node name="WeaponsTag" type="Label" parent="Margin/Content/MainRow/PlayerPanel/VBox/GearBox/WeaponsRow" unique_id=251811621]
 layout_mode = 2
-text = "⚔"
-theme_override_font_sizes/font_size = 9
 theme_override_colors/font_color = Color(0.95, 0.75, 0.45, 1)
+theme_override_font_sizes/font_size = 9
+text = "⚔"
 
-[node name="CharmsRow" type="HBoxContainer" parent="Margin/Content/MainRow/PlayerPanel/VBox/GearBox"]
+[node name="CharmsRow" type="HBoxContainer" parent="Margin/Content/MainRow/PlayerPanel/VBox/GearBox" unique_id=517139566]
 layout_mode = 2
-unique_name = true
 theme_override_constants/separation = 2
 
-[node name="CharmsTag" type="Label" parent="Margin/Content/MainRow/PlayerPanel/VBox/GearBox/CharmsRow"]
+[node name="CharmsTag" type="Label" parent="Margin/Content/MainRow/PlayerPanel/VBox/GearBox/CharmsRow" unique_id=1841581371]
 layout_mode = 2
-text = "🛡"
-theme_override_font_sizes/font_size = 9
 theme_override_colors/font_color = Color(0.55, 0.85, 0.95, 1)
+theme_override_font_sizes/font_size = 9
+text = "🛡"
 
-[node name="SkillsRow" type="HBoxContainer" parent="Margin/Content/MainRow/PlayerPanel/VBox/GearBox"]
+[node name="SkillsRow" type="HBoxContainer" parent="Margin/Content/MainRow/PlayerPanel/VBox/GearBox" unique_id=227886405]
 layout_mode = 2
-unique_name = true
 theme_override_constants/separation = 2
 
-[node name="SkillsTag" type="Label" parent="Margin/Content/MainRow/PlayerPanel/VBox/GearBox/SkillsRow"]
+[node name="SkillsTag" type="Label" parent="Margin/Content/MainRow/PlayerPanel/VBox/GearBox/SkillsRow" unique_id=1009645343]
 layout_mode = 2
-text = "✦"
-theme_override_font_sizes/font_size = 9
 theme_override_colors/font_color = Color(0.7, 0.9, 0.7, 1)
-
-[node name="ConsumableTitle" type="Label" parent="Margin/Content/MainRow/PlayerPanel/VBox"]
-layout_mode = 2
-text = "消耗品"
-horizontal_alignment = 0
 theme_override_font_sizes/font_size = 9
-theme_override_colors/font_color = Color(0.75, 0.65, 0.95, 1)
+text = "✦"
 
-[node name="ConsumablePanel" type="GridContainer" parent="Margin/Content/MainRow/PlayerPanel/VBox"]
+[node name="ConsumableTitle" type="Label" parent="Margin/Content/MainRow/PlayerPanel/VBox" unique_id=1288618581]
 layout_mode = 2
-columns = 2
+theme_override_colors/font_color = Color(0.75, 0.65, 0.95, 1)
+theme_override_font_sizes/font_size = 9
+text = "消耗品"
+
+[node name="ConsumablePanel" type="GridContainer" parent="Margin/Content/MainRow/PlayerPanel/VBox" unique_id=938518459]
+layout_mode = 2
 theme_override_constants/h_separation = 2
 theme_override_constants/v_separation = 2
+columns = 2
 
-[node name="Cell1" parent="Margin/Content/MainRow/PlayerPanel/VBox/ConsumablePanel" instance=ExtResource("3_btn")]
+[node name="Cell1" parent="Margin/Content/MainRow/PlayerPanel/VBox/ConsumablePanel" unique_id=2097403575 instance=ExtResource("3_btn")]
 custom_minimum_size = Vector2(30, 22)
-text = "—"
-theme_override_font_sizes/font_size = 9
-
-[node name="Cell2" parent="Margin/Content/MainRow/PlayerPanel/VBox/ConsumablePanel" instance=ExtResource("3_btn")]
-custom_minimum_size = Vector2(30, 22)
-text = "—"
-theme_override_font_sizes/font_size = 9
-
-[node name="Cell3" parent="Margin/Content/MainRow/PlayerPanel/VBox/ConsumablePanel" instance=ExtResource("3_btn")]
-custom_minimum_size = Vector2(30, 22)
-text = "—"
-theme_override_font_sizes/font_size = 9
-
-[node name="Cell4" parent="Margin/Content/MainRow/PlayerPanel/VBox/ConsumablePanel" instance=ExtResource("3_btn")]
-custom_minimum_size = Vector2(30, 22)
-text = "—"
-theme_override_font_sizes/font_size = 9
-
-[node name="PlayerBuffLabel" type="Label" parent="Margin/Content/MainRow/PlayerPanel/VBox"]
 layout_mode = 2
-unique_name = true
-text = "增益: 无"
-horizontal_alignment = 0
-autowrap_mode = 3
 theme_override_font_sizes/font_size = 9
+text = "—"
+
+[node name="Cell2" parent="Margin/Content/MainRow/PlayerPanel/VBox/ConsumablePanel" unique_id=764738953 instance=ExtResource("3_btn")]
+custom_minimum_size = Vector2(30, 22)
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+text = "—"
+
+[node name="Cell3" parent="Margin/Content/MainRow/PlayerPanel/VBox/ConsumablePanel" unique_id=1271823786 instance=ExtResource("3_btn")]
+custom_minimum_size = Vector2(30, 22)
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+text = "—"
+
+[node name="Cell4" parent="Margin/Content/MainRow/PlayerPanel/VBox/ConsumablePanel" unique_id=341833789 instance=ExtResource("3_btn")]
+custom_minimum_size = Vector2(30, 22)
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+text = "—"
+
+[node name="PlayerBuffLabel" type="Label" parent="Margin/Content/MainRow/PlayerPanel/VBox" unique_id=1884088919]
+layout_mode = 2
 theme_override_colors/font_color = Color(0.85, 0.65, 1, 1)
-
-[node name="GoldLabel" type="Label" parent="Margin/Content/MainRow/PlayerPanel/VBox"]
-layout_mode = 2
-unique_name = true
-text = "金币 4"
-horizontal_alignment = 0
 theme_override_font_sizes/font_size = 9
-theme_override_colors/font_color = Color(1, 0.85, 0.3, 1)
+text = "增益: 无"
+autowrap_mode = 3
 
-[node name="PlayerSpacer" type="Control" parent="Margin/Content/MainRow/PlayerPanel/VBox"]
+[node name="GoldLabel" type="Label" parent="Margin/Content/MainRow/PlayerPanel/VBox" unique_id=818987730]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.3, 1)
+theme_override_font_sizes/font_size = 9
+text = "金币 4"
+
+[node name="PlayerSpacer" type="Control" parent="Margin/Content/MainRow/PlayerPanel/VBox" unique_id=1739451902]
 layout_mode = 2
 
-[node name="CenterStage" type="VBoxContainer" parent="Margin/Content/MainRow"]
+[node name="CenterStage" type="VBoxContainer" parent="Margin/Content/MainRow" unique_id=1653173591]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/separation = 2
 
-[node name="StageRow" type="HBoxContainer" parent="Margin/Content/MainRow/CenterStage"]
+[node name="StageRow" type="HBoxContainer" parent="Margin/Content/MainRow/CenterStage" unique_id=33704585]
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_constants/separation = 8
 
-[node name="PlayerCenter" type="CenterContainer" parent="Margin/Content/MainRow/CenterStage/StageRow"]
+[node name="PlayerCenter" type="CenterContainer" parent="Margin/Content/MainRow/CenterStage/StageRow" unique_id=1294201573]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="PlayerSprite" type="TextureRect" parent="Margin/Content/MainRow/CenterStage/StageRow/PlayerCenter"]
-layout_mode = 2
+[node name="PlayerSprite" type="TextureRect" parent="Margin/Content/MainRow/CenterStage/StageRow/PlayerCenter" unique_id=1571310140]
 custom_minimum_size = Vector2(44, 60)
-stretch_mode = 5
+layout_mode = 2
 texture = ExtResource("4_char")
+stretch_mode = 5
 
-[node name="EnemyCenter" type="CenterContainer" parent="Margin/Content/MainRow/CenterStage/StageRow"]
+[node name="EnemyCenter" type="CenterContainer" parent="Margin/Content/MainRow/CenterStage/StageRow" unique_id=817341559]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="EnemySprite" type="TextureRect" parent="Margin/Content/MainRow/CenterStage/StageRow/EnemyCenter"]
-layout_mode = 2
+[node name="EnemySprite" type="TextureRect" parent="Margin/Content/MainRow/CenterStage/StageRow/EnemyCenter" unique_id=38426286]
 custom_minimum_size = Vector2(44, 60)
-stretch_mode = 5
+layout_mode = 2
 texture = ExtResource("5_enemy")
+stretch_mode = 5
 
-[node name="ReelDock" type="VBoxContainer" parent="Margin/Content/MainRow/CenterStage"]
+[node name="ReelDock" type="VBoxContainer" parent="Margin/Content/MainRow/CenterStage" unique_id=878859411]
 layout_mode = 2
-size_flags_horizontal = 1
-alignment = 1
 theme_override_constants/separation = 2
-
-[node name="TopRow" type="HBoxContainer" parent="Margin/Content/MainRow/CenterStage/ReelDock"]
-layout_mode = 2
 alignment = 1
-theme_override_constants/separation = 4
 
-[node name="ReelCenter" type="CenterContainer" parent="Margin/Content/MainRow/CenterStage/ReelDock/TopRow"]
+[node name="TopRow" type="HBoxContainer" parent="Margin/Content/MainRow/CenterStage/ReelDock" unique_id=661951653]
+layout_mode = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="ReelCenter" type="CenterContainer" parent="Margin/Content/MainRow/CenterStage/ReelDock/TopRow" unique_id=1409314361]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="GridContainer" type="GridContainer" parent="Margin/Content/MainRow/CenterStage/ReelDock/TopRow/ReelCenter"]
+[node name="GridContainer" type="GridContainer" parent="Margin/Content/MainRow/CenterStage/ReelDock/TopRow/ReelCenter" unique_id=753079757]
 layout_mode = 2
-unique_name = true
-columns = 3
 theme_override_constants/h_separation = 4
 theme_override_constants/v_separation = 4
+columns = 3
 
-[node name="SpinBar" type="HBoxContainer" parent="Margin/Content/MainRow/CenterStage/ReelDock"]
+[node name="SpinBar" type="HBoxContainer" parent="Margin/Content/MainRow/CenterStage/ReelDock" unique_id=613794076]
 layout_mode = 2
-alignment = 1
 theme_override_constants/separation = 4
+alignment = 1
 
-[node name="SpinButton" parent="Margin/Content/MainRow/CenterStage/ReelDock/SpinBar" instance=ExtResource("3_btn")]
-layout_mode = 2
-unique_name = true
+[node name="SpinButton" parent="Margin/Content/MainRow/CenterStage/ReelDock/SpinBar" unique_id=1202759145 instance=ExtResource("3_btn")]
 custom_minimum_size = Vector2(96, 26)
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
 text = "SPIN (空格)"
-theme_override_font_sizes/font_size = 10
 
-[node name="BottomRow" type="VBoxContainer" parent="Margin/Content/MainRow/CenterStage"]
-layout_mode = 2
-theme_override_constants/separation = 2
-
-
-[node name="LegendBox" type="PanelContainer" parent="Margin/Content/MainRow/CenterStage/BottomRow"]
-layout_mode = 2
-unique_name = true
-theme_override_styles/panel = SubResource("sb_legend")
-
-[node name="LegendContainer" type="VBoxContainer" parent="Margin/Content/MainRow/CenterStage/BottomRow/LegendBox"]
-layout_mode = 2
-unique_name = true
-theme_override_constants/separation = 1
-
-[node name="EnemyPanel" type="PanelContainer" parent="Margin/Content/MainRow"]
-layout_mode = 2
-unique_name = true
+[node name="EnemyPanel" type="PanelContainer" parent="Margin/Content/MainRow" unique_id=2000227142]
 custom_minimum_size = Vector2(90, 0)
+layout_mode = 2
 
-[node name="VBox" type="VBoxContainer" parent="Margin/Content/MainRow/EnemyPanel"]
+[node name="VBox" type="VBoxContainer" parent="Margin/Content/MainRow/EnemyPanel" unique_id=722214282]
 layout_mode = 2
 theme_override_constants/separation = 2
 
-[node name="EnemyTitle" type="Label" parent="Margin/Content/MainRow/EnemyPanel/VBox"]
+[node name="EnemyTitle" type="Label" parent="Margin/Content/MainRow/EnemyPanel/VBox" unique_id=198916010]
 layout_mode = 2
-text = "敌人"
-horizontal_alignment = 0
-theme_override_font_sizes/font_size = 10
 theme_override_colors/font_color = Color(0.95, 0.55, 0.55, 1)
+theme_override_font_sizes/font_size = 10
+text = "敌人"
 
-[node name="BossBadge" type="Label" parent="Margin/Content/MainRow/EnemyPanel/VBox"]
+[node name="EnemyElementLabel" type="Label" parent="Margin/Content/MainRow/EnemyPanel/VBox" unique_id=2123456701]
 layout_mode = 2
-unique_name = true
-text = "★ BOSS"
-horizontal_alignment = 0
-visible = false
 theme_override_font_sizes/font_size = 9
-theme_override_colors/font_color = Color(1, 0.85, 0.3, 1)
-
-[node name="EnemyNameLabel" type="Label" parent="Margin/Content/MainRow/EnemyPanel/VBox"]
-layout_mode = 2
-unique_name = true
 text = "—"
-horizontal_alignment = 0
-theme_override_font_sizes/font_size = 9
 
-[node name="EnemyHpLabel" type="Label" parent="Margin/Content/MainRow/EnemyPanel/VBox"]
-layout_mode = 2
-unique_name = true
-text = "HP 0/0"
-horizontal_alignment = 0
-theme_override_font_sizes/font_size = 9
-
-[node name="EnemyArmorLabel" type="Label" parent="Margin/Content/MainRow/EnemyPanel/VBox"]
-layout_mode = 2
-unique_name = true
-text = "护甲 0/0"
-horizontal_alignment = 0
+[node name="BossBadge" type="Label" parent="Margin/Content/MainRow/EnemyPanel/VBox" unique_id=1813915626]
 visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.3, 1)
 theme_override_font_sizes/font_size = 9
+text = "★ BOSS"
+
+[node name="EnemyNameLabel" type="Label" parent="Margin/Content/MainRow/EnemyPanel/VBox" unique_id=417397038]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+text = "—"
+
+[node name="EnemyHpLabel" type="Label" parent="Margin/Content/MainRow/EnemyPanel/VBox" unique_id=1047730389]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+text = "HP 0/0"
+
+[node name="EnemyArmorLabel" type="Label" parent="Margin/Content/MainRow/EnemyPanel/VBox" unique_id=476966310]
+visible = false
+layout_mode = 2
 theme_override_colors/font_color = Color(0.75, 0.8, 0.9, 1)
+theme_override_font_sizes/font_size = 9
+text = "护甲 0/0"
 
-[node name="EnemyIntentLabel" type="Label" parent="Margin/Content/MainRow/EnemyPanel/VBox"]
+[node name="EnemyWeakLabel" type="Label" parent="Margin/Content/MainRow/EnemyPanel/VBox" unique_id=2123456702]
+visible = false
 layout_mode = 2
-unique_name = true
+theme_override_font_sizes/font_size = 9
+text = "—"
+
+[node name="EnemyResistLabel" type="Label" parent="Margin/Content/MainRow/EnemyPanel/VBox" unique_id=2123456703]
+visible = false
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+text = "—"
+
+[node name="EnemyIntentLabel" type="Label" parent="Margin/Content/MainRow/EnemyPanel/VBox" unique_id=1520650189]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
 text = "意图: —"
-theme_override_font_sizes/font_size = 9
 
-[node name="EnemyStatusLabel" type="Label" parent="Margin/Content/MainRow/EnemyPanel/VBox"]
+[node name="EnemyStatusLabel" type="Label" parent="Margin/Content/MainRow/EnemyPanel/VBox" unique_id=143588646]
 layout_mode = 2
-unique_name = true
-text = "状态: 无"
 theme_override_font_sizes/font_size = 9
+text = "状态: 无"
 
-[node name="LogBar" type="HBoxContainer" parent="Margin/Content"]
+[node name="LogBar" type="HBoxContainer" parent="Margin/Content" unique_id=1805015885]
 layout_mode = 2
 theme_override_constants/separation = 3
 
-[node name="LogScroll" type="ScrollContainer" parent="Margin/Content/LogBar"]
+[node name="LogScroll" type="ScrollContainer" parent="Margin/Content/LogBar" unique_id=1581007120]
 layout_mode = 2
-unique_name = true
 size_flags_horizontal = 3
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
-vertical_scroll_mode = 1
 
-[node name="LogLabel" type="Label" parent="Margin/Content/LogBar/LogScroll"]
+[node name="LogLabel" type="Label" parent="Margin/Content/LogBar/LogScroll" unique_id=1795395433]
 layout_mode = 2
-unique_name = true
-text = ""
-autowrap_mode = 3
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 9
+autowrap_mode = 3
 
-[node name="DeviceFrame" type="Control" parent="."]
-anchors_preset = 15
+[node name="DeviceFrame" type="Control" parent="." unique_id=552777567]
+z_index = 100
+anchors_preset = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
-z_index = 100
 
-[node name="Border" type="Panel" parent="DeviceFrame"]
-anchors_preset = 15
+[node name="Border" type="Panel" parent="DeviceFrame" unique_id=982412088]
+layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
 theme_override_styles/panel = SubResource("sb_frame")
 
-[node name="Dot1" type="Panel" parent="DeviceFrame"]
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
+[node name="Dot1" type="Panel" parent="DeviceFrame" unique_id=1203162635]
+layout_mode = 0
 offset_left = 220.0
+offset_top = 5.0
 offset_right = 226.0
-offset_top = 5.0
 offset_bottom = 11.0
 mouse_filter = 2
 theme_override_styles/panel = SubResource("sb_dot")
 
-[node name="Dot2" type="Panel" parent="DeviceFrame"]
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
+[node name="Dot2" type="Panel" parent="DeviceFrame" unique_id=545097982]
+layout_mode = 0
 offset_left = 237.0
-offset_right = 243.0
 offset_top = 5.0
+offset_right = 243.0
 offset_bottom = 11.0
 mouse_filter = 2
 theme_override_styles/panel = SubResource("sb_dot")
 
-[node name="Dot3" type="Panel" parent="DeviceFrame"]
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
+[node name="Dot3" type="Panel" parent="DeviceFrame" unique_id=638273416]
+layout_mode = 0
 offset_left = 254.0
-offset_right = 260.0
 offset_top = 5.0
+offset_right = 260.0
 offset_bottom = 11.0
 mouse_filter = 2
 theme_override_styles/panel = SubResource("sb_dot")
