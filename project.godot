@@ -36,7 +36,7 @@ window/size/min_height=270
 
 [gui]
 
-theme/default_font="res://assets/fonts/zpix_font.tres"
+theme/default_font="res://assets/fonts/VonwaonBitmap-12px.tres"
 
 [input]
 
