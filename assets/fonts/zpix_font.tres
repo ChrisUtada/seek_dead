@@ -1,0 +1,8 @@
+[gd_resource type="FontFile" format=3]
+
+[resource]
+antialiased = false
+generate_mipmaps = false
+multichannel_signed_distance_field = false
+allow_system_fallback = true
+font_path = "res://assets/fonts/zpix.ttf"

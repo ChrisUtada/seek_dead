@@ -34,6 +34,10 @@ window/stretch/aspect="keep"
 window/size/min_width=480
 window/size/min_height=270
 
+[gui]
+
+theme/default_font="res://assets/fonts/zpix_font.tres"
+
 [input]
 
 move_forward={

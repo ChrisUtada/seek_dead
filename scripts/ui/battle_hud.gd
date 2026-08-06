@@ -610,8 +610,8 @@ func _build_symbol_tooltip() -> void:
 	var sb = StyleBoxFlat.new()
 	sb.bg_color = Palette.TOOLTIP_BG
 	sb.border_color = Palette.PANEL_BORDER
-	sb.set_border_width_all(1)
-	sb.set_corner_radius_all(6)
+	sb.set_border_width_all(Palette.BORDER_WIDTH)
+	sb.set_corner_radius_all(Palette.PANEL_RADIUS)
 	sb.content_margin_left = 8
 	sb.content_margin_right = 8
 	sb.content_margin_top = 6
@@ -886,11 +886,11 @@ func _cell_style(elem: String) -> StyleBoxFlat:
 	if _cell_style_cache.has(elem):
 		return _cell_style_cache[elem]
 	var sb = StyleBoxFlat.new()
-	sb.set_corner_radius_all(6)
+	sb.set_corner_radius_all(Palette.PANEL_RADIUS)
 	if elem == "none":
 		sb.bg_color = Palette.CELL_BG
 		sb.border_color = Palette.PANEL_BORDER
-		sb.set_border_width_all(1)
+		sb.set_border_width_all(Palette.BORDER_WIDTH)
 	else:
 		var ec: Color = ElementCounter.color(elem)
 		sb.bg_color = Palette.CELL_BG.lerp(ec, 0.14)

@@ -13,6 +13,10 @@ const BG_REWARD  := Color(0.05, 0.07, 0.12, 0.98)   # 奖励界面
 const BG_ANVIL   := Color(0.10, 0.08, 0.05, 0.98)   # 铁砧界面
 const BG_OVERLAY := Color(0, 0, 0, 0.72)            # 结算/覆盖层遮罩
 
+# ---- 硬边化（复古掌机 P2：圆角归零 + 边框加粗）----
+const PANEL_RADIUS := 0     # 所有面板/卡片圆角 → 0（硬边）
+const BORDER_WIDTH := 2     # 基础面板边框加粗（默认 1 → 2）
+
 # ---- 面板样式（StyleBoxFlat）----
 const PANEL_BG        := Color(0.11, 0.11, 0.16, 0.75)  # 侧栏面板底（已收入 battle_theme.tres）
 const PANEL_BORDER    := Color(0.22, 0.22, 0.30, 1)     # 面板边框（多条共用）

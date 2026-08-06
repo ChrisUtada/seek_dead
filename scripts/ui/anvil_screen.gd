@@ -145,8 +145,8 @@ func _make_placeholder() -> Control:
 	var style = StyleBoxFlat.new()
 	style.bg_color = Palette.CARD_BG
 	style.border_color = Palette.PANEL_BORDER
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(6)
+	style.set_border_width_all(Palette.BORDER_WIDTH)
+	style.set_corner_radius_all(Palette.PANEL_RADIUS)
 	panel.add_theme_stylebox_override("panel", style)
 	var vb = VBoxContainer.new()
 	vb.add_theme_constant_override("separation", 2)
@@ -163,8 +163,8 @@ func _make_cell(d: Dictionary) -> Control:
 	var style = StyleBoxFlat.new()
 	style.bg_color = Palette.CARD_BG
 	style.border_color = Palette.PANEL_BORDER
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(6)
+	style.set_border_width_all(Palette.BORDER_WIDTH)
+	style.set_corner_radius_all(Palette.PANEL_RADIUS)
 	panel.add_theme_stylebox_override("panel", style)
 	var vb = VBoxContainer.new()
 	vb.add_theme_constant_override("separation", 2)

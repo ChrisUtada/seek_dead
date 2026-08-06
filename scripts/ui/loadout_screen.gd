@@ -69,8 +69,8 @@ func _add_loadout_column(parent: Control, title: String, pool: Array, category: 
 	var style = StyleBoxFlat.new()
 	style.bg_color = Palette.CARD_BG
 	style.border_color = Palette.PANEL_BORDER
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(6)
+	style.set_border_width_all(Palette.BORDER_WIDTH)
+	style.set_corner_radius_all(Palette.PANEL_RADIUS)
 	style.content_margin_left = 5
 	style.content_margin_right = 5
 	style.content_margin_top = 6
