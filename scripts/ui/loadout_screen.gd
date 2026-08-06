@@ -1,9 +1,10 @@
 extends Control
 class_name LoadoutScreen
 
-# loadout_screen — 整备（选择携带物品）覆盖层（P3：5 小人 hub + 可收起副屏）
-# 静态结构由 loadout_screen.tscn 完整提供（5 个小人站 + 右侧抽屉副屏 + 底部栏）；
-# 本脚本只负责：小人点击/高亮 / 副屏滑入滑出 / 填类目卡片数据 / 发信号。
+# loadout_screen — 整备（选择携带物品）覆盖层（P3b-2：主副屏并列布局）
+# 静态结构由 loadout_screen.tscn 完整提供（左 60% 主屏 5 小人 hub 3+2 网格 +
+# 右 40% 副屏常驻卡牌列表 + 底部栏）；本脚本只负责：小人点击/高亮 / 副屏内容
+# 刷新 / 发信号。副屏不再抽屉滑入，点选不同类目 → 副屏内容实时切换。
 # 卡片构造复用 HUD 的 _make_item_card；信号走 controller 的整备方法。
 
 var controller
@@ -12,7 +13,6 @@ const UI_BUTTON = preload("res://scenes/ui/ui_button.tscn")
 
 const CHAR_CATS := ["weapon", "skill", "active", "passive"]
 const TITLES := {"weapon": "武器", "skill": "技能", "active": "消耗品", "passive": "护符"}
-const SUB_W := 260   # 副屏抽屉宽度（480 设计宽下占 ~54%）
 
 @onready var bg = $Bg
 @onready var margin = $Margin
@@ -30,13 +30,13 @@ const SUB_W := 260   # 副屏抽屉宽度（480 设计宽下占 ~54%）
 	"active": $Margin/Content/CharRow/CharActive/CharPanel,
 	"passive": $Margin/Content/CharRow/CharPassive/CharPanel,
 }
-@onready var char_row = $Margin/Content/CharRow
+# 注：CharRow 在 tscn 中固定 GridContainer(columns=3)，5 小人呈 3+2 网格常驻显示。
+# 副屏随 selected_char 切换内容，不再有"展开/收起"动画。
 @onready var anvil_btn = $Margin/Content/CharRow/CharAnvil/CharPanel/CharBtn
 @onready var anvil_panel = $Margin/Content/CharRow/CharAnvil/CharPanel
 @onready var count_label = $Margin/Content/Bot/CountLabel
 @onready var anvil_label = $Margin/Content/Bot/AnvilLabel
 @onready var confirm_btn = $Margin/Content/Bot/ConfirmBtn
-@onready var sub_handle = $SubHandle
 @onready var sub_screen = $SubScreen
 @onready var sub_panel = $SubScreen/Panel
 @onready var sub_head = $SubScreen/Panel/VBox/Head
@@ -45,8 +45,6 @@ const SUB_W := 260   # 副屏抽屉宽度（480 设计宽下占 ~54%）
 
 var selected_char := "weapon"   # 当前选中的类目
 var loadout_cards := []         # 副屏内卡片元数据 {path, btn, selected, kind}
-var sub_open := false
-var _tween: Tween
 
 
 func configure(ctrl, h: BattleHud) -> void:
@@ -66,13 +64,9 @@ func configure(ctrl, h: BattleHud) -> void:
 		_style_char_btn(b, char_panels[cat], false)
 	anvil_btn.pressed.connect(_on_anvil_pressed)
 	_style_char_btn(anvil_btn, anvil_panel, true)
-	# 副屏（抽屉）
+	# 副屏（右侧常驻面板，P3b-2 抽屉→并列布局）
 	sub_panel.add_theme_stylebox_override("panel", _panel_style())
 	sub_head.add_theme_font_size_override("font_size", TypeScale.META)
-	sub_handle.add_theme_font_size_override("font_size", TypeScale.OVERLAY)
-	sub_handle.text = "❯"
-	sub_handle.pressed.connect(_toggle_sub)
-	_style_handle()
 	# 底部栏
 	count_label.add_theme_font_size_override("font_size", TypeScale.META)
 	anvil_label.add_theme_font_size_override("font_size", TypeScale.TINY)
@@ -80,7 +74,8 @@ func configure(ctrl, h: BattleHud) -> void:
 	confirm_btn.add_theme_font_size_override("font_size", TypeScale.MEDIUM)
 	confirm_btn.pressed.connect(controller._confirm_loadout)
 	_refresh_char_highlight()
-	_set_sub_open(false, true)   # 初始收起
+	_fill_sub(selected_char)   # 初始预填当前类目
+	_update_loadout_count()
 
 
 # ---- 小人站 ----
@@ -126,11 +121,10 @@ func _on_char_pressed(cat: String) -> void:
 
 
 func _on_anvil_pressed() -> void:
-	_set_sub_open(false, true)
 	hud._show_anvil_screen()
 
 
-# ---- 副屏抽屉 ----
+# ---- 副屏内容 ----
 
 func _panel_style() -> StyleBoxFlat:
 	var sb = StyleBoxFlat.new()
@@ -140,61 +134,18 @@ func _panel_style() -> StyleBoxFlat:
 	sb.border_color = Palette.PANEL_BORDER
 	sb.set_border_width_all(Palette.BORDER_WIDTH)
 	sb.set_corner_radius_all(Palette.PANEL_RADIUS)
-	sb.content_margin_left = 8
-	sb.content_margin_right = 8
-	sb.content_margin_top = 6
-	sb.content_margin_bottom = 6
+	sb.content_margin_left = 6
+	sb.content_margin_right = 6
+	sb.content_margin_top = 4
+	sb.content_margin_bottom = 4
 	return sb
-
-
-func _style_handle() -> void:
-	var sb = StyleBoxFlat.new()
-	sb.bg_color = Palette.PANEL_BG
-	sb.border_color = Palette.PANEL_BORDER
-	sb.set_border_width_all(1)
-	sb.set_corner_radius_all(Palette.PANEL_RADIUS)
-	sub_handle.add_theme_stylebox_override("normal", sb)
-	sub_handle.add_theme_stylebox_override("hover", sb)
-	sub_handle.add_theme_stylebox_override("pressed", sb)
-
-
-func _toggle_sub() -> void:
-	if sub_open:
-		_set_sub_open(false)
-	else:
-		_open_sub(selected_char)
 
 
 func _open_sub(cat: String) -> void:
 	selected_char = cat
 	_refresh_char_highlight()
 	_fill_sub(cat)
-	_set_sub_open(true)
-
-
-func _close_sub() -> void:
-	_set_sub_open(false)
-
-
-func _set_sub_open(open: bool, instant := false) -> void:
-	sub_open = open
-	# 副屏展开时主区收回右边界 -> 视觉左移；5 小人由单行改为 3 列网格换行，
-	# 保持 48x48 不变、全部可见（左半屏 220px 宽下 3 列恰好放下）
-	char_row.columns = 3 if open else 5
-	if _tween and _tween.is_valid():
-		_tween.kill()
-	var target := -float(SUB_W) if open else 0.0
-	sub_handle.text = "❮" if open else "❯"
-	sub_screen.mouse_filter = Control.MOUSE_FILTER_STOP if open else Control.MOUSE_FILTER_IGNORE
-	if instant:
-		sub_screen.offset_left = target
-		margin.offset_right = target
-	else:
-		_tween = create_tween()
-		_tween.tween_property(sub_screen, "offset_left", target, 0.18) \
-			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-		_tween.parallel().tween_property(margin, "offset_right", target, 0.18) \
-			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_update_loadout_count()
 
 
 # ---- 数据填充 ----
@@ -276,9 +227,9 @@ func _update_loadout_count() -> void:
 	count_label.text = "%s · %s · %s · %s" % [
 		_cat_count_text("weapon", "武器"), _cat_count_text("skill", "技能"),
 		_cat_count_text("active", "消耗品"), _cat_count_text("passive", "护符")]
-	if sub_open:
-		sub_head.text = _cat_count_text(selected_char, TITLES[selected_char])
-		_refresh_slot_strip()
+	# 副屏常驻：每次刷新计数都同步副屏头部 + 槽位条
+	sub_head.text = _cat_count_text(selected_char, TITLES[selected_char])
+	_refresh_slot_strip()
 	var ok = controller.state.selected_loadout.size() >= controller.state.LOADOUT_MIN
 	confirm_btn.disabled = not ok
 	confirm_btn.text = ("确认开战 ▶" if ok else "至少选 %d 把武器 ▶" % controller.state.LOADOUT_MIN)

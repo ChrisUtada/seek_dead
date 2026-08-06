@@ -28,16 +28,16 @@ color = Color(0.06, 0.06, 0.10, 0.98)
 layout_mode = 1
 anchor_left = 0.0
 anchor_top = 0.0
-anchor_right = 1.0
+anchor_right = 0.6
 anchor_bottom = 1.0
 offset_left = 0
 offset_top = 0
 offset_right = 0
 offset_bottom = 0
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 8
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 8
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 6
 
 [node name="Content" type="VBoxContainer" parent="Margin"]
 layout_mode = 2
@@ -60,8 +60,8 @@ horizontal_alignment = 0
 [node name="CharRow" type="GridContainer" parent="Margin/Content"]
 layout_mode = 2
 size_flags_vertical = 0
-columns = 5
-theme_override_constants/h_separation = 6
+columns = 3
+theme_override_constants/h_separation = 4
 theme_override_constants/v_separation = 4
 
 [node name="CharWeapon" type="VBoxContainer" parent="Margin/Content/CharRow"]
@@ -73,14 +73,14 @@ theme_override_constants/separation = 2
 [node name="CharPanel" type="PanelContainer" parent="Margin/Content/CharRow/CharWeapon"]
 layout_mode = 2
 size_flags_vertical = 0
-custom_minimum_size = Vector2(56, 56)
+custom_minimum_size = Vector2(48, 48)
 
 [node name="CharBtn" type="TextureButton" parent="Margin/Content/CharRow/CharWeapon/CharPanel"]
 layout_mode = 2
 size_flags_vertical = 0
 expand = true
 texture_normal = ExtResource("3_wq")
-custom_minimum_size = Vector2(48, 48)
+custom_minimum_size = Vector2(40, 40)
 
 [node name="CWName" type="Label" parent="Margin/Content/CharRow/CharWeapon"]
 layout_mode = 2
@@ -98,14 +98,14 @@ theme_override_constants/separation = 2
 [node name="CharPanel" type="PanelContainer" parent="Margin/Content/CharRow/CharSkill"]
 layout_mode = 2
 size_flags_vertical = 0
-custom_minimum_size = Vector2(56, 56)
+custom_minimum_size = Vector2(48, 48)
 
 [node name="CharBtn" type="TextureButton" parent="Margin/Content/CharRow/CharSkill/CharPanel"]
 layout_mode = 2
 size_flags_vertical = 0
 expand = true
 texture_normal = ExtResource("4_jn")
-custom_minimum_size = Vector2(48, 48)
+custom_minimum_size = Vector2(40, 40)
 
 [node name="CSName" type="Label" parent="Margin/Content/CharRow/CharSkill"]
 layout_mode = 2
@@ -123,14 +123,14 @@ theme_override_constants/separation = 2
 [node name="CharPanel" type="PanelContainer" parent="Margin/Content/CharRow/CharActive"]
 layout_mode = 2
 size_flags_vertical = 0
-custom_minimum_size = Vector2(56, 56)
+custom_minimum_size = Vector2(48, 48)
 
 [node name="CharBtn" type="TextureButton" parent="Margin/Content/CharRow/CharActive/CharPanel"]
 layout_mode = 2
 size_flags_vertical = 0
 expand = true
 texture_normal = ExtResource("5_xh")
-custom_minimum_size = Vector2(48, 48)
+custom_minimum_size = Vector2(40, 40)
 
 [node name="CAName" type="Label" parent="Margin/Content/CharRow/CharActive"]
 layout_mode = 2
@@ -148,14 +148,14 @@ theme_override_constants/separation = 2
 [node name="CharPanel" type="PanelContainer" parent="Margin/Content/CharRow/CharPassive"]
 layout_mode = 2
 size_flags_vertical = 0
-custom_minimum_size = Vector2(56, 56)
+custom_minimum_size = Vector2(48, 48)
 
 [node name="CharBtn" type="TextureButton" parent="Margin/Content/CharRow/CharPassive/CharPanel"]
 layout_mode = 2
 size_flags_vertical = 0
 expand = true
 texture_normal = ExtResource("6_hf")
-custom_minimum_size = Vector2(48, 48)
+custom_minimum_size = Vector2(40, 40)
 
 [node name="CPName" type="Label" parent="Margin/Content/CharRow/CharPassive"]
 layout_mode = 2
@@ -173,14 +173,14 @@ theme_override_constants/separation = 2
 [node name="CharPanel" type="PanelContainer" parent="Margin/Content/CharRow/CharAnvil"]
 layout_mode = 2
 size_flags_vertical = 0
-custom_minimum_size = Vector2(56, 56)
+custom_minimum_size = Vector2(48, 48)
 
 [node name="CharBtn" type="TextureButton" parent="Margin/Content/CharRow/CharAnvil/CharPanel"]
 layout_mode = 2
 size_flags_vertical = 0
 expand = true
 texture_normal = ExtResource("7_tz")
-custom_minimum_size = Vector2(48, 48)
+custom_minimum_size = Vector2(40, 40)
 
 [node name="CNName" type="Label" parent="Margin/Content/CharRow/CharAnvil"]
 layout_mode = 2
@@ -218,7 +218,7 @@ custom_minimum_size = Vector2(110, 34)
 
 [node name="SubScreen" type="Control" parent="."]
 layout_mode = 1
-anchor_left = 1.0
+anchor_left = 0.6
 anchor_top = 0.0
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -226,7 +226,7 @@ offset_left = 0
 offset_top = 0
 offset_right = 0
 offset_bottom = 0
-mouse_filter = 2
+mouse_filter = 0
 clip_contents = true
 
 [node name="Panel" type="PanelContainer" parent="SubScreen"]
@@ -259,14 +259,3 @@ size_flags_vertical = 3
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 4
-
-[node name="SubHandle" type="Button" parent="."]
-layout_mode = 1
-anchor_left = 1.0
-anchor_top = 0.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = -28
-offset_right = -10
-offset_top = 0
-offset_bottom = 0

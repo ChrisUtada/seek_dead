@@ -280,14 +280,16 @@ func _item_pool_of(category: String) -> Array:
 
 
 func _make_item_card(data: Resource, path: String, kind: String) -> Dictionary:
+	# 重要：根节点是 Button（来自 ui_button.tscn），它只渲染自己 text 字段。
+	# 之前 btn.add_child(VBox) 是被 Button 忽略的——必须用 \n 拼多行 + 紧凑 line_spacing。
 	var btn = UI_BUTTON.instantiate()
 	btn.custom_minimum_size = Vector2(0, 26)
 	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btn.add_theme_constant_override("line_spacing", 0)
+	btn.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
+	btn.autowrap_mode = TextServer.AUTOWRAP_OFF
+	btn.clip_text = true
 	btn.text = ""
-	var vb = VBoxContainer.new()
-	vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	vb.add_theme_constant_override("separation", 0)
-	btn.add_child(vb)
 
 	var name := ""
 	var line1 := ""   # 图标/核心信息
@@ -327,26 +329,13 @@ func _make_item_card(data: Resource, path: String, kind: String) -> Dictionary:
 			line2 = "持有 %d" % data.charges if (kind == "active" and data.get("charges") != null) else "被动"
 
 	name = _source_tag(kind) + name
-	var nl = _label(name, TypeScale.META)
-	nl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	nl.autowrap_mode = TextServer.AUTOWRAP_OFF
-	nl.clip_text = true
-	vb.add_child(nl)
-	var l1 = _label(line1, TypeScale.TINY)
-	l1.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	l1.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	l1.autowrap_mode = TextServer.AUTOWRAP_OFF
-	l1.clip_text = true
-	vb.add_child(l1)
+	# Button 多行：name(line1)line2。靠 \n 排版；首行用 BBCode 强调名字(可选)
+	var body := name
+	if line1 != "":
+		body += "\n" + line1
 	if line2 != "":
-		var l2 = _label(line2, TypeScale.CAPTION)
-		l2.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		l2.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		l2.autowrap_mode = TextServer.AUTOWRAP_OFF
-		l2.clip_text = true
-		l2.add_theme_color_override("font_color", Palette.MUTED_DIM)
-		vb.add_child(l2)
+		body += "\n" + line2
+	btn.text = body
 	var card := {"path": path, "btn": btn, "selected": false, "kind": kind}
 	btn.connect("pressed", controller._on_card_toggled.bind(card))
 	return card
