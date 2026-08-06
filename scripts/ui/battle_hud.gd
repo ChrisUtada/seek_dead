@@ -15,7 +15,7 @@ const META_SCENE = preload("res://scenes/ui/meta_screen.tscn")
 const REWARD_SCENE = preload("res://scenes/ui/reward_screen.tscn")
 const ANVIL_SCENE = preload("res://scenes/ui/anvil_screen.tscn")
 const SHOP_SCENE = preload("res://scenes/ui/shop_screen.tscn")
-const LOADOUT_SCENE = preload("res://scenes/ui/loadout_screen.tscn")
+const LOADOUT_SCENE = preload("res://scripts/loadout/loadout_scene.gd")
 const BattleAnimator = preload("res://scripts/ui/battle_animator.gd")
 
 var controller   # DuelController 引用（运行时由 _ready 设置）
@@ -68,7 +68,7 @@ func hide_anvil_screen() -> void: anvil_screen.hide_screen()
 # ---- UI 节点引用 ----
 var cells = []   # 展示用 Button 引用 [reel][row]
 var cell_badges = []   # 每格右上角匹配角标 Label 引用 [reel][row]
-var loadout_screen                     # 整备覆盖层（loadout_screen.tscn 实例）
+var loadout_screen                     # 整备场景（scripts/loadout/loadout_scene.gd 实例，hud 兄弟节点）
 # 消耗品腰带 4 个固定格子（2x2），由 hud._refresh_consumable_panel 同步状态；
 # consumable_panel 字段（controller 持有）已废弃，HUD 内聚管理 cell。
 # 位置：左栏 PlayerPanel/VBox（GearBox 之后、PlayerBuffLabel 之前），保持 4 格子 2x2 形态
@@ -264,8 +264,10 @@ func _build_ui() -> void:
 	animator.setup(self)
 
 func _build_loadout_screen() -> void:
-	loadout_screen = LOADOUT_SCENE.instantiate()
-	add_child(loadout_screen)   # 必须先入树：configure 内访问 @onready 节点
+	# 纯 2D 整备场景（q-0）：作为 hud 的兄弟节点挂到 Duel 根，
+	# 以便进入整备时 hud.hide() 隐藏 Game Boy 外框 + 战斗 HUD。
+	loadout_screen = LOADOUT_SCENE.new()
+	get_parent().add_child(loadout_screen)
 	loadout_screen.configure(controller, self)
 	loadout_screen.hide_screen()
 
@@ -341,8 +343,8 @@ func _make_item_card(data: Resource, path: String, kind: String) -> Dictionary:
 	return card
 
 
-# 整备屏已抽独立 loadout_screen.tscn（P3b-2）；以下仅保留薄包装，
-# 供 duel_controller 按原接口调用，实际逻辑在 loadout_screen.gd。
+# 整备屏已抽为纯 2D 场景 loadout_scene.gd（q-0）；以下仅保留薄包装，
+# 供 duel_controller 按原接口调用，实际逻辑在 loadout_scene.gd。
 func _show_loadout_screen() -> void:
 	loadout_screen.show_screen()
 

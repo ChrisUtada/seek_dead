@@ -1278,6 +1278,7 @@ func _check_collection_milestones() -> void:
 
 func _on_anvil_back_pressed() -> void:
 	hud.hide_anvil_screen()
+	hud._show_loadout_screen()   # 铁砧返回后重建整备 2D 场景（loadout 内会 hud.hide()）
 	hud._update_loadout_anvil()
 
 
