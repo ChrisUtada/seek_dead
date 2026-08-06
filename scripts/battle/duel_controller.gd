@@ -368,6 +368,7 @@ func _ready() -> void:
 	add_child(hud)
 	hud.controller = self
 	_load_meta()
+	_sanitize_owned()	# 自愈：清洗历史上误写入 owned_* 的非本类路径（如技能）
 	_seed_default_owned()
 	hud.build_all()   # P2：HUD 自构建全部界面（build_all 内部调各 _build_* + _show_loadout_screen），controller 不再戳私有构建方法
 	# P2：HUD 意图信号 → controller 处理器（HUD 不再调用 controller 私有方法）
@@ -838,6 +839,27 @@ func _seed_default_owned() -> void:
 		meta["owned_consumables"] = cs
 	_save_meta()
 
+func _sanitize_owned() -> void:
+	# 自愈：历史上技能曾被误写入 owned_weapons（shop 的 owned_key 推导 bug）。
+	# 清洗各 owned_* 中不属于本类的路径，避免 load 出 SkillData 后整备屏按 weapon 读 weapon_name 崩溃。
+	for key in ["owned_weapons", "owned_charms", "owned_consumables"]:
+		if not meta.has(key):
+			continue
+		var cleaned := []
+		for p in meta[key]:
+			var d = load(p)
+			var ok := false
+			if key == "owned_weapons":
+				ok = (d is WeaponData)
+			elif key == "owned_charms":
+				ok = (d is ItemData and d.category == "passive")
+			elif key == "owned_consumables":
+				ok = (d is ItemData and d.category == "active")
+			if ok:
+				cleaned.append(p)
+		meta[key] = cleaned
+	_save_meta()
+
 func _owned_arr(kind: String) -> Array:
 	# 整备屏/商店读取拥有池（盘外跨局）。skills 暂用全池（待扩 owned_skills）。
 	match kind:
@@ -971,8 +993,13 @@ func _on_shop_buy_pressed(offer: Dictionary) -> void:
 		return
 	gold -= buy_price
 	arr.append(offer["path"])
-	var owned_key = "owned_weapons" if kind != "passive" else "owned_charms"
-	if not meta[owned_key].has(offer["path"]):
+	# 技能不进拥有池（读取走 SKILL_POOL），仅武器/护符写入 owned_*
+	var owned_key = ""
+	if kind == "weapon":
+		owned_key = "owned_weapons"
+	elif kind == "passive":
+		owned_key = "owned_charms"
+	if owned_key != "" and not meta[owned_key].has(offer["path"]):
 		meta[owned_key].append(offer["path"])
 	paid_price[offer["path"]] = buy_price   # 记录实际购入价，卖出时返还约50%
 	offer["sold"] = true
