@@ -103,7 +103,7 @@ func _style_char_btn(btn: Button, is_anvil: bool) -> void:
 func _refresh_char_highlight() -> void:
 	for cat in CHAR_CATS:
 		var b: Button = char_buttons[cat]
-		var sel := (cat == selected_char)
+		var sel: bool = (cat == selected_char)
 		var sb = StyleBoxFlat.new()
 		sb.bg_color = Palette.CARD_SEL_BG if sel else Palette.CARD_NORM_BG
 		sb.border_color = Palette.CARD_SEL_BORDER if sel else Palette.CARD_NORM_BORDER
