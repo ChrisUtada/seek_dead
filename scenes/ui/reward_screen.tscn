@@ -20,6 +20,7 @@ anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
+z_index = 101
 script = ExtResource("1_script")
 
 [node name="Dimmer" type="ColorRect" parent="."]
@@ -39,7 +40,7 @@ mouse_filter = 2
 
 [node name="Dialog" type="PanelContainer" parent="Center"]
 layout_mode = 2
-custom_minimum_size = Vector2(680, 460)
+custom_minimum_size = Vector2(440, 216)
 theme_override_styles/panel = SubResource("sb_dlg")
 
 [node name="Margin" type="MarginContainer" parent="Center/Dialog"]

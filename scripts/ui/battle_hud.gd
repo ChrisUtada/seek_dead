@@ -206,9 +206,9 @@ func _build_ui() -> void:
 		controller.grid.append([])
 		cell_badges.append([])
 		for row in controller.state.ROWS:
-var cell = SYMBOL_CELL.instantiate()
-		cell.custom_minimum_size = Vector2(32, 32)
-		cell.add_theme_font_size_override("font_size", TypeScale.REEL)
+			var cell = SYMBOL_CELL.instantiate()
+			cell.custom_minimum_size = Vector2(32, 32)
+			cell.add_theme_font_size_override("font_size", TypeScale.REEL)
 			cell.disabled = true   # 无锁定，格子仅作展示
 			cell.mouse_default_cursor_shape = Control.CURSOR_HELP   # Phase 3：悬停提示
 			cell.mouse_filter = Control.MOUSE_FILTER_STOP
