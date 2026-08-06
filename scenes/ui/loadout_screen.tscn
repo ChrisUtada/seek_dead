@@ -39,22 +39,25 @@ theme_override_constants/separation = 4
 
 [node name="TitleLabel" type="Label" parent="Margin/Content"]
 layout_mode = 2
+z_index = 200
+z_as_relative = false
 horizontal_alignment = 1
 
 [node name="RuleLabel" type="Label" parent="Margin/Content"]
 layout_mode = 2
+z_index = 200
+z_as_relative = false
 horizontal_alignment = 0
 
 [node name="CharRow" type="HBoxContainer" parent="Margin/Content"]
 layout_mode = 2
-size_flags_vertical = 3
+custom_minimum_size = Vector2(0, 64)
 theme_override_constants/separation = 6
 
 [node name="CharWeapon" type="Button" parent="Margin/Content/CharRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_vertical = 3
-custom_minimum_size = Vector2(0, 86)
+custom_minimum_size = Vector2(0, 60)
 
 [node name="CWBox" type="VBoxContainer" parent="Margin/Content/CharRow/CharWeapon"]
 layout_mode = 1
@@ -64,11 +67,7 @@ theme_override_constants/separation = 1
 
 [node name="CWTex" type="TextureRect" parent="Margin/Content/CharRow/CharWeapon/CWBox"]
 layout_mode = 2
-size_flags_vertical = 3
-custom_minimum_size = Vector2(52, 52)
 texture = ExtResource("3_wq")
-expand_mode = 1
-stretch_mode = 5
 
 [node name="CWName" type="Label" parent="Margin/Content/CharRow/CharWeapon/CWBox"]
 layout_mode = 2
@@ -78,8 +77,7 @@ horizontal_alignment = 1
 [node name="CharSkill" type="Button" parent="Margin/Content/CharRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_vertical = 3
-custom_minimum_size = Vector2(0, 86)
+custom_minimum_size = Vector2(0, 60)
 
 [node name="CSBox" type="VBoxContainer" parent="Margin/Content/CharRow/CharSkill"]
 layout_mode = 1
@@ -89,11 +87,7 @@ theme_override_constants/separation = 1
 
 [node name="CSTex" type="TextureRect" parent="Margin/Content/CharRow/CharSkill/CSBox"]
 layout_mode = 2
-size_flags_vertical = 3
-custom_minimum_size = Vector2(52, 52)
 texture = ExtResource("4_jn")
-expand_mode = 1
-stretch_mode = 5
 
 [node name="CSName" type="Label" parent="Margin/Content/CharRow/CharSkill/CSBox"]
 layout_mode = 2
@@ -103,8 +97,7 @@ horizontal_alignment = 1
 [node name="CharActive" type="Button" parent="Margin/Content/CharRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_vertical = 3
-custom_minimum_size = Vector2(0, 86)
+custom_minimum_size = Vector2(0, 60)
 
 [node name="CABox" type="VBoxContainer" parent="Margin/Content/CharRow/CharActive"]
 layout_mode = 1
@@ -114,11 +107,7 @@ theme_override_constants/separation = 1
 
 [node name="CATex" type="TextureRect" parent="Margin/Content/CharRow/CharActive/CABox"]
 layout_mode = 2
-size_flags_vertical = 3
-custom_minimum_size = Vector2(52, 52)
 texture = ExtResource("5_xh")
-expand_mode = 1
-stretch_mode = 5
 
 [node name="CAName" type="Label" parent="Margin/Content/CharRow/CharActive/CABox"]
 layout_mode = 2
@@ -128,8 +117,7 @@ horizontal_alignment = 1
 [node name="CharPassive" type="Button" parent="Margin/Content/CharRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_vertical = 3
-custom_minimum_size = Vector2(0, 86)
+custom_minimum_size = Vector2(0, 60)
 
 [node name="CPBox" type="VBoxContainer" parent="Margin/Content/CharRow/CharPassive"]
 layout_mode = 1
@@ -139,11 +127,7 @@ theme_override_constants/separation = 1
 
 [node name="CPTex" type="TextureRect" parent="Margin/Content/CharRow/CharPassive/CPBox"]
 layout_mode = 2
-size_flags_vertical = 3
-custom_minimum_size = Vector2(52, 52)
 texture = ExtResource("6_hf")
-expand_mode = 1
-stretch_mode = 5
 
 [node name="CPName" type="Label" parent="Margin/Content/CharRow/CharPassive/CPBox"]
 layout_mode = 2
@@ -153,8 +137,7 @@ horizontal_alignment = 1
 [node name="CharAnvil" type="Button" parent="Margin/Content/CharRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_vertical = 3
-custom_minimum_size = Vector2(0, 86)
+custom_minimum_size = Vector2(0, 60)
 
 [node name="CABox" type="VBoxContainer" parent="Margin/Content/CharRow/CharAnvil"]
 layout_mode = 1
@@ -164,11 +147,7 @@ theme_override_constants/separation = 1
 
 [node name="CATex" type="TextureRect" parent="Margin/Content/CharRow/CharAnvil/CABox"]
 layout_mode = 2
-size_flags_vertical = 3
-custom_minimum_size = Vector2(52, 52)
 texture = ExtResource("7_tz")
-expand_mode = 1
-stretch_mode = 5
 
 [node name="CAName" type="Label" parent="Margin/Content/CharRow/CharAnvil/CABox"]
 layout_mode = 2
@@ -177,6 +156,7 @@ horizontal_alignment = 1
 
 [node name="Bot" type="HBoxContainer" parent="Margin/Content"]
 layout_mode = 2
+size_flags_vertical = 3
 theme_override_constants/separation = 8
 
 [node name="CountLabel" type="Label" parent="Margin/Content/Bot"]
