@@ -30,6 +30,7 @@ const SUB_W := 260   # 副屏抽屉宽度（480 设计宽下占 ~54%）
 	"active": $Margin/Content/CharRow/CharActive/CharPanel,
 	"passive": $Margin/Content/CharRow/CharPassive/CharPanel,
 }
+@onready var char_row = $Margin/Content/CharRow
 @onready var anvil_btn = $Margin/Content/CharRow/CharAnvil/CharPanel/CharBtn
 @onready var anvil_panel = $Margin/Content/CharRow/CharAnvil/CharPanel
 @onready var count_label = $Margin/Content/Bot/CountLabel
@@ -177,6 +178,9 @@ func _close_sub() -> void:
 
 func _set_sub_open(open: bool, instant := false) -> void:
 	sub_open = open
+	# 副屏展开时主区收回右边界 -> 视觉左移；5 小人由单行改为 3 列网格换行，
+	# 保持 48x48 不变、全部可见（左半屏 220px 宽下 3 列恰好放下）
+	char_row.columns = 3 if open else 5
 	if _tween and _tween.is_valid():
 		_tween.kill()
 	var target := -float(SUB_W) if open else 0.0
