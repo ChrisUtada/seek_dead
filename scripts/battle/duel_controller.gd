@@ -266,12 +266,7 @@ var run_power_bonus: int = 0           # 本局符号基础伤害加成（奖励
 var run_shield_next: int = 0           # 进入下一房时获得的护盾（奖励：守望结界）
 var reward_choices: Array = []         # 当前展示的 3 个奖励
 var reward_is_boss: bool = false       # 当前奖励是否来自 Boss 房（选完开新局）
-var shop_offers: Array = []            # S7：当前商店货架（随机刷新）
-# 本局每件物品的实际购入价（path -> 金币），用于卖出时返还约50%（见 _sell_price）。
-# 新一局清空（_full_reset）。
-var paid_price: Dictionary = {}
-# S12：局内金币升级等级（每局清零，管局内临时）。效果经聚合层/结算读取，不单独存字段。
-var gold_upgrades := {"power": 0, "line": 0, "joker": 0, "shield": 0}
+# S7/S12 商店状态（shop_offers / paid_price / gold_upgrades）已抽至 ShopSystem（步骤3，见 _shop_system）
 
 # M5 元进度（铁砧锻造 + 存档持久化，跨局保留）
 # weapon_upgrades: weapon_path -> int（该武器主符号额外权重，转轮升级）
@@ -280,6 +275,7 @@ var meta: Dictionary = {"anvil_points": 0, "weapon_upgrades": {}, "interference_
 var _anvil_system                     # 铁砧锻造子系统 AnvilSystem（步骤2抽出；_ready 实例化并注入 self）
 const ANVIL_SAVE_KEY := "anvil_meta"   # 铁砧元进度存于 SaveSystem.lobby_data
 var _meta_store                        # 存档子系统 MetaStore（步骤1抽出；_ready 实例化并注入 self + meta）
+var _shop_system                       # 商店子系统 ShopSystem（步骤3抽出；_ready 实例化并注入 self）
 
 # 仅 1 行 3 格。特殊符号需 3 同才触发；普通符号单颗即结算，出现 n 次 ×n。
 var PAYLINES = [
@@ -335,7 +331,7 @@ func _build_state() -> BattleState:
 	s.turn_count = turn_count
 	s.SKILL_POOL = SKILL_POOL
 	s.skill_max = skill_max
-	s.shop_offers = shop_offers
+	s.shop_offers = _shop_system.shop_offers
 	s.selected_consumables = selected_consumables
 	s.reward_is_boss = reward_is_boss
 	s.player_shield = player_shield
@@ -369,6 +365,7 @@ func _ready() -> void:
 	hud.controller = self
 	_meta_store = preload("res://scripts/systems/meta_store.gd").new(self, meta)
 	_anvil_system = preload("res://scripts/systems/anvil_system.gd").new(self)
+	_shop_system = preload("res://scripts/systems/shop_system.gd").new(self)
 	_load_meta()
 	_sanitize_owned()	# 自愈：清洗历史上误写入 owned_* 的非本类路径（如技能）
 	_seed_default_owned()
@@ -813,223 +810,54 @@ func _owned_arr(kind: String) -> Array:
 func _award_gold(is_boss: bool) -> void:
 	_meta_store.award_gold(is_boss)   # 步骤1：转发到 MetaStore
 
+# S6–S12 商店逻辑已抽至 ShopSystem（步骤3）：shop_price / shop_name / roll_shop /
+# on_shop_buy_pressed / sell_price / on_shop_sell_pressed / gold_upgrade_* / on_gold_upgrade_pressed
 func _shop_price(kind: String, owned: int = -1) -> int:
-	if owned < 0:
-		# 消耗品按【腰带实占数】递增价（含商店重复购买同类），而非去重勾选数
-		if kind == "active":
-			owned = consumable_slots.size()
-		else:
-			owned = _sel_arr(kind).size()
-	# 金币是「买即开槽」的节奏闸门：价格随「当前持有数」递增。
-	# 售出物品会减少持有数 → 重购价格回落，换装成本自然来自买卖价差（防刷价）。
-	# 加价起点对齐各类初始配额（填满初始空位仍原价，从首次扩槽起逐级加价）。
-	# 步进差异：护符最大（唯一收集乘区、须最贵）；增益次之（进池挤占转轮带最凶）；
-	# 武器居中；消耗品最低。
-	var base = {"weapon": 8, "passive": 10, "active": 5, "skill": 6}.get(kind, 6)
-	var price = base + randi_range(-1, 2)
-	var step = {"weapon": 5, "passive": 8, "active": 4, "skill": 6}.get(kind, 4)
-	price += max(0, owned - int(SLOT_INIT.get(kind, 1)) + 1) * step
-	return max(3, price)
+	return _shop_system.shop_price(kind, owned)
+
 
 func _shop_name(path: String, kind: String) -> String:
-	var d = load(path)
-	if d == null:
-		return path.get_file().get_basename()
-	match kind:
-		"weapon": return (d as WeaponData).weapon_name if d is WeaponData else path.get_file().get_basename()
-		"skill":  return (d as SkillData).buff_name if d is SkillData else path.get_file().get_basename()
-		_:        return (d as ItemData).item_name if d is ItemData else path.get_file().get_basename()
+	return _shop_system.shop_name(path, kind)
+
 
 func _roll_shop() -> void:
-	var candidates := []
-	for p in WEAPON_POOL:
-		candidates.append({"path": p, "kind": "weapon"})
-	for p in ITEM_POOL:
-		var d = load(p)
-		if d is ItemData:
-			candidates.append({"path": p, "kind": d.category})
-	for p in SKILL_POOL:
-		candidates.append({"path": p, "kind": "skill"})
-	candidates.shuffle()                      # 随机刷新，防背公式
-	var n = min(candidates.size(), 6)
-	shop_offers = []
-	for i in n:
-		var c = candidates[i]
-		shop_offers.append({"path": c["path"], "kind": c["kind"], "name": _shop_name(c["path"], c["kind"]), "sold": false})
+	_shop_system.roll_shop()
+
 
 func _on_shop_buy_pressed(offer: Dictionary) -> void:
-	if offer["sold"]:
-		return
-	var kind = offer["kind"]
-	var buy_price := 0
-	# 消耗品：腰带实例模型（每个格子独立，允许同类重复占格，上限 CONSUMABLE_CAP）
-	if kind == "active":
-		if consumable_slots.size() >= CONSUMABLE_CAP:
-			hud._log("消耗品腰带已满 %d/%d，无法购买" % [consumable_slots.size(), CONSUMABLE_CAP])
-			return
-		buy_price = _shop_price(kind)
-		if gold < buy_price:
-			hud._log("金币不足（需 %d）" % buy_price)
-			return
-		gold -= buy_price
-		var cd: Resource = load(offer["path"])
-		if cd != null:
-			_consumable_uid += 1
-			var uid = "c%d" % _consumable_uid
-			consumable_slots.append({"path": offer["path"], "item_id": cd.item_id, "charges": cd.charges, "uid": uid})
-			if not meta["owned_consumables"].has(offer["path"]):
-				meta["owned_consumables"].append(offer["path"])
-			paid_price[uid] = buy_price
-			_refresh_consumable_panel()
-			hud._log("购买 %s（腰带 %d/%d，-%d 金，余 %d）" % [offer["name"], consumable_slots.size(), CONSUMABLE_CAP, buy_price, gold])
-		else:
-			hud._log("购买失败：资源缺失 %s" % offer["name"])
-		offer["sold"] = true
-		hud._refresh_shop()
-		hud._refresh_meta()
-		return
-	var arr = _sel_arr(kind)
-	if arr.has(offer["path"]):
-		hud._log("已拥有 %s，无法重复购买" % offer["name"])
-		return
-	var w = arr.size()
-	var cap = _cat_max(kind)            # 该类当前上限
-	# 「买即开槽」（四类通用）：该类槽满时，只要还能扩（进池类无天花板 / 不进池类未触顶），
-	# 本次购买即扩槽 1 格；仅在「有天花板且已触顶」时才拒绝。
-	if w >= cap and not _can_grow_slot(kind):
-		hud._log("%s槽位已满 %d/%s（已达天花板），无法购买" % [_cat_name(kind), w, _cap_text(kind)])
-		return
-	buy_price = _shop_price(kind)       # 价格随当前持有数递增（售出回落，换装成本=买卖价差）
-	if gold < buy_price:
-		hud._log("金币不足（需 %d）" % buy_price)
-		return
-	gold -= buy_price
-	arr.append(offer["path"])
-	# 技能不进拥有池（读取走 SKILL_POOL），仅武器/护符写入 owned_*
-	var owned_key = ""
-	if kind == "weapon":
-		owned_key = "owned_weapons"
-	elif kind == "passive":
-		owned_key = "owned_charms"
-	if owned_key != "" and not meta[owned_key].has(offer["path"]):
-		meta[owned_key].append(offer["path"])
-	paid_price[offer["path"]] = buy_price   # 记录实际购入价，卖出时返还约50%
-	offer["sold"] = true
-	if w >= cap:                        # 本次是扩槽购买 → 该类槽 +1
-		_grow_slot(kind)
-		hud._log("购买 %s（%s槽 +1 → %d/%s，-%d 金，余 %d）" % [offer["name"], _cat_name(kind), _cat_max(kind), _cap_text(kind), buy_price, gold])
-	else:
-		hud._log("购买 %s（-%d 金，余 %d）" % [offer["name"], buy_price, gold])
+	_shop_system.on_shop_buy_pressed(offer)
 	hud._refresh_shop()
 	hud._refresh_meta()
 
+
 func _sell_price(kind: String, path: String) -> int:
-	# 卖出返还约50%实际购入价（高于此会刷金；低于此则换装几乎免费）。
-	# 未记录购入价（如 BOSS 免费掉落）时按当前购价50%兜底。
-	var paid = int(paid_price.get(path, -1))
-	if paid < 0:
-		paid = _shop_price(kind)
-	return max(1, int(paid * 0.5))
+	return _shop_system.sell_price(kind, path)
 
 
 func _on_shop_sell_pressed(path: String, kind: String) -> void:
-	var sell_refund := 0
-	# 消耗品：按腰带格 uid 精准定位卖出（同类重复各占一格）
-	if kind == "active":
-		var target = -1
-		for i in range(consumable_slots.size()):
-			if consumable_slots[i]["uid"] == path:
-				target = i
-				break
-		if target < 0:
-			return
-		var slot = consumable_slots[target]
-		sell_refund = _sell_price(kind, slot["uid"])
-		gold += sell_refund
-		consumable_slots.remove_at(target)
-		paid_price.erase(slot["uid"])
-		_refresh_consumable_panel()
-		hud._log("卖出 %s（+%d 金，腰带位释放）" % [_shop_name(slot["path"], kind), sell_refund])
-		hud._refresh_shop()
-		hud._refresh_meta()
-		return
-	var arr = _sel_arr(kind)
-	if not arr.has(path):
-		return
-	if kind == "weapon" and arr.size() <= LOADOUT_MIN:
-		hud._log("至少需保留 %d 把武器，无法卖出" % LOADOUT_MIN)
-		return
-	sell_refund = _sell_price(kind, path)
-	gold += sell_refund
-	arr.erase(path)
-	paid_price.erase(path)
-	if kind == "weapon" or kind == "skill":
-		_build_pool(selected_loadout)       # 重建符号池（稀释转轮带）
-	elif kind == "passive":
-		_apply_charms()                      # 重算护符被动（伤害乘区等随持有变化）
-	hud._log("卖出 %s（+%d 金，槽位释放）" % [_shop_name(path, kind), sell_refund])
+	_shop_system.on_shop_sell_pressed(path, kind)
 	hud._refresh_shop()
 	hud._refresh_meta()
 
 
-# ---------------------------------------------------------------------------
-# S12 局内金币升级（深化已有乘区 · 每局清零 · 管局内临时）
-# 效果经聚合层(_agg_*)与 _start_room 读取；此处仅管等级/价格/购买。
-# ---------------------------------------------------------------------------
 func _gold_upgrade_def(id: String) -> Dictionary:
-	for d in GOLD_UPGRADE_DEFS:
-		if d["id"] == id:
-			return d
-	return {}
+	return _shop_system.gold_upgrade_def(id)
 
 
 func _gold_upgrade_cost(id: String) -> int:
-	var d = _gold_upgrade_def(id)
-	if d.is_empty():
-		return 999
-	var lvl = gold_upgrades.get(id, 0)
-	return max(1, int(d["base"]) + lvl * int(d["step"]))
+	return _shop_system.gold_upgrade_cost(id)
 
 
 func _gold_upgrade_desc(d: Dictionary, lvl: int) -> String:
-	match d["id"]:
-		"power":  return "本局所有伤害符号基础 +%d（当前 +%d）" % [POWER_STEP, lvl * POWER_STEP]
-		"line":   return "连线倍率 +%d（2连变×%d、3连变×%d，仅匹配生效）" % [LINE_STEP, 2 + LINE_STEP, 3 + LINE_STEP]
-		"joker":  return "本局伤害乘区 ×%s（与护符/增益同轨，当前 ×%s）" % [ElementCounter.fmt_mult(1.0 + JOKER_STEP), ElementCounter.fmt_mult(1.0 + min(float(lvl) * JOKER_STEP, JOKER_CAP_FACTOR - 1.0))]
-		"shield": return "每房开局护盾 +%d（当前 +%d）" % [SHIELD_STEP, lvl * SHIELD_STEP]
-	return ""
+	return _shop_system.gold_upgrade_desc(d, lvl)
 
 
 func _gold_upgrade_defs() -> Array:
-	var out := []
-	for d in GOLD_UPGRADE_DEFS:
-		var id = d["id"]
-		var lvl = gold_upgrades.get(id, 0)
-		var cost = _gold_upgrade_cost(id)
-		var maxed = lvl >= int(d["max"])
-		out.append({
-			"id": id, "icon": d["icon"], "name": d["name"],
-			"desc": _gold_upgrade_desc(d, lvl), "level": lvl, "max": int(d["max"]),
-			"cost": cost, "maxed": maxed, "can_afford": (not maxed) and gold >= cost,
-		})
-	return out
+	return _shop_system.gold_upgrade_defs()
 
 
 func _on_gold_upgrade_pressed(id: String) -> void:
-	var d = _gold_upgrade_def(id)
-	if d.is_empty():
-		return
-	var lvl = gold_upgrades.get(id, 0)
-	if lvl >= int(d["max"]):
-		hud._log("金币升级「%s」已满级" % d["name"])
-		return
-	var cost = _gold_upgrade_cost(id)
-	if gold < cost:
-		hud._log("金币不足（%s 需 %d，现有 %d）" % [d["name"], cost, gold])
-		return
-	gold -= cost
-	gold_upgrades[id] = lvl + 1
-	hud._log("金币升级 %s → Lv%d（-%d 金，余 %d）" % [d["name"], gold_upgrades[id], cost, gold])
+	_shop_system.on_gold_upgrade_pressed(id)
 	hud._refresh_shop()
 	hud._refresh_meta()
 
@@ -1097,8 +925,7 @@ func _full_reset() -> void:
 	loadout_max = int(SLOT_INIT["weapon"])
 	skill_max = int(SLOT_INIT["skill"])
 	charm_max = int(SLOT_INIT["passive"])
-	paid_price = {}   # 新一局购入价记录清空
-	gold_upgrades = {"power": 0, "line": 0, "joker": 0, "shield": 0}   # S12：局内金币升级每局清零
+	_shop_system.reset_run()   # 步骤3：新一局商店状态清零（购入价记录 + 金币升级等级）
 	# M4：开新一局，重置本局加成层
 	run_symbol_bonus = {}
 	run_power_bonus = 0
@@ -1203,7 +1030,7 @@ func _start_room(idx: int) -> void:
 	player_shield = 0
 	player_shield += run_shield_next      # M4：上一房奖励的结界在本房开局生效
 	player_shield += charm_room_shield    # M6：守望护符每房开局护盾
-	player_shield += gold_upgrades["shield"] * SHIELD_STEP   # S12：壁垒——每房开局护盾（韧性保底）
+	player_shield += _shop_system.gold_upgrades["shield"] * SHIELD_STEP   # S12：壁垒——每房开局护盾（韧性保底）
 	run_shield_next = 0
 	pending_jam_reel = -1
 	pending_lock_reel = -1
@@ -1709,7 +1536,7 @@ func _reset_grid(fill_random: bool) -> void:
 
 func _contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> void:
 	# 连线精通(S12)：仅当实落 ≥2（确为连线匹配）时才叠加倍率，单符号必结算不受影响
-	var mult = raw + (gold_upgrades["line"] * LINE_STEP if raw >= 2 else 0)
+	var mult = raw + (_shop_system.gold_upgrades["line"] * LINE_STEP if raw >= 2 else 0)
 	# P3（docs/物品中心重构方案.md §8）：伤害 = (物品 base_power × 符号 base 偏移) × 连线 × 克制。
 	# 物品有效攻击力来自 _weapon_power_map（base_power + 元进度武器加成）；未命中映射时退化为旧模型（flat = sym.base），
 	# 保证非武器符号（异常路径）不丢伤害。BASE_POWER_REF 为归一化支点（见常量注释）。
@@ -1883,7 +1710,7 @@ func _evaluate(chain_mult := 1.0) -> void:
 		var tail := []
 		var cm = charm_damage_mult
 		var bm = _buff_damage_mult()
-		var jf = 1.0 + min(float(gold_upgrades["joker"]) * JOKER_STEP, JOKER_CAP_FACTOR - 1.0)
+		var jf = 1.0 + min(float(_shop_system.gold_upgrades["joker"]) * JOKER_STEP, JOKER_CAP_FACTOR - 1.0)
 		if cm != 1.0:
 			tail.append("护符×%s" % ElementCounter.fmt_mult(cm))
 		if bm != 1.0:
@@ -1944,7 +1771,7 @@ func _evaluate(chain_mult := 1.0) -> void:
 # —— 加法型标量轴（多个来源直接相加）——
 # —— P0：以下结算聚合已抽到 BattleMath（参数化纯函数），controller 仅留薄包装，零行为变化 ——
 func _agg_power_flat() -> float:
-	return BattleMath.agg_power_flat(run_power_bonus, charm_power_bonus, player_buffs, gold_upgrades, POWER_STEP)
+	return BattleMath.agg_power_flat(run_power_bonus, charm_power_bonus, player_buffs, _shop_system.gold_upgrades, POWER_STEP)
 
 func _agg_shield() -> float:
 	return BattleMath.agg_shield(player_buffs, charm_shield_trickle)
@@ -1955,7 +1782,7 @@ func _agg_regen() -> float:
 
 # —— 乘法型轴（各乘区独立相乘，基值 1.0）——
 func _agg_damage_mult() -> float:
-	return BattleMath.agg_damage_mult(charm_damage_mult, player_buffs, gold_upgrades, JOKER_STEP, JOKER_CAP_FACTOR)
+	return BattleMath.agg_damage_mult(charm_damage_mult, player_buffs, _shop_system.gold_upgrades, JOKER_STEP, JOKER_CAP_FACTOR)
 
 # —— 符号权重轴（本局符号灌注；武器级权重见 _build_pool）——
 func _agg_symbol_weight_mod(sym: SymbolData) -> float:
@@ -2037,5 +1864,3 @@ func _input(event) -> void:
 			_stop_next_reel()
 		else:
 			_on_spin_pressed()
-
-
