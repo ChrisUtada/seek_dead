@@ -242,6 +242,7 @@ var _meta_store                        # 存档子系统 MetaStore（步骤1抽�
 var _shop_system                       # 商店子系统 ShopSystem（步骤3抽出；_ready 实例化并注入 self）
 var _reward_system                     # 奖励子系统 RewardSystem（步骤4抽出；_ready 实例化并注入 self）
 var _loadout_system                    # 整备子系统 LoadoutSystem（步骤5抽出；_ready 实例化并注入 self）
+var _synergy_system                    # 装备共鸣系统 SynergySystem（方案 B 配套；_ready 实例化并注入 self）
 
 # 仅 1 行 3 格。特殊符号需 3 同才触发；普通符号单颗即结算，出现 n 次 ×n。
 var PAYLINES = [
@@ -328,6 +329,7 @@ func _ready() -> void:
 	_shop_system = preload("res://scripts/systems/shop_system.gd").new(self)
 	_reward_system = preload("res://scripts/systems/reward_system.gd").new(self)
 	_loadout_system = preload("res://scripts/systems/loadout_system.gd").new(self)
+	_synergy_system = preload("res://scripts/systems/synergy_system.gd").new(self)
 	_load_meta()
 	_sanitize_owned()	# 自愈：清洗历史上误写入 owned_* 的非本类路径（如技能）
 	_seed_default_owned()
@@ -355,6 +357,7 @@ func _ready() -> void:
 	_spin_timer.connect("timeout", _on_spin_tick)
 	add_child(_spin_timer)
 func _build_pool(loadout: Array) -> void:
+	_synergy_system.refresh()   # 装备集合变化：重估共鸣激活集（每房/换装时一次，缓存供结算点查询）
 	pool = []
 	pool_items = []
 	loadout_names = []
@@ -946,7 +949,7 @@ func _chain_loop() -> void:
 		if not _last_special_triple or enemy_hp <= 0:
 			break
 		_chain += 1
-		if _chain >= CHAIN_MAX:
+		if _chain >= CHAIN_MAX + _synergy_system.chain_bonus():
 			break
 		hud._log("⚡ 连锁 ×%d！免费重转…" % (_chain + 1))
 		hud._popup("⚡连锁 ×%d" % (_chain + 1), Palette.POP_DAMAGE, hud._enemy_sprite_anchor())
@@ -1000,7 +1003,7 @@ func _build_strips() -> void:
 		if syms.is_empty():
 			continue
 		for s in syms:
-			var w = max(0.0, s[1] + _agg_symbol_weight_mod(s[0]))
+			var w = max(0.0, s[1] + _agg_symbol_weight_mod(s[0]) + _synergy_system.weight_mod(s[0]))
 			if w <= 0.0:
 				continue
 			var key: String = s[0].resource_path + "|" + s[2]
@@ -1358,8 +1361,8 @@ func _contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> vo
 	# flat = sym.base + bonus 与「sym.base × scale + _agg_power_flat()」恒等。
 	var bonus: float = sym.base * power_scale - sym.base + _agg_power_flat()
 	var flat: float = sym.base + bonus
-	# 逐符号元素克制倍率（Phase G v2.0：通用元素乘区，奖罚并存·温和）
-	var em = ElementCounter.multiplier(elem, enemy_element)
+	# 逐符号元素克制倍率（Phase G v2.0：通用元素乘区，奖罚并存·温和；共鸣可对该元素加成）
+	var em = ElementCounter.multiplier(elem, enemy_element) * _synergy_system.element_boost(elem)
 	if em > 1.0:
 		_eval_adv = true
 		# 反制即爆发（Plan C）：克制元素连线/三连标记，供 _evaluate 触发核爆
@@ -1369,7 +1372,8 @@ func _contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> vo
 		_eval_dis = true
 	# 方案 B：三连必暴（crit_mult，现状保留）；非三连每符号实例按 CRIT_CHANCE 独立暴击——
 	# 单带靠三连大暴，多带靠每列小暴，期望与携带装备数解耦（异元素多带不再亏三连频率）。
-	var crit_mult_val: float = _item_crit_map.get(sym.resource_path, 1.0) if raw >= 3 or randf() < CRIT_CHANCE else 1.0
+	# 共鸣 crit_bonus 在暴击触发时叠加到 crit_mult（激活集由 _synergy_system 缓存）。
+	var crit_mult_val: float = (_item_crit_map.get(sym.resource_path, 1.0) + _synergy_system.crit_bonus(sym)) if raw >= 3 or randf() < CRIT_CHANCE else 1.0
 	match sym.kind:
 		"damage":
 			var dv = flat * mult * em

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="SynergyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/systems/synergy_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "flame_resonance"
+name = "烈焰共鸣"
+icon = "🔥"
+desc = "同时携带两把火武器：火符号权重提升，更容易凑三连"
+require_paths = Array[String]([])
+require_tags = Array[String](["element:fire"])
+require_count = 2
+weight_bonus = {"res://resources/symbols/burn.tres": 2.0, "res://resources/symbols/fire_slash.tres": 2.0}
+crit_bonus = 0.0
+chain_bonus = 0
+element_boost = ""
+element_boost_mult = 1.2

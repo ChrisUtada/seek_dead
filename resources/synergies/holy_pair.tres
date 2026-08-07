@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="SynergyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/systems/synergy_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "holy_pair"
+name = "黎明圣辉"
+icon = "✨"
+desc = "携带圣辉长剑与破晓之弓：special 连锁上限 +1"
+require_paths = Array[String](["res://resources/weapon_templates/holy_sword.tres", "res://resources/weapon_templates/dawn_bow.tres"])
+require_tags = Array[String]([])
+require_count = 2
+weight_bonus = {}
+crit_bonus = 0.0
+chain_bonus = 1
+element_boost = ""
+element_boost_mult = 1.2

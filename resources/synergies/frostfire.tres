@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="SynergyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/systems/synergy_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "frostfire"
+name = "冰火二重"
+icon = "❄"
+desc = "同时携带冰与火武器：所有符号暴击倍率 +0.5"
+require_paths = Array[String]([])
+require_tags = Array[String](["element:ice", "element:fire"])
+require_count = 2
+weight_bonus = {}
+crit_bonus = 0.5
+chain_bonus = 0
+element_boost = ""
+element_boost_mult = 1.2
