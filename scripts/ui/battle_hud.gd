@@ -105,7 +105,6 @@ var anvil_screen                        # 铁砧锻造覆盖层（anvil_screen.t
 @onready var log_scroll = $Margin/Content/LogBar/LogScroll
 var _logs: Array = []   # 战斗日志缓冲（本 HUD 自持，仅显示用；不再经 controller 快照中转）
 @onready var player_hp_label = $Margin/Content/MainRow/PlayerPanel/VBox/PlayerHpLabel
-@onready var player_shield_label = $Margin/Content/MainRow/PlayerPanel/VBox/PlayerShieldLabel
 @onready var weapons_row = $Margin/Content/MainRow/PlayerPanel/VBox/GearBox/WeaponsRow
 @onready var charms_row = $Margin/Content/MainRow/PlayerPanel/VBox/GearBox/CharmsRow
 @onready var skills_row = $Margin/Content/MainRow/PlayerPanel/VBox/GearBox/SkillsRow
@@ -123,7 +122,6 @@ var _logs: Array = []   # 战斗日志缓冲（本 HUD 自持，仅显示用；�
 @onready var enemy_sprite = $Margin/Content/MainRow/CenterStage/StageRow/EnemyCenter/EnemySprite
 @onready var player_panel = $Margin/Content/MainRow/PlayerPanel
 @onready var enemy_panel = $Margin/Content/MainRow/EnemyPanel
-@onready var loadout_label = $Margin/Content/LoadoutLabel
 @onready var room_label = $Margin/Content/InfoBar/RoomLabel
 @onready var turn_label = $Margin/Content/InfoBar/TurnLabel
 @onready var run_label = $Margin/Content/InfoBar/RunLabel
@@ -784,13 +782,11 @@ func _refresh_cell(reel: int, row: int) -> void:
 
 
 func _refresh_meta() -> void:
-	loadout_label.text = "已装备: " + ("/".join(controller.state.loadout_names) if not controller.state.loadout_names.is_empty() else "—")
 	_refresh_gear_icons()
 	var is_boss = controller._is_boss_room(controller.state.room_index)
 	room_label.text = "房间: %d/%d%s" % [controller.state.room_index + 1, controller.state.ROOMS.size(), " · ★BOSS" if is_boss else ""]
 	turn_label.text = "回合: %d" % controller.state.turn_count
-	player_hp_label.text = "HP %d/%d" % [controller.state.player_hp, controller.state.player_hp_max]
-	player_shield_label.text = "护盾 %d" % controller.state.player_shield
+	player_hp_label.text = "HP %d/%d · 护盾 %d" % [controller.state.player_hp, controller.state.player_hp_max, controller.state.player_shield]
 	player_buff_label.text = "【转轮】技能: " + controller._buff_summary()
 	gold_label.text = "金币 %d" % controller.state.gold
 	enemy_name_label.text = controller.state.enemy_name
