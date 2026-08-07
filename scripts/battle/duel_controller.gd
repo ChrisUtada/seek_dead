@@ -132,8 +132,6 @@ const _GOLD_CELLS := 2           # 金币符号常驻格数（经济引擎，与
 @export var BASE_POWER_REF: float = 32.0        # 武器 base_power 支点（≈ 当前 8 武器均值，使平均武器伤害与旧模型持平）
 @export var CHAIN_MAX: int = 4                      # 连锁重触发上限：special 三连最多再免费重转 3 次（共 4 发）
 @export var CHAIN_STEP: float = 1.5                   # 连锁倍率：每多一层 ×1.5（叠在 special×CRIT 之上，封顶 ≈ ×3.4）
-# —— 每局结束元进度升级（膨胀双轨：武器 base 线性成长 × 护符乘数增值）——
-@export var CHARM_MULT_STEP: float = 0.12            # 每级护符伤害乘区 +0.12（乘数增值，复利但封顶）
 @export var CHARM_MULT_CAP: float = 6.0              # 总护符乘区硬上限（防失控膨胀）
 @export var META_ANVIL_BONUS: int = 2              # 元进度三选一选「铁砧点数」时获得的点数
 @export var ANVIL_ROLL_COST: int = 10
@@ -225,8 +223,9 @@ var charm_interf_resist: int = 0       # 抗扰护符：本局敌人干扰概率
 
 var charm_damage_mult: float = 1.0      # Phase G v2.0：护符全局乘区（joker），默认 ×1.0
 
-# 流程状态
-var game_state = "playing"             # playing | won | lost | cleared
+# 流程状态（enum 化：原字符串字面量易拼错且无编译期检查）
+enum FlowState { PLAYING, WON, LOST }
+var game_state: FlowState = FlowState.PLAYING
 var turn_count = 1
 
 # M4 本局（Run）加成层（run_symbol_bonus / run_power_bonus / run_shield_next）已抽至
@@ -236,9 +235,8 @@ var reward_is_boss: bool = false       # 当前奖励是否来自 Boss 房（选
 # S7/S12 商店状态（shop_offers / paid_price / gold_upgrades）已抽至 ShopSystem（步骤3，见 _shop_system）
 
 # M5 元进度（铁砧锻造 + 存档持久化，跨局保留）
-# weapon_upgrades: weapon_path -> int（该武器主符号额外权重，转轮升级）
-# interference_resist: int（抗干扰等级，降低敌人干扰概率）
-var meta: Dictionary = {"anvil_points": 0, "weapon_upgrades": {}, "interference_resist": 0, "weapon_base_bonus": {}, "charm_upgrades": {}, "weapon_hit_bonus": {}, "owned_weapons": [], "owned_charms": [], "owned_consumables": [], "anvil_pity": 0, "first_clears": {}, "collection_milestones": []}
+# 已退役键（元进度三选一退化为仅 anvil）：weapon_upgrades / weapon_base_bonus / weapon_hit_bonus / charm_upgrades / interference_resist / first_clears
+var meta: Dictionary = {"anvil_points": 0, "owned_weapons": [], "owned_charms": [], "owned_consumables": [], "anvil_pity": 0, "collection_milestones": []}
 var _anvil_system                     # 铁砧锻造子系统 AnvilSystem（步骤2抽出；_ready 实例化并注入 self）
 const ANVIL_SAVE_KEY := "anvil_meta"   # 铁砧元进度存于 SaveSystem.lobby_data
 var _meta_store                        # 存档子系统 MetaStore（步骤1抽出；_ready 实例化并注入 self + meta）
@@ -355,13 +353,13 @@ func _build_pool(loadout: Array) -> void:
 	loadout_names = []
 	_weapon_power_map = {}
 	_item_crit_map = {}
-	# 强度轴映射（P3，未变）：符号 resource_path -> 该物品有效攻击力(base_power + 元进度武器加成)；
+	# 强度轴映射（P3，未变）：符号 resource_path -> 该物品有效攻击力(base_power)；
 	# 共享符号若被多装备持有，取最高者（反映「最强来源」）。结算时 _contribute 读此值把强度轴灌进符号伤害。
 	for path in loadout:
 		var wd: WeaponData = load(path)
 		if wd == null or wd.symbols == null:
 			continue
-		var eff: float = wd.base_power + float(meta["weapon_base_bonus"].get(path, 0))
+		var eff: float = wd.base_power
 		for sw in wd.symbols:
 			if sw == null or sw.symbol == null:
 				continue
@@ -372,7 +370,7 @@ func _build_pool(loadout: Array) -> void:
 		var sd: SkillData = load(path)
 		if sd == null or sd.symbol == null:
 			continue
-		var eff: float = sd.base_power + float(meta["weapon_base_bonus"].get(path, 0))
+		var eff: float = sd.base_power
 		var sp = sd.symbol.resource_path
 		_weapon_power_map[sp] = max(_weapon_power_map.get(sp, 0.0), eff)
 		_item_crit_map[sp] = max(_item_crit_map.get(sp, 1.0), sd.crit_mult)
@@ -392,15 +390,7 @@ func _build_pool(loadout: Array) -> void:
 			if sw == null or sw.symbol == null:
 				continue
 			syms.append([sw.symbol, float(sw.weight), _eff_element(sw.symbol, wd)])
-		# M5 铁砧：武器升级 -> 主符号（权重最高者）额外加成，直接提升该武器主符号出现频率
-		var bonus = meta["weapon_upgrades"].get(path, 0)
-		if bonus > 0 and not syms.is_empty():
-			var di = 0; var dw = -1.0
-			for i in syms.size():
-				if syms[i][1] > dw:
-					dw = syms[i][1]; di = i
-			syms[di][1] += float(bonus)
-		var hit: float = clamp(wd.hit_rate + float(meta["weapon_hit_bonus"].get(path, 0.0)), 0.0, 1.0)
+		var hit: float = clamp(wd.hit_rate, 0.0, 1.0)
 		pool_items.append({"name": wd.weapon_name, "hit": hit, "syms": syms})
 	# 主动技能同样作为「装备」生成自己的符号段（与武器等权、频率由自身 weight 定）
 	for path in selected_skills:
@@ -408,7 +398,7 @@ func _build_pool(loadout: Array) -> void:
 		if sd == null or sd.symbol == null:
 			continue
 		var eff_elem: String = sd.symbol.element if sd.symbol.element != "none" else "none"
-		var hit: float = clamp(sd.hit_rate + float(meta["weapon_hit_bonus"].get(path, 0.0)), 0.0, 1.0)
+		var hit: float = clamp(sd.hit_rate, 0.0, 1.0)
 		pool_items.append({"name": ("技能" + sd.icon), "hit": hit, "syms": [[sd.symbol, float(sd.weight), eff_elem]]})
 	# 扁平池（供图例 / 状态查询 / 奖励随机 等 legacy 消费者；weight 仅作展示/兼容）
 	for it in pool_items:
@@ -503,8 +493,7 @@ func _apply_charms() -> void:
 			"shield":               charm_shield_trickle += cd.value   # 守备护符：每回合护盾涓流
 			"heal":                charm_heal_trickle += cd.value    # 回春护符：每回合回复
 			"damage_mult":
-				var clv = meta["charm_upgrades"].get(path, 0)
-				charm_damage_mult *= cd.mult_value * (1.0 + CHARM_MULT_STEP * clv)   # 护符乘数增值（膨胀双轨·封顶在循环后）
+				charm_damage_mult *= cd.mult_value   # 护符乘数增值（封顶在循环后）
 		# 混合护符的负面效果（未来卡用）：与正面同枚举、加成型数值取反、乘区型乘 downside_mult
 		if cd.downside_effect != "":
 			match cd.downside_effect:
@@ -814,8 +803,8 @@ func _start_room(idx: int) -> void:
 	# 护甲（扁平池）：随 ante 缩放；BOSS 机制可在此基础上成长（如锈蚀傀儡熔铸护甲）
 	enemy_armor_max = int(round(float(r.armor) * hp_scale)) if r.armor > 0 else 0
 	enemy_armor = enemy_armor_max
-	# M5+M6 抗干扰：铁砧 + 抗扰护符 共同降低敌人干扰概率（每级 -12%，最低保留 25%）
-	var total_resist = meta["interference_resist"] + charm_interf_resist
+	# 抗干扰：抗扰护符 降低敌人干扰概率（每级 -12%，最低保留 25%）
+	var total_resist = charm_interf_resist
 	if total_resist > 0:
 		var rf = max(0.25, 1.0 - total_resist * 0.12)
 		enemy_jam *= rf
@@ -832,7 +821,7 @@ func _start_room(idx: int) -> void:
 	pending_lock_reel = -1
 	pending_chaos = false
 	# 净化完全走消耗品（净化药剂·charges 用尽即移出腰带），无需每房回满
-	game_state = "playing"                # 必须在重建消耗品按钮前置为 playing，否则房间过渡瞬间按钮被误判为禁用
+	game_state = FlowState.PLAYING                # 必须在重建消耗品按钮前置为 playing，否则房间过渡瞬间按钮被误判为禁用
 	_refresh_consumable_panel()
 	turn_count = 1
 	enemy_intent = {}
@@ -854,7 +843,7 @@ func _start_room(idx: int) -> void:
 
 
 func _begin_player_turn() -> void:
-	if game_state != "playing":
+	if game_state != FlowState.PLAYING:
 		return
 	var rnd = randf()
 	if rnd < enemy_jam:
@@ -874,7 +863,7 @@ func _begin_player_turn() -> void:
 
 
 func _on_spin_pressed() -> void:
-	if in_loadout or in_interroom or game_state != "playing" or _busy:
+	if in_loadout or in_interroom or game_state != FlowState.PLAYING or _busy:
 		return
 	_busy = true
 	turn_count += 1
@@ -900,7 +889,7 @@ func _on_spin_pressed() -> void:
 		await get_tree().create_timer(0.25).timeout
 	if enemy_hp <= 0:
 		hud._log("★ 击败 %s！" % enemy_name)
-		game_state = "won"
+		game_state = FlowState.WON
 		hud._show_reward_screen(_is_boss_room(room_index))
 		hud._refresh_meta()
 		_busy = false
@@ -914,13 +903,13 @@ func _on_spin_pressed() -> void:
 	if enemy_hp <= 0:
 		# 敌人可能在自身回合被状态 DoT 结算致死
 		hud._log("★ 击败 %s！（状态结算）" % enemy_name)
-		game_state = "won"
+		game_state = FlowState.WON
 		hud._show_reward_screen(_is_boss_room(room_index))
 		_busy = false
 		return
 	if player_hp <= 0:
 		hud._log("✖ 你被 %s 击倒。" % enemy_name)
-		game_state = "lost"
+		game_state = FlowState.LOST
 		hud._show_overlay("✖ 失败\n你倒在了 %s 面前" % enemy_name, "返回整备 ▶")
 		hud._refresh_meta()
 		_busy = false
@@ -1135,7 +1124,7 @@ func _free_spin() -> void:
 	await _evaluate()
 	if enemy_hp <= 0:
 		hud._log("★ 重转触发击败 %s！" % enemy_name)
-		game_state = "won"
+		game_state = FlowState.WON
 		hud._show_reward_screen(_is_boss_room(room_index))
 	hud._refresh_meta()
 	_busy = false
@@ -1247,7 +1236,7 @@ func _refresh_consumable_panel() -> void:
 
 
 func _on_consumable_pressed(uid: String) -> void:
-	if in_loadout or in_interroom or game_state != "playing" or _busy:
+	if in_loadout or in_interroom or game_state != FlowState.PLAYING or _busy:
 		return
 	var target = -1
 	for i in range(consumable_slots.size()):
@@ -1293,7 +1282,7 @@ func _on_consumable_pressed(uid: String) -> void:
 func _on_overlay_button_pressed() -> void:
 	hud._hide_overlay()    # 关闭失败弹层（通关已改走 reward→meta 直链，无 cleared 弹层）
 	match game_state:
-		"lost":   _return_to_loadout()
+		FlowState.LOST:   _return_to_loadout()
 
 
 func _return_to_loadout() -> void:
@@ -1301,7 +1290,7 @@ func _return_to_loadout() -> void:
 	# 先落盘，确保当局铁砧点数 drip / 商店购买 / 铁砧授予等写入 owned_* 的进度不丢失。
 	_save_meta()
 	# selected_* 保留上局勾选，玩家可在整备页调整；确认开战时 _full_reset 重置本局状态。
-	game_state = "playing"   # 解除 lost 终态，避免整备/铁砧界面误读终局
+	game_state = FlowState.PLAYING   # 解除 lost 终态，避免整备/铁砧界面误读终局
 	hud._show_loadout_screen()
 
 
@@ -1555,7 +1544,7 @@ func _evaluate(chain_mult := 1.0) -> void:
 #
 # 注意：本层只聚合「每符号 / 每回合」类修正。房开局护盾（守望护符 charm_room_shield
 # / 守望结界 run_shield_next）与抗扰等是「房间级」修正，仍在各自原位处理，
-# 不进入此层。铁砧转轮升级(meta.weapon_upgrades)是「武器级」权重，在 _build_pool 内处理。
+# 不进入此层。
 # ---------------------------------------------------------------------------
 
 # —— 加法型标量轴（多个来源直接相加）——

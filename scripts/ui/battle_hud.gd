@@ -934,7 +934,7 @@ func _refresh_consumable_panel() -> void:
 	if consumable_cells.is_empty():
 		return
 	# 与 controller._on_consumable_pressed 守卫保持一致：playing 状态 + 非整备
-	var can_use = (controller.state.game_state == "playing") and (not controller.state.in_loadout)
+	var can_use = (controller.state.game_state == DuelController.FlowState.PLAYING) and (not controller.state.in_loadout)
 	for i in range(consumable_cells.size()):
 		var cell = consumable_cells[i]
 		if i < controller.state.consumable_slots.size():

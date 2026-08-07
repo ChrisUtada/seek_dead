@@ -23,15 +23,14 @@ func _init(ctrl: DuelController, m: Dictionary) -> void:
 # ---------------------------------------------------------------------------
 
 func load_meta() -> void:
-	var defaults := {"anvil_points": 0, "weapon_upgrades": {}, "interference_resist": 0, "weapon_base_bonus": {}, "charm_upgrades": {}, "weapon_hit_bonus": {}, "owned_weapons": [], "owned_charms": [], "owned_consumables": [], "anvil_pity": 0, "first_clears": {}, "collection_milestones": []}
+	var defaults := {"anvil_points": 0, "owned_weapons": [], "owned_charms": [], "owned_consumables": [], "anvil_pity": 0, "collection_milestones": []}
 	var lb = SaveSystem.load_lobby_data()
 	if lb.has(_ctrl.ANVIL_SAVE_KEY) and lb[_ctrl.ANVIL_SAVE_KEY] is Dictionary:
 		var parsed: Dictionary = lb[_ctrl.ANVIL_SAVE_KEY]
 		for k in defaults.keys():
 			if parsed.has(k):
 				meta[k] = parsed[k]
-	_ctrl.hud._log("铁砧元进度已载入：点数 %d，武器升级 %d，抗干扰 Lv%d" % \
-		[meta["anvil_points"], meta["weapon_upgrades"].size(), meta["interference_resist"]])
+	_ctrl.hud._log("铁砧元进度已载入：点数 %d" % meta["anvil_points"])
 
 
 func save_meta() -> void:
