@@ -277,8 +277,7 @@ var gold_upgrades := {"power": 0, "line": 0, "joker": 0, "shield": 0}
 # weapon_upgrades: weapon_path -> int（该武器主符号额外权重，转轮升级）
 # interference_resist: int（抗干扰等级，降低敌人干扰概率）
 var meta: Dictionary = {"anvil_points": 0, "weapon_upgrades": {}, "interference_resist": 0, "weapon_base_bonus": {}, "charm_upgrades": {}, "weapon_hit_bonus": {}, "owned_weapons": [], "owned_charms": [], "owned_consumables": [], "anvil_pity": 0, "first_clears": {}, "collection_milestones": []}
-var anvil_run_awarded: int = 0   # 本局铁砧点数 drip 累计（不持久，_full_reset 清零）
-var last_anvil_drops: Array = []   # 最近一次铁砧摇动结果（非持久，仅供 UI 显示）
+var _anvil_system                     # 铁砧锻造子系统 AnvilSystem（步骤2抽出；_ready 实例化并注入 self）
 const ANVIL_SAVE_KEY := "anvil_meta"   # 铁砧元进度存于 SaveSystem.lobby_data
 var _meta_store                        # 存档子系统 MetaStore（步骤1抽出；_ready 实例化并注入 self + meta）
 
@@ -369,6 +368,7 @@ func _ready() -> void:
 	add_child(hud)
 	hud.controller = self
 	_meta_store = preload("res://scripts/systems/meta_store.gd").new(self, meta)
+	_anvil_system = preload("res://scripts/systems/anvil_system.gd").new(self)
 	_load_meta()
 	_sanitize_owned()	# 自愈：清洗历史上误写入 owned_* 的非本类路径（如技能）
 	_seed_default_owned()
@@ -610,7 +610,7 @@ func _apply_charms() -> void:
 func _on_reward_chosen(id: String) -> void:
 	hud.hide_reward_screen()
 	_apply_reward(id)
-	_award_meta(reward_is_boss)    # M5：房间通关发放铁砧点数
+	_anvil_system.award_meta(reward_is_boss)    # M5：房间通关发放铁砧点数
 	_award_gold(reward_is_boss)    # S6+S8：清房金币 + 利息
 	if _is_run_final(room_index):
 		_show_meta_choice()        # 通关整局（最终 BOSS）→元进度三选一（持久生效）
@@ -621,7 +621,7 @@ func _on_reward_chosen(id: String) -> void:
 
 func _on_reward_skip_pressed() -> void:
 	hud.hide_reward_screen()
-	_award_meta(reward_is_boss)    # M5：房间通关发放铁砧点数（即使跳过奖励）
+	_anvil_system.award_meta(reward_is_boss)    # M5：房间通关发放铁砧点数（即使跳过奖励）
 	_award_gold(reward_is_boss)    # S6+S8：清房金币 + 利息
 	if _is_run_final(room_index):
 		_show_meta_choice()
@@ -633,7 +633,7 @@ func _on_reward_skip_pressed() -> void:
 func _on_boss_reward_chosen(cand: Dictionary) -> void:
 	hud.hide_reward_screen()
 	_apply_boss_reward(cand)
-	_award_meta(true)    # M5：Boss 通关发放铁砧点数（含额外）
+	_anvil_system.award_meta(true)    # M5：Boss 通关发放铁砧点数（含额外）
 	_award_gold(true)    # S6+S8：清房金币 + 利息
 	if _is_run_final(room_index):
 		_show_meta_choice()      # 通关整局（最终 BOSS）→元进度三选一（持久生效）
@@ -809,29 +809,7 @@ func _owned_arr(kind: String) -> Array:
 
 
 
-# 房间通关（含 Boss）发放铁砧点数并持久化；is_boss 给额外奖励
-func _award_meta(is_boss: bool) -> void:
-	# T6：Hades 式铁砧点数 drip——清房+1 / 精英+3 / BOSS+5，本局封顶 ANVIL_PER_RUN_CAP。
-	var amt: int = 5
-	if not is_boss:
-		var kind = "normal"
-		if room_index >= 0 and room_index < ROOMS.size():
-			kind = ROOMS[room_index].kind
-		amt = 3 if kind == "elite" else 1
-	var remain = ANVIL_PER_RUN_CAP - anvil_run_awarded
-	if remain <= 0:
-		hud._log("铁砧点数本局已达上限 %d（本次 +0）" % ANVIL_PER_RUN_CAP)
-		return
-	amt = mini(amt, remain)
-	anvil_run_awarded += amt
-	meta["anvil_points"] += amt
-	_save_meta()
-	hud._log("铁砧点数 +%d（本局 %d/%d，共 %d）" % [amt, anvil_run_awarded, ANVIL_PER_RUN_CAP, meta["anvil_points"]])
-
-
-# ---------------------------------------------------------------------------
-# S6–S8 局内经济：金币 / 商店 / 利息
-# ---------------------------------------------------------------------------
+# M5 铁砧点数 drip 已抽至 AnvilSystem（步骤2，见 award_meta）
 func _award_gold(is_boss: bool) -> void:
 	_meta_store.award_gold(is_boss)   # 步骤1：转发到 MetaStore
 
@@ -1095,147 +1073,15 @@ func _on_next_room_pressed() -> void:
 
 
 func _on_anvil_roll_pressed() -> void:
-	# 铁砧纯 gacha：扣点数 → 摇 3 格 → 结算 → 刷新 UI（§6 纯 gacha 定案）
-	if meta["anvil_points"] < ANVIL_ROLL_COST:
-		hud._log("铁砧点数不足（需 %d）" % ANVIL_ROLL_COST)
-		return
-	meta["anvil_points"] -= ANVIL_ROLL_COST
-	var result = _roll_anvil_cell()           # 摇出单格结果（含 blank 可能）
-	_resolve_anvil_drop(result)               # 结算一次：授予 / 返还 / 保底计数
-	# 仪式感：三格渲染为同一结果（视觉三连，但实际只授予一件）
-	var drops := []
-	for i in 3:
-		var d = result.duplicate()
-		d["cell"] = i
-		drops.append(d)
-	last_anvil_drops = drops
-	_save_meta()
+	# 铁砧纯 gacha：委托 AnvilSystem 完成扣点→摇→结算→写 last_anvil_drops→落盘（§6 纯 gacha 定案）
+	var drops = _anvil_system.roll_anvil()
+	if drops.is_empty():
+		return   # 点数不足（已在子系统内日志）
 	# 注意：不在此处刷新铁砧屏——由 anvil_screen 旋转动画收尾后自行 refresh
 	hud._refresh_meta()
 	hud._refresh_loadout_cards()
 	hud._update_loadout_anvil()
-
-func _roll_anvil_cell() -> Dictionary:
-	# 单格：10% 空白；保底触发且仍有未拥有 → 强制从 not-yet-owned 抽；否则按 rarity 加权抽
-	if randf() < ANVIL_BLANK_CHANCE:
-		return {"kind": "blank"}
-	var pool = _anvil_pool()
-	var not_yet = _anvil_not_yet_owned(pool)
-	if meta["anvil_pity"] >= ANVIL_PITY_MAX and not_yet.size() > 0:
-		var p = not_yet[randi() % not_yet.size()]
-		return _anvil_drop_for(p)
-	var total := 0.0
-	var weights := []
-	for p in pool:
-		var w = _anvil_rarity_weight(p)
-		weights.append(w)
-		total += w
-	var r := randf() * total
-	var acc := 0.0
-	for i in pool.size():
-		acc += weights[i]
-		if r <= acc:
-			return _anvil_drop_for(pool[i])
-	return _anvil_drop_for(pool[pool.size() - 1])
-
-func _anvil_drop_for(p: String) -> Dictionary:
-	var res = load(p)
-	var kind := "weapon"
-	var rarity := "common"
-	var name := p.get_file().get_basename()
-	if res != null and "rarity" in res:
-		rarity = res.rarity
-	if res is WeaponData:
-		kind = "weapon"
-		name = res.weapon_name
-	elif res is SkillData:
-		kind = "skill"
-		name = res.buff_name
-	elif res is ItemData:
-		kind = res.category
-		name = res.item_name
-	return {"kind": kind, "path": p, "rarity": rarity, "name": name}
-
-func _anvil_rarity_weight(p: String) -> float:
-	var res = load(p)
-	var r := "common"
-	if res != null and "rarity" in res:
-		r = res.rarity
-	return float(ANVIL_RARITY_WEIGHT.get(r, ANVIL_RARITY_WEIGHT["common"]))
-
-func _anvil_pool() -> Array:
-	# 铁砧池 = 武器 + 护符(passive) 仅此两类；消耗品(active)/技能不进池（设计：铁砧只产武器或护符）
-	var pool := []
-	for p in WEAPON_POOL:
-		pool.append(p)
-	for p in ITEM_POOL:
-		var d = load(p)
-		if d is ItemData and d.category == "passive":
-			pool.append(p)
-	return pool
-
-func _anvil_is_owned(p: String) -> bool:
-	return meta["owned_weapons"].has(p) or meta["owned_charms"].has(p) or meta["owned_consumables"].has(p)
-
-func _anvil_not_yet_owned(pool: Array) -> Array:
-	var out := []
-	for p in pool:
-		if not _anvil_is_owned(p):
-			out.append(p)
-	return out
-
-func _anvil_grant_owned(p: String) -> void:
-	var res = load(p)
-	if res is WeaponData or res is SkillData:
-		if not meta["owned_weapons"].has(p):
-			meta["owned_weapons"].append(p)
-	elif res is ItemData:
-		if res.category == "passive":
-			if not meta["owned_charms"].has(p):
-				meta["owned_charms"].append(p)
-		else:
-			if not meta["owned_consumables"].has(p):
-				meta["owned_consumables"].append(p)
-
-func _resolve_anvil_drop(d: Dictionary) -> void:
-	# 单格结算（仪式感三连只调用一次）：空白跳过；已拥有→按 rarity 返还+保底+1；未拥有→授予+保底清零
-	if d["kind"] == "blank":
-		d["is_new"] = false
-		return
-	var p = d["path"]
-	if _anvil_is_owned(p):
-		var rb = int(ANVIL_DUPE_REFUND.get(d["rarity"], ANVIL_DUPE_REFUND["common"]))
-		meta["anvil_points"] += rb
-		meta["anvil_pity"] += 1
-		d["is_new"] = false
-		hud._log("铁砧重复：%s（%s，返还 %d 点）" % [d["name"], d["rarity"], rb])
-	else:
-		_anvil_grant_owned(p)
-		meta["anvil_pity"] = 0
-		d["is_new"] = true
-		hud._log("铁砧新获取：%s（%s）" % [d["name"], d["rarity"]])
-	_check_collection_milestones()
-
-func _anvil_collection_pct() -> float:
-	var pool = _anvil_pool()
-	if pool.is_empty():
-		return 1.0
-	var owned := 0
-	for p in pool:
-		if _anvil_is_owned(p):
-			owned += 1
-	return float(owned) / float(pool.size())
-
-func _check_collection_milestones() -> void:
-	var pct = _anvil_collection_pct()
-	for i in ANVIL_MILESTONE_PCT.size():
-		var thr = ANVIL_MILESTONE_PCT[i]
-		if pct >= thr and not meta["collection_milestones"].has(i):
-			meta["collection_milestones"].append(i)
-			var bonus = int(ANVIL_MILESTONE_BONUS[i])
-			meta["anvil_points"] += bonus
-			hud._log("收藏里程碑 %.0f%%：铁砧点数 +%d（共 %d）" % [thr * 100, bonus, meta["anvil_points"]])
-
+# M6 铁砧 gacha 核心已抽至 AnvilSystem（步骤2）：roll_anvil / award_meta / _anvil_*
 func _on_anvil_back_pressed() -> void:
 	hud.hide_anvil_screen()
 	hud._show_loadout_screen()   # 铁砧返回后重建整备 2D 场景（loadout 内会 hud.hide()）
@@ -1243,7 +1089,7 @@ func _on_anvil_back_pressed() -> void:
 
 
 func _full_reset() -> void:
-	anvil_run_awarded = 0   # 本局铁砧点数 drip 累计清零
+	_anvil_system.reset_run()   # 本局铁砧点数 drip 累计清零
 	player_hp = player_hp_max
 	in_interroom = false                     # opt-in 商店：新一局不可能处于房间歇态
 	gold = 4                                 # S6：新一局金币清零（每局清零，见 §11）
@@ -2191,3 +2037,5 @@ func _input(event) -> void:
 			_stop_next_reel()
 		else:
 			_on_spin_pressed()
+
+

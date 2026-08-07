@@ -52,10 +52,10 @@ func refresh() -> void:
 		return
 	var meta = controller.state.meta
 	points_label.text = "铁砧点数: %d" % meta["anvil_points"]
-	var pool = controller._anvil_pool()
+	var pool = controller._anvil_system._anvil_pool()
 	var owned = 0
 	for p in pool:
-		if controller._anvil_is_owned(p):
+		if controller._anvil_system._anvil_is_owned(p):
 			owned += 1
 	var not_yet = pool.size() - owned
 	var pity = meta["anvil_pity"]
@@ -63,16 +63,16 @@ func refresh() -> void:
 	if not_yet > 0 and pity >= controller.ANVIL_PITY_MAX:
 		pity_txt = "（保底触发：下次必出未拥有）"
 	info_label.text = "图鉴 %.0f%%  已拥有 %d / 全池 %d\n未拥有 %d 件 · 连续重复 %d/%d %s" % [
-		controller._anvil_collection_pct() * 100, owned, pool.size(), not_yet, pity, controller.ANVIL_PITY_MAX, pity_txt]
+		controller._anvil_system._anvil_collection_pct() * 100, owned, pool.size(), not_yet, pity, controller.ANVIL_PITY_MAX, pity_txt]
 	for c in reel_box.get_children():
 		reel_box.remove_child(c)
 		c.queue_free()
-	if controller.last_anvil_drops.is_empty():
+	if controller._anvil_system.last_anvil_drops.is_empty():
 		# 未摇过：三格显示问号，制造悬念
 		for i in 3:
 			reel_box.add_child(_make_placeholder())
 	else:
-		for d in controller.last_anvil_drops:
+		for d in controller._anvil_system.last_anvil_drops:
 			reel_box.add_child(_make_cell(d))
 
 func _on_roll_pressed() -> void:
@@ -84,17 +84,17 @@ func _on_roll_pressed() -> void:
 	_spinning = true
 	sub_label.text = "转动中…"
 	controller._on_anvil_roll_pressed()  # 扣点 + 结算 + 写入 last_anvil_drops（三连相同）
-	_play_spin(controller.last_anvil_drops)
+	_play_spin(controller._anvil_system.last_anvil_drops)
 
 func _play_spin(final_drops: Array) -> void:
 	# 清空旧格，建立三张转动标签
 	for c in reel_box.get_children():
 		reel_box.remove_child(c)
 		c.queue_free()
-	var pool = controller._anvil_pool()
+	var pool = controller._anvil_system._anvil_pool()
 	var names := []
 	for p in pool:
-		names.append(controller._anvil_drop_for(p)["name"])
+		names.append(controller._anvil_system._anvil_drop_for(p)["name"])
 	var labels := []
 	var stops = [0.45, 0.62, 0.80]  # 三格错峰停下，强化仪式感
 	for i in 3:
@@ -180,3 +180,4 @@ func _make_cell(d: Dictionary) -> Control:
 
 func hide_screen() -> void:
 	visible = false
+
