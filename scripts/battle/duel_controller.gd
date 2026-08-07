@@ -23,10 +23,10 @@ const GOLD_SYMBOL = preload("res://resources/symbols/gold.tres")
 # 可选物品池（整备界面从这里自由勾选，真实 .tres 数据）。
 # Phase D 软注册表清理：改为文件夹自动扫描，新增内容只需在对应 resources/ 子目录放 .tres，
 # 不再手写路径数组（见 _ready 内的 ResourceScan 填充）。默认空，待 _ready 填充。
-var WEAPON_POOL: Array = []
-var ITEM_POOL: Array = []
+var WEAPON_POOL: Array[String] = []
+var ITEM_POOL: Array[String] = []
 # Phase C 主动技能：携带后其符号进入转轮，连线命中施加限时增益
-var SKILL_POOL: Array = []
+var SKILL_POOL: Array[String] = []
 
 # 携带约束（Phase G）：四类各自占【独立槽位】，互不算总、不共享上限。
 # 【初始配额】武器 2 · 增益 1 · 消耗品 1 · 护符 1（合计 5——仅为初始值之和，**不是**共享闸门；
@@ -74,18 +74,18 @@ const STATUS_DMG_MULT := 3.0  # 给敌人的状态 DoT（灼烧/毒）永久倍�
 
 # M4 房奖励池（每清一房随机 3 选 1；Boss 房走同池但标为「残余物」）。
 # Phase D 资源化：改为扫描 resources/rewards/*.tres（RewardData），见 _ready 内填充。
-var REWARD_POOL: Array = []
+var REWARD_POOL: Array[RewardData] = []
 
 # T6 精英房专属「战前补给」奖励池（扫描 resources/rewards/elite/）。
 # 精英房卡在每个 BOSS 前，定位为「补给锚点」而非普通小增益 / BOSS 战力飞跃，
 # 故与普通房奖励池解耦，提供 金币囤 / 铁砧点 / 结界备战 三类 prep 选项。
-var ELITE_REWARD_POOL: Array = []
+var ELITE_REWARD_POOL: Array[RewardData] = []
 
 # 房间序列（肉鸽逐房推进）。
 # jam=注废意图概率, lock=锁轮意图概率, chaos=乱权意图概率, heavy=重击意图概率, 其余=普攻。
 # Phase D 资源化：改为扫描 resources/rooms/*.tres（RoomData），见 _ready 内填充。
-var ALL_ROOMS: Array = []          # 全量房间池（扫描收集；_build_run 从中按幕抽 12 房）
-var ROOMS: Array = []             # 当前一局的 12 房序列（每局 _full_reset 时由 _build_run 重建）
+var ALL_ROOMS: Array[RoomData] = []          # 全量房间池（扫描收集；_build_run 从中按幕抽 12 房）
+var ROOMS: Array[RoomData] = []             # 当前一局的 12 房序列（每局 _full_reset 时由 _build_run 重建）
 
 # grid[reel][row] = SymbolData 引用
 var grid = []
@@ -93,11 +93,11 @@ var grid = []
 var grid_elem = []
 
 # 合并后的加权符号池：元素为 [SymbolData, weight, element]（element = 有效元素）
-var pool: Array = []
-var loadout_names: Array = []
+var pool: Array[Array] = []
+var loadout_names: Array[String] = []
 var _weapon_power_map: Dictionary = {}   # 符号 resource_path -> 该物品有效攻击力(base_power + 元进度武器加成)，由 _build_pool 构建。P3：结算时 _contribute 读此值把「物品强度轴」灌进符号伤害（docs/物品中心重构方案.md §8）
 var _item_crit_map: Dictionary = {}   # 符号 resource_path -> 该物品三连暴击倍率(crit_mult)，由 _build_pool 构建（方案 A）。普通/special 三连均按此倍率结算，共享符号取最高 crit_mult。
-var pool_items: Array = []              # 装备自洽：每件装备一段 [ {name, hit, syms:[[SymbolData, weight, element]]} ]，_build_strips 据此生成各自的转轮子带
+var pool_items: Array[Dictionary] = []              # 装备自洽：每件装备一段 [ {name, hit, syms:[[SymbolData, weight, element]]} ]，_build_strips 据此生成各自的转轮子带
 
 var _busy: bool = false                 # 旋转序列进行中，防重入
 var _eval_adv := false                  # _evaluate 阶段2：本回合是否触发过「克制」
@@ -106,10 +106,10 @@ var _last_special_triple := false        # 上一次 _evaluate 是否触发 spec
 
 # —— 实体转轮带（方案 A）：权重 = 带子上该符号的格子数，落点由停止时机决定 ——
 var reel_strips: Array = []            # [reel] -> Array[ [SymbolData, element] ]
-var reel_cursor: Array = []            # [reel] -> 当前带子索引（旋转时递增，取模长度）
-var reel_stopped: Array = []           # [reel] -> 该列是否已停
+var reel_cursor: Array[int] = []            # [reel] -> 当前带子索引（旋转时递增，取模长度）
+var reel_stopped: Array[bool] = []           # [reel] -> 该列是否已停
 var _locked_prev_sym: Array = []       # [reel] -> 锁轮保留的上一轮符号
-var _locked_prev_elem: Array = []      # [reel] -> 锁轮保留的上一轮有效元素
+var _locked_prev_elem: Array[String] = []      # [reel] -> 锁轮保留的上一轮有效元素
 var _spinning := false                 # 旋转进行中（供输入分支判断）
 var _spin_timer: Timer                 # 旋转节拍器（每跳推进一格 + 加速）
 var _spin_ticks := 0                   # 已跳次数（用于加速上限）
@@ -167,10 +167,10 @@ var boss_trash := 0                     # S10 T2：深渊侵蚀注入的额外�
 # 整备（M3–M6）：玩家自由勾选武器 / 消耗品 / 护符三分类
 var in_loadout := false
 var in_interroom := false   # 房间歇态：房奖励结算后、进下一房前（opt-in 商店，替代强制全屏商店）
-var selected_loadout: Array = []          # 玩家勾选的武器路径
-var selected_consumables: Array = []      # 玩家勾选的消耗品路径
-var selected_charms: Array = []           # 玩家勾选的护符路径
-var selected_skills: Array = []           # 玩家勾选的主动技能路径（Phase C 重构：原「增益」改名「技能」）
+var selected_loadout: Array[String] = []          # 玩家勾选的武器路径
+var selected_consumables: Array[String] = []      # 玩家勾选的消耗品路径
+var selected_charms: Array[String] = []           # 玩家勾选的护符路径
+var selected_skills: Array[String] = []           # 玩家勾选的主动技能路径（Phase C 重构：原「增益」改名「技能」）
 
 const STATUS_NAMES := {"burn": "燃", "frost": "霜", "poison": "毒"}
 
@@ -178,7 +178,7 @@ const STATUS_NAMES := {"burn": "燃", "frost": "霜", "poison": "毒"}
 var player_buffs: Dictionary = {}
 
 # 消耗品运行时（战斗中主动使用）
-var consumable_slots: Array = []          # 消耗品腰带实例：[{path, item_id, charges, uid}]，上限 CONSUMABLE_CAP，允许同类重复占格
+var consumable_slots: Array[Dictionary] = []          # 消耗品腰带实例：[{path, item_id, charges, uid}]，上限 CONSUMABLE_CAP，允许同类重复占格
 var _consumable_uid := 0                   # 腰带格唯一 id 计数器（卖出/使用精准定位，避免同类重复撞 key）
 # 4 格子（2x2）由 HUD 自管（hud.consumable_cells），controller 不再持有引用
 var assault_next_spin: int = 1            # 强袭药剂：下次转轮伤害倍率（1=正常）
@@ -310,12 +310,13 @@ var hud: BattleHud
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	# Phase D：文件夹自动扫描内容池（替代手写路径数组）。必须在构建整备界面之前完成。
-	WEAPON_POOL = ResourceScan.scan_paths("res://resources/weapon_templates/")
-	ITEM_POOL = ResourceScan.scan_paths("res://resources/charms/") + ResourceScan.scan_paths("res://resources/consumables/")
-	SKILL_POOL = ResourceScan.scan_paths("res://resources/skills/")
-	ALL_ROOMS = _sort_rooms(ResourceScan.scan_resources("res://resources/rooms/", "RoomData"))
-	REWARD_POOL = ResourceScan.scan_resources("res://resources/rewards/", "RewardData")
-	ELITE_REWARD_POOL = ResourceScan.scan_resources("res://resources/rewards/elite/", "RewardData")
+	# 扫描返回未泛型 Array，经 assign() 显式转为泛型（元素逐一校验）。
+	WEAPON_POOL.assign(ResourceScan.scan_paths("res://resources/weapon_templates/"))
+	ITEM_POOL.assign(ResourceScan.scan_paths("res://resources/charms/") + ResourceScan.scan_paths("res://resources/consumables/"))
+	SKILL_POOL.assign(ResourceScan.scan_paths("res://resources/skills/"))
+	ALL_ROOMS.assign(_sort_rooms(ResourceScan.scan_resources("res://resources/rooms/", "RoomData")))
+	REWARD_POOL.assign(ResourceScan.scan_resources("res://resources/rewards/", "RewardData"))
+	ELITE_REWARD_POOL.assign(ResourceScan.scan_resources("res://resources/rewards/elite/", "RewardData"))
 	hud = BATTLE_HUD.instantiate()
 	add_child(hud)
 	hud.controller = self
@@ -639,10 +640,15 @@ func _roll_shop() -> void:
 	_shop_system.roll_shop()
 
 
-func _on_shop_buy_pressed(offer: Dictionary) -> void:
-	_shop_system.on_shop_buy_pressed(offer)
+# 商店状态变更后的统一 UI 刷新（买卖/金币升级共用，防新增路径漏刷）
+func _after_shop_change() -> void:
 	hud._refresh_shop()
 	hud._refresh_meta()
+
+
+func _on_shop_buy_pressed(offer: Dictionary) -> void:
+	_shop_system.on_shop_buy_pressed(offer)
+	_after_shop_change()
 
 
 func _sell_price(kind: String, path: String) -> int:
@@ -651,8 +657,7 @@ func _sell_price(kind: String, path: String) -> int:
 
 func _on_shop_sell_pressed(path: String, kind: String) -> void:
 	_shop_system.on_shop_sell_pressed(path, kind)
-	hud._refresh_shop()
-	hud._refresh_meta()
+	_after_shop_change()
 
 
 func _gold_upgrade_defs() -> Array:
@@ -661,8 +666,7 @@ func _gold_upgrade_defs() -> Array:
 
 func _on_gold_upgrade_pressed(id: String) -> void:
 	_shop_system.on_gold_upgrade_pressed(id)
-	hud._refresh_shop()
-	hud._refresh_meta()
+	_after_shop_change()
 
 
 func _on_shop_leave_pressed() -> void:
@@ -750,14 +754,14 @@ func _is_run_final(idx: int) -> bool:
 # S10 T3：每局运行时从全量池构建 12 房（3 幕 × 2 normal + 1 elite + 1 boss）。
 # 房间序列不再依赖文件名字母序或固定数组；每局随机、按幕分组（幕内顺序：普通→普通→精英→BOSS）。
 # 未抽中的房间留作内容广度（不同 run 体验不同）。
-func _build_run() -> Array:
+func _build_run() -> Array[RoomData]:
 	var by_act := {}   # act -> {kind: [RoomData,...]}
 	for r in ALL_ROOMS:
 		var a = int(r.act)
 		if not by_act.has(a):
 			by_act[a] = {"normal": [], "elite": [], "boss": []}
 		by_act[a][r.kind].append(r)
-	var run: Array = []
+	var run: Array[RoomData] = []
 	for a in [1, 2, 3]:
 		if not by_act.has(a):
 			continue
@@ -798,25 +802,17 @@ func _start_room(idx: int) -> void:
 	var r: RoomData = ROOMS[idx]
 	enemy_name = r.name
 	# ante 难度曲线：RoomData.hp/atk 视为基础值，按「幕间台阶 × 幕内爬升」缩放。
-	# act = RoomData.act（1/2/3）；幕内位置 = 本房之前与本房同幕房数 - 1（boss 恒为 3 = 幕内峰值）。
-	var a = r.act
-	var ria = 0   # room-in-act：同幕内序号（0 起）
-	for i in range(room_index + 1):
-		if ROOMS[i].act == a:
-			ria += 1
-	ria -= 1
-	var hp_scale = pow(ANTE_ACT_STEP_HP, a - 1) * pow(ANTE_ROOM_STEP_HP, ria)
-	var atk_scale = pow(ANTE_ACT_STEP_ATK, a - 1) * pow(ANTE_ROOM_STEP_ATK, ria)
-	enemy_hp_max = int(round(float(r.hp) * hp_scale))
+	var s = _ante_scale(r, room_index)
+	enemy_hp_max = int(round(float(r.hp) * s["hp_scale"]))
 	enemy_hp = enemy_hp_max
-	enemy_atk = int(round(float(r.atk) * atk_scale))
+	enemy_atk = int(round(float(r.atk) * s["atk_scale"]))
 	enemy_jam = r.jam
 	enemy_lock = r.lock
 	enemy_chaos = r.chaos
 	enemy_heavy = r.heavy
 	enemy_element = r.element if r.element != "" else "none"   # 单向克制：敌人属性（仅供玩家符号克制判定）
 	# 护甲（扁平池）：随 ante 缩放；BOSS 机制可在此基础上成长（如锈蚀傀儡熔铸护甲）
-	enemy_armor_max = int(round(float(r.armor) * hp_scale)) if r.armor > 0 else 0
+	enemy_armor_max = int(round(float(r.armor) * s["hp_scale"])) if r.armor > 0 else 0
 	enemy_armor = enemy_armor_max
 	# 抗干扰：抗扰护符 降低敌人干扰概率（每级 -12%，最低保留 25%）
 	var total_resist = charm_interf_resist
@@ -857,6 +853,21 @@ func _start_room(idx: int) -> void:
 	hud._log("▶ 进入房间 %d/%d：%s（HP %d，攻击 %d）" % [idx + 1, ROOMS.size(), enemy_name, enemy_hp_max, enemy_atk])
 
 
+# ante 难度曲线纯函数：RoomData.hp/atk 视为基础值，按「幕间台阶 × 幕内爬升」缩放。
+# act = RoomData.act（1/2/3）；幕内位置 = 本房之前与本房同幕房数 - 1（boss 恒为 3 = 幕内峰值）。
+func _ante_scale(r: RoomData, idx: int) -> Dictionary:
+	var a = r.act
+	var ria = 0   # room-in-act：同幕内序号（0 起）
+	for i in range(idx + 1):
+		if ROOMS[i].act == a:
+			ria += 1
+	ria -= 1
+	return {
+		"hp_scale": pow(ANTE_ACT_STEP_HP, a - 1) * pow(ANTE_ROOM_STEP_HP, ria),
+		"atk_scale": pow(ANTE_ACT_STEP_ATK, a - 1) * pow(ANTE_ROOM_STEP_ATK, ria),
+	}
+
+
 func _begin_player_turn() -> void:
 	if game_state != FlowState.PLAYING:
 		return
@@ -887,21 +898,7 @@ func _on_spin_pressed() -> void:
 	await spin_finished
 	await get_tree().create_timer(0.25).timeout
 	# 阶段 1+2：结算（先防御/增益/状态，后攻击；含飘字）
-	# 连锁重触发（① 数值爆炸）：special 三连后免费重转，倍率逐层 ×1.5，封顶 CHAIN_MAX 发。
-	# 重转全部用 fresh 随机——连锁是否续上完全看 RNG 是否再给 special 三连，是可见的尖峰而非黑箱。
-	var _chain := 0
-	while true:
-		await _evaluate(1.0 if _chain == 0 else CHAIN_STEP ** _chain)
-		if not _last_special_triple or enemy_hp <= 0:
-			break
-		_chain += 1
-		if _chain >= CHAIN_MAX:
-			break
-		hud._log("⚡ 连锁 ×%d！免费重转…" % (_chain + 1))
-		hud._popup("⚡连锁 ×%d" % (_chain + 1), Palette.POP_DAMAGE, hud._enemy_sprite_anchor())
-		_begin_spin()
-		await spin_finished
-		await get_tree().create_timer(0.25).timeout
+	await _chain_loop()
 	if enemy_hp <= 0:
 		hud._log("★ 击败 %s！" % enemy_name)
 		game_state = FlowState.WON
@@ -935,6 +932,24 @@ func _on_spin_pressed() -> void:
 	_begin_player_turn()
 	hud._refresh_meta()
 	_busy = false
+
+
+# 连锁重触发（① 数值爆炸）：special 三连后免费重转，倍率逐层 ×1.5，封顶 CHAIN_MAX 发。
+# 重转全部用 fresh 随机——连锁是否续上完全看 RNG 是否再给 special 三连，是可见的尖峰而非黑箱。
+func _chain_loop() -> void:
+	var _chain := 0
+	while true:
+		await _evaluate(1.0 if _chain == 0 else CHAIN_STEP ** _chain)
+		if not _last_special_triple or enemy_hp <= 0:
+			break
+		_chain += 1
+		if _chain >= CHAIN_MAX:
+			break
+		hud._log("⚡ 连锁 ×%d！免费重转…" % (_chain + 1))
+		hud._popup("⚡连锁 ×%d" % (_chain + 1), Palette.POP_DAMAGE, hud._enemy_sprite_anchor())
+		_begin_spin()
+		await spin_finished
+		await get_tree().create_timer(0.25).timeout
 
 
 # ---------------------------------------------------------------------------
@@ -1246,8 +1261,7 @@ func _intent_name(t: String) -> String:
 # ---------------------------------------------------------------------------
 # 4 格子（2x2）由 HUD 自管，本函数只触发刷新同步状态（不增删 cell，charges 用尽直接移出 slots 即可）
 func _refresh_consumable_panel() -> void:
-	if hud != null and hud.has_method("_refresh_consumable_panel"):
-		hud._refresh_consumable_panel()
+	hud._refresh_consumable_panel()
 
 
 func _on_consumable_pressed(uid: String) -> void:

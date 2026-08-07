@@ -22,14 +22,14 @@ extends RefCounted
 const SHOP_CONFIG = preload("res://resources/config/shop_config.tres")   # 商店经济配置（.tres，可 Inspector 编辑）
 
 var _ctrl: DuelController          # DuelController 实例（类型标注，编译期检查）
-var shop_offers: Array = []            # 当前商店货架（随机刷新）
+var shop_offers: Array[Dictionary] = []            # 当前商店货架（随机刷新）
 var paid_price: Dictionary = {}        # path/uid -> 实际购入价（卖出返还约 50%；新一局清空）
 var gold_upgrades := {"power": 0, "line": 0, "joker": 0, "shield": 0}   # 局内金币升级等级（每局清零）
-var _upgrade_defs: Array = []          # GoldUpgradeDef 资源列表（_init 扫描收集）
+var _upgrade_defs: Array[GoldUpgradeDef] = []          # GoldUpgradeDef 资源列表（_init 扫描收集）
 
 func _init(ctrl: DuelController) -> void:
 	_ctrl = ctrl
-	_upgrade_defs = ResourceScan.scan_resources("res://resources/config/gold_upgrades/", "GoldUpgradeDef")
+	_upgrade_defs.assign(ResourceScan.scan_resources("res://resources/config/gold_upgrades/", "GoldUpgradeDef"))
 
 
 # ---------------------------------------------------------------------------

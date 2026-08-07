@@ -15,7 +15,7 @@ extends RefCounted
 
 var _ctrl: DuelController          # DuelController 实例（类型标注，编译期检查）
 var anvil_run_awarded: int = 0   # 本局铁砧点数 drip 累计（不持久，_full_reset 调 reset_run 清零）
-var last_anvil_drops: Array = []   # 最近一次铁砧摇动结果（非持久，仅供 UI 显示）
+var last_anvil_drops: Array[Dictionary] = []   # 最近一次铁砧摇动结果（非持久，仅供 UI 显示）
 
 func _init(ctrl: DuelController) -> void:
 	_ctrl = ctrl
@@ -35,7 +35,7 @@ func roll_anvil() -> Array:
 	var result = _roll_anvil_cell()           # 摇出单格结果（含 blank 可能）
 	_resolve_anvil_drop(result)               # 结算一次：授予 / 返还 / 保底计数
 	# 仪式感：三格渲染为同一结果（视觉三连，但实际只授予一件）
-	var drops := []
+	var drops: Array[Dictionary] = []
 	for i in 3:
 		var d = result.duplicate()
 		d["cell"] = i
