@@ -1,38 +1,14 @@
 extends Control
 # ============================================================================
-# 官方对决控制器（DuelController）
-# 由原型 prototypes/reel_combat/reel_combat.gd 迁移而来（M0–M6 完整闭环）。
+# 官方对决控制器（DuelController）：由原型 prototypes/reel_combat/reel_combat.gd 迁移而来。
 # 符号数据层：scripts/battle/symbol_data.gd（SymbolData 资源）、WeaponData.symbols、
 #   8 把武器 .tres、ItemData（合并原 ConsumableData/CharmData）+ 8 个 .tres。
-# 与原型唯一差异：铁砧元进度存档由 user://reel_combat_save.json 改为
-#   SaveSystem.lobby_data["anvil_meta"]（与项目统一 JSON 存档）。
+# 铁砧元进度存档于 SaveSystem.lobby_data["anvil_meta"]（与项目统一 JSON 存档）。
 # 全代码 UI（Control 树），可直接作为 duel.tscn 脚本运行（F6）或由 RoomManager 进入。
 #
-# 原原型注释（功能增量说明）：
-# ----------------------------------------------------------------------------
-# M2 原型 — 老虎机回合制战斗（完整单敌对决闭环）
-# 相对 M1 的增量：
-#   · 真实敌人意图：每回合预告(attack/heavy/jam)，玩家 SPIN 后敌人执行该意图
-#   · 胜负状态机 + 房间推进（ROOMS 数组，逐房升级，通关/失败可重开）
-#   · DoT 细化（灼烧/毒跨回合持续、回合末衰减、HUD 显示层数）
-#   · 干扰反制接入（M3 的轻量切片）：敌人 jam 注入废铁占据一列，
-#     玩家用「净化」次数抵消（每房回满，M3 将由消耗品承接）
-# 仍：1 行 3 格、符号池来自 WeaponData.symbols、单符号必结算+匹配倍率、无锁定。
-# 按 F6 运行试玩。
-#
-# M3 增量（整备选物 UI）：
-#   · 开局先进入整备覆盖层，从 WEAPON_POOL 自由勾选 1–5 把武器
-#   · 带哪把武器 = 转轮里有什么符号（卡片实时预览符号池）
-#   · 战斗中可「重新整备」返回选配；确认后按所选武器重建符号池
-#   · 消耗品 / 护符分类在 UI 框架中预留（M3 后续接入实际数据）
-# M3 干扰系统增量（本版）：
-#   · 敌人干扰分支扩展为 注废(jam) / 锁轮(lock) / 乱权(chaos) 三类（攻击 attack / 重击 heavy 不变）
-#   · 净化完全走消耗品「净化药剂」（腰带里每瓶 charges 用完即移出），意图 HUD 提示用净化药剂
-# M4 增量（房间 + Roguelike 构筑）：
-#   · 跑通一局（Run）：HP 跨房保留；每清一房弹出「房奖励」三选一界面（Roguelike 构筑）
-#   · 本局加成层：符号权重加成(run_symbol_bonus) / 符号伤害加成(run_power_bonus) / 下一房护盾(run_shield_next)
-#   · 奖励池 REWARD_POOL：治疗 / 最大HP / 符号灌注 / 守望结界 / 锋锐打磨
-#   · Boss 房（最后一房）击败 → 通关 → 领取残余物奖励 → 开新一局
+# 拆分（docs/duel_controller拆分方案B.md）：M0–M6 历史增量注释已清理；职责分区——
+#   存档 MetaStore / 铁砧 AnvilSystem / 商店 ShopSystem / 奖励 RewardSystem / 整备 LoadoutSystem
+#   均为 RefCounted 子系统（scripts/systems/），本文件只留编排 + 薄转发 + 战斗核心。
 # ============================================================================
 
 const TRASH_SYMBOL = preload("res://resources/symbols/trash.tres")
@@ -141,10 +117,6 @@ const _SPIN_MIN_WAIT := 0.06           # 最快每跳间隔（封顶也调慢，
 const _STRIP_MIN_CELLS := 30           # 转轮带最小格数（整份平铺补足，不改变符号占比）
 # 频率层（装备自洽 / 直觉模型，见下方 _ITEM_STRIP_TARGET）：频率由每件装备自身 weight 决定，
 # 稀有度只定强度（见 LoadoutItem），不影响出现次数——避免「神装打不出去」。原 f(kind) 中央预算已退役。
-# 频率层（装备自洽 / 直觉模型）：频率不再由中央 f(kind) 预算决定，
-# 而是「每件装备用自身 weight 决定自己符号多常出现、用自身命中率决定自己转轮的废铁占比」。
-# 每件装备生成一段等长（_ITEM_STRIP_TARGET）的「自洽子带」，拼成共享转轮带——
-# 共享符号不再跨装备累加权重（垄断根因消除），稀有度仍只定强度（base_power / hit_rate），不影响出现次数。
 const _ITEM_STRIP_TARGET := 16   # 每件装备转轮子带长（频率由该装备自身 weight 定，各装备等权、互不挤压）
 const _GOLD_CELLS := 2           # 金币符号常驻格数（经济引擎，与装备频率解耦）
 
