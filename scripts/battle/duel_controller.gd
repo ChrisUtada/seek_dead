@@ -260,10 +260,8 @@ var charm_damage_mult: float = 1.0      # Phase G v2.0：护符全局乘区（jo
 var game_state = "playing"             # playing | won | lost | cleared
 var turn_count = 1
 
-# M4 本局（Run）加成层
-var run_symbol_bonus: Dictionary = {}  # resource_path -> 额外权重（奖励：符号灌注）
-var run_power_bonus: int = 0           # 本局符号基础伤害加成（奖励：锋锐打磨）
-var run_shield_next: int = 0           # 进入下一房时获得的护盾（奖励：守望结界）
+# M4 本局（Run）加成层（run_symbol_bonus / run_power_bonus / run_shield_next）已抽至
+# RewardSystem（步骤4，见 _reward_system）；reward_choices / reward_is_boss 仍由本 controller 持有（HUD 直读写）
 var reward_choices: Array = []         # 当前展示的 3 个奖励
 var reward_is_boss: bool = false       # 当前奖励是否来自 Boss 房（选完开新局）
 # S7/S12 商店状态（shop_offers / paid_price / gold_upgrades）已抽至 ShopSystem（步骤3，见 _shop_system）
@@ -276,6 +274,7 @@ var _anvil_system                     # 铁砧锻造子系统 AnvilSystem（步�
 const ANVIL_SAVE_KEY := "anvil_meta"   # 铁砧元进度存于 SaveSystem.lobby_data
 var _meta_store                        # 存档子系统 MetaStore（步骤1抽出；_ready 实例化并注入 self + meta）
 var _shop_system                       # 商店子系统 ShopSystem（步骤3抽出；_ready 实例化并注入 self）
+var _reward_system                     # 奖励子系统 RewardSystem（步骤4抽出；_ready 实例化并注入 self）
 
 # 仅 1 行 3 格。特殊符号需 3 同才触发；普通符号单颗即结算，出现 n 次 ×n。
 var PAYLINES = [
@@ -306,7 +305,7 @@ func _build_state() -> BattleState:
 	s.enemy_intent = enemy_intent
 	s.enemy_element = enemy_element
 	s.selected_loadout = selected_loadout
-	s.run_symbol_bonus = run_symbol_bonus
+	s.run_symbol_bonus = _reward_system.run_symbol_bonus
 	s.ROWS = ROWS
 	s.ROOMS = ROOMS
 	s.LOADOUT_MIN = LOADOUT_MIN
@@ -314,8 +313,8 @@ func _build_state() -> BattleState:
 	s.UNCAPPED = UNCAPPED
 	s.selected_skills = selected_skills
 	s.selected_charms = selected_charms
-	s.run_shield_next = run_shield_next
-	s.run_power_bonus = run_power_bonus
+	s.run_shield_next = _reward_system.run_shield_next
+	s.run_power_bonus = _reward_system.run_power_bonus
 	s.pool = pool
 	s.loadout_names = loadout_names
 	s.in_loadout = in_loadout
@@ -366,6 +365,7 @@ func _ready() -> void:
 	_meta_store = preload("res://scripts/systems/meta_store.gd").new(self, meta)
 	_anvil_system = preload("res://scripts/systems/anvil_system.gd").new(self)
 	_shop_system = preload("res://scripts/systems/shop_system.gd").new(self)
+	_reward_system = preload("res://scripts/systems/reward_system.gd").new(self)
 	_load_meta()
 	_sanitize_owned()	# 自愈：清洗历史上误写入 owned_* 的非本类路径（如技能）
 	_seed_default_owned()
@@ -642,15 +642,12 @@ func _on_boss_reward_chosen(cand: Dictionary) -> void:
 # ---------------------------------------------------------------------------
 # 每局结束元进度三选一（膨胀双轨：武器 base 线性 × 护符乘数增值，持久跨局）
 # ---------------------------------------------------------------------------
+# M4 房奖励 / BOSS 战利品 / 局末元进度逻辑已抽至 RewardSystem（步骤4，见 _reward_system）：
+# roll_meta_choices / on_meta_choice_chosen / roll_rewards / roll_elite_rewards /
+# roll_boss_rewards / apply_reward / apply_boss_reward；下方保留薄转发（meta_screen /
+# reward_screen / battle_hud 直调签名不变），_on_reward_* / _show_meta_choice 留本编排层。
 func _roll_meta_choices() -> Array:
-	# T6：武器/护符/命中率等 per-item 旋钮入口已退役（§6 铁砧纯 gacha 定案）。
-	# 元进度三选一只保留「铁砧点数」兜底候选，避免给出无生效通道的假选项。
-	var meta_pool := [{
-		"kind": "anvil", "path": "",
-		"icon": "🔨", "label": "铁砧点数 +%d" % META_ANVIL_BONUS,
-		"desc": "永久铁砧点数，用于铁砧抽取装备（盘外成长）",
-	}]
-	return meta_pool.slice(0, META_CHOICE_COUNT)   # 三选一：候选不足时全出
+	return _reward_system.roll_meta_choices()
 
 
 func _show_meta_choice() -> void:
@@ -659,124 +656,31 @@ func _show_meta_choice() -> void:
 
 func _on_meta_choice_chosen(opt: Dictionary) -> void:
 	hud.hide_meta_screen()
-	match opt["kind"]:
-		"anvil":
-			meta["anvil_points"] += META_ANVIL_BONUS
-			hud._log("元进度：铁砧点数 +%d（共 %d）" % [META_ANVIL_BONUS, meta["anvil_points"]])
-	_save_meta()
+	_reward_system.on_meta_choice_chosen(opt)   # 元进度应用 + 落盘（_save_meta 在子系统内）
 	hud._refresh_meta()
 	_full_reset()   # 元进度生效后开新一局（金币/槽位随局清零，但 meta 持久）
 
 
 func _roll_rewards() -> Array:
-	# REWARD_POOL 现为 RewardData 资源数组；元素只读不修改，用浅拷贝即可（避免深拷贝复制资源）。
-	var copy = REWARD_POOL.duplicate()
-	var out := []
-	for i in 3:
-		if copy.is_empty():
-			break
-		var idx = randi() % copy.size()
-		out.append(copy[idx])
-		copy.remove_at(idx)
-	return out
+	return _reward_system.roll_rewards()
 
 
-# T6 精英房「战前补给」三选一：精英池恰为 3 项（金币囤 / 铁砧点 / 结界备战），
-# 直接全量返回供玩家三选一，保证每次精英都能看到全部 prep 选项。
+# T6 精英房「战前补给」三选一（逻辑已抽至 RewardSystem）
 func _roll_elite_rewards() -> Array:
-	return ELITE_REWARD_POOL.duplicate()
+	return _reward_system.roll_elite_rewards()
 
 
-# BOSS 战利品：从主题池+混合券抽 3 张候选卡（dict 结构，供 HUD 直接渲染）。
-	# 候选构成：① 主题新武器（未持有，进池）② Boss 信物（占护符槽，若未占满）
+# BOSS 战利品三选一（逻辑已抽至 RewardSystem）
 func _roll_boss_rewards(room) -> Array:
-	var cands := []
-	# ① 主题新武器：房间指定池（空则按 element 从全部武器取）中，玩家尚未持有的
-	var src: Array = room.boss_reward_weapons if (room.boss_reward_weapons.size() > 0) else WEAPON_POOL
-	for p in src:
-		if not selected_loadout.has(p):
-			var wd: WeaponData = load(p)
-			var elem = wd.element if wd != null else "none"
-			cands.append({
-				"kind": "boss_weapon", "path": p,
-				"icon": ElementCounter.label(elem),
-				"label": (wd.weapon_name if wd != null else p.get_file().get_basename()),
-				"desc": "新武器 · 进入转轮带（无数量上限）",
-			})
-	# ③ Boss 信物：占护符槽 1/3（CHARM_CAP），护符槽满则不出
-	if room.boss_relic_path != "" and _sel_arr("passive").size() < _cat_max("passive"):
-		var rd: ItemData = load(room.boss_relic_path)
-		cands.append({
-			"kind": "boss_relic", "path": room.boss_relic_path,
-			"icon": (rd.icon if rd != null else "🏆"),
-			"label": (rd.item_name if rd != null else "Boss 信物"),
-			"desc": (rd.description if rd != null else "专属信物 · 占护符槽"),
-		})
-	cands.shuffle()
-	var out := []
-	for i in min(3, cands.size()):
-		out.append(cands[i])
-	return out
+	return _reward_system.roll_boss_rewards(room)
 
 
 func _apply_reward(id: String) -> void:
-	match id:
-		"heal":
-			var h = int(player_hp_max * 0.35)
-			player_hp = min(player_hp_max, player_hp + h)
-			hud._log("奖励：治疗 +%d HP" % h)
-		"maxhp":
-			player_hp_max += 20
-			player_hp = player_hp_max
-			hud._log("奖励：最大 HP +20 并回满")
-		# "purify" 净化上限奖励已删除（净化完全走消耗品）
-		"symbol":
-			var cand := []
-			for p in pool:
-				if p[0] != TRASH_SYMBOL:
-					cand.append(p[0])
-			if cand.is_empty():
-				cand = [TRASH_SYMBOL]
-			var sym: SymbolData = cand[randi() % cand.size()]
-			run_symbol_bonus[sym.resource_path] = run_symbol_bonus.get(sym.resource_path, 0) + 3
-			hud._log("奖励：%s 符号权重 +3" % sym.name)
-		"shield":
-			run_shield_next += 15
-			hud._log("奖励：下一房 +15 护盾")
-		"power":
-			run_power_bonus += 1
-			hud._log("奖励：本局符号伤害 +1（当前 +%d）" % run_power_bonus)
-		# T6 精英房「战前补给」三类选项
-		"elite_gold":
-			gold += 18
-			hud._log("精英战利：金币 +18（共 %d）" % gold)
-		"elite_anvil":
-			meta["anvil_points"] += 2
-			hud._log("精英战利：铁砧点数 +2（共 %d）" % meta["anvil_points"])
-		"elite_ward":
-			run_shield_next += 30
-			hud._log("精英战利：下一房 +30 护盾")
+	_reward_system.apply_reward(id)
 
 
-# BOSS 战利品结算（主题池+混合券三选一）：新武器(进池) / 武器强化券(meta升级,不进池) / Boss信物(占护符槽1/3)
 func _apply_boss_reward(cand: Dictionary) -> void:
-	match cand.get("kind", ""):
-		"boss_weapon":
-			var p = cand.get("path", "")
-			if p != "" and not selected_loadout.has(p):
-				_grow_slot("weapon")                 # 免费武器自动开槽（武器 UNCAPPED，无天花板限制）
-				selected_loadout.append(p)          # 武器无上限（UNCAPPED），免费获得即自动开槽
-				_build_pool(selected_loadout)        # 重建符号池（新武器注入转轮带）
-				hud._log("BOSS 战利品：获得武器 %s（已加入转轮带）" % cand.get("label", p))
-		"boss_relic":
-			var p = cand.get("path", "")
-			if p != "" and not selected_charms.has(p):
-				if _sel_arr("passive").size() >= _cat_max("passive"):
-					hud._log("BOSS 战利品：护符槽已满，信物无法拾取")
-					return
-				selected_charms.append(p)            # 占护符槽 1/3（CHARM_CAP）
-				_apply_charms()                     # 重算护符被动（伤害乘区等随持有变化）
-				hud._log("BOSS 战利品：获得专属信物 %s（占护符槽）" % cand.get("label", p))
+	_reward_system.apply_boss_reward(cand)
 
 
 # ---------------------------------------------------------------------------
@@ -926,10 +830,7 @@ func _full_reset() -> void:
 	skill_max = int(SLOT_INIT["skill"])
 	charm_max = int(SLOT_INIT["passive"])
 	_shop_system.reset_run()   # 步骤3：新一局商店状态清零（购入价记录 + 金币升级等级）
-	# M4：开新一局，重置本局加成层
-	run_symbol_bonus = {}
-	run_power_bonus = 0
-	run_shield_next = 0
+	_reward_system.reset_run()   # 步骤4：新一局本局加成层清零（符号灌注 / 伤害加成 / 下一房护盾）
 	ROOMS = _build_run()                 # S10 T3：每局从全量池按幕抽 12 房
 	_build_pool(selected_loadout)
 	_start_room(0)
@@ -1028,10 +929,10 @@ func _start_room(idx: int) -> void:
 	enemy_status = {}
 	player_buffs = {}                     # Phase C：主动技能不跨房保留
 	player_shield = 0
-	player_shield += run_shield_next      # M4：上一房奖励的结界在本房开局生效
+	player_shield += _reward_system.run_shield_next   # M4：上一房奖励的结界在本房开局生效
 	player_shield += charm_room_shield    # M6：守望护符每房开局护盾
 	player_shield += _shop_system.gold_upgrades["shield"] * SHIELD_STEP   # S12：壁垒——每房开局护盾（韧性保底）
-	run_shield_next = 0
+	_reward_system.run_shield_next = 0
 	pending_jam_reel = -1
 	pending_lock_reel = -1
 	pending_chaos = false
@@ -1771,7 +1672,7 @@ func _evaluate(chain_mult := 1.0) -> void:
 # —— 加法型标量轴（多个来源直接相加）——
 # —— P0：以下结算聚合已抽到 BattleMath（参数化纯函数），controller 仅留薄包装，零行为变化 ——
 func _agg_power_flat() -> float:
-	return BattleMath.agg_power_flat(run_power_bonus, charm_power_bonus, player_buffs, _shop_system.gold_upgrades, POWER_STEP)
+	return BattleMath.agg_power_flat(_reward_system.run_power_bonus, charm_power_bonus, player_buffs, _shop_system.gold_upgrades, POWER_STEP)
 
 func _agg_shield() -> float:
 	return BattleMath.agg_shield(player_buffs, charm_shield_trickle)
@@ -1786,7 +1687,7 @@ func _agg_damage_mult() -> float:
 
 # —— 符号权重轴（本局符号灌注；武器级权重见 _build_pool）——
 func _agg_symbol_weight_mod(sym: SymbolData) -> float:
-	return BattleMath.agg_symbol_weight_mod(run_symbol_bonus, sym)
+	return BattleMath.agg_symbol_weight_mod(_reward_system.run_symbol_bonus, sym)
 
 # ---------------------------------------------------------------------------
 # Phase C 主动增益：符号自描述（sym.buff_effect / buff_value / buff_turns），零查表
