@@ -155,12 +155,8 @@ const _GOLD_CELLS := 2           # 金币符号常驻格数（经济引擎，与
 @export var JOKER_STEP: float = 0.25        # 护符共鸣：每级 +0.25 本局伤害乘区（封顶见 JOKER_CAP_FACTOR）
 @export var JOKER_CAP_FACTOR: float = 3.0   # 共鸣乘区硬上限（1 + maxlv*step ≤ 此值）
 @export var SHIELD_STEP: int = 5          # 壁垒：每级 +5 每房开局护盾
-const GOLD_UPGRADE_DEFS := [
-	{"id":"power",  "icon":"🗡", "name":"锋锐研磨", "base":6,  "step":4, "max":6},
-	{"id":"line",   "icon":"🔗", "name":"连线精通", "base":8,  "step":6, "max":4},
-	{"id":"joker",  "icon":"🔮", "name":"护符共鸣", "base":12, "step":8, "max":4},
-	{"id":"shield", "icon":"🛡", "name":"壁垒",     "base":5,  "step":3, "max":5},
-]
+# 金币升级定义表（icon/name/base/step/max）已抽至 GoldUpgradeDef 资源：
+# resources/config/gold_upgrades/*.tres（ShopSystem 扫描收集，见 _shop_system）
 # 注：不设自动停止上限——转轮何时停完全由玩家决定，不操作就一直转。
 signal spin_finished                   # 全部转轮停下后发出，_on_spin_pressed 等待它
 

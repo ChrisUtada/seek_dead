@@ -7,13 +7,17 @@ extends RefCounted
 # 约定（与 docs/duel_controller拆分方案B.md 步骤3一致，延续步骤1/2 的写法）：
 # - 局内金币 gold / 腰带 consumable_slots / meta 仍由 controller 持有，本子系统经 _ctrl.xxx 读写；
 #   本局状态 gold_upgrades / paid_price / shop_offers 随本子系统走（方案B §4 状态归属表）。
-# - @export 常量（POWER_STEP / LINE_STEP / JOKER_STEP / JOKER_CAP_FACTOR / SHIELD_STEP）与
-#   GOLD_UPGRADE_DEFS 留 controller（RefCounted 无法在 Inspector 编辑），本子系统动态读 _ctrl.xxx。
+# - @export 常量（POWER_STEP / LINE_STEP / JOKER_STEP / JOKER_CAP_FACTOR / SHIELD_STEP）留
+#   controller（RefCounted 无法在 Inspector 编辑），本子系统动态读 _ctrl.xxx（效果倍率与描述文案用）。
+# - 金币升级定义收敛于 GoldUpgradeDef Resource（resources/config/gold_upgrades/*.tres，扫描收集，加新升级零代码）。
 # - 跨系统联动（授予后刷新 UI 等）留在 controller 编排层；本子系统不互调其他子系统。
 # - ctrl 标类型 DuelController（已加 class_name），成员访问获得编译期检查。
 # - 3117c6d 修复保持：买入仅 kind=="weapon"/"passive" 写 owned_*，skill 跳过（防 SkillData 进 owned_weapons 崩溃）。
 # - 商店经济（价格表 / 随机浮动 / 下限 / 返现比）收敛于 ShopConfig Resource（resources/config/shop_config.tres），
 #   策划可直接在 Inspector 调参，不再改代码。
+# - 金币升级定义收敛于 GoldUpgradeDef Resource（resources/config/gold_upgrades/*.tres，扫描收集，加新升级零代码）。
+# - @export 常量（POWER_STEP / LINE_STEP / JOKER_STEP / JOKER_CAP_FACTOR / SHIELD_STEP）仍留 controller，
+#   本子系统动态读 _ctrl.xxx（效果倍率与描述文案用）。
 
 const SHOP_CONFIG = preload("res://resources/config/shop_config.tres")   # 商店经济配置（.tres，可 Inspector 编辑）
 
@@ -21,9 +25,11 @@ var _ctrl: DuelController          # DuelController 实例（类型标注，编�
 var shop_offers: Array = []            # 当前商店货架（随机刷新）
 var paid_price: Dictionary = {}        # path/uid -> 实际购入价（卖出返还约 50%；新一局清空）
 var gold_upgrades := {"power": 0, "line": 0, "joker": 0, "shield": 0}   # 局内金币升级等级（每局清零）
+var _upgrade_defs: Array = []          # GoldUpgradeDef 资源列表（_init 扫描收集）
 
 func _init(ctrl: DuelController) -> void:
 	_ctrl = ctrl
+	_upgrade_defs = ResourceScan.scan_resources("res://resources/config/gold_upgrades/", "GoldUpgradeDef")
 
 
 # ---------------------------------------------------------------------------
@@ -198,23 +204,23 @@ func on_shop_sell_pressed(path: String, kind: String) -> void:
 # S12 局内金币升级（深化已有乘区 · 每局清零 · 管局内临时）
 # 效果经聚合层(_agg_*)与 _start_room 读取；此处仅管等级/价格/购买。
 # ---------------------------------------------------------------------------
-func gold_upgrade_def(id: String) -> Dictionary:
-	for d in _ctrl.GOLD_UPGRADE_DEFS:
-		if d["id"] == id:
+func gold_upgrade_def(id: String) -> GoldUpgradeDef:
+	for d in _upgrade_defs:
+		if d.id == id:
 			return d
-	return {}
+	return null
 
 
 func gold_upgrade_cost(id: String) -> int:
 	var d = gold_upgrade_def(id)
-	if d.is_empty():
+	if d == null:
 		return 999
 	var lvl = gold_upgrades.get(id, 0)
-	return max(1, int(d["base"]) + lvl * int(d["step"]))
+	return max(1, d.base + lvl * d.step)
 
 
-func gold_upgrade_desc(d: Dictionary, lvl: int) -> String:
-	match d["id"]:
+func gold_upgrade_desc(d: GoldUpgradeDef, lvl: int) -> String:
+	match d.id:
 		"power":  return "本局所有伤害符号基础 +%d（当前 +%d）" % [_ctrl.POWER_STEP, lvl * _ctrl.POWER_STEP]
 		"line":   return "连线倍率 +%d（2连变×%d、3连变×%d，仅匹配生效）" % [_ctrl.LINE_STEP, 2 + _ctrl.LINE_STEP, 3 + _ctrl.LINE_STEP]
 		"joker":  return "本局伤害乘区 ×%s（与护符/增益同轨，当前 ×%s）" % [ElementCounter.fmt_mult(1.0 + _ctrl.JOKER_STEP), ElementCounter.fmt_mult(1.0 + min(float(lvl) * _ctrl.JOKER_STEP, _ctrl.JOKER_CAP_FACTOR - 1.0))]
@@ -224,14 +230,14 @@ func gold_upgrade_desc(d: Dictionary, lvl: int) -> String:
 
 func gold_upgrade_defs() -> Array:
 	var out := []
-	for d in _ctrl.GOLD_UPGRADE_DEFS:
-		var id = d["id"]
+	for d in _upgrade_defs:
+		var id = d.id
 		var lvl = gold_upgrades.get(id, 0)
 		var cost = gold_upgrade_cost(id)
-		var maxed = lvl >= int(d["max"])
+		var maxed = lvl >= d.max
 		out.append({
-			"id": id, "icon": d["icon"], "name": d["name"],
-			"desc": gold_upgrade_desc(d, lvl), "level": lvl, "max": int(d["max"]),
+			"id": id, "icon": d.icon, "name": d.name,
+			"desc": gold_upgrade_desc(d, lvl), "level": lvl, "max": d.max,
 			"cost": cost, "maxed": maxed, "can_afford": (not maxed) and _ctrl.gold >= cost,
 		})
 	return out
@@ -239,16 +245,16 @@ func gold_upgrade_defs() -> Array:
 
 func on_gold_upgrade_pressed(id: String) -> void:
 	var d = gold_upgrade_def(id)
-	if d.is_empty():
+	if d == null:
 		return
 	var lvl = gold_upgrades.get(id, 0)
-	if lvl >= int(d["max"]):
-		_ctrl.hud._log("金币升级「%s」已满级" % d["name"])
+	if lvl >= d.max:
+		_ctrl.hud._log("金币升级「%s」已满级" % d.name)
 		return
 	var cost = gold_upgrade_cost(id)
 	if _ctrl.gold < cost:
-		_ctrl.hud._log("金币不足（%s 需 %d，现有 %d）" % [d["name"], cost, _ctrl.gold])
+		_ctrl.hud._log("金币不足（%s 需 %d，现有 %d）" % [d.name, cost, _ctrl.gold])
 		return
 	_ctrl.gold -= cost
 	gold_upgrades[id] = lvl + 1
-	_ctrl.hud._log("金币升级 %s → Lv%d（-%d 金，余 %d）" % [d["name"], gold_upgrades[id], cost, _ctrl.gold])
+	_ctrl.hud._log("金币升级 %s → Lv%d（-%d 金，余 %d）" % [d.name, gold_upgrades[id], cost, _ctrl.gold])
