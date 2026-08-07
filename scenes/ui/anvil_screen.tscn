@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/anvil_screen.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://scenes/ui/ui_button.tscn" id="2_btn"]
 
 [node name="AnvilScreen" type="Control"]
 layout_mode = 3
@@ -54,3 +55,19 @@ theme_override_constants/separation = 8
 
 [node name="Bot" type="HBoxContainer" parent="Margin/Content"]
 layout_mode = 2
+
+[node name="Spacer" type="Control" parent="Margin/Content/Bot"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="RollBtn" parent="Margin/Content/Bot" instance=ExtResource("2_btn")]
+custom_minimum_size = Vector2(170, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text = "🔨 摇动"
+
+[node name="BackBtn" parent="Margin/Content/Bot" instance=ExtResource("2_btn")]
+custom_minimum_size = Vector2(120, 40)
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text = "返回整备"

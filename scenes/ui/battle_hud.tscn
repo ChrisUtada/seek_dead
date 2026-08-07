@@ -81,6 +81,20 @@ theme_override_font_sizes/font_size = 9
 text = "本局加成: —"
 horizontal_alignment = 2
 
+[node name="ShopBtn" parent="Margin/Content/InfoBar" unique_id=399666216 instance=ExtResource("3_btn")]
+custom_minimum_size = Vector2(60, 18)
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+text = "🛒 商店"
+disabled = true
+
+[node name="NextRoomBtn" parent="Margin/Content/InfoBar" unique_id=399666217 instance=ExtResource("3_btn")]
+custom_minimum_size = Vector2(64, 18)
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+text = "▶ 下一房"
+disabled = true
+
 [node name="LoadoutLabel" type="Label" parent="Margin/Content" unique_id=1865276221]
 layout_mode = 2
 theme_override_font_sizes/font_size = 9

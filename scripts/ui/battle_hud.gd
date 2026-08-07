@@ -93,9 +93,9 @@ var meta_screen                         # 每局结束元进度三选一覆盖�
 var shop_screen                         # 商店覆盖层（shop_screen.tscn 实例）
 var anvil_screen                        # 铁砧锻造覆盖层（anvil_screen.tscn 实例）
 
-# 房间歇态按钮（opt-in 商店，默认禁用，间歇态由 controller 点亮）
-var interroom_shop_btn
-var interroom_next_btn
+# 房间歇态按钮（opt-in 商店 + 下一房）：静态节点在 battle_hud.tscn InfoBar，默认禁用，间歇态由 controller 点亮
+@onready var interroom_shop_btn = $Margin/Content/InfoBar/ShopBtn
+@onready var interroom_next_btn = $Margin/Content/InfoBar/NextRoomBtn
 
 # ---- 主 HUD 静态节点（P3b-1）：battle_hud.tscn 编辑器提供，脚本按节点路径引用 ----
 # 注：手写 .tscn 的 %Name 唯一名在含 instance= 覆盖节点的场景里注册不可靠，
@@ -250,22 +250,9 @@ func _build_ui() -> void:
 	_build_symbol_tooltip()
 	_build_popup_layer()
 
-	# 房间歇态按钮（opt-in 商店 + 下一房）：加到顶栏末尾，默认禁用，间歇态由 controller 点亮
-	var ib = $Margin/Content/InfoBar
-	interroom_shop_btn = UI_BUTTON.instantiate()
-	interroom_shop_btn.text = "🛒 商店"
-	interroom_shop_btn.custom_minimum_size = Vector2(60, 18)
-	interroom_shop_btn.add_theme_font_size_override("font_size", TypeScale.META)
-	interroom_shop_btn.disabled = true
+	# 房间歇态按钮（opt-in 商店 + 下一房）：静态节点已在 battle_hud.tscn，这里只接信号
 	interroom_shop_btn.connect("pressed", shop_requested.emit)
-	ib.add_child(interroom_shop_btn)
-	interroom_next_btn = UI_BUTTON.instantiate()
-	interroom_next_btn.text = "▶ 下一房"
-	interroom_next_btn.custom_minimum_size = Vector2(64, 18)
-	interroom_next_btn.add_theme_font_size_override("font_size", TypeScale.META)
-	interroom_next_btn.disabled = true
 	interroom_next_btn.connect("pressed", next_room_requested.emit)
-	ib.add_child(interroom_next_btn)
 
 	# P4：战斗动画器挂在 hud 下，setup 时缓存 PlayerSprite/EnemySprite 节点
 	animator = BattleAnimator.new()

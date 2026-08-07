@@ -1,0 +1,34 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/anvil_cell.gd" id="1"]
+
+[sub_resource type="StyleBoxFlat" id="sb_cell"]
+bg_color = Color(0.10, 0.10, 0.15, 0.80)
+border_color = Color(0.22, 0.22, 0.30, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+corner_radius_top_left = 0
+corner_radius_top_right = 0
+corner_radius_bottom_right = 0
+corner_radius_bottom_left = 0
+
+[node name="AnvilCell" type="CenterContainer"]
+custom_minimum_size = Vector2(160, 90)
+
+[node name="Panel" type="PanelContainer" parent="."]
+custom_minimum_size = Vector2(156, 86)
+theme_override_styles/panel = SubResource("sb_cell")
+
+[node name="VBox" type="VBoxContainer" parent="Panel"]
+theme_override_constants/separation = 2
+
+[node name="Line1" type="Label" parent="Panel/VBox"]
+theme_override_font_sizes/font_size = 9
+horizontal_alignment = 1
+
+[node name="Line2" type="Label" parent="Panel/VBox"]
+theme_override_font_sizes/font_size = 8
+horizontal_alignment = 1
+visible = false

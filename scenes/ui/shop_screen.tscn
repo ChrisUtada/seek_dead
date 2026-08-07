@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/shop_screen.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://scenes/ui/ui_button.tscn" id="2_btn"]
 
 [node name="ShopScreen" type="Control"]
 layout_mode = 3
@@ -52,6 +53,24 @@ horizontal_alignment = 1
 [node name="TabBar" type="HBoxContainer" parent="Margin/Content"]
 layout_mode = 2
 theme_override_constants/separation = 6
+
+[node name="BuyTab" parent="Margin/Content/TabBar" instance=ExtResource("2_btn")]
+custom_minimum_size = Vector2(110, 34)
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+text = "📥 购入"
+
+[node name="SellTab" parent="Margin/Content/TabBar" instance=ExtResource("2_btn")]
+custom_minimum_size = Vector2(110, 34)
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+text = "📤 卖出"
+
+[node name="UpTab" parent="Margin/Content/TabBar" instance=ExtResource("2_btn")]
+custom_minimum_size = Vector2(110, 34)
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+text = "⬆ 升级"
 
 [node name="Scroll" type="ScrollContainer" parent="Margin/Content"]
 layout_mode = 2
@@ -159,6 +178,15 @@ theme_override_constants/v_separation = 8
 
 [node name="Bot" type="HBoxContainer" parent="Margin/Content"]
 layout_mode = 2
+
+[node name="Spacer" type="Control" parent="Margin/Content/Bot"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="LeaveBtn" parent="Margin/Content/Bot" instance=ExtResource("2_btn")]
+custom_minimum_size = Vector2(140, 40)
+layout_mode = 2
+text = "关闭 ✕"
 
 [node name="Edge" type="ColorRect" parent="."]
 layout_mode = 3

@@ -7,7 +7,6 @@ class_name ShopScreen
 
 var controller
 var hud: BattleHud
-const UI_BUTTON = preload("res://scenes/ui/ui_button.tscn")
 const DRAWER_W := 420          # 抽屉宽度（右侧 docked）
 var _open := false             # 抽屉是否处于展开态（供外部 toggle 判断）
 
@@ -15,7 +14,6 @@ var _open := false             # 抽屉是否处于展开态（供外部 toggle 
 @onready var title_label = $Margin/Content/TitleLabel
 @onready var gold_label = $Margin/Content/GoldLabel
 @onready var sub_label = $Margin/Content/SubLabel
-@onready var tab_bar = $Margin/Content/TabBar
 @onready var buy_panel = $Margin/Content/Scroll/Inner/BuyPanel
 @onready var sell_panel = $Margin/Content/Scroll/Inner/SellPanel
 @onready var up_panel = $Margin/Content/Scroll/Inner/UpPanel
@@ -25,11 +23,10 @@ var _open := false             # 抽屉是否处于展开态（供外部 toggle 
 @onready var charm_list = $Margin/Content/Scroll/Inner/SellPanel/SellBox/CharmList
 @onready var consum_list = $Margin/Content/Scroll/Inner/SellPanel/SellBox/ConsumList
 @onready var up_grid = $Margin/Content/Scroll/Inner/UpPanel/UpGrid
-@onready var bot = $Margin/Content/Bot
-
-var shop_tab_buy_btn
-var shop_tab_sell_btn
-var shop_tab_up_btn
+@onready var shop_tab_buy_btn = $Margin/Content/TabBar/BuyTab
+@onready var shop_tab_sell_btn = $Margin/Content/TabBar/SellTab
+@onready var shop_tab_up_btn = $Margin/Content/TabBar/UpTab
+@onready var leave_btn = $Margin/Content/Bot/LeaveBtn
 
 func configure(ctrl, h: BattleHud) -> void:
 	controller = ctrl
@@ -40,31 +37,12 @@ func configure(ctrl, h: BattleHud) -> void:
 	sub_label.text = "金币投资战力 · 购入带装备 / 卖出回收 / 升级深化乘区（每局清零）"
 	sub_label.add_theme_font_size_override("font_size", TypeScale.META)
 	gold_label.add_theme_color_override("font_color", Palette.ACCENT_GOLD)
-	# 三页签
-	shop_tab_buy_btn = _tab_btn("📥 购入", "buy")
-	tab_bar.add_child(shop_tab_buy_btn)
-	shop_tab_sell_btn = _tab_btn("📤 卖出", "sell")
-	tab_bar.add_child(shop_tab_sell_btn)
-	shop_tab_up_btn = _tab_btn("⬆ 升级", "up")
-	tab_bar.add_child(shop_tab_up_btn)
-	# 离开
-	var sp = Control.new()
-	sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	bot.add_child(sp)
-	var leave_btn = UI_BUTTON.instantiate()
-	leave_btn.text = "关闭 ✕"
-	leave_btn.custom_minimum_size = Vector2(140, 40)
+	# 三页签 + 关闭按钮为静态节点（shop_screen.tscn），这里只接线
+	shop_tab_buy_btn.connect("pressed", show_tab.bind("buy"))
+	shop_tab_sell_btn.connect("pressed", show_tab.bind("sell"))
+	shop_tab_up_btn.connect("pressed", show_tab.bind("up"))
 	leave_btn.connect("pressed", hud.shop_leave_requested.emit)
-	bot.add_child(leave_btn)
 	show_tab("buy")
-
-func _tab_btn(text: String, tab: String) -> Button:
-	var b = UI_BUTTON.instantiate()
-	b.text = text
-	b.custom_minimum_size = Vector2(110, 34)
-	b.add_theme_font_size_override("font_size", TypeScale.META)
-	b.connect("pressed", show_tab.bind(tab))
-	return b
 
 func show_screen() -> void:
 	controller._roll_shop()

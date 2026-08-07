@@ -6,7 +6,7 @@ class_name AnvilScreen
 
 var controller
 var hud: BattleHud
-const UI_BUTTON = preload("res://scenes/ui/ui_button.tscn")
+const ANVIL_CELL = preload("res://scenes/ui/anvil_cell.tscn")
 
 var _spinning := false
 
@@ -16,7 +16,8 @@ var _spinning := false
 @onready var sub_label = $Margin/Content/SubLabel
 @onready var info_label = $Margin/Content/InfoLabel
 @onready var reel_box = $Margin/Content/ReelBox
-@onready var bot = $Margin/Content/Bot
+@onready var roll_btn = $Margin/Content/Bot/RollBtn
+@onready var back_btn = $Margin/Content/Bot/BackBtn
 
 func configure(ctrl, h: BattleHud) -> void:
 	controller = ctrl
@@ -26,21 +27,10 @@ func configure(ctrl, h: BattleHud) -> void:
 	title_label.add_theme_font_size_override("font_size", TypeScale.BODY)
 	sub_label.text = "消耗铁砧点数摇一次，三格必出同一件装备（仪式感三连）"
 	sub_label.add_theme_font_size_override("font_size", TypeScale.CAPTION)
-	var sp = Control.new()
-	sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	bot.add_child(sp)
-	var roll_btn = UI_BUTTON.instantiate()
+	# 摇/返回按钮为静态节点（anvil_screen.tscn），这里只填动态文案 + 接线
 	roll_btn.text = "🔨 摇动 (%d点)" % controller.ANVIL_ROLL_COST
-	roll_btn.custom_minimum_size = Vector2(170, 48)
-	roll_btn.add_theme_font_size_override("font_size", TypeScale.MEDIUM)
 	roll_btn.connect("pressed", _on_roll_pressed)
-	bot.add_child(roll_btn)
-	var back_btn = UI_BUTTON.instantiate()
-	back_btn.text = "返回整备"
-	back_btn.custom_minimum_size = Vector2(120, 40)
-	back_btn.add_theme_font_size_override("font_size", TypeScale.MEDIUM)
 	back_btn.connect("pressed", hud.anvil_back_requested.emit)
-	bot.add_child(back_btn)
 
 func show_screen() -> void:
 	refresh()
@@ -87,88 +77,49 @@ func _play_spin(final_drops: Array) -> void:
 		reel_box.remove_child(c)
 		c.queue_free()
 	var names = controller._anvil_system.collection_info()["names"]
-	var labels := []
+	var cells := []
 	var stops = [0.45, 0.62, 0.80]  # 三格错峰停下，强化仪式感
 	for i in 3:
-		var cc = CenterContainer.new()
-		cc.custom_minimum_size = Vector2(160, 90)
-		var panel = PanelContainer.new()
-		panel.custom_minimum_size = Vector2(156, 86)
-		var style = StyleBoxFlat.new()
-		style.bg_color = Palette.CARD_BG
-		style.border_color = Palette.PANEL_BORDER
-		style.set_border_width_all(1)
-		style.set_corner_radius_all(6)
-		panel.add_theme_stylebox_override("panel", style)
-		var lb = hud._label("?", TypeScale.META)
-		panel.add_child(lb)
-		cc.add_child(panel)
-		reel_box.add_child(cc)
-		labels.append(lb)
-		_spin_cell(lb, names, stops[i], final_drops[i] if i < final_drops.size() else {"kind": "blank"})
+		var cell: AnvilCell = ANVIL_CELL.instantiate()
+		reel_box.add_child(cell)
+		cells.append(cell)
+		_spin_cell(cell, names, stops[i], final_drops[i] if i < final_drops.size() else {"kind": "blank"})
 	await get_tree().create_timer(stops[2] + 0.08).timeout
 	_spinning = false
 	sub_label.text = "消耗铁砧点数摇一次，三格必出同一件装备（仪式感三连）"
 	refresh()  # 旋转收尾：用正式单元格重渲染（名称/稀有度/新获取标记）并刷新点数
 
-func _spin_cell(lb: Label, names: Array, stop_at: float, final_d: Dictionary) -> void:
+func _spin_cell(cell: AnvilCell, names: Array, stop_at: float, final_d: Dictionary) -> void:
 	var t := 0.0
 	var step := 0.06
 	while t < stop_at:
 		# 旋转中屏幕可能被关闭/重建（返回整备、run 重置等），标签已释放则直接退出协程，避免写已释放对象
-		if not is_instance_valid(lb):
+		if not is_instance_valid(cell):
 			return
-		lb.text = names[randi() % names.size()]
+		cell.configure(names[randi() % names.size()])
 		t += step
 		await get_tree().create_timer(step).timeout
 	# 落定到本次真实结果（三连相同）
-	if not is_instance_valid(lb):
+	if not is_instance_valid(cell):
 		return
 	if final_d.get("kind", "") == "blank":
-		lb.text = "?"
+		cell.configure("?")
 	else:
-		lb.text = final_d.get("name", "?")
+		cell.configure(final_d.get("name", "?"))
 
 func _make_placeholder() -> Control:
-	var cc = CenterContainer.new()
-	cc.custom_minimum_size = Vector2(160, 90)
-	var panel = PanelContainer.new()
-	panel.custom_minimum_size = Vector2(156, 86)
-	var style = StyleBoxFlat.new()
-	style.bg_color = Palette.CARD_BG
-	style.border_color = Palette.PANEL_BORDER
-	style.set_border_width_all(Palette.BORDER_WIDTH)
-	style.set_corner_radius_all(Palette.PANEL_RADIUS)
-	panel.add_theme_stylebox_override("panel", style)
-	var vb = VBoxContainer.new()
-	vb.add_theme_constant_override("separation", 2)
-	panel.add_child(vb)
-	vb.add_child(hud._label("?", TypeScale.META))
-	cc.add_child(panel)
-	return cc
+	var cell: AnvilCell = ANVIL_CELL.instantiate()
+	cell.configure("?")
+	return cell
 
 func _make_cell(d: Dictionary) -> Control:
-	var cc = CenterContainer.new()
-	cc.custom_minimum_size = Vector2(160, 90)
-	var panel = PanelContainer.new()
-	panel.custom_minimum_size = Vector2(156, 86)
-	var style = StyleBoxFlat.new()
-	style.bg_color = Palette.CARD_BG
-	style.border_color = Palette.PANEL_BORDER
-	style.set_border_width_all(Palette.BORDER_WIDTH)
-	style.set_corner_radius_all(Palette.PANEL_RADIUS)
-	panel.add_theme_stylebox_override("panel", style)
-	var vb = VBoxContainer.new()
-	vb.add_theme_constant_override("separation", 2)
-	panel.add_child(vb)
+	var cell: AnvilCell = ANVIL_CELL.instantiate()
 	if d.get("kind", "") == "blank":
-		vb.add_child(hud._label("空白格", TypeScale.META))
+		cell.configure("空白格")
 	else:
-		vb.add_child(hud._label(d.get("name", "?"), TypeScale.META))
 		var tag = "✨ 新获取" if d.get("is_new", false) else "↺ 重复"
-		vb.add_child(hud._label("%s · %s" % [d.get("rarity", "?"), tag], TypeScale.CAPTION))
-	cc.add_child(panel)
-	return cc
+		cell.configure(d.get("name", "?"), "%s · %s" % [d.get("rarity", "?"), tag])
+	return cell
 
 func hide_screen() -> void:
 	visible = false
