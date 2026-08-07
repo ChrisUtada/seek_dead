@@ -39,7 +39,7 @@ func configure(ctrl, h: BattleHud) -> void:
 	back_btn.text = "返回整备"
 	back_btn.custom_minimum_size = Vector2(120, 40)
 	back_btn.add_theme_font_size_override("font_size", TypeScale.MEDIUM)
-	back_btn.connect("pressed", controller._on_anvil_back_pressed)
+	back_btn.connect("pressed", hud.anvil_back_requested.emit)
 	bot.add_child(back_btn)
 
 func show_screen() -> void:

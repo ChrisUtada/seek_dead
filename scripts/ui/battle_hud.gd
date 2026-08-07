@@ -32,6 +32,13 @@ signal boss_reward_chosen(cand: Dictionary)  # BOSS 战利品三选一
 signal reward_skip_requested                 # 跳过房奖励
 signal shop_requested                          # 🛒 打开商店（房间歇态 opt-in）
 signal next_room_requested                     # ▶ 下一房（房间歇态）
+signal card_toggled(card: Dictionary)         # 整备卡片勾选
+signal meta_choice_chosen(opt: Dictionary)    # 局末元进度三选一
+signal gold_upgrade_requested(id: String)     # 商店金币升级
+signal overlay_button_pressed                 # 失败弹层按钮（回整备）
+signal consumable_used(uid: String)           # 使用腰带消耗品
+signal shop_leave_requested                   # 离开商店（回房间歇态）
+signal anvil_back_requested                   # 铁砧返回整备
 
 # ---- 公开语义接口（controller → HUD 单向调用，替代直接戳私有节点/字段；P2 解耦）----
 func build_all() -> void:
@@ -341,7 +348,7 @@ func _make_item_card(data: Resource, path: String, kind: String) -> Dictionary:
 		body += "\n" + line2
 	btn.text = body
 	var card := {"path": path, "btn": btn, "selected": false, "kind": kind}
-	btn.connect("pressed", controller._on_card_toggled.bind(card))
+	btn.connect("pressed", card_toggled.emit.bind(card))
 	return card
 
 
@@ -414,7 +421,7 @@ func _make_meta_card(opt: Dictionary) -> Button:
 	var card: ItemCard = ITEM_CARD.instantiate()
 	card.custom_minimum_size = Vector2(130, 60)   # 仅 3 张、覆盖层空间充足，放大提升可读性
 	card.configure("%s %s" % [opt.get("icon", ""), opt.get("label", "")], opt.get("desc", ""), TypeScale.META, 110.0)
-	card.pressed.connect(controller._on_meta_choice_chosen.bind(opt))
+	card.pressed.connect(meta_choice_chosen.emit.bind(opt))
 	return card
 
 
@@ -488,7 +495,7 @@ func _make_upgrade_card(u: Dictionary) -> Button:
 	var status = "已满级" if u["maxed"] else ("%d 金" % u["cost"])
 	card.set_status(status, Palette.MUTED_DIM if u["maxed"] else (Palette.ACCENT_GOLD if u["can_afford"] else Palette.ENEMY))
 	card.disabled = (u["maxed"] or not u["can_afford"])
-	card.pressed.connect(controller._on_gold_upgrade_pressed.bind(u["id"]))
+	card.pressed.connect(gold_upgrade_requested.emit.bind(u["id"]))
 	return card
 
 
@@ -513,7 +520,7 @@ func _build_overlay() -> void:
 	overlay_button = UI_BUTTON.instantiate()
 	overlay_button.custom_minimum_size = Vector2(140, 28)
 	overlay_button.add_theme_font_size_override("font_size", TypeScale.MEDIUM)
-	overlay_button.connect("pressed", controller._on_overlay_button_pressed)
+	overlay_button.connect("pressed", overlay_button_pressed.emit)
 	ov_v.add_child(overlay_button)
 	add_child(overlay)
 	overlay.visible = false
@@ -933,7 +940,7 @@ func _refresh_gear_icons() -> void:
 func _refresh_consumable_panel() -> void:
 	if consumable_cells.is_empty():
 		return
-	# 与 controller._on_consumable_pressed 守卫保持一致：playing 状态 + 非整备
+	# 与 consumable_used 信号的 controller 守卫保持一致：playing 状态 + 非整备
 	var can_use = (controller.state.game_state == DuelController.FlowState.PLAYING) and (not controller.state.in_loadout)
 	for i in range(consumable_cells.size()):
 		var cell = consumable_cells[i]
@@ -953,9 +960,9 @@ func _refresh_consumable_panel() -> void:
 			cell.disabled = true   # 空位不响应点击
 
 
-# 4 格子点击：调 controller._on_consumable_pressed(uid) 让 controller 走统一扣减+结算路径
+# 4 格子点击：发 consumable_used(uid) 信号让 controller 走统一扣减+结算路径
 func _on_consumable_cell_pressed(cell_index: int) -> void:
 	if cell_index < 0 or cell_index >= controller.state.consumable_slots.size():
 		return
 	var uid = controller.state.consumable_slots[cell_index]["uid"]
-	controller._on_consumable_pressed(uid)
+	consumable_used.emit(uid)

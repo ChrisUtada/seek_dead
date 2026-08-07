@@ -342,6 +342,13 @@ func _ready() -> void:
 	hud.reward_skip_requested.connect(_on_reward_skip_pressed)
 	hud.shop_requested.connect(_on_shop_requested)
 	hud.next_room_requested.connect(_on_next_room_pressed)
+	hud.card_toggled.connect(_on_card_toggled)
+	hud.meta_choice_chosen.connect(_on_meta_choice_chosen)
+	hud.gold_upgrade_requested.connect(_on_gold_upgrade_pressed)
+	hud.overlay_button_pressed.connect(_on_overlay_button_pressed)
+	hud.consumable_used.connect(_on_consumable_pressed)
+	hud.shop_leave_requested.connect(_on_shop_leave_pressed)
+	hud.anvil_back_requested.connect(_on_anvil_back_pressed)
 	# 方案 A：旋转节拍器（转轮带滚动 + 加速 + 停止时机判定）
 	_spin_timer = Timer.new()
 	_spin_timer.one_shot = false

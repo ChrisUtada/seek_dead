@@ -54,7 +54,7 @@ func configure(ctrl, h: BattleHud) -> void:
 	var leave_btn = UI_BUTTON.instantiate()
 	leave_btn.text = "关闭 ✕"
 	leave_btn.custom_minimum_size = Vector2(140, 40)
-	leave_btn.connect("pressed", controller._on_shop_leave_pressed)
+	leave_btn.connect("pressed", hud.shop_leave_requested.emit)
 	bot.add_child(leave_btn)
 	show_tab("buy")
 
