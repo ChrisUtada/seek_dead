@@ -974,7 +974,6 @@ func _begin_spin() -> void:
 		hud.set_reel_enabled(r, true)
 	_spinning = true
 	_spin_ticks = 0
-	hud._clear_damage_breakdown()   # S2：新一轮开始，先清掉上一回合的分解
 	_spin_timer.wait_time = _SPIN_BASE_WAIT
 	_spin_timer.start()
 	hud._log("转轮旋转中——按【空格】逐列停止，或点击某一列单独停下（不停就一直转）")
@@ -1328,7 +1327,6 @@ func _return_to_loadout() -> void:
 # ---------------------------------------------------------------------------
 func _reset_grid() -> void:
 	hud._clear_badges()
-	hud._clear_damage_breakdown()
 	grid_elem = []
 	for reel in REELS:
 		grid_elem.append([])
@@ -1509,10 +1507,8 @@ func _evaluate(chain_mult := 1.0) -> void:
 	var pierce_total = int(pierce_subtotal * assault * buff_mult * PLAYER_DMG_MULT)
 	assault_next_spin = 1
 	var total = normal_total + pierce_total
-	# S2：输出伤害分解——逐符号明细 + 回合级乘区汇总（走中栏独立面板，不进战斗日志）
-	if acc["lines"].is_empty():
-		hud._clear_damage_breakdown()
-	else:
+	# S2：伤害分解只进调试日志（Debug.log），屏幕仅保留总伤害飘字（见下方 _popup）
+	if not acc["lines"].is_empty():
 		var blk := ["🔍 伤害分解"]
 		blk.append_array(acc["lines"])
 		var tail := []
@@ -1535,7 +1531,7 @@ func _evaluate(chain_mult := 1.0) -> void:
 			blk.append("   合计 = %d" % total)
 		else:
 			blk.append("   小计 %d × %s = %d" % [int(round(normal_subtotal + pierce_subtotal)), " × ".join(tail), total])
-		hud._show_damage_breakdown("\n".join(blk))
+		Debug.log("\n".join(blk))
 	# 先破甲后掉血：非穿透先扣护甲溢出进 HP；穿透直接扣 HP
 	if normal_total > 0:
 		_apply_enemy_damage(normal_total, false)

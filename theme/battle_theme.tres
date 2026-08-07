@@ -1,4 +1,6 @@
-[gd_resource type="Theme" format=3 uid="uid://3s703cmqw3d2"]
+[gd_resource type="Theme" format=3 load_steps=4 uid="uid://3s703cmqw3d2"]
+
+[ext_resource type="FontFile" path="res://assets/fonts/VonwaonBitmap-12px.tres" id="1_font"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
 content_margin_left = 8.0
@@ -12,11 +14,31 @@ border_width_right = 2
 border_width_bottom = 2
 border_color = Color(0.22, 0.22, 0.3, 1)
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tooltip"]
+content_margin_left = 6.0
+content_margin_top = 4.0
+content_margin_right = 6.0
+content_margin_bottom = 4.0
+bg_color = Color(0.07, 0.07, 0.11, 0.96)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.22, 0.22, 0.3, 1)
+corner_radius_top_left = 0
+corner_radius_top_right = 0
+corner_radius_bottom_right = 0
+corner_radius_bottom_left = 0
+
 [resource]
 PanelContainer/styles/panel = SubResource("StyleBoxFlat_panel")
+TooltipPanel/styles/panel = SubResource("StyleBoxFlat_tooltip")
+TooltipLabel/fonts/font = ExtResource("1_font")
+TooltipLabel/font_sizes/font_size = 9
+TooltipLabel/colors/font_color = Color(0.92, 0.9, 0.86, 1)
 Label/types/TitleLabel/font_sizes/font_size = 10
 Label/types/TitleLabel/colors/font_color = Color(0.9, 0.85, 0.7, 1)
 Label/types/SubLabel/font_sizes/font_size = 9
 Label/types/SubLabel/colors/font_color = Color(0.7, 0.7, 0.75, 1)
-Label/types/AnvilSub/font_sizes/font_size = 8
+Label/types/AnvilSub/font_sizes/font_size = 9
 Label/types/GoldLabel/colors/font_color = Color(1, 0.85, 0.3, 1)

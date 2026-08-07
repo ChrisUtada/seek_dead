@@ -210,12 +210,12 @@ func _refresh_slot_strip() -> void:
 		elif i < unlocked:
 			glyph = "◇"
 			tint = Palette.MUTED
-		var g = hud._label(glyph, 12)
+		var g = hud._label(glyph, TypeScale.TITLE)
 		g.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		g.add_theme_color_override("font_color", tint)
 		sub_strip.add_child(g)
 	if uncapped:
-		var plus = hud._label("＋", 12)
+		var plus = hud._label("＋", TypeScale.TITLE)
 		plus.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		plus.add_theme_color_override("font_color", Palette.PANEL_BORDER)
 		sub_strip.add_child(plus)

@@ -11,7 +11,9 @@
 class_name TypeScale
 extends RefCounted
 
-const REEL     := 13  # 转轮格子符号 / 全屏覆盖大字
+# 字号取 VonwaonBitmap-12px.tres 的缓存位图尺寸（9/10/11/16/50），
+# 非缓存尺寸会被非整数缩放导致像素发虚（观感像换了字体）——故阶梯全部落在缓存值上。
+const REEL     := 11  # 转轮格子符号 / 全屏覆盖大字（原 13 非缓存，缩放发虚）
 const OVERLAY  := 10  # 飘字 / 覆盖层标题
 const TITLE    := 11  # 界面主标题（Seek Dead · 老虎机对决）
 const LEAD     := 10  # 子界面标题（整备 · 选择携带物品 / 列头）
@@ -20,4 +22,4 @@ const BODY     := 10  # 正文标签（玩家/敌人 / 铁砧标题）
 const MEDIUM   := 9   # 数值行（HP、确认/返回按钮）
 const META     := 9   # 信息栏（房间/回合/护盾/副按钮/卡片名）
 const TINY     := 9   # 弱信息（本局加成/日志/描述/图例/tooltip）
-const CAPTION  := 8   # 极弱说明（副标题下一行的小字/升级花费）
+const CAPTION  := 9   # 极弱说明（副标题下一行的小字/升级花费；原 8 非缓存）

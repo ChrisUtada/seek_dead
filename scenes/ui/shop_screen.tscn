@@ -1,4 +1,4 @@
-[gd_scene load_steps=3 format=3]
+﻿[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/shop_screen.gd" id="1_script"]
 [ext_resource type="PackedScene" path="res://scenes/ui/ui_button.tscn" id="2_btn"]
@@ -94,7 +94,7 @@ theme_override_constants/separation = 6
 layout_mode = 2
 horizontal_alignment = 1
 text = "📥 购入（带入后续房间）"
-theme_override_font_sizes/font_size = 17
+theme_override_font_sizes/font_size = 11
 
 [node name="ShopGrid" type="GridContainer" parent="Margin/Content/Scroll/Inner/BuyPanel"]
 layout_mode = 2
@@ -111,7 +111,7 @@ theme_override_constants/separation = 6
 layout_mode = 2
 horizontal_alignment = 1
 text = "📤 卖出（回收约50%金币 · 释放槽位）"
-theme_override_font_sizes/font_size = 17
+theme_override_font_sizes/font_size = 11
 
 [node name="SellBox" type="HBoxContainer" parent="Margin/Content/Scroll/Inner/SellPanel"]
 layout_mode = 2
@@ -127,7 +127,7 @@ theme_override_constants/separation = 3
 layout_mode = 2
 horizontal_alignment = 1
 text = "武器"
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 10
 
 [node name="SkillList" type="VBoxContainer" parent="Margin/Content/Scroll/Inner/SellPanel/SellBox"]
 layout_mode = 2
@@ -138,7 +138,7 @@ theme_override_constants/separation = 3
 layout_mode = 2
 horizontal_alignment = 1
 text = "技能"
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 10
 
 [node name="CharmList" type="VBoxContainer" parent="Margin/Content/Scroll/Inner/SellPanel/SellBox"]
 layout_mode = 2
@@ -149,7 +149,7 @@ theme_override_constants/separation = 3
 layout_mode = 2
 horizontal_alignment = 1
 text = "护符"
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 10
 
 [node name="ConsumList" type="VBoxContainer" parent="Margin/Content/Scroll/Inner/SellPanel/SellBox"]
 layout_mode = 2
@@ -160,7 +160,7 @@ theme_override_constants/separation = 3
 layout_mode = 2
 horizontal_alignment = 1
 text = "消耗品"
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 10
 
 [node name="UpPanel" type="VBoxContainer" parent="Margin/Content/Scroll/Inner"]
 layout_mode = 2
@@ -171,7 +171,7 @@ theme_override_constants/separation = 6
 layout_mode = 2
 horizontal_alignment = 1
 text = "⬆ 金币升级（深化已有乘区 · 每局清零）"
-theme_override_font_sizes/font_size = 17
+theme_override_font_sizes/font_size = 11
 
 [node name="UpGrid" type="GridContainer" parent="Margin/Content/Scroll/Inner/UpPanel"]
 layout_mode = 2

@@ -101,7 +101,7 @@ func _big_text(txt: String) -> void:
 	var l = Label.new()
 	l.text = txt
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	l.add_theme_font_size_override("font_size", 40)
+	l.add_theme_font_size_override("font_size", 16)   # 像素字体缓存尺寸（16px 清晰）
 	l.add_theme_color_override("font_color", Color(1.0, 0.82, 0.2, 1))
 	l.modulate = Color(1, 1, 1, 0)
 	l.scale = Vector2(0.6, 0.6)

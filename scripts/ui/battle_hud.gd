@@ -139,8 +139,6 @@ var symbol_tooltip_detail
 var popup_layer                    # 飘字专用浮层（满屏，忽略鼠标）
 var _popup_pool := []              # 预建 Label 池
 var _popup_free := []              # 空闲 Label 栈
-var _bd_label: Label = null        # 伤害分解浮字（复用，飘在敌人头顶）
-var _bd_tween: Tween = null
 
 func _label(text: String, size: int = TypeScale.BODY) -> Label:
 	var l = Label.new()
@@ -429,7 +427,7 @@ func _make_shop_card(offer: Dictionary) -> Button:
 	var card: ItemCard = ITEM_CARD.instantiate()
 	card.custom_minimum_size = Vector2(76, 56)
 	var kind_name = {"weapon": "武器", "passive": "护符", "active": "物品", "skill": "技能"}.get(offer["kind"], "物品")
-	card.configure("%s%s · %s" % [_source_tag(offer["kind"]), kind_name, offer["name"]], "", 12, 0.0, 2)
+	card.configure("%s%s · %s" % [_source_tag(offer["kind"]), kind_name, offer["name"]], "", TypeScale.TITLE, 0.0, 2)
 	var price = controller._shop_price(offer["kind"])   # 价格随当前持有数递增；卖出回落，换装成本=买卖价差（防刷价）
 	var is_active = (offer["kind"] == "active")
 	var cap = controller.state.CONSUMABLE_CAP if is_active else controller._cat_max(offer["kind"])          # 消耗品按腰带总容量 4；其余按整备上限
@@ -695,47 +693,6 @@ func _player_sprite_anchor() -> Control:
 
 func _enemy_sprite_anchor() -> Control:
 	return enemy_sprite if enemy_sprite != null else enemy_panel
-
-
-# S2：伤害分解改为「头顶飘字」——替代原 BottomRow 固定面板（DmgBreakdownBox 已移除）
-func _show_damage_breakdown(text: String) -> void:
-	_float_breakdown(text)
-
-
-func _clear_damage_breakdown() -> void:
-	if _bd_label != null and _bd_label.visible:
-		if _bd_tween != null and _bd_tween.is_valid():
-			_bd_tween.kill()
-		_bd_label.visible = false
-
-
-# 多行飘字：显示在敌人头顶（Sprite 上方），缓慢上浮淡出
-func _float_breakdown(text: String) -> void:
-	if popup_layer == null or text.strip_edges().is_empty():
-		return
-	var anchor = enemy_sprite if enemy_sprite != null else enemy_panel
-	if _bd_label == null:
-		_bd_label = Label.new()
-		_bd_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_bd_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		_bd_label.add_theme_color_override("font_color", Color(0.86, 0.91, 1.0, 1))
-		popup_layer.add_child(_bd_label)
-	if _bd_tween != null and _bd_tween.is_valid():
-		_bd_tween.kill()
-	_bd_label.text = text
-	_bd_label.add_theme_font_size_override("font_size", TypeScale.META)
-	_bd_label.visible = true
-	_bd_label.modulate = Color(1, 1, 1, 1)
-	var gp = anchor.get_global_rect()
-	var pr = popup_layer.get_global_rect()
-	var sz = _bd_label.get_minimum_size()
-	_bd_label.position = Vector2(
-		gp.position.x - pr.position.x + gp.size.x * 0.5 - sz.x * 0.5,
-		gp.position.y - pr.position.y - sz.y - 2)
-	_bd_tween = create_tween()
-	_bd_tween.tween_property(_bd_label, "position:y", _bd_label.position.y - 8, 1.2)
-	_bd_tween.parallel().tween_property(_bd_label, "modulate:a", 0.0, 1.2)
-	_bd_tween.tween_callback(func(): _bd_label.visible = false)
 
 
 # S4：元素样式缓存。旋转最高速约 28 跳/秒 × 3 列，若每次 new StyleBoxFlat
