@@ -275,6 +275,7 @@ const ANVIL_SAVE_KEY := "anvil_meta"   # 铁砧元进度存于 SaveSystem.lobby_
 var _meta_store                        # 存档子系统 MetaStore（步骤1抽出；_ready 实例化并注入 self + meta）
 var _shop_system                       # 商店子系统 ShopSystem（步骤3抽出；_ready 实例化并注入 self）
 var _reward_system                     # 奖励子系统 RewardSystem（步骤4抽出；_ready 实例化并注入 self）
+var _loadout_system                    # 整备子系统 LoadoutSystem（步骤5抽出；_ready 实例化并注入 self）
 
 # 仅 1 行 3 格。特殊符号需 3 同才触发；普通符号单颗即结算，出现 n 次 ×n。
 var PAYLINES = [
@@ -366,6 +367,7 @@ func _ready() -> void:
 	_anvil_system = preload("res://scripts/systems/anvil_system.gd").new(self)
 	_shop_system = preload("res://scripts/systems/shop_system.gd").new(self)
 	_reward_system = preload("res://scripts/systems/reward_system.gd").new(self)
+	_loadout_system = preload("res://scripts/systems/loadout_system.gd").new(self)
 	_load_meta()
 	_sanitize_owned()	# 自愈：清洗历史上误写入 owned_* 的非本类路径（如技能）
 	_seed_default_owned()
@@ -473,79 +475,40 @@ func _eff_element(sym: SymbolData, wd: WeaponData) -> String:
 # ---------------------------------------------------------------------------
 # UI 构建（全代码）
 # ---------------------------------------------------------------------------
+# 整备勾选 / 槽位 / 拥有池已抽至 LoadoutSystem（步骤5，见 _loadout_system）：
+# on_card_toggled / sel_arr / cat_max / cat_cap / can_grow_slot / cap_text /
+# grow_slot / cat_name / owned_arr；下方保留薄转发（loadout_scene / battle_hud /
+# shop_screen / 各子系统直调签名不变），_confirm_loadout / _apply_charms 留本编排层。
 func _on_card_toggled(card: Dictionary) -> void:
-	var cat = card.kind
-	var arr = _sel_arr(cat)
-	if card["selected"]:
-		card["selected"] = false
-		arr.erase(card["path"])
-	else:
-		if arr.size() >= _cat_max(cat):
-			hud._log("%s已达上限 %d" % [_cat_name(cat), _cat_max(cat)])
-			return
-		card["selected"] = true
-		arr.append(card["path"])
-	hud._update_loadout_cards_visual()
-	hud._update_loadout_count()
+	_loadout_system.on_card_toggled(card)
 
 
 func _sel_arr(cat: String) -> Array:
-	match cat:
-		"weapon":  return selected_loadout
-		"active":  return selected_consumables
-		"passive": return selected_charms
-		"skill":    return selected_skills
-	return []
+	return _loadout_system.sel_arr(cat)
 
 
-# 该类【当前】上限（随商店「买即开槽」成长）
 func _cat_max(cat: String) -> int:
-	match cat:
-		"weapon":  return loadout_max
-		"active":  return int(SLOT_INIT["active"])   # 整备勾选上限 = 1（腰带容量见 CONSUMABLE_CAP）
-		"passive": return charm_max
-		"skill":    return skill_max
-	return 0
+	return _loadout_system.cat_max(cat)
 
 
-# 该类【天花板】（当前上限的成长终点）。返回 UNCAPPED(-1) 表示无天花板（进池类）。
 func _cat_cap(cat: String) -> int:
-	match cat:
-		"weapon":  return UNCAPPED   # 进池：稀释效应自身即刹车
-		"skill":    return UNCAPPED   # 进池：同上
-		"active":  return int(SLOT_INIT["active"])   # 整备天花板 = 1（消耗品不「买即开槽」，改为腰带追加，容量见 CONSUMABLE_CAP）
-		"passive": return CHARM_CAP
-	return 0
+	return _loadout_system.cat_cap(cat)
 
 
-# 该类是否还能继续「买即开槽」（无天花板恒为 true）
 func _can_grow_slot(cat: String) -> bool:
-	var ceiling = _cat_cap(cat)
-	return ceiling == UNCAPPED or _cat_max(cat) < ceiling
+	return _loadout_system.can_grow_slot(cat)
 
 
-# 天花板的显示文本（无天花板显示 ∞），供日志与 UI 复用
 func _cap_text(cat: String) -> String:
-	var ceiling = _cat_cap(cat)
-	return "∞" if ceiling == UNCAPPED else str(ceiling)
+	return _loadout_system.cap_text(cat)
 
 
-# 「买即开槽」：把该类当前上限 +1（有天花板则不越过）
 func _grow_slot(cat: String) -> void:
-	var ceiling = _cat_cap(cat)
-	match cat:
-		"weapon":  loadout_max    = (loadout_max + 1 if ceiling == UNCAPPED else min(loadout_max + 1, ceiling))
-		"skill":    skill_max      = (skill_max + 1 if ceiling == UNCAPPED else min(skill_max + 1, ceiling))
-		"passive": charm_max      = min(charm_max + 1, ceiling)
+	_loadout_system.grow_slot(cat)
 
 
 func _cat_name(cat: String) -> String:
-	match cat:
-		"weapon":  return "武器"
-		"active":  return "消耗品"
-		"passive": return "护符"
-		"skill":    return "技能"
-	return cat
+	return _loadout_system.cat_name(cat)
 
 
 func _confirm_loadout() -> void:
@@ -700,13 +663,7 @@ func _sanitize_owned() -> void:
 	_meta_store.sanitize_owned()   # 步骤1：转发到 MetaStore
 
 func _owned_arr(kind: String) -> Array:
-	# 整备屏/商店读取拥有池（盘外跨局）。skills 暂用全池（待扩 owned_skills）。
-	match kind:
-		"weapon":  return meta["owned_weapons"]
-		"passive": return meta["owned_charms"]
-		"active":  return meta["owned_consumables"]
-		"skill":   return SKILL_POOL
-		_:         return []
+	return _loadout_system.owned_arr(kind)   # 步骤5：转发到 LoadoutSystem
 
 
 
