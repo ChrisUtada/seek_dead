@@ -8,3 +8,4 @@ id = "elite_ward"
 icon = "🛡"
 label = "结界备战"
 desc = "下一房开局 +30 护盾"
+value = 30

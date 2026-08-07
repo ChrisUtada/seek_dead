@@ -8,3 +8,4 @@ id = "elite_gold"
 icon = "💰"
 label = "战利金库"
 desc = "立即获得 +18 金币（用于商店消费 / 金币升级 tab）"
+value = 18

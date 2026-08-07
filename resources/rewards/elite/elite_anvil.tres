@@ -8,3 +8,4 @@ id = "elite_anvil"
 icon = "🔨"
 label = "铁砧结晶"
 desc = "铁砧点数 +2（持久，用于武器符号权重锻造）"
+value = 2

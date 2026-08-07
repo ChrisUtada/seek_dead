@@ -8,3 +8,4 @@ id = "power"
 icon = "⚔"
 label = "锋锐打磨"
 desc = "本局符号伤害 +1"
+value = 1

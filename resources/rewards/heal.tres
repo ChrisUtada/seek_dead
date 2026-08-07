@@ -8,3 +8,4 @@ id = "heal"
 icon = "✚"
 label = "治疗药剂"
 desc = "恢复 35% 最大 HP"
+value = 35

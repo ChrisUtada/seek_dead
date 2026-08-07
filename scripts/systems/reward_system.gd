@@ -110,16 +110,31 @@ func roll_boss_rewards(room) -> Array:
 	return out
 
 
+# 按 id 在普通/精英奖励池中查找 RewardData（数值资源化：value 字段，文案同文件防漂移）
+func _find_reward(id: String) -> RewardData:
+	for rw in _ctrl.REWARD_POOL:
+		if rw is RewardData and rw.id == id:
+			return rw
+	for rw in _ctrl.ELITE_REWARD_POOL:
+		if rw is RewardData and rw.id == id:
+			return rw
+	return null
+
+
 func apply_reward(id: String) -> void:
+	var rd = _find_reward(id)
+	if rd == null:
+		_ctrl.hud._log("奖励资源缺失：%s" % id)
+		return
 	match id:
 		"heal":
-			var h = int(_ctrl.player_hp_max * 0.35)
+			var h = int(_ctrl.player_hp_max * float(rd.value) / 100.0)
 			_ctrl.player_hp = min(_ctrl.player_hp_max, _ctrl.player_hp + h)
 			_ctrl.hud._log("奖励：治疗 +%d HP" % h)
 		"maxhp":
-			_ctrl.player_hp_max += 20
+			_ctrl.player_hp_max += rd.value
 			_ctrl.player_hp = _ctrl.player_hp_max
-			_ctrl.hud._log("奖励：最大 HP +20 并回满")
+			_ctrl.hud._log("奖励：最大 HP +%d 并回满" % rd.value)
 		# "purify" 净化上限奖励已删除（净化完全走消耗品）
 		"symbol":
 			var cand := []
@@ -129,24 +144,24 @@ func apply_reward(id: String) -> void:
 			if cand.is_empty():
 				cand = [_ctrl.TRASH_SYMBOL]
 			var sym: SymbolData = cand[randi() % cand.size()]
-			run_symbol_bonus[sym.resource_path] = run_symbol_bonus.get(sym.resource_path, 0) + 3
-			_ctrl.hud._log("奖励：%s 符号权重 +3" % sym.name)
+			run_symbol_bonus[sym.resource_path] = run_symbol_bonus.get(sym.resource_path, 0) + rd.value
+			_ctrl.hud._log("奖励：%s 符号权重 +%d" % [sym.name, rd.value])
 		"shield":
-			run_shield_next += 15
-			_ctrl.hud._log("奖励：下一房 +15 护盾")
+			run_shield_next += rd.value
+			_ctrl.hud._log("奖励：下一房 +%d 护盾" % rd.value)
 		"power":
-			run_power_bonus += 1
-			_ctrl.hud._log("奖励：本局符号伤害 +1（当前 +%d）" % run_power_bonus)
+			run_power_bonus += rd.value
+			_ctrl.hud._log("奖励：本局符号伤害 +%d（当前 +%d）" % [rd.value, run_power_bonus])
 		# T6 精英房「战前补给」三类选项
 		"elite_gold":
-			_ctrl.gold += 18
-			_ctrl.hud._log("精英战利：金币 +18（共 %d）" % _ctrl.gold)
+			_ctrl.gold += rd.value
+			_ctrl.hud._log("精英战利：金币 +%d（共 %d）" % [rd.value, _ctrl.gold])
 		"elite_anvil":
-			_ctrl.meta["anvil_points"] += 2
-			_ctrl.hud._log("精英战利：铁砧点数 +2（共 %d）" % _ctrl.meta["anvil_points"])
+			_ctrl.meta["anvil_points"] += rd.value
+			_ctrl.hud._log("精英战利：铁砧点数 +%d（共 %d）" % [rd.value, _ctrl.meta["anvil_points"]])
 		"elite_ward":
-			run_shield_next += 30
-			_ctrl.hud._log("精英战利：下一房 +30 护盾")
+			run_shield_next += rd.value
+			_ctrl.hud._log("精英战利：下一房 +%d 护盾" % rd.value)
 
 
 # BOSS 战利品结算（主题池+混合券三选一）：新武器(进池) / 武器强化券(meta升级,不进池) / Boss信物(占护符槽1/3)

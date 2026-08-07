@@ -8,3 +8,4 @@ id = "symbol"
 icon = "✶"
 label = "符号灌注"
 desc = "随机优势符号权重 +3"
+value = 3
