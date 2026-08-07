@@ -32,25 +32,25 @@ func configure(ctrl, h: BattleHud) -> void:
 	bot.add_child(skip_btn)
 
 func show_screen(is_boss: bool) -> void:
-	controller.reward_is_boss = is_boss
+	# 奖励候选与 reward_is_boss 由 controller._open_reward_screen 填充（UI 不再直写 controller 字段），
+	# 本屏只从只读快照 state 读取渲染数据。
+	controller._open_reward_screen(is_boss)
 	for c in reward_grid.get_children():
 		reward_grid.remove_child(c)
 		c.queue_free()
-	var kind = controller.ROOMS[controller.room_index].kind
+	var choices = controller.state.reward_choices
+	var kind = controller.state.ROOMS[controller.state.room_index].kind
 	if is_boss:
-		controller.reward_choices = controller._roll_boss_rewards(controller.ROOMS[controller.room_index])
 		title_label.text = "★ BOSS 战利品！选择一项（主题武器 / 强化券 / 信物）"
-		for rw in controller.reward_choices:
+		for rw in choices:
 			reward_grid.add_child(hud._make_boss_reward_card(rw))
 	elif kind == "elite":
-		controller.reward_choices = controller._roll_elite_rewards()
 		title_label.text = "⚔ 精英房 · 战前补给（选择一项备战）"
-		for rw in controller.reward_choices:
+		for rw in choices:
 			reward_grid.add_child(hud._make_reward_card(rw))
 	else:
-		controller.reward_choices = controller._roll_rewards()
 		title_label.text = "胜利！选择一项房奖励"
-		for rw in controller.reward_choices:
+		for rw in choices:
 			reward_grid.add_child(hud._make_reward_card(rw))
 	visible = true
 

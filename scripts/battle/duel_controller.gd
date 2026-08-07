@@ -577,6 +577,18 @@ func _roll_boss_rewards(room) -> Array:
 	return _reward_system.roll_boss_rewards(room)
 
 
+# 打开奖励屏的语义入口：由 controller 填充 reward_choices / reward_is_boss，
+# reward_screen 只调用本方法并从 state 快照读取（不再直写 controller 字段）。
+func _open_reward_screen(is_boss: bool) -> void:
+	reward_is_boss = is_boss
+	if is_boss:
+		reward_choices = _roll_boss_rewards(ROOMS[room_index])
+	elif ROOMS[room_index].kind == "elite":
+		reward_choices = _roll_elite_rewards()
+	else:
+		reward_choices = _roll_rewards()
+
+
 func _apply_reward(id: String) -> void:
 	_reward_system.apply_reward(id)
 
