@@ -51,6 +51,30 @@ func reset_run() -> void:
 
 
 # ---------------------------------------------------------------------------
+# 公开查询（anvil_screen 渲染入口；UI 不再穿透 _anvil_* 私有方法）
+# ---------------------------------------------------------------------------
+
+# 铁砧图鉴/抽奖展示数据：池 / 显示名表 / 已拥有 / 全池 / 未拥有 / 收集百分比。
+func collection_info() -> Dictionary:
+	var pool = _anvil_pool()
+	var owned := 0
+	for p in pool:
+		if _anvil_is_owned(p):
+			owned += 1
+	var names := []
+	for p in pool:
+		names.append(_anvil_drop_for(p)["name"])
+	return {
+		"pool": pool,
+		"names": names,
+		"owned": owned,
+		"total": pool.size(),
+		"not_yet": pool.size() - owned,
+		"pct": float(owned) / float(pool.size()) if pool.size() > 0 else 1.0,
+	}
+
+
+# ---------------------------------------------------------------------------
 # 房间通关发放铁砧点数（Hades 式 drip）——is_boss 给额外奖励
 # ---------------------------------------------------------------------------
 

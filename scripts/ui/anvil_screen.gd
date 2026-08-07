@@ -51,19 +51,14 @@ func refresh() -> void:
 	if _spinning:
 		return
 	var meta = controller.state.meta
+	var info = controller._anvil_system.collection_info()
 	points_label.text = "铁砧点数: %d" % meta["anvil_points"]
-	var pool = controller._anvil_system._anvil_pool()
-	var owned = 0
-	for p in pool:
-		if controller._anvil_system._anvil_is_owned(p):
-			owned += 1
-	var not_yet = pool.size() - owned
 	var pity = meta["anvil_pity"]
 	var pity_txt = ""
-	if not_yet > 0 and pity >= controller.ANVIL_PITY_MAX:
+	if info["not_yet"] > 0 and pity >= controller.ANVIL_PITY_MAX:
 		pity_txt = "（保底触发：下次必出未拥有）"
 	info_label.text = "图鉴 %.0f%%  已拥有 %d / 全池 %d\n未拥有 %d 件 · 连续重复 %d/%d %s" % [
-		controller._anvil_system._anvil_collection_pct() * 100, owned, pool.size(), not_yet, pity, controller.ANVIL_PITY_MAX, pity_txt]
+		info["pct"] * 100, info["owned"], info["total"], info["not_yet"], pity, controller.ANVIL_PITY_MAX, pity_txt]
 	for c in reel_box.get_children():
 		reel_box.remove_child(c)
 		c.queue_free()
@@ -91,10 +86,7 @@ func _play_spin(final_drops: Array) -> void:
 	for c in reel_box.get_children():
 		reel_box.remove_child(c)
 		c.queue_free()
-	var pool = controller._anvil_system._anvil_pool()
-	var names := []
-	for p in pool:
-		names.append(controller._anvil_system._anvil_drop_for(p)["name"])
+	var names = controller._anvil_system.collection_info()["names"]
 	var labels := []
 	var stops = [0.45, 0.62, 0.80]  # 三格错峰停下，强化仪式感
 	for i in 3:
