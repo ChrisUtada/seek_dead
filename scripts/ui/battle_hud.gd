@@ -7,6 +7,7 @@ class_name BattleHud
 const TRASH_SYMBOL = preload("res://resources/symbols/trash.tres")
 const ElementCounter = preload("res://scripts/battle/element_counter.gd")
 const UI_BUTTON = preload("res://scenes/ui/ui_button.tscn")
+const ITEM_CARD = preload("res://scenes/ui/item_card.tscn")
 const UI_PANEL = preload("res://scenes/ui/ui_panel.tscn")
 const SYMBOL_CELL = preload("res://scenes/ui/symbol_cell.tscn")
 const Screen = preload("res://scripts/ui/screen.gd")
@@ -95,6 +96,7 @@ var interroom_next_btn
 @onready var grid_container = $Margin/Content/MainRow/CenterStage/ReelDock/TopRow/ReelCenter/GridContainer
 @onready var log_label = $Margin/Content/LogBar/LogScroll/LogLabel
 @onready var log_scroll = $Margin/Content/LogBar/LogScroll
+var _logs: Array = []   # 战斗日志缓冲（本 HUD 自持，仅显示用；不再经 controller 快照中转）
 @onready var player_hp_label = $Margin/Content/MainRow/PlayerPanel/VBox/PlayerHpLabel
 @onready var player_shield_label = $Margin/Content/MainRow/PlayerPanel/VBox/PlayerShieldLabel
 @onready var weapons_row = $Margin/Content/MainRow/PlayerPanel/VBox/GearBox/WeaponsRow
@@ -378,44 +380,20 @@ func _show_reward_screen(is_boss: bool) -> void:
 
 
 func _make_reward_card(rw: RewardData) -> Button:
-	var btn = UI_BUTTON.instantiate()
-	btn.custom_minimum_size = Vector2(52, 36)
-	btn.text = ""
-	var cc = CenterContainer.new()
-	cc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	cc.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	btn.add_child(cc)
-	var vb = VBoxContainer.new()
-	vb.add_theme_constant_override("separation", 1)
-	cc.add_child(vb)
-	vb.add_child(_label("%s %s" % [rw.icon, rw.label], TypeScale.META))
-	var dl = _label(rw.desc, TypeScale.TINY)
-	dl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	dl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	vb.add_child(dl)
-	btn.pressed.connect(reward_chosen.emit.bind(rw.id))
-	return btn
+	var card: ItemCard = ITEM_CARD.instantiate()
+	card.custom_minimum_size = Vector2(52, 36)
+	card.configure("%s %s" % [rw.icon, rw.label], rw.desc)
+	card.pressed.connect(reward_chosen.emit.bind(rw.id))
+	return card
 
 
 # BOSS 战利品卡（候选为 dict，点击调 _on_boss_reward_chosen）
 func _make_boss_reward_card(cand: Dictionary) -> Button:
-	var btn = UI_BUTTON.instantiate()
-	btn.custom_minimum_size = Vector2(52, 36)
-	btn.text = ""
-	var cc = CenterContainer.new()
-	cc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	cc.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	btn.add_child(cc)
-	var vb = VBoxContainer.new()
-	vb.add_theme_constant_override("separation", 1)
-	cc.add_child(vb)
-	vb.add_child(_label("%s %s" % [cand.get("icon", ""), cand.get("label", "")], TypeScale.META))
-	var dl = _label(cand.get("desc", ""), TypeScale.TINY)
-	dl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	dl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	vb.add_child(dl)
-	btn.pressed.connect(boss_reward_chosen.emit.bind(cand))
-	return btn
+	var card: ItemCard = ITEM_CARD.instantiate()
+	card.custom_minimum_size = Vector2(52, 36)
+	card.configure("%s %s" % [cand.get("icon", ""), cand.get("label", "")], cand.get("desc", ""))
+	card.pressed.connect(boss_reward_chosen.emit.bind(cand))
+	return card
 
 
 # ---------------------------------------------------------------------------
@@ -433,24 +411,11 @@ func _show_meta_choice() -> void:
 
 
 func _make_meta_card(opt: Dictionary) -> Button:
-	var btn = UI_BUTTON.instantiate()
-	btn.custom_minimum_size = Vector2(130, 60)   # 仅 3 张、覆盖层空间充足，放大提升可读性
-	btn.text = ""
-	var cc = CenterContainer.new()
-	cc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	cc.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	btn.add_child(cc)
-	var vb = VBoxContainer.new()
-	vb.add_theme_constant_override("separation", 1)
-	cc.add_child(vb)
-	vb.add_child(_label("%s %s" % [opt.get("icon", ""), opt.get("label", "")], TypeScale.META))
-	var dl = _label(opt.get("desc", ""), TypeScale.TINY)
-	dl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	dl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	dl.custom_minimum_size = Vector2(110, 0)     # 约束宽度，保证长描述换行而非撑破卡片
-	vb.add_child(dl)
-	btn.connect("pressed", controller._on_meta_choice_chosen.bind(opt))
-	return btn
+	var card: ItemCard = ITEM_CARD.instantiate()
+	card.custom_minimum_size = Vector2(130, 60)   # 仅 3 张、覆盖层空间充足，放大提升可读性
+	card.configure("%s %s" % [opt.get("icon", ""), opt.get("label", "")], opt.get("desc", ""), TypeScale.META, 110.0)
+	card.pressed.connect(controller._on_meta_choice_chosen.bind(opt))
+	return card
 
 
 func _build_shop_screen() -> void:
@@ -469,18 +434,10 @@ func _refresh_shop() -> void:
 
 
 func _make_shop_card(offer: Dictionary) -> Button:
-	var btn = UI_BUTTON.instantiate()
-	btn.custom_minimum_size = Vector2(76, 56)
-	btn.text = ""
-	var cc = CenterContainer.new()
-	cc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	cc.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	btn.add_child(cc)
-	var vb = VBoxContainer.new()
-	vb.add_theme_constant_override("separation", 2)
-	cc.add_child(vb)
+	var card: ItemCard = ITEM_CARD.instantiate()
+	card.custom_minimum_size = Vector2(76, 56)
 	var kind_name = {"weapon": "武器", "passive": "护符", "active": "物品", "skill": "技能"}.get(offer["kind"], "物品")
-	vb.add_child(_label("%s%s · %s" % [_source_tag(offer["kind"]), kind_name, offer["name"]], 12))
+	card.configure("%s%s · %s" % [_source_tag(offer["kind"]), kind_name, offer["name"]], "", 12, 0.0, 2)
 	var price = controller._shop_price(offer["kind"])   # 价格随当前持有数递增；卖出回落，换装成本=买卖价差（防刷价）
 	var is_active = (offer["kind"] == "active")
 	var cap = controller.state.CONSUMABLE_CAP if is_active else controller._cat_max(offer["kind"])          # 消耗品按腰带总容量 4；其余按整备上限
@@ -500,72 +457,39 @@ func _make_shop_card(offer: Dictionary) -> Button:
 		status = "开槽 %d 金" % price   # 本次购买会把该类槽 +1
 	else:
 		status = "%d 金" % price
-	var pl = _label(status, TypeScale.TINY)
-	pl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var col: Color = Palette.ACCENT_GOLD
 	if offer["sold"]:
-		pl.add_theme_color_override("font_color", Palette.MUTED_DIM)
+		col = Palette.MUTED_DIM
 	elif not can_buy:
-		pl.add_theme_color_override("font_color", Palette.ENEMY)
-	else:
-		pl.add_theme_color_override("font_color", Palette.ACCENT_GOLD)
-	vb.add_child(pl)
-	btn.disabled = not can_buy
-	btn.pressed.connect(buy_requested.emit.bind(offer))
-	return btn
+		col = Palette.ENEMY
+	card.set_status(status, col)
+	card.disabled = not can_buy
+	card.pressed.connect(buy_requested.emit.bind(offer))
+	return card
 
 
 # 商店「卖出」区：四列列出已持有物品，点击回收约50%金币并释放槽位
 func _make_sell_card(title_text: String, sub_text: String, disabled: bool, cb: Callable) -> Button:
-	var btn = UI_BUTTON.instantiate()
-	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	btn.custom_minimum_size = Vector2(0, 26)
-	btn.text = ""
-	var cc = CenterContainer.new()
-	cc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	btn.add_child(cc)
-	var vb = VBoxContainer.new()
-	vb.add_theme_constant_override("separation", 1)
-	cc.add_child(vb)
-	vb.add_child(_label(title_text, TypeScale.TINY))
-	var pl = _label(sub_text, TypeScale.TINY)
-	pl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	var col := Palette.ACCENT_GOLD
-	if disabled:
-		col = Palette.MUTED_DIM
-	pl.add_theme_color_override("font_color", col)
-	vb.add_child(pl)
-	btn.disabled = disabled
+	var card: ItemCard = ITEM_CARD.instantiate()
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	card.custom_minimum_size = Vector2(0, 26)
+	card.configure(title_text, sub_text, TypeScale.TINY)
+	card.set_desc_color(Palette.ACCENT_GOLD if not disabled else Palette.MUTED_DIM)
+	card.disabled = disabled
 	if not cb.is_null():
-		btn.connect("pressed", cb)
-	return btn
-
+		card.pressed.connect(cb)
+	return card
 
 
 func _make_upgrade_card(u: Dictionary) -> Button:
-	var btn = UI_BUTTON.instantiate()
-	btn.custom_minimum_size = Vector2(96, 60)
-	btn.text = ""
-	var cc = CenterContainer.new()
-	cc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	cc.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	btn.add_child(cc)
-	var vb = VBoxContainer.new()
-	vb.add_theme_constant_override("separation", 1)
-	cc.add_child(vb)
-	vb.add_child(_label("%s %s Lv%d/%d" % [u["icon"], u["name"], u["level"], u["max"]], TypeScale.META))
-	var dl = _label(u["desc"], TypeScale.TINY)
-	dl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	dl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	dl.custom_minimum_size = Vector2(90, 0)
-	vb.add_child(dl)
+	var card: ItemCard = ITEM_CARD.instantiate()
+	card.custom_minimum_size = Vector2(96, 60)
+	card.configure("%s %s Lv%d/%d" % [u["icon"], u["name"], u["level"], u["max"]], u["desc"], TypeScale.META, 90.0)
 	var status = "已满级" if u["maxed"] else ("%d 金" % u["cost"])
-	var pl = _label(status, TypeScale.TINY)
-	pl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	pl.add_theme_color_override("font_color", Palette.MUTED_DIM if u["maxed"] else (Palette.ACCENT_GOLD if u["can_afford"] else Palette.ENEMY))
-	vb.add_child(pl)
-	btn.disabled = (u["maxed"] or not u["can_afford"])
-	btn.connect("pressed", controller._on_gold_upgrade_pressed.bind(u["id"]))
-	return btn
+	card.set_status(status, Palette.MUTED_DIM if u["maxed"] else (Palette.ACCENT_GOLD if u["can_afford"] else Palette.ENEMY))
+	card.disabled = (u["maxed"] or not u["can_afford"])
+	card.pressed.connect(controller._on_gold_upgrade_pressed.bind(u["id"]))
+	return card
 
 
 func _build_anvil_screen() -> void:
@@ -940,11 +864,11 @@ func _hide_overlay() -> void:
 
 
 func _log(msg: String) -> void:
-	controller.state.logs.push_front(msg)
-	if controller.state.logs.size() > 10:
-		controller.state.logs.pop_back()
+	_logs.push_front(msg)
+	if _logs.size() > 10:
+		_logs.pop_back()
 	if log_label != null:
-		log_label.text = "\n".join(controller.state.logs)
+		log_label.text = "\n".join(_logs)
 
 
 # 玩家面板装备图标刷新：武器取首个符号 label emoji（无符号回退 ⚔️），

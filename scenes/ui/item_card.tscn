@@ -1,0 +1,38 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/ui/ui_button.tscn" id="1"]
+[ext_resource type="Script" path="res://scripts/ui/item_card.gd" id="2"]
+
+[node name="ItemCard" instance=ExtResource("1")]
+script = ExtResource("2")
+text = ""
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="Center"]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="TitleLabel" type="Label" parent="Center/VBox"]
+layout_mode = 2
+text = ""
+horizontal_alignment = 1
+
+[node name="DescLabel" type="Label" parent="Center/VBox"]
+layout_mode = 2
+text = ""
+horizontal_alignment = 1
+autowrap_mode = 3
+visible = false
+
+[node name="StatusLabel" type="Label" parent="Center/VBox"]
+layout_mode = 2
+text = ""
+horizontal_alignment = 1
+visible = false

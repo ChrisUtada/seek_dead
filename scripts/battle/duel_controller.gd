@@ -260,8 +260,6 @@ var PAYLINES = [
 
 # 符号图例（每符号名称/类型/元素 + 敌人属性提示）
 
-var logs: Array = []
-
 # —— P1：只读状态快照（HUD 渲染只从此读，不再直读下方私有字段）——
 var state: BattleState:
 	get:
@@ -275,7 +273,6 @@ func _build_state() -> BattleState:
 	s.room_index = room_index
 	s.REELS = REELS
 	s.meta = meta
-	s.logs = logs
 	s.gold = gold
 	s.enemy_intent = enemy_intent
 	s.enemy_element = enemy_element
@@ -542,37 +539,29 @@ func _apply_charms() -> void:
 # M4 房奖励三选一界面（Roguelike 构筑）
 # ---------------------------------------------------------------------------
 func _on_reward_chosen(id: String) -> void:
+	_finish_room(func(): _apply_reward(id), reward_is_boss)
+
+
+func _on_reward_skip_pressed() -> void:
+	_finish_room(Callable(), reward_is_boss)    # 跳过奖励：不应用任何效果
+
+
+func _on_boss_reward_chosen(cand: Dictionary) -> void:
+	_finish_room(func(): _apply_boss_reward(cand), true)
+
+
+# 房奖励三选一 / 跳过 / BOSS 战利品共用的房间推进编排：
+# hide → 应用奖励（可选）→ 发放铁砧点数 + 金币 → 通关则元进度三选一，否则进房间歇态 → 刷元进度栏。
+func _finish_room(apply_fn: Callable, is_boss: bool) -> void:
 	hud.hide_reward_screen()
-	_apply_reward(id)
-	_anvil_system.award_meta(reward_is_boss)    # M5：房间通关发放铁砧点数
-	_award_gold(reward_is_boss)    # S6+S8：清房金币 + 利息
+	if apply_fn.is_valid():
+		apply_fn.call()
+	_anvil_system.award_meta(is_boss)    # M5：房间通关发放铁砧点数
+	_award_gold(is_boss)    # S6+S8：清房金币 + 利息
 	if _is_run_final(room_index):
 		_show_meta_choice()        # 通关整局（最终 BOSS）→元进度三选一（持久生效）
 	else:
 		_enter_interroom()        # opt-in 商店：进入房间歇态（🛒 可选，▶ 下一房继续）
-	hud._refresh_meta()
-
-
-func _on_reward_skip_pressed() -> void:
-	hud.hide_reward_screen()
-	_anvil_system.award_meta(reward_is_boss)    # M5：房间通关发放铁砧点数（即使跳过奖励）
-	_award_gold(reward_is_boss)    # S6+S8：清房金币 + 利息
-	if _is_run_final(room_index):
-		_show_meta_choice()
-	else:
-		_enter_interroom()        # opt-in 商店：进入房间歇态
-	hud._refresh_meta()
-
-
-func _on_boss_reward_chosen(cand: Dictionary) -> void:
-	hud.hide_reward_screen()
-	_apply_boss_reward(cand)
-	_anvil_system.award_meta(true)    # M5：Boss 通关发放铁砧点数（含额外）
-	_award_gold(true)    # S6+S8：清房金币 + 利息
-	if _is_run_final(room_index):
-		_show_meta_choice()      # 通关整局（最终 BOSS）→元进度三选一（持久生效）
-	else:
-		_enter_interroom()        # 幕一/幕二 BOSS：进入房间歇态（opt-in 商店）
 	hud._refresh_meta()
 
 

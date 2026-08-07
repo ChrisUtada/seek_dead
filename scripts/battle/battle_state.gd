@@ -12,7 +12,6 @@ var reward_choices: Array = []
 var room_index: int = 0
 var REELS: int = 3
 var meta: Dictionary = {}
-var logs: Array = []
 var gold: int = 0
 var enemy_intent: Dictionary = {}
 var enemy_element: String = "none"
