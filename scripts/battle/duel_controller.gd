@@ -118,7 +118,9 @@ const _SPIN_MIN_WAIT := 0.06           # 最快每跳间隔（封顶也调慢，
 const _STRIP_MIN_CELLS := 30           # 转轮带最小格数（整份平铺补足，不改变符号占比）
 # 频率层（装备自洽 / 直觉模型，见下方 _ITEM_STRIP_TARGET）：频率由每件装备自身 weight 决定，
 # 稀有度只定强度（见 LoadoutItem），不影响出现次数——避免「神装打不出去」。原 f(kind) 中央预算已退役。
-const _ITEM_STRIP_TARGET := 16   # 每件装备转轮子带长（频率由该装备自身 weight 定，各装备等权、互不挤压）
+# 方案 B：_ITEM_STRIP_TARGET 从「每装备子带长」改为「全装备符号总预算」——跨装备共享 (符号|元素) 权重累加，
+# 同元素武器堆三连、异元素武器不稀释符号总价值；每装备的 miss 段独立保留（命中率手感不变）。
+const _ITEM_STRIP_TARGET := 16   # 符号总预算格（按聚合权重分配；各装备 miss 段另计）
 const _GOLD_CELLS := 2           # 金币符号常驻格数（经济引擎，与装备频率解耦）
 
 # miss（废铁）占比来自武器命中率，人为留底以防转轮变无脑（§12：命中率不能趋近 100%）。
@@ -132,6 +134,7 @@ const _GOLD_CELLS := 2           # 金币符号常驻格数（经济引擎，与
 @export var BASE_POWER_REF: float = 32.0        # 武器 base_power 支点（≈ 当前 8 武器均值，使平均武器伤害与旧模型持平）
 @export var CHAIN_MAX: int = 4                      # 连锁重触发上限：special 三连最多再免费重转 3 次（共 4 发）
 @export var CHAIN_STEP: float = 1.5                   # 连锁倍率：每多一层 ×1.5（叠在 special×CRIT 之上，封顶 ≈ ×3.4）
+@export var CRIT_CHANCE: float = 0.20                 # 方案 B：非三连时每符号实例的独立暴击率（三连必暴；与携带装备数解耦，补偿异元素多带的频率稀释）
 @export var CHARM_MULT_CAP: float = 6.0              # 总护符乘区硬上限（防失控膨胀）
 @export var META_ANVIL_BONUS: int = 2              # 元进度三选一选「铁砧点数」时获得的点数
 @export var ANVIL_ROLL_COST: int = 10
@@ -378,9 +381,9 @@ func _build_pool(loadout: Array) -> void:
 		var sp = sd.symbol.resource_path
 		_weapon_power_map[sp] = max(_weapon_power_map.get(sp, 0.0), eff)
 		_item_crit_map[sp] = max(_item_crit_map.get(sp, 1.0), sd.crit_mult)
-	# —— 装备自洽（docs/[已完成]物品中心重构方案.md §4 重构）：频率不再由中央 f(kind) 预算决定，
-	# 而是「每件装备用自身 weight 决定自己符号多常出现、用自身命中率决定自己转轮的废铁占比」。
-	# 每件装备生成一段等长的「自洽子带」，拼成共享转轮带；共享符号不再跨装备累加权重（垄断根因消除），
+	# —— 装备自洽（docs/[已完成]物品中心重构方案.md §4 重构 + 方案 B）：频率由各装备 weight 决定，
+	# 命中率决定废铁占比；共享 (符号|元素) 在 _build_strips 跨装备累加权重（方案 B：同元素堆三连），
+	# 符号总预算固定（_ITEM_STRIP_TARGET），异元素多带不稀释符号总价值；每符号格数夹上限防垄断复活。
 	# 稀有度仍只定强度（base_power / hit_rate），不影响出现次数（「神装打不出去」退化被避开）。
 	for path in loadout:
 		var wd: WeaponData = load(path)
@@ -979,44 +982,47 @@ func _begin_spin() -> void:
 	hud._log("转轮旋转中——按【空格】逐列停止，或点击某一列单独停下（不停就一直转）")
 
 
-# 装备自洽（docs/[已完成]物品中心重构方案.md §4 重构）：由「每件装备生成自己的转轮子带」拼接成共享转轮带。
-# 频率 = 该装备自身 weight（权重越大越常出现）；废铁占比 = 1 - 该装备自身命中率（夹在 MISS_FLOOR/CEIL）。
-# 共享符号不再跨装备累加权重，垄断根因结构性消除；稀有度仍只定强度，不影响出现次数。
-# 结算/连锁/special 三连等下游逻辑完全不变（仍按 REELS x ROWS 落子统计）。
+# 方案 B（2026-08-07）：跨装备聚合 (符号|有效元素) 权重，共享符号累加（同元素堆三连），
+# 符号总预算固定 _ITEM_STRIP_TARGET，miss 段按各装备命中率独立保留（MISS_FLOOR/CEIL 兜底）。
+# 结算/连锁/special 三连等下游逻辑不变（仍按 REELS x ROWS 落子统计）。
 func _build_strips() -> void:
 	reel_strips = []
 	if pool_items.is_empty():
 		for r in REELS:
 			reel_strips.append([[TRASH_SYMBOL, "none"]])
 		return
-	var base := []
+	# —— 方案 B：跨装备聚合 (符号 | 有效元素) 权重 ——
+	# 同一 (符号, 有效元素) 被多件装备携带时权重累加（同元素武器堆三连；异元素互不稀释符号总价值）。
+	# 有效元素已在 _build_pool 用 _eff_element 解析（普通符号继承武器元素，special 优先 reel_element）。
+	var agg := {}   # key("path|elem") -> {sym, elem, w}
 	for it in pool_items:
 		var syms: Array = it["syms"]
 		if syms.is_empty():
 			continue
-		# F-0 符号权重修正（本局符号灌注 / 词缀）落在该装备自己的段内
-		var mod := []
 		for s in syms:
 			var w = max(0.0, s[1] + _agg_symbol_weight_mod(s[0]))
-			mod.append([s[0], w, s[2]])
-		var wsum: float = 0.0
-		for s in mod:
-			wsum += s[1]
-		if wsum <= 0.0:
-			continue
-		var target: int = _ITEM_STRIP_TARGET
-		# 按自身 weight 分配符号格（每符号至少 1 格，权重越大越常出现）
-		var cells := []
-		for s in mod:
-			var cnt: int = maxi(1, roundi(float(target) * s[1] / wsum))
+			if w <= 0.0:
+				continue
+			var key: String = s[0].resource_path + "|" + s[2]
+			if not agg.has(key):
+				agg[key] = {"sym": s[0], "elem": s[2], "w": 0.0}
+			agg[key]["w"] += w
+	var wsum: float = 0.0
+	for k in agg:
+		wsum += agg[k]["w"]
+	var base := []
+	if wsum > 0.0:
+		# 固定符号预算 _ITEM_STRIP_TARGET 格，按聚合权重分配（每 key 至少 1 格保底）
+		for k in agg:
+			var cnt: int = maxi(1, roundi(float(_ITEM_STRIP_TARGET) * agg[k]["w"] / wsum))
 			for _c in cnt:
-				cells.append([s[0], s[2]])
-		# 废铁占比 = 1 - 该装备自身命中率（转轮永远有 miss，MISS_FLOOR/CEIL 兜底）
+				base.append([agg[k]["sym"], agg[k]["elem"]])
+	# 废铁占比 = 各装备自身命中率的独立段（每装备保留自己的 miss 手感，MISS_FLOOR/CEIL 兜底）
+	for it in pool_items:
 		var miss_frac: float = clamp(1.0 - float(it["hit"]), MISS_FLOOR, MISS_CEIL)
-		var miss_cnt: int = roundi(float(target) * miss_frac)
+		var miss_cnt: int = roundi(float(_ITEM_STRIP_TARGET) * miss_frac)
 		for _c in miss_cnt:
-			cells.append([TRASH_SYMBOL, "none"])
-		base.append_array(cells)
+			base.append([TRASH_SYMBOL, "none"])
 	# 金币常驻（经济引擎，与装备频率解耦）
 	for _c in _GOLD_CELLS:
 		base.append([GOLD_SYMBOL, "none"])
@@ -1361,7 +1367,9 @@ func _contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> vo
 			acc["counter_triple"] = true
 	elif em < 1.0:
 		_eval_dis = true
-	var crit_mult_val: float = _item_crit_map.get(sym.resource_path, 1.0) if raw >= 3 else 1.0
+	# 方案 B：三连必暴（crit_mult，现状保留）；非三连每符号实例按 CRIT_CHANCE 独立暴击——
+	# 单带靠三连大暴，多带靠每列小暴，期望与携带装备数解耦（异元素多带不再亏三连频率）。
+	var crit_mult_val: float = _item_crit_map.get(sym.resource_path, 1.0) if raw >= 3 or randf() < CRIT_CHANCE else 1.0
 	match sym.kind:
 		"damage":
 			var dv = flat * mult * em
@@ -1376,11 +1384,13 @@ func _contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> vo
 		"heal":    acc["heal"]    += sym.base * power_scale * mult * crit_mult_val
 		"status":  acc["status_stacks"][sym.status_type] = acc["status_stacks"].get(sym.status_type, 0) + mult * crit_mult_val
 		"special":
-			# special：1 同即生效（base×连线数×克制）；三连触发暴击倍率（方案 A 统一为 crit_mult_val，普通/special 同源，保留破甲+连锁）
+			# special：1 同即生效（base×连线数×克制）；三连必暴（crit_mult，方案 A 同源）。
+			# 非三连的 CRIT_CHANCE 独立暴击只放大伤害，不触发连锁/破甲（special_triple 标记保持三连专属）。
 			var sv = flat * mult * em
 			if crit_mult_val > 1.0:
 				sv *= crit_mult_val
-				acc["special_triple"] = true   # S10 T5 钩子埋点：三连发生标记，供 BOSS 机制感知
+				if raw >= 3:
+					acc["special_triple"] = true   # S10 T5 钩子埋点：三连发生标记，供 BOSS 机制感知
 			if sym.pierce_armor:
 				acc["pierce"] += sv
 			else:
