@@ -280,6 +280,7 @@ var meta: Dictionary = {"anvil_points": 0, "weapon_upgrades": {}, "interference_
 var anvil_run_awarded: int = 0   # 本局铁砧点数 drip 累计（不持久，_full_reset 清零）
 var last_anvil_drops: Array = []   # 最近一次铁砧摇动结果（非持久，仅供 UI 显示）
 const ANVIL_SAVE_KEY := "anvil_meta"   # 铁砧元进度存于 SaveSystem.lobby_data
+var _meta_store                        # 存档子系统 MetaStore（步骤1抽出；_ready 实例化并注入 self + meta）
 
 # 仅 1 行 3 格。特殊符号需 3 同才触发；普通符号单颗即结算，出现 n 次 ×n。
 var PAYLINES = [
@@ -367,6 +368,7 @@ func _ready() -> void:
 	hud = BATTLE_HUD.instantiate()
 	add_child(hud)
 	hud.controller = self
+	_meta_store = preload("res://scripts/systems/meta_store.gd").new(self, meta)
 	_load_meta()
 	_sanitize_owned()	# 自愈：清洗历史上误写入 owned_* 的非本类路径（如技能）
 	_seed_default_owned()
@@ -784,81 +786,17 @@ func _apply_boss_reward(cand: Dictionary) -> void:
 # M5 元进度（铁砧锻造 + 存档持久化）
 # ---------------------------------------------------------------------------
 func _load_meta() -> void:
-	var defaults := {"anvil_points": 0, "weapon_upgrades": {}, "interference_resist": 0, "weapon_base_bonus": {}, "charm_upgrades": {}, "weapon_hit_bonus": {}, "owned_weapons": [], "owned_charms": [], "owned_consumables": [], "anvil_pity": 0, "first_clears": {}, "collection_milestones": []}
-	var lb = SaveSystem.load_lobby_data()
-	if lb.has(ANVIL_SAVE_KEY) and lb[ANVIL_SAVE_KEY] is Dictionary:
-		var parsed: Dictionary = lb[ANVIL_SAVE_KEY]
-		for k in defaults.keys():
-			if parsed.has(k):
-				meta[k] = parsed[k]
-	hud._log("铁砧元进度已载入：点数 %d，武器升级 %d，抗干扰 Lv%d" % \
-		[meta["anvil_points"], meta["weapon_upgrades"].size(), meta["interference_resist"]])
+	_meta_store.load_meta()   # 步骤1：转发到 MetaStore
 
 
 func _save_meta() -> void:
-	var lb = SaveSystem.load_lobby_data()
-	if lb is Dictionary:
-		lb[ANVIL_SAVE_KEY] = meta
-	else:
-		lb = {ANVIL_SAVE_KEY: meta}
-	SaveSystem.save_lobby_data(lb)
-	SaveSystem.flush_lobby_data()   # 关键节点立即落盘，避免丢失
+	_meta_store.save_meta()   # 步骤1：转发到 MetaStore
 
 func _seed_default_owned() -> void:
-	# 新档/迁移：owned_* 为空时用当前全池种子填充，保证整备屏有可选范围。
-	# Gungeon 化可改为只给基础子集（如 WEAPON_POOL 前 N 个）。
-	# 测试开关 TEST_SMALL_OWNED：仅在 owned 为空时把拥有池压到 3 武器/4 护符（便于观察铁砧抽新）；
-	#   关掉恢复正式全池。仅「空时」播种，铁砧授予的新件不会被重载后抹掉（要恢复全池请清存档）。
-	if TEST_SMALL_OWNED:
-		if meta["owned_weapons"].is_empty():
-			meta["owned_weapons"] = WEAPON_POOL.slice(0, TEST_SMALL_OWNED_WEAPONS)
-		if meta["owned_charms"].is_empty():
-			var ps := []
-			for p in ITEM_POOL:
-				var d = load(p)
-				if d is ItemData and d.category == "passive":
-					ps.append(p)
-			meta["owned_charms"] = ps.slice(0, TEST_SMALL_OWNED_CHARMS)
-		_save_meta()
-		return
-	if meta["owned_weapons"].is_empty():
-		meta["owned_weapons"] = WEAPON_POOL.duplicate()
-	if meta["owned_charms"].is_empty():
-		var ps := []
-		for p in ITEM_POOL:
-			var d = load(p)
-			if d is ItemData and d.category == "passive":
-				ps.append(p)
-		meta["owned_charms"] = ps
-	if meta["owned_consumables"].is_empty():
-		var cs := []
-		for p in ITEM_POOL:
-			var d = load(p)
-			if d is ItemData and d.category == "active":
-				cs.append(p)
-		meta["owned_consumables"] = cs
-	_save_meta()
+	_meta_store.seed_default_owned()   # 步骤1：转发到 MetaStore
 
 func _sanitize_owned() -> void:
-	# 自愈：历史上技能曾被误写入 owned_weapons（shop 的 owned_key 推导 bug）。
-	# 清洗各 owned_* 中不属于本类的路径，避免 load 出 SkillData 后整备屏按 weapon 读 weapon_name 崩溃。
-	for key in ["owned_weapons", "owned_charms", "owned_consumables"]:
-		if not meta.has(key):
-			continue
-		var cleaned := []
-		for p in meta[key]:
-			var d = load(p)
-			var ok := false
-			if key == "owned_weapons":
-				ok = (d is WeaponData)
-			elif key == "owned_charms":
-				ok = (d is ItemData and d.category == "passive")
-			elif key == "owned_consumables":
-				ok = (d is ItemData and d.category == "active")
-			if ok:
-				cleaned.append(p)
-		meta[key] = cleaned
-	_save_meta()
+	_meta_store.sanitize_owned()   # 步骤1：转发到 MetaStore
 
 func _owned_arr(kind: String) -> Array:
 	# 整备屏/商店读取拥有池（盘外跨局）。skills 暂用全池（待扩 owned_skills）。
@@ -895,11 +833,7 @@ func _award_meta(is_boss: bool) -> void:
 # S6–S8 局内经济：金币 / 商店 / 利息
 # ---------------------------------------------------------------------------
 func _award_gold(is_boss: bool) -> void:
-	var base = 10 if is_boss else 5
-	var interest = mini(int(gold / 5.0), 5)     # S8：每 5 金 +1，上限 +5
-	var total = base + interest
-	gold += total
-	hud._log("金币 +%d（清房 %d + 利息 %d，共 %d）" % [total, base, interest, gold])
+	_meta_store.award_gold(is_boss)   # 步骤1：转发到 MetaStore
 
 func _shop_price(kind: String, owned: int = -1) -> int:
 	if owned < 0:
