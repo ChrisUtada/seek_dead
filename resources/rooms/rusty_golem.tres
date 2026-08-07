@@ -18,4 +18,4 @@ act = 1
 armor = 20
 gimmick_script = ExtResource("2")
 boss_reward_weapons = Array[String](["res://resources/weapon_templates/ice_gun.tres", "res://resources/weapon_templates/iron_sword.tres", "res://resources/weapon_templates/dagger.tres"])
-boss_relic_path = "res://resources/items/rust_relic.tres"
+boss_relic_path = "res://resources/charms/rust_relic.tres"

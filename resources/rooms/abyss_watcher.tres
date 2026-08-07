@@ -18,4 +18,4 @@ act = 3
 armor = 35
 gimmick_script = ExtResource("2")
 boss_reward_weapons = Array[String](["res://resources/weapon_templates/flame_staff.tres", "res://resources/weapon_templates/fire_sword.tres", "res://resources/weapon_templates/battle_axe.tres"])
-boss_relic_path = "res://resources/items/abyss_relic.tres"
+boss_relic_path = "res://resources/charms/abyss_relic.tres"

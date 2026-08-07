@@ -10,15 +10,15 @@ extends RefCounted
 # - @export 常量（POWER_STEP / LINE_STEP / JOKER_STEP / JOKER_CAP_FACTOR / SHIELD_STEP）与
 #   GOLD_UPGRADE_DEFS 留 controller（RefCounted 无法在 Inspector 编辑），本子系统动态读 _ctrl.xxx。
 # - 跨系统联动（授予后刷新 UI 等）留在 controller 编排层；本子系统不互调其他子系统。
-# - ctrl 不标类型：DuelController 当前无 class_name，沿用动态访问（同 MetaStore / AnvilSystem）。
+# - ctrl 标类型 DuelController（已加 class_name），成员访问获得编译期检查。
 # - 3117c6d 修复保持：买入仅 kind=="weapon"/"passive" 写 owned_*，skill 跳过（防 SkillData 进 owned_weapons 崩溃）。
 
-var _ctrl          # DuelController 实例（动态访问其字段/方法）
+var _ctrl: DuelController          # DuelController 实例（类型标注，编译期检查）
 var shop_offers: Array = []            # 当前商店货架（随机刷新）
 var paid_price: Dictionary = {}        # path/uid -> 实际购入价（卖出返还约 50%；新一局清空）
 var gold_upgrades := {"power": 0, "line": 0, "joker": 0, "shield": 0}   # 局内金币升级等级（每局清零）
 
-func _init(ctrl) -> void:
+func _init(ctrl: DuelController) -> void:
 	_ctrl = ctrl
 
 

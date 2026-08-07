@@ -11,14 +11,14 @@ extends RefCounted
 #   controller（RefCounted 无法在 Inspector 编辑），本子系统动态读 _ctrl.xxx。
 # - 跨系统联动（奖励后推进房间 / 元进度生效后开新局 _full_reset / UI 刷新）留在 controller 编排层；
 #   本子系统不互调其他子系统。
-# - ctrl 不标类型：DuelController 当前无 class_name，沿用动态访问（同 MetaStore / AnvilSystem / ShopSystem）。
+# - ctrl 标类型 DuelController（已加 class_name），成员访问获得编译期检查。
 
-var _ctrl          # DuelController 实例（动态访问其字段/方法）
+var _ctrl: DuelController          # DuelController 实例（类型标注，编译期检查）
 var run_symbol_bonus: Dictionary = {}   # resource_path -> 额外权重（本局符号灌注，房奖励）
 var run_power_bonus: int = 0            # 本局符号基础伤害加成（房奖励：攻击研磨）
 var run_shield_next: int = 0            # 进入下一房时获得的护盾（房奖励：守望结界 / 精英备战）
 
-func _init(ctrl) -> void:
+func _init(ctrl: DuelController) -> void:
 	_ctrl = ctrl
 
 

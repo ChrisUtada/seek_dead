@@ -8,13 +8,12 @@ extends RefCounted
 # - meta 是 controller.meta 字典的引用，本子系统直接改其键后经 save_meta() 落盘；
 #   不持有 meta 所有权（避免"只读快照不可写回"类 bug）。
 # - 跨系统联动（授予后刷新 UI 等）留在 controller 编排层，本子系统不互调其他子系统。
-# - ctrl 不标类型：DuelController 当前无 class_name，且本项目 gimmick 一贯用动态访问
-#   （见 rust_armor_gimmick.gd），故参数不标类型以保持动态访问 _ctrl.xxx。
+# - ctrl 标类型 DuelController（已加 class_name），成员访问获得编译期检查。
 
-var _ctrl          # DuelController 实例（动态访问其字段/方法）
+var _ctrl: DuelController          # DuelController 实例（类型标注，编译期检查）
 var meta: Dictionary = {}   # controller.meta 引用（注入，直接改键后 save_meta 落盘）
 
-func _init(ctrl, m: Dictionary) -> void:
+func _init(ctrl: DuelController, m: Dictionary) -> void:
 	_ctrl = ctrl
 	meta = m
 
@@ -48,18 +47,18 @@ func save_meta() -> void:
 func seed_default_owned() -> void:
 	# 新档/迁移：owned_* 为空时用当前全池种子填充，保证整备屏有可选范围。
 	# Gungeon 化可改为只给基础子集（如 WEAPON_POOL 前 N 个）。
-	# 测试开关 TEST_SMALL_OWNED：仅在 owned 为空时把拥有池压到 3 武器/4 护符（便于观察铁砧抽新）；
+	# 调试开关 SMALL_OWNED：仅在 owned 为空时把拥有池压到 3 武器/4 护符（便于观察铁砧抽新）；
 	#   关掉恢复正式全池。仅「空时」播种，铁砧授予的新件不会被重载后抹掉（要恢复全池请清存档）。
-	if _ctrl.TEST_SMALL_OWNED:
+	if _ctrl.SMALL_OWNED:
 		if meta["owned_weapons"].is_empty():
-			meta["owned_weapons"] = _ctrl.WEAPON_POOL.slice(0, _ctrl.TEST_SMALL_OWNED_WEAPONS)
+			meta["owned_weapons"] = _ctrl.WEAPON_POOL.slice(0, _ctrl.SMALL_OWNED_WEAPONS)
 		if meta["owned_charms"].is_empty():
 			var ps := []
 			for p in _ctrl.ITEM_POOL:
 				var d = load(p)
 				if d is ItemData and d.category == "passive":
 					ps.append(p)
-			meta["owned_charms"] = ps.slice(0, _ctrl.TEST_SMALL_OWNED_CHARMS)
+			meta["owned_charms"] = ps.slice(0, _ctrl.SMALL_OWNED_CHARMS)
 		self.save_meta()
 		return
 	if meta["owned_weapons"].is_empty():

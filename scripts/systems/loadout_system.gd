@@ -11,11 +11,11 @@ extends RefCounted
 #   本子系统动态读 _ctrl.xxx（RefCounted 无法在 Inspector 编辑）。
 # - 战斗强耦合的 _confirm_loadout（触发 _full_reset / _build_pool 战斗准备）与 _apply_charms
 #   （写 charm_* 战斗字段）留在 controller，不迁入。
-# - ctrl 不标类型：DuelController 当前无 class_name，沿用动态访问（同其余 4 个子系统）。
+# - ctrl 标类型 DuelController（已加 class_name），成员访问获得编译期检查。
 
-var _ctrl          # DuelController 实例（动态访问其字段/方法）
+var _ctrl: DuelController          # DuelController 实例（类型标注，编译期检查）
 
-func _init(ctrl) -> void:
+func _init(ctrl: DuelController) -> void:
 	_ctrl = ctrl
 
 

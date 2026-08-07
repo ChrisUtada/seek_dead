@@ -1,3 +1,4 @@
+class_name DuelController
 extends Control
 # ============================================================================
 # 官方对决控制器（DuelController）：由原型 prototypes/reel_combat/reel_combat.gd 迁移而来。
@@ -9,6 +10,7 @@ extends Control
 # 拆分（docs/duel_controller拆分方案B.md）：M0–M6 历史增量注释已清理；职责分区——
 #   存档 MetaStore / 铁砧 AnvilSystem / 商店 ShopSystem / 奖励 RewardSystem / 整备 LoadoutSystem
 #   均为 RefCounted 子系统（scripts/systems/），本文件只留编排 + 薄转发 + 战斗核心。
+#   各子系统 _init(ctrl: DuelController) 注入本 controller，_ctrl 均已标类型（编译期检查）。
 # ============================================================================
 
 const TRASH_SYMBOL = preload("res://resources/symbols/trash.tres")
@@ -65,11 +67,11 @@ const ROWS = 1
 @export var ANTE_ACT_STEP_ATK: float = 1.46   # 幕间台阶：每进一幕敌方 ATK ×1.46（原 1.10^4）
 @export var ANTE_ROOM_STEP_HP: float = 1.15   # 幕内爬升：同幕每过一房敌方 HP ×1.15
 @export var ANTE_ROOM_STEP_ATK: float = 1.10  # 幕内爬升：同幕每过一房敌方 ATK ×1.10
-const TEST_PLAYER_DMG_MULT := 1.5   # 玩家直击总伤害永久倍率（F6 验证手感合理，保留为正式平衡值）。
-const TEST_STATUS_DMG_MULT := 3.0  # 给敌人的状态 DoT（灼烧/毒）永久倍率（原 base 仅 3~4/层/回合，幕三 BOSS 高血量下需此倍率才可见；F6 验证合理，保留）。
-@export var TEST_SMALL_OWNED: bool = true   # 测试用：铁砧效果测试时把拥有池压到 TEST_SMALL_OWNED_WEAPONS 武器 / TEST_SMALL_OWNED_CHARMS 护符（关掉恢复正式全池）
-@export var TEST_SMALL_OWNED_WEAPONS: int = 3
-@export var TEST_SMALL_OWNED_CHARMS: int = 4
+const PLAYER_DMG_MULT := 1.5   # 玩家直击总伤害永久倍率（F6 验证手感合理，保留为正式平衡值）。
+const STATUS_DMG_MULT := 3.0  # 给敌人的状态 DoT（灼烧/毒）永久倍率（原 base 仅 3~4/层/回合，幕三 BOSS 高血量下需此倍率才可见；F6 验证合理，保留）。
+@export var SMALL_OWNED: bool = false   # 调试用：铁砧效果测试时把拥有池压到 SMALL_OWNED_WEAPONS 武器 / SMALL_OWNED_CHARMS 护符（默认 false 用正式全池）
+@export var SMALL_OWNED_WEAPONS: int = 3
+@export var SMALL_OWNED_CHARMS: int = 4
 
 # M4 房奖励池（每清一房随机 3 选 1；Boss 房走同池但标为「残余物」）。
 # Phase D 资源化：改为扫描 resources/rewards/*.tres（RewardData），见 _ready 内填充。
@@ -1257,7 +1259,7 @@ func _tick_status() -> void:
 	for st in enemy_status.keys():
 		var base = _status_base(st)
 		var mult = ElementCounter.multiplier(_status_element(st), enemy_element)
-		dot += int(round(enemy_status[st] * base * mult * TEST_STATUS_DMG_MULT))
+		dot += int(round(enemy_status[st] * base * mult * STATUS_DMG_MULT))
 		enemy_status[st] = max(0, enemy_status[st] - 1)
 		if enemy_status[st] <= 0:
 			enemy_status.erase(st)
@@ -1527,8 +1529,8 @@ func _evaluate(chain_mult := 1.0) -> void:
 	var assault = assault_next_spin
 	var normal_subtotal = acc["dmg"] + acc["special"] * chain_mult
 	var pierce_subtotal = acc.get("pierce", 0.0)
-	var normal_total = int(normal_subtotal * assault * buff_mult * TEST_PLAYER_DMG_MULT)
-	var pierce_total = int(pierce_subtotal * assault * buff_mult * TEST_PLAYER_DMG_MULT)
+	var normal_total = int(normal_subtotal * assault * buff_mult * PLAYER_DMG_MULT)
+	var pierce_total = int(pierce_subtotal * assault * buff_mult * PLAYER_DMG_MULT)
 	assault_next_spin = 1
 	var total = normal_total + pierce_total
 	# S2：输出伤害分解——逐符号明细 + 回合级乘区汇总（走中栏独立面板，不进战斗日志）
