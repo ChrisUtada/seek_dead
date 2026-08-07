@@ -12,6 +12,10 @@ extends RefCounted
 # - 跨系统联动（授予后刷新 UI 等）留在 controller 编排层；本子系统不互调其他子系统。
 # - ctrl 标类型 DuelController（已加 class_name），成员访问获得编译期检查。
 # - 3117c6d 修复保持：买入仅 kind=="weapon"/"passive" 写 owned_*，skill 跳过（防 SkillData 进 owned_weapons 崩溃）。
+# - 商店经济（价格表 / 随机浮动 / 下限 / 返现比）收敛于 ShopConfig Resource（resources/config/shop_config.tres），
+#   策划可直接在 Inspector 调参，不再改代码。
+
+const SHOP_CONFIG = preload("res://resources/config/shop_config.tres")   # 商店经济配置（.tres，可 Inspector 编辑）
 
 var _ctrl: DuelController          # DuelController 实例（类型标注，编译期检查）
 var shop_offers: Array = []            # 当前商店货架（随机刷新）
@@ -46,12 +50,12 @@ func shop_price(kind: String, owned: int = -1) -> int:
 	# 售出物品会减少持有数 → 重购价格回落，换装成本自然来自买卖价差（防刷价）。
 	# 加价起点对齐各类初始配额（填满初始空位仍原价，从首次扩槽起逐级加价）。
 	# 步进差异：护符最大（唯一收集乘区、须最贵）；增益次之（进池挤占转轮带最凶）；
-	# 武器居中；消耗品最低。
-	var base = {"weapon": 8, "passive": 10, "active": 5, "skill": 6}.get(kind, 6)
-	var price = base + randi_range(-1, 2)
-	var step = {"weapon": 5, "passive": 8, "active": 4, "skill": 6}.get(kind, 4)
+	# 武器居中；消耗品最低。数值见 ShopConfig（resources/config/shop_config.tres）。
+	var base = SHOP_CONFIG.base_price.get(kind, SHOP_CONFIG.fallback_base)
+	var price = base + randi_range(SHOP_CONFIG.jitter_min, SHOP_CONFIG.jitter_max)
+	var step = SHOP_CONFIG.step_price.get(kind, SHOP_CONFIG.fallback_step)
 	price += max(0, owned - int(_ctrl.SLOT_INIT.get(kind, 1)) + 1) * step
-	return max(3, price)
+	return max(SHOP_CONFIG.price_floor, price)
 
 
 func shop_name(path: String, kind: String) -> String:
@@ -146,12 +150,12 @@ func on_shop_buy_pressed(offer: Dictionary) -> void:
 
 
 func sell_price(kind: String, path: String) -> int:
-	# 卖出返还约50%实际购入价（高于此会刷金；低于此则换装几乎免费）。
-	# 未记录购入价（如 BOSS 免费掉落）时按当前购价50%兜底。
+	# 卖出返还按 ShopConfig.sell_refund_ratio 比例（过高会刷金；过低则换装几乎免费）。
+	# 未记录购入价（如 BOSS 免费掉落）时按当前购价同比例兜底。
 	var paid = int(paid_price.get(path, -1))
 	if paid < 0:
 		paid = shop_price(kind)
-	return max(1, int(paid * 0.5))
+	return max(1, int(paid * SHOP_CONFIG.sell_refund_ratio))
 
 
 func on_shop_sell_pressed(path: String, kind: String) -> void:
