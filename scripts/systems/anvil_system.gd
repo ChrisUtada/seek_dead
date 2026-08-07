@@ -4,7 +4,7 @@ extends RefCounted
 # M6 铁砧锻造（gacha：摇奖 / 保底 / 图鉴里程碑 / 点数 drip）——从 duel_controller.gd 抽出。
 #
 # 由 controller 在 _ready 处实例化并注入：AnvilSystem.new(ctrl)。
-# 约定（与 docs/duel_controller拆分方案B.md 步骤2一致，并延续步骤1 MetaStore 的写法）：
+# 约定（与 docs/[已完成]duel_controller拆分方案B.md 步骤2一致，并延续步骤1 MetaStore 的写法）：
 # - meta 不随本子系统走，统一经 _ctrl.meta 访问与改写，改写后经 _ctrl._save_meta() 落盘
 #   （保持 controller 单一持有 meta，避免"只读快照不可写回"类 bug）。
 # - @export 常量（ANVIL_ROLL_COST / ANVIL_BLANK_CHANCE / ANVIL_PITY_MAX / ANVIL_PER_RUN_CAP /

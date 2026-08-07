@@ -4,7 +4,7 @@ extends RefCounted
 # 设计：controller.state 每次访问返回一份最新快照；battle_hud 只从中读数据，
 # 不再直读 controller 的私有字段（grid/meta/enemy_*/charm_*/player_* 等）。
 # 逻辑/动作仍走 controller 的语义方法（_cat_max/_on_*_pressed/_roll_* 等，属 P2 信号范畴）。
-# 详见 docs/代码审查与优化建议.md「问题 2 / 阶段 P1」。
+# 详见 docs/[已完成]代码审查与优化建议.md「问题 2 / 阶段 P1」。
 
 var grid: Array = []
 var grid_elem: Array = []

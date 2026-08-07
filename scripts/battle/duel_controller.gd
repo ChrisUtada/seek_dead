@@ -7,7 +7,7 @@ extends Control
 # 铁砧元进度存档于 SaveSystem.lobby_data["anvil_meta"]（与项目统一 JSON 存档）。
 # 全代码 UI（Control 树），可直接作为 duel.tscn 脚本运行（F6）或由 RoomManager 进入。
 #
-# 拆分（docs/duel_controller拆分方案B.md）：M0–M6 历史增量注释已清理；职责分区——
+# 拆分（docs/[已完成]duel_controller拆分方案B.md）：M0–M6 历史增量注释已清理；职责分区——
 #   存档 MetaStore / 铁砧 AnvilSystem / 商店 ShopSystem / 奖励 RewardSystem / 整备 LoadoutSystem
 #   均为 RefCounted 子系统（scripts/systems/），本文件只留编排 + 薄转发 + 战斗核心。
 #   各子系统 _init(ctrl: DuelController) 注入本 controller，_ctrl 均已标类型（编译期检查）。
@@ -95,7 +95,7 @@ var grid_elem = []
 # 合并后的加权符号池：元素为 [SymbolData, weight, element]（element = 有效元素）
 var pool: Array[Array] = []
 var loadout_names: Array[String] = []
-var _weapon_power_map: Dictionary = {}   # 符号 resource_path -> 该物品有效攻击力(base_power + 元进度武器加成)，由 _build_pool 构建。P3：结算时 _contribute 读此值把「物品强度轴」灌进符号伤害（docs/物品中心重构方案.md §8）
+var _weapon_power_map: Dictionary = {}   # 符号 resource_path -> 该物品有效攻击力(base_power + 元进度武器加成)，由 _build_pool 构建。P3：结算时 _contribute 读此值把「物品强度轴」灌进符号伤害（docs/[已完成]物品中心重构方案.md §8）
 var _item_crit_map: Dictionary = {}   # 符号 resource_path -> 该物品三连暴击倍率(crit_mult)，由 _build_pool 构建（方案 A）。普通/special 三连均按此倍率结算，共享符号取最高 crit_mult。
 var pool_items: Array[Dictionary] = []              # 装备自洽：每件装备一段 [ {name, hit, syms:[[SymbolData, weight, element]]} ]，_build_strips 据此生成各自的转轮子带
 
@@ -125,7 +125,7 @@ const _GOLD_CELLS := 2           # 金币符号常驻格数（经济引擎，与
 @export var MISS_FLOOR: float = 0.08          # 废铁占比下限（转轮永远有 miss）
 @export var MISS_CEIL: float = 0.30          # 废铁占比上限（防低命中武器把转轮打成纯废铁）
 
-# P3：物品强度轴基准（docs/物品中心重构方案.md §8）。伤害 = (物品 base_power × 符号 base 偏移) × 连线 × 克制。
+# P3：物品强度轴基准（docs/[已完成]物品中心重构方案.md §8）。伤害 = (物品 base_power × 符号 base 偏移) × 连线 × 克制。
 # BASE_POWER_REF 是「base_power → 伤害」的归一化支点：base_power == REF 的武器，其符号伤害等于 sym.base（即旧模型数值）；
 # base_power 高于 REF 的武器（高稀有度）符号伤害按比例放大（落实「稀有度→强度」），低于则缩小。
 # 此为调参旋钮：P11 内容广度阶段会把 sym.base 重标为相对 base_power 的真正偏移比，届时可去掉 REF 归一化。
@@ -378,7 +378,7 @@ func _build_pool(loadout: Array) -> void:
 		var sp = sd.symbol.resource_path
 		_weapon_power_map[sp] = max(_weapon_power_map.get(sp, 0.0), eff)
 		_item_crit_map[sp] = max(_item_crit_map.get(sp, 1.0), sd.crit_mult)
-	# —— 装备自洽（docs/物品中心重构方案.md §4 重构）：频率不再由中央 f(kind) 预算决定，
+	# —— 装备自洽（docs/[已完成]物品中心重构方案.md §4 重构）：频率不再由中央 f(kind) 预算决定，
 	# 而是「每件装备用自身 weight 决定自己符号多常出现、用自身命中率决定自己转轮的废铁占比」。
 	# 每件装备生成一段等长的「自洽子带」，拼成共享转轮带；共享符号不再跨装备累加权重（垄断根因消除），
 	# 稀有度仍只定强度（base_power / hit_rate），不影响出现次数（「神装打不出去」退化被避开）。
@@ -979,7 +979,7 @@ func _begin_spin() -> void:
 	hud._log("转轮旋转中——按【空格】逐列停止，或点击某一列单独停下（不停就一直转）")
 
 
-# 装备自洽（docs/物品中心重构方案.md §4 重构）：由「每件装备生成自己的转轮子带」拼接成共享转轮带。
+# 装备自洽（docs/[已完成]物品中心重构方案.md §4 重构）：由「每件装备生成自己的转轮子带」拼接成共享转轮带。
 # 频率 = 该装备自身 weight（权重越大越常出现）；废铁占比 = 1 - 该装备自身命中率（夹在 MISS_FLOOR/CEIL）。
 # 共享符号不再跨装备累加权重，垄断根因结构性消除；稀有度仍只定强度，不影响出现次数。
 # 结算/连锁/special 三连等下游逻辑完全不变（仍按 REELS x ROWS 落子统计）。
@@ -1343,7 +1343,7 @@ func _reset_grid() -> void:
 func _contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> void:
 	# 连线精通(S12)：仅当实落 ≥2（确为连线匹配）时才叠加倍率，单符号必结算不受影响
 	var mult = raw + (_shop_system.gold_upgrades["line"] * LINE_STEP if raw >= 2 else 0)
-	# P3（docs/物品中心重构方案.md §8）：伤害 = (物品 base_power × 符号 base 偏移) × 连线 × 克制。
+	# P3（docs/[已完成]物品中心重构方案.md §8）：伤害 = (物品 base_power × 符号 base 偏移) × 连线 × 克制。
 	# 物品有效攻击力来自 _weapon_power_map（base_power + 元进度武器加成）；未命中映射时退化为旧模型（flat = sym.base），
 	# 保证非武器符号（异常路径）不丢伤害。BASE_POWER_REF 为归一化支点（见常量注释）。
 	var item_power: float = _weapon_power_map.get(sym.resource_path, 0.0)

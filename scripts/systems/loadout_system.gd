@@ -4,7 +4,7 @@ extends RefCounted
 # 整备勾选 / 槽位上限与成长 / 拥有池读取——从 duel_controller.gd 抽出。
 #
 # 由 controller 在 _ready 处实例化并注入：LoadoutSystem.new(ctrl)。
-# 约定（与 docs/duel_controller拆分方案B.md 步骤5一致，延续步骤1–4 的写法）：
+# 约定（与 docs/[已完成]duel_controller拆分方案B.md 步骤5一致，延续步骤1–4 的写法）：
 # - 勾选状态 selected_loadout / selected_consumables / selected_charms / selected_skills 与槽位上限
 #   loadout_max / skill_max / charm_max 仍由 controller 持有，本子系统经 _ctrl.xxx 读写（方案B §4 状态归属表）。
 # - @export 常量（SLOT_INIT / CHARM_CAP / UNCAPPED / LOADOUT_MIN 等）留 controller，

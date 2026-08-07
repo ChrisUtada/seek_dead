@@ -4,7 +4,7 @@ extends RefCounted
 # M5 元进度（铁砧锻造 + 存档持久化）——从 duel_controller.gd 抽出的纯 IO 子系统。
 #
 # 由 controller 在 _ready 处实例化并注入：MetaStore.new(ctrl, ctrl.meta)。
-# 约定（与 docs/duel_controller拆分方案B.md 步骤1一致）：
+# 约定（与 docs/[已完成]duel_controller拆分方案B.md 步骤1一致）：
 # - meta 是 controller.meta 字典的引用，本子系统直接改其键后经 save_meta() 落盘；
 #   不持有 meta 所有权（避免"只读快照不可写回"类 bug）。
 # - 跨系统联动（授予后刷新 UI 等）留在 controller 编排层，本子系统不互调其他子系统。

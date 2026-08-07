@@ -1,7 +1,7 @@
 class_name LoadoutItem
 extends Resource
 
-# 物品中心重构（P1 · docs/物品中心重构方案.md）
+# 物品中心重构（P1 · docs/[已完成]物品中心重构方案.md）
 # 武器与技能的统一基类，只承载「强度轴」字段。
 #
 # 刻意不含 element / symbols / reel：

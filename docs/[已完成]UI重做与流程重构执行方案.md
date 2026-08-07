@@ -179,7 +179,7 @@ signal next_room_requested                     # ▶ 下一房（间歇态）
 | `scenes/ui/battle_hud.tscn` | P3c | 转轮沉底 dock + 中央舞台 + 顶/左/右栏节点 |
 | `scripts/ui/battle_animator.gd` | P4 | 新增动画脚本（占位图形先上） |
 | `scenes/ui/shop_screen.tscn` | 抽屉 | 根节点全屏→docked（逻辑不动） |
-| `docs/代码审查与优化建议.md` / `docs/数值膨胀与策略深度设计框架.md` | 每阶段末 | 路线图状态列 + §15.1 台账 + 提交指针同步 |
+| `docs/[已完成]代码审查与优化建议.md` / `docs/数值膨胀与策略深度设计框架.md` | 每阶段末 | 路线图状态列 + §15.1 台账 + 提交指针同步 |
 
 ---
 

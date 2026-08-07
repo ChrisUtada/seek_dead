@@ -3,7 +3,7 @@ extends RefCounted
 # 纯结算数学（P0 抽取自 duel_controller.gd）
 # 设计：所有函数只进参数、出返回值，不碰 hud / 节点 / UI。
 # 调用方（DuelController）保留同名薄包装，零行为变化，可单独 F6 验证数值一致。
-# 详见 docs/代码审查与优化建议.md「问题1 / 阶段 P0」。
+# 详见 docs/[已完成]代码审查与优化建议.md「问题1 / 阶段 P0」。
 
 # —— 加法型增益聚合（按 effect 汇总 player_buffs）——
 static func buff_sum(player_buffs: Dictionary, effect: String) -> float:

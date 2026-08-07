@@ -4,7 +4,7 @@ extends RefCounted
 # S6–S12 商店（买入 / 卖出 / 金币升级）——从 duel_controller.gd 抽出。
 #
 # 由 controller 在 _ready 处实例化并注入：ShopSystem.new(ctrl)。
-# 约定（与 docs/duel_controller拆分方案B.md 步骤3一致，延续步骤1/2 的写法）：
+# 约定（与 docs/[已完成]duel_controller拆分方案B.md 步骤3一致，延续步骤1/2 的写法）：
 # - 局内金币 gold / 腰带 consumable_slots / meta 仍由 controller 持有，本子系统经 _ctrl.xxx 读写；
 #   本局状态 gold_upgrades / paid_price / shop_offers 随本子系统走（方案B §4 状态归属表）。
 # - @export 常量（POWER_STEP / LINE_STEP / JOKER_STEP / JOKER_CAP_FACTOR / SHIELD_STEP）留

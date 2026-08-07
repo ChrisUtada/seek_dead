@@ -4,7 +4,7 @@ extends RefCounted
 # M4 房奖励 / 精英战前补给 / BOSS 战利品 / 局末元进度三选一——从 duel_controller.gd 抽出。
 #
 # 由 controller 在 _ready 处实例化并注入：RewardSystem.new(ctrl)。
-# 约定（与 docs/duel_controller拆分方案B.md 步骤4一致，延续步骤1–3 的写法）：
+# 约定（与 docs/[已完成]duel_controller拆分方案B.md 步骤4一致，延续步骤1–3 的写法）：
 # - reward_choices / reward_is_boss 仍由 controller 持有（HUD 直读直写），本子系统只填充不持有；
 #   本局加成层 run_symbol_bonus / run_power_bonus / run_shield_next 随本子系统走（方案B §4 状态归属表）。
 # - @export 常量（META_ANVIL_BONUS / META_CHOICE_COUNT / REWARD_POOL / ELITE_REWARD_POOL 等）留
