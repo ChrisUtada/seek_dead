@@ -18,8 +18,7 @@ const GOLD_SYMBOL = preload("res://resources/symbols/gold.tres")
 @export var GOLD_POOL_WEIGHT: float = 3.0      # 金币符号在转轮池中的权重（远低于伤害符号，防稀释 DPS）
 @export var GOLD_PER_COIN: int = 1           # 每枚落在连线上的金币符号产出的金币数
 
-# Phase 1 组件化：UI 复用场景与脚手架
-const UI_BUTTON = preload("res://scenes/ui/ui_button.tscn")
+# Phase 1 组件化：UI 复用场景与脚手架（按钮/面板/卡片构建均在 battle_hud 与各 screen，本控制器不再持有）
 
 # 可选物品池（整备界面从这里自由勾选，真实 .tres 数据）。
 # Phase D 软注册表清理：改为文件夹自动扫描，新增内容只需在对应 resources/ 子目录放 .tres，
@@ -125,8 +124,6 @@ const _GOLD_CELLS := 2           # 金币符号常驻格数（经济引擎，与
 # miss（废铁）占比来自武器命中率，人为留底以防转轮变无脑（§12：命中率不能趋近 100%）。
 @export var MISS_FLOOR: float = 0.08          # 废铁占比下限（转轮永远有 miss）
 @export var MISS_CEIL: float = 0.30          # 废铁占比上限（防低命中武器把转轮打成纯废铁）
-# —— 符号规范 S8（KPI）——
-@export var KPI_EXPLOSION_PER_ROOM: float = 1.0  # S8 RTP 式 KPI：special 三连期望每房 >=1 次（反推 special 频率锚点，调参优先调高各装备 special 符号的 weight）
 
 # P3：物品强度轴基准（docs/物品中心重构方案.md §8）。伤害 = (物品 base_power × 符号 base 偏移) × 连线 × 克制。
 # BASE_POWER_REF 是「base_power → 伤害」的归一化支点：base_power == REF 的武器，其符号伤害等于 sym.base（即旧模型数值）；
@@ -136,8 +133,6 @@ const _GOLD_CELLS := 2           # 金币符号常驻格数（经济引擎，与
 @export var CHAIN_MAX: int = 4                      # 连锁重触发上限：special 三连最多再免费重转 3 次（共 4 发）
 @export var CHAIN_STEP: float = 1.5                   # 连锁倍率：每多一层 ×1.5（叠在 special×CRIT 之上，封顶 ≈ ×3.4）
 # —— 每局结束元进度升级（膨胀双轨：武器 base 线性成长 × 护符乘数增值）——
-@export var WEAPON_BASE_STEP: int = 3              # 每级武器基础伤害 +3（线性，随护符/连锁放大）
-@export var WEAPON_HIT_STEP: float = 0.05            # P5：每级武器命中率 +5%（降低废铁占比，MISS_FLOOR 兜底保证转轮永远有 miss）
 @export var CHARM_MULT_STEP: float = 0.12            # 每级护符伤害乘区 +0.12（乘数增值，复利但封顶）
 @export var CHARM_MULT_CAP: float = 6.0              # 总护符乘区硬上限（防失控膨胀）
 @export var META_ANVIL_BONUS: int = 2              # 元进度三选一选「铁砧点数」时获得的点数
@@ -255,10 +250,6 @@ var _loadout_system                    # 整备子系统 LoadoutSystem（步骤5
 var PAYLINES = [
 	[[0,0],[1,0],[2,0]],
 ]
-
-# UI 引用
-
-# 符号图例（每符号名称/类型/元素 + 敌人属性提示）
 
 # —— P1：只读状态快照（HUD 渲染只从此读，不再直读下方私有字段）——
 var state: BattleState:
@@ -436,10 +427,6 @@ func _eff_element(sym: SymbolData, wd: WeaponData) -> String:
 	if sym.kind == "special":
 		return wd.reel_element if wd.reel_element != "none" else sym.element
 	return sym.element if sym.element != "none" else wd.element
-
-
-# 乱权（敌人 chaos 意图）：原靠扭曲权重池削弱优势符号；装备自洽后权重即频率，
-# 故改为在 _build_strips 向整带注入额外废铁（等比重削弱所有装备），见 pending_chaos 处理。
 
 
 
@@ -664,18 +651,6 @@ func _on_shop_sell_pressed(path: String, kind: String) -> void:
 	hud._refresh_meta()
 
 
-func _gold_upgrade_def(id: String) -> Dictionary:
-	return _shop_system.gold_upgrade_def(id)
-
-
-func _gold_upgrade_cost(id: String) -> int:
-	return _shop_system.gold_upgrade_cost(id)
-
-
-func _gold_upgrade_desc(d: Dictionary, lvl: int) -> String:
-	return _shop_system.gold_upgrade_desc(d, lvl)
-
-
 func _gold_upgrade_defs() -> Array:
 	return _shop_system.gold_upgrade_defs()
 
@@ -863,7 +838,7 @@ func _start_room(idx: int) -> void:
 	enemy_intent = {}
 	hud._hide_overlay()
 	_build_strips()
-	_reset_grid(true)
+	_reset_grid()
 	# S10 T2：BOSS 机制实例化（仅 BOSS 房；非 BOSS 房置 null，钩子调用处显式判空跳过）
 	current_gimmick = null
 	boss_atk_mult = 1.0
@@ -1051,10 +1026,6 @@ func _build_strips() -> void:
 		reel_strips.append(copy)
 
 
-# 装备自洽后频率由每件装备自身 weight 决定（见 _build_strips），中央 f(kind) 护栏已退役；
-# 垄断根因（共享符号跨装备累加权重）被 per-item 子带结构性消除，无需 kind 上限兜底。
-
-
 # 节拍器回调：推进仍在旋转的转轮并逐步加速。没有自动停止——只有玩家按停才会锁定。
 func _on_spin_tick() -> void:
 	if not _spinning:
@@ -1088,7 +1059,7 @@ func _write_reel_cell(r: int) -> void:
 
 
 # 锁定某列：pos<0 表示锁定在当前带子位置（按停时机）。注废/锁轮列覆盖结果。
-func _lock_reel(r: int, pos: int) -> void:
+func _lock_reel(r: int) -> void:
 	if r < 0 or r >= REELS or reel_stopped[r]:
 		return
 	if r == pending_jam_reel:
@@ -1101,7 +1072,7 @@ func _lock_reel(r: int, pos: int) -> void:
 		pending_lock_reel = -1
 	else:
 		var strip = reel_strips[r]
-		var idx = (pos if pos >= 0 else reel_cursor[r]) % strip.size()
+		var idx = reel_cursor[r] % strip.size()
 		grid[r][0] = strip[idx][0]
 		grid_elem[r][0] = strip[idx][1]
 	reel_stopped[r] = true
@@ -1120,7 +1091,7 @@ func _lock_reel(r: int, pos: int) -> void:
 func _stop_next_reel() -> void:
 	for r in REELS:
 		if not reel_stopped[r]:
-			_lock_reel(r, -1)
+			_lock_reel(r)
 			return
 
 
@@ -1150,7 +1121,7 @@ func _on_spin_button_pressed() -> void:
 func _on_reel_clicked(r: int) -> void:
 	if not _spinning or reel_stopped[r]:
 		return
-	_lock_reel(r, -1)
+	_lock_reel(r)
 
 
 # 重转卷轴：免费重转一次（不触发敌人回合）
@@ -1162,7 +1133,6 @@ func _free_spin() -> void:
 	await spin_finished
 	await get_tree().create_timer(0.25).timeout
 	await _evaluate()
-	_busy = false
 	if enemy_hp <= 0:
 		hud._log("★ 重转触发击败 %s！" % enemy_name)
 		game_state = "won"
@@ -1321,10 +1291,9 @@ func _on_consumable_pressed(uid: String) -> void:
 
 
 func _on_overlay_button_pressed() -> void:
-	hud._hide_overlay()    # 关闭失败/通关弹层
+	hud._hide_overlay()    # 关闭失败弹层（通关已改走 reward→meta 直链，无 cleared 弹层）
 	match game_state:
 		"lost":   _return_to_loadout()
-		"cleared": _full_reset()
 
 
 func _return_to_loadout() -> void:
@@ -1339,7 +1308,7 @@ func _return_to_loadout() -> void:
 # ---------------------------------------------------------------------------
 # 结算（方案 A：单符号必结算 + 匹配倍率）
 # ---------------------------------------------------------------------------
-func _reset_grid(fill_random: bool) -> void:
+func _reset_grid() -> void:
 	hud._clear_badges()
 	hud._clear_damage_breakdown()
 	grid_elem = []
@@ -1348,7 +1317,7 @@ func _reset_grid(fill_random: bool) -> void:
 		for row in ROWS:
 			grid_elem[reel].append("none")
 			grid[reel][row] = TRASH_SYMBOL
-			if fill_random and reel_strips.size() > reel and not reel_strips[reel].is_empty():
+			if reel_strips.size() > reel and not reel_strips[reel].is_empty():
 				var idx = randi() % reel_strips[reel].size()
 				grid[reel][row] = reel_strips[reel][idx][0]
 				grid_elem[reel][row] = reel_strips[reel][idx][1]
@@ -1618,23 +1587,6 @@ func _grant_buff(sym: SymbolData, mult: int) -> void:
 	player_buffs[sym] = int(player_buffs.get(sym, 0)) + add
 	hud._popup("%s+%d" % [sym.label, add], Palette.POP_BUFF, hud._player_sprite_anchor())
 	hud._log("技能：%s %s（剩余 %d 回合）" % [sym.label, sym.name, player_buffs[sym]])
-
-
-# 按效果类型聚合当前生效的增益值（加法型）
-func _buff_sum(effect: String) -> float:
-	return BattleMath.buff_sum(player_buffs, effect)
-
-
-func _buff_power() -> float:
-	return BattleMath.buff_power(player_buffs)
-
-
-func _buff_shield() -> float:
-	return BattleMath.buff_shield(player_buffs)
-
-
-func _buff_regen() -> float:
-	return BattleMath.buff_regen(player_buffs)
 
 
 # 乘法型增益（多个同时生效则连乘）

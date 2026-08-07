@@ -503,10 +503,6 @@ func _show_anvil_screen() -> void:
 	anvil_screen.show_screen()
 
 
-func _refresh_anvil() -> void:
-	anvil_screen.refresh()
-
-
 func _build_overlay() -> void:
 	overlay = Control.new()
 	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -701,10 +697,6 @@ func _return_popup(lbl: Label) -> void:
 		_popup_free.append(lbl)
 
 
-func _player_panel_anchor() -> Control:
-	return player_panel
-
-
 func _player_sprite_anchor() -> Control:
 	return player_sprite if player_sprite != null else player_panel
 
@@ -752,10 +744,6 @@ func _float_breakdown(text: String) -> void:
 	_bd_tween.tween_property(_bd_label, "position:y", _bd_label.position.y - 8, 1.2)
 	_bd_tween.parallel().tween_property(_bd_label, "modulate:a", 0.0, 1.2)
 	_bd_tween.tween_callback(func(): _bd_label.visible = false)
-
-
-func _enemy_panel_anchor() -> Control:
-	return enemy_panel
 
 
 # S4：元素样式缓存。旋转最高速约 28 跳/秒 × 3 列，若每次 new StyleBoxFlat
