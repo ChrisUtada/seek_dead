@@ -348,23 +348,6 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 9
 text = "状态: 无"
 
-[node name="LogBar" type="HBoxContainer" parent="Margin/Content" unique_id=1805015885]
-custom_minimum_size = Vector2(0, 20)
-layout_mode = 2
-theme_override_constants/separation = 3
-
-[node name="LogScroll" type="ScrollContainer" parent="Margin/Content/LogBar" unique_id=1581007120]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-horizontal_scroll_mode = 0
-
-[node name="LogLabel" type="Label" parent="Margin/Content/LogBar/LogScroll" unique_id=1795395433]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 9
-autowrap_mode = 3
-
 [node name="DeviceFrame" type="Control" parent="." unique_id=552777567]
 z_index = 100
 anchors_preset = 0

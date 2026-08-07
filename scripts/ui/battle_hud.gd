@@ -101,9 +101,6 @@ var anvil_screen                        # 铁砧锻造覆盖层（anvil_screen.t
 # 注：手写 .tscn 的 %Name 唯一名在含 instance= 覆盖节点的场景里注册不可靠，
 #     故改用确定性 $节点路径（.tscn 结构改动时同步更新此处路径）。
 @onready var grid_container = $Margin/Content/MainRow/CenterStage/ReelDock/TopRow/ReelCenter/GridContainer
-@onready var log_label = $Margin/Content/LogBar/LogScroll/LogLabel
-@onready var log_scroll = $Margin/Content/LogBar/LogScroll
-var _logs: Array = []   # 战斗日志缓冲（本 HUD 自持，仅显示用；不再经 controller 快照中转）
 @onready var player_hp_label = $Margin/Content/MainRow/PlayerPanel/VBox/PlayerHpLabel
 @onready var weapons_row = $Margin/Content/MainRow/PlayerPanel/VBox/GearBox/WeaponsRow
 @onready var charms_row = $Margin/Content/MainRow/PlayerPanel/VBox/GearBox/CharmsRow
@@ -798,12 +795,9 @@ func _hide_overlay() -> void:
 	overlay.visible = false
 
 
+# 战斗日志统一走编辑器控制台（Debug.log），战斗界面不再显示滚动日志框
 func _log(msg: String) -> void:
-	_logs.push_front(msg)
-	if _logs.size() > 10:
-		_logs.pop_back()
-	if log_label != null:
-		log_label.text = "\n".join(_logs)
+	Debug.log(msg)
 
 
 # 玩家面板装备图标刷新：武器取首个符号 label emoji（无符号回退 ⚔️），
