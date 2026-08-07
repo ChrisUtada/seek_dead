@@ -39,10 +39,12 @@ theme_override_constants/separation = 6
 
 [node name="TitleLabel" type="Label" parent="Margin/Content" unique_id=439557742]
 layout_mode = 2
+theme_type_variation = &"TitleLabel"
 horizontal_alignment = 1
 
 [node name="SubLabel" type="Label" parent="Margin/Content" unique_id=1726781304]
 layout_mode = 2
+theme_type_variation = &"SubLabel"
 horizontal_alignment = 1
 
 [node name="Center" type="CenterContainer" parent="Margin/Content" unique_id=1525858187]

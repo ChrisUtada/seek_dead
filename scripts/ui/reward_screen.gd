@@ -19,9 +19,7 @@ func configure(ctrl, h: BattleHud) -> void:
 	controller = ctrl
 	hud = h
 	dimmer.color = Palette.BG_OVERLAY
-	title_label.add_theme_font_size_override("font_size", TypeScale.OVERLAY)
 	sub_label.text = "选择一项奖励带入后续房间（Roguelike 构筑，跳过则不取）"
-	sub_label.add_theme_font_size_override("font_size", TypeScale.META)
 	var sp = Control.new()
 	sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bot.add_child(sp)

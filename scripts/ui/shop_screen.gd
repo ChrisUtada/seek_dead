@@ -33,10 +33,7 @@ func configure(ctrl, h: BattleHud) -> void:
 	hud = h
 	bg.color = Palette.BG_REWARD
 	title_label.text = "🛒 商店 · 用金币投资战力"
-	title_label.add_theme_font_size_override("font_size", TypeScale.OVERLAY)
 	sub_label.text = "金币投资战力 · 购入带装备 / 卖出回收 / 升级深化乘区（每局清零）"
-	sub_label.add_theme_font_size_override("font_size", TypeScale.META)
-	gold_label.add_theme_color_override("font_color", Palette.ACCENT_GOLD)
 	# 三页签 + 关闭按钮为静态节点（shop_screen.tscn），这里只接线
 	shop_tab_buy_btn.connect("pressed", show_tab.bind("buy"))
 	shop_tab_sell_btn.connect("pressed", show_tab.bind("sell"))

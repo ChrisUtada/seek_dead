@@ -40,14 +40,17 @@ theme_override_constants/separation = 6
 
 [node name="TitleLabel" type="Label" parent="Margin/Content"]
 layout_mode = 2
+theme_type_variation = &"TitleLabel"
 horizontal_alignment = 1
 
 [node name="GoldLabel" type="Label" parent="Margin/Content"]
 layout_mode = 2
+theme_type_variation = &"GoldLabel"
 horizontal_alignment = 1
 
 [node name="SubLabel" type="Label" parent="Margin/Content"]
 layout_mode = 2
+theme_type_variation = &"SubLabel"
 horizontal_alignment = 1
 
 [node name="TabBar" type="HBoxContainer" parent="Margin/Content"]

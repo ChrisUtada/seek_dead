@@ -18,11 +18,7 @@ func configure(ctrl, h: BattleHud) -> void:
 	hud = h
 	bg.color = Palette.BG_REWARD
 	title_label.text = "★ 通关一局！选择一项元进度升级（持久生效）"
-	title_label.add_theme_font_size_override("font_size", TypeScale.OVERLAY)
-	title_label.add_theme_color_override("font_color", Palette.TITLE)
 	sub_label.text = "武器基础伤害 / 命中率 线性成长 × 护符伤害乘区增值——下一局起爆炸"
-	sub_label.add_theme_font_size_override("font_size", TypeScale.META)
-	sub_label.add_theme_color_override("font_color", Palette.MUTED)
 
 func show_choice() -> void:
 	for c in meta_grid.get_children():

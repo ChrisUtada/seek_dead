@@ -24,9 +24,7 @@ func configure(ctrl, h: BattleHud) -> void:
 	hud = h
 	bg.color = Palette.BG_ANVIL
 	title_label.text = "🔨 铁砧 · 抽装备"
-	title_label.add_theme_font_size_override("font_size", TypeScale.BODY)
 	sub_label.text = "消耗铁砧点数摇一次，三格必出同一件装备（仪式感三连）"
-	sub_label.add_theme_font_size_override("font_size", TypeScale.CAPTION)
 	# 摇/返回按钮为静态节点（anvil_screen.tscn），这里只填动态文案 + 接线
 	roll_btn.text = "🔨 摇动 (%d点)" % controller.ANVIL_ROLL_COST
 	roll_btn.connect("pressed", _on_roll_pressed)
