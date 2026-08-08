@@ -22,13 +22,16 @@ func configure(ctrl, h: BattleHud) -> void:
 	continue_btn.connect("pressed", hud.train_continue_requested.emit)
 
 func show_screen() -> void:
+	visible = true
+	refresh()
+
+func refresh() -> void:
 	sub_label.text = "击败 BOSS 获得训练点——每级消耗 1 点（当前 %d 点）" % controller.train_points
 	for c in train_grid.get_children():
 		train_grid.remove_child(c)
 		c.queue_free()
 	for u in controller._gold_upgrade_defs():
 		train_grid.add_child(hud._make_upgrade_card(u))
-	visible = true
 
 func hide_screen() -> void:
 	visible = false

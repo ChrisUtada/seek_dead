@@ -745,6 +745,7 @@ func _gold_upgrade_defs() -> Array:
 func _on_gold_upgrade_pressed(id: String) -> void:
 	_shop_system.on_gold_upgrade_pressed(id)
 	_after_shop_change()
+	hud.train_screen.refresh()
 
 
 func _on_shop_leave_pressed() -> void:
