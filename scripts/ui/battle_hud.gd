@@ -294,30 +294,38 @@ func _make_item_card(data: Resource, path: String, kind: String) -> Dictionary:
 		name = data.weapon_name if (data != null) else path.get_file().get_basename()
 		if data != null:
 			var wd := data as WeaponData
+			# line1 = 符号概览（主攻 + 特殊机制符号的 label，不显示权重——2026-08-07 重构后武器只带主攻+机制）
 			if wd != null and wd.symbols != null and not wd.symbols.is_empty():
 				var parts := []
 				for sw in wd.symbols:
 					if sw == null or sw.symbol == null:
 						continue
-					parts.append("%s×%d" % [sw.symbol.label, int(sw.weight)])
-				line1 = "⚔️ " + " ".join(parts)   # 临时前缀区分攻击武器（待美术替换）
-			# P5：整备屏显示强度轴（攻击力 + 命中率 + 特殊符号），让玩家理解「稀有度→强度」
-			var sp_name := "无"
+					parts.append(sw.symbol.label)
+				line1 = "⚔️ " + " ".join(parts)
+			# line2 = 强度轴（2026-08-07 更新）：攻击力 · 元素 · 非三连暴击率 · 特殊机制（命中率已退役）
+			var elem_txt := "无"
+			if wd != null and wd.element != "":
+				elem_txt = ElementCounter.label(wd.element)
+			var crit_total: int = int((controller.BALANCE.crit_chance + (wd.crit_chance if wd != null else 0.0)) * 100)
+			var mech_name := "—"
 			if wd != null and wd.symbols != null:
 				for sw in wd.symbols:
-					if sw != null and sw.symbol != null and sw.symbol.kind == "special":
-						sp_name = sw.symbol.name
+					if sw == null or sw.symbol == null:
+						continue
+					if sw.symbol.kind == "special" or sw.symbol.kind == "status":
+						mech_name = sw.symbol.name
 						break
-			line2 = "攻%d 命%.0f%% 特%s" % [int(wd.base_power), wd.hit_rate * 100.0, sp_name]
+			line2 = "攻%d · %s · 暴%d%% · %s" % [int(wd.base_power), elem_txt, crit_total, mech_name]
 	elif kind == "skill":
 		name = data.buff_name if (data != null) else path.get_file().get_basename()
 		if data != null:
 			line1 = "%s %s" % [data.icon, data.description]
-			# P5：技能同样显示强度轴（攻击力 + 命中率）
+			# 技能强度轴（2026-08-07 更新）：攻击力 · 非三连暴击率 · 符号回合（命中率已退役）
 			var sym_txt := "无符号"
 			if data.symbol != null:
 				sym_txt = "×%d·%dT" % [int(data.weight), data.symbol.buff_turns]
-			line2 = "攻%d 命%.0f%% %s" % [int(data.base_power), data.hit_rate * 100.0, sym_txt]
+			var s_crit: int = int((controller.BALANCE.crit_chance + data.crit_chance) * 100)
+			line2 = "攻%d · 暴%d%% · %s" % [int(data.base_power), s_crit, sym_txt]
 	else:
 		name = data.item_name if (data != null) else path.get_file().get_basename()
 		if data != null:
