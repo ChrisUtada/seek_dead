@@ -106,13 +106,14 @@ var loadout_names: Array[String] = []
 var _weapon_power_map: Dictionary = {}   # 符号 resource_path -> 该物品有效攻击力(base_power + 元进度武器加成)，由 _build_pool 构建。P3：结算时 _contribute 读此值把「物品强度轴」灌进符号伤害（docs/[已完成]物品中心重构方案.md §8）
 var _item_crit_map: Dictionary = {}   # 符号 resource_path -> 该物品三连暴击倍率(crit_mult)，由 _build_pool 构建（方案 A）。普通/special 三连均按此倍率结算，共享符号取最高 crit_mult。
 var _item_crit_chance_map: Dictionary = {}   # 符号 resource_path -> 该物品非三连暴击率加成(crit_chance)，_build_pool 构建（2026-08-07：高 base 低暴击代价轴）
+var _item_pierce_map: Dictionary = {}   # 符号 resource_path -> 该物品是否带破甲机制(triple_pierce)，_build_pool 构建（2026-08-07：破甲=武器/技能机制，非三连通用）
 var pool_items: Array[Dictionary] = []              # 装备自洽：每件装备一段 [ {name, hit, syms:[[SymbolData, weight, element]]} ]，_build_strips 据此生成各自的转轮子带
 
 var _busy: bool = false                 # 旋转序列进行中，防重入
 var _eval_adv := false                  # _evaluate 阶段2：本回合是否触发过「克制」
 var _eval_dis := false                  # _evaluate 阶段2：本回合是否触发过「抵抗」
 var _elem_triple := false               # 2026-08-07 同元素三连：3 列有效元素相同（可不同符号）→ 必暴 + 克制核爆（参考 Slots & Skulls 匹配判定宽容化）
-var _last_special_triple := false        # 上一次 _evaluate 是否触发 special 三连（供连锁重触发循环读取）
+var _last_triple := false               # 上一次 _evaluate 是否触发三连（任意同符号×3，供连锁重触发循环读取；2026-08-07 通用化）
 var charge_points := 0                   # T21 元素充能：克制命中累计，满 BALANCE.charge_max 释放元素爆发（每房清零）
 var train_points := 0                    # T27 升级点：仅 BOSS 击败掉落（一局 3 点），商店升级轨道的唯一货币
 var player_frost := 0                    # T30 寒霜侵蚀：玩家 frost 层数（每层冻结转轮 1 列，上限见 frost StatusDef.max_cols）
@@ -380,6 +381,8 @@ func _build_pool(loadout: Array) -> void:
 			_weapon_power_map[sp] = max(_weapon_power_map.get(sp, 0.0), eff)
 			_item_crit_map[sp] = max(_item_crit_map.get(sp, 1.0), wd.crit_mult)
 			_item_crit_chance_map[sp] = max(_item_crit_chance_map.get(sp, 0.0), wd.crit_chance)
+			if wd.triple_pierce:
+				_item_pierce_map[sp] = true
 	for path in selected_skills:
 		var sd: SkillData = load(path)
 		if sd == null or sd.symbol == null:
@@ -389,6 +392,8 @@ func _build_pool(loadout: Array) -> void:
 		_weapon_power_map[sp] = max(_weapon_power_map.get(sp, 0.0), eff)
 		_item_crit_map[sp] = max(_item_crit_map.get(sp, 1.0), sd.crit_mult)
 		_item_crit_chance_map[sp] = max(_item_crit_chance_map.get(sp, 0.0), sd.crit_chance)
+		if sd.triple_pierce:
+			_item_pierce_map[sp] = true
 	# —— 装备自洽（docs/[已完成]物品中心重构方案.md §4 重构 + 方案 B）：频率由各装备 weight 决定，
 	# 命中率决定废铁占比；共享 (符号|元素) 在 _build_strips 跨装备累加权重（方案 B：同元素堆三连），
 	# 符号总预算固定（_ITEM_STRIP_TARGET），异元素多带不稀释符号总价值；每符号格数夹上限防垄断复活。
@@ -1032,7 +1037,7 @@ func _chain_loop() -> void:
 	var _chain := 0
 	while true:
 		await _evaluate(1.0 if _chain == 0 else BALANCE.chain_step ** _chain)
-		if not _last_special_triple or enemy_hp <= 0:
+		if not _last_triple or enemy_hp <= 0:
 			break
 		_chain += 1
 		if _chain >= BALANCE.chain_max + _synergy_system.chain_bonus():
@@ -1510,6 +1515,11 @@ func _contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> vo
 			var dv = flat * mult * em
 			if crit_mult_val > 1.0:
 				dv *= crit_mult_val
+			# 2026-08-07 三连通用化：任意同符号 3 连 → 必暴 + 连锁（triple 标记 + triple_dmg 供连锁倍率）；
+			# 破甲 = 仅带破甲机制（triple_pierce）的武器/技能三连触发（_evaluate 里判 _item_pierce_map）
+			if raw >= 3:
+				acc["triple"] = true
+				acc["triple_dmg"] = acc.get("triple_dmg", 0.0) + dv
 			# T2 破甲护符：非穿透符号按概率直击 HP（穿透护甲）
 			if sym.pierce_armor or randf() < charm_pierce_chance:
 				acc["pierce"] += dv     # 穿透护甲：直接扣 HP
@@ -1521,13 +1531,13 @@ func _contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> vo
 		"heal":    acc["heal"]    += sym.base * mult * crit_mult_val
 		"status":  acc["status_stacks"][sym.status_type] = acc["status_stacks"].get(sym.status_type, 0) + mult * crit_mult_val
 		"special":
-			# special：1 同即生效（base×连线数×克制）；三连必暴（crit_mult，方案 A 同源）。
-			# 非三连的 BALANCE.crit_chance 独立暴击只放大伤害，不触发连锁/破甲（special_triple 标记保持三连专属）。
+			# special（火焰法杖等专属高伤符号，2026-08-07 起与 damage 同源；三连同样必暴/连锁/破甲机制）
 			var sv = flat * mult * em
 			if crit_mult_val > 1.0:
 				sv *= crit_mult_val
-				if raw >= 3:
-					acc["special_triple"] = true   # S10 T5 钩子埋点：三连发生标记，供 BOSS 机制感知
+			if raw >= 3:
+				acc["triple"] = true
+				acc["triple_dmg"] = acc.get("triple_dmg", 0.0) + sv
 			if sym.pierce_armor or randf() < charm_pierce_chance:
 				acc["pierce"] += sv
 			else:
@@ -1568,7 +1578,7 @@ func _push_dmg_line(acc: Dictionary, sym: SymbolData, elem: String, flat, bonus,
 # chain_mult：连锁重触发倍率（仅作用于 special 部分），由 _on_spin_pressed 的连锁循环逐层传入，默认 1.0。
 func _evaluate(chain_mult := 1.0) -> void:
 	hud._clear_badges()
-	var acc = { "dmg": 0, "shield": 0, "heal": 0, "status_stacks": {}, "special": 0, "lines": [], "pierce": 0.0, "counter_triple": false }
+	var acc = { "dmg": 0, "shield": 0, "heal": 0, "status_stacks": {}, "special": 0, "lines": [], "pierce": 0.0, "counter_triple": false, "triple": false, "triple_dmg": 0.0 }
 	_eval_adv = false
 	_eval_dis = false
 
@@ -1647,24 +1657,30 @@ func _evaluate(chain_mult := 1.0) -> void:
 	hud._refresh_meta()
 	await get_tree().create_timer(0.25).timeout
 
-	# S10 T5 钩子点 + 反制即爆发（Plan C）：special 三连 = 通用破甲；克制元素三连 = 进阶核爆。
+	# S10 T5 钩子点 + 破甲/核爆（2026-08-07 通用化：任意同符号三连触发；破甲仅限带破甲机制的武器/技能）。
 	# current_gimmick 仅在 BOSS 房由 T2 的 BossGimmick 子类赋值；非 BOSS 房为 null，显式判空跳过（避免 ?. 在某些 4.x 不兼容）。
-	if acc.get("special_triple", false):
-		hud._log("⚡ special 三连触发")
+	if acc.get("triple", false):
+		hud._log("⚡ 三连触发")
 		if current_gimmick != null:
-			current_gimmick.on_special_triple(self)   # BOSS 自定义（如保留），通用破甲由 _on_counter 处理
-	_last_special_triple = acc.get("special_triple", false)
-	# 反制即爆发：克制元素三连（element）给核爆；否则 special 三连给通用破甲（清护甲窗口）
+			current_gimmick.on_special_triple(self)   # BOSS 自定义钩子（三连感知，语义泛化）
+	_last_triple = acc.get("triple", false)
+	# 破甲：带破甲机制（triple_pierce）的三连 → 清甲；克制三连 → 核爆（清甲 + 20% max HP）
+	var triple_pierce: bool = false
+	for key in counts:
+		if _item_pierce_map.has(counts[key][0].resource_path) and counts[key][2] >= 3:
+			triple_pierce = true
+			break
 	if acc.get("counter_triple", false):
 		_on_counter("element")
-	elif acc.get("special_triple", false):
+	elif triple_pierce:
 		_on_counter("special")
 
 	# —— 阶段 2：攻击结算（先破甲后掉血；穿透符号直接扣 HP）——
 	# Phase C：迅捷(damage_mult) 对本回合总伤害做乘算（F-0 聚合层，含护符乘区）
 	var buff_mult = _agg_damage_mult()
 	var assault = assault_next_spin
-	var normal_subtotal = acc["dmg"] + acc["special"] * chain_mult
+	var triple_bonus: float = acc.get("triple_dmg", 0.0) * (chain_mult - 1.0)   # 连锁倍率只作用于三连符号伤害（2026-08-07）
+	var normal_subtotal = acc["dmg"] + acc["special"] * chain_mult + triple_bonus
 	var pierce_subtotal = acc.get("pierce", 0.0)
 	var normal_total = int(normal_subtotal * assault * buff_mult * BALANCE.player_dmg_mult)
 	var pierce_total = int(pierce_subtotal * assault * buff_mult * BALANCE.player_dmg_mult)
