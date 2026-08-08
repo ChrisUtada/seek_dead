@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="EnemyArchetype" format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/enemy_archetype.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "heavy_brawler"
+display_name = "重击者"
+intent_weights = {"attack": 60, "heavy": 40}
+hp_base = 140
+atk_base = 14
+armor_base = 0
+desc = "高血高攻，重击倾向——新手课/普通房主力"

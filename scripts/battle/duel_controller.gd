@@ -113,6 +113,8 @@ var _eval_dis := false                  # _evaluate 阶段2：本回合是否触
 var _last_special_triple := false        # 上一次 _evaluate 是否触发 special 三连（供连锁重触发循环读取）
 var charge_points := 0                   # T21 元素充能：克制命中累计，满 BALANCE.charge_max 释放元素爆发（每房清零）
 var train_points := 0                    # T27 升级点：仅 BOSS 击败掉落（一局 3 点），商店升级轨道的唯一货币
+var player_frost := 0                    # T30 寒霜侵蚀：玩家 frost 层数（每层冻结转轮 1 列，上限见 frost StatusDef.max_cols）
+var frozen_cols: Array[int] = []         # T30：本回合被冻结的列（失效格：不参与匹配/结算），每轮 _begin_spin 重选
 
 # —— 实体转轮带（方案 A）：权重 = 带子上该符号的格子数，落点由停止时机决定 ——
 var reel_strips: Array = []            # [reel] -> Array[ [SymbolData, element] ]
@@ -658,8 +660,8 @@ func _award_gold(is_boss: bool) -> void:
 
 # S6–S12 商店逻辑已抽至 ShopSystem（步骤3）：shop_price / shop_name / roll_shop /
 # on_shop_buy_pressed / sell_price / on_shop_sell_pressed / gold_upgrade_* / on_gold_upgrade_pressed
-func _shop_price(kind: String, owned: int = -1) -> int:
-	return _shop_system.shop_price(kind, owned)
+func _shop_price(kind: String, owned: int = -1, item_path: String = "") -> int:
+	return _shop_system.shop_price(kind, owned, item_path)
 
 
 func _shop_name(path: String, kind: String) -> String:
@@ -835,20 +837,25 @@ func _start_room(idx: int) -> void:
 	room_index = idx
 	var r: RoomData = ROOMS[idx]
 	enemy_name = r.name
-	# ante 难度曲线：RoomData.hp/atk 视为基础值，按「幕间台阶 × 幕内爬升」缩放。
+	# ante 难度曲线：RoomData.hp/atk 视为基础值（T5：为 0 时取行为族基准），按「幕间台阶 × 幕内爬升」缩放。
 	var s = _ante_scale(r, room_index)
-	enemy_hp_max = int(round(float(r.hp) * s["hp_scale"]))
+	var base_hp: int = r.hp if r.hp > 0 else (r.archetype.hp_base if r.archetype != null else 0)
+	var base_atk: int = r.atk if r.atk > 0 else (r.archetype.atk_base if r.archetype != null else 0)
+	enemy_hp_max = int(round(float(base_hp) * s["hp_scale"]))
 	enemy_hp = enemy_hp_max
-	enemy_atk = int(round(float(r.atk) * s["atk_scale"]))
+	enemy_atk = int(round(float(base_atk) * s["atk_scale"]))
 	enemy_element = r.element if r.element != "" else "none"   # 单向克制：敌人属性（仅供玩家符号克制判定）
-	# 护甲（扁平池）：随 ante 缩放；BOSS 机制可在此基础上成长（如锈蚀傀儡熔铸护甲）
-	enemy_armor_max = int(round(float(r.armor) * s["hp_scale"])) if r.armor > 0 else 0
+	# 护甲（扁平池）：随 ante 缩放；为 0 时取行为族护甲倾向；BOSS 机制可在此基础上成长
+	var base_armor: int = r.armor if r.armor > 0 else (r.archetype.armor_base if r.archetype != null else 0)
+	enemy_armor_max = int(round(float(base_armor) * s["hp_scale"])) if base_armor > 0 else 0
 	enemy_armor = enemy_armor_max
 	# 抗干扰（T20）：抗扰护符 降低干扰类意图（purifiable）权重，每级 -12%，最低保留 25%
 	var total_resist = charm_interf_resist
 	_interf_resist_rf = max(0.25, 1.0 - total_resist * 0.12) if total_resist > 0 else 1.0
 	enemy_status = {}
 	charge_points = 0                     # T21：元素充能每房清零
+	player_frost = 0                      # T30：寒霜侵蚀每房清零（BOSS 战状态，不跨房）
+	frozen_cols = []                      # T30：冻结列随 frost 清零
 	player_buffs = {}                     # Phase C：主动技能不跨房保留
 	player_shield = 0
 	player_shield += _reward_system.run_shield_next   # M4：上一房奖励的结界在本房开局生效
@@ -911,7 +918,7 @@ func _begin_player_turn() -> void:
 		current_gimmick.on_turn_begin(self)
 
 
-# T20：加权抽取意图（房间 RoomData.intents 非空用房间表（IntentData.weight），否则按 kind 取默认表；
+# T20：加权抽取意图（优先级：房间 RoomData.intents（IntentData.weight）→ 行为族 EnemyArchetype.intent_weights → kind 默认表；
 # 抗扰（_interf_resist_rf）对可净化（干扰类）意图权重打折）
 func _roll_intent(room: RoomData) -> Dictionary:
 	var wtable := {}
@@ -919,6 +926,8 @@ func _roll_intent(room: RoomData) -> Dictionary:
 		for it in room.intents:
 			if it != null:
 				wtable[it.id] = it.weight
+	elif room != null and room.archetype != null and room.archetype.intent_weights.size() > 0:
+		wtable = room.archetype.intent_weights.duplicate()
 	else:
 		wtable = DEFAULT_INTENT_WEIGHTS.get(room.kind if room != null else "normal", DEFAULT_INTENT_WEIGHTS["normal"]).duplicate()
 	var total := 0.0
@@ -1023,6 +1032,8 @@ func _begin_spin() -> void:
 	reel_stopped = []
 	_locked_prev_sym = []
 	_locked_prev_elem = []
+	# T30 寒霜侵蚀：本回合冻结列（失效格）——frost 每层随机冻结 1 列，上限 frost StatusDef.max_cols
+	frozen_cols = _pick_frozen_cols()
 	for r in REELS:
 		var strip_len = reel_strips[r].size() if reel_strips.size() > r and not reel_strips[r].is_empty() else 1
 		reel_cursor.append(randi() % strip_len)
@@ -1529,8 +1540,11 @@ func _evaluate(chain_mult := 1.0) -> void:
 	_eval_dis = false
 
 	# 按「符号 + 有效元素」计数（解决共享符号跨武器元素冲突；HUD 角标据此展示）
+	# T30：冻结列（失效格）不参与计数——不匹配、不结算、无攻击
 	var counts = {}
 	for p in PAYLINES[0]:
+		if p[0] in frozen_cols:
+			continue
 		var sym: SymbolData = grid[p[0]][p[1]]
 		var elem: String = grid_elem[p[0]][p[1]]
 		var key: String = sym.resource_path + "|" + elem
@@ -1713,6 +1727,19 @@ func _buff_damage_mult() -> float:
 	return BattleMath.buff_damage_mult(player_buffs)
 
 
+# T30：按当前 frost 层数随机挑选冻结列（每轮重选，frost 持续期间不可瞄准）
+func _pick_frozen_cols() -> Array[int]:
+	var n: int = min(player_frost, int(_status_def("frost").max_cols))
+	if n <= 0:
+		return []
+	var all := [0, 1, 2]
+	all.shuffle()
+	var cols: Array[int] = []
+	for i in n:
+		cols.append(all[i])
+	return cols
+
+
 func _tick_buffs() -> void:
 	var expired: Array = []
 	for sym in player_buffs.keys():
@@ -1722,6 +1749,11 @@ func _tick_buffs() -> void:
 	for sym in expired:
 		player_buffs.erase(sym)
 		hud._log("增益结束：%s %s" % [sym.label, sym.name])
+	# T30 寒霜侵蚀 decay：每回合 -1 层（StatusDef 可配），冻结列随之减少（下次 _begin_spin 重选）
+	if player_frost > 0:
+		var sd: StatusDef = _status_def("frost")
+		player_frost = max(0, player_frost - (sd.decay if sd != null else 1))
+		frozen_cols = []
 
 
 func _buff_summary() -> String:

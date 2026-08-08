@@ -8,6 +8,7 @@ extends Resource
 
 @export var base_price: Dictionary = {"weapon": 8, "passive": 10, "active": 5, "skill": 6}
 @export var step_price: Dictionary = {"weapon": 5, "passive": 8, "active": 4, "skill": 6}
+@export var rarity_price_mult: Dictionary = {"common": 1.0, "uncommon": 1.8, "rare": 3.0, "epic": 5.0}   # T6/T21：稀有度定价阶梯（base × 系数；武器 epic 8×5=40）
 @export var fallback_base: int = 6   # 未收录类别的兜底 base
 @export var fallback_step: int = 4   # 未收录类别的兜底 step
 @export var jitter_min: int = -1     # 每次报价的随机浮动下限

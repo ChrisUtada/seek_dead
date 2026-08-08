@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+rarity = "rare"
 category = "passive"
 item_id = "element_charm"
 item_name = "元素契印"

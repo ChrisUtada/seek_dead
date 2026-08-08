@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="EnemyArchetype" format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/enemy_archetype.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "status_sower"
+display_name = "状态播种者"
+intent_weights = {"attack": 60, "chaos": 20, "heavy": 20}
+hp_base = 100
+atk_base = 11
+armor_base = 0
+desc = "混乱转轮权重，配合状态符号（毒/灼烧）施压"

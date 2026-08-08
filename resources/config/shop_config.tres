@@ -6,6 +6,7 @@
 script = ExtResource("1")
 base_price = {"weapon": 8, "passive": 10, "active": 5, "skill": 6}
 step_price = {"weapon": 5, "passive": 8, "active": 4, "skill": 6}
+rarity_price_mult = {"common": 1.0, "uncommon": 1.8, "rare": 3.0, "epic": 5.0}
 fallback_base = 6
 fallback_step = 4
 jitter_min = -1

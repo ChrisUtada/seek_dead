@@ -1,4 +1,4 @@
-﻿[gd_resource type="Resource" script_class="RoomData" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="RoomData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/battle/room_data.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/battle/gimmicks/rust_armor_gimmick.gd" id="2"]
@@ -13,5 +13,6 @@ kind = "boss"
 act = 1
 armor = 20
 gimmick_script = ExtResource("2")
+gimmick_params = {"interval": 3, "per_stack": 8, "max_stacks": 3}
 boss_reward_weapons = Array[String](["res://resources/weapon_templates/ice_gun.tres", "res://resources/weapon_templates/iron_sword.tres", "res://resources/weapon_templates/dagger.tres"])
 boss_relic_path = "res://resources/charms/rust_relic.tres"

@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+rarity = "common"
 category = "active"
 item_id = "reroll_scroll"
 item_name = "重转卷轴"

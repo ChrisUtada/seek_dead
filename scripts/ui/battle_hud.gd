@@ -450,7 +450,7 @@ func _make_shop_card(offer: Dictionary) -> Button:
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var kind_name = {"weapon": "武器", "passive": "护符", "active": "物品", "skill": "技能"}.get(offer["kind"], "物品")
 	card.configure("%s%s · %s" % [_source_tag(offer["kind"]), kind_name, offer["name"]], "", TypeScale.TITLE, 0.0, 2)
-	var price = controller._shop_price(offer["kind"])   # 价格随当前持有数递增；卖出回落，换装成本=买卖价差（防刷价）
+	var price = controller._shop_price(offer["kind"], -1, offer["path"])   # 价格随当前持有数递增 + 稀有度阶梯（T6/T21）；卖出回落，换装成本=买卖价差（防刷价）
 	var is_active = (offer["kind"] == "active")
 	var cap = controller.state.CONSUMABLE_CAP if is_active else controller._cat_max(offer["kind"])          # 消耗品按腰带总容量 4；其余按整备上限
 	var cur = controller.state.consumable_slots.size() if is_active else controller._sel_arr(offer["kind"]).size()   # 消耗品按腰带实占数

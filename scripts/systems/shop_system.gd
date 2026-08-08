@@ -44,7 +44,7 @@ func reset_run() -> void:
 # 购入 / 卖出 / 金币升级
 # ---------------------------------------------------------------------------
 
-func shop_price(kind: String, owned: int = -1) -> int:
+func shop_price(kind: String, owned: int = -1, item_path: String = "") -> int:
 	if owned < 0:
 		# 消耗品按【腰带实占数】递增价（含商店重复购买同类），而非去重勾选数
 		if kind == "active":
@@ -56,10 +56,17 @@ func shop_price(kind: String, owned: int = -1) -> int:
 	# 加价起点对齐各类初始配额（填满初始空位仍原价，从首次扩槽起逐级加价）。
 	# 步进差异：护符最大（唯一收集乘区、须最贵）；增益次之（进池挤占转轮带最凶）；
 	# 武器居中；消耗品最低。数值见 ShopConfig（resources/config/shop_config.tres）。
+	# T6/T21：稀有度定价阶梯——base × rarity_price_mult[物品稀有度]（epic 武器 8×5=40，一局买不起两把）
 	var base = SHOP_CONFIG.base_price.get(kind, SHOP_CONFIG.fallback_base)
+	var rarity := "common"
+	if item_path != "":
+		var res: Resource = load(item_path)
+		if res != null and "rarity" in res:
+			rarity = String(res.get("rarity"))
+	base = int(round(float(base) * float(SHOP_CONFIG.rarity_price_mult.get(rarity, 1.0))))
 	var price = base + randi_range(SHOP_CONFIG.jitter_min, SHOP_CONFIG.jitter_max)
 	var step = SHOP_CONFIG.step_price.get(kind, SHOP_CONFIG.fallback_step)
-	price += max(0, owned - int(BALANCE.slot_init.get(kind, 1)) + 1) * step
+	price += max(0, owned - int(_ctrl.SLOT_INIT.get(kind, 1)) + 1) * step
 	return max(SHOP_CONFIG.price_floor, price)
 
 
@@ -108,7 +115,7 @@ func on_shop_buy_pressed(offer: Dictionary) -> void:
 		if _ctrl.consumable_slots.size() >= _ctrl.CONSUMABLE_CAP:
 			_ctrl.hud._log("消耗品腰带已满 %d/%d，无法购买" % [_ctrl.consumable_slots.size(), _ctrl.CONSUMABLE_CAP])
 			return
-		buy_price = shop_price(kind)
+		buy_price = shop_price(kind, -1, offer["path"])
 		if _ctrl.gold < buy_price:
 			_ctrl.hud._log("金币不足（需 %d）" % buy_price)
 			return
@@ -138,7 +145,7 @@ func on_shop_buy_pressed(offer: Dictionary) -> void:
 	if w >= cap and not _ctrl._can_grow_slot(kind):
 		_ctrl.hud._log("%s槽位已满 %d/%s（已达天花板），无法购买" % [_ctrl._cat_name(kind), w, _ctrl._cap_text(kind)])
 		return
-	buy_price = shop_price(kind)       # 价格随当前持有数递增（售出回落，换装成本=买卖价差）
+	buy_price = shop_price(kind, -1, offer["path"])       # 价格随当前持有数递增（售出回落，换装成本=买卖价差）
 	if _ctrl.gold < buy_price:
 		_ctrl.hud._log("金币不足（需 %d）" % buy_price)
 		return
@@ -166,7 +173,7 @@ func sell_price(kind: String, path: String) -> int:
 	# 未记录购入价（如 BOSS 免费掉落）时按当前购价同比例兜底。
 	var paid = int(paid_price.get(path, -1))
 	if paid < 0:
-		paid = shop_price(kind)
+		paid = shop_price(kind, -1, path)
 	return max(1, int(paid * SHOP_CONFIG.sell_refund_ratio))
 
 

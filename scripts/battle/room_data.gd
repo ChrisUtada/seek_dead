@@ -8,11 +8,13 @@ extends Resource
 @export var name: String = ""
 @export var hp: int = 0
 @export var atk: int = 0
+@export var archetype: EnemyArchetype = null  # T5 行为族引用（意图剖面/数值基准；空 = 走 kind 默认表 + 自身数值）
 @export var intents: Array[IntentData] = []  # T20：本房意图加权表（空 = 按 kind 取默认三档表，见 DuelController.DEFAULT_INTENT_WEIGHTS）
 @export var armor: int = 0          # 护甲（扁平池）：伤害先破甲后掉血；0 = 无护甲（RPG 式破甲机制）
 @export var element: String = "none"  # fire|ice|poison|light|dark|none（单向克制：敌人属性）
 @export var kind: String = "normal"    # normal|elite|boss（房间类型；boss 由 _is_boss_room 判定专属机制）
 @export var gimmick_script: Script      # BOSS 专属机制脚本（extends BossGimmick）；非 BOSS 房留空。_start_room 实例化并赋值 current_gimmick
+@export var gimmick_params: Dictionary = {}  # T24：gimmick 参数字典（如 rust_armor 的 interval/per_stack/max_stacks）；空 = gimmick 默认值
 @export var act: int = 1                # 幕号（1/2/3）；_build_run 按幕分组抽房（每幕 2 normal + 1 elite + 1 boss）
 @export var boss_reward_weapons: Array[String] = []   # BOSS 战利品·主题武器池（武器 .tres 路径）；空则按 element 从 WEAPON_POOL 取未持有者
 @export var boss_relic_path: String = ""              # BOSS 战利品·专属信物（ItemData passive .tres 路径），占护符槽 1/3；空则不掉信物

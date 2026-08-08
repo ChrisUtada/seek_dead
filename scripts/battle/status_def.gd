@@ -11,4 +11,5 @@ extends Resource
 @export var base: float = 0.0         # 每层每回合基础伤害（DoT）
 @export var element: String = "none"  # DoT 克制元素（burn→fire / frost→ice / poison→poison，走单向克制环）
 @export var decay: int = 1            # 每回合层数衰减
+@export var max_cols: int = 0         # 功能状态上限（frost：冻结转轮列数上限，0 = 不限制/无功能）
 @export var desc: String = ""         # 说明文案

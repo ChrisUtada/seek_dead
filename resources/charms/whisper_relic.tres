@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+rarity = "uncommon"
 category = "passive"
 item_id = "whisper_relic"
 item_name = "呓语残页"

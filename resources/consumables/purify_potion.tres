@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+rarity = "uncommon"
 category = "active"
 item_id = "purify_potion"
 item_name = "净化药剂"

@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+rarity = "common"
 category = "passive"
 item_id = "rust_relic"
 item_name = "锈蚀核心"

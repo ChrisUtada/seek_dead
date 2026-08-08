@@ -11,6 +11,7 @@ extends Resource
 @export var item_name: String = ""
 @export var description: String = ""
 @export var icon: String = "🧪"          # 展示用 emoji
+@export var rarity: String = "common"    # 强度档位 common|uncommon|rare|epic（T6：护符/消耗品分档，铁砧加权/商店定价用，不动结算）
 @export var category: String = "active"  # active / passive
 @export var effect: String = ""          # 主动: purify/heal/assault/reroll；被动: damage_bonus/room_shield/shield/interference_resist/damage_mult/armor_pierce/element_boost/status_boost（T2 三项缺口）
 @export var value: int = 0               # 效果数值（加成型）

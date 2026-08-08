@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+rarity = "rare"
 category = "passive"
 item_id = "abyss_relic"
 item_name = "深渊之瞳"

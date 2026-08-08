@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="EnemyArchetype" format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/enemy_archetype.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "sentinel"
+display_name = "哨兵"
+intent_weights = {"attack": 80, "heavy": 20}
+hp_base = 120
+atk_base = 12
+armor_base = 8
+desc = "护甲倾向——配合破甲/穿透的教学位"
