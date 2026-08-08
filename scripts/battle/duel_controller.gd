@@ -876,7 +876,7 @@ func _start_room(idx: int) -> void:
 	# 净化完全走消耗品（净化药剂·charges 用尽即移出腰带），无需每房回满
 	game_state = FlowState.PLAYING                # 必须在重建消耗品按钮前置为 playing，否则房间过渡瞬间按钮被误判为禁用
 	_refresh_consumable_panel()
-	turn_count = 1
+	turn_count = 0   # 首回合由 _begin_player_turn 统一 +1（经典回合结构：计数在回合开始）
 	enemy_intent = {}
 	hud._hide_overlay()
 	_build_strips()
@@ -913,6 +913,13 @@ func _ante_scale(r: RoomData, idx: int) -> Dictionary:
 func _begin_player_turn() -> void:
 	if game_state != FlowState.PLAYING:
 		return
+	# 经典回合结构：回合开始统一结算持续效果（frost 先衰减再挂新层）→ 敌人声明意图 → 冻结声明
+	turn_count += 1
+	hud._log("▶ 回合 %d 开始" % turn_count)
+	if player_frost > 0:
+		var sd: StatusDef = _status_def("frost")
+		player_frost = max(0, player_frost - (sd.decay if sd != null else 1))
+		frozen_cols = []
 	enemy_intent = _roll_intent(ROOMS[room_index] if room_index >= 0 and room_index < ROOMS.size() else null)
 	# S10 T2：每玩家回合重置 BOSS 倍率，再由 gimmick 钩子按本回合状态设定
 	boss_atk_mult = 1.0
@@ -966,11 +973,10 @@ func _on_spin_pressed() -> void:
 	if in_loadout or in_interroom or game_state != FlowState.PLAYING or _busy:
 		return
 	_busy = true
-	turn_count += 1
 	# 阶段 0：旋转（实体转轮带滚动，玩家按停止键锁定落点；不立即结算）
 	_begin_spin()
 	await spin_finished
-	await get_tree().create_timer(0.25).timeout
+	await get_tree().create_timer(0.15).timeout
 	# 阶段 1+2：结算（先防御/增益/状态，后攻击；含飘字）
 	await _chain_loop()
 	if enemy_hp <= 0:
@@ -984,10 +990,10 @@ func _on_spin_pressed() -> void:
 		return
 
 	# 阶段 3：敌人行动（先让玩家看清敌人刚掉的血）
-	await get_tree().create_timer(0.35).timeout
+	await get_tree().create_timer(0.20).timeout
 	_enemy_turn()
 	hud._refresh_meta()
-	await get_tree().create_timer(0.55).timeout
+	await get_tree().create_timer(0.35).timeout
 	if enemy_hp <= 0:
 		# 敌人可能在自身回合被状态 DoT 结算致死
 		hud._log("★ 击败 %s！（状态结算）" % enemy_name)
@@ -1005,7 +1011,7 @@ func _on_spin_pressed() -> void:
 		_busy = false
 		return
 
-	await get_tree().create_timer(0.30).timeout
+	await get_tree().create_timer(0.20).timeout
 	# 阶段 4：预告下一回合意图
 	_begin_player_turn()
 	hud._refresh_meta()
@@ -1027,7 +1033,7 @@ func _chain_loop() -> void:
 		hud._popup("⚡连锁 ×%d" % (_chain + 1), Palette.POP_DAMAGE, hud._enemy_sprite_anchor())
 		_begin_spin()
 		await spin_finished
-		await get_tree().create_timer(0.25).timeout
+		await get_tree().create_timer(0.15).timeout
 
 
 # ---------------------------------------------------------------------------
@@ -1239,7 +1245,7 @@ func _free_spin() -> void:
 	_busy = true
 	_begin_spin()
 	await spin_finished
-	await get_tree().create_timer(0.25).timeout
+	await get_tree().create_timer(0.15).timeout
 	await _evaluate()
 	if enemy_hp <= 0:
 		hud._log("★ 重转触发击败 %s！" % enemy_name)
@@ -1621,7 +1627,7 @@ func _evaluate(chain_mult := 1.0) -> void:
 		hud._popup(_status_summary(acc["status_stacks"]), Palette.POP_STATUS, hud._enemy_sprite_anchor())
 
 	hud._refresh_meta()
-	await get_tree().create_timer(0.45).timeout
+	await get_tree().create_timer(0.25).timeout
 
 	# S10 T5 钩子点 + 反制即爆发（Plan C）：special 三连 = 通用破甲；克制元素三连 = 进阶核爆。
 	# current_gimmick 仅在 BOSS 房由 T2 的 BossGimmick 子类赋值；非 BOSS 房为 null，显式判空跳过（避免 ?. 在某些 4.x 不兼容）。
@@ -1692,7 +1698,7 @@ func _evaluate(chain_mult := 1.0) -> void:
 		charge_points = 0
 		_release_element_burst()
 	hud._refresh_meta()   # 伤害落地后立即刷新：HP/护甲即时变化（破甲窗口需即时可见）
-	await get_tree().create_timer(0.55).timeout
+	await get_tree().create_timer(0.35).timeout
 	# Phase C：回合末递减增益剩余回合
 	_tick_buffs()
 
@@ -1780,11 +1786,6 @@ func _tick_buffs() -> void:
 	for sym in expired:
 		player_buffs.erase(sym)
 		hud._log("增益结束：%s %s" % [sym.label, sym.name])
-	# T30 寒霜侵蚀 decay：每回合 -1 层（StatusDef 可配），冻结列随之减少（下次 _begin_spin 重选）
-	if player_frost > 0:
-		var sd: StatusDef = _status_def("frost")
-		player_frost = max(0, player_frost - (sd.decay if sd != null else 1))
-		frozen_cols = []
 
 
 func _buff_summary() -> String:
