@@ -1034,9 +1034,17 @@ func _begin_spin() -> void:
 	reel_stopped = []
 	_locked_prev_sym = []
 	_locked_prev_elem = []
-	# T30 寒霜侵蚀：本回合冻结列（失效格）——frost 每层随机冻结 1 列，上限 frost StatusDef.max_cols
+	# T30 寒霜侵蚀：**spin 之前冰封**——frost 每层冻结 1 列（排除废铁格），该列本轮无法 spin（锁定当前符号、不参与转动）
 	frozen_cols = _pick_frozen_cols()
 	for r in REELS:
+		if r in frozen_cols:
+			# 冻结列：本轮不转、不可按停（锁定 spin 前的符号；结算时该格失效，见 _evaluate）
+			reel_cursor.append(0)
+			reel_stopped.append(true)
+			_locked_prev_sym.append(grid[r][0] if grid.size() > r and grid[r].size() > 0 else TRASH_SYMBOL)
+			_locked_prev_elem.append(grid_elem[r][0] if grid_elem.size() > r and grid_elem[r].size() > 0 else "none")
+			hud.set_reel_enabled(r, false)
+			continue
 		var strip_len = reel_strips[r].size() if reel_strips.size() > r and not reel_strips[r].is_empty() else 1
 		reel_cursor.append(randi() % strip_len)
 		reel_stopped.append(false)
@@ -1735,16 +1743,25 @@ func _buff_damage_mult() -> float:
 	return BattleMath.buff_damage_mult(player_buffs)
 
 
-# T30：按当前 frost 层数随机挑选冻结列（每轮重选，frost 持续期间不可瞄准）
+# T30：按当前 frost 层数随机挑选冻结列（spin 前冰封，每轮重选，frost 持续期间不可瞄准）。
+# 不封废铁：跳过当前显示为 trash 的列（冻结废铁格 = 浪费），全为废铁时回落随机。
 func _pick_frozen_cols() -> Array[int]:
 	var n: int = min(player_frost, int(_status_def("frost").max_cols))
 	if n <= 0:
 		return []
-	var all := [0, 1, 2]
-	all.shuffle()
+	var candidates: Array[int] = []
+	for r in REELS:
+		var sym: SymbolData = grid[r][0] if grid.size() > r and grid[r].size() > 0 else null
+		if sym != null and sym != TRASH_SYMBOL:
+			candidates.append(r)
+	if candidates.size() < n:
+		for r in REELS:
+			if not candidates.has(r):
+				candidates.append(r)
+	candidates.shuffle()
 	var cols: Array[int] = []
 	for i in n:
-		cols.append(all[i])
+		cols.append(candidates[i])
 	return cols
 
 
