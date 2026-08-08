@@ -749,8 +749,9 @@ func _refresh_cell(reel: int, row: int) -> void:
 	var elem = _cell_element(reel, row)
 	b.text = s.label
 	var fc: Color = s.color if elem == "none" else s.color.lerp(ElementCounter.color(elem), 0.55)
-	# T30 冻结格（失效格）：冰色 ❄ 前缀灰封标记——一眼可辨"这格这轮作废"
-	if reel in controller.state.frozen_cols:
+	# T30 冻结格（失效格）：冰色 ❄ 前缀灰封 + 蓝色边框框住——一眼可辨"这格这轮作废"
+	var frozen := reel in controller.state.frozen_cols
+	if frozen:
 		b.text = "❄" + s.label
 		fc = fc.lerp(ElementCounter.color("ice"), 0.75)
 	# 格子在非旋转期是 disabled 态，只覆盖 font_color 会被主题的禁用色盖掉，四态都要给。
@@ -759,6 +760,12 @@ func _refresh_cell(reel: int, row: int) -> void:
 	b.add_theme_color_override("font_hover_color", fc)
 	b.add_theme_color_override("font_pressed_color", fc)
 	var sb = _cell_style(elem)
+	if frozen:
+		# 冻结格：蓝色边框（3px）框住，作为 frost 触发提示
+		var fsb: StyleBoxFlat = sb.duplicate()
+		fsb.set_border_width_all(3)
+		fsb.border_color = ElementCounter.color("ice")
+		sb = fsb
 	b.add_theme_stylebox_override("normal", sb)
 	b.add_theme_stylebox_override("hover", sb)
 	b.add_theme_stylebox_override("pressed", sb)
