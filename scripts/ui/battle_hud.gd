@@ -784,7 +784,7 @@ func _refresh_meta() -> void:
 	var is_boss = controller._is_boss_room(controller.state.room_index)
 	var essence_txt := ""
 	for e in controller.state.room_element_mult:
-		essence_txt += " · %s附魔" % ElementCounter.label(e)
+		essence_txt += " · 精华·%s" % ElementCounter.label(e)
 	room_label.text = "房间: %d/%d%s%s" % [controller.state.room_index + 1, controller.state.ROOMS.size(), " · ★BOSS" if is_boss else "", essence_txt]
 	turn_label.text = "回合: %d" % controller.state.turn_count
 	player_hp_label.text = "HP %d/%d · 护盾 %d" % [controller.state.player_hp, controller.state.player_hp_max, controller.state.player_shield]

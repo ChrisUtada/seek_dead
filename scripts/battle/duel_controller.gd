@@ -15,6 +15,15 @@ extends Control
 
 const TRASH_SYMBOL = preload("res://resources/symbols/trash.tres")
 const GOLD_SYMBOL = preload("res://resources/symbols/gold.tres")
+# 元素精华（消耗品）：使用后向当前房间转轮池注入对应元素的攻击符号（多一种攻击方式，新房间失效）
+const ESSENCE_SYMBOLS: Dictionary = {
+	"fire":   preload("res://resources/symbols/essence_fire.tres"),
+	"ice":    preload("res://resources/symbols/essence_ice.tres"),
+	"poison": preload("res://resources/symbols/essence_poison.tres"),
+	"light":  preload("res://resources/symbols/essence_light.tres"),
+	"dark":   preload("res://resources/symbols/essence_dark.tres"),
+}
+const ESSENCE_POOL_WEIGHT := 2.5           # 精华符号注入权重（普通武器 ~3-5，略轻：辅助攻击方式）
 # T22：平衡常量全部收敛于 BalanceConfig（resources/config/balance_config.tres，Inspector 可编辑）
 const BALANCE = preload("res://resources/config/balance_config.tres")
 
@@ -423,6 +432,11 @@ func _build_pool(loadout: Array) -> void:
 		var eff_elem: String = sd.symbol.element if sd.symbol.element != "none" else "none"
 		var hit: float = clamp(sd.hit_rate, 0.0, 1.0)
 		pool_items.append({"name": ("技能" + sd.icon), "hit": hit, "syms": [[sd.symbol, float(sd.weight), eff_elem]]})
+	# 元素精华（消耗品）：使用后本房间内向转轮池注入对应元素的攻击符号（多一种攻击方式）
+	for e in room_element_mult:
+		var ess_sym: SymbolData = ESSENCE_SYMBOLS.get(e)
+		if ess_sym != null:
+			pool_items.append({"name": ("精华·" + ElementCounter.label(e)), "hit": 1.0, "syms": [[ess_sym, ESSENCE_POOL_WEIGHT, e]]})
 	# 扁平池（供图例 / 状态查询 / 奖励随机 等 legacy 消费者；weight 仅作展示/兼容）
 	for it in pool_items:
 		for s in it["syms"]:
@@ -1455,11 +1469,15 @@ func _on_consumable_pressed(uid: String) -> void:
 			hud._log("重转卷轴：免费重转！")
 			await _free_spin()
 		"element":
-			# 元素精华：本房间内该元素伤害强制克制（至少 mult_value 倍），新房间失效
-			room_element_mult[data.element] = data.mult_value
-			hud._log("元素精华（%s）：本房间内%s系伤害至少 ×%s！" % [data.item_name, ElementCounter.label(data.element), ElementCounter.fmt_mult(data.mult_value)])
-			hud._popup("%s附魔·本房" % ElementCounter.label(data.element), ElementCounter.color(data.element), hud._player_sprite_anchor())
-			hud._refresh_meta()
+			# 元素精华：本房间内向转轮池注入对应元素攻击符号（多一种攻击方式），新房间失效
+			if ESSENCE_SYMBOLS.has(data.element):
+				room_element_mult[data.element] = true
+				hud._log("元素精华（%s）：转轮注入%s系攻击符号「%s」！" % [data.item_name, ElementCounter.label(data.element), ESSENCE_SYMBOLS[data.element].name])
+				hud._popup("✨%s符号入池" % ElementCounter.label(data.element), ElementCounter.color(data.element), hud._player_sprite_anchor())
+				_build_pool(selected_loadout)
+				_build_strips()
+				_reset_grid()
+				hud._refresh_meta()
 	_refresh_consumable_panel()
 	if slot["charges"] <= 0:
 		consumable_slots.remove_at(target)
@@ -1522,9 +1540,6 @@ func _contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> vo
 	var em: float = 1.0
 	if sym.kind == "damage" or sym.kind == "special":
 		em = ElementCounter.multiplier(elem, enemy_element) * _synergy_system.element_boost(elem)
-		# 元素精华（消耗品）：本房间内该元素伤害强制克制（至少 ×mult_value，跳过抵抗/中性），新房间清零
-		if room_element_mult.has(elem):
-			em = max(em, float(room_element_mult[elem]))
 		if em > 1.0 and charm_element_boost > 0.0:
 			em += charm_element_boost
 		if em > 1.0:
