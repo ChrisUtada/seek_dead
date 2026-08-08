@@ -341,6 +341,7 @@ func _ready() -> void:
 	hud.spin_requested.connect(_on_spin_button_pressed)
 	hud.reel_clicked.connect(_on_reel_clicked)
 	hud.buy_requested.connect(_on_shop_buy_pressed)
+	hud.buy_replace_requested.connect(_on_shop_buy_replace_pressed)
 	hud.sell_requested.connect(_on_shop_sell_pressed)
 	hud.reward_chosen.connect(_on_reward_chosen)
 	hud.boss_reward_chosen.connect(_on_boss_reward_chosen)
@@ -688,6 +689,11 @@ func _roll_shop() -> void:
 func _after_shop_change() -> void:
 	hud._refresh_shop()
 	hud._refresh_meta()
+
+
+func _on_shop_buy_replace_pressed(offer: Dictionary, old_path: String) -> void:
+	_shop_system.on_shop_buy_replace_pressed(offer, old_path)
+	_after_shop_change()
 
 
 func _on_shop_buy_pressed(offer: Dictionary) -> void:

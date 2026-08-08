@@ -44,6 +44,32 @@ func reset_run() -> void:
 # 购入 / 卖出 / 金币升级
 # ---------------------------------------------------------------------------
 
+# 2026-08-07 替换购买：武器槽上限 2 后的换装——旧武器回 owned 图鉴（本局卸下），新武器进槽
+func on_shop_buy_replace_pressed(offer: Dictionary, old_path: String) -> void:
+	if offer["sold"]:
+		return
+	var arr = _ctrl._sel_arr("weapon")
+	if arr.has(offer["path"]):
+		_ctrl.hud._log("已拥有 %s，无法重复购买" % offer["name"])
+		return
+	if not arr.has(old_path):
+		return
+	var buy_price = shop_price("weapon", -1, offer["path"])
+	if _ctrl.gold < buy_price:
+		_ctrl.hud._log("金币不足（需 %d）" % buy_price)
+		return
+	_ctrl.gold -= buy_price
+	var old_name = _ctrl._shop_name(old_path, "weapon")
+	arr.erase(old_path)
+	arr.append(offer["path"])
+	if not _ctrl.meta["owned_weapons"].has(offer["path"]):
+		_ctrl.meta["owned_weapons"].append(offer["path"])
+	paid_price[offer["path"]] = buy_price
+	offer["sold"] = true
+	_ctrl._build_pool(_ctrl.selected_loadout)   # 换装立即重建符号池
+	_ctrl.hud._log("替换：%s → %s（-%d 金，余 %d）" % [old_name, offer["name"], buy_price, _ctrl.gold])
+
+
 func shop_price(kind: String, owned: int = -1, item_path: String = "") -> int:
 	if owned < 0:
 		# 消耗品按【腰带实占数】递增价（含商店重复购买同类），而非去重勾选数
