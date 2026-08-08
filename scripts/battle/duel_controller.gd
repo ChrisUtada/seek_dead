@@ -1509,19 +1509,21 @@ func _contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> vo
 	var bonus: float = flat - sym.base
 	# 逐符号元素克制倍率（Phase G v2.0：通用元素乘区，奖罚并存·温和；共鸣可对该元素加成）
 	# T2 元素优势护符：克制时额外加法加成（×1.5 → ×1.5+boost），抵抗/中性不生效（鼓励带对元素）
-	var em = ElementCounter.multiplier(elem, enemy_element) * _synergy_system.element_boost(elem)
-	if em > 1.0 and charm_element_boost > 0.0:
-		em += charm_element_boost
-	if em > 1.0:
-		_eval_adv = true
-		charge_points += 1                # T21 元素充能：每次克制命中 +1（含技能/状态符号的克制命中）
-		# 反制即爆发（Plan C）：克制元素连线/三连标记，供 _evaluate 触发核爆
-		# 2026-08-07 同元素三连：同元素 3 格（可不同符号）也触发核爆
-		# 2026-08-09 仅伤害类符号（damage/special）可触发——治疗/护盾/状态符号即使克制也不打核爆
-		if (raw >= 2 or _elem_triple) and (sym.kind == "damage" or sym.kind == "special"):
-			acc["counter_triple"] = true
-	elif em < 1.0:
-		_eval_dis = true
+	# 2026-08-09：治疗/护盾/状态符号豁免元素乘区——不造成伤害，克制/抗性/充能/核爆一律不参与
+	var em: float = 1.0
+	if sym.kind == "damage" or sym.kind == "special":
+		em = ElementCounter.multiplier(elem, enemy_element) * _synergy_system.element_boost(elem)
+		if em > 1.0 and charm_element_boost > 0.0:
+			em += charm_element_boost
+		if em > 1.0:
+			_eval_adv = true
+			charge_points += 1                # T21 元素充能：每次克制命中 +1（仅伤害类符号）
+			# 反制即爆发（Plan C）：克制元素连线/三连标记，供 _evaluate 触发核爆
+			# 2026-08-07 同元素三连：同元素 3 格（可不同符号）也触发核爆
+			if raw >= 2 or _elem_triple:
+				acc["counter_triple"] = true
+		elif em < 1.0:
+			_eval_dis = true
 	# 方案 B：三连必暴（crit_mult，现状保留）；非三连每符号实例按 BALANCE.crit_chance + 物品 crit_chance 独立暴击——
 	# 单带靠三连大暴，多带靠每列小暴；高 base 武器低暴击（代价轴，2026-08-07）。
 	# 2026-08-07 同元素三连：同元素 3 格（可不同符号）同样必暴（匹配判定宽容化，参考 Slots & Skulls）。
