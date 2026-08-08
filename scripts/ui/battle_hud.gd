@@ -466,12 +466,18 @@ func _make_shop_card(offer: Dictionary) -> Button:
 	var cur = controller.state.consumable_slots.size() if is_active else controller._sel_arr(offer["kind"]).size()   # 消耗品按腰带实占数
 	var can_grow_slot = (not is_active) and controller._can_grow_slot(offer["kind"])   # 消耗品不「开槽」、仅追加腰带格
 	var slot_full = (cur >= cap) and not can_grow_slot
+	# 2026-08-07 武器替换：武器槽满（上限 2）时可点——触发替换弹层（换装），不禁用
+	var weapon_replace: bool = (offer["kind"] == "weapon" and cur >= cap and not can_grow_slot)
+	if weapon_replace:
+		slot_full = false
 	var can_buy = (not offer["sold"]) and controller.state.gold >= price and not slot_full
 	var status: String
 	if offer["sold"]:
 		status = "已购入"
 	elif controller.state.gold < price:
 		status = "金币不足"
+	elif weapon_replace:
+		status = "替换 %d 金" % price   # 槽满 2：点击弹替换选择（旧武器回收藏库）
 	elif slot_full:
 		var cap_txt = controller.state.CONSUMABLE_CAP if is_active else controller._cap_text(offer["kind"])
 		status = "槽位已满 %d/%s" % [cur, cap_txt]
