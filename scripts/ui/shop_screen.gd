@@ -8,6 +8,7 @@ class_name ShopScreen
 var controller
 var hud: BattleHud
 const DRAWER_W := 420          # 抽屉宽度（右侧 docked）
+const UI_BUTTON = preload("res://scenes/ui/ui_button.tscn")   # 替换面板按钮（2026-08-07）
 var _open := false             # 抽屉是否处于展开态（供外部 toggle 判断）
 var _pending_offer: Dictionary = {}   # 待替换购买的武器货品（2026-08-07）
 var _replace_panel: PanelContainer = null   # 武器替换面板（槽上限 2 后的换装）
