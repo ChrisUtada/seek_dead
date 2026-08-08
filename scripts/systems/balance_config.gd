@@ -28,7 +28,7 @@ extends Resource
 @export var charm_mult_cap: float = 6.0       # 总护符乘区硬上限（防失控膨胀）
 
 # —— 整备/槽位 ——
-@export var loadout_min: int = 1              # 武器最小携带数（确认开战门槛 / 卖出保护）
+@export var loadout_min: int = 2              # 武器最小携带数（2026-08-07：强制带满 2 把主+副——消灭单带，三连率结构性控制）
 @export var slot_init: Dictionary = {"weapon": 2, "skill": 1, "active": 1, "passive": 1}
 #   ↑ T21：weapon 2→1（整备 1 武器 + 1 技能开局，输出源 3→2；局内商店「买即开槽」扩到多武器）
 
