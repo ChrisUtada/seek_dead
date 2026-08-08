@@ -110,15 +110,13 @@ func shop_name(path: String, kind: String) -> String:
 func roll_shop() -> void:
 	var candidates := []
 	for p in _ctrl.WEAPON_POOL:
-		# 已拥有（跨局 owned_* 池：铁砧/商店/掉落写入）的武器不再上架——避免「买已拥有被拒单」占货架
-		if _ctrl.meta["owned_weapons"].has(p):
-			continue
+		# 2026-08-07：武器全池售卖（图鉴模型下 owned_weapons=全量，过滤=商店空；替换购买已支持换装）
 		candidates.append({"path": p, "kind": "weapon"})
 	for p in _ctrl.ITEM_POOL:
 		var d = load(p)
 		if d is ItemData:
-			if d.category == "passive" and _ctrl.meta["owned_charms"].has(p):
-				continue   # 护符同上：已拥有不上架
+			if d.category == "passive" and _ctrl.selected_charms.has(p):
+				continue   # 护符：本局已带不上架（避免占位拒单）；已拥有但未带可买
 			candidates.append({"path": p, "kind": d.category})   # 消耗品不过滤：腰带允许同类重复占格
 	for p in _ctrl.SKILL_POOL:
 		if _ctrl.selected_skills.has(p):
