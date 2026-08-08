@@ -40,15 +40,15 @@ mouse_filter = 2
 
 [node name="Dialog" type="PanelContainer" parent="Center"]
 layout_mode = 2
-custom_minimum_size = Vector2(400, 280)
+custom_minimum_size = Vector2(320, 220)
 theme_override_styles/panel = SubResource("sb_dlg")
 
 [node name="Margin" type="MarginContainer" parent="Center/Dialog"]
 layout_mode = 2
-theme_override_constants/margin_left = 14
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 14
-theme_override_constants/margin_bottom = 10
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 8
 
 [node name="Content" type="VBoxContainer" parent="Center/Dialog/Margin"]
 layout_mode = 2
@@ -64,12 +64,9 @@ layout_mode = 2
 theme_type_variation = &"SubLabel"
 horizontal_alignment = 1
 
-[node name="CenterGrid" type="CenterContainer" parent="Center/Dialog/Margin/Content"]
+[node name="TrainGrid" type="GridContainer" parent="Center/Dialog/Margin/Content"]
 layout_mode = 2
 size_flags_vertical = 3
-
-[node name="TrainGrid" type="GridContainer" parent="Center/Dialog/Margin/Content/CenterGrid"]
-layout_mode = 2
 size_flags_horizontal = 3
 columns = 2
 theme_override_constants/h_separation = 6

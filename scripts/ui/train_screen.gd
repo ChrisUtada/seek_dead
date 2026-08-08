@@ -11,7 +11,7 @@ var hud: BattleHud
 @onready var bg = $Bg
 @onready var title_label = $Center/Dialog/Margin/Content/TitleLabel
 @onready var sub_label = $Center/Dialog/Margin/Content/SubLabel
-@onready var train_grid = $Center/Dialog/Margin/Content/CenterGrid/TrainGrid
+@onready var train_grid = $Center/Dialog/Margin/Content/TrainGrid
 @onready var continue_btn = $Center/Dialog/Margin/Content/Bot/ContinueBtn
 
 func configure(ctrl, h: BattleHud) -> void:

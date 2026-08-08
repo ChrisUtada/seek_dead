@@ -511,7 +511,7 @@ func _make_sell_card(title_text: String, sub_text: String, disabled: bool, cb: C
 
 func _make_upgrade_card(u: Dictionary) -> Button:
 	var card: ItemCard = ITEM_CARD.instantiate()
-	card.custom_minimum_size = Vector2(0, 72)   # 训练房轨道卡：内容区 60px（标题10+间距6+状态9），字不挤
+	card.custom_minimum_size = Vector2(0, 60)   # 训练房轨道卡：2行=60×2+6=126 ≤ 网格区131，不溢出
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	card.configure("%s %s" % [u["icon"], u["name"]], "", TypeScale.OVERLAY, 0.0, 6)
 	var status = "已满级" if u["maxed"] else ("Lv%d/%d · %d点" % [u["level"], u["max"], u["cost"]])
