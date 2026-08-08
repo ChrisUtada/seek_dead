@@ -848,6 +848,63 @@ func _intent_display_name(t: String) -> String:
 	return t
 
 
+# 2026-08-07 通用武器替换弹层（商店 / BOSS 战利品共用）：显示当前 2 把武器 + 取消
+var _replace_dialog: PanelContainer = null
+var _replace_vbox: VBoxContainer = null
+var _replace_cb: Callable = Callable()
+
+func request_weapon_replace(title: String, on_chosen: Callable) -> void:
+	_replace_cb = on_chosen
+	if _replace_dialog == null:
+		_replace_dialog = PanelContainer.new()
+		_replace_dialog.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		var sb = StyleBoxFlat.new()
+		sb.bg_color = Palette.BG_OVERLAY
+		_replace_dialog.add_theme_stylebox_override("panel", sb)
+		var center = CenterContainer.new()
+		center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		var dlg = PanelContainer.new()
+		var sb2 = StyleBoxFlat.new()
+		sb2.bg_color = Palette.PANEL_BG
+		sb2.border_color = Palette.ACCENT_GOLD
+		sb2.set_border_width_all(2)
+		dlg.add_theme_stylebox_override("panel", sb2)
+		_replace_vbox = VBoxContainer.new()
+		_replace_vbox.add_theme_constant_override("separation", 6)
+		dlg.add_child(_replace_vbox)
+		center.add_child(dlg)
+		_replace_dialog.add_child(center)
+		add_child(_replace_dialog)
+	for c in _replace_vbox.get_children():
+		_replace_vbox.remove_child(c)
+		c.queue_free()
+	var title_lbl = _label("", TypeScale.OVERLAY)
+	title_lbl.text = title
+	title_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_replace_vbox.add_child(title_lbl)
+	for path in controller.selected_loadout:
+		var btn = UI_BUTTON.instantiate()
+		btn.text = controller._shop_name(path, "weapon")
+		btn.custom_minimum_size = Vector2(220, 34)
+		btn.pressed.connect(_on_replace_chosen.bind(path))
+		_replace_vbox.add_child(btn)
+	var cancel = UI_BUTTON.instantiate()
+	cancel.text = "取消"
+	cancel.custom_minimum_size = Vector2(120, 30)
+	cancel.pressed.connect(func(): _replace_dialog.visible = false)
+	_replace_vbox.add_child(cancel)
+	_replace_dialog.visible = true
+
+
+func _on_replace_chosen(old_path: String) -> void:
+	_replace_dialog.visible = false
+	var cb = _replace_cb
+	_replace_cb = Callable()
+	if cb.is_valid():
+		cb.call(old_path)
+
+
 func _show_overlay(title: String, btn_text: String) -> void:
 	overlay_label.text = title
 	overlay_button.text = btn_text

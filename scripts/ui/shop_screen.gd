@@ -8,10 +8,8 @@ class_name ShopScreen
 var controller
 var hud: BattleHud
 const DRAWER_W := 420          # 抽屉宽度（右侧 docked）
-const UI_BUTTON = preload("res://scenes/ui/ui_button.tscn")   # 替换面板按钮（2026-08-07）
 var _open := false             # 抽屉是否处于展开态（供外部 toggle 判断）
 var _pending_offer: Dictionary = {}   # 待替换购买的武器货品（2026-08-07）
-var _replace_panel: PanelContainer = null   # 武器替换面板（槽上限 2 后的换装）
 
 @onready var bg = $Bg
 @onready var title_label = $Margin/Content/TitleLabel
@@ -40,67 +38,15 @@ func configure(ctrl, h: BattleHud) -> void:
 	show_tab("buy")
 
 
-# 商店卡片点击：武器且已带满 2 把 → 弹替换面板（换装）；否则正常购买
+# 商店卡片点击：武器且已带满 2 把 → 弹替换面板（换装，battle_hud 通用弹层）；否则正常购买
 func _on_shop_card_pressed(offer: Dictionary) -> void:
 	if offer.get("kind", "") == "weapon" and controller._sel_arr("weapon").size() >= 2:
 		_pending_offer = offer
-		_show_replace_panel()
+		hud.request_weapon_replace("替换哪把武器？（旧武器回收藏库）\n购买 %s" % offer.get("name", "?"),
+			func(old_path: String):
+				hud.buy_replace_requested.emit(_pending_offer, old_path))
 	else:
 		hud.buy_requested.emit(offer)
-
-
-func _show_replace_panel() -> void:
-	if _replace_panel == null:
-		_replace_panel = PanelContainer.new()
-		_replace_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		var sb = StyleBoxFlat.new()
-		sb.bg_color = Palette.BG_OVERLAY
-		sb.set_corner_radius_all(0)
-		_replace_panel.add_theme_stylebox_override("panel", sb)
-		var center = CenterContainer.new()
-		center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		var dlg = PanelContainer.new()
-		var sb2 = StyleBoxFlat.new()
-		sb2.bg_color = Palette.PANEL_BG
-		sb2.border_color = Palette.ACCENT_GOLD
-		sb2.set_border_width_all(2)
-		sb2.set_corner_radius_all(0)
-		dlg.add_theme_stylebox_override("panel", sb2)
-		var vbox = VBoxContainer.new()
-		vbox.add_theme_constant_override("separation", 6)
-		dlg.add_child(vbox)
-		var title = Label.new()
-		title.text = "替换哪把武器？（旧武器回收藏库）"
-		title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		vbox.add_child(title)
-		_replace_panel.set_meta("vbox", vbox)
-		center.add_child(dlg)
-		_replace_panel.add_child(center)
-		add_child(_replace_panel)
-	var vbox: VBoxContainer = _replace_panel.get_meta("vbox")
-	for c in vbox.get_children():
-		if c is Button:
-			vbox.remove_child(c)
-			c.queue_free()
-	var title: Label = vbox.get_child(0)
-	title.text = "替换哪把武器？（旧武器回收藏库）\n购买 %s" % _pending_offer.get("name", "?")
-	for path in controller._sel_arr("weapon"):
-		var btn = UI_BUTTON.instantiate()
-		btn.text = controller._shop_name(path, "weapon")
-		btn.custom_minimum_size = Vector2(220, 34)
-		btn.pressed.connect(_on_replace_chosen.bind(path))
-		vbox.add_child(btn)
-	var cancel = UI_BUTTON.instantiate()
-	cancel.text = "取消"
-	cancel.custom_minimum_size = Vector2(120, 30)
-	cancel.pressed.connect(func(): _replace_panel.visible = false)
-	vbox.add_child(cancel)
-	_replace_panel.visible = true
-
-
-func _on_replace_chosen(old_path: String) -> void:
-	_replace_panel.visible = false
-	hud.buy_replace_requested.emit(_pending_offer, old_path)
 
 func show_screen() -> void:
 	# 货架由 controller 在进入房间歇态时生成一次（_enter_interroom → _roll_shop），

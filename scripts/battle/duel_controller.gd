@@ -566,7 +566,28 @@ func _on_reward_skip_pressed() -> void:
 
 
 func _on_boss_reward_chosen(cand: Dictionary) -> void:
+	# 2026-08-07 武器槽上限 2：BOSS 武器战利品满 2 时 → 替换弹层（旧武器回 owned 图鉴）
+	if cand.get("kind", "") == "boss_weapon" and selected_loadout.size() >= 2:
+		var p: String = cand.get("path", "")
+		if p != "" and not selected_loadout.has(p):
+			hud.request_weapon_replace("★ BOSS 战利品：替换哪把武器？", func(old_path: String):
+				_apply_boss_weapon_replace(p, old_path))
+			return
 	_finish_room(func(): _apply_boss_reward(cand), true)
+
+
+func _apply_boss_weapon_replace(p: String, old_path: String) -> void:
+	if p == "" or not selected_loadout.has(old_path) or selected_loadout.has(p):
+		_finish_room(Callable(), true)
+		return
+	var old_name = _shop_name(old_path, "weapon")
+	selected_loadout.erase(old_path)
+	selected_loadout.append(p)
+	if not meta["owned_weapons"].has(p):
+		meta["owned_weapons"].append(p)
+	_build_pool(selected_loadout)
+	hud._log("BOSS 武器替换：%s → %s" % [old_name, _shop_name(p, "weapon")])
+	_finish_room(Callable(), true)
 
 
 # 房奖励三选一 / 跳过 / BOSS 战利品共用的房间推进编排：
