@@ -513,7 +513,7 @@ func _make_upgrade_card(u: Dictionary) -> Button:
 	var card: ItemCard = ITEM_CARD.instantiate()
 	card.custom_minimum_size = Vector2(0, 64)   # 训练房轨道卡：内容区 52px（标题 10 + 状态 9 + 余量），防挤压（2026-08-07）
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	card.configure("%s %s" % [u["icon"], u["name"]], "", TypeScale.OVERLAY)
+	card.configure("%s %s" % [u["icon"], u["name"]], "", TypeScale.OVERLAY, 0.0, 6)
 	var status = "已满级" if u["maxed"] else ("Lv%d/%d · %d点" % [u["level"], u["max"], u["cost"]])
 	card.set_status(status, Palette.MUTED_DIM if u["maxed"] else (Palette.ACCENT_GOLD if u["can_afford"] else Palette.ENEMY))
 	card.disabled = (u["maxed"] or not u["can_afford"])
