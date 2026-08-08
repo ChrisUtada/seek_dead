@@ -23,7 +23,7 @@ const ESSENCE_SYMBOLS: Dictionary = {
 	"light":  preload("res://resources/symbols/essence_light.tres"),
 	"dark":   preload("res://resources/symbols/essence_dark.tres"),
 }
-const ESSENCE_POOL_WEIGHT := 2.5           # 精华符号注入权重（普通武器 ~3-5，略轻：辅助攻击方式）
+const ESSENCE_POOL_WEIGHT := 7.0           # 精华符号注入权重（≈普通武器 3-5 的 1.5-2 倍：让带子有 2-4 格，2/3 连可达成）
 # T22：平衡常量全部收敛于 BalanceConfig（resources/config/balance_config.tres，Inspector 可编辑）
 const BALANCE = preload("res://resources/config/balance_config.tres")
 
@@ -861,6 +861,7 @@ func _start_room(idx: int) -> void:
 	if idx >= ROOMS.size():                 # 兜底：越界视为通关整局，走元进度三选一而非崩溃
 		_show_meta_choice()
 		return
+	room_element_mult = {}                # 元素精华：新房间失效（须在 _build_pool 之前清，否则旧房精华注入新房池）
 	_apply_charms()                         # S7：每次开房重算护符被动（含商店购入的护符）
 	_build_pool(selected_loadout)           # S7：重建符号池（含商店购入的武器）
 	room_index = idx
@@ -886,7 +887,6 @@ func _start_room(idx: int) -> void:
 	player_frost = 0                      # T30：寒霜侵蚀每房清零（BOSS 战状态，不跨房）
 	frozen_cols = []                      # T30：冻结列随 frost 清零
 	player_buffs = {}                     # Phase C：主动技能不跨房保留
-	room_element_mult = {}                # 元素精华：新房间失效
 	player_shield = 0
 	player_shield += _reward_system.run_shield_next   # M4：上一房奖励的结界在本房开局生效
 	player_shield += charm_room_shield    # M6：守望护符每房开局护盾
