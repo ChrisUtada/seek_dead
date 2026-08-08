@@ -93,7 +93,7 @@ func build_strips() -> void:
 		if syms.is_empty():
 			continue
 		for s in syms:
-			var w = max(0.0, s[1] + _ctrl._agg_symbol_weight_mod(s[0]) + _ctrl._synergy_system.weight_mod(s[0]))
+			var w = max(0.0, s[1] + _ctrl.combat.agg_symbol_weight_mod(s[0]) + _ctrl._synergy_system.weight_mod(s[0]))
 			if w <= 0.0:
 				continue
 			var key: String = s[0].resource_path + "|" + s[2]
