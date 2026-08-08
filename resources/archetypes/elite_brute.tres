@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="EnemyArchetype" format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/enemy_archetype.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "elite_brute"
+display_name = "精英蛮兵"
+intent_weights = {"attack": 50, "heavy": 50}
+hp_base = 200
+atk_base = 17
+armor_base = 0
+desc = "巨化 heavy：双倍重击压力"

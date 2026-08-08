@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="EnemyArchetype" format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/enemy_archetype.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "elite_hexer"
+display_name = "精英咒师"
+intent_weights = {"attack": 40, "jam": 30, "lock": 30}
+hp_base = 150
+atk_base = 13
+armor_base = 0
+desc = "debuff 风暴：双干扰意图"

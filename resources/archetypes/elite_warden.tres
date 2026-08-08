@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="EnemyArchetype" format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/enemy_archetype.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "elite_warden"
+display_name = "精英守关"
+intent_weights = {"attack": 70, "heavy": 30}
+hp_base = 180
+atk_base = 14
+armor_base = 18
+desc = "厚甲墙：逼 special 破甲"

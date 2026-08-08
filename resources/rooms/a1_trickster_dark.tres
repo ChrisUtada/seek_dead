@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RoomData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/room_data.gd" id="1"]
+[ext_resource type="Resource" path="res://resources/archetypes/
+trickster
+.tres" id="2"]
+
+[resource]
+script = ExtResource("1")
+name = "暗影诡匠"
+hp = 0
+atk = 0
+archetype = ExtResource("2")
+element = "dark"
+kind = "normal"
+act = 1

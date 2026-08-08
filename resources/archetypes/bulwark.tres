@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="EnemyArchetype" format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/enemy_archetype.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "bulwark"
+display_name = "壁垒"
+intent_weights = {"attack": 70, "heavy": 30}
+hp_base = 170
+atk_base = 10
+armor_base = 0
+desc = "极高 hp、低 intent 强度：逼叠连击/状态"

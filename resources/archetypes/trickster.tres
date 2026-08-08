@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="EnemyArchetype" format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/enemy_archetype.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "trickster"
+display_name = "诡匠"
+intent_weights = {"attack": 40, "jam": 20, "lock": 20, "chaos": 20}
+hp_base = 95
+atk_base = 12
+armor_base = 0
+desc = "不可预测：全意图均匀混（chaos 高）"
