@@ -918,6 +918,10 @@ func _begin_player_turn() -> void:
 	boss_atk_mult = 1.0
 	if current_gimmick != null:
 		current_gimmick.on_turn_begin(self)
+	# T30 寒霜侵蚀：回合一开始敌人即冻结（frost 挂上后立即声明冻结列，spin 前玩家可见 ❄ 标记）
+	frozen_cols = _pick_frozen_cols()
+	if not frozen_cols.is_empty():
+		hud._log("❄ 寒霜侵蚀：第 %s 列被冰封，本轮无法转动（净化可解）" % "/".join(str(c + 1) for c in frozen_cols))
 
 
 # T20：加权抽取意图（优先级：房间 RoomData.intents（IntentData.weight）→ 行为族 EnemyArchetype.intent_weights → kind 默认表；
@@ -1028,14 +1032,13 @@ func _chain_loop() -> void:
 # 权重 = 带子上该符号的格子数；落点由玩家按停时机决定，而非后台加权随机。
 # ---------------------------------------------------------------------------
 
-# 开始一次旋转：构建转轮带、随机起点、启动节拍器。结果在 spin_finished 后结算。
+	# 开始一次旋转：构建转轮带、随机起点、启动节拍器。结果在 spin_finished 后结算。
+	# 冻结列已在回合一开始（_begin_player_turn）声明——此处仅让冻结列不转、其余正常转。
 func _begin_spin() -> void:
 	reel_cursor = []
 	reel_stopped = []
 	_locked_prev_sym = []
 	_locked_prev_elem = []
-	# T30 寒霜侵蚀：**spin 之前冰封**——frost 每层冻结 1 列（排除废铁格），该列本轮无法 spin（锁定当前符号、不参与转动）
-	frozen_cols = _pick_frozen_cols()
 	for r in REELS:
 		if r in frozen_cols:
 			# 冻结列：本轮不转、不可按停（锁定 spin 前的符号；结算时该格失效，见 _evaluate）
