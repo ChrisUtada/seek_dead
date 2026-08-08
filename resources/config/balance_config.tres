@@ -12,7 +12,6 @@ ante_room_step_hp = 1.15
 ante_room_step_atk = 1.10
 player_dmg_mult = 1.5
 status_dmg_mult = 3.0
-base_power_ref = 32.0
 chain_max = 4
 chain_step = 1.5
 crit_chance = 0.20

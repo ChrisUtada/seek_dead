@@ -105,6 +105,7 @@ var pool: Array[Array] = []
 var loadout_names: Array[String] = []
 var _weapon_power_map: Dictionary = {}   # 符号 resource_path -> 该物品有效攻击力(base_power + 元进度武器加成)，由 _build_pool 构建。P3：结算时 _contribute 读此值把「物品强度轴」灌进符号伤害（docs/[已完成]物品中心重构方案.md §8）
 var _item_crit_map: Dictionary = {}   # 符号 resource_path -> 该物品三连暴击倍率(crit_mult)，由 _build_pool 构建（方案 A）。普通/special 三连均按此倍率结算，共享符号取最高 crit_mult。
+var _item_crit_chance_map: Dictionary = {}   # 符号 resource_path -> 该物品非三连暴击率加成(crit_chance)，_build_pool 构建（2026-08-07：高 base 低暴击代价轴）
 var pool_items: Array[Dictionary] = []              # 装备自洽：每件装备一段 [ {name, hit, syms:[[SymbolData, weight, element]]} ]，_build_strips 据此生成各自的转轮子带
 
 var _busy: bool = false                 # 旋转序列进行中，防重入
@@ -139,7 +140,7 @@ const _GOLD_CELLS := 2           # 金币符号常驻格数（经济引擎，与
 # 2026-08-07 去 MISS：转轮无静态废铁（hit_rate 不再影响转轮）；废铁仅由敌人意图注入（chaos/abyss_erosion）。
 
 # 物品强度轴基准（P3）：伤害 = (物品 base_power × 符号 base 偏移) × 连线 × 克制。
-# base_power_ref 见 balance_config.tres（P11 内容广度阶段把 sym.base 重标为相对偏移比后可去）。
+# 2026-08-07 重构（T12）：伤害只由武器攻击力决定，BASE_POWER_REF 已退役。
 
 # S12 局内金币升级 4 轨道（T3 重构收敛版：数据驱动，不新增乘区；每局清零，管局内临时）
 # 设计：爆炸感来自「在现有 3 乘区(连线/护符·增益/克制)内做深」，而非开第 4 条独立乘区。
@@ -378,6 +379,7 @@ func _build_pool(loadout: Array) -> void:
 			var sp = sw.symbol.resource_path
 			_weapon_power_map[sp] = max(_weapon_power_map.get(sp, 0.0), eff)
 			_item_crit_map[sp] = max(_item_crit_map.get(sp, 1.0), wd.crit_mult)
+			_item_crit_chance_map[sp] = max(_item_crit_chance_map.get(sp, 0.0), wd.crit_chance)
 	for path in selected_skills:
 		var sd: SkillData = load(path)
 		if sd == null or sd.symbol == null:
@@ -386,6 +388,7 @@ func _build_pool(loadout: Array) -> void:
 		var sp = sd.symbol.resource_path
 		_weapon_power_map[sp] = max(_weapon_power_map.get(sp, 0.0), eff)
 		_item_crit_map[sp] = max(_item_crit_map.get(sp, 1.0), sd.crit_mult)
+		_item_crit_chance_map[sp] = max(_item_crit_chance_map.get(sp, 0.0), sd.crit_chance)
 	# —— 装备自洽（docs/[已完成]物品中心重构方案.md §4 重构 + 方案 B）：频率由各装备 weight 决定，
 	# 命中率决定废铁占比；共享 (符号|元素) 在 _build_strips 跨装备累加权重（方案 B：同元素堆三连），
 	# 符号总预算固定（_ITEM_STRIP_TARGET），异元素多带不稀释符号总价值；每符号格数夹上限防垄断复活。
@@ -1476,15 +1479,12 @@ func _contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> vo
 	# 连线精通(S12)：仅当实落 ≥2（确为连线匹配）时才叠加倍率，单符号必结算不受影响
 	var line_bonus: int = int(_shop_system.track_level("line") * _shop_system.track_per_level("line"))
 	var mult = raw + (line_bonus if raw >= 2 else 0)
-	# P3（docs/[已完成]物品中心重构方案.md §8）：伤害 = (物品 base_power × 符号 base 偏移) × 连线 × 克制。
-	# 物品有效攻击力来自 _weapon_power_map（base_power + 元进度武器加成）；未命中映射时退化为旧模型（flat = sym.base），
-	# 保证非武器符号（异常路径）不丢伤害。BALANCE.base_power_ref 为归一化支点（见常量注释）。
+	# 2026-08-07 武器系统重构（T12）：伤害只由武器攻击力决定——flat = item_power + 元进度加成，
+	# 符号 sym.base 不再参与缩放（BASE_POWER_REF 退役）；非武器符号（异常路径）兜底 sym.base。
 	var item_power: float = _weapon_power_map.get(sym.resource_path, 0.0)
-	var power_scale: float = item_power / BALANCE.base_power_ref if item_power > 0.0 else 1.0
-	# bonus = 非 sym.base 部分（base_power 缩放增量 + F-0 元进度聚合），供 _push_dmg_line 分解展示；
-	# flat = sym.base + bonus 与「sym.base × scale + _agg_power_flat()」恒等。
-	var bonus: float = sym.base * power_scale - sym.base + _agg_power_flat()
-	var flat: float = sym.base + bonus
+	var flat: float = item_power + _agg_power_flat() if item_power > 0.0 else sym.base + _agg_power_flat()
+	# bonus = 非 sym.base 部分（攻击力差值 + 元进度聚合），供 _push_dmg_line 分解展示（恒等式 flat = sym.base + bonus）
+	var bonus: float = flat - sym.base
 	# 逐符号元素克制倍率（Phase G v2.0：通用元素乘区，奖罚并存·温和；共鸣可对该元素加成）
 	# T2 元素优势护符：克制时额外加法加成（×1.5 → ×1.5+boost），抵抗/中性不生效（鼓励带对元素）
 	var em = ElementCounter.multiplier(elem, enemy_element) * _synergy_system.element_boost(elem)
@@ -1499,11 +1499,12 @@ func _contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> vo
 			acc["counter_triple"] = true
 	elif em < 1.0:
 		_eval_dis = true
-	# 方案 B：三连必暴（crit_mult，现状保留）；非三连每符号实例按 BALANCE.crit_chance 独立暴击——
-	# 单带靠三连大暴，多带靠每列小暴，期望与携带装备数解耦（异元素多带不再亏三连频率）。
+	# 方案 B：三连必暴（crit_mult，现状保留）；非三连每符号实例按 BALANCE.crit_chance + 物品 crit_chance 独立暴击——
+	# 单带靠三连大暴，多带靠每列小暴；高 base 武器低暴击（代价轴，2026-08-07）。
 	# 2026-08-07 同元素三连：同元素 3 格（可不同符号）同样必暴（匹配判定宽容化，参考 Slots & Skulls）。
 	# 共鸣 crit_bonus 在暴击触发时叠加到 crit_mult（激活集由 _synergy_system 缓存）。
-	var crit_mult_val: float = (_item_crit_map.get(sym.resource_path, 1.0) + _synergy_system.crit_bonus(sym)) if raw >= 3 or _elem_triple or randf() < BALANCE.crit_chance else 1.0
+	var crit_rate: float = BALANCE.crit_chance + _item_crit_chance_map.get(sym.resource_path, 0.0)
+	var crit_mult_val: float = (_item_crit_map.get(sym.resource_path, 1.0) + _synergy_system.crit_bonus(sym)) if raw >= 3 or _elem_triple or randf() < crit_rate else 1.0
 	match sym.kind:
 		"damage":
 			var dv = flat * mult * em
@@ -1515,8 +1516,9 @@ func _contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> vo
 			else:
 				acc["dmg"] += dv
 			_push_dmg_line(acc, sym, elem, flat, bonus, mult, em, dv, crit_mult_val)
-		"shield":  acc["shield"]  += sym.base * power_scale * mult * crit_mult_val   # P3：护盾/治疗符号同样随物品 base_power 缩放（强度轴），但不吃伤害元进度(_agg_power_flat)与元素克制；三连按 crit_mult 暴击（方案 A）
-		"heal":    acc["heal"]    += sym.base * power_scale * mult * crit_mult_val
+		# 2026-08-07 重构：shield/heal 不吃武器攻击力/克制/元进度——只 = 符号 base × 连线 × 暴击（治疗/护盾符号保持小值，来自技能/房奖励）
+		"shield":  acc["shield"]  += sym.base * mult * crit_mult_val
+		"heal":    acc["heal"]    += sym.base * mult * crit_mult_val
 		"status":  acc["status_stacks"][sym.status_type] = acc["status_stacks"].get(sym.status_type, 0) + mult * crit_mult_val
 		"special":
 			# special：1 同即生效（base×连线数×克制）；三连必暴（crit_mult，方案 A 同源）。
