@@ -1517,7 +1517,8 @@ func _contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> vo
 		charge_points += 1                # T21 元素充能：每次克制命中 +1（含技能/状态符号的克制命中）
 		# 反制即爆发（Plan C）：克制元素连线/三连标记，供 _evaluate 触发核爆
 		# 2026-08-07 同元素三连：同元素 3 格（可不同符号）也触发核爆
-		if raw >= 2 or _elem_triple:
+		# 2026-08-09 仅伤害类符号（damage/special）可触发——治疗/护盾/状态符号即使克制也不打核爆
+		if (raw >= 2 or _elem_triple) and (sym.kind == "damage" or sym.kind == "special"):
 			acc["counter_triple"] = true
 	elif em < 1.0:
 		_eval_dis = true
