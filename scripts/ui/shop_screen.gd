@@ -42,9 +42,15 @@ func configure(ctrl, h: BattleHud) -> void:
 func _on_shop_card_pressed(offer: Dictionary) -> void:
 	if offer.get("kind", "") == "weapon" and controller._sel_arr("weapon").size() >= 2:
 		_pending_offer = offer
-		hud.request_weapon_replace("替换哪把武器？（旧武器回收藏库）\n购买 %s" % offer.get("name", "?"),
-			func(old_path: String):
-				hud.buy_replace_requested.emit(_pending_offer, old_path))
+		var info := ""
+		var res: Resource = load(offer.get("path", ""))
+		if res != null and "rarity" in res and "base_power" in res:
+			var elem_txt := ElementCounter.label(String(res.get("element", "none")))
+			info = "新武器：%s · %s · 攻%d · %s" % [offer.get("name", "?"), String(res.get("rarity", "common")), int(res.get("base_power", 0)), elem_txt]
+		else:
+			info = "新武器：%s" % offer.get("name", "?")
+		hud.request_weapon_replace("替换武器", info, func(old_path: String):
+			hud.buy_replace_requested.emit(_pending_offer, old_path))
 	else:
 		hud.buy_requested.emit(offer)
 

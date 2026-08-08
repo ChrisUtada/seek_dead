@@ -854,12 +854,12 @@ func _intent_display_name(t: String) -> String:
 	return t
 
 
-# 2026-08-07 通用武器替换弹层（商店 / BOSS 战利品共用）：显示当前 2 把武器 + 取消
+# 2026-08-07 通用武器替换弹层（商店 / BOSS 战利品共用）：顶部显示新武器详情，下方点旧武器替换
 var _replace_dialog: PanelContainer = null
 var _replace_vbox: VBoxContainer = null
 var _replace_cb: Callable = Callable()
 
-func request_weapon_replace(title: String, on_chosen: Callable) -> void:
+func request_weapon_replace(title: String, new_weapon_info: String, on_chosen: Callable) -> void:
 	_replace_cb = on_chosen
 	if _replace_dialog == null:
 		_replace_dialog = PanelContainer.new()
@@ -889,9 +889,19 @@ func request_weapon_replace(title: String, on_chosen: Callable) -> void:
 	title_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_replace_vbox.add_child(title_lbl)
+	var new_lbl = _label("", TypeScale.MEDIUM)
+	new_lbl.text = new_weapon_info
+	new_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	new_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	new_lbl.add_theme_color_override("font_color", Palette.ACCENT_GOLD)
+	_replace_vbox.add_child(new_lbl)
+	var hint = _label("", TypeScale.TINY)
+	hint.text = "点击要替换的武器："
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_replace_vbox.add_child(hint)
 	for path in controller.selected_loadout:
 		var btn = UI_BUTTON.instantiate()
-		btn.text = controller._shop_name(path, "weapon")
+		btn.text = "替换「%s」" % _shop_name(path, "weapon")
 		btn.custom_minimum_size = Vector2(220, 34)
 		btn.pressed.connect(_on_replace_chosen.bind(path))
 		_replace_vbox.add_child(btn)

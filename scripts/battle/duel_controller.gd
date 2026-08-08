@@ -570,7 +570,14 @@ func _on_boss_reward_chosen(cand: Dictionary) -> void:
 	if cand.get("kind", "") == "boss_weapon" and selected_loadout.size() >= 2:
 		var p: String = cand.get("path", "")
 		if p != "" and not selected_loadout.has(p):
-			hud.request_weapon_replace("★ BOSS 战利品：替换哪把武器？", func(old_path: String):
+			var info := ""
+			var res: WeaponData = load(p)
+			if res != null:
+				var elem_txt := ElementCounter.label(res.element)
+				info = "新武器：%s · %s · 攻%d · %s" % [cand.get("label", "?"), res.rarity, int(res.base_power), elem_txt]
+			else:
+				info = "新武器：%s" % cand.get("label", "?")
+			hud.request_weapon_replace("★ BOSS 战利品：替换武器", info, func(old_path: String):
 				_apply_boss_weapon_replace(p, old_path))
 			return
 	_finish_room(func(): _apply_boss_reward(cand), true)
