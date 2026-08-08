@@ -369,6 +369,7 @@ func _build_pool(loadout: Array) -> void:
 	for path in loadout:
 		var wd: WeaponData = load(path)
 		if wd == null or wd.symbols == null:
+			hud._log("⚠ 武器加载失败（符号未入池）: %s" % path)
 			continue
 		var eff: float = wd.base_power
 		for sw in wd.symbols:
