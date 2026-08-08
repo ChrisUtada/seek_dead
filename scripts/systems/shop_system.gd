@@ -59,7 +59,8 @@ func shop_price(kind: String, owned: int = -1, item_path: String = "") -> int:
 	# T6/T21：稀有度定价阶梯——base × rarity_price_mult[物品稀有度]（epic 武器 8×5=40，一局买不起两把）
 	var base = SHOP_CONFIG.base_price.get(kind, SHOP_CONFIG.fallback_base)
 	var rarity := "common"
-	if item_path != "":
+	# 消耗品按腰带 uid（如 c1）传入时非资源路径——跳过 load（回落 common），避免刷报错
+	if item_path.begins_with("res://"):
 		var res: Resource = load(item_path)
 		if res != null and "rarity" in res:
 			rarity = String(res.get("rarity"))
