@@ -21,8 +21,7 @@ extends Resource
 @export var status_dmg_mult: float = 3.0      # 敌人状态 DoT（灼烧/毒）永久倍率
 
 # —— 转轮频率 ——
-@export var miss_floor: float = 0.08          # 废铁占比下限（转轮永远有 miss）
-@export var miss_ceil: float = 0.30           # 废铁占比上限（防低命中武器把转轮打成纯废铁）
+# 2026-08-07 去 MISS：miss_floor/miss_ceil 退役（转轮无静态废铁，按停更准；废铁仅由敌人意图注入）
 @export var base_power_ref: float = 32.0      # 武器 base_power → 伤害的归一化支点（P11 重标后可去）
 
 # —— 爆发 ——

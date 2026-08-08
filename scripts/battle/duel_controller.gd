@@ -110,6 +110,7 @@ var pool_items: Array[Dictionary] = []              # 装备自洽：每件装�
 var _busy: bool = false                 # 旋转序列进行中，防重入
 var _eval_adv := false                  # _evaluate 阶段2：本回合是否触发过「克制」
 var _eval_dis := false                  # _evaluate 阶段2：本回合是否触发过「抵抗」
+var _elem_triple := false               # 2026-08-07 同元素三连：3 列有效元素相同（可不同符号）→ 必暴 + 克制核爆（参考 Slots & Skulls 匹配判定宽容化）
 var _last_special_triple := false        # 上一次 _evaluate 是否触发 special 三连（供连锁重触发循环读取）
 var charge_points := 0                   # T21 元素充能：克制命中累计，满 BALANCE.charge_max 释放元素爆发（每房清零）
 var train_points := 0                    # T27 升级点：仅 BOSS 击败掉落（一局 3 点），商店升级轨道的唯一货币
@@ -131,11 +132,11 @@ const _STRIP_MIN_CELLS := 30           # 转轮带最小格数（整份平铺补
 # 频率层（装备自洽 / 直觉模型，见下方 _ITEM_STRIP_TARGET）：频率由每件装备自身 weight 决定，
 # 稀有度只定强度（见 LoadoutItem），不影响出现次数——避免「神装打不出去」。原 f(kind) 中央预算已退役。
 # 方案 B：_ITEM_STRIP_TARGET 从「每装备子带长」改为「全装备符号总预算」——跨装备共享 (符号|元素) 权重累加，
-# 同元素武器堆三连、异元素武器不稀释符号总价值；每装备的 miss 段独立保留（命中率手感不变）。
-const _ITEM_STRIP_TARGET := 16   # 符号总预算格（按聚合权重分配；各装备 miss 段另计）
+# 同元素武器堆三连、异元素武器不稀释符号总价值；2026-08-07 去 MISS：无静态废铁段（按停更准）。
+const _ITEM_STRIP_TARGET := 16   # 符号总预算格（按聚合权重分配）
 const _GOLD_CELLS := 2           # 金币符号常驻格数（经济引擎，与装备频率解耦）
 
-# miss（废铁）占比来自武器命中率（miss_floor/miss_ceil 见 balance_config.tres）。
+# 2026-08-07 去 MISS：转轮无静态废铁（hit_rate 不再影响转轮）；废铁仅由敌人意图注入（chaos/abyss_erosion）。
 
 # 物品强度轴基准（P3）：伤害 = (物品 base_power × 符号 base 偏移) × 连线 × 克制。
 # base_power_ref 见 balance_config.tres（P11 内容广度阶段把 sym.base 重标为相对偏移比后可去）。
@@ -1076,7 +1077,7 @@ func _begin_spin() -> void:
 
 
 # 方案 B（2026-08-07）：跨装备聚合 (符号|有效元素) 权重，共享符号累加（同元素堆三连），
-# 符号总预算固定 _ITEM_STRIP_TARGET，miss 段按各装备命中率独立保留（BALANCE.miss_floor/CEIL 兜底）。
+# 符号总预算固定 _ITEM_STRIP_TARGET；2026-08-07 去 MISS：无静态废铁段。
 # 结算/连锁/special 三连等下游逻辑不变（仍按 REELS x ROWS 落子统计）。
 func _build_strips() -> void:
 	reel_strips = []
@@ -1110,12 +1111,8 @@ func _build_strips() -> void:
 			var cnt: int = maxi(1, roundi(float(_ITEM_STRIP_TARGET) * agg[k]["w"] / wsum))
 			for _c in cnt:
 				base.append([agg[k]["sym"], agg[k]["elem"]])
-	# 废铁占比 = 各装备自身命中率的独立段（每装备保留自己的 miss 手感，BALANCE.miss_floor/CEIL 兜底）
-	for it in pool_items:
-		var miss_frac: float = clamp(1.0 - float(it["hit"]), BALANCE.miss_floor, BALANCE.miss_ceil)
-		var miss_cnt: int = roundi(float(_ITEM_STRIP_TARGET) * miss_frac)
-		for _c in miss_cnt:
-			base.append([TRASH_SYMBOL, "none"])
+	# 2026-08-07 去 MISS（用户拍板，参考 Slots & Skulls）：转轮无静态废铁——hit_rate 不再生成 miss 段，
+	# 按停更准（带子纯符号）；废铁仅由敌人意图注入（chaos/abyss_erosion，见下）。hit_rate 字段保留但不再影响转轮。
 	# 金币常驻（经济引擎，与装备频率解耦）
 	for _c in _GOLD_CELLS:
 		base.append([GOLD_SYMBOL, "none"])
@@ -1496,14 +1493,16 @@ func _contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> vo
 		_eval_adv = true
 		charge_points += 1                # T21 元素充能：每次克制命中 +1（含技能/状态符号的克制命中）
 		# 反制即爆发（Plan C）：克制元素连线/三连标记，供 _evaluate 触发核爆
-		if raw >= 2:
+		# 2026-08-07 同元素三连：同元素 3 格（可不同符号）也触发核爆
+		if raw >= 2 or _elem_triple:
 			acc["counter_triple"] = true
 	elif em < 1.0:
 		_eval_dis = true
 	# 方案 B：三连必暴（crit_mult，现状保留）；非三连每符号实例按 BALANCE.crit_chance 独立暴击——
 	# 单带靠三连大暴，多带靠每列小暴，期望与携带装备数解耦（异元素多带不再亏三连频率）。
+	# 2026-08-07 同元素三连：同元素 3 格（可不同符号）同样必暴（匹配判定宽容化，参考 Slots & Skulls）。
 	# 共鸣 crit_bonus 在暴击触发时叠加到 crit_mult（激活集由 _synergy_system 缓存）。
-	var crit_mult_val: float = (_item_crit_map.get(sym.resource_path, 1.0) + _synergy_system.crit_bonus(sym)) if raw >= 3 or randf() < BALANCE.crit_chance else 1.0
+	var crit_mult_val: float = (_item_crit_map.get(sym.resource_path, 1.0) + _synergy_system.crit_bonus(sym)) if raw >= 3 or _elem_triple or randf() < BALANCE.crit_chance else 1.0
 	match sym.kind:
 		"damage":
 			var dv = flat * mult * em
@@ -1582,6 +1581,19 @@ func _evaluate(chain_mult := 1.0) -> void:
 		if not counts.has(key):
 			counts[key] = [sym, elem, 0]
 		counts[key][2] += 1
+	# 2026-08-07 同元素三连：统计每「有效元素」总出现数（跨符号聚合，仅非 none）——3 列同元素即必暴/核爆
+	_elem_triple = false
+	var elem_total := {}
+	for key in counts:
+		var e: String = counts[key][1]
+		if e != "none":
+			elem_total[e] = elem_total.get(e, 0) + counts[key][2]
+	for e in elem_total:
+		if elem_total[e] >= 3:
+			_elem_triple = true
+			break
+	if _elem_triple:
+		hud._log("⚡ 元素三连！同元素 3 格（必暴）")
 	# Phase C：先结算 buff 符号（本回合即生效，命中当回合就吃到增益）
 	for key in counts:
 		var s: SymbolData = counts[key][0]
