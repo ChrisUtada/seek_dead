@@ -864,6 +864,7 @@ func request_weapon_replace(title: String, new_weapon_info: String, on_chosen: C
 	if _replace_dialog == null:
 		_replace_dialog = PanelContainer.new()
 		_replace_dialog.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		_replace_dialog.z_index = 95   # 高于商店/覆盖层（90）、低于掌机外壳（100）
 		var sb = StyleBoxFlat.new()
 		sb.bg_color = Palette.BG_OVERLAY
 		_replace_dialog.add_theme_stylebox_override("panel", sb)
