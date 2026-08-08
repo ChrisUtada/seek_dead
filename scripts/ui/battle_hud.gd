@@ -724,19 +724,14 @@ var _cell_style_cache := {}
 
 
 func _cell_style(elem: String) -> StyleBoxFlat:
+	# 统一基础样式：灰边框 + 底色（2026-08-07 用户拍板：去掉元素色边框，仅冻结格保留彩色边框提示）
 	if _cell_style_cache.has(elem):
 		return _cell_style_cache[elem]
 	var sb = StyleBoxFlat.new()
 	sb.set_corner_radius_all(Palette.PANEL_RADIUS)
-	if elem == "none":
-		sb.bg_color = Palette.CELL_BG
-		sb.border_color = Palette.PANEL_BORDER
-		sb.set_border_width_all(Palette.BORDER_WIDTH)
-	else:
-		var ec: Color = ElementCounter.color(elem)
-		sb.bg_color = Palette.CELL_BG.lerp(ec, 0.14)
-		sb.border_color = ec
-		sb.set_border_width_all(3)
+	sb.bg_color = Palette.CELL_BG
+	sb.border_color = Palette.PANEL_BORDER
+	sb.set_border_width_all(Palette.BORDER_WIDTH)
 	_cell_style_cache[elem] = sb
 	return sb
 
