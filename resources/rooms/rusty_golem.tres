@@ -5,7 +5,7 @@
 
 [resource]
 script = ExtResource("1")
-name = "锈蚀傀儡"
+name = "冰封铁瓮"
 hp = 175
 atk = 15
 element = "ice"

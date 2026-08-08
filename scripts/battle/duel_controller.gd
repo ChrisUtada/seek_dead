@@ -279,6 +279,8 @@ func _build_state() -> BattleState:
 	s.game_state = game_state
 	s.enemy_status = enemy_status
 	s.charge_points = charge_points
+	s.player_frost = player_frost
+	s.frozen_cols = frozen_cols
 	s.enemy_armor_max = enemy_armor_max
 	s.consumable_slots = consumable_slots
 	s.CONSUMABLE_CAP = CONSUMABLE_CAP
@@ -1378,16 +1380,22 @@ func _on_consumable_pressed(uid: String) -> void:
 	slot["charges"] -= 1
 	match data.effect:
 		"purify":
-			# 净化完全走消耗品：扣 1 charges，抵消当前干扰意图（如果有）；data.value 字段已废弃
-			# T20：可净化性由 IntentData.purifiable 定义（替代硬编码名单）
+			# 净化完全走消耗品：扣 1 charges；①抵消当前干扰意图（T20：IntentData.purifiable）②清除玩家 frost 解冻（T30 寒霜侵蚀）
+			var cleaned_any := false
 			var it_data: IntentData = enemy_intent.get("data")
 			var purifiable: bool = it_data.purifiable if it_data != null else enemy_intent.get("type") in ["jam", "lock", "chaos"]
 			if purifiable:
 				var t = enemy_intent.get("type")
 				enemy_intent = {"data": null, "type": "none", "value": 0}
 				hud._log("净化药剂：抵消了敌人的%s" % _intent_name(t))
-			else:
-				hud._log("净化药剂：当前无干扰意图可抵消")
+				cleaned_any = true
+			if player_frost > 0:
+				player_frost = 0
+				frozen_cols = []
+				hud._log("净化药剂：驱散寒霜，冻结转轮恢复！")
+				cleaned_any = true
+			if not cleaned_any:
+				hud._log("净化药剂：当前无干扰意图/寒霜可清除")
 		"heal":
 			player_hp = min(player_hp_max, player_hp + data.value)
 			hud._log("治疗药剂：回复 %d HP（现 %d）" % [data.value, player_hp])

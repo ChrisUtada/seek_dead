@@ -749,6 +749,10 @@ func _refresh_cell(reel: int, row: int) -> void:
 	var elem = _cell_element(reel, row)
 	b.text = s.label
 	var fc: Color = s.color if elem == "none" else s.color.lerp(ElementCounter.color(elem), 0.55)
+	# T30 冻结格（失效格）：冰色 ❄ 前缀灰封标记——一眼可辨"这格这轮作废"
+	if reel in controller.state.frozen_cols:
+		b.text = "❄" + s.label
+		fc = fc.lerp(ElementCounter.color("ice"), 0.75)
 	# 格子在非旋转期是 disabled 态，只覆盖 font_color 会被主题的禁用色盖掉，四态都要给。
 	b.add_theme_color_override("font_color", fc)
 	b.add_theme_color_override("font_disabled_color", fc)
@@ -768,6 +772,9 @@ func _refresh_meta() -> void:
 	turn_label.text = "回合: %d" % controller.state.turn_count
 	player_hp_label.text = "HP %d/%d · 护盾 %d" % [controller.state.player_hp, controller.state.player_hp_max, controller.state.player_shield]
 	player_buff_label.text = "【转轮】技能: " + controller._buff_summary()
+	# T30 玩家 frost 状态（冻结转轮列数）
+	if controller.state.player_frost > 0:
+		player_buff_label.text += " · ❄霜冻×%d" % controller.state.player_frost
 	gold_label.text = "金币 %d" % controller.state.gold
 	enemy_name_label.text = controller.state.enemy_name
 	boss_badge.visible = is_boss

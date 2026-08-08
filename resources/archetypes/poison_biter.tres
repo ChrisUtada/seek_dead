@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="EnemyArchetype" format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/enemy_archetype.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "poison_biter"
+display_name = "毒噬者"
+intent_weights = {"attack": 50, "chaos": 30, "heavy": 20}
+hp_base = 145
+atk_base = 13
+armor_base = 0
+desc = "毒系干扰：乱权频率高（mini 毒 DoT 的轻量表达，教玩家净化/抗干扰）"

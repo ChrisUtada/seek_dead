@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="SkillData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/items/skill_data.gd" id="1"]
+[ext_resource type="Resource" path="res://resources/symbols/flame_mark.tres" id="2"]
+
+[resource]
+script = ExtResource("1")
+buff_id = ""
+category = "skill"
+rarity = "uncommon"
+base_power = 28.0
+hit_rate = 0.88
+buff_name = "烈焰印记"
+icon = "🔥"
+description = "火印落线：造成 fire 属性伤害——开局第二火源（T30 配套：冰封铁瓮弱火）"
+symbol = ExtResource("2")
+weight = 3.0

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="SymbolData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/symbol_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+label = "🔥"
+name = "火印"
+kind = "damage"
+base = 9.0
+element = "fire"
+status_type = ""
+pierce_armor = false
+color = Color(1.0, 0.6, 0.3, 1)
