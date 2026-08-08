@@ -83,23 +83,10 @@ var REWARD_POOL: Array[RewardData] = []
 var ELITE_REWARD_POOL: Array[RewardData] = []
 
 # 房间序列（肉鸽逐房推进）。
-# T20 意图资源化：意图定义（IntentData）+ 默认三档表（按房型 kind；课程化落地在数据层）
-const INTENT_DEFS := {
-	"attack": preload("res://resources/intents/attack.tres"),
-	"heavy": preload("res://resources/intents/heavy.tres"),
-	"jam": preload("res://resources/intents/jam.tres"),
-	"lock": preload("res://resources/intents/lock.tres"),
-	"chaos": preload("res://resources/intents/chaos.tres"),
-}
-# 默认表权重（id → 权重；房间 RoomData.intents 非空时用房间表（IntentData.weight）覆盖）
-const DEFAULT_INTENT_WEIGHTS := {
-	"normal": {"attack": 60, "heavy": 20, "jam": 10, "lock": 5, "chaos": 5},
-	"elite":  {"attack": 40, "heavy": 20, "jam": 15, "lock": 15, "chaos": 10},
-	"boss":   {"attack": 60, "heavy": 40},
-}
+# 2026-08-09 拆分：意图/状态定义与查询（INTENT_DEFS / STATUS_DEFS / _roll_intent / _status_*）迁至 StatusSystem。
 
 func _intent_def(id: String) -> IntentData:
-	return INTENT_DEFS.get(id, null)
+	return status_system.intent_def(id)
 # Phase D 资源化：改为扫描 resources/rooms/*.tres（RoomData），见 _ready 内填充。
 var ALL_ROOMS: Array[RoomData] = []          # 全量房间池（扫描收集；_build_run 从中按幕抽 12 房）
 var ROOMS: Array[RoomData] = []             # 当前一局的 12 房序列（每局 _full_reset 时由 _build_run 重建）
@@ -160,12 +147,7 @@ var selected_consumables: Array[String] = []      # 玩家勾选的消耗品路�
 var selected_charms: Array[String] = []           # 玩家勾选的护符路径
 var selected_skills: Array[String] = []           # 玩家勾选的主动技能路径（Phase C 重构：原「增益」改名「技能」）
 
-# T23：状态定义资源化（StatusDef：base/element/name/icon/decay/desc），显示名替代原 STATUS_NAMES 硬编码
-const STATUS_DEFS := {
-	"burn": preload("res://resources/statuses/burn.tres"),
-	"frost": preload("res://resources/statuses/frost.tres"),
-	"poison": preload("res://resources/statuses/poison.tres"),
-}
+# T23：状态定义资源化（StatusDef：base/element/name/icon/decay/desc），定义表已迁至 StatusSystem（2026-08-09）
 
 # Phase C 主动增益运行时：SymbolData -> 剩余回合数（本房内有效，进房清空）
 var player_buffs: Dictionary = {}
@@ -308,6 +290,7 @@ const BATTLE_HUD = preload("res://scenes/ui/battle_hud.tscn")
 var hud: BattleHud
 var reel_system: ReelSystem             # 2026-08-09 拆分：转轮带/旋转/按停逻辑（reel_system.gd）
 var combat: CombatSystem                # 2026-08-09 拆分：回合结算/符号贡献/敌我攻防（combat_system.gd）
+var status_system: StatusSystem         # 2026-08-09 拆分：意图/状态定义与查询（status_system.gd）
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -331,6 +314,7 @@ func _ready() -> void:
 	# 2026-08-09 拆分：转轮系统独立（ReelSystem）
 	reel_system = ReelSystem.new(self)
 	combat = CombatSystem.new(self)
+	status_system = StatusSystem.new(self)
 	_load_meta()
 	_sanitize_owned()	# 自愈：清洗历史上误写入 owned_* 的非本类路径（如技能）
 	_seed_default_owned()
@@ -981,39 +965,9 @@ func _begin_player_turn() -> void:
 			hud._refresh_cell(r, 0)
 
 
-# T20：加权抽取意图（优先级：房间 RoomData.intents（IntentData.weight）→ 行为族 EnemyArchetype.intent_weights → kind 默认表；
-# 抗扰（_interf_resist_rf）对可净化（干扰类）意图权重打折）
+# T20：加权抽取意图（已迁至 StatusSystem.roll_intent，2026-08-09）
 func _roll_intent(room: RoomData) -> Dictionary:
-	var wtable := {}
-	if room != null and room.intents.size() > 0:
-		for it in room.intents:
-			if it != null:
-				wtable[it.id] = it.weight
-	elif room != null and room.archetype != null and room.archetype.intent_weights.size() > 0:
-		wtable = room.archetype.intent_weights.duplicate()
-	else:
-		wtable = DEFAULT_INTENT_WEIGHTS.get(room.kind if room != null else "normal", DEFAULT_INTENT_WEIGHTS["normal"]).duplicate()
-	var total := 0.0
-	for k in wtable:
-		var w: float = wtable[k]
-		var sd: IntentData = _intent_def(k)
-		if sd != null and sd.purifiable:
-			w *= _interf_resist_rf   # 抗扰：干扰类意图权重打折
-		wtable[k] = w
-		total += w
-	var r := randf() * total
-	var tid := "attack"
-	for k in wtable:
-		r -= wtable[k]
-		if r <= 0.0:
-			tid = k
-			break
-	var sd2: IntentData = _intent_def(tid)
-	var value := 0
-	match tid:
-		"heavy":  value = int(enemy_atk * sd2.value_mult) if sd2 != null else enemy_atk * 2
-		"attack": value = enemy_atk
-	return {"data": sd2, "type": tid, "value": value}
+	return status_system.roll_intent(room)
 
 
 func _on_spin_pressed() -> void:
@@ -1129,17 +1083,7 @@ func _enemy_turn() -> void:
 # 清甲 + 穿透核爆（无视护甲直击 HP），与三连破甲/核爆互补（分散积累 vs 单次高概率）。
 
 func _intent_name(t: String) -> String:
-	# T20：优先读 IntentData.display_name；未定义时回落默认名（新意图类型兜底）
-	var sd: IntentData = _intent_def(t)
-	if sd != null and sd.display_name != "":
-		return sd.display_name
-	match t:
-		"jam":   return "注废"
-		"lock":  return "锁轮"
-		"chaos": return "乱权"
-		"heavy": return "重击"
-		"attack": return "攻击"
-		_:      return t
+	return status_system.intent_name(t)
 
 
 # ---------------------------------------------------------------------------
@@ -1248,30 +1192,24 @@ func _buff_summary() -> String:
 
 
 func _buff_effect_name(effect: String) -> String:
-	return BattleMath.buff_effect_name(effect)
+	return status_system.buff_effect_name(effect)
 
 
 func _status_def(st: String) -> StatusDef:
-	return STATUS_DEFS.get(st, null)
+	return status_system.status_def(st)
 
 
 func _status_base(type_str: String) -> float:
-	var sd: StatusDef = _status_def(type_str)
-	return sd.base if sd != null else 0.0
+	return status_system.status_base(type_str)
 
 
 # 状态类型对应的属性元素（用于 DoT 单向克制）
 func _status_element(st: String) -> String:
-	var sd: StatusDef = _status_def(st)
-	return sd.element if sd != null else "none"
+	return status_system.status_element(st)
 
 
 func _status_summary(stacks: Dictionary) -> String:
-	var parts: Array = []
-	for st in stacks.keys():
-		var sd: StatusDef = _status_def(st)
-		parts.append("%s+%d" % [sd.name if sd != null else st, stacks[st]])
-	return "/".join(parts)
+	return status_system.status_summary(stacks)
 
 
 # ---------------------------------------------------------------------------

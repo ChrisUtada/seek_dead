@@ -606,7 +606,7 @@ func _on_cell_hover(reel: int, row: int) -> void:
 	if s.kind == "buff":
 		# Phase C：增益符号显示效果与持续回合，而非属性克制
 		var vtxt = ("×%.1f" % s.buff_value) if s.buff_effect == "damage_mult" else ("+%d" % int(s.buff_value))
-		symbol_tooltip_detail.text = "技能 · %s %s · 持续 %d 回合" % [controller._buff_effect_name(s.buff_effect), vtxt, s.buff_turns]
+		symbol_tooltip_detail.text = "技能 · %s %s · 持续 %d 回合" % [controller.status_system.buff_effect_name(s.buff_effect), vtxt, s.buff_turns]
 	else:
 		symbol_tooltip_detail.text = "%s · %s%s" % [_kind_name(s.kind), (ElementCounter.label(elem) if elem != "none" else "无属性"), rel_text]
 	# 定位到格子上方并夹紧屏幕边界
@@ -799,7 +799,7 @@ func _refresh_meta() -> void:
 	# 护甲（扁平池）：有护甲才显示；破甲后剩 0 也显示（提示已破甲窗口），仅无护甲敌人隐藏
 	enemy_armor_label.visible = controller.state.enemy_armor_max > 0
 	enemy_armor_label.text = "护甲 %d/%d" % [max(controller.state.enemy_armor, 0), controller.state.enemy_armor_max]
-	enemy_status_label.text = "状态: " + ("无" if controller.state.enemy_status.is_empty() else controller._status_summary(controller.state.enemy_status))
+	enemy_status_label.text = "状态: " + ("无" if controller.state.enemy_status.is_empty() else controller.status_system.status_summary(controller.state.enemy_status))
 	# T21 元素充能条：克制命中进度（满额释放元素爆发）
 	if controller.state.charge_points > 0:
 		enemy_charge_label.text = "⚡充能 %d/%d（克制命中攒满爆发）" % [controller.state.charge_points, controller.BALANCE.charge_max]

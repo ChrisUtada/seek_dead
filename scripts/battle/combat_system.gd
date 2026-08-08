@@ -207,8 +207,8 @@ func evaluate() -> void:
 			_ctrl.hud._popup("🛡+%d" % shield_gain, Palette.POP_SHIELD, _ctrl.hud._player_sprite_anchor())
 			_ctrl.hud._log("治疗三连溢出转护盾 +%d" % shield_gain)
 	if not acc["status_stacks"].is_empty():
-		_ctrl.hud._log("敌人获得状态: " + _ctrl._status_summary(acc["status_stacks"]))
-		_ctrl.hud._popup(_ctrl._status_summary(acc["status_stacks"]), Palette.POP_STATUS, _ctrl.hud._enemy_sprite_anchor())
+		_ctrl.hud._log("敌人获得状态: " + _ctrl.status_system.status_summary(acc["status_stacks"]))
+		_ctrl.hud._popup(_ctrl.status_system.status_summary(acc["status_stacks"]), Palette.POP_STATUS, _ctrl.hud._enemy_sprite_anchor())
 
 	_ctrl.hud._refresh_meta()
 	await _ctrl.get_tree().create_timer(0.25).timeout
@@ -336,7 +336,7 @@ func buff_damage_mult() -> float:
 # T30：按当前 frost 层数随机挑选冻结列（spin 前冰封，每轮重选，frost 持续期间不可瞄准）。
 # 不封废铁：跳过当前显示为 trash 的列（冻结废铁格 = 浪费），全为废铁时回落随机。
 func pick_frozen_cols() -> Array[int]:
-	var n: int = mini(_ctrl.player_frost, int(_ctrl._status_def("frost").max_cols))
+	var n: int = mini(_ctrl.player_frost, int(_ctrl.status_system.status_def("frost").max_cols))
 	if n <= 0:
 		return []
 	var candidates: Array[int] = []
@@ -421,11 +421,11 @@ func on_counter(kind: String) -> void:
 func tick_status() -> void:
 	var dot = 0
 	for st in _ctrl.enemy_status.keys():
-		var base = _ctrl._status_base(st)
-		var mult = ElementCounter.multiplier(_ctrl._status_element(st), _ctrl.enemy_element)
+		var base = _ctrl.status_system.status_base(st)
+		var mult = ElementCounter.multiplier(_ctrl.status_system.status_element(st), _ctrl.enemy_element)
 		# T2 状态护符：DoT 伤害乘倍率（状态叠加轴投资）；T23：衰减率由 StatusDef.decay 定义
 		dot += int(round(_ctrl.enemy_status[st] * base * mult * DuelController.BALANCE.status_dmg_mult * _ctrl.charm_status_boost))
-		var sd: StatusDef = _ctrl._status_def(st)
+		var sd: StatusDef = _ctrl.status_system.status_def(st)
 		_ctrl.enemy_status[st] = max(0, _ctrl.enemy_status[st] - (sd.decay if sd != null else 1))
 		if _ctrl.enemy_status[st] <= 0:
 			_ctrl.enemy_status.erase(st)
