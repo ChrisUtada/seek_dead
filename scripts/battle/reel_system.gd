@@ -1,0 +1,238 @@
+class_name ReelSystem
+extends RefCounted
+
+# reel_system — 转轮系统（2026-08-09 从 duel_controller 拆分）
+#
+# 职责：转轮带构建（权重聚合 → 预算分配）、旋转推进（节拍器+加速）、按停锁定、格子落子。
+# 状态共享：grid / grid_elem / frozen_cols / pending_jam_reel / pending_lock_reel / pending_chaos
+#   仍由 DuelController 持有（敌人意图、结算等多处读写），本系统经 _ctrl 访问；
+#   转轮专属状态（带子/游标/锁定）内聚在本类。
+# 结果信号：spin_finished —— controller 等待它进入结算。
+#
+# 落点规则（方案 A）：3 根转轮 = base 的洗牌副本，玩家按停时机决定落点，
+# 而非后台加权随机；频率 = 带子上该符号的格子数。
+
+signal spin_finished
+
+const _SPIN_BASE_WAIT := 0.15          # 起始每跳间隔（秒）——调慢以便看清落点、凑三连 special
+const _SPIN_MIN_WAIT := 0.06           # 最快每跳间隔（封顶也调慢，整体更易控）
+const _STRIP_MIN_CELLS := 30           # 转轮带最小格数（整份平铺补足，不改变符号占比）
+const _ITEM_STRIP_TARGET := 16         # 符号总预算格（按聚合权重分配）
+const _GOLD_CELLS := 2                 # 金币符号常驻格数（经济引擎，与装备频率解耦）
+
+var _ctrl                                # DuelController
+var _timer: Timer
+
+var reel_strips: Array = []            # [reel] -> Array[ [SymbolData, element] ]
+var reel_cursor: Array[int] = []       # [reel] -> 当前带子索引（旋转时递增，取模长度）
+var reel_stopped: Array[bool] = []     # [reel] -> 该列是否已停
+var _locked_prev_sym: Array = []       # [reel] -> 锁轮保留的上一轮符号
+var _locked_prev_elem: Array[String] = []   # [reel] -> 锁轮保留的上一轮有效元素
+var _spinning := false                 # 旋转进行中（供输入分支判断）
+var _spin_ticks := 0                   # 已跳次数（用于加速上限）
+
+var spinning: bool:
+	get:
+		return _spinning
+
+
+func _init(ctrl) -> void:
+	_ctrl = ctrl
+	_timer = Timer.new()
+	_timer.one_shot = false
+	_timer.timeout.connect(on_spin_tick)
+	_ctrl.add_child(_timer)
+
+
+# 开始一次旋转：构建转轮带、随机起点、启动节拍器。结果在 spin_finished 后结算。
+# 冻结列已在回合一开始（_begin_player_turn）声明——此处仅让冻结列不转、其余正常转。
+func begin_spin() -> void:
+	reel_cursor = []
+	reel_stopped = []
+	_locked_prev_sym = []
+	_locked_prev_elem = []
+	for r in DuelController.REELS:
+		if r in _ctrl.frozen_cols:
+			# 冻结列：本轮不转、不可按停（锁定 spin 前的符号；结算时该格失效，见 _evaluate）
+			reel_cursor.append(0)
+			reel_stopped.append(true)
+			_locked_prev_sym.append(_ctrl.grid[r][0] if _ctrl.grid.size() > r and _ctrl.grid[r].size() > 0 else DuelController.TRASH_SYMBOL)
+			_locked_prev_elem.append(_ctrl.grid_elem[r][0] if _ctrl.grid_elem.size() > r and _ctrl.grid_elem[r].size() > 0 else "none")
+			_ctrl.hud.set_reel_enabled(r, false)
+			continue
+		var strip_len = reel_strips[r].size() if reel_strips.size() > r and not reel_strips[r].is_empty() else 1
+		reel_cursor.append(randi() % strip_len)
+		reel_stopped.append(false)
+		# 锁轮列：保留旋转前该列的符号与有效元素
+		_locked_prev_sym.append(_ctrl.grid[r][0] if _ctrl.grid.size() > r and _ctrl.grid[r].size() > 0 else DuelController.TRASH_SYMBOL)
+		_locked_prev_elem.append(_ctrl.grid_elem[r][0] if _ctrl.grid_elem.size() > r and _ctrl.grid_elem[r].size() > 0 else "none")
+		# 旋转期间允许点击该列以停止
+		_ctrl.hud.set_reel_enabled(r, true)
+	_spinning = true
+	_spin_ticks = 0
+	_timer.wait_time = _SPIN_BASE_WAIT
+	_timer.start()
+	_ctrl.hud._log("转轮旋转中——按【空格】逐列停止，或点击某一列单独停下（不停就一直转）")
+
+
+# 方案 B（2026-08-07）：跨装备聚合 (符号|有效元素) 权重，共享符号累加（同元素堆三连），
+# 符号总预算固定 _ITEM_STRIP_TARGET；2026-08-07 去 MISS：无静态废铁段。
+# 结算/连锁/special 三连等下游逻辑不变（仍按 REELS x ROWS 落子统计）。
+func build_strips() -> void:
+	reel_strips = []
+	if _ctrl.pool_items.is_empty():
+		for r in DuelController.REELS:
+			reel_strips.append([[DuelController.TRASH_SYMBOL, "none"]])
+		return
+	# —— 方案 B：跨装备聚合 (符号 | 有效元素) 权重 ——
+	# 同一 (符号, 有效元素) 被多件装备携带时权重累加（同元素武器堆三连；异元素互不稀释符号总价值）。
+	# 有效元素已在 _build_pool 用 _eff_element 解析（普通符号继承武器元素，special 优先 reel_element）。
+	var agg := {}   # key("path|elem") -> {sym, elem, w}
+	for it in _ctrl.pool_items:
+		var syms: Array = it["syms"]
+		if syms.is_empty():
+			continue
+		for s in syms:
+			var w = max(0.0, s[1] + _ctrl._agg_symbol_weight_mod(s[0]) + _ctrl._synergy_system.weight_mod(s[0]))
+			if w <= 0.0:
+				continue
+			var key: String = s[0].resource_path + "|" + s[2]
+			if not agg.has(key):
+				agg[key] = {"sym": s[0], "elem": s[2], "w": 0.0}
+			agg[key]["w"] += w
+	var wsum: float = 0.0
+	for k in agg:
+		wsum += agg[k]["w"]
+	var base := []
+	if wsum > 0.0:
+		# 固定符号预算 _ITEM_STRIP_TARGET 格，按聚合权重分配（每 key 至少 1 格保底）
+		for k in agg:
+			var cnt: int = maxi(1, roundi(float(_ITEM_STRIP_TARGET) * agg[k]["w"] / wsum))
+			for _c in cnt:
+				base.append([agg[k]["sym"], agg[k]["elem"]])
+	# 2026-08-07 去 MISS（用户拍板，参考 Slots & Skulls）：转轮无静态废铁——hit_rate 不再生成 miss 段，
+	# 按停更准（带子纯符号）；废铁仅由敌人意图注入（chaos/abyss_erosion，见下）。hit_rate 字段保留但不再影响转轮。
+	# 金币常驻（经济引擎，与装备频率解耦）
+	for _c in _GOLD_CELLS:
+		base.append([DuelController.GOLD_SYMBOL, "none"])
+	# 敌人乱权：向整带注入额外废铁（等比重削弱所有装备，忠实还原「削弱优势」意图）
+	if _ctrl.pending_chaos:
+		var extra: int = roundi(float(base.size()) * 0.20)
+		for _c in extra:
+			base.append([DuelController.TRASH_SYMBOL, "none"])
+	# S10 T2：深渊侵蚀注入额外废铁
+	for _i in _ctrl.boss_trash:
+		base.append([DuelController.TRASH_SYMBOL, "none"])
+	# 最小带长保护：整份平铺到 _STRIP_MIN_CELLS 以上——只拉长周期，各符号占比完全不变
+	if base.size() < _STRIP_MIN_CELLS:
+		var unit = base.duplicate(true)
+		while base.size() < _STRIP_MIN_CELLS:
+			base.append_array(unit.duplicate(true))
+	# 3 根转轮 = base 的洗牌副本（落点由玩家停止时机决定）
+	for r in DuelController.REELS:
+		var copy = base.duplicate(true)
+		for i in range(copy.size() - 1, 0, -1):
+			var j = randi() % (i + 1)
+			var tmp = copy[i]
+			copy[i] = copy[j]
+			copy[j] = tmp
+		reel_strips.append(copy)
+
+
+# 节拍器回调：推进仍在旋转的转轮并逐步加速。没有自动停止——只有玩家按停才会锁定。
+func on_spin_tick() -> void:
+	if not _spinning:
+		return
+	_spin_ticks += 1
+	var any_moving := false
+	for r in DuelController.REELS:
+		if not reel_stopped[r]:
+			var strip_len = reel_strips[r].size() if reel_strips.size() > r and not reel_strips[r].is_empty() else 1
+			reel_cursor[r] = (reel_cursor[r] + 1) % strip_len
+			write_reel_cell(r)
+			any_moving = true
+	if not any_moving:
+		finish_spin()
+		return
+	var w = max(_SPIN_MIN_WAIT, _SPIN_BASE_WAIT - _spin_ticks * 0.0010)
+	_timer.wait_time = w
+
+
+# 把当前带子位置的符号写入展示格（旋转中每跳调用，复用既有 _refresh_cell）。
+func write_reel_cell(r: int) -> void:
+	var strip = reel_strips[r] if reel_strips.size() > r else null
+	if strip == null or strip.is_empty():
+		_ctrl.grid[r][0] = DuelController.TRASH_SYMBOL
+		_ctrl.grid_elem[r][0] = "none"
+	else:
+		var idx = reel_cursor[r] % strip.size()
+		_ctrl.grid[r][0] = strip[idx][0]
+		_ctrl.grid_elem[r][0] = strip[idx][1]
+	_ctrl.hud._refresh_cell(r, 0)
+
+
+# 锁定某列：pos<0 表示锁定在当前带子位置（按停时机）。注废/锁轮列覆盖结果。
+func lock_reel(r: int) -> void:
+	if r < 0 or r >= DuelController.REELS or reel_stopped[r]:
+		return
+	if r == _ctrl.pending_jam_reel:
+		_ctrl.grid[r][0] = DuelController.TRASH_SYMBOL
+		_ctrl.grid_elem[r][0] = "none"
+		_ctrl.pending_jam_reel = -1
+	elif r == _ctrl.pending_lock_reel:
+		_ctrl.grid[r][0] = _locked_prev_sym[r]
+		_ctrl.grid_elem[r][0] = _locked_prev_elem[r]
+		_ctrl.pending_lock_reel = -1
+	else:
+		var strip = reel_strips[r]
+		var idx = reel_cursor[r] % strip.size()
+		_ctrl.grid[r][0] = strip[idx][0]
+		_ctrl.grid_elem[r][0] = strip[idx][1]
+	reel_stopped[r] = true
+	_ctrl.hud._refresh_cell(r, 0)
+	_ctrl.hud.set_reel_enabled(r, false)
+	var all := true
+	for rr in DuelController.REELS:
+		if not reel_stopped[rr]:
+			all = false
+			break
+	if all:
+		finish_spin()
+
+
+# 停止下一列（空格）：依次锁定尚未停下的列，时机由玩家掌握。
+func stop_next_reel() -> void:
+	for r in DuelController.REELS:
+		if not reel_stopped[r]:
+			lock_reel(r)
+			return
+
+
+# 全部转轮停下：停止节拍器、复位交互态、发信号让结算继续。
+func finish_spin() -> void:
+	if not _spinning:
+		return
+	_spinning = false
+	_timer.stop()
+	for r in DuelController.REELS:
+		_ctrl.hud.set_reel_enabled(r, false)
+	_ctrl.pending_jam_reel = -1
+	_ctrl.pending_lock_reel = -1
+	_ctrl.pending_chaos = false
+	spin_finished.emit()
+
+
+# 房间开局 / 精华注入后重建落子：清空角标，逐格从新带子随机落子（先于旋转的初始画面）。
+func reset_grid() -> void:
+	_ctrl.hud._clear_badges()
+	_ctrl.grid_elem = []
+	for reel in DuelController.REELS:
+		_ctrl.grid_elem.append([])
+		for row in DuelController.ROWS:
+			_ctrl.grid_elem[reel].append("none")
+			_ctrl.grid[reel][row] = DuelController.TRASH_SYMBOL
+			if reel_strips.size() > reel and not reel_strips[reel].is_empty():
+				var idx = randi() % reel_strips[reel].size()
+				_ctrl.grid[reel][row] = reel_strips[reel][idx][0]
+				_ctrl.grid_elem[reel][row] = reel_strips[reel][idx][1]
+			_ctrl.hud._refresh_cell(reel, row)

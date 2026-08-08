@@ -129,25 +129,8 @@ var player_frost := 0                    # T30 寒霜侵蚀：玩家 frost 层�
 var frozen_cols: Array[int] = []         # T30：本回合被冻结的列（失效格：不参与匹配/结算），每轮 _begin_spin 重选
 
 # —— 实体转轮带（方案 A）：权重 = 带子上该符号的格子数，落点由停止时机决定 ——
-var reel_strips: Array = []            # [reel] -> Array[ [SymbolData, element] ]
-var reel_cursor: Array[int] = []            # [reel] -> 当前带子索引（旋转时递增，取模长度）
-var reel_stopped: Array[bool] = []           # [reel] -> 该列是否已停
-var _locked_prev_sym: Array = []       # [reel] -> 锁轮保留的上一轮符号
-var _locked_prev_elem: Array[String] = []      # [reel] -> 锁轮保留的上一轮有效元素
-var _spinning := false                 # 旋转进行中（供输入分支判断）
-var _spin_timer: Timer                 # 旋转节拍器（每跳推进一格 + 加速）
-var _spin_ticks := 0                   # 已跳次数（用于加速上限）
-const _SPIN_BASE_WAIT := 0.15          # 起始每跳间隔（秒）——调慢以便看清落点、凑三连 special
-const _SPIN_MIN_WAIT := 0.06           # 最快每跳间隔（封顶也调慢，整体更易控）
-const _STRIP_MIN_CELLS := 30           # 转轮带最小格数（整份平铺补足，不改变符号占比）
-# 频率层（装备自洽 / 直觉模型，见下方 _ITEM_STRIP_TARGET）：频率由每件装备自身 weight 决定，
-# 稀有度只定强度（见 LoadoutItem），不影响出现次数——避免「神装打不出去」。原 f(kind) 中央预算已退役。
-# 方案 B：_ITEM_STRIP_TARGET 从「每装备子带长」改为「全装备符号总预算」——跨装备共享 (符号|元素) 权重累加，
-# 同元素武器堆三连、异元素武器不稀释符号总价值；2026-08-07 去 MISS：无静态废铁段（按停更准）。
-const _ITEM_STRIP_TARGET := 16   # 符号总预算格（按聚合权重分配）
-const _GOLD_CELLS := 2           # 金币符号常驻格数（经济引擎，与装备频率解耦）
-
-# 2026-08-07 去 MISS：转轮无静态废铁（hit_rate 不再影响转轮）；废铁仅由敌人意图注入（chaos/abyss_erosion）。
+# 2026-08-09 拆分：转轮状态/旋转逻辑迁至 ReelSystem（scripts/battle/reel_system.gd），
+# 本控制器仅保留共享状态（grid / pending_* / pool_items）与输入入口（reel_system 调用）。
 
 # 物品强度轴基准（P3）：伤害 = (物品 base_power × 符号 base 偏移) × 连线 × 克制。
 # 2026-08-07 重构（T12）：伤害只由武器攻击力决定，BASE_POWER_REF 已退役。
@@ -164,7 +147,6 @@ const _GOLD_CELLS := 2           # 金币符号常驻格数（经济引擎，与
 # 每级增量/价格/上限全部在 GoldUpgradeDef 资源里（resources/config/gold_upgrades/*.tres），
 # 结算点经 _shop_system.track_level(id) / track_per_level(id) 读取，改数值零代码。
 # 注：不设自动停止上限——转轮何时停完全由玩家决定，不操作就一直转。
-signal spin_finished                   # 全部转轮停下后发出，_on_spin_pressed 等待它
 
 var current_gimmick = null              # 当前房间 BOSS 机制实例（S10 T2 赋值；非 BOSS 房为 null，钩子空安全跳过）
 var boss_atk_mult := 1.0                # S10 T2：敌人→玩家伤害倍率（whisper_lock 呓语锁轮强化），每玩家回合重置为 1.0 后由 gimmick 命中时设 1.5
@@ -324,6 +306,7 @@ func _build_state() -> BattleState:
 
 const BATTLE_HUD = preload("res://scenes/ui/battle_hud.tscn")
 var hud: BattleHud
+var reel_system: ReelSystem             # 2026-08-09 拆分：转轮带/旋转/按停逻辑（reel_system.gd）
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -344,6 +327,8 @@ func _ready() -> void:
 	_reward_system = preload("res://scripts/systems/reward_system.gd").new(self)
 	_loadout_system = preload("res://scripts/systems/loadout_system.gd").new(self)
 	_synergy_system = preload("res://scripts/systems/synergy_system.gd").new(self)
+	# 2026-08-09 拆分：转轮系统独立（ReelSystem）
+	reel_system = ReelSystem.new(self)
 	_load_meta()
 	_sanitize_owned()	# 自愈：清洗历史上误写入 owned_* 的非本类路径（如技能）
 	_seed_default_owned()
@@ -366,11 +351,6 @@ func _ready() -> void:
 	hud.consumable_used.connect(_on_consumable_pressed)
 	hud.shop_leave_requested.connect(_on_shop_leave_pressed)
 	hud.anvil_back_requested.connect(_on_anvil_back_pressed)
-	# 方案 A：旋转节拍器（转轮带滚动 + 加速 + 停止时机判定）
-	_spin_timer = Timer.new()
-	_spin_timer.one_shot = false
-	_spin_timer.connect("timeout", _on_spin_tick)
-	add_child(_spin_timer)
 func _build_pool(loadout: Array) -> void:
 	_synergy_system.refresh()   # 装备集合变化：重估共鸣激活集（每房/换装时一次，缓存供结算点查询）
 	pool = []
@@ -941,8 +921,8 @@ func _start_room(idx: int) -> void:
 	turn_count = 0   # 首回合由 _begin_player_turn 统一 +1（经典回合结构：计数在回合开始）
 	enemy_intent = {}
 	hud._hide_overlay()
-	_build_strips()
-	_reset_grid()
+	reel_system.build_strips()
+	reel_system.reset_grid()
 	# S10 T2：BOSS 机制实例化（仅 BOSS 房；非 BOSS 房置 null，钩子调用处显式判空跳过）
 	current_gimmick = null
 	boss_atk_mult = 1.0
@@ -1039,8 +1019,8 @@ func _on_spin_pressed() -> void:
 		return
 	_busy = true
 	# 阶段 0：旋转（实体转轮带滚动，玩家按停止键锁定落点；不立即结算）
-	_begin_spin()
-	await spin_finished
+	reel_system.begin_spin()
+	await reel_system.spin_finished
 	await get_tree().create_timer(0.15).timeout
 	# 阶段 1+2：结算（先防御/增益/状态，后攻击；含飘字）
 	await _evaluate()
@@ -1083,202 +1063,19 @@ func _on_spin_pressed() -> void:
 	_busy = false
 
 
-# ---------------------------------------------------------------------------
-# 方案 A：实体转轮带 + 停止时机（SPIN 与重转卷轴共用）
-# 权重 = 带子上该符号的格子数；落点由玩家按停时机决定，而非后台加权随机。
-# ---------------------------------------------------------------------------
-
-	# 开始一次旋转：构建转轮带、随机起点、启动节拍器。结果在 spin_finished 后结算。
-	# 冻结列已在回合一开始（_begin_player_turn）声明——此处仅让冻结列不转、其余正常转。
-func _begin_spin() -> void:
-	reel_cursor = []
-	reel_stopped = []
-	_locked_prev_sym = []
-	_locked_prev_elem = []
-	for r in REELS:
-		if r in frozen_cols:
-			# 冻结列：本轮不转、不可按停（锁定 spin 前的符号；结算时该格失效，见 _evaluate）
-			reel_cursor.append(0)
-			reel_stopped.append(true)
-			_locked_prev_sym.append(grid[r][0] if grid.size() > r and grid[r].size() > 0 else TRASH_SYMBOL)
-			_locked_prev_elem.append(grid_elem[r][0] if grid_elem.size() > r and grid_elem[r].size() > 0 else "none")
-			hud.set_reel_enabled(r, false)
-			continue
-		var strip_len = reel_strips[r].size() if reel_strips.size() > r and not reel_strips[r].is_empty() else 1
-		reel_cursor.append(randi() % strip_len)
-		reel_stopped.append(false)
-		# 锁轮列：保留旋转前该列的符号与有效元素
-		_locked_prev_sym.append(grid[r][0] if grid.size() > r and grid[r].size() > 0 else TRASH_SYMBOL)
-		_locked_prev_elem.append(grid_elem[r][0] if grid_elem.size() > r and grid_elem[r].size() > 0 else "none")
-		# 旋转期间允许点击该列以停止
-		hud.set_reel_enabled(r, true)
-	_spinning = true
-	_spin_ticks = 0
-	_spin_timer.wait_time = _SPIN_BASE_WAIT
-	_spin_timer.start()
-	hud._log("转轮旋转中——按【空格】逐列停止，或点击某一列单独停下（不停就一直转）")
-
-
-# 方案 B（2026-08-07）：跨装备聚合 (符号|有效元素) 权重，共享符号累加（同元素堆三连），
-# 符号总预算固定 _ITEM_STRIP_TARGET；2026-08-07 去 MISS：无静态废铁段。
-# 结算/连锁/special 三连等下游逻辑不变（仍按 REELS x ROWS 落子统计）。
-func _build_strips() -> void:
-	reel_strips = []
-	if pool_items.is_empty():
-		for r in REELS:
-			reel_strips.append([[TRASH_SYMBOL, "none"]])
-		return
-	# —— 方案 B：跨装备聚合 (符号 | 有效元素) 权重 ——
-	# 同一 (符号, 有效元素) 被多件装备携带时权重累加（同元素武器堆三连；异元素互不稀释符号总价值）。
-	# 有效元素已在 _build_pool 用 _eff_element 解析（普通符号继承武器元素，special 优先 reel_element）。
-	var agg := {}   # key("path|elem") -> {sym, elem, w}
-	for it in pool_items:
-		var syms: Array = it["syms"]
-		if syms.is_empty():
-			continue
-		for s in syms:
-			var w = max(0.0, s[1] + _agg_symbol_weight_mod(s[0]) + _synergy_system.weight_mod(s[0]))
-			if w <= 0.0:
-				continue
-			var key: String = s[0].resource_path + "|" + s[2]
-			if not agg.has(key):
-				agg[key] = {"sym": s[0], "elem": s[2], "w": 0.0}
-			agg[key]["w"] += w
-	var wsum: float = 0.0
-	for k in agg:
-		wsum += agg[k]["w"]
-	var base := []
-	if wsum > 0.0:
-		# 固定符号预算 _ITEM_STRIP_TARGET 格，按聚合权重分配（每 key 至少 1 格保底）
-		for k in agg:
-			var cnt: int = maxi(1, roundi(float(_ITEM_STRIP_TARGET) * agg[k]["w"] / wsum))
-			for _c in cnt:
-				base.append([agg[k]["sym"], agg[k]["elem"]])
-	# 2026-08-07 去 MISS（用户拍板，参考 Slots & Skulls）：转轮无静态废铁——hit_rate 不再生成 miss 段，
-	# 按停更准（带子纯符号）；废铁仅由敌人意图注入（chaos/abyss_erosion，见下）。hit_rate 字段保留但不再影响转轮。
-	# 金币常驻（经济引擎，与装备频率解耦）
-	for _c in _GOLD_CELLS:
-		base.append([GOLD_SYMBOL, "none"])
-	# 敌人乱权：向整带注入额外废铁（等比重削弱所有装备，忠实还原「削弱优势」意图）
-	if pending_chaos:
-		var extra: int = roundi(float(base.size()) * 0.20)
-		for _c in extra:
-			base.append([TRASH_SYMBOL, "none"])
-	# S10 T2：深渊侵蚀注入额外废铁
-	for _i in boss_trash:
-		base.append([TRASH_SYMBOL, "none"])
-	# 最小带长保护：整份平铺到 _STRIP_MIN_CELLS 以上——只拉长周期，各符号占比完全不变
-	if base.size() < _STRIP_MIN_CELLS:
-		var unit = base.duplicate(true)
-		while base.size() < _STRIP_MIN_CELLS:
-			base.append_array(unit.duplicate(true))
-	# 3 根转轮 = base 的洗牌副本（落点由玩家停止时机决定）
-	for r in REELS:
-		var copy = base.duplicate(true)
-		for i in range(copy.size() - 1, 0, -1):
-			var j = randi() % (i + 1)
-			var tmp = copy[i]
-			copy[i] = copy[j]
-			copy[j] = tmp
-		reel_strips.append(copy)
-
-
-# 节拍器回调：推进仍在旋转的转轮并逐步加速。没有自动停止——只有玩家按停才会锁定。
-func _on_spin_tick() -> void:
-	if not _spinning:
-		return
-	_spin_ticks += 1
-	var any_moving := false
-	for r in REELS:
-		if not reel_stopped[r]:
-			var strip_len = reel_strips[r].size() if reel_strips.size() > r and not reel_strips[r].is_empty() else 1
-			reel_cursor[r] = (reel_cursor[r] + 1) % strip_len
-			_write_reel_cell(r)
-			any_moving = true
-	if not any_moving:
-		_finish_spin()
-		return
-	var w = max(_SPIN_MIN_WAIT, _SPIN_BASE_WAIT - _spin_ticks * 0.0010)
-	_spin_timer.wait_time = w
-
-
-# 把当前带子位置的符号写入展示格（旋转中每跳调用，复用既有 _refresh_cell）。
-func _write_reel_cell(r: int) -> void:
-	var strip = reel_strips[r] if reel_strips.size() > r else null
-	if strip == null or strip.is_empty():
-		grid[r][0] = TRASH_SYMBOL
-		grid_elem[r][0] = "none"
-	else:
-		var idx = reel_cursor[r] % strip.size()
-		grid[r][0] = strip[idx][0]
-		grid_elem[r][0] = strip[idx][1]
-	hud._refresh_cell(r, 0)
-
-
-# 锁定某列：pos<0 表示锁定在当前带子位置（按停时机）。注废/锁轮列覆盖结果。
-func _lock_reel(r: int) -> void:
-	if r < 0 or r >= REELS or reel_stopped[r]:
-		return
-	if r == pending_jam_reel:
-		grid[r][0] = TRASH_SYMBOL
-		grid_elem[r][0] = "none"
-		pending_jam_reel = -1
-	elif r == pending_lock_reel:
-		grid[r][0] = _locked_prev_sym[r]
-		grid_elem[r][0] = _locked_prev_elem[r]
-		pending_lock_reel = -1
-	else:
-		var strip = reel_strips[r]
-		var idx = reel_cursor[r] % strip.size()
-		grid[r][0] = strip[idx][0]
-		grid_elem[r][0] = strip[idx][1]
-	reel_stopped[r] = true
-	hud._refresh_cell(r, 0)
-	hud.set_reel_enabled(r, false)
-	var all := true
-	for rr in REELS:
-		if not reel_stopped[rr]:
-			all = false
-			break
-	if all:
-		_finish_spin()
-
-
-# 停止下一列（空格）：依次锁定尚未停下的列，时机由玩家掌握。
-func _stop_next_reel() -> void:
-	for r in REELS:
-		if not reel_stopped[r]:
-			_lock_reel(r)
-			return
-
-
-# 全部转轮停下：停止节拍器、复位交互态、发信号让结算继续。
-func _finish_spin() -> void:
-	if not _spinning:
-		return
-	_spinning = false
-	_spin_timer.stop()
-	for r in REELS:
-		hud.set_reel_enabled(r, false)
-	pending_jam_reel = -1
-	pending_lock_reel = -1
-	pending_chaos = false
-	emit_signal("spin_finished")
-
-
 # SPIN 按钮：旋转中=停止下一列，否则开始旋转。
 func _on_spin_button_pressed() -> void:
-	if _spinning:
-		_stop_next_reel()
+	if reel_system.spinning:
+		reel_system.stop_next_reel()
 	else:
 		_on_spin_pressed()
 
 
 # 点击某列直接锁定该列（旋转中有效）。
 func _on_reel_clicked(r: int) -> void:
-	if not _spinning or reel_stopped[r]:
+	if not reel_system.spinning or reel_system.reel_stopped[r]:
 		return
-	_lock_reel(r)
+	reel_system.lock_reel(r)
 
 
 # 重转卷轴：免费重转一次（不触发敌人回合）
@@ -1286,8 +1083,8 @@ func _free_spin() -> void:
 	if _busy:
 		return
 	_busy = true
-	_begin_spin()
-	await spin_finished
+	reel_system.begin_spin()
+	await reel_system.spin_finished
 	await get_tree().create_timer(0.15).timeout
 	await _evaluate()
 	if enemy_hp <= 0:
@@ -1475,8 +1272,8 @@ func _on_consumable_pressed(uid: String) -> void:
 				hud._log("元素精华（%s）：转轮注入%s系攻击符号「%s」！" % [data.item_name, ElementCounter.label(data.element), ESSENCE_SYMBOLS[data.element].name])
 				hud._popup("✨%s符号入池" % ElementCounter.label(data.element), ElementCounter.color(data.element), hud._player_sprite_anchor())
 				_build_pool(selected_loadout)
-				_build_strips()
-				_reset_grid()
+				reel_system.build_strips()
+				reel_system.reset_grid()
 				hud._refresh_meta()
 	_refresh_consumable_panel()
 	if slot["charges"] <= 0:
@@ -1509,20 +1306,6 @@ func _return_to_loadout() -> void:
 # ---------------------------------------------------------------------------
 # 结算（方案 A：单符号必结算 + 匹配倍率）
 # ---------------------------------------------------------------------------
-func _reset_grid() -> void:
-	hud._clear_badges()
-	grid_elem = []
-	for reel in REELS:
-		grid_elem.append([])
-		for row in ROWS:
-			grid_elem[reel].append("none")
-			grid[reel][row] = TRASH_SYMBOL
-			if reel_strips.size() > reel and not reel_strips[reel].is_empty():
-				var idx = randi() % reel_strips[reel].size()
-				grid[reel][row] = reel_strips[reel][idx][0]
-				grid_elem[reel][row] = reel_strips[reel][idx][1]
-			hud._refresh_cell(reel, row)
-
 
 func _contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> void:
 	# 连线精通(S12)：仅当实落 ≥2（确为连线匹配）时才叠加倍率，单符号必结算不受影响
@@ -1920,7 +1703,7 @@ func _input(event) -> void:
 	if in_loadout:
 		return
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_SPACE:
-		if _spinning:
-			_stop_next_reel()
+		if reel_system.spinning:
+			reel_system.stop_next_reel()
 		else:
 			_on_spin_pressed()
