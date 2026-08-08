@@ -15,8 +15,8 @@ extends Control
 
 const TRASH_SYMBOL = preload("res://resources/symbols/trash.tres")
 const GOLD_SYMBOL = preload("res://resources/symbols/gold.tres")
-@export var GOLD_POOL_WEIGHT: float = 3.0      # 金币符号在转轮池中的权重（远低于伤害符号，防稀释 DPS）
-@export var GOLD_PER_COIN: int = 1           # 每枚落在连线上的金币符号产出的金币数
+# T22：平衡常量全部收敛于 BalanceConfig（resources/config/balance_config.tres，Inspector 可编辑）
+const BALANCE = preload("res://resources/config/balance_config.tres")
 
 # Phase 1 组件化：UI 复用场景与脚手架（按钮/面板/卡片构建均在 battle_hud 与各 screen，本控制器不再持有）
 
@@ -42,32 +42,24 @@ var SKILL_POOL: Array[String] = []
 #   · 不进池类（消耗品 active · 护符 passive）→ **硬天花板**（2 / 3）。
 #     它们不进转轮、零稀释代价、没有任何自然刹车（尤其护符是「唯一收集乘区」，
 #     纯收益、越多越强），故必须硬限量，否则乘区无限叠加直接崩坏数值。
-const LOADOUT_MIN := 1
-# 初始配额（每局开局值；_full_reset 与 _shop_price 的加价起点均以此为准）
-const SLOT_INIT := {"weapon": 2, "skill": 1, "active": 1, "passive": 1}
+# 初始配额（每局开局值；_full_reset 与 _shop_price 的加价起点均以此为准；T21：武器 2→1，见 balance_config.slot_init）
+var SLOT_INIT: Dictionary = BALANCE.slot_init
 const UNCAPPED := -1        # 天花板哨兵值：该类无上限，仅由稀释效应 + 金币递增价约束
 const CONSUMABLE_CAP := 4   # 消耗品腰带上限（不进池，硬限；每格独立持有、允许同类重复占格）
 const CHARM_CAP      := 3   # 护符槽天花板（不进池、唯一收集乘区，严格硬限）
+var LOADOUT_MIN: int = BALANCE.loadout_min   # 武器最小携带数（T22：来自平衡配置）
 # 房间序列排序权重：normal/elite 在前、boss 殿后（同档按路径稳定排序）
 const ROOM_KIND_RANK := {"normal": 0, "elite": 0, "boss": 2}
-# 各类当前上限：每局从初始配额起步，商店「买即开槽」逐步逼近天花板（_full_reset 重置）
-var loadout_max    := 2
-var skill_max      := 1
-var charm_max      := 1
+# 各类当前上限：每局从初始配额起步（T21：武器初始 1，见 balance_config.slot_init），商店「买即开槽」逐步逼近天花板（_full_reset 重置）
+var loadout_max: int = int(BALANCE.slot_init["weapon"])
+var skill_max: int = int(BALANCE.slot_init["skill"])
+var charm_max: int = int(BALANCE.slot_init["passive"])
 
 const REELS = 3
 const ROWS = 1
 
-# 房间难度曲线（ante）：按「幕间台阶 × 幕内爬升」两段缩放，取代原单一 α 全局 idx 缩放。
-# 等价关系：原 1.15^idx（每幕恰 4 房，idx=4*(act-1)+幕内位置）= (1.15^4)^(act-1)·1.15^(幕内位置)
-#   = ACT_STEP^(act-1) · ROOM_STEP^(幕内位置)。解耦两个旋钮，且对幕内房数变化稳健（boss 永远幕内位置=3=天然峰值）。
-# 当前常量刻意保留用户 F6 验证过的手感（漂移 <0.1%）：幕1/2/3 BOSS 缩放后 HP ≈ 266/771/2140。
-@export var ANTE_ACT_STEP_HP: float = 1.75   # 幕间台阶：每进一幕敌方 HP ×1.75（原 1.15^4）
-@export var ANTE_ACT_STEP_ATK: float = 1.46   # 幕间台阶：每进一幕敌方 ATK ×1.46（原 1.10^4）
-@export var ANTE_ROOM_STEP_HP: float = 1.15   # 幕内爬升：同幕每过一房敌方 HP ×1.15
-@export var ANTE_ROOM_STEP_ATK: float = 1.10  # 幕内爬升：同幕每过一房敌方 ATK ×1.10
-const PLAYER_DMG_MULT := 1.5   # 玩家直击总伤害永久倍率（F6 验证手感合理，保留为正式平衡值）。
-const STATUS_DMG_MULT := 3.0  # 给敌人的状态 DoT（灼烧/毒）永久倍率（原 base 仅 3~4/层/回合，幕三 BOSS 高血量下需此倍率才可见；F6 验证合理，保留）。
+# 房间难度曲线（ante）：数值见 balance_config.tres（ante_act_step_*/ante_room_step_*，T22 资源化）。
+# 等价关系：原 1.15^idx（每幕恰 4 房）= (1.15^4)^(act-1)·1.15^(幕内位置)。当前手感：幕1/2/3 BOSS HP ≈ 266/771/2140。
 @export var SMALL_OWNED: bool = false   # 调试用：铁砧效果测试时把拥有池压到 SMALL_OWNED_WEAPONS 武器 / SMALL_OWNED_CHARMS 护符（默认 false 用正式全池）
 @export var SMALL_OWNED_WEAPONS: int = 3
 @export var SMALL_OWNED_CHARMS: int = 4
@@ -82,7 +74,23 @@ var REWARD_POOL: Array[RewardData] = []
 var ELITE_REWARD_POOL: Array[RewardData] = []
 
 # 房间序列（肉鸽逐房推进）。
-# jam=注废意图概率, lock=锁轮意图概率, chaos=乱权意图概率, heavy=重击意图概率, 其余=普攻。
+# T20 意图资源化：意图定义（IntentData）+ 默认三档表（按房型 kind；课程化落地在数据层）
+const INTENT_DEFS := {
+	"attack": preload("res://resources/intents/attack.tres"),
+	"heavy": preload("res://resources/intents/heavy.tres"),
+	"jam": preload("res://resources/intents/jam.tres"),
+	"lock": preload("res://resources/intents/lock.tres"),
+	"chaos": preload("res://resources/intents/chaos.tres"),
+}
+# 默认表权重（id → 权重；房间 RoomData.intents 非空时用房间表（IntentData.weight）覆盖）
+const DEFAULT_INTENT_WEIGHTS := {
+	"normal": {"attack": 60, "heavy": 20, "jam": 10, "lock": 5, "chaos": 5},
+	"elite":  {"attack": 40, "heavy": 20, "jam": 15, "lock": 15, "chaos": 10},
+	"boss":   {"attack": 60, "heavy": 40},
+}
+
+func _intent_def(id: String) -> IntentData:
+	return INTENT_DEFS.get(id, null)
 # Phase D 资源化：改为扫描 resources/rooms/*.tres（RoomData），见 _ready 内填充。
 var ALL_ROOMS: Array[RoomData] = []          # 全量房间池（扫描收集；_build_run 从中按幕抽 12 房）
 var ROOMS: Array[RoomData] = []             # 当前一局的 12 房序列（每局 _full_reset 时由 _build_run 重建）
@@ -103,6 +111,8 @@ var _busy: bool = false                 # 旋转序列进行中，防重入
 var _eval_adv := false                  # _evaluate 阶段2：本回合是否触发过「克制」
 var _eval_dis := false                  # _evaluate 阶段2：本回合是否触发过「抵抗」
 var _last_special_triple := false        # 上一次 _evaluate 是否触发 special 三连（供连锁重触发循环读取）
+var charge_points := 0                   # T21 元素充能：克制命中累计，满 BALANCE.charge_max 释放元素爆发（每房清零）
+var train_points := 0                    # T27 升级点：仅 BOSS 击败掉落（一局 3 点），商店升级轨道的唯一货币
 
 # —— 实体转轮带（方案 A）：权重 = 带子上该符号的格子数，落点由停止时机决定 ——
 var reel_strips: Array = []            # [reel] -> Array[ [SymbolData, element] ]
@@ -123,43 +133,22 @@ const _STRIP_MIN_CELLS := 30           # 转轮带最小格数（整份平铺补
 const _ITEM_STRIP_TARGET := 16   # 符号总预算格（按聚合权重分配；各装备 miss 段另计）
 const _GOLD_CELLS := 2           # 金币符号常驻格数（经济引擎，与装备频率解耦）
 
-# miss（废铁）占比来自武器命中率，人为留底以防转轮变无脑（§12：命中率不能趋近 100%）。
-@export var MISS_FLOOR: float = 0.08          # 废铁占比下限（转轮永远有 miss）
-@export var MISS_CEIL: float = 0.30          # 废铁占比上限（防低命中武器把转轮打成纯废铁）
+# miss（废铁）占比来自武器命中率（miss_floor/miss_ceil 见 balance_config.tres）。
 
-# P3：物品强度轴基准（docs/[已完成]物品中心重构方案.md §8）。伤害 = (物品 base_power × 符号 base 偏移) × 连线 × 克制。
-# BASE_POWER_REF 是「base_power → 伤害」的归一化支点：base_power == REF 的武器，其符号伤害等于 sym.base（即旧模型数值）；
-# base_power 高于 REF 的武器（高稀有度）符号伤害按比例放大（落实「稀有度→强度」），低于则缩小。
-# 此为调参旋钮：P11 内容广度阶段会把 sym.base 重标为相对 base_power 的真正偏移比，届时可去掉 REF 归一化。
-@export var BASE_POWER_REF: float = 32.0        # 武器 base_power 支点（≈ 当前 8 武器均值，使平均武器伤害与旧模型持平）
-@export var CHAIN_MAX: int = 4                      # 连锁重触发上限：special 三连最多再免费重转 3 次（共 4 发）
-@export var CHAIN_STEP: float = 1.5                   # 连锁倍率：每多一层 ×1.5（叠在 special×CRIT 之上，封顶 ≈ ×3.4）
-@export var CRIT_CHANCE: float = 0.20                 # 方案 B：非三连时每符号实例的独立暴击率（三连必暴；与携带装备数解耦，补偿异元素多带的频率稀释）
-@export var CHARM_MULT_CAP: float = 6.0              # 总护符乘区硬上限（防失控膨胀）
-@export var META_ANVIL_BONUS: int = 2              # 元进度三选一选「铁砧点数」时获得的点数
-@export var ANVIL_ROLL_COST: int = 10
-@export var ANVIL_BLANK_CHANCE: float = 0.10
-@export var ANVIL_PITY_MAX: int = 10
-@export var ANVIL_PER_RUN_CAP: int = 40
-@export var ANVIL_DUPE_REFUND: Dictionary = {"common": 3, "uncommon": 5, "rare": 7, "epic": 10}
-@export var ANVIL_RARITY_WEIGHT: Dictionary = {"common": 100, "uncommon": 40, "rare": 12, "epic": 3}
-@export var ANVIL_MILESTONE_PCT: Array = [0.25, 0.5, 0.75, 1.0]
-@export var ANVIL_MILESTONE_BONUS: Array = [50, 100, 150, 200]
-@export var META_CHOICE_COUNT: int = 3             # 每局结束元进度候选张数（三选一，候选池随机抽）
+# 物品强度轴基准（P3）：伤害 = (物品 base_power × 符号 base 偏移) × 连线 × 克制。
+# base_power_ref 见 balance_config.tres（P11 内容广度阶段把 sym.base 重标为相对偏移比后可去）。
 
-# S12 局内金币升级（深化已有乘区，不新增第4乘区；每局清零，管局内临时）
+# S12 局内金币升级 4 轨道（T3 重构收敛版：数据驱动，不新增乘区；每局清零，管局内临时）
 # 设计：爆炸感来自「在现有 3 乘区(连线/护符·增益/克制)内做深」，而非开第 4 条独立乘区。
-#   · 锋锐研磨(power)：+基础伤害（喂入全部乘区，线性保底）
-#   · 连线精通(line)：匹配连线倍率 +N（深化 lane1，仅 ≥2 的同符号生效）
-#   · 护符共鸣(joker)：本局伤害乘区 ×(1+N·step)，并入 buff_mult（深化 lane2·护符/增益同轨）
-#   · 壁垒(shield)：每房开局护盾 +N（韧性保底，少量）
-@export var POWER_STEP: int = 3           # 锋锐研磨：每级 +3 本局基础伤害
-@export var LINE_STEP: int = 1           # 连线精通：每级 +1 连线倍率
-@export var JOKER_STEP: float = 0.25        # 护符共鸣：每级 +0.25 本局伤害乘区（封顶见 JOKER_CAP_FACTOR）
-@export var JOKER_CAP_FACTOR: float = 3.0   # 共鸣乘区硬上限（1 + maxlv*step ≤ 此值）
-@export var SHIELD_STEP: int = 5          # 壁垒：每级 +5 每房开局护盾
-# 金币升级定义表（icon/name/base/step/max）已抽至 GoldUpgradeDef 资源：
-# resources/config/gold_upgrades/*.tres（ShopSystem 扫描收集，见 _shop_system）
+#   · power  训练：锋锐 —— +基础伤害（喂入全部乘区，线性保底）
+#   · line   卷轴掌握 —— 匹配连线倍率 +N（深化 lane1，仅 ≥2 的同符号生效）
+#   · shield 训练：壁垒 —— 每房开局护盾 +N（韧性保底，少量）
+#   · hp_max 训练：体魄 —— 生命上限 +N（替换 joker，§7.4 拍板）
+# 收敛决策（2026-08-07）：原 6 轨的 精准/回复 已删——精准由武器 hit_rate 自带（命中成长=换武器），
+# 回复走内容渠道（治疗符号/回春护符/药剂/房奖励）；动态 charm/weapon 轨道一并退役（升级页保持 4 卡极简）。
+# 铁律（§7.4）：玩家层无伤害乘区——power（加算）+ line（连线乘区）即上限；乘区全留给 build 层。
+# 每级增量/价格/上限全部在 GoldUpgradeDef 资源里（resources/config/gold_upgrades/*.tres），
+# 结算点经 _shop_system.track_level(id) / track_per_level(id) 读取，改数值零代码。
 # 注：不设自动停止上限——转轮何时停完全由玩家决定，不操作就一直转。
 signal spin_finished                   # 全部转轮停下后发出，_on_spin_pressed 等待它
 
@@ -175,7 +164,12 @@ var selected_consumables: Array[String] = []      # 玩家勾选的消耗品路�
 var selected_charms: Array[String] = []           # 玩家勾选的护符路径
 var selected_skills: Array[String] = []           # 玩家勾选的主动技能路径（Phase C 重构：原「增益」改名「技能」）
 
-const STATUS_NAMES := {"burn": "燃", "frost": "霜", "poison": "毒"}
+# T23：状态定义资源化（StatusDef：base/element/name/icon/decay/desc），显示名替代原 STATUS_NAMES 硬编码
+const STATUS_DEFS := {
+	"burn": preload("res://resources/statuses/burn.tres"),
+	"frost": preload("res://resources/statuses/frost.tres"),
+	"poison": preload("res://resources/statuses/poison.tres"),
+}
 
 # Phase C 主动增益运行时：SymbolData -> 剩余回合数（本房内有效，进房清空）
 var player_buffs: Dictionary = {}
@@ -200,12 +194,9 @@ var enemy_hp_max = 120
 var enemy_armor_max = 0                # 护甲上限（扁平池；来自 RoomData.armor × ante，BOSS 机制可成长）
 var enemy_armor = 0                    # 当前护甲：伤害先破甲后掉血；0 = 无护甲
 var enemy_atk = 14
-var enemy_jam = 0.2
-var enemy_lock = 0.1
-var enemy_chaos = 0.1
-var enemy_heavy = 0.2
+var _interf_resist_rf := 1.0             # T20：抗扰减免系数（干扰类意图权重 × 此值，_start_room 计算）
 var enemy_status: Dictionary = {}      # status_type(str) -> 叠加层数(int)
-var enemy_intent: Dictionary = {}      # 当前敌人意图（SPIN 后执行），空字典表示已执行/未定
+var enemy_intent: Dictionary = {}      # 当前敌人意图 {"data": IntentData, "type": id, "value": N}（SPIN 后执行），空字典表示已执行/未定
 var enemy_element: String = "none"     # 敌人属性元素（用于单向克制：玩家符号元素 → 敌人元素）
 var pending_jam_reel = -1              # 敌人注废 → 下一轮强制废铁列索引（-1 无）
 var pending_lock_reel = -1             # 敌人锁轮 → 下一轮该列固定为当前符号（-1 无）
@@ -220,7 +211,11 @@ var charm_heal_trickle: int = 0       # 回春护符：每回合回复（与瞬�
 var charm_interf_resist: int = 0       # 抗扰护符：本局敌人干扰概率降低（等效抗扰等级）
 # 净化完全走消耗品，「丰沛护符·净化上限」机制已废除（charm_purify_bonus 字段随之删除，purify_charm.tres 已删除）
 
-var charm_damage_mult: float = 1.0      # Phase G v2.0：护符全局乘区（joker），默认 ×1.0
+var charm_damage_mult: float = 1.0      # Phase G v2.0：护符全局乘区，默认 ×1.0
+# T2 护符三项缺口（2026-08-07 落地，BOSS 克制矩阵 §59/§60/§62）：
+var charm_pierce_chance: float = 0.0    # 破甲护符：非穿透伤害符号直击 HP（穿透护甲）概率 0~1
+var charm_element_boost: float = 0.0    # 元素优势护符：克制倍率额外加成（×1.5 → ×1.5+boost，仅克制时）
+var charm_status_boost: float = 1.0     # 状态护符：灼烧/霜冻/毒 DoT 伤害倍率
 
 # 流程状态（enum 化：原字符串字面量易拼错且无编译期检查）
 enum FlowState { PLAYING, WON, LOST }
@@ -281,6 +276,7 @@ func _build_state() -> BattleState:
 	s.in_loadout = in_loadout
 	s.game_state = game_state
 	s.enemy_status = enemy_status
+	s.charge_points = charge_points
 	s.enemy_armor_max = enemy_armor_max
 	s.consumable_slots = consumable_slots
 	s.CONSUMABLE_CAP = CONSUMABLE_CAP
@@ -414,7 +410,7 @@ func _build_pool(loadout: Array) -> void:
 	for it in pool_items:
 		for s in it["syms"]:
 			pool.append([s[0], s[1], s[2]])
-	pool.append([GOLD_SYMBOL, GOLD_POOL_WEIGHT, "none"])
+	pool.append([GOLD_SYMBOL, BALANCE.gold_pool_weight, "none"])
 	# 敌人元素/弱/抗（取代原底部 LegendBar，写入右侧 EnemyPanel 三 Label）
 	hud._update_enemy_element()
 
@@ -491,6 +487,9 @@ func _apply_charms() -> void:
 	charm_damage_mult = 1.0
 	charm_shield_trickle = 0
 	charm_heal_trickle = 0
+	charm_pierce_chance = 0.0
+	charm_element_boost = 0.0
+	charm_status_boost = 1.0
 	for path in selected_charms:
 		var cd: Resource = load(path)
 		if cd == null:
@@ -504,6 +503,9 @@ func _apply_charms() -> void:
 			"heal":                charm_heal_trickle += cd.value    # 回春护符：每回合回复
 			"damage_mult":
 				charm_damage_mult *= cd.mult_value   # 护符乘数增值（封顶在循环后）
+			"armor_pierce":          charm_pierce_chance = max(charm_pierce_chance, cd.mult_value)   # 破甲护符（T2）：取最高穿透概率
+			"element_boost":         charm_element_boost += cd.mult_value                            # 元素优势护符（T2）：克制倍率加法叠加
+			"status_boost":          charm_status_boost *= cd.mult_value                             # 状态护符（T2）：DoT 乘数
 		# 混合护符的负面效果（未来卡用）：与正面同枚举、加成型数值取反、乘区型乘 downside_mult
 		if cd.downside_effect != "":
 			match cd.downside_effect:
@@ -513,15 +515,31 @@ func _apply_charms() -> void:
 				"shield":               charm_shield_trickle -= cd.downside_value
 				"heal":                charm_heal_trickle -= cd.downside_value
 				"damage_mult":          charm_damage_mult *= cd.downside_mult
+				"armor_pierce":         charm_pierce_chance = max(0.0, charm_pierce_chance - cd.downside_value / 100.0)
+				"element_boost":        charm_element_boost = max(0.0, charm_element_boost - cd.downside_mult)
+				"status_boost":         charm_status_boost = max(1.0, charm_status_boost - (1.0 - cd.downside_mult))
 	# 总护符乘区硬上限（防失控膨胀）
-	charm_damage_mult = min(charm_damage_mult, CHARM_MULT_CAP)
+	charm_damage_mult = min(charm_damage_mult, BALANCE.charm_mult_cap)
 	var charm_log = "护符已装配：伤害+%d / 开局护盾+%d / 每回合护盾+%d / 每回合回血+%d / 抗扰+%d" % [charm_power_bonus, charm_room_shield, charm_shield_trickle, charm_heal_trickle, charm_interf_resist]
 	if charm_damage_mult != 1.0:
 		charm_log += " / 伤害×%s" % ElementCounter.fmt_mult(charm_damage_mult)
+	if charm_pierce_chance > 0.0:
+		charm_log += " / 破甲穿透 %d%%" % int(charm_pierce_chance * 100)
+	if charm_element_boost > 0.0:
+		charm_log += " / 元素优势+%s" % ElementCounter.fmt_mult(charm_element_boost)
+	if charm_status_boost != 1.0:
+		charm_log += " / 状态×%s" % ElementCounter.fmt_mult(charm_status_boost)
 	hud._log(charm_log)
 
 
 # ---------------------------------------------------------------------------
+# T27 击败 BOSS 掉落训练点（升级轨道唯一货币；金币不再参与升级）
+func _award_train_point() -> void:
+	train_points += BALANCE.train_boss_reward
+	hud._popup("训练点+%d" % BALANCE.train_boss_reward, Palette.ACCENT_GOLD, hud._enemy_sprite_anchor())
+	hud._log("⚔ 击败 BOSS：训练点 +%d（共 %d）" % [BALANCE.train_boss_reward, train_points])
+
+
 # M4 房奖励三选一界面（Roguelike 构筑）
 # ---------------------------------------------------------------------------
 func _on_reward_chosen(id: String) -> void:
@@ -537,13 +555,19 @@ func _on_boss_reward_chosen(cand: Dictionary) -> void:
 
 
 # 房奖励三选一 / 跳过 / BOSS 战利品共用的房间推进编排：
-# hide → 应用奖励（可选）→ 发放铁砧点数 + 金币 → 通关则元进度三选一，否则进房间歇态 → 刷元进度栏。
+# hide → 应用奖励（可选）→ 发放铁砧点数 + 金币 → BOSS 战则弹训练房（T28：当场分配训练点）→
+# 通关则元进度三选一，否则进房间歇态 → 刷元进度栏。
 func _finish_room(apply_fn: Callable, is_boss: bool) -> void:
 	hud.hide_reward_screen()
 	if apply_fn.is_valid():
 		apply_fn.call()
 	_anvil_system.award_meta(is_boss)    # M5：房间通关发放铁砧点数
 	_award_gold(is_boss)    # S6+S8：清房金币 + 利息
+	if is_boss:
+		# T28：BOSS 战利品选完后、进下一房前，弹训练房当场分配训练点（每幕 1 点）
+		hud._show_train_screen()
+		await hud.train_continue_requested
+		hud.hide_train_screen()
 	if _is_run_final(room_index):
 		_show_meta_choice()        # 通关整局（最终 BOSS）→元进度三选一（持久生效）
 	else:
@@ -678,16 +702,19 @@ func _on_gold_upgrade_pressed(id: String) -> void:
 func _on_shop_leave_pressed() -> void:
 	hud.hide_shop_screen()
 	hud.set_shop_button_text("🛒 商店")
-	_enter_interroom()      # 离开商店回房间歇态，不自动进下一房（玩家可再开或点 ▶）
+	_enter_interroom(false)   # 离开商店回房间歇态：不重滚货架（每房一次，防刷商店）
 
 
 # ---------------------------------------------------------------------------
 # opt-in 房间歇态（替代强制全屏商店）
 # ---------------------------------------------------------------------------
-func _enter_interroom() -> void:
+func _enter_interroom(roll_shop: bool = true) -> void:
 	in_interroom = true
 	hud._hide_overlay()    # 防御性：确保胜利弹层已关闭，避免顶栏被其遮挡/重触发
 	hud.set_interroom_enabled(true)
+	if roll_shop:
+		# 每房间歇期货架生成一次——反复开关商店不刷新（防「买完再开刷货架」）
+		_roll_shop()
 
 
 func _on_shop_requested() -> void:
@@ -731,6 +758,7 @@ func _on_anvil_back_pressed() -> void:
 
 func _full_reset() -> void:
 	_anvil_system.reset_run()   # 本局铁砧点数 drip 累计清零
+	train_points = 0            # T27：升级点每局清零（仅 BOSS 掉落重新积累）
 	player_hp = player_hp_max
 	in_interroom = false                     # opt-in 商店：新一局不可能处于房间歇态
 	gold = 4                                 # S6：新一局金币清零（每局清零，见 §11）
@@ -812,27 +840,26 @@ func _start_room(idx: int) -> void:
 	enemy_hp_max = int(round(float(r.hp) * s["hp_scale"]))
 	enemy_hp = enemy_hp_max
 	enemy_atk = int(round(float(r.atk) * s["atk_scale"]))
-	enemy_jam = r.jam
-	enemy_lock = r.lock
-	enemy_chaos = r.chaos
-	enemy_heavy = r.heavy
 	enemy_element = r.element if r.element != "" else "none"   # 单向克制：敌人属性（仅供玩家符号克制判定）
 	# 护甲（扁平池）：随 ante 缩放；BOSS 机制可在此基础上成长（如锈蚀傀儡熔铸护甲）
 	enemy_armor_max = int(round(float(r.armor) * s["hp_scale"])) if r.armor > 0 else 0
 	enemy_armor = enemy_armor_max
-	# 抗干扰：抗扰护符 降低敌人干扰概率（每级 -12%，最低保留 25%）
+	# 抗干扰（T20）：抗扰护符 降低干扰类意图（purifiable）权重，每级 -12%，最低保留 25%
 	var total_resist = charm_interf_resist
-	if total_resist > 0:
-		var rf = max(0.25, 1.0 - total_resist * 0.12)
-		enemy_jam *= rf
-		enemy_lock *= rf
-		enemy_chaos *= rf
+	_interf_resist_rf = max(0.25, 1.0 - total_resist * 0.12) if total_resist > 0 else 1.0
 	enemy_status = {}
+	charge_points = 0                     # T21：元素充能每房清零
 	player_buffs = {}                     # Phase C：主动技能不跨房保留
 	player_shield = 0
 	player_shield += _reward_system.run_shield_next   # M4：上一房奖励的结界在本房开局生效
 	player_shield += charm_room_shield    # M6：守望护符每房开局护盾
-	player_shield += _shop_system.gold_upgrades["shield"] * SHIELD_STEP   # S12：壁垒——每房开局护盾（韧性保底）
+	player_shield += int(_shop_system.track_level("shield") * _shop_system.track_per_level("shield"))   # S12：壁垒——每房开局护盾（韧性保底）
+	# T3 体魄（每房开局应用，升级即回满增量）：
+	var hp_bonus: int = int(_shop_system.track_level("hp_max") * _shop_system.track_per_level("hp_max"))
+	if hp_bonus > 0:
+		player_hp_max += hp_bonus
+		player_hp = min(player_hp_max, player_hp + hp_bonus)
+		hud._log("训练·体魄：生命上限 +%d（%d）" % [hp_bonus, player_hp_max])
 	_reward_system.run_shield_next = 0
 	pending_jam_reel = -1
 	pending_lock_reel = -1
@@ -869,29 +896,52 @@ func _ante_scale(r: RoomData, idx: int) -> Dictionary:
 			ria += 1
 	ria -= 1
 	return {
-		"hp_scale": pow(ANTE_ACT_STEP_HP, a - 1) * pow(ANTE_ROOM_STEP_HP, ria),
-		"atk_scale": pow(ANTE_ACT_STEP_ATK, a - 1) * pow(ANTE_ROOM_STEP_ATK, ria),
+		"hp_scale": pow(BALANCE.ante_act_step_hp, a - 1) * pow(BALANCE.ante_room_step_hp, ria),
+		"atk_scale": pow(BALANCE.ante_act_step_atk, a - 1) * pow(BALANCE.ante_room_step_atk, ria),
 	}
 
 
 func _begin_player_turn() -> void:
 	if game_state != FlowState.PLAYING:
 		return
-	var rnd = randf()
-	if rnd < enemy_jam:
-		enemy_intent = {"type": "jam", "value": 0}
-	elif rnd < enemy_jam + enemy_lock:
-		enemy_intent = {"type": "lock", "value": 0}
-	elif rnd < enemy_jam + enemy_lock + enemy_chaos:
-		enemy_intent = {"type": "chaos", "value": 0}
-	elif rnd < enemy_jam + enemy_lock + enemy_chaos + enemy_heavy:
-		enemy_intent = {"type": "heavy", "value": enemy_atk * 2}
-	else:
-		enemy_intent = {"type": "attack", "value": enemy_atk}
+	enemy_intent = _roll_intent(ROOMS[room_index] if room_index >= 0 and room_index < ROOMS.size() else null)
 	# S10 T2：每玩家回合重置 BOSS 倍率，再由 gimmick 钩子按本回合状态设定
 	boss_atk_mult = 1.0
 	if current_gimmick != null:
 		current_gimmick.on_turn_begin(self)
+
+
+# T20：加权抽取意图（房间 RoomData.intents 非空用房间表（IntentData.weight），否则按 kind 取默认表；
+# 抗扰（_interf_resist_rf）对可净化（干扰类）意图权重打折）
+func _roll_intent(room: RoomData) -> Dictionary:
+	var wtable := {}
+	if room != null and room.intents.size() > 0:
+		for it in room.intents:
+			if it != null:
+				wtable[it.id] = it.weight
+	else:
+		wtable = DEFAULT_INTENT_WEIGHTS.get(room.kind if room != null else "normal", DEFAULT_INTENT_WEIGHTS["normal"]).duplicate()
+	var total := 0.0
+	for k in wtable:
+		var w: float = wtable[k]
+		var sd: IntentData = _intent_def(k)
+		if sd != null and sd.purifiable:
+			w *= _interf_resist_rf   # 抗扰：干扰类意图权重打折
+		wtable[k] = w
+		total += w
+	var r := randf() * total
+	var tid := "attack"
+	for k in wtable:
+		r -= wtable[k]
+		if r <= 0.0:
+			tid = k
+			break
+	var sd2: IntentData = _intent_def(tid)
+	var value := 0
+	match tid:
+		"heavy":  value = int(enemy_atk * sd2.value_mult) if sd2 != null else enemy_atk * 2
+		"attack": value = enemy_atk
+	return {"data": sd2, "type": tid, "value": value}
 
 
 func _on_spin_pressed() -> void:
@@ -908,6 +958,8 @@ func _on_spin_pressed() -> void:
 	if enemy_hp <= 0:
 		hud._log("★ 击败 %s！" % enemy_name)
 		game_state = FlowState.WON
+		if _is_boss_room(room_index):
+			_award_train_point()          # T27：击败 BOSS 掉落升级点
 		hud._show_reward_screen(_is_boss_room(room_index))
 		hud._refresh_meta()
 		_busy = false
@@ -922,6 +974,8 @@ func _on_spin_pressed() -> void:
 		# 敌人可能在自身回合被状态 DoT 结算致死
 		hud._log("★ 击败 %s！（状态结算）" % enemy_name)
 		game_state = FlowState.WON
+		if _is_boss_room(room_index):
+			_award_train_point()          # T27：击败 BOSS 掉落升级点
 		hud._show_reward_screen(_is_boss_room(room_index))
 		_busy = false
 		return
@@ -940,16 +994,16 @@ func _on_spin_pressed() -> void:
 	_busy = false
 
 
-# 连锁重触发（① 数值爆炸）：special 三连后免费重转，倍率逐层 ×1.5，封顶 CHAIN_MAX 发。
+# 连锁重触发（① 数值爆炸）：special 三连后免费重转，倍率逐层 ×1.5，封顶 BALANCE.chain_max 发。
 # 重转全部用 fresh 随机——连锁是否续上完全看 RNG 是否再给 special 三连，是可见的尖峰而非黑箱。
 func _chain_loop() -> void:
 	var _chain := 0
 	while true:
-		await _evaluate(1.0 if _chain == 0 else CHAIN_STEP ** _chain)
+		await _evaluate(1.0 if _chain == 0 else BALANCE.chain_step ** _chain)
 		if not _last_special_triple or enemy_hp <= 0:
 			break
 		_chain += 1
-		if _chain >= CHAIN_MAX + _synergy_system.chain_bonus():
+		if _chain >= BALANCE.chain_max + _synergy_system.chain_bonus():
 			break
 		hud._log("⚡ 连锁 ×%d！免费重转…" % (_chain + 1))
 		hud._popup("⚡连锁 ×%d" % (_chain + 1), Palette.POP_DAMAGE, hud._enemy_sprite_anchor())
@@ -986,7 +1040,7 @@ func _begin_spin() -> void:
 
 
 # 方案 B（2026-08-07）：跨装备聚合 (符号|有效元素) 权重，共享符号累加（同元素堆三连），
-# 符号总预算固定 _ITEM_STRIP_TARGET，miss 段按各装备命中率独立保留（MISS_FLOOR/CEIL 兜底）。
+# 符号总预算固定 _ITEM_STRIP_TARGET，miss 段按各装备命中率独立保留（BALANCE.miss_floor/CEIL 兜底）。
 # 结算/连锁/special 三连等下游逻辑不变（仍按 REELS x ROWS 落子统计）。
 func _build_strips() -> void:
 	reel_strips = []
@@ -1020,9 +1074,9 @@ func _build_strips() -> void:
 			var cnt: int = maxi(1, roundi(float(_ITEM_STRIP_TARGET) * agg[k]["w"] / wsum))
 			for _c in cnt:
 				base.append([agg[k]["sym"], agg[k]["elem"]])
-	# 废铁占比 = 各装备自身命中率的独立段（每装备保留自己的 miss 手感，MISS_FLOOR/CEIL 兜底）
+	# 废铁占比 = 各装备自身命中率的独立段（每装备保留自己的 miss 手感，BALANCE.miss_floor/CEIL 兜底）
 	for it in pool_items:
-		var miss_frac: float = clamp(1.0 - float(it["hit"]), MISS_FLOOR, MISS_CEIL)
+		var miss_frac: float = clamp(1.0 - float(it["hit"]), BALANCE.miss_floor, BALANCE.miss_ceil)
 		var miss_cnt: int = roundi(float(_ITEM_STRIP_TARGET) * miss_frac)
 		for _c in miss_cnt:
 			base.append([TRASH_SYMBOL, "none"])
@@ -1245,8 +1299,10 @@ func _tick_status() -> void:
 	for st in enemy_status.keys():
 		var base = _status_base(st)
 		var mult = ElementCounter.multiplier(_status_element(st), enemy_element)
-		dot += int(round(enemy_status[st] * base * mult * STATUS_DMG_MULT))
-		enemy_status[st] = max(0, enemy_status[st] - 1)
+		# T2 状态护符：DoT 伤害乘倍率（状态叠加轴投资）；T23：衰减率由 StatusDef.decay 定义
+		dot += int(round(enemy_status[st] * base * mult * BALANCE.status_dmg_mult * charm_status_boost))
+		var sd: StatusDef = _status_def(st)
+		enemy_status[st] = max(0, enemy_status[st] - (sd.decay if sd != null else 1))
 		if enemy_status[st] <= 0:
 			enemy_status.erase(st)
 	if dot > 0:
@@ -1254,7 +1310,26 @@ func _tick_status() -> void:
 		hud._log("状态结算 %d 伤害（灼烧/毒·含克制）" % dot)
 
 
+# T21 元素充能爆发（覆盖流赛道）：克制命中满 charge_max 次后自动释放——
+# 清甲 + 穿透核爆（无视护甲直击 HP），与三连破甲/核爆互补（分散积累 vs 单次高概率）。
+func _release_element_burst() -> void:
+	var burst := int(enemy_hp_max * BALANCE.charge_burst_pct)
+	if enemy_armor > 0:
+		enemy_armor = 0
+		hud._log("⚡ 元素充能爆发：护甲清零！")
+	if burst > 0:
+		_apply_enemy_damage(burst, true)
+		hud._popup("⚡元素爆发!-%d" % burst, Palette.POP_DAMAGE, hud._enemy_sprite_anchor())
+		hud._log("⚡ 元素充能爆发：%d 穿透伤害（直击 HP，无视护甲）" % burst)
+	if hud.animator != null:
+		hud.animator.play_counter("element")
+
+
 func _intent_name(t: String) -> String:
+	# T20：优先读 IntentData.display_name；未定义时回落默认名（新意图类型兜底）
+	var sd: IntentData = _intent_def(t)
+	if sd != null and sd.display_name != "":
+		return sd.display_name
 	match t:
 		"jam":   return "注废"
 		"lock":  return "锁轮"
@@ -1293,9 +1368,12 @@ func _on_consumable_pressed(uid: String) -> void:
 	match data.effect:
 		"purify":
 			# 净化完全走消耗品：扣 1 charges，抵消当前干扰意图（如果有）；data.value 字段已废弃
-			if enemy_intent.get("type") in ["jam", "lock", "chaos"]:
+			# T20：可净化性由 IntentData.purifiable 定义（替代硬编码名单）
+			var it_data: IntentData = enemy_intent.get("data")
+			var purifiable: bool = it_data.purifiable if it_data != null else enemy_intent.get("type") in ["jam", "lock", "chaos"]
+			if purifiable:
 				var t = enemy_intent.get("type")
-				enemy_intent = {"type": "none", "value": 0}
+				enemy_intent = {"data": null, "type": "none", "value": 0}
 				hud._log("净化药剂：抵消了敌人的%s" % _intent_name(t))
 			else:
 				hud._log("净化药剂：当前无干扰意图可抵消")
@@ -1326,7 +1404,12 @@ func _return_to_loadout() -> void:
 	# 玩家死亡 = 本局结束，回到整备页重选装备后开新 run（不再重开本房）。
 	# 先落盘，确保当局铁砧点数 drip / 商店购买 / 铁砧授予等写入 owned_* 的进度不丢失。
 	_save_meta()
-	# selected_* 保留上局勾选，玩家可在整备页调整；确认开战时 _full_reset 重置本局状态。
+	# 战败 = 重新开始：清空上局勾选与腰带，整备页回到初始状态（owned_* 跨局保留，玩家重新挑选）。
+	selected_loadout = []
+	selected_skills = []
+	selected_charms = []
+	selected_consumables = []
+	consumable_slots = []
 	game_state = FlowState.PLAYING   # 解除 lost 终态，避免整备/铁砧界面误读终局
 	hud._show_loadout_screen()
 
@@ -1351,35 +1434,41 @@ func _reset_grid() -> void:
 
 func _contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> void:
 	# 连线精通(S12)：仅当实落 ≥2（确为连线匹配）时才叠加倍率，单符号必结算不受影响
-	var mult = raw + (_shop_system.gold_upgrades["line"] * LINE_STEP if raw >= 2 else 0)
+	var line_bonus: int = int(_shop_system.track_level("line") * _shop_system.track_per_level("line"))
+	var mult = raw + (line_bonus if raw >= 2 else 0)
 	# P3（docs/[已完成]物品中心重构方案.md §8）：伤害 = (物品 base_power × 符号 base 偏移) × 连线 × 克制。
 	# 物品有效攻击力来自 _weapon_power_map（base_power + 元进度武器加成）；未命中映射时退化为旧模型（flat = sym.base），
-	# 保证非武器符号（异常路径）不丢伤害。BASE_POWER_REF 为归一化支点（见常量注释）。
+	# 保证非武器符号（异常路径）不丢伤害。BALANCE.base_power_ref 为归一化支点（见常量注释）。
 	var item_power: float = _weapon_power_map.get(sym.resource_path, 0.0)
-	var power_scale: float = item_power / BASE_POWER_REF if item_power > 0.0 else 1.0
+	var power_scale: float = item_power / BALANCE.base_power_ref if item_power > 0.0 else 1.0
 	# bonus = 非 sym.base 部分（base_power 缩放增量 + F-0 元进度聚合），供 _push_dmg_line 分解展示；
 	# flat = sym.base + bonus 与「sym.base × scale + _agg_power_flat()」恒等。
 	var bonus: float = sym.base * power_scale - sym.base + _agg_power_flat()
 	var flat: float = sym.base + bonus
 	# 逐符号元素克制倍率（Phase G v2.0：通用元素乘区，奖罚并存·温和；共鸣可对该元素加成）
+	# T2 元素优势护符：克制时额外加法加成（×1.5 → ×1.5+boost），抵抗/中性不生效（鼓励带对元素）
 	var em = ElementCounter.multiplier(elem, enemy_element) * _synergy_system.element_boost(elem)
+	if em > 1.0 and charm_element_boost > 0.0:
+		em += charm_element_boost
 	if em > 1.0:
 		_eval_adv = true
+		charge_points += 1                # T21 元素充能：每次克制命中 +1（含技能/状态符号的克制命中）
 		# 反制即爆发（Plan C）：克制元素连线/三连标记，供 _evaluate 触发核爆
 		if raw >= 2:
 			acc["counter_triple"] = true
 	elif em < 1.0:
 		_eval_dis = true
-	# 方案 B：三连必暴（crit_mult，现状保留）；非三连每符号实例按 CRIT_CHANCE 独立暴击——
+	# 方案 B：三连必暴（crit_mult，现状保留）；非三连每符号实例按 BALANCE.crit_chance 独立暴击——
 	# 单带靠三连大暴，多带靠每列小暴，期望与携带装备数解耦（异元素多带不再亏三连频率）。
 	# 共鸣 crit_bonus 在暴击触发时叠加到 crit_mult（激活集由 _synergy_system 缓存）。
-	var crit_mult_val: float = (_item_crit_map.get(sym.resource_path, 1.0) + _synergy_system.crit_bonus(sym)) if raw >= 3 or randf() < CRIT_CHANCE else 1.0
+	var crit_mult_val: float = (_item_crit_map.get(sym.resource_path, 1.0) + _synergy_system.crit_bonus(sym)) if raw >= 3 or randf() < BALANCE.crit_chance else 1.0
 	match sym.kind:
 		"damage":
 			var dv = flat * mult * em
 			if crit_mult_val > 1.0:
 				dv *= crit_mult_val
-			if sym.pierce_armor:
+			# T2 破甲护符：非穿透符号按概率直击 HP（穿透护甲）
+			if sym.pierce_armor or randf() < charm_pierce_chance:
 				acc["pierce"] += dv     # 穿透护甲：直接扣 HP
 			else:
 				acc["dmg"] += dv
@@ -1389,13 +1478,13 @@ func _contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> vo
 		"status":  acc["status_stacks"][sym.status_type] = acc["status_stacks"].get(sym.status_type, 0) + mult * crit_mult_val
 		"special":
 			# special：1 同即生效（base×连线数×克制）；三连必暴（crit_mult，方案 A 同源）。
-			# 非三连的 CRIT_CHANCE 独立暴击只放大伤害，不触发连锁/破甲（special_triple 标记保持三连专属）。
+			# 非三连的 BALANCE.crit_chance 独立暴击只放大伤害，不触发连锁/破甲（special_triple 标记保持三连专属）。
 			var sv = flat * mult * em
 			if crit_mult_val > 1.0:
 				sv *= crit_mult_val
 				if raw >= 3:
 					acc["special_triple"] = true   # S10 T5 钩子埋点：三连发生标记，供 BOSS 机制感知
-			if sym.pierce_armor:
+			if sym.pierce_armor or randf() < charm_pierce_chance:
 				acc["pierce"] += sv
 			else:
 				acc["special"] += sv
@@ -1404,7 +1493,7 @@ func _contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> vo
 
 
 # S2：伤害分解行（§5.2 标为 P0——"爽感的一半来自看懂这一下为什么这么大"；
-# 同时是 ante 调参（ANTE_ACT_STEP_HP/ATK、ANTE_ROOM_STEP_HP/ATK）的唯一 debug 依据）。
+# 同时是 ante 调参（BALANCE.ante_act_step_hp/ATK、BALANCE.ante_room_step_hp/ATK）的唯一 debug 依据）。
 # 逐符号记录「基础 × 连线 × 克制 = 小计」，回合级乘区（护符/增益/强袭）在 _evaluate 汇总。
 func _push_dmg_line(acc: Dictionary, sym: SymbolData, elem: String, flat, bonus, mult: int, em: float, v: float, crit_mult_val: float = 1.0) -> void:
 	if not acc.has("lines"):
@@ -1458,7 +1547,7 @@ func _evaluate(chain_mult := 1.0) -> void:
 	for key in counts:
 		var s: SymbolData = counts[key][0]
 		if s == GOLD_SYMBOL:
-			var g = GOLD_PER_COIN * counts[key][2]
+			var g = BALANCE.gold_per_coin * counts[key][2]
 			if g > 0:
 				gold += g
 				hud._log("💰 金币 +%d" % g)
@@ -1517,8 +1606,8 @@ func _evaluate(chain_mult := 1.0) -> void:
 	var assault = assault_next_spin
 	var normal_subtotal = acc["dmg"] + acc["special"] * chain_mult
 	var pierce_subtotal = acc.get("pierce", 0.0)
-	var normal_total = int(normal_subtotal * assault * buff_mult * PLAYER_DMG_MULT)
-	var pierce_total = int(pierce_subtotal * assault * buff_mult * PLAYER_DMG_MULT)
+	var normal_total = int(normal_subtotal * assault * buff_mult * BALANCE.player_dmg_mult)
+	var pierce_total = int(pierce_subtotal * assault * buff_mult * BALANCE.player_dmg_mult)
 	assault_next_spin = 1
 	var total = normal_total + pierce_total
 	# S2：伤害分解只进调试日志（Debug.log），屏幕仅保留总伤害飘字（见下方 _popup）
@@ -1528,13 +1617,10 @@ func _evaluate(chain_mult := 1.0) -> void:
 		var tail := []
 		var cm = charm_damage_mult
 		var bm = _buff_damage_mult()
-		var jf = 1.0 + min(float(_shop_system.gold_upgrades["joker"]) * JOKER_STEP, JOKER_CAP_FACTOR - 1.0)
 		if cm != 1.0:
 			tail.append("护符×%s" % ElementCounter.fmt_mult(cm))
 		if bm != 1.0:
 			tail.append("增益×%s" % ElementCounter.fmt_mult(bm))
-		if jf != 1.0:
-			tail.append("共鸣×%s" % ElementCounter.fmt_mult(jf))
 		if assault != 1:
 			tail.append("强袭×%s" % ElementCounter.fmt_mult(float(assault)))
 		if chain_mult != 1.0:
@@ -1565,6 +1651,10 @@ func _evaluate(chain_mult := 1.0) -> void:
 		hud._log("连线造成 %d 伤害%s（护甲剩 %d）" % [total, elem_tag, int(enemy_armor)])
 		if hud.animator != null:
 			hud.animator.play_attack("player", "enemy")
+	# T21 元素充能：克制命中满额 → 释放元素爆发（穿透核爆 + 清甲，覆盖流爆发赛道）
+	if charge_points >= BALANCE.charge_max:
+		charge_points = 0
+		_release_element_burst()
 	hud._refresh_meta()   # 伤害落地后立即刷新：HP/护甲即时变化（破甲窗口需即时可见）
 	await get_tree().create_timer(0.55).timeout
 	# Phase C：回合末递减增益剩余回合
@@ -1589,7 +1679,8 @@ func _evaluate(chain_mult := 1.0) -> void:
 # —— 加法型标量轴（多个来源直接相加）——
 # —— P0：以下结算聚合已抽到 BattleMath（参数化纯函数），controller 仅留薄包装，零行为变化 ——
 func _agg_power_flat() -> float:
-	return BattleMath.agg_power_flat(_reward_system.run_power_bonus, charm_power_bonus, player_buffs, _shop_system.gold_upgrades, POWER_STEP)
+	return BattleMath.agg_power_flat(_reward_system.run_power_bonus, charm_power_bonus, player_buffs,
+		float(_shop_system.track_level("power")) * _shop_system.track_per_level("power"))
 
 func _agg_shield() -> float:
 	return BattleMath.agg_shield(player_buffs, charm_shield_trickle)
@@ -1600,7 +1691,7 @@ func _agg_regen() -> float:
 
 # —— 乘法型轴（各乘区独立相乘，基值 1.0）——
 func _agg_damage_mult() -> float:
-	return BattleMath.agg_damage_mult(charm_damage_mult, player_buffs, _shop_system.gold_upgrades, JOKER_STEP, JOKER_CAP_FACTOR)
+	return BattleMath.agg_damage_mult(charm_damage_mult, player_buffs)
 
 # —— 符号权重轴（本局符号灌注；武器级权重见 _build_pool）——
 func _agg_symbol_weight_mod(sym: SymbolData) -> float:
@@ -1641,17 +1732,27 @@ func _buff_effect_name(effect: String) -> String:
 	return BattleMath.buff_effect_name(effect)
 
 
+func _status_def(st: String) -> StatusDef:
+	return STATUS_DEFS.get(st, null)
+
+
 func _status_base(type_str: String) -> float:
-	return BattleMath.status_base(pool, type_str)
+	var sd: StatusDef = _status_def(type_str)
+	return sd.base if sd != null else 0.0
 
 
 # 状态类型对应的属性元素（用于 DoT 单向克制）
 func _status_element(st: String) -> String:
-	return BattleMath.status_element(pool, st)
+	var sd: StatusDef = _status_def(st)
+	return sd.element if sd != null else "none"
 
 
 func _status_summary(stacks: Dictionary) -> String:
-	return BattleMath.status_summary(stacks, STATUS_NAMES)
+	var parts: Array = []
+	for st in stacks.keys():
+		var sd: StatusDef = _status_def(st)
+		parts.append("%s+%d" % [sd.name if sd != null else st, stacks[st]])
+	return "/".join(parts)
 
 
 # ---------------------------------------------------------------------------

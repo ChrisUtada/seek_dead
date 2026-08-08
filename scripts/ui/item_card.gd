@@ -5,12 +5,15 @@ extends Button
 # 静态结构在 scenes/ui/item_card.tscn（Button 复用 ui_button.tscn + Center > VBox > 三行 Label），
 # 本脚本只填文本/字号/颜色——消灭 battle_hud 里六份重复的 CenterContainer.new()+VBoxContainer.new() 构造器。
 #
-# 布局：TitleLabel（主名）→ DescLabel（描述，可选）→ StatusLabel（价格/状态行，可选）。
+# 布局：IconRect（美术预留，可选）→ TitleLabel（主名）→ DescLabel（描述，可选）→ StatusLabel（价格/状态行，可选）。
 # 未填的行自动隐藏。configure 在节点入树前调用，故不依赖 @onready，用懒解析缓存子节点。
+
+const VON_FONT = preload("res://assets/fonts/VonwaonBitmap-12px.tres")
 
 var _title_label: Label
 var _desc_label: Label
 var _status_label: Label
+var _icon_rect: TextureRect
 
 
 func _resolve() -> void:
@@ -19,6 +22,11 @@ func _resolve() -> void:
 	_title_label = $Center/VBox/TitleLabel
 	_desc_label = $Center/VBox/DescLabel
 	_status_label = $Center/VBox/StatusLabel
+	_icon_rect = $Center/VBox/IconRect
+	# 显式挂像素字体：不依赖主题/项目默认链，任何继承失效都保持像素字
+	_title_label.add_theme_font_override("font", VON_FONT)
+	_desc_label.add_theme_font_override("font", VON_FONT)
+	_status_label.add_theme_font_override("font", VON_FONT)
 
 
 func configure(title: String, desc: String = "", title_size: int = TypeScale.META, desc_min_width: float = 0.0, separation: int = 1) -> void:
@@ -36,6 +44,13 @@ func configure(title: String, desc: String = "", title_size: int = TypeScale.MET
 func set_desc_color(color: Color) -> void:
 	_resolve()
 	_desc_label.add_theme_color_override("font_color", color)
+
+
+# 卡片美术（预留位）：传 null / 不调用 = 保持 emoji 图标呈现，隐藏图格
+func set_art(tex: Texture2D) -> void:
+	_resolve()
+	_icon_rect.texture = tex
+	_icon_rect.visible = tex != null
 
 
 func set_status(text: String, color: Color) -> void:

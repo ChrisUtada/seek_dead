@@ -12,7 +12,7 @@ extends Resource
 @export var description: String = ""
 @export var icon: String = "🧪"          # 展示用 emoji
 @export var category: String = "active"  # active / passive
-@export var effect: String = ""          # 主动: purify/heal/assault/reroll；被动: damage_bonus/room_shield/shield/interference_resist/damage_mult
+@export var effect: String = ""          # 主动: purify/heal/assault/reroll；被动: damage_bonus/room_shield/shield/interference_resist/damage_mult/armor_pierce/element_boost/status_boost（T2 三项缺口）
 @export var value: int = 0               # 效果数值（加成型）
 @export var mult_value: float = 1.0      # 乘区类效果数值（被动 damage_mult：如 1.5 = 全局 ×1.5）
 @export var downside_effect: String = "" # 混合护符负面效果（与 effect 同枚举）；空 = 无负面

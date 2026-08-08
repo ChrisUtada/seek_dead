@@ -31,6 +31,7 @@ var loadout_names: Array[String] = []
 var in_loadout: bool = false
 var game_state: int = DuelController.FlowState.PLAYING   # 与 controller.game_state 同步（FlowState 枚举）
 var enemy_status: Dictionary = {}
+var charge_points: int = 0               # T21 元素充能进度（HUD 充能条读取）
 var enemy_armor_max: int = 0
 var consumable_slots: Array[Dictionary] = []
 var CONSUMABLE_CAP: int = 4

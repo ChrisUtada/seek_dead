@@ -1,6 +1,9 @@
 class_name LoadoutSystem
 extends RefCounted
 
+# T22：平衡常量收敛于 BalanceConfig（balance_config.tres）
+const BALANCE = preload("res://resources/config/balance_config.tres")
+
 # 整备勾选 / 槽位上限与成长 / 拥有池读取——从 duel_controller.gd 抽出。
 #
 # 由 controller 在 _ready 处实例化并注入：LoadoutSystem.new(ctrl)。
@@ -52,7 +55,7 @@ func sel_arr(cat: String) -> Array:
 func cat_max(cat: String) -> int:
 	match cat:
 		"weapon":  return _ctrl.loadout_max
-		"active":  return int(_ctrl.SLOT_INIT["active"])   # 整备勾选上限 = 1（腰带容量见 CONSUMABLE_CAP）
+		"active":  return int(BALANCE.slot_init["active"])   # 整备勾选上限 = 1（腰带容量见 CONSUMABLE_CAP）
 		"passive": return _ctrl.charm_max
 		"skill":    return _ctrl.skill_max
 	return 0
@@ -63,7 +66,7 @@ func cat_cap(cat: String) -> int:
 	match cat:
 		"weapon":  return _ctrl.UNCAPPED   # 进池：稀释效应自身即刹车
 		"skill":    return _ctrl.UNCAPPED   # 进池：同上
-		"active":  return int(_ctrl.SLOT_INIT["active"])   # 整备天花板 = 1（消耗品不「买即开槽」，改为腰带追加，容量见 CONSUMABLE_CAP）
+		"active":  return int(BALANCE.slot_init["active"])   # 整备天花板 = 1（消耗品不「买即开槽」，改为腰带追加，容量见 CONSUMABLE_CAP）
 		"passive": return _ctrl.CHARM_CAP
 	return 0
 

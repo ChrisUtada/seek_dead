@@ -1,6 +1,9 @@
 class_name RewardSystem
 extends RefCounted
 
+# T22：平衡常量收敛于 BalanceConfig（balance_config.tres）
+const BALANCE = preload("res://resources/config/balance_config.tres")
+
 # M4 房奖励 / 精英战前补给 / BOSS 战利品 / 局末元进度三选一——从 duel_controller.gd 抽出。
 #
 # 由 controller 在 _ready 处实例化并注入：RewardSystem.new(ctrl)。
@@ -41,17 +44,17 @@ func roll_meta_choices() -> Array:
 	# 元进度三选一只保留「铁砧点数」兜底候选，避免给出无生效通道的假选项。
 	var meta_pool := [{
 		"kind": "anvil", "path": "",
-		"icon": "🔨", "label": "铁砧点数 +%d" % _ctrl.META_ANVIL_BONUS,
+		"icon": "🔨", "label": "铁砧点数 +%d" % BALANCE.meta_anvil_bonus,
 		"desc": "永久铁砧点数，用于铁砧抽取装备（盘外成长）",
 	}]
-	return meta_pool.slice(0, _ctrl.META_CHOICE_COUNT)   # 三选一：候选不足时全出
+	return meta_pool.slice(0, BALANCE.meta_choice_count)   # 三选一：候选不足时全出
 
 
 func on_meta_choice_chosen(opt: Dictionary) -> void:
 	match opt["kind"]:
 		"anvil":
-			_ctrl.meta["anvil_points"] += _ctrl.META_ANVIL_BONUS
-			_ctrl.hud._log("元进度：铁砧点数 +%d（共 %d）" % [_ctrl.META_ANVIL_BONUS, _ctrl.meta["anvil_points"]])
+			_ctrl.meta["anvil_points"] += BALANCE.meta_anvil_bonus
+			_ctrl.hud._log("元进度：铁砧点数 +%d（共 %d）" % [BALANCE.meta_anvil_bonus, _ctrl.meta["anvil_points"]])
 	_ctrl._save_meta()   # 元进度持久落盘；开新局（_full_reset）由 controller 编排层负责
 
 
@@ -92,7 +95,7 @@ func roll_boss_rewards(room) -> Array:
 				"kind": "boss_weapon", "path": p,
 				"icon": ElementCounter.label(elem),
 				"label": (wd.weapon_name if wd != null else p.get_file().get_basename()),
-				"desc": "新武器 · 进入转轮带（无数量上限）",
+				"desc": "新武器 · 进转轮带",
 			})
 	# ③ Boss 信物：占护符槽 1/3（CHARM_CAP），护符槽满则不出
 	if room.boss_relic_path != "" and _ctrl._sel_arr("passive").size() < _ctrl._cat_max("passive"):
@@ -101,7 +104,8 @@ func roll_boss_rewards(room) -> Array:
 			"kind": "boss_relic", "path": room.boss_relic_path,
 			"icon": (rd.icon if rd != null else "🏆"),
 			"label": (rd.item_name if rd != null else "Boss 信物"),
-			"desc": (rd.description if rd != null else "专属信物 · 占护符槽"),
+			"desc": "信物 · 占护符槽",
+			"tip": (rd.description if rd != null else "专属信物 · 占护符槽"),
 		})
 	cands.shuffle()
 	var out := []

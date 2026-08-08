@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="RoomData" load_steps=2 format=3]
+﻿[gd_resource type="Resource" script_class="RoomData" load_steps=2 format=3]
 
 [ext_resource type="Script" path="res://scripts/battle/room_data.gd" id="1"]
 
@@ -7,10 +7,6 @@ script = ExtResource("1")
 name = "终焉守望"
 hp = 370
 atk = 24
-jam = 0.26
-lock = 0.2
-chaos = 0.2
-heavy = 0.26
 element = "light"
 kind = "elite"
 act = 3

@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="RoomData" load_steps=2 format=3]
+﻿[gd_resource type="Resource" script_class="RoomData" load_steps=2 format=3]
 
 [ext_resource type="Script" path="res://scripts/battle/room_data.gd" id="1"]
 
@@ -7,10 +7,6 @@ script = ExtResource("1")
 name = "坍缩星核"
 hp = 195
 atk = 17
-jam = 0.18
-lock = 0.12
-chaos = 0.12
-heavy = 0.18
 element = "light"
 kind = "normal"
 act = 3

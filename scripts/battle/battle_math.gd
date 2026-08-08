@@ -47,8 +47,8 @@ static func buff_effect_name(effect: String) -> String:
 		_:             return effect
 
 # —— 本局全局乘区聚合 ——
-static func agg_power_flat(run_power_bonus: int, charm_power_bonus: int, player_buffs: Dictionary, gold_upgrades: Dictionary, power_step: int) -> float:
-	return float(run_power_bonus) + float(charm_power_bonus) + buff_power(player_buffs) + float(gold_upgrades["power"]) * power_step
+static func agg_power_flat(run_power_bonus: int, charm_power_bonus: int, player_buffs: Dictionary, track_power_flat: float) -> float:
+	return float(run_power_bonus) + float(charm_power_bonus) + buff_power(player_buffs) + track_power_flat
 
 static func agg_shield(player_buffs: Dictionary, charm_shield_trickle: int) -> float:
 	return buff_shield(player_buffs) + float(charm_shield_trickle)
@@ -56,30 +56,8 @@ static func agg_shield(player_buffs: Dictionary, charm_shield_trickle: int) -> f
 static func agg_regen(player_buffs: Dictionary, charm_heal_trickle: int) -> float:
 	return buff_regen(player_buffs) + float(charm_heal_trickle)
 
-static func agg_damage_mult(charm_damage_mult: float, player_buffs: Dictionary, gold_upgrades: Dictionary, joker_step: float, joker_cap_factor: float) -> float:
-	var j: float = 1.0 + min(float(gold_upgrades["joker"]) * joker_step, joker_cap_factor - 1.0)
-	return charm_damage_mult * buff_damage_mult(player_buffs) * j
+static func agg_damage_mult(charm_damage_mult: float, player_buffs: Dictionary) -> float:
+	return charm_damage_mult * buff_damage_mult(player_buffs)
 
 static func agg_symbol_weight_mod(run_symbol_bonus: Dictionary, sym) -> float:
 	return float(run_symbol_bonus.get(sym.resource_path, 0.0))
-
-# —— 状态符号查询（基于 pool）——
-static func status_base(pool: Array, type_str: String) -> float:
-	for p in pool:
-		var d: SymbolData = p[0]
-		if d.kind == "status" and d.status_type == type_str:
-			return d.base
-	return 0.0
-
-static func status_element(pool: Array, st: String) -> String:
-	for p in pool:
-		var d: SymbolData = p[0]
-		if d.kind == "status" and d.status_type == st:
-			return d.element
-	return "none"
-
-static func status_summary(stacks: Dictionary, status_names: Dictionary) -> String:
-	var parts: Array = []
-	for st in stacks.keys():
-		parts.append("%s+%d" % [status_names.get(st, st), stacks[st]])
-	return "/".join(parts)

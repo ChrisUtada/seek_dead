@@ -17,6 +17,7 @@ const REWARD_SCENE = preload("res://scenes/ui/reward_screen.tscn")
 const ANVIL_SCENE = preload("res://scenes/ui/anvil_screen.tscn")
 const SHOP_SCENE = preload("res://scenes/ui/shop_screen.tscn")
 const LOADOUT_SCENE = preload("res://scenes/ui/loadout_scene.tscn")
+const TRAIN_SCENE = preload("res://scenes/ui/train_screen.tscn")   # T28 训练房
 const BattleAnimator = preload("res://scripts/ui/battle_animator.gd")
 
 var controller   # DuelController 引用（运行时由 _ready 设置）
@@ -39,6 +40,7 @@ signal overlay_button_pressed                 # 失败弹层按钮（回整备�
 signal consumable_used(uid: String)           # 使用腰带消耗品
 signal shop_leave_requested                   # 离开商店（回房间歇态）
 signal anvil_back_requested                   # 铁砧返回整备
+signal train_continue_requested               # T28 训练房「继续」→ 推进下一房/元进度
 
 # ---- 公开语义接口（controller → HUD 单向调用，替代直接戳私有节点/字段；P2 解耦）----
 func build_all() -> void:
@@ -48,6 +50,7 @@ func build_all() -> void:
 	_build_anvil_screen()
 	_build_shop_screen()
 	_build_meta_screen()
+	_build_train_screen()
 	_show_loadout_screen()
 
 func set_reel_enabled(reel: int, enabled: bool) -> void:
@@ -89,6 +92,7 @@ var loadout_screen                     # 整备场景（scenes/ui/loadout_scene.
 ]
 var reward_screen                       # 奖励三选一覆盖层（reward_screen.tscn 实例）
 var meta_screen                         # 每局结束元进度三选一覆盖层（meta_screen.tscn 实例）
+var train_screen                        # T28 训练房覆盖层（train_screen.tscn 实例）
 
 var shop_screen                         # 商店覆盖层（shop_screen.tscn 实例）
 var anvil_screen                        # 铁砧锻造覆盖层（anvil_screen.tscn 实例）
@@ -112,6 +116,7 @@ var anvil_screen                        # 铁砧锻造覆盖层（anvil_screen.t
 @onready var enemy_armor_label = $Margin/Content/MainRow/EnemyPanel/VBox/EnemyArmorLabel
 @onready var enemy_intent_label = $Margin/Content/MainRow/EnemyPanel/VBox/EnemyIntentLabel
 @onready var enemy_status_label = $Margin/Content/MainRow/EnemyPanel/VBox/EnemyStatusLabel
+@onready var enemy_charge_label = $Margin/Content/MainRow/EnemyPanel/VBox/EnemyChargeLabel
 @onready var enemy_element_label = $Margin/Content/MainRow/EnemyPanel/VBox/EnemyElementLabel
 @onready var enemy_weak_label = $Margin/Content/MainRow/EnemyPanel/VBox/EnemyWeakLabel
 @onready var enemy_resist_label = $Margin/Content/MainRow/EnemyPanel/VBox/EnemyResistLabel
@@ -295,7 +300,7 @@ func _make_item_card(data: Resource, path: String, kind: String) -> Dictionary:
 					if sw == null or sw.symbol == null:
 						continue
 					parts.append("%s×%d" % [sw.symbol.label, int(sw.weight)])
-				line1 = " ".join(parts)
+				line1 = "⚔️ " + " ".join(parts)   # 临时前缀区分攻击武器（待美术替换）
 			# P5：整备屏显示强度轴（攻击力 + 命中率 + 特殊符号），让玩家理解「稀有度→强度」
 			var sp_name := "无"
 			if wd != null and wd.symbols != null:
@@ -368,17 +373,20 @@ func _show_reward_screen(is_boss: bool) -> void:
 
 func _make_reward_card(rw: RewardData) -> Button:
 	var card: ItemCard = ITEM_CARD.instantiate()
-	card.custom_minimum_size = Vector2(52, 36)
+	card.custom_minimum_size = Vector2(84, 60)
 	card.configure("%s %s" % [rw.icon, rw.label], rw.desc)
+	card.set_art(rw.art)
 	card.pressed.connect(reward_chosen.emit.bind(rw.id))
 	return card
 
 
-# BOSS 战利品卡（候选为 dict，点击调 _on_boss_reward_chosen）
+# BOSS 战利品卡（候选为 dict，点击调 _on_boss_reward_chosen；完整说明进 tooltip，卡片只放短文案）
 func _make_boss_reward_card(cand: Dictionary) -> Button:
 	var card: ItemCard = ITEM_CARD.instantiate()
-	card.custom_minimum_size = Vector2(52, 36)
+	card.custom_minimum_size = Vector2(84, 60)
 	card.configure("%s %s" % [cand.get("icon", ""), cand.get("label", "")], cand.get("desc", ""))
+	card.set_art(cand.get("art", null))
+	card.tooltip_text = String(cand.get("tip", cand.get("desc", "")))
 	card.pressed.connect(boss_reward_chosen.emit.bind(cand))
 	return card
 
@@ -391,6 +399,22 @@ func _build_meta_screen() -> void:
 	add_child(meta_screen)   # 必须先入树：configure 内访问 @onready 节点
 	meta_screen.configure(controller, self)
 	meta_screen.hide_screen()
+
+
+# T28 训练房：BOSS 战后当场分配训练点（升级轨道唯一货币）
+func _build_train_screen() -> void:
+	train_screen = TRAIN_SCENE.instantiate()
+	add_child(train_screen)   # 必须先入树：configure 内访问 @onready 节点
+	train_screen.configure(controller, self)
+	train_screen.hide_screen()
+
+
+func _show_train_screen() -> void:
+	train_screen.show_screen()
+
+
+func hide_train_screen() -> void:
+	train_screen.hide_screen()
 
 
 func _show_meta_choice() -> void:
@@ -422,7 +446,8 @@ func _refresh_shop() -> void:
 
 func _make_shop_card(offer: Dictionary) -> Button:
 	var card: ItemCard = ITEM_CARD.instantiate()
-	card.custom_minimum_size = Vector2(76, 56)
+	card.custom_minimum_size = Vector2(0, 46)
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var kind_name = {"weapon": "武器", "passive": "护符", "active": "物品", "skill": "技能"}.get(offer["kind"], "物品")
 	card.configure("%s%s · %s" % [_source_tag(offer["kind"]), kind_name, offer["name"]], "", TypeScale.TITLE, 0.0, 2)
 	var price = controller._shop_price(offer["kind"])   # 价格随当前持有数递增；卖出回落，换装成本=买卖价差（防刷价）
@@ -470,9 +495,10 @@ func _make_sell_card(title_text: String, sub_text: String, disabled: bool, cb: C
 
 func _make_upgrade_card(u: Dictionary) -> Button:
 	var card: ItemCard = ITEM_CARD.instantiate()
-	card.custom_minimum_size = Vector2(96, 60)
-	card.configure("%s %s Lv%d/%d" % [u["icon"], u["name"], u["level"], u["max"]], u["desc"], TypeScale.META, 90.0)
-	var status = "已满级" if u["maxed"] else ("%d 金" % u["cost"])
+	card.custom_minimum_size = Vector2(0, 42)   # 42 = ui_button 上下内边距 12 + 两行 9px 文字 + 余量，防挤压
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	card.configure("%s %s" % [u["icon"], u["name"]], "", TypeScale.META)
+	var status = "已满级" if u["maxed"] else ("Lv%d/%d · %d点" % [u["level"], u["max"], u["cost"]])
 	card.set_status(status, Palette.MUTED_DIM if u["maxed"] else (Palette.ACCENT_GOLD if u["can_afford"] else Palette.ENEMY))
 	card.disabled = (u["maxed"] or not u["can_afford"])
 	card.pressed.connect(gold_upgrade_requested.emit.bind(u["id"]))
@@ -718,7 +744,7 @@ func _cell_style(elem: String) -> StyleBoxFlat:
 func _refresh_cell(reel: int, row: int) -> void:
 	var b: Button = cells[reel][row]
 	var s: SymbolData = controller.state.grid[reel][row]
-	# S4：按「有效元素」着色。同一个 slash.tres 在火剑下是火、在铁剑下是无属性，
+	# S4：按「有效元素」着色。同一个共享符号（如 special.tres）在火剑下是火、在铁剑下是无属性，
 	# 靠边框/底色一眼分辨谁吃 ×1.5；元素为 none 时回落符号自身配色。
 	var elem = _cell_element(reel, row)
 	b.text = s.label
@@ -750,6 +776,12 @@ func _refresh_meta() -> void:
 	enemy_armor_label.visible = controller.state.enemy_armor_max > 0
 	enemy_armor_label.text = "护甲 %d/%d" % [max(controller.state.enemy_armor, 0), controller.state.enemy_armor_max]
 	enemy_status_label.text = "状态: " + ("无" if controller.state.enemy_status.is_empty() else controller._status_summary(controller.state.enemy_status))
+	# T21 元素充能条：克制命中进度（满额释放元素爆发）
+	if controller.state.charge_points > 0:
+		enemy_charge_label.text = "⚡充能 %d/%d（克制命中攒满爆发）" % [controller.state.charge_points, controller.BALANCE.charge_max]
+		enemy_charge_label.visible = true
+	else:
+		enemy_charge_label.visible = false
 	# M4+M6 本局加成概览
 	var parts := []
 	if controller.state.run_power_bonus + controller.state.charm_power_bonus > 0:
@@ -774,15 +806,31 @@ func _refresh_meta() -> void:
 	if controller.state.enemy_intent.is_empty():
 		enemy_intent_label.text = "意图: —"
 	else:
+		# T20：图标/名字读 IntentData（enemy_intent.data）；match 仅剩攻击/重击的数值格式分支
 		var t = controller.state.enemy_intent["type"]
+		var data: IntentData = controller.state.enemy_intent.get("data")
+		var icon: String = data.icon if data != null and data.icon != "" else ""
+		var name_txt: String = _intent_display_name(t)
+		if data != null and data.display_name != "":
+			name_txt = data.display_name
 		match t:
-			"attack": enemy_intent_label.text = "意图: ⚔ 攻击 %d" % controller.state.enemy_intent["value"]
-			"heavy":  enemy_intent_label.text = "意图: 💥 重击 %d" % controller.state.enemy_intent["value"]
-			"jam":    enemy_intent_label.text = "意图: ☣ 注废（用净化药剂）"
-			"lock":   enemy_intent_label.text = "意图: 🔒 锁轮（用净化药剂）"
-			"chaos":  enemy_intent_label.text = "意图: 🌀 乱权（用净化药剂）"
+			"attack": enemy_intent_label.text = "意图: %s%s %d" % [icon if icon != "" else "⚔", name_txt, controller.state.enemy_intent["value"]]
+			"heavy":  enemy_intent_label.text = "意图: %s%s %d" % [icon if icon != "" else "💥", name_txt, controller.state.enemy_intent["value"]]
+			"jam", "lock", "chaos":
+				enemy_intent_label.text = "意图: %s%s（用净化药剂）" % [icon if icon != "" else "☣", name_txt]
 			"none":   enemy_intent_label.text = "意图: —"
-			_:        enemy_intent_label.text = "意图: —"
+			_:        enemy_intent_label.text = "意图: %s%s" % [icon if icon != "" else "", name_txt]
+
+
+func _intent_display_name(t: String) -> String:
+	# T20：IntentData.display_name 优先；未定义时回落默认名（新意图类型兜底）
+	match t:
+		"jam":    return "注废"
+		"lock":   return "锁轮"
+		"chaos":  return "乱权"
+		"heavy":  return "重击"
+		"attack": return "攻击"
+	return t
 
 
 func _show_overlay(title: String, btn_text: String) -> void:
@@ -803,6 +851,18 @@ func _log(msg: String) -> void:
 # 玩家面板装备图标刷新：武器取首个符号 label emoji（无符号回退 ⚔️），
 # 护符取 ItemData.icon emoji；技能取 SkillData.icon（回退 ✦）。tooltip = 名字(+ 描述)。
 # 每次清空旧的 WIcon_/CIcon_/SIcon_ 子节点后重建（数量极小，无性能问题）。
+# 临时图标区分（T21 配套，待美术资源替换）：
+# 攻击武器 = 「⚔️ + 元素」；技能/护符保持自身 icon——避免武器取符号 label 与技能共用同一元素符号分不清
+func _element_icon(elem: String) -> String:
+	match elem:
+		"fire":   return "🔥"
+		"ice":    return "❄️"
+		"poison": return "☠️"
+		"light":  return "✨"
+		"dark":   return "🌑"
+		_:        return "⚔️"
+
+
 func _refresh_gear_icons() -> void:
 	if weapons_row == null or charms_row == null or skills_row == null:
 		return
@@ -823,11 +883,8 @@ func _refresh_gear_icons() -> void:
 		if wd == null:
 			continue
 		var icon := "⚔️"
-		if "symbols" in wd and wd.symbols != null and not wd.symbols.is_empty():
-			for sw in wd.symbols:
-				if sw != null and sw.symbol != null:
-					icon = sw.symbol.label
-					break
+		if wd != null and "element" in wd:
+			icon = "⚔️" + _element_icon(String(wd.element))
 		var tip: String = wd.weapon_name if "weapon_name" in wd else path.get_file().get_basename()
 		var lbl = Label.new()
 		lbl.name = "WIcon_" + path.get_file().get_basename()

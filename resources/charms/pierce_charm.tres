@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+category = "passive"
+item_id = "pierce_charm"
+item_name = "破甲符"
+description = "每符号伤害 25% 概率直击 HP（穿透护甲），破甲轴投资（T2）。"
+icon = "🗡️"
+effect = "armor_pierce"
+mult_value = 0.25

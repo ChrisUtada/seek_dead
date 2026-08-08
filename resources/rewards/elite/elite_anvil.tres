@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="RewardData" load_steps=2 format=3]
+﻿[gd_resource type="Resource" script_class="RewardData" load_steps=2 format=3]
 
 [ext_resource type="Script" path="res://scripts/items/reward_data.gd" id="1"]
 
@@ -7,5 +7,5 @@ script = ExtResource("1")
 id = "elite_anvil"
 icon = "🔨"
 label = "铁砧结晶"
-desc = "铁砧点数 +2（持久，用于武器符号权重锻造）"
+desc = "铁砧点数 +2（跨局）"
 value = 2

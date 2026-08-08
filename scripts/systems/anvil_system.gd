@@ -1,6 +1,9 @@
 class_name AnvilSystem
 extends RefCounted
 
+# T22：平衡常量收敛于 BalanceConfig（balance_config.tres，与 ShopConfig 同模式）
+const BALANCE = preload("res://resources/config/balance_config.tres")
+
 # M6 铁砧锻造（gacha：摇奖 / 保底 / 图鉴里程碑 / 点数 drip）——从 duel_controller.gd 抽出。
 #
 # 由 controller 在 _ready 处实例化并注入：AnvilSystem.new(ctrl)。
@@ -25,21 +28,17 @@ func _init(ctrl: DuelController) -> void:
 # 公共编排入口
 # ---------------------------------------------------------------------------
 
-# 纯 gacha 一次：扣点 → 摇单格 → 结算 → 写 last_anvil_drops（三连相同）→ 落盘。
-# 返回三连 drops 数组；点数不足时日志并返回空数组（调用方据此提前 return）。
+# 纯 gacha 一次：扣点 → 摇单格 → 结算 → 写 last_anvil_drops（单格结果）→ 落盘。
+# 返回 drops 数组（单格）；点数不足时日志并返回空数组（调用方据此提前 return）。
 func roll_anvil() -> Array:
-	if _ctrl.meta["anvil_points"] < _ctrl.ANVIL_ROLL_COST:
-		_ctrl.hud._log("铁砧点数不足（需 %d）" % _ctrl.ANVIL_ROLL_COST)
+	if _ctrl.meta["anvil_points"] < BALANCE.anvil_roll_cost:
+		_ctrl.hud._log("铁砧点数不足（需 %d）" % BALANCE.anvil_roll_cost)
 		return []
-	_ctrl.meta["anvil_points"] -= _ctrl.ANVIL_ROLL_COST
+	_ctrl.meta["anvil_points"] -= BALANCE.anvil_roll_cost
 	var result = _roll_anvil_cell()           # 摇出单格结果（含 blank 可能）
 	_resolve_anvil_drop(result)               # 结算一次：授予 / 返还 / 保底计数
-	# 仪式感：三格渲染为同一结果（视觉三连，但实际只授予一件）
-	var drops: Array[Dictionary] = []
-	for i in 3:
-		var d = result.duplicate()
-		d["cell"] = i
-		drops.append(d)
+	result["cell"] = 0
+	var drops: Array[Dictionary] = [result]
 	last_anvil_drops = drops
 	_ctrl._save_meta()
 	return drops
@@ -85,15 +84,15 @@ func award_meta(is_boss: bool) -> void:
 		if _ctrl.room_index >= 0 and _ctrl.room_index < _ctrl.ROOMS.size():
 			kind = _ctrl.ROOMS[_ctrl.room_index].kind
 		amt = 3 if kind == "elite" else 1
-	var remain = _ctrl.ANVIL_PER_RUN_CAP - anvil_run_awarded
+	var remain = BALANCE.anvil_per_run_cap - anvil_run_awarded
 	if remain <= 0:
-		_ctrl.hud._log("铁砧点数本局已达上限 %d（本次 +0）" % _ctrl.ANVIL_PER_RUN_CAP)
+		_ctrl.hud._log("铁砧点数本局已达上限 %d（本次 +0）" % BALANCE.anvil_per_run_cap)
 		return
 	amt = mini(amt, remain)
 	anvil_run_awarded += amt
 	_ctrl.meta["anvil_points"] += amt
 	_ctrl._save_meta()
-	_ctrl.hud._log("铁砧点数 +%d（本局 %d/%d，共 %d）" % [amt, anvil_run_awarded, _ctrl.ANVIL_PER_RUN_CAP, _ctrl.meta["anvil_points"]])
+	_ctrl.hud._log("铁砧点数 +%d（本局 %d/%d，共 %d）" % [amt, anvil_run_awarded, BALANCE.anvil_per_run_cap, _ctrl.meta["anvil_points"]])
 
 
 # ---------------------------------------------------------------------------
@@ -102,11 +101,11 @@ func award_meta(is_boss: bool) -> void:
 
 func _roll_anvil_cell() -> Dictionary:
 	# 单格：10% 空白；保底触发且仍有未拥有 → 强制从 not-yet-owned 抽；否则按 rarity 加权抽
-	if randf() < _ctrl.ANVIL_BLANK_CHANCE:
+	if randf() < BALANCE.anvil_blank_chance:
 		return {"kind": "blank"}
 	var pool = _anvil_pool()
 	var not_yet = _anvil_not_yet_owned(pool)
-	if _ctrl.meta["anvil_pity"] >= _ctrl.ANVIL_PITY_MAX and not_yet.size() > 0:
+	if _ctrl.meta["anvil_pity"] >= BALANCE.anvil_pity_max and not_yet.size() > 0:
 		var p = not_yet[randi() % not_yet.size()]
 		return _anvil_drop_for(p)
 	var total := 0.0
@@ -148,7 +147,7 @@ func _anvil_rarity_weight(p: String) -> float:
 	var r := "common"
 	if res != null and "rarity" in res:
 		r = res.rarity
-	return float(_ctrl.ANVIL_RARITY_WEIGHT.get(r, _ctrl.ANVIL_RARITY_WEIGHT["common"]))
+	return float(BALANCE.anvil_rarity_weight.get(r, BALANCE.anvil_rarity_weight["common"]))
 
 
 func _anvil_pool() -> Array:
@@ -196,7 +195,7 @@ func _resolve_anvil_drop(d: Dictionary) -> void:
 		return
 	var p = d["path"]
 	if _anvil_is_owned(p):
-		var rb = int(_ctrl.ANVIL_DUPE_REFUND.get(d["rarity"], _ctrl.ANVIL_DUPE_REFUND["common"]))
+		var rb = int(BALANCE.anvil_dupe_refund.get(d["rarity"], BALANCE.anvil_dupe_refund["common"]))
 		_ctrl.meta["anvil_points"] += rb
 		_ctrl.meta["anvil_pity"] += 1
 		d["is_new"] = false
@@ -222,11 +221,11 @@ func _anvil_collection_pct() -> float:
 
 func _check_collection_milestones() -> void:
 	var pct = _anvil_collection_pct()
-	for i in _ctrl.ANVIL_MILESTONE_PCT.size():
-		var thr = _ctrl.ANVIL_MILESTONE_PCT[i]
+	for i in BALANCE.anvil_milestone_pct.size():
+		var thr = BALANCE.anvil_milestone_pct[i]
 		if pct >= thr and not _ctrl.meta["collection_milestones"].has(i):
 			_ctrl.meta["collection_milestones"].append(i)
-			var bonus = int(_ctrl.ANVIL_MILESTONE_BONUS[i])
+			var bonus = int(BALANCE.anvil_milestone_bonus[i])
 			_ctrl.meta["anvil_points"] += bonus
 			_ctrl.hud._log("收藏里程碑 %.0f%%：铁砧点数 +%d（共 %d）" % [thr * 100, bonus, _ctrl.meta["anvil_points"]])
 

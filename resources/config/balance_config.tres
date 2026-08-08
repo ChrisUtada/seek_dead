@@ -1,0 +1,37 @@
+[gd_resource type="Resource" script_class="BalanceConfig" format=3]
+
+[ext_resource type="Script" path="res://scripts/systems/balance_config.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+gold_pool_weight = 3.0
+gold_per_coin = 1
+ante_act_step_hp = 1.75
+ante_act_step_atk = 1.46
+ante_room_step_hp = 1.15
+ante_room_step_atk = 1.10
+player_dmg_mult = 1.5
+status_dmg_mult = 3.0
+miss_floor = 0.08
+miss_ceil = 0.30
+base_power_ref = 32.0
+chain_max = 4
+chain_step = 1.5
+crit_chance = 0.20
+charm_mult_cap = 6.0
+loadout_min = 1
+slot_init = {"weapon": 1, "skill": 1, "active": 1, "passive": 1}
+meta_anvil_bonus = 2
+meta_choice_count = 3
+anvil_roll_cost = 10
+anvil_blank_chance = 0.10
+anvil_pity_max = 10
+anvil_per_run_cap = 40
+anvil_dupe_refund = {"common": 3, "uncommon": 5, "rare": 7, "epic": 10}
+anvil_rarity_weight = {"common": 100, "uncommon": 40, "rare": 12, "epic": 3}
+anvil_milestone_pct = [0.25, 0.5, 0.75, 1.0]
+anvil_milestone_bonus = [50, 100, 150, 200]
+charge_max = 5
+charge_burst_pct = 0.15
+train_boss_reward = 1
+train_per_level = 1

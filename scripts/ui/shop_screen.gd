@@ -13,36 +13,31 @@ var _open := false             # 抽屉是否处于展开态（供外部 toggle 
 @onready var bg = $Bg
 @onready var title_label = $Margin/Content/TitleLabel
 @onready var gold_label = $Margin/Content/GoldLabel
-@onready var sub_label = $Margin/Content/SubLabel
-@onready var buy_panel = $Margin/Content/Scroll/Inner/BuyPanel
-@onready var sell_panel = $Margin/Content/Scroll/Inner/SellPanel
-@onready var up_panel = $Margin/Content/Scroll/Inner/UpPanel
-@onready var shop_grid = $Margin/Content/Scroll/Inner/BuyPanel/ShopGrid
-@onready var weapon_list = $Margin/Content/Scroll/Inner/SellPanel/SellBox/WeaponList
-@onready var skill_list = $Margin/Content/Scroll/Inner/SellPanel/SellBox/SkillList
-@onready var charm_list = $Margin/Content/Scroll/Inner/SellPanel/SellBox/CharmList
-@onready var consum_list = $Margin/Content/Scroll/Inner/SellPanel/SellBox/ConsumList
-@onready var up_grid = $Margin/Content/Scroll/Inner/UpPanel/UpGrid
+@onready var buy_panel = $Margin/Content/BuyPanel
+@onready var sell_panel = $Margin/Content/SellPanel
+@onready var shop_grid = $Margin/Content/BuyPanel/ShopGrid
+@onready var weapon_list = $Margin/Content/SellPanel/SellBox/WeaponList
+@onready var skill_list = $Margin/Content/SellPanel/SellBox/SkillList
+@onready var charm_list = $Margin/Content/SellPanel/SellBox/CharmList
+@onready var consum_list = $Margin/Content/SellPanel/SellBox/ConsumList
 @onready var shop_tab_buy_btn = $Margin/Content/TabBar/BuyTab
 @onready var shop_tab_sell_btn = $Margin/Content/TabBar/SellTab
-@onready var shop_tab_up_btn = $Margin/Content/TabBar/UpTab
 @onready var leave_btn = $Margin/Content/Bot/LeaveBtn
 
 func configure(ctrl, h: BattleHud) -> void:
 	controller = ctrl
 	hud = h
 	bg.color = Palette.BG_REWARD
-	title_label.text = "🛒 商店 · 用金币投资战力"
-	sub_label.text = "金币投资战力 · 购入带装备 / 卖出回收 / 升级深化乘区（每局清零）"
-	# 三页签 + 关闭按钮为静态节点（shop_screen.tscn），这里只接线
+	title_label.text = "🛒 商店"
+	# 两页签（T28：升级页已迁出为 BOSS 战后的训练房）
 	shop_tab_buy_btn.connect("pressed", show_tab.bind("buy"))
 	shop_tab_sell_btn.connect("pressed", show_tab.bind("sell"))
-	shop_tab_up_btn.connect("pressed", show_tab.bind("up"))
 	leave_btn.connect("pressed", hud.shop_leave_requested.emit)
 	show_tab("buy")
 
 func show_screen() -> void:
-	controller._roll_shop()
+	# 货架由 controller 在进入房间歇态时生成一次（_enter_interroom → _roll_shop），
+	# 本屏只渲染——反复开关商店不刷新货架（防「买完再开刷货架」）
 	refresh()
 	visible = true
 	_open = true
@@ -64,7 +59,6 @@ func refresh() -> void:
 	for offer in controller.state.shop_offers:
 		shop_grid.add_child(hud._make_shop_card(offer))
 	_refresh_shop_sell()
-	_refresh_shop_up()
 
 func _refresh_shop_sell() -> void:
 	_sell_fill(weapon_list, "weapon")
@@ -102,26 +96,12 @@ func show_tab(tab: String) -> void:
 		return
 	buy_panel.visible = (tab == "buy")
 	sell_panel.visible = (tab == "sell")
-	up_panel.visible = (tab == "up")
 	var active = Palette.ACCENT_GOLD
 	var idle = Palette.MUTED
 	if shop_tab_buy_btn != null:
 		shop_tab_buy_btn.add_theme_color_override("font_color", active if tab == "buy" else idle)
 	if shop_tab_sell_btn != null:
 		shop_tab_sell_btn.add_theme_color_override("font_color", active if tab == "sell" else idle)
-	if shop_tab_up_btn != null:
-		shop_tab_up_btn.add_theme_color_override("font_color", active if tab == "up" else idle)
-	if tab == "up":
-		_refresh_shop_up()
-
-func _refresh_shop_up() -> void:
-	if up_grid == null:
-		return
-	for c in up_grid.get_children():
-		up_grid.remove_child(c)
-		c.queue_free()
-	for u in controller._gold_upgrade_defs():
-		up_grid.add_child(hud._make_upgrade_card(u))
 
 func hide_screen() -> void:
 	if not visible:

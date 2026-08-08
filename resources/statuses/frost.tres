@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="StatusDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/status_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "frost"
+name = "霜"
+icon = "☣❄️"
+base = 0.0
+element = "ice"
+decay = 1
+desc = "霜冻：冰属性（当前无直伤，机制预留）"

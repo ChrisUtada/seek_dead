@@ -10,6 +10,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+z_index = 90
 script = ExtResource("1_script")
 
 [node name="Bg" type="ColorRect" parent="." unique_id=262427596]

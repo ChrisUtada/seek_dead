@@ -8,10 +8,7 @@ extends Resource
 @export var name: String = ""
 @export var hp: int = 0
 @export var atk: int = 0
-@export var jam: float = 0.0      # 注废意图概率
-@export var lock: float = 0.0     # 锁轮意图概率
-@export var chaos: float = 0.0    # 乱权意图概率
-@export var heavy: float = 0.0    # 重击意图概率（其余=普攻）
+@export var intents: Array[IntentData] = []  # T20：本房意图加权表（空 = 按 kind 取默认三档表，见 DuelController.DEFAULT_INTENT_WEIGHTS）
 @export var armor: int = 0          # 护甲（扁平池）：伤害先破甲后掉血；0 = 无护甲（RPG 式破甲机制）
 @export var element: String = "none"  # fire|ice|poison|light|dark|none（单向克制：敌人属性）
 @export var kind: String = "normal"    # normal|elite|boss（房间类型；boss 由 _is_boss_room 判定专属机制）

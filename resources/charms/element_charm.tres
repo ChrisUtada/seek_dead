@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+category = "passive"
+item_id = "element_charm"
+item_name = "元素契印"
+description = "元素克制倍率额外 +0.2（×1.5 → ×1.7，仅克制时生效），元素克制流投资（T2）。"
+icon = "✨"
+effect = "element_boost"
+mult_value = 0.2

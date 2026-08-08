@@ -143,7 +143,10 @@ func _on_char_pressed(cat: String) -> void:
 
 func _on_anvil_pressed() -> void:
 	# 铁砧是 hud 的子覆盖层：先显 hud 再开，并隐藏本 2D 场景
+	# ⚠ CanvasLayer（UILayer=layer 10）不随父级 visible 级联——必须显式隐藏，否则武器栏/确认按钮盖在铁砧上
 	visible = false
+	if _ui_layer != null:
+		_ui_layer.visible = false
 	hud.show()
 	hud._show_anvil_screen()
 

@@ -19,13 +19,13 @@ func configure(ctrl, h: BattleHud) -> void:
 	controller = ctrl
 	hud = h
 	dimmer.color = Palette.BG_OVERLAY
-	sub_label.text = "选择一项奖励带入后续房间（Roguelike 构筑，跳过则不取）"
+	sub_label.text = "选择一项（跳过则不取）"
 	var sp = Control.new()
 	sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bot.add_child(sp)
 	var skip_btn = UI_BUTTON.instantiate()
 	skip_btn.text = "跳过 ▶"
-	skip_btn.custom_minimum_size = Vector2(120, 40)
+	skip_btn.custom_minimum_size = Vector2(96, 30)
 	skip_btn.pressed.connect(hud.reward_skip_requested.emit)
 	bot.add_child(skip_btn)
 
@@ -39,15 +39,15 @@ func show_screen(is_boss: bool) -> void:
 	var choices = controller.state.reward_choices
 	var kind = controller.state.ROOMS[controller.state.room_index].kind
 	if is_boss:
-		title_label.text = "★ BOSS 战利品！选择一项（主题武器 / 强化券 / 信物）"
+		title_label.text = "★ BOSS 战利品"
 		for rw in choices:
 			reward_grid.add_child(hud._make_boss_reward_card(rw))
 	elif kind == "elite":
-		title_label.text = "⚔ 精英房 · 战前补给（选择一项备战）"
+		title_label.text = "⚔ 精英 · 战前补给"
 		for rw in choices:
 			reward_grid.add_child(hud._make_reward_card(rw))
 	else:
-		title_label.text = "胜利！选择一项房奖励"
+		title_label.text = "胜利！选一项奖励"
 		for rw in choices:
 			reward_grid.add_child(hud._make_reward_card(rw))
 	visible = true

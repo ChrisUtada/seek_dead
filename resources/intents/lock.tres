@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="IntentData" format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/intent_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "lock"
+display_name = "锁轮"
+icon = "🔒"
+weight = 1.0
+purifiable = true
+value_mult = 0.0

@@ -76,7 +76,7 @@ Button/colors/font_color_hover = Color(0.98, 0.97, 0.93, 1)
 Button/colors/font_color_pressed = Color(0.80, 0.78, 0.74, 1)
 Button/colors/font_color_disabled = Color(0.55, 0.55, 0.60, 1)
 Button/fonts/font = ExtResource("von_btn")
-Button/fonts/font_size = 11
+Button/fonts/font_size = 10
 
 [node name="Button" type="Button"]
 theme = SubResource("theme_btn")

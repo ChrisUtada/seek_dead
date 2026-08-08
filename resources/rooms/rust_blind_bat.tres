@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="RoomData" load_steps=2 format=3]
+﻿[gd_resource type="Resource" script_class="RoomData" load_steps=2 format=3]
 
 [ext_resource type="Script" path="res://scripts/battle/room_data.gd" id="1"]
 
@@ -7,10 +7,6 @@ script = ExtResource("1")
 name = "锈盲蝠"
 hp = 75
 atk = 9
-jam = 0.12
-lock = 0.08
-chaos = 0.08
-heavy = 0.12
 element = "ice"
 kind = "normal"
 act = 1

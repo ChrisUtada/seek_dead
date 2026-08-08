@@ -1,12 +1,15 @@
-[gd_resource type="Resource" script_class="GoldUpgradeDef" load_steps=2 format=3]
+﻿[gd_resource type="Resource" script_class="GoldUpgradeDef" load_steps=2 format=3]
 
 [ext_resource type="Script" path="res://scripts/systems/gold_upgrade_def.gd" id="1"]
 
 [resource]
 script = ExtResource("1")
 id = "power"
+effect = "power"
+per_level = 4.0
+bind = "training"
 icon = "🗡"
-name = "锋锐研磨"
+name = "训练：锋锐"
 base = 6
 step = 4
-max = 6
+max = 3

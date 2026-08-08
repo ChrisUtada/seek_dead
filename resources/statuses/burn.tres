@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="StatusDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/status_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "burn"
+name = "燃"
+icon = "☣🔥"
+base = 4.0
+element = "fire"
+decay = 1
+desc = "灼烧：每回合火属性伤害"

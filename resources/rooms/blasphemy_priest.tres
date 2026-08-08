@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="RoomData" load_steps=2 format=3]
+﻿[gd_resource type="Resource" script_class="RoomData" load_steps=2 format=3]
 
 [ext_resource type="Script" path="res://scripts/battle/room_data.gd" id="1"]
 
@@ -7,10 +7,6 @@ script = ExtResource("1")
 name = "邪颂祭司"
 hp = 255
 atk = 19
-jam = 0.22
-lock = 0.16
-chaos = 0.16
-heavy = 0.22
 element = "poison"
 kind = "elite"
 act = 2

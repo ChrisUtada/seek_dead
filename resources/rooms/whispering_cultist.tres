@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="RoomData" load_steps=3 format=3]
+﻿[gd_resource type="Resource" script_class="RoomData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/battle/room_data.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/battle/gimmicks/whisper_lock_gimmick.gd" id="2"]
@@ -8,10 +8,6 @@ script = ExtResource("1")
 name = "呓语教徒"
 hp = 290
 atk = 20
-jam = 0.25
-lock = 0.2
-chaos = 0.2
-heavy = 0.2
 element = "dark"
 kind = "boss"
 act = 2

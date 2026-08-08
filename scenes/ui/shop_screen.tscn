@@ -1,4 +1,4 @@
-[gd_scene load_steps=3 format=3]
+﻿[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/shop_screen.gd" id="1_script"]
 [ext_resource type="PackedScene" path="res://scenes/ui/ui_button.tscn" id="2_btn"]
@@ -15,6 +15,7 @@ offset_top = 0.0
 offset_right = 0.0
 offset_bottom = 0.0
 mouse_filter = 2
+z_index = 90
 script = ExtResource("1_script")
 
 [node name="Bg" type="ColorRect" parent="."]
@@ -29,14 +30,14 @@ layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-theme_override_constants/margin_left = 18
-theme_override_constants/margin_top = 14
-theme_override_constants/margin_right = 18
-theme_override_constants/margin_bottom = 14
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 8
 
 [node name="Content" type="VBoxContainer" parent="Margin"]
 layout_mode = 2
-theme_override_constants/separation = 6
+theme_override_constants/separation = 4
 
 [node name="TitleLabel" type="Label" parent="Margin/Content"]
 layout_mode = 2
@@ -48,136 +49,98 @@ layout_mode = 2
 theme_type_variation = &"GoldLabel"
 horizontal_alignment = 1
 
-[node name="SubLabel" type="Label" parent="Margin/Content"]
-layout_mode = 2
-theme_type_variation = &"SubLabel"
-horizontal_alignment = 1
-
 [node name="TabBar" type="HBoxContainer" parent="Margin/Content"]
 layout_mode = 2
-theme_override_constants/separation = 6
+theme_override_constants/separation = 4
 
 [node name="BuyTab" parent="Margin/Content/TabBar" instance=ExtResource("2_btn")]
-custom_minimum_size = Vector2(110, 34)
+custom_minimum_size = Vector2(110, 30)
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 text = "📥 购入"
 
 [node name="SellTab" parent="Margin/Content/TabBar" instance=ExtResource("2_btn")]
-custom_minimum_size = Vector2(110, 34)
+custom_minimum_size = Vector2(110, 30)
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 text = "📤 卖出"
 
-[node name="UpTab" parent="Margin/Content/TabBar" instance=ExtResource("2_btn")]
-custom_minimum_size = Vector2(110, 34)
-layout_mode = 2
-theme_override_font_sizes/font_size = 9
-text = "⬆ 升级"
-
-[node name="Scroll" type="ScrollContainer" parent="Margin/Content"]
+[node name="BuyPanel" type="VBoxContainer" parent="Margin/Content"]
 layout_mode = 2
 size_flags_vertical = 3
-size_flags_horizontal = 3
+theme_override_constants/separation = 4
 
-[node name="Inner" type="VBoxContainer" parent="Margin/Content/Scroll"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 14
-
-[node name="BuyPanel" type="VBoxContainer" parent="Margin/Content/Scroll/Inner"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 6
-
-[node name="BuyTitle" type="Label" parent="Margin/Content/Scroll/Inner/BuyPanel"]
+[node name="BuyTitle" type="Label" parent="Margin/Content/BuyPanel"]
 layout_mode = 2
 horizontal_alignment = 1
-text = "📥 购入（带入后续房间）"
-theme_override_font_sizes/font_size = 11
+text = "购入"
+theme_override_font_sizes/font_size = 10
 
-[node name="ShopGrid" type="GridContainer" parent="Margin/Content/Scroll/Inner/BuyPanel"]
+[node name="ShopGrid" type="GridContainer" parent="Margin/Content/BuyPanel"]
 layout_mode = 2
 columns = 3
-theme_override_constants/h_separation = 8
-theme_override_constants/v_separation = 8
+theme_override_constants/h_separation = 4
+theme_override_constants/v_separation = 4
 
-[node name="SellPanel" type="VBoxContainer" parent="Margin/Content/Scroll/Inner"]
+[node name="SellPanel" type="VBoxContainer" parent="Margin/Content"]
 layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 6
+size_flags_vertical = 3
+theme_override_constants/separation = 4
 
-[node name="SellTitle" type="Label" parent="Margin/Content/Scroll/Inner/SellPanel"]
+[node name="SellTitle" type="Label" parent="Margin/Content/SellPanel"]
 layout_mode = 2
 horizontal_alignment = 1
-text = "📤 卖出（回收约50%金币 · 释放槽位）"
-theme_override_font_sizes/font_size = 11
+text = "卖出"
+theme_override_font_sizes/font_size = 10
 
-[node name="SellBox" type="HBoxContainer" parent="Margin/Content/Scroll/Inner/SellPanel"]
+[node name="SellBox" type="HBoxContainer" parent="Margin/Content/SellPanel"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 6
+theme_override_constants/separation = 4
 
-[node name="WeaponList" type="VBoxContainer" parent="Margin/Content/Scroll/Inner/SellPanel/SellBox"]
+[node name="WeaponList" type="VBoxContainer" parent="Margin/Content/SellPanel/SellBox"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 3
+theme_override_constants/separation = 2
 
-[node name="WeaponTitle" type="Label" parent="Margin/Content/Scroll/Inner/SellPanel/SellBox/WeaponList"]
+[node name="WeaponTitle" type="Label" parent="Margin/Content/SellPanel/SellBox/WeaponList"]
 layout_mode = 2
 horizontal_alignment = 1
 text = "武器"
-theme_override_font_sizes/font_size = 10
+theme_override_font_sizes/font_size = 9
 
-[node name="SkillList" type="VBoxContainer" parent="Margin/Content/Scroll/Inner/SellPanel/SellBox"]
+[node name="SkillList" type="VBoxContainer" parent="Margin/Content/SellPanel/SellBox"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 3
+theme_override_constants/separation = 2
 
-[node name="SkillTitle" type="Label" parent="Margin/Content/Scroll/Inner/SellPanel/SellBox/SkillList"]
+[node name="SkillTitle" type="Label" parent="Margin/Content/SellPanel/SellBox/SkillList"]
 layout_mode = 2
 horizontal_alignment = 1
 text = "技能"
-theme_override_font_sizes/font_size = 10
+theme_override_font_sizes/font_size = 9
 
-[node name="CharmList" type="VBoxContainer" parent="Margin/Content/Scroll/Inner/SellPanel/SellBox"]
+[node name="CharmList" type="VBoxContainer" parent="Margin/Content/SellPanel/SellBox"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 3
+theme_override_constants/separation = 2
 
-[node name="CharmTitle" type="Label" parent="Margin/Content/Scroll/Inner/SellPanel/SellBox/CharmList"]
+[node name="CharmTitle" type="Label" parent="Margin/Content/SellPanel/SellBox/CharmList"]
 layout_mode = 2
 horizontal_alignment = 1
 text = "护符"
-theme_override_font_sizes/font_size = 10
+theme_override_font_sizes/font_size = 9
 
-[node name="ConsumList" type="VBoxContainer" parent="Margin/Content/Scroll/Inner/SellPanel/SellBox"]
+[node name="ConsumList" type="VBoxContainer" parent="Margin/Content/SellPanel/SellBox"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 3
+theme_override_constants/separation = 2
 
-[node name="ConsumTitle" type="Label" parent="Margin/Content/Scroll/Inner/SellPanel/SellBox/ConsumList"]
+[node name="ConsumTitle" type="Label" parent="Margin/Content/SellPanel/SellBox/ConsumList"]
 layout_mode = 2
 horizontal_alignment = 1
 text = "消耗品"
-theme_override_font_sizes/font_size = 10
-
-[node name="UpPanel" type="VBoxContainer" parent="Margin/Content/Scroll/Inner"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 6
-
-[node name="UpTitle" type="Label" parent="Margin/Content/Scroll/Inner/UpPanel"]
-layout_mode = 2
-horizontal_alignment = 1
-text = "⬆ 金币升级（深化已有乘区 · 每局清零）"
-theme_override_font_sizes/font_size = 11
-
-[node name="UpGrid" type="GridContainer" parent="Margin/Content/Scroll/Inner/UpPanel"]
-layout_mode = 2
-columns = 2
-theme_override_constants/h_separation = 8
-theme_override_constants/v_separation = 8
+theme_override_font_sizes/font_size = 9
 
 [node name="Bot" type="HBoxContainer" parent="Margin/Content"]
 layout_mode = 2
@@ -187,7 +150,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 
 [node name="LeaveBtn" parent="Margin/Content/Bot" instance=ExtResource("2_btn")]
-custom_minimum_size = Vector2(140, 40)
+custom_minimum_size = Vector2(100, 30)
 layout_mode = 2
 text = "关闭 ✕"
 
