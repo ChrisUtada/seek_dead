@@ -1545,7 +1545,12 @@ func _contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> vo
 			_push_dmg_line(acc, sym, elem, flat, bonus, mult, em, dv, crit_mult_val)
 		# 2026-08-07 重构：shield/heal 不吃武器攻击力/克制/元进度——只 = 符号 base × 连线 × 暴击（治疗/护盾符号保持小值，来自技能/房奖励）
 		"shield":  acc["shield"]  += sym.base * mult * crit_mult_val
-		"heal":    acc["heal"]    += sym.base * mult * crit_mult_val
+		# 2026-08-07 治疗术倍率表（方案 A）：1连×1.0 / 2连×2.5 / 3连×5.0；
+		# 不吃暴击/连线精通/克制——治疗规则简单可预期；3连标记 heal_triple 供溢出转护盾
+		"heal":
+			acc["heal"] += sym.base * [1.0, 2.5, 5.0][mini(raw - 1, 2)]
+			if raw >= 3:
+				acc["heal_triple"] = true
 		"status":  acc["status_stacks"][sym.status_type] = acc["status_stacks"].get(sym.status_type, 0) + mult * crit_mult_val
 		"special":
 			# special（火焰法杖等专属高伤符号，2026-08-07 起与 damage 同源；三连同样必暴/连锁/破甲机制）
@@ -1595,7 +1600,7 @@ func _push_dmg_line(acc: Dictionary, sym: SymbolData, elem: String, flat, bonus,
 # 2026-08-07：重转机制移除，单次结算（chain_mult 参数退役）
 func _evaluate() -> void:
 	hud._clear_badges()
-	var acc = { "dmg": 0, "shield": 0, "heal": 0, "status_stacks": {}, "special": 0, "lines": [], "pierce": 0.0, "counter_triple": false, "triple": false }
+	var acc = { "dmg": 0, "shield": 0, "heal": 0, "status_stacks": {}, "special": 0, "lines": [], "pierce": 0.0, "counter_triple": false, "triple": false, "heal_triple": false }
 	_eval_adv = false
 	_eval_dis = false
 
@@ -1664,9 +1669,18 @@ func _evaluate() -> void:
 		hud._popup("🛡+%d" % acc["shield"], Palette.POP_SHIELD, hud._player_sprite_anchor())
 		hud._log("获得 %d 护盾" % acc["shield"])
 	if acc["heal"] > 0:
-		player_hp = min(player_hp_max, player_hp + acc["heal"])
-		hud._popup("❤+%d" % acc["heal"], Palette.POP_HEAL, hud._player_sprite_anchor())
-		hud._log("回复 %d HP" % acc["heal"])
+		var missing := player_hp_max - player_hp
+		var hp_gain := mini(int(acc["heal"]), missing)
+		player_hp += hp_gain
+		if hp_gain > 0:
+			hud._popup("❤+%d" % hp_gain, Palette.POP_HEAL, hud._player_sprite_anchor())
+			hud._log("回复 %d HP" % hp_gain)
+		# 2026-08-07 方案 A：治疗三连溢出转护盾（满血不浪费，三连独有奖励）
+		if acc.get("heal_triple", false) and int(acc["heal"]) > missing:
+			var shield_gain := int(acc["heal"]) - missing
+			player_shield += shield_gain
+			hud._popup("🛡+%d" % shield_gain, Palette.POP_SHIELD, hud._player_sprite_anchor())
+			hud._log("治疗三连溢出转护盾 +%d" % shield_gain)
 	if not acc["status_stacks"].is_empty():
 		hud._log("敌人获得状态: " + _status_summary(acc["status_stacks"]))
 		hud._popup(_status_summary(acc["status_stacks"]), Palette.POP_STATUS, hud._enemy_sprite_anchor())
