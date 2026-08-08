@@ -186,8 +186,8 @@ var _consumable_uid := 0                   # 腰带格唯一 id 计数器（卖�
 var assault_next_spin: int = 1            # 强袭药剂：下次转轮伤害倍率（1=正常）
 
 # 玩家状态
-var player_hp = 100
-var player_hp_max = 100
+var player_hp: int = 100
+var player_hp_max: int = 100
 var gold = 4                           # S6：局内金币（每局清零，见 §11）
 var player_shield = 0
 
@@ -1669,15 +1669,15 @@ func _evaluate() -> void:
 		hud._popup("🛡+%d" % acc["shield"], Palette.POP_SHIELD, hud._player_sprite_anchor())
 		hud._log("获得 %d 护盾" % acc["shield"])
 	if acc["heal"] > 0:
-		var missing := player_hp_max - player_hp
-		var hp_gain := mini(int(acc["heal"]), missing)
+		var missing: int = player_hp_max - player_hp
+		var hp_gain: int = mini(int(acc["heal"]), missing)
 		player_hp += hp_gain
 		if hp_gain > 0:
 			hud._popup("❤+%d" % hp_gain, Palette.POP_HEAL, hud._player_sprite_anchor())
 			hud._log("回复 %d HP" % hp_gain)
 		# 2026-08-07 方案 A：治疗三连溢出转护盾（满血不浪费，三连独有奖励）
 		if acc.get("heal_triple", false) and int(acc["heal"]) > missing:
-			var shield_gain := int(acc["heal"]) - missing
+			var shield_gain: int = int(acc["heal"]) - missing
 			player_shield += shield_gain
 			hud._popup("🛡+%d" % shield_gain, Palette.POP_SHIELD, hud._player_sprite_anchor())
 			hud._log("治疗三连溢出转护盾 +%d" % shield_gain)
