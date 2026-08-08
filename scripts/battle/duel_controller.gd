@@ -184,6 +184,7 @@ var consumable_slots: Array[Dictionary] = []          # 消耗品腰带实例：
 var _consumable_uid := 0                   # 腰带格唯一 id 计数器（卖出/使用精准定位，避免同类重复撞 key）
 # 4 格子（2x2）由 HUD 自管（hud.consumable_cells），controller 不再持有引用
 var assault_next_spin: int = 1            # 强袭药剂：下次转轮伤害倍率（1=正常）
+var room_element_mult: Dictionary = {}    # 元素精华（消耗品）：本房间内 元素 → 强制克制倍率（新房间清零）
 
 # 玩家状态
 var player_hp: int = 100
@@ -291,6 +292,7 @@ func _build_state() -> BattleState:
 	s.charm_power_bonus = charm_power_bonus
 	s.charm_interf_resist = charm_interf_resist
 	s.charm_damage_mult = charm_damage_mult
+	s.room_element_mult = room_element_mult
 	s.turn_count = turn_count
 	s.SKILL_POOL = SKILL_POOL
 	s.skill_max = skill_max
@@ -904,6 +906,7 @@ func _start_room(idx: int) -> void:
 	player_frost = 0                      # T30：寒霜侵蚀每房清零（BOSS 战状态，不跨房）
 	frozen_cols = []                      # T30：冻结列随 frost 清零
 	player_buffs = {}                     # Phase C：主动技能不跨房保留
+	room_element_mult = {}                # 元素精华：新房间失效
 	player_shield = 0
 	player_shield += _reward_system.run_shield_next   # M4：上一房奖励的结界在本房开局生效
 	player_shield += charm_room_shield    # M6：守望护符每房开局护盾
@@ -1451,6 +1454,12 @@ func _on_consumable_pressed(uid: String) -> void:
 		"reroll":
 			hud._log("重转卷轴：免费重转！")
 			await _free_spin()
+		"element":
+			# 元素精华：本房间内该元素伤害强制克制（至少 mult_value 倍），新房间失效
+			room_element_mult[data.element] = data.mult_value
+			hud._log("元素精华（%s）：本房间内%s系伤害至少 ×%s！" % [data.item_name, ElementCounter.label(data.element), ElementCounter.fmt_mult(data.mult_value)])
+			hud._popup("%s附魔·本房" % ElementCounter.label(data.element), ElementCounter.color(data.element), hud._player_sprite_anchor())
+			hud._refresh_meta()
 	_refresh_consumable_panel()
 	if slot["charges"] <= 0:
 		consumable_slots.remove_at(target)
@@ -1513,6 +1522,9 @@ func _contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> vo
 	var em: float = 1.0
 	if sym.kind == "damage" or sym.kind == "special":
 		em = ElementCounter.multiplier(elem, enemy_element) * _synergy_system.element_boost(elem)
+		# 元素精华（消耗品）：本房间内该元素伤害强制克制（至少 ×mult_value，跳过抵抗/中性），新房间清零
+		if room_element_mult.has(elem):
+			em = max(em, float(room_element_mult[elem]))
 		if em > 1.0 and charm_element_boost > 0.0:
 			em += charm_element_boost
 		if em > 1.0:

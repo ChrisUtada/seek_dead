@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rarity = "uncommon"
+category = "active"
+item_id = "light_essence"
+item_name = "光之精华"
+description = "本房间内光系伤害强制克制（至少 ×1.5），离房失效。"
+icon = "✨"
+effect = "element"
+element = "light"
+mult_value = 1.5
+charges = 1

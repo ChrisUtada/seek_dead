@@ -44,6 +44,7 @@ var charm_shield_trickle: int = 0
 var charm_heal_trickle: int = 0
 var charm_interf_resist: int = 0
 var charm_damage_mult: float = 1.0
+var room_element_mult: Dictionary = {}    # 元素精华：本房间内元素 → 强制克制倍率（新房间清零，HUD 房间行显示）
 var turn_count: int = 1
 var SKILL_POOL: Array[String] = []
 var skill_max: int = 1

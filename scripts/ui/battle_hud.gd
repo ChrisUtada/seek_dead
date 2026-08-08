@@ -782,7 +782,10 @@ func _refresh_cell(reel: int, row: int) -> void:
 func _refresh_meta() -> void:
 	_refresh_gear_icons()
 	var is_boss = controller._is_boss_room(controller.state.room_index)
-	room_label.text = "房间: %d/%d%s" % [controller.state.room_index + 1, controller.state.ROOMS.size(), " · ★BOSS" if is_boss else ""]
+	var essence_txt := ""
+	for e in controller.state.room_element_mult:
+		essence_txt += " · %s附魔" % ElementCounter.label(e)
+	room_label.text = "房间: %d/%d%s%s" % [controller.state.room_index + 1, controller.state.ROOMS.size(), " · ★BOSS" if is_boss else "", essence_txt]
 	turn_label.text = "回合: %d" % controller.state.turn_count
 	player_hp_label.text = "HP %d/%d · 护盾 %d" % [controller.state.player_hp, controller.state.player_hp_max, controller.state.player_shield]
 	player_buff_label.text = "【转轮】技能: " + controller._buff_summary()
