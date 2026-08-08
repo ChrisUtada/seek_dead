@@ -45,8 +45,8 @@ func _on_shop_card_pressed(offer: Dictionary) -> void:
 		var info := ""
 		var res: Resource = load(offer.get("path", ""))
 		if res != null and "rarity" in res and "base_power" in res:
-			var elem_txt := ElementCounter.label(String(res.get("element", "none")))
-			info = "新武器：%s · %s · 攻%d · %s" % [offer.get("name", "?"), String(res.get("rarity", "common")), int(res.get("base_power", 0)), elem_txt]
+			var elem_txt := ElementCounter.label(String(res.get("element") if "element" in res else "none"))
+			info = "新武器：%s · %s · 攻%d · %s" % [offer.get("name", "?"), String(res.get("rarity")), int(res.get("base_power")), elem_txt]
 		else:
 			info = "新武器：%s" % offer.get("name", "?")
 		hud.request_weapon_replace("替换武器", info, func(old_path: String):
