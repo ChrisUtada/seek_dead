@@ -901,7 +901,7 @@ func request_weapon_replace(title: String, new_weapon_info: String, on_chosen: C
 	_replace_vbox.add_child(hint)
 	for path in controller.selected_loadout:
 		var btn = UI_BUTTON.instantiate()
-		btn.text = "替换「%s」" % _shop_name(path, "weapon")
+		btn.text = "替换「%s」" % controller._shop_name(path, "weapon")
 		btn.custom_minimum_size = Vector2(220, 34)
 		btn.pressed.connect(_on_replace_chosen.bind(path))
 		_replace_vbox.add_child(btn)
