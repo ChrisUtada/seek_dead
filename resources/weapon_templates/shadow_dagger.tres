@@ -1,15 +1,20 @@
-[gd_resource type="Resource" script_class="WeaponData" load_steps=5 format=3]
+[gd_resource type="Resource" script_class="WeaponData" load_steps=7 format=3]
 
 [ext_resource type="Script" uid="uid://rshxw30hg44e" path="res://scripts/equipment/weapon_data.gd" id="1"]
 [ext_resource type="Script" uid="uid://b7ejpof4wrtqt" path="res://scripts/battle/symbol_weight.gd" id="sw"]
 [ext_resource type="Resource" path="res://resources/symbols/shadow_slash.tres" id="s0"]
 
+[ext_resource type="Resource" path="res://resources/symbols/dark_strike.tres" id="s1"]
 [sub_resource type="Resource" id="sw0"]
 script = ExtResource("sw")
 symbol = ExtResource("s0")
-weight = 7.0
+weight = 4.0
 
 
+[sub_resource type="Resource" id="sw1"]
+script = ExtResource("sw")
+symbol = ExtResource("s1")
+weight = 3.0
 [resource]
 script = ExtResource("1")
 weapon_name = "暗影匕首"
@@ -27,6 +32,6 @@ attack_range = 50.0
 status_effect_type = -1
 status_effect_damage = 0.0
 status_effect_duration = 3.0
-symbols = Array[ExtResource("sw")]([SubResource("sw0")])
+symbols = Array[ExtResource("sw")]([SubResource("sw0"), SubResource("sw1")])
 reel_element = "dark"
 element = "dark"

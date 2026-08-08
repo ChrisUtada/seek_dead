@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="SymbolData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/symbol_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+label = "🌑"
+name = "暗袭"
+kind = "damage"
+base = 8.0
+element = "dark"
+status_type = ""
+pierce_armor = false
+color = Color(0.65, 0.55, 0.85, 1)

@@ -64,7 +64,7 @@ func cat_max(cat: String) -> int:
 # 该类【天花板】（当前上限的成长终点）。返回 UNCAPPED(-1) 表示无天花板（进池类）。
 func cat_cap(cat: String) -> int:
 	match cat:
-		"weapon":  return _ctrl.UNCAPPED   # 进池：稀释效应自身即刹车
+		"weapon":  return 2   # 2026-08-07 用户拍板：武器上限 2（主手+副手），商店不可买第 3 把
 		"skill":    return _ctrl.UNCAPPED   # 进池：同上
 		"active":  return int(BALANCE.slot_init["active"])   # 整备天花板 = 1（消耗品不「买即开槽」，改为腰带追加，容量见 CONSUMABLE_CAP）
 		"passive": return _ctrl.CHARM_CAP
