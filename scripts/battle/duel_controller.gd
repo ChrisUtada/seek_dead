@@ -921,7 +921,10 @@ func _begin_player_turn() -> void:
 	# T30 寒霜侵蚀：回合一开始敌人即冻结（frost 挂上后立即声明冻结列，spin 前玩家可见 ❄ 标记）
 	frozen_cols = _pick_frozen_cols()
 	if not frozen_cols.is_empty():
-		hud._log("❄ 寒霜侵蚀：第 %s 列被冰封，本轮无法转动（净化可解）" % "/".join(str(c + 1) for c in frozen_cols))
+		var cols_txt := PackedStringArray()
+		for c in frozen_cols:
+			cols_txt.append(str(c + 1))
+		hud._log("❄ 寒霜侵蚀：第 %s 列被冰封，本轮无法转动（净化可解）" % "/".join(cols_txt))
 
 
 # T20：加权抽取意图（优先级：房间 RoomData.intents（IntentData.weight）→ 行为族 EnemyArchetype.intent_weights → kind 默认表；
