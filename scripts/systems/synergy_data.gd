@@ -26,6 +26,5 @@ extends Resource
 # —— 效果（可叠加；激活上限由 SynergySystem 的激活集管理）——
 @export var weight_bonus: Dictionary = {}      # 符号 resource_path -> 额外权重（注入 _build_strips 聚合）
 @export var crit_bonus: float = 0.0            # 暴击倍率加成（触发暴击时叠加到 crit_mult）
-@export var chain_bonus: int = 0               # 连锁上限加成（CHAIN_MAX + bonus）
 @export var element_boost: String = ""         # 受惠元素（如 "fire"；空 = 不生效）
 @export var element_boost_mult: float = 1.2    # 该元素克制倍率乘算（如 ×1.5 → ×1.8）

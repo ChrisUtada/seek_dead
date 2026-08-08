@@ -24,8 +24,6 @@ extends Resource
 # 2026-08-07 去 MISS：miss_floor/miss_ceil 退役（转轮无静态废铁，按停更准；废铁仅由敌人意图注入）
 
 # —— 爆发 ——
-@export var chain_max: int = 4                # 连锁重触发上限（special 三连免费重转，共 4 发）
-@export var chain_step: float = 1.5           # 连锁倍率逐层 ×
 @export var crit_chance: float = 0.20         # 方案 B：非三连每符号实例独立暴击率（三连必暴）
 @export var charm_mult_cap: float = 6.0       # 总护符乘区硬上限（防失控膨胀）
 

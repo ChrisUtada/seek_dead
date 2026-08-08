@@ -113,7 +113,7 @@ var _busy: bool = false                 # 旋转序列进行中，防重入
 var _eval_adv := false                  # _evaluate 阶段2：本回合是否触发过「克制」
 var _eval_dis := false                  # _evaluate 阶段2：本回合是否触发过「抵抗」
 var _elem_triple := false               # 2026-08-07 同元素三连：3 列有效元素相同（可不同符号）→ 必暴 + 克制核爆（参考 Slots & Skulls 匹配判定宽容化）
-var _last_triple := false               # 上一次 _evaluate 是否触发三连（任意同符号×3，供连锁重触发循环读取；2026-08-07 通用化）
+var _last_triple := false               # 保留（重转机制移除后暂未使用，供未来重转设计）
 var charge_points := 0                   # T21 元素充能：克制命中累计，满 BALANCE.charge_max 释放元素爆发（每房清零）
 var train_points := 0                    # T27 升级点：仅 BOSS 击败掉落（一局 3 点），商店升级轨道的唯一货币
 var player_frost := 0                    # T30 寒霜侵蚀：玩家 frost 层数（每层冻结转轮 1 列，上限见 frost StatusDef.max_cols）
@@ -991,7 +991,7 @@ func _on_spin_pressed() -> void:
 	await spin_finished
 	await get_tree().create_timer(0.15).timeout
 	# 阶段 1+2：结算（先防御/增益/状态，后攻击；含飘字）
-	await _chain_loop()
+	await _evaluate()
 	if enemy_hp <= 0:
 		hud._log("★ 击败 %s！" % enemy_name)
 		game_state = FlowState.WON
@@ -1029,24 +1029,6 @@ func _on_spin_pressed() -> void:
 	_begin_player_turn()
 	hud._refresh_meta()
 	_busy = false
-
-
-# 连锁重触发（① 数值爆炸）：special 三连后免费重转，倍率逐层 ×1.5，封顶 BALANCE.chain_max 发。
-# 重转全部用 fresh 随机——连锁是否续上完全看 RNG 是否再给 special 三连，是可见的尖峰而非黑箱。
-func _chain_loop() -> void:
-	var _chain := 0
-	while true:
-		await _evaluate(1.0 if _chain == 0 else BALANCE.chain_step ** _chain)
-		if not _last_triple or enemy_hp <= 0:
-			break
-		_chain += 1
-		if _chain >= BALANCE.chain_max + _synergy_system.chain_bonus():
-			break
-		hud._log("⚡ 连锁 ×%d！免费重转…" % (_chain + 1))
-		hud._popup("⚡连锁 ×%d" % (_chain + 1), Palette.POP_DAMAGE, hud._enemy_sprite_anchor())
-		_begin_spin()
-		await spin_finished
-		await get_tree().create_timer(0.15).timeout
 
 
 # ---------------------------------------------------------------------------
@@ -1515,11 +1497,11 @@ func _contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> vo
 			var dv = flat * mult * em
 			if crit_mult_val > 1.0:
 				dv *= crit_mult_val
-			# 2026-08-07 三连通用化：任意同符号 3 连 → 必暴 + 连锁（triple 标记 + triple_dmg 供连锁倍率）；
+			# 2026-08-07 三连通用化：任意同符号 3 连 → 必暴（triple 标记供 gimmick/破甲判定）；
 			# 破甲 = 仅带破甲机制（triple_pierce）的武器/技能三连触发（_evaluate 里判 _item_pierce_map）
 			if raw >= 3:
 				acc["triple"] = true
-				acc["triple_dmg"] = acc.get("triple_dmg", 0.0) + dv
+
 			# T2 破甲护符：非穿透符号按概率直击 HP（穿透护甲）
 			if sym.pierce_armor or randf() < charm_pierce_chance:
 				acc["pierce"] += dv     # 穿透护甲：直接扣 HP
@@ -1537,7 +1519,7 @@ func _contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> vo
 				sv *= crit_mult_val
 			if raw >= 3:
 				acc["triple"] = true
-				acc["triple_dmg"] = acc.get("triple_dmg", 0.0) + sv
+
 			if sym.pierce_armor or randf() < charm_pierce_chance:
 				acc["pierce"] += sv
 			else:
@@ -1575,10 +1557,10 @@ func _push_dmg_line(acc: Dictionary, sym: SymbolData, elem: String, flat, bonus,
 
 
 # 结算：分两阶段（先防御/增益/状态，后攻击），接单向属性克制与强袭药剂。
-# chain_mult：连锁重触发倍率（仅作用于 special 部分），由 _on_spin_pressed 的连锁循环逐层传入，默认 1.0。
-func _evaluate(chain_mult := 1.0) -> void:
+# 2026-08-07：重转机制移除，单次结算（chain_mult 参数退役）
+func _evaluate() -> void:
 	hud._clear_badges()
-	var acc = { "dmg": 0, "shield": 0, "heal": 0, "status_stacks": {}, "special": 0, "lines": [], "pierce": 0.0, "counter_triple": false, "triple": false, "triple_dmg": 0.0 }
+	var acc = { "dmg": 0, "shield": 0, "heal": 0, "status_stacks": {}, "special": 0, "lines": [], "pierce": 0.0, "counter_triple": false, "triple": false }
 	_eval_adv = false
 	_eval_dis = false
 
@@ -1663,7 +1645,7 @@ func _evaluate(chain_mult := 1.0) -> void:
 		hud._log("⚡ 三连触发")
 		if current_gimmick != null:
 			current_gimmick.on_special_triple(self)   # BOSS 自定义钩子（三连感知，语义泛化）
-	_last_triple = acc.get("triple", false)
+
 	# 破甲：带破甲机制（triple_pierce）的三连 → 清甲；克制三连 → 核爆（清甲 + 20% max HP）
 	var triple_pierce: bool = false
 	for key in counts:
@@ -1679,8 +1661,7 @@ func _evaluate(chain_mult := 1.0) -> void:
 	# Phase C：迅捷(damage_mult) 对本回合总伤害做乘算（F-0 聚合层，含护符乘区）
 	var buff_mult = _agg_damage_mult()
 	var assault = assault_next_spin
-	var triple_bonus: float = acc.get("triple_dmg", 0.0) * (chain_mult - 1.0)   # 连锁倍率只作用于三连符号伤害（2026-08-07）
-	var normal_subtotal = acc["dmg"] + acc["special"] * chain_mult + triple_bonus
+	var normal_subtotal = acc["dmg"] + acc["special"]
 	var pierce_subtotal = acc.get("pierce", 0.0)
 	var normal_total = int(normal_subtotal * assault * buff_mult * BALANCE.player_dmg_mult)
 	var pierce_total = int(pierce_subtotal * assault * buff_mult * BALANCE.player_dmg_mult)
@@ -1699,8 +1680,8 @@ func _evaluate(chain_mult := 1.0) -> void:
 			tail.append("增益×%s" % ElementCounter.fmt_mult(bm))
 		if assault != 1:
 			tail.append("强袭×%s" % ElementCounter.fmt_mult(float(assault)))
-		if chain_mult != 1.0:
-			tail.append("连锁×%s" % ElementCounter.fmt_mult(chain_mult))
+
+
 		if pierce_total > 0:
 			tail.append("穿透×直接HP")
 		if tail.is_empty():

@@ -48,13 +48,6 @@ func crit_bonus(sym: SymbolData) -> float:
 	return total
 
 
-func chain_bonus() -> int:
-	var total := 0
-	for sd in _active:
-		total += sd.chain_bonus
-	return total
-
-
 func element_boost(elem: String) -> float:
 	var mult := 1.0
 	for sd in _active:
