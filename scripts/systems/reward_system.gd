@@ -55,7 +55,7 @@ func on_meta_choice_chosen(opt: Dictionary) -> void:
 		"anvil":
 			_ctrl.meta["anvil_points"] += BALANCE.meta_anvil_bonus
 			_ctrl.hud._log("元进度：铁砧点数 +%d（共 %d）" % [BALANCE.meta_anvil_bonus, _ctrl.meta["anvil_points"]])
-	_ctrl._save_meta()   # 元进度持久落盘；开新局（_full_reset）由 controller 编排层负责
+	_ctrl._meta_store.save_meta()   # 元进度持久落盘；开新局（_full_reset）由 controller 编排层负责
 
 
 # ---------------------------------------------------------------------------

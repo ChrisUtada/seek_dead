@@ -8,7 +8,7 @@ const BALANCE = preload("res://resources/config/balance_config.tres")
 #
 # 由 controller 在 _ready 处实例化并注入：AnvilSystem.new(ctrl)。
 # 约定（与 docs/[已完成]duel_controller拆分方案B.md 步骤2一致，并延续步骤1 MetaStore 的写法）：
-# - meta 不随本子系统走，统一经 _ctrl.meta 访问与改写，改写后经 _ctrl._save_meta() 落盘
+# - meta 不随本子系统走，统一经 _ctrl.meta 访问与改写，改写后经 _ctrl._meta_store.save_meta() 落盘
 #   （保持 controller 单一持有 meta，避免"只读快照不可写回"类 bug）。
 # - @export 常量（ANVIL_ROLL_COST / ANVIL_BLANK_CHANCE / ANVIL_PITY_MAX / ANVIL_PER_RUN_CAP /
 #   ANVIL_DUPE_REFUND / ANVIL_RARITY_WEIGHT / ANVIL_MILESTONE_PCT / ANVIL_MILESTONE_BONUS）
@@ -40,7 +40,7 @@ func roll_anvil() -> Array:
 	result["cell"] = 0
 	var drops: Array[Dictionary] = [result]
 	last_anvil_drops = drops
-	_ctrl._save_meta()
+	_ctrl._meta_store.save_meta()
 	return drops
 
 
@@ -91,7 +91,7 @@ func award_meta(is_boss: bool) -> void:
 	amt = mini(amt, remain)
 	anvil_run_awarded += amt
 	_ctrl.meta["anvil_points"] += amt
-	_ctrl._save_meta()
+	_ctrl._meta_store.save_meta()
 	_ctrl.hud._log("铁砧点数 +%d（本局 %d/%d，共 %d）" % [amt, anvil_run_awarded, BALANCE.anvil_per_run_cap, _ctrl.meta["anvil_points"]])
 
 

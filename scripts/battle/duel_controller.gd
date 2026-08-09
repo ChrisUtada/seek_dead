@@ -317,9 +317,9 @@ func _ready() -> void:
 	combat = CombatSystem.new(self)
 	status_system = StatusSystem.new(self)
 	consumable_system = ConsumableSystem.new(self)
-	_load_meta()
-	_sanitize_owned()	# 自愈：清洗历史上误写入 owned_* 的非本类路径（如技能）
-	_seed_default_owned()
+	_meta_store.load_meta()
+	_meta_store.sanitize_owned()   # 自愈：清洗历史上误写入 owned_* 的非本类路径（如技能）
+	_meta_store.seed_default_owned()
 	hud.build_all()   # P2：HUD 自构建全部界面（build_all 内部调各 _build_* + _show_loadout_screen），controller 不再戳私有构建方法
 	# P2：HUD 意图信号 → controller 处理器（HUD 不再调用 controller 私有方法）
 	hud.spin_requested.connect(_on_spin_button_pressed)
@@ -589,7 +589,7 @@ func _finish_room(apply_fn: Callable, is_boss: bool) -> void:
 	if apply_fn.is_valid():
 		apply_fn.call()
 	_anvil_system.award_meta(is_boss)    # M5：房间通关发放铁砧点数
-	_award_gold(is_boss)    # S6+S8：清房金币 + 利息
+	_meta_store.award_gold(is_boss)    # S6+S8：清房金币 + 利息
 	if is_boss:
 		# T28：BOSS 战利品选完后、进下一房前，弹训练房当场分配训练点（每幕 1 点）
 		hud._show_train_screen()
@@ -659,30 +659,8 @@ func _apply_boss_reward(cand: Dictionary) -> void:
 
 
 # ---------------------------------------------------------------------------
-# M5 元进度（铁砧锻造 + 存档持久化）
+# M5 元进度（铁砧锻造 + 存档持久化）已全迁至 MetaStore（load/save/seed/sanitize/award_gold）
 # ---------------------------------------------------------------------------
-func _load_meta() -> void:
-	_meta_store.load_meta()   # 步骤1：转发到 MetaStore
-
-
-func _save_meta() -> void:
-	_meta_store.save_meta()   # 步骤1：转发到 MetaStore
-
-func _seed_default_owned() -> void:
-	_meta_store.seed_default_owned()   # 步骤1：转发到 MetaStore
-
-func _sanitize_owned() -> void:
-	_meta_store.sanitize_owned()   # 步骤1：转发到 MetaStore
-
-func _owned_arr(kind: String) -> Array:
-	return _loadout_system.owned_arr(kind)   # 步骤5：转发到 LoadoutSystem
-
-
-
-# M5 铁砧点数 drip 已抽至 AnvilSystem（步骤2，见 award_meta）
-func _award_gold(is_boss: bool) -> void:
-	_meta_store.award_gold(is_boss)   # 步骤1：转发到 MetaStore
-
 # S6–S12 商店逻辑已抽至 ShopSystem（步骤3）：shop_price / shop_name / roll_shop /
 # on_shop_buy_pressed / sell_price / on_shop_sell_pressed / gold_upgrade_* / on_gold_upgrade_pressed
 func _shop_price(kind: String, owned: int = -1, item_path: String = "") -> int:
@@ -1109,7 +1087,7 @@ func _on_overlay_button_pressed() -> void:
 func _return_to_loadout() -> void:
 	# 玩家死亡 = 本局结束，回到整备页重选装备后开新 run（不再重开本房）。
 	# 先落盘，确保当局铁砧点数 drip / 商店购买 / 铁砧授予等写入 owned_* 的进度不丢失。
-	_save_meta()
+	_meta_store.save_meta()
 	# 战败 = 重新开始：清空上局勾选与腰带，整备页回到初始状态（owned_* 跨局保留，玩家重新挑选）。
 	selected_loadout = []
 	selected_skills = []
