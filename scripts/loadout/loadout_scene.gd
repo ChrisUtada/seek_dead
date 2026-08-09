@@ -184,7 +184,7 @@ func _fill_sub(cat: String) -> void:
 		sub_list.remove_child(c)
 		c.queue_free()
 	loadout_cards = []
-	for path in controller._meta_store.owned_arr(cat):
+	for path in controller._loadout_system.owned_arr(cat):
 		var data: Resource = load(path)
 		var card = hud._make_item_card(data, path, cat)
 		sub_list.add_child(card["btn"])
