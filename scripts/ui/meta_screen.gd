@@ -24,7 +24,7 @@ func show_choice() -> void:
 	for c in meta_grid.get_children():
 		meta_grid.remove_child(c)
 		c.queue_free()
-	var choices = controller._roll_meta_choices()
+	var choices = controller._reward_system.roll_meta_choices()
 	for opt in choices:
 		meta_grid.add_child(hud._make_meta_card(opt))
 	visible = true

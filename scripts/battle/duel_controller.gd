@@ -542,7 +542,7 @@ func _award_train_point() -> void:
 # M4 房奖励三选一界面（Roguelike 构筑）
 # ---------------------------------------------------------------------------
 func _on_reward_chosen(id: String) -> void:
-	_finish_room(func(): _apply_reward(id), reward_is_boss)
+	_finish_room(func(): _reward_system.apply_reward(id), reward_is_boss)
 
 
 func _on_reward_skip_pressed() -> void:
@@ -564,7 +564,7 @@ func _on_boss_reward_chosen(cand: Dictionary) -> void:
 			hud.request_weapon_replace("★ BOSS 战利品：替换武器", info, func(old_path: String):
 				_apply_boss_weapon_replace(p, old_path))
 			return
-	_finish_room(func(): _apply_boss_reward(cand), true)
+	_finish_room(func(): _reward_system.apply_boss_reward(cand), true)
 
 
 func _apply_boss_weapon_replace(p: String, old_path: String) -> void:
@@ -596,68 +596,15 @@ func _finish_room(apply_fn: Callable, is_boss: bool) -> void:
 		await hud.train_continue_requested
 		hud.hide_train_screen()
 	if _is_run_final(room_index):
-		_show_meta_choice()        # 通关整局（最终 BOSS）→元进度三选一（持久生效）
+		_reward_system.show_meta_choice()        # 通关整局（最终 BOSS）→元进度三选一（持久生效）
 	else:
 		_enter_interroom()        # opt-in 商店：进入房间歇态（🛒 可选，▶ 下一房继续）
 	hud._refresh_meta()
 
 
 # ---------------------------------------------------------------------------
-# 每局结束元进度三选一（膨胀双轨：武器 base 线性 × 护符乘数增值，持久跨局）
-# ---------------------------------------------------------------------------
-# M4 房奖励 / BOSS 战利品 / 局末元进度逻辑已抽至 RewardSystem（步骤4，见 _reward_system）：
-# roll_meta_choices / on_meta_choice_chosen / roll_rewards / roll_elite_rewards /
-# roll_boss_rewards / apply_reward / apply_boss_reward；下方保留薄转发（meta_screen /
-# reward_screen / battle_hud 直调签名不变），_on_reward_* / _show_meta_choice 留本编排层。
-func _roll_meta_choices() -> Array:
-	return _reward_system.roll_meta_choices()
-
-
-func _show_meta_choice() -> void:
-	hud._show_meta_choice()
-
-
-func _on_meta_choice_chosen(opt: Dictionary) -> void:
-	hud.hide_meta_screen()
-	_reward_system.on_meta_choice_chosen(opt)   # 元进度应用 + 落盘（_save_meta 在子系统内）
-	hud._refresh_meta()
-	_full_reset()   # 元进度生效后开新一局（金币/槽位随局清零，但 meta 持久）
-
-
-func _roll_rewards() -> Array:
-	return _reward_system.roll_rewards()
-
-
-# T6 精英房「战前补给」三选一（逻辑已抽至 RewardSystem）
-func _roll_elite_rewards() -> Array:
-	return _reward_system.roll_elite_rewards()
-
-
-# BOSS 战利品三选一（逻辑已抽至 RewardSystem）
-func _roll_boss_rewards(room) -> Array:
-	return _reward_system.roll_boss_rewards(room)
-
-
-# 打开奖励屏的语义入口：由 controller 填充 reward_choices / reward_is_boss，
-# reward_screen 只调用本方法并从 state 快照读取（不再直写 controller 字段）。
-func _open_reward_screen(is_boss: bool) -> void:
-	reward_is_boss = is_boss
-	if is_boss:
-		reward_choices = _roll_boss_rewards(ROOMS[room_index])
-	elif ROOMS[room_index].kind == "elite":
-		reward_choices = _roll_elite_rewards()
-	else:
-		reward_choices = _roll_rewards()
-
-
-func _apply_reward(id: String) -> void:
-	_reward_system.apply_reward(id)
-
-
-func _apply_boss_reward(cand: Dictionary) -> void:
-	_reward_system.apply_boss_reward(cand)
-
-
+# 奖励/BOSS/元进度逻辑已全迁至 RewardSystem（roll_* / apply_* / open_reward_screen /
+# show_meta_choice，2026-08-09）；_on_reward_* 信号编排与 _finish_room 留本编排层。
 # ---------------------------------------------------------------------------
 # M5 元进度（铁砧锻造 + 存档持久化）已全迁至 MetaStore（load/save/seed/sanitize/award_gold）
 # ---------------------------------------------------------------------------
@@ -839,7 +786,7 @@ func _sort_rooms(rms: Array) -> Array:
 
 func _start_room(idx: int) -> void:
 	if idx >= ROOMS.size():                 # 兜底：越界视为通关整局，走元进度三选一而非崩溃
-		_show_meta_choice()
+		_reward_system.show_meta_choice()
 		return
 	room_element_mult = {}                # 元素精华：新房间失效（须在 _build_pool 之前清，否则旧房精华注入新房池）
 	_apply_charms()                         # S7：每次开房重算护符被动（含商店购入的护符）

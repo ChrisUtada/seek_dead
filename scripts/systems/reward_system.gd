@@ -187,3 +187,20 @@ func apply_boss_reward(cand: Dictionary) -> void:
 				_ctrl.selected_charms.append(p)            # 占护符槽 1/3（CHARM_CAP）
 				_ctrl._apply_charms()                     # 重算护符被动（伤害乘区等随持有变化）
 				_ctrl.hud._log("BOSS 战利品：获得专属信物 %s（占护符槽）" % cand.get("label", p))
+
+
+# 打开奖励屏的语义入口：填充 reward_choices / reward_is_boss（HUD 从 state 快照读取）。
+# 2026-08-09 由 controller._open_reward_screen 迁入（二次拆分 3/4）
+func open_reward_screen(is_boss: bool) -> void:
+	_ctrl.reward_is_boss = is_boss
+	if is_boss:
+		_ctrl.reward_choices = roll_boss_rewards(_ctrl.ROOMS[_ctrl.room_index])
+	elif _ctrl.ROOMS[_ctrl.room_index].kind == "elite":
+		_ctrl.reward_choices = roll_elite_rewards()
+	else:
+		_ctrl.reward_choices = roll_rewards()
+
+
+# 局末元进度三选一弹屏（2026-08-09 由 controller._show_meta_choice 迁入）
+func show_meta_choice() -> void:
+	_ctrl.hud._show_meta_choice()

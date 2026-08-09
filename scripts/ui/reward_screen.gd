@@ -32,7 +32,7 @@ func configure(ctrl, h: BattleHud) -> void:
 func show_screen(is_boss: bool) -> void:
 	# 奖励候选与 reward_is_boss 由 controller._open_reward_screen 填充（UI 不再直写 controller 字段），
 	# 本屏只从只读快照 state 读取渲染数据。
-	controller._open_reward_screen(is_boss)
+	controller._reward_system.open_reward_screen(is_boss)
 	for c in reward_grid.get_children():
 		reward_grid.remove_child(c)
 		c.queue_free()
