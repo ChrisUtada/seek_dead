@@ -602,6 +602,14 @@ func _finish_room(apply_fn: Callable, is_boss: bool) -> void:
 	hud._refresh_meta()
 
 
+# 元进度三选一确认：应用 + 落盘（子系统内）→ 开新一局（编排层）
+func _on_meta_choice_chosen(opt: Dictionary) -> void:
+	hud.hide_meta_screen()
+	_reward_system.on_meta_choice_chosen(opt)   # 元进度应用 + 落盘（_save_meta 在子系统内）
+	hud._refresh_meta()
+	_full_reset()   # 元进度生效后开新一局（金币/槽位随局清零，但 meta 持久）
+
+
 # ---------------------------------------------------------------------------
 # 奖励/BOSS/元进度逻辑已全迁至 RewardSystem（roll_* / apply_* / open_reward_screen /
 # show_meta_choice，2026-08-09）；_on_reward_* 信号编排与 _finish_room 留本编排层。
