@@ -68,7 +68,8 @@ const REELS = 3
 const ROWS = 1
 
 # 房间难度曲线（ante）：数值见 balance_config.tres（ante_act_step_*/ante_room_step_*，T22 资源化）。
-# 等价关系：原 1.15^idx（每幕恰 4 房）= (1.15^4)^(act-1)·1.15^(幕内位置)。当前手感：幕1/2/3 BOSS HP ≈ 266/771/2140。
+# 等价关系：原 1.15^idx（每幕恰 4 房）= (1.15^4)^(act-1)·1.15^(幕内位置)。T25 房数重排（2026-08-09）后每幕 8 房、
+# BOSS 幕内位置 ria=3→7（ante 倍率随 ria 自动爬升，数值待 F6 复核）。当前手感：幕1/2/3 BOSS HP ≈ 266/771/2140。
 @export var SMALL_OWNED: bool = false   # 调试用：铁砧效果测试时把拥有池压到 SMALL_OWNED_WEAPONS 武器 / SMALL_OWNED_CHARMS 护符（默认 false 用正式全池）
 @export var SMALL_OWNED_WEAPONS: int = 3
 @export var SMALL_OWNED_CHARMS: int = 4
@@ -88,8 +89,8 @@ var ELITE_REWARD_POOL: Array[RewardData] = []
 func _intent_def(id: String) -> IntentData:
 	return status_system.intent_def(id)
 # Phase D 资源化：改为扫描 resources/rooms/*.tres（RoomData），见 _ready 内填充。
-var ALL_ROOMS: Array[RoomData] = []          # 全量房间池（扫描收集；_build_run 从中按幕抽 12 房）
-var ROOMS: Array[RoomData] = []             # 当前一局的 12 房序列（每局 _full_reset 时由 _build_run 重建）
+var ALL_ROOMS: Array[RoomData] = []          # 全量房间池（扫描收集；_build_run 从中按幕抽 24 房 + 真·最终槽）
+var ROOMS: Array[RoomData] = []             # 当前一局的房序列（每局 _full_reset 时由 _build_run 重建：24 房 + 真·最终）
 
 # grid[reel][row] = SymbolData 引用
 var grid = []
@@ -705,7 +706,7 @@ func _full_reset() -> void:
 	charm_max = int(SLOT_INIT["passive"])
 	_shop_system.reset_run()   # 步骤3：新一局商店状态清零（购入价记录 + 金币升级等级）
 	_reward_system.reset_run()   # 步骤4：新一局本局加成层清零（符号灌注 / 伤害加成 / 下一房护盾）
-	ROOMS = _build_run()                 # S10 T3：每局从全量池按幕抽 12 房
+	ROOMS = _build_run()                 # T25 房数重排：每局从全量池按幕抽 24 房（5 普通 + 2 精英 + 1 常规 BOSS + 真·最终槽）
 	_build_pool(selected_loadout)
 	_start_room(0)
 
@@ -722,33 +723,56 @@ func _is_run_final(idx: int) -> bool:
 	return idx >= ROOMS.size() - 1
 
 
-# S10 T3：每局运行时从全量池构建 12 房（3 幕 × 2 normal + 1 elite + 1 boss）。
-# 房间序列不再依赖文件名字母序或固定数组；每局随机、按幕分组（幕内顺序：普通→普通→精英→BOSS）。
+# T25 房数重排（2026-08-09）：关卡结构读 BalanceConfig——
+# 每幕按 run_act_layout 抽房（5 普通 + 2 精英 + 1 常规 BOSS 战 = 8 房），run_acts 幕共 24 房；
+# 常规 BOSS 从本幕候选池按 run_boss_weights 加权抽 1（「4 候选选 1」：固定首领默认高权重 + 轮替 + 隐秘，池不全时剩余候选自然撑起权重）；
+# 真·最终（RoomData.final_boss 房）独立于候选池，通关 Act3 后追加为整局最后一间（当前无内容，槽位预留）。
+# 房间序列不依赖文件名字母序或固定数组；每局随机、按幕分组（幕内顺序：普通×3 → 精英 → 普通×2 → 精英 → BOSS）。
 # 未抽中的房间留作内容广度（不同 run 体验不同）。
 func _build_run() -> Array[RoomData]:
 	var by_act := {}   # act -> {kind: [RoomData,...]}
+	var final_boss: RoomData = null
 	for r in ALL_ROOMS:
+		if r.final_boss:
+			if final_boss == null:
+				final_boss = r
+			continue
 		var a = int(r.act)
 		if not by_act.has(a):
 			by_act[a] = {"normal": [], "elite": [], "boss": []}
 		by_act[a][r.kind].append(r)
 	var run: Array[RoomData] = []
-	for a in [1, 2, 3]:
+	for a in range(1, int(BALANCE.run_acts) + 1):
 		if not by_act.has(a):
 			continue
-		var grp = by_act[a]
-		var normals = grp["normal"].duplicate()
-		normals.shuffle()
-		for i in range(min(2, normals.size())):
-			run.append(normals[i])
-		var elites = grp["elite"].duplicate()
-		if not elites.is_empty():
-			elites.shuffle()
-			run.append(elites[0])
-		var bosses = grp["boss"].duplicate()
-		if not bosses.is_empty():
-			run.append(bosses[0])
+		var pools := {}   # kind -> 打乱后的候选（pop 逐个取用）
+		for k in ["normal", "elite", "boss"]:
+			var arr: Array = by_act[a][k].duplicate()
+			arr.shuffle()
+			pools[k] = arr
+		for kind in BALANCE.run_act_layout:
+			if pools[kind].is_empty():
+				continue
+			var pick: RoomData = _pick_boss(pools["boss"]) if kind == "boss" else pools[kind].pop_back()
+			run.append(pick)
+	if BALANCE.run_include_final_boss and final_boss != null:
+		run.append(final_boss)
 	return run
+
+
+# 常规 BOSS 抽取（4 候选选 1）：按角色权重加权（fixed 固定首领默认高权重、rotating 轮替随机、
+# hidden 隐秘——条件「幕内全清后开启」在 BOSS 槽（幕内最后一房）恒满足，故恒可入选）。
+func _pick_boss(candidates: Array) -> RoomData:
+	var weights: Dictionary = BALANCE.run_boss_weights
+	var total := 0
+	for c in candidates:
+		total += int(weights.get(c.boss_role, 1))
+	var roll: int = randi() % maxi(1, total)
+	for c in candidates:
+		roll -= int(weights.get(c.boss_role, 1))
+		if roll < 0:
+			return c
+	return candidates[0]
 
 
 # 房间序列排序：normal/elite 在前、boss 殿后（同档按 resource_path 稳定排序）。

@@ -50,5 +50,11 @@ extends Resource
 @export var charge_burst_pct: float = 0.15    # 元素爆发伤害 = 敌人 max HP × 此比例（穿透直击）
 
 # —— T27 升级点经济（BOSS 点）：升级用独立「训练点」，金币回归纯装备职能 ——
-@export var train_boss_reward: int = 1        # 击败 BOSS 获得的训练点（一局 3 BOSS = 3 点；精英是否 +1 待拍板）
+@export var train_boss_reward: int = 1        # 击败 BOSS 获得的训练点（一局 3 常规 BOSS = 3 点，真·最终另 +1；精英是否 +1 待拍板）
 @export var train_per_level: int = 1          # 每级升级消耗的训练点（固定每级 1 点）
+
+# —— T25 关卡结构（2026-08-09 房数重排：一局 24 房 = 3 幕 × 每幕 8 房 + 真·最终通关后战）——
+@export var run_acts: int = 3                                     # 幕数
+@export var run_act_layout: Array = ["normal", "normal", "normal", "elite", "normal", "normal", "elite", "boss"]   # 每幕房型序列（5 普通 + 2 精英 + 1 常规 BOSS 战）
+@export var run_boss_weights: Dictionary = {"fixed": 6, "rotating": 3, "hidden": 2}   # 常规 BOSS「4 候选选 1」角色权重（固定首领默认高权重；隐秘=幕内全清后开启，恒可入选）
+@export var run_include_final_boss: bool = true                    # 真·最终（RoomData.final_boss 房）通关 Act3 后追加为整局最后一间（当前无内容，槽位预留）
