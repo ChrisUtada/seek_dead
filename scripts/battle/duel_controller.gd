@@ -291,6 +291,7 @@ var hud: BattleHud
 var reel_system: ReelSystem             # 2026-08-09 拆分：转轮带/旋转/按停逻辑（reel_system.gd）
 var combat: CombatSystem                # 2026-08-09 拆分：回合结算/符号贡献/敌我攻防（combat_system.gd）
 var status_system: StatusSystem         # 2026-08-09 拆分：意图/状态定义与查询（status_system.gd）
+var consumable_system: ConsumableSystem # 2026-08-09 拆分：消耗品使用/效果分发（consumable_system.gd）
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -315,6 +316,7 @@ func _ready() -> void:
 	reel_system = ReelSystem.new(self)
 	combat = CombatSystem.new(self)
 	status_system = StatusSystem.new(self)
+	consumable_system = ConsumableSystem.new(self)
 	_load_meta()
 	_sanitize_owned()	# 自愈：清洗历史上误写入 owned_* 的非本类路径（如技能）
 	_seed_default_owned()
@@ -1087,7 +1089,7 @@ func _intent_name(t: String) -> String:
 
 
 # ---------------------------------------------------------------------------
-# M6 消耗品：战斗中主动使用
+# M6 消耗品：战斗中主动使用（2026-08-09 逻辑已迁至 ConsumableSystem，此处仅留信号转发）
 # ---------------------------------------------------------------------------
 # 4 格子（2x2）由 HUD 自管，本函数只触发刷新同步状态（不增删 cell，charges 用尽直接移出 slots 即可）
 func _refresh_consumable_panel() -> void:
@@ -1095,66 +1097,7 @@ func _refresh_consumable_panel() -> void:
 
 
 func _on_consumable_pressed(uid: String) -> void:
-	if in_loadout or in_interroom or game_state != FlowState.PLAYING or _busy:
-		return
-	var target = -1
-	for i in range(consumable_slots.size()):
-		if consumable_slots[i]["uid"] == uid:
-			target = i
-			break
-	if target < 0:
-		return
-	var slot = consumable_slots[target]
-	if slot["charges"] <= 0:
-		hud._log("「%s」已用尽" % slot["item_id"])
-		return
-	var data: Resource = load(slot["path"])
-	if data == null:
-		return
-	slot["charges"] -= 1
-	match data.effect:
-		"purify":
-			# 净化完全走消耗品：扣 1 charges；①抵消当前干扰意图（T20：IntentData.purifiable）②清除玩家 frost 解冻（T30 寒霜侵蚀）
-			var cleaned_any := false
-			var it_data: IntentData = enemy_intent.get("data")
-			var purifiable: bool = it_data.purifiable if it_data != null else enemy_intent.get("type") in ["jam", "lock", "chaos"]
-			if purifiable:
-				var t = enemy_intent.get("type")
-				enemy_intent = {"data": null, "type": "none", "value": 0}
-				hud._log("净化药剂：抵消了敌人的%s" % _intent_name(t))
-				cleaned_any = true
-			if player_frost > 0:
-				player_frost = 0
-				frozen_cols = []
-				hud._log("净化药剂：驱散寒霜，冻结转轮恢复！")
-				cleaned_any = true
-			if not cleaned_any:
-				hud._log("净化药剂：当前无干扰意图/寒霜可清除")
-		"heal":
-			player_hp = min(player_hp_max, player_hp + data.value)
-			hud._log("治疗药剂：回复 %d HP（现 %d）" % [data.value, player_hp])
-		"assault":
-			assault_next_spin = data.value
-			hud._log("强袭药剂：下一次转轮伤害 ×%d" % data.value)
-		"reroll":
-			hud._log("重转卷轴：免费重转！")
-			await _free_spin()
-		"element":
-			# 元素精华：本房间内向转轮池注入对应元素攻击符号（多一种攻击方式），新房间失效
-			if ESSENCE_SYMBOLS.has(data.element):
-				room_element_mult[data.element] = true
-				hud._log("元素精华（%s）：转轮注入%s系攻击符号「%s」！" % [data.item_name, ElementCounter.label(data.element), ESSENCE_SYMBOLS[data.element].name])
-				hud._popup("✨%s符号入池" % ElementCounter.label(data.element), ElementCounter.color(data.element), hud._player_sprite_anchor())
-				_build_pool(selected_loadout)
-				reel_system.build_strips()
-				reel_system.reset_grid()
-				hud._refresh_meta()
-	_refresh_consumable_panel()
-	if slot["charges"] <= 0:
-		consumable_slots.remove_at(target)
-		_refresh_consumable_panel()   # 4 cell 永远在位，只刷状态；charges=0 槽位自动变空
-		hud._log("「%s」已用尽，移出腰带（可于商店补给）" % slot["item_id"])
-	hud._refresh_meta()
+	consumable_system.use(uid)
 
 
 func _on_overlay_button_pressed() -> void:
