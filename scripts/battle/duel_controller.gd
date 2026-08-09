@@ -387,8 +387,8 @@ func _build_pool(loadout: Array) -> void:
 			_item_pierce_map[sp] = true
 	# —— 装备自洽（docs/[已完成]物品中心重构方案.md §4 重构 + 方案 B）：频率由各装备 weight 决定，
 	# 命中率决定废铁占比；共享 (符号|元素) 在 _build_strips 跨装备累加权重（方案 B：同元素堆三连），
-	# 符号总预算固定（_ITEM_STRIP_TARGET），异元素多带不稀释符号总价值；每符号格数夹上限防垄断复活。
-	# 稀有度仍只定强度（base_power / hit_rate），不影响出现次数（「神装打不出去」退化被避开）。
+	# 符号格子数 = 权重档位（2026-08-09 传统 slots 频率，见 reel_system.build_strips）。
+	# 稀有度定强度（base_power / hit_rate）+ 出现次数上限（2026-08-09 拍板：rare/epic 符号封顶 2 格 ≤ 普通——大奖罕见，推翻旧「稀有度不影响次数」决策）。
 	for path in loadout:
 		var wd: WeaponData = load(path)
 		if wd == null:
@@ -402,7 +402,8 @@ func _build_pool(loadout: Array) -> void:
 				continue
 			syms.append([sw.symbol, float(sw.weight), _eff_element(sw.symbol, wd)])
 		var hit: float = clamp(wd.hit_rate, 0.0, 1.0)
-		pool_items.append({"name": wd.weapon_name, "hit": hit, "syms": syms})
+		var wd_rar: Variant = wd.get("rarity")
+		pool_items.append({"name": wd.weapon_name, "hit": hit, "syms": syms, "rarity": String(wd_rar if wd_rar != null else "common")})
 	# 主动技能同样作为「装备」生成自己的符号段（与武器等权、频率由自身 weight 定）
 	for path in selected_skills:
 		var sd: SkillData = load(path)
@@ -410,12 +411,13 @@ func _build_pool(loadout: Array) -> void:
 			continue
 		var eff_elem: String = sd.symbol.element if sd.symbol.element != "none" else "none"
 		var hit: float = clamp(sd.hit_rate, 0.0, 1.0)
-		pool_items.append({"name": ("技能" + sd.icon), "hit": hit, "syms": [[sd.symbol, float(sd.weight), eff_elem]]})
+		var sd_rar: Variant = sd.get("rarity")
+		pool_items.append({"name": ("技能" + sd.icon), "hit": hit, "syms": [[sd.symbol, float(sd.weight), eff_elem]], "rarity": String(sd_rar if sd_rar != null else "common")})
 	# 元素精华（消耗品）：使用后本房间内向转轮池注入对应元素的攻击符号（多一种攻击方式）
 	for e in room_element_mult:
 		var ess_sym: SymbolData = ESSENCE_SYMBOLS.get(e)
 		if ess_sym != null:
-			pool_items.append({"name": ("精华·" + ElementCounter.label(e)), "hit": 1.0, "syms": [[ess_sym, ESSENCE_POOL_WEIGHT, e]]})
+			pool_items.append({"name": ("精华·" + ElementCounter.label(e)), "hit": 1.0, "syms": [[ess_sym, ESSENCE_POOL_WEIGHT, e]], "rarity": "common"})
 	# 扁平池（供图例 / 状态查询 / 奖励随机 等 legacy 消费者；weight 仅作展示/兼容）
 	for it in pool_items:
 		for s in it["syms"]:

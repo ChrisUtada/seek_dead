@@ -21,8 +21,11 @@ const MISS_SYMBOL = preload("res://resources/symbols/miss.tres")
 const _SPIN_BASE_WAIT := 0.15          # 起始每跳间隔（秒）——调慢以便看清落点、凑三连 special
 const _SPIN_MIN_WAIT := 0.06           # 最快每跳间隔（封顶也调慢，整体更易控）
 const _STRIP_MIN_CELLS := 30           # 转轮带最小格数（整份平铺补足，不改变符号占比）
-const _ITEM_STRIP_TARGET := 16         # 符号总预算格（按聚合权重分配）
 const _GOLD_CELLS := 2                 # 金币符号常驻格数（经济引擎，与装备频率解耦）
+# 2026-08-09 传统 slots 频率（拍板）：格子数 = 权重档位（保底 2 = 目押下限），
+# rare/epic 符号封顶 2 格（≤ 普通——大奖罕见，推翻旧「稀有度不影响次数」决策）。
+const RARITY_RANK := {"common": 0, "uncommon": 1, "rare": 2, "epic": 3}
+const _RARE_CAP_CELLS := 2             # rare/epic 符号格数上限（不得超过普通符号）
 
 var _ctrl                                # DuelController
 var _timer: Timer
@@ -79,9 +82,10 @@ func begin_spin() -> void:
 	_ctrl.hud._log("转轮旋转中——按【空格】逐列停止，或点击某一列单独停下（不停就一直转）")
 
 
-# 方案 B（2026-08-07）：跨装备聚合 (符号|有效元素) 权重，共享符号累加（同元素堆三连），
-# 符号总预算固定 _ITEM_STRIP_TARGET；2026-08-09 恢复 MISS：装备命中率越低，带子 MISS 格越多
-# （激活 hit_rate 死字段：高 base 低命中武器付出命中代价，与「高 base 低暴击」代价轴同构）。
+# 方案 B（2026-08-07）：跨装备聚合 (符号|有效元素) 权重，共享符号累加（同元素堆三连）；
+# 2026-08-09 传统 slots 频率（拍板）：每符号格子数 = 权重档位（2-4 格，保底 2 目押下限），
+# rare/epic 符号封顶 2 格（≤ 普通符号——大奖罕见）；MISS 按 miss_w/wsum 比例折算格数（保底 1）。
+# 稀释表达 = 符号种类增多 → 条带变长（每符号格数稳定，频率可预期可目押），替代旧 16 格总预算。
 # 结算/连锁/special 三连等下游逻辑不变（仍按 REELS x ROWS 落子统计）。
 func build_strips() -> void:
 	reel_strips = []
@@ -92,12 +96,13 @@ func build_strips() -> void:
 	# —— 方案 B：跨装备聚合 (符号 | 有效元素) 权重 ——
 	# 同一 (符号, 有效元素) 被多件装备携带时权重累加（同元素武器堆三连；异元素互不稀释符号总价值）。
 	# 有效元素已在 _build_pool 用 _eff_element 解析（普通符号继承武器元素，special 优先 reel_element）。
-	var agg := {}   # key("path|elem") -> {sym, elem, w}
+	var agg := {}   # key("path|elem") -> {sym, elem, w, rank}
 	var miss_w := 0.0   # MISS 聚合权重：Σ 装备符号总权重 × (1 - hit_rate)
 	for it in _ctrl.pool_items:
 		var syms: Array = it["syms"]
 		if syms.is_empty():
 			continue
+		var it_rank: int = RARITY_RANK.get(String(it.get("rarity", "common")), 0)   # 2026-08-09：携带装备稀有度（最高者决定封顶）
 		var it_total_w := 0.0
 		for s in syms:
 			var w = max(0.0, s[1] + _ctrl.combat.agg_symbol_weight_mod(s[0]) + _ctrl._synergy_system.weight_mod(s[0]))
@@ -106,26 +111,39 @@ func build_strips() -> void:
 			it_total_w += w
 			var key: String = s[0].resource_path + "|" + s[2]
 			if not agg.has(key):
-				agg[key] = {"sym": s[0], "elem": s[2], "w": 0.0}
+				agg[key] = {"sym": s[0], "elem": s[2], "w": 0.0, "rank": 0}
 			agg[key]["w"] += w
+			agg[key]["rank"] = maxi(int(agg[key]["rank"]), it_rank)
 		# 2026-08-09 恢复 MISS：命中率 1.0 = 无 miss（当前武器/技能均 <1.0，形成带子 MISS 段）
 		var hit: float = clamp(it.get("hit", 1.0), 0.0, 1.0)
 		if hit < 1.0:
 			miss_w += it_total_w * (1.0 - hit)
-	if miss_w > 0.0:
-		agg["miss|none"] = {"sym": MISS_SYMBOL, "elem": "none", "w": miss_w}
 	var wsum: float = 0.0
 	for k in agg:
 		wsum += agg[k]["w"]
 	var base := []
+	var total_cells := 0
 	if wsum > 0.0:
-		# 固定符号预算 _ITEM_STRIP_TARGET 格，按聚合权重分配（每 key 至少 1 格保底）
+		# 2026-08-09 传统 slots 频率：格子数 = 权重档位（保底 2 = 目押下限；≥2 → 3 格；≥4 → 4 格），
+		# rare/epic（rank ≥ 2）封顶 2 格——稀有符号不得超过普通符号（大奖罕见）
 		for k in agg:
-			var cnt: int = maxi(1, roundi(float(_ITEM_STRIP_TARGET) * agg[k]["w"] / wsum))
+			var cnt: int = 2
+			var w: float = agg[k]["w"]
+			if w >= 4.0:
+				cnt = 4
+			elif w >= 2.0:
+				cnt = 3
+			if int(agg[k]["rank"]) >= RARITY_RANK["rare"]:
+				cnt = mini(cnt, _RARE_CAP_CELLS)
 			for _c in cnt:
 				base.append([agg[k]["sym"], agg[k]["elem"]])
-	# 2026-08-09 恢复 MISS：带子含 MISS 格（占比随装备命中率，见上方聚合）；
+			total_cells += cnt
+	# 2026-08-09 恢复 MISS：按 miss_w/wsum 比例折算格数（保底 1）——命中率越低带子越脏；
 	# 废铁仍由敌人意图注入（chaos/abyss_erosion，见下）。金币常驻（经济引擎，与装备频率解耦）
+	if miss_w > 0.0:
+		var miss_cells: int = maxi(1, roundi(float(total_cells) * miss_w / maxf(0.001, wsum)))
+		for _c in miss_cells:
+			base.append([MISS_SYMBOL, "none"])
 	for _c in _GOLD_CELLS:
 		base.append([DuelController.GOLD_SYMBOL, "none"])
 	# 敌人乱权：向整带注入额外废铁（等比重削弱所有装备，忠实还原「削弱优势」意图）
