@@ -40,7 +40,7 @@ func configure(ctrl, h: BattleHud) -> void:
 
 # 商店卡片点击：武器且已带满 2 把 → 弹替换面板（换装，battle_hud 通用弹层）；否则正常购买
 func _on_shop_card_pressed(offer: Dictionary) -> void:
-	if offer.get("kind", "") == "weapon" and controller._sel_arr("weapon").size() >= 2:
+	if offer.get("kind", "") == "weapon" and controller._loadout_system.sel_arr("weapon").size() >= 2:
 		_pending_offer = offer
 		var info := ""
 		var res: Resource = load(offer.get("path", ""))
@@ -98,7 +98,7 @@ func _sell_fill(list: VBoxContainer, kind: String) -> void:
 			var sub = "卖出 +%d 金" % refund
 			list.add_child(hud._make_sell_card(name, sub, false, hud.sell_requested.emit.bind(slot["uid"], kind)))
 		return
-	var owned = controller._sel_arr(kind)
+	var owned = controller._loadout_system.sel_arr(kind)
 	for path in owned:
 		var name = hud._source_tag(kind) + controller._shop_name(path, kind)
 		var refund = controller._sell_price(kind, path)

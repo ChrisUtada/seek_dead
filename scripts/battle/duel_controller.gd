@@ -332,7 +332,7 @@ func _ready() -> void:
 	hud.reward_skip_requested.connect(_on_reward_skip_pressed)
 	hud.shop_requested.connect(_on_shop_requested)
 	hud.next_room_requested.connect(_on_next_room_pressed)
-	hud.card_toggled.connect(_on_card_toggled)
+	hud.card_toggled.connect(_loadout_system.on_card_toggled)
 	hud.meta_choice_chosen.connect(_on_meta_choice_chosen)
 	hud.gold_upgrade_requested.connect(_on_gold_upgrade_pressed)
 	hud.overlay_button_pressed.connect(_on_overlay_button_pressed)
@@ -428,41 +428,9 @@ func _eff_element(sym: SymbolData, wd: WeaponData) -> String:
 # ---------------------------------------------------------------------------
 # UI 构建（全代码）
 # ---------------------------------------------------------------------------
-# 整备勾选 / 槽位 / 拥有池已抽至 LoadoutSystem（步骤5，见 _loadout_system）：
-# on_card_toggled / sel_arr / cat_max / cat_cap / can_grow_slot / cap_text /
-# grow_slot / cat_name / owned_arr；下方保留薄转发（loadout_scene / battle_hud /
-# shop_screen / 各子系统直调签名不变），_confirm_loadout / _apply_charms 留本编排层。
-func _on_card_toggled(card: Dictionary) -> void:
-	_loadout_system.on_card_toggled(card)
-
-
-func _sel_arr(cat: String) -> Array:
-	return _loadout_system.sel_arr(cat)
-
-
-func _cat_max(cat: String) -> int:
-	return _loadout_system.cat_max(cat)
-
-
-func _cat_cap(cat: String) -> int:
-	return _loadout_system.cat_cap(cat)
-
-
-func _can_grow_slot(cat: String) -> bool:
-	return _loadout_system.can_grow_slot(cat)
-
-
-func _cap_text(cat: String) -> String:
-	return _loadout_system.cap_text(cat)
-
-
-func _grow_slot(cat: String) -> void:
-	_loadout_system.grow_slot(cat)
-
-
-func _cat_name(cat: String) -> String:
-	return _loadout_system.cat_name(cat)
-
+# 整备勾选 / 槽位 / 拥有池已全迁至 LoadoutSystem（2026-08-09）：on_card_toggled / sel_arr /
+# cat_max / cat_cap / can_grow_slot / cap_text / grow_slot / cat_name / owned_arr——
+# controller 无转发，调用点直指 _loadout_system；_confirm_loadout / _apply_charms 留本编排层。
 
 func _confirm_loadout() -> void:
 	if selected_loadout.size() < LOADOUT_MIN:

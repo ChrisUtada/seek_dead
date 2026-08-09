@@ -462,9 +462,9 @@ func _make_shop_card(offer: Dictionary) -> Button:
 	card.configure("%s%s · %s" % [_source_tag(offer["kind"]), kind_name, offer["name"]], "", TypeScale.TITLE, 0.0, 2)
 	var price = controller._shop_price(offer["kind"], -1, offer["path"])   # 价格随当前持有数递增 + 稀有度阶梯（T6/T21）；卖出回落，换装成本=买卖价差（防刷价）
 	var is_active = (offer["kind"] == "active")
-	var cap = controller.state.CONSUMABLE_CAP if is_active else controller._cat_max(offer["kind"])          # 消耗品按腰带总容量 4；其余按整备上限
-	var cur = controller.state.consumable_slots.size() if is_active else controller._sel_arr(offer["kind"]).size()   # 消耗品按腰带实占数
-	var can_grow_slot = (not is_active) and controller._can_grow_slot(offer["kind"])   # 消耗品不「开槽」、仅追加腰带格
+	var cap = controller.state.CONSUMABLE_CAP if is_active else controller._loadout_system.cat_max(offer["kind"])          # 消耗品按腰带总容量 4；其余按整备上限
+	var cur = controller.state.consumable_slots.size() if is_active else controller._loadout_system.sel_arr(offer["kind"]).size()   # 消耗品按腰带实占数
+	var can_grow_slot = (not is_active) and controller._loadout_system.can_grow_slot(offer["kind"])   # 消耗品不「开槽」、仅追加腰带格
 	var slot_full = (cur >= cap) and not can_grow_slot
 	# 2026-08-07 武器替换：武器槽满（上限 2）时可点——触发替换弹层（换装），不禁用
 	var weapon_replace: bool = (offer["kind"] == "weapon" and cur >= cap and not can_grow_slot)
@@ -479,7 +479,7 @@ func _make_shop_card(offer: Dictionary) -> Button:
 	elif weapon_replace:
 		status = "替换 %d 金" % price   # 槽满 2：点击弹替换选择（旧武器回收藏库）
 	elif slot_full:
-		var cap_txt = controller.state.CONSUMABLE_CAP if is_active else controller._cap_text(offer["kind"])
+		var cap_txt = controller.state.CONSUMABLE_CAP if is_active else controller._loadout_system.cap_text(offer["kind"])
 		status = "槽位已满 %d/%s" % [cur, cap_txt]
 	elif cur >= cap:
 		status = "开槽 %d 金" % price   # 本次购买会把该类槽 +1

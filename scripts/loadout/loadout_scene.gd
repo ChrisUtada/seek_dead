@@ -199,9 +199,9 @@ func _refresh_slot_strip() -> void:
 	for c in sub_strip.get_children():
 		sub_strip.remove_child(c)
 		c.queue_free()
-	var used = controller._sel_arr(category).size()
-	var unlocked = controller._cat_max(category)
-	var ceiling = controller._cat_cap(category)
+	var used = controller._loadout_system.sel_arr(category).size()
+	var unlocked = controller._loadout_system.cat_max(category)
+	var ceiling = controller._loadout_system.cat_cap(category)
 	var uncapped = (ceiling == controller.state.UNCAPPED)
 	var cells = unlocked if uncapped else ceiling
 	for i in cells:
@@ -225,10 +225,10 @@ func _refresh_slot_strip() -> void:
 
 
 func _update_loadout_cards_visual() -> void:
-	var wfull = controller.state.selected_loadout.size() >= controller._cat_max("weapon")
-	var cfull = controller._sel_arr("active").size() >= controller._cat_max("active")
-	var hfull = controller.state.selected_charms.size() >= controller._cat_max("passive")
-	var bfull = controller.state.selected_skills.size() >= controller._cat_max("skill")
+	var wfull = controller.state.selected_loadout.size() >= controller._loadout_system.cat_max("weapon")
+	var cfull = controller._loadout_system.sel_arr("active").size() >= controller._loadout_system.cat_max("active")
+	var hfull = controller.state.selected_charms.size() >= controller._loadout_system.cat_max("passive")
+	var bfull = controller.state.selected_skills.size() >= controller._loadout_system.cat_max("skill")
 	for card in loadout_cards:
 		var sb := StyleBoxFlat.new()
 		if card["selected"]:
@@ -249,8 +249,8 @@ func _update_loadout_cards_visual() -> void:
 
 
 func _cat_count_text(cat: String, label: String) -> String:
-	var grow = "＋" if controller._cat_cap(cat) == controller.state.UNCAPPED else ""
-	return "%s %d/%d%s" % [label, controller._sel_arr(cat).size(), controller._cat_max(cat), grow]
+	var grow = "＋" if controller._loadout_system.cat_cap(cat) == controller.state.UNCAPPED else ""
+	return "%s %d/%d%s" % [label, controller._loadout_system.sel_arr(cat).size(), controller._loadout_system.cat_max(cat), grow]
 
 
 func _update_loadout_count() -> void:

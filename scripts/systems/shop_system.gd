@@ -48,7 +48,7 @@ func reset_run() -> void:
 func on_shop_buy_replace_pressed(offer: Dictionary, old_path: String) -> void:
 	if offer["sold"]:
 		return
-	var arr = _ctrl._sel_arr("weapon")
+	var arr = _ctrl._loadout_system.sel_arr("weapon")
 	if arr.has(offer["path"]):
 		_ctrl.hud._log("已拥有 %s，无法重复购买" % offer["name"])
 		return
@@ -76,7 +76,7 @@ func shop_price(kind: String, owned: int = -1, item_path: String = "") -> int:
 		if kind == "active":
 			owned = _ctrl.consumable_slots.size()
 		else:
-			owned = _ctrl._sel_arr(kind).size()
+			owned = _ctrl._loadout_system.sel_arr(kind).size()
 	# 金币是「买即开槽」的节奏闸门：价格随「当前持有数」递增。
 	# 售出物品会减少持有数 → 重购价格回落，换装成本自然来自买卖价差（防刷价）。
 	# 加价起点对齐各类初始配额（填满初始空位仍原价，从首次扩槽起逐级加价）。
@@ -159,16 +159,16 @@ func on_shop_buy_pressed(offer: Dictionary) -> void:
 			_ctrl.hud._log("购买失败：资源缺失 %s" % offer["name"])
 		offer["sold"] = true
 		return
-	var arr = _ctrl._sel_arr(kind)
+	var arr = _ctrl._loadout_system.sel_arr(kind)
 	if arr.has(offer["path"]):
 		_ctrl.hud._log("已拥有 %s，无法重复购买" % offer["name"])
 		return
 	var w = arr.size()
-	var cap = _ctrl._cat_max(kind)            # 该类当前上限
+	var cap = _ctrl._loadout_system.cat_max(kind)            # 该类当前上限
 	# 「买即开槽」（四类通用）：该类槽满时，只要还能扩（进池类无天花板 / 不进池类未触顶），
 	# 本次购买即扩槽 1 格；仅在「有天花板且已触顶」时才拒绝。
-	if w >= cap and not _ctrl._can_grow_slot(kind):
-		_ctrl.hud._log("%s槽位已满 %d/%s（已达天花板），无法购买" % [_ctrl._cat_name(kind), w, _ctrl._cap_text(kind)])
+	if w >= cap and not _ctrl._loadout_system.can_grow_slot(kind):
+		_ctrl.hud._log("%s槽位已满 %d/%s（已达天花板），无法购买" % [_ctrl._loadout_system.cat_name(kind), w, _ctrl._loadout_system.cap_text(kind)])
 		return
 	buy_price = shop_price(kind, -1, offer["path"])       # 价格随当前持有数递增（售出回落，换装成本=买卖价差）
 	if _ctrl.gold < buy_price:
@@ -187,8 +187,8 @@ func on_shop_buy_pressed(offer: Dictionary) -> void:
 	paid_price[offer["path"]] = buy_price   # 记录实际购入价，卖出时返还约50%
 	offer["sold"] = true
 	if w >= cap:                        # 本次是扩槽购买 → 该类槽 +1
-		_ctrl._grow_slot(kind)
-		_ctrl.hud._log("购买 %s（%s槽 +1 → %d/%s，-%d 金，余 %d）" % [offer["name"], _ctrl._cat_name(kind), _ctrl._cat_max(kind), _ctrl._cap_text(kind), buy_price, _ctrl.gold])
+		_ctrl._loadout_system.grow_slot(kind)
+		_ctrl.hud._log("购买 %s（%s槽 +1 → %d/%s，-%d 金，余 %d）" % [offer["name"], _ctrl._loadout_system.cat_name(kind), _ctrl._loadout_system.cat_max(kind), _ctrl._loadout_system.cap_text(kind), buy_price, _ctrl.gold])
 	else:
 		_ctrl.hud._log("购买 %s（-%d 金，余 %d）" % [offer["name"], buy_price, _ctrl.gold])
 
@@ -221,7 +221,7 @@ func on_shop_sell_pressed(path: String, kind: String) -> void:
 		_ctrl._refresh_consumable_panel()
 		_ctrl.hud._log("卖出 %s（+%d 金，腰带位释放）" % [shop_name(slot["path"], kind), sell_refund])
 		return
-	var arr = _ctrl._sel_arr(kind)
+	var arr = _ctrl._loadout_system.sel_arr(kind)
 	if not arr.has(path):
 		return
 	if kind == "weapon" and arr.size() <= BALANCE.loadout_min:

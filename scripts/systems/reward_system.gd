@@ -98,7 +98,7 @@ func roll_boss_rewards(room) -> Array:
 				"desc": "新武器 · 进转轮带",
 			})
 	# ③ Boss 信物：占护符槽 1/3（CHARM_CAP），护符槽满则不出
-	if room.boss_relic_path != "" and _ctrl._sel_arr("passive").size() < _ctrl._cat_max("passive"):
+	if room.boss_relic_path != "" and _ctrl._loadout_system.sel_arr("passive").size() < _ctrl._loadout_system.cat_max("passive"):
 		var rd: ItemData = load(room.boss_relic_path)
 		cands.append({
 			"kind": "boss_relic", "path": room.boss_relic_path,
@@ -174,14 +174,14 @@ func apply_boss_reward(cand: Dictionary) -> void:
 		"boss_weapon":
 			var p = cand.get("path", "")
 			if p != "" and not _ctrl.selected_loadout.has(p):
-				_ctrl._grow_slot("weapon")                 # 免费武器自动开槽（武器 UNCAPPED，无天花板限制）
+				_ctrl._loadout_system.grow_slot("weapon")                 # 免费武器自动开槽（武器 UNCAPPED，无天花板限制）
 				_ctrl.selected_loadout.append(p)          # 武器无上限（UNCAPPED），免费获得即自动开槽
 				_ctrl._build_pool(_ctrl.selected_loadout)  # 重建符号池（新武器注入转轮带）
 				_ctrl.hud._log("BOSS 战利品：获得武器 %s（已加入转轮带）" % cand.get("label", p))
 		"boss_relic":
 			var p = cand.get("path", "")
 			if p != "" and not _ctrl.selected_charms.has(p):
-				if _ctrl._sel_arr("passive").size() >= _ctrl._cat_max("passive"):
+				if _ctrl._loadout_system.sel_arr("passive").size() >= _ctrl._loadout_system.cat_max("passive"):
 					_ctrl.hud._log("BOSS 战利品：护符槽已满，信物无法拾取")
 					return
 				_ctrl.selected_charms.append(p)            # 占护符槽 1/3（CHARM_CAP）
