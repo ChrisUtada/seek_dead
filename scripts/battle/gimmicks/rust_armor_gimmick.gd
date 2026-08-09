@@ -1,5 +1,7 @@
 extends BossGimmick
 
+const ICON := "🛡❄"   # 下一房预告横幅的机制图标（battle_hud 经 get_script_constant_map 读取）
+
 # 幕一 BOSS·锈蚀傀儡「熔铸护甲」：
 # 护甲为扁平池（先破甲后掉血，见 DuelController._apply_enemy_damage）；
 # 每 interval 回合叠 1 层护甲（每层 +per_stack，上限 max_stacks 层），叠加在 RoomData.armor 之上。
@@ -32,6 +34,8 @@ func on_turn_begin(ctrl) -> void:
 		ctrl.enemy_armor += _per_stack
 		ctrl.hud._log("🛡 熔铸护甲 +%d（%d/%d 层，护甲 %d/%d）" % [_per_stack, _stacks, _max_stacks, int(ctrl.enemy_armor), int(ctrl.enemy_armor_max)])
 		# T30 寒霜侵蚀：与叠甲同频挂 frost（固定节奏，第 3/6/9 回合；叠甲封顶后 frost 同步停止）
-		ctrl.player_frost = min(ctrl.player_frost + 1, 2)
-		ctrl.hud._log("❄ 寒霜侵蚀：frost +1（%d/2 层，冻结转轮效果见后续实现）" % ctrl.player_frost)
+		# 2026-08-09 单侧性纪律：玩家侧冻结上限读 frozen StatusDef.max_cols（frost 已回归纯敌人侧）
+		var fc_max: int = int(ctrl.status_system.status_def("frozen").max_cols) if ctrl.status_system.status_def("frozen") != null else 2
+		ctrl.player_frost = min(ctrl.player_frost + 1, fc_max)
+		ctrl.hud._log("❄ 寒霜侵蚀：frost +1（%d/%d 层，冻结转轮效果见后续实现）" % [ctrl.player_frost, fc_max])
 	# 护甲清空由 DuelController._on_counter("special") 统一处理（special 三连），此处不再重复

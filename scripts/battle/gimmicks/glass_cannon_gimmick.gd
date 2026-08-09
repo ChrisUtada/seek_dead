@@ -1,5 +1,7 @@
 extends BossGimmick
 
+const ICON := "🪨"   # 下一房预告横幅的机制图标（battle_hud 经 get_script_constant_map 读取）
+
 # 幕一 BOSS·碎裂石像鬼「石屑反弹」（glass_cannon 玻璃大炮）：
 # 高攻低甲（数值见房间 .tres）；玩家每轮结算后按本轮总伤害反弹石屑（微量自噬伤害）。
 # 设计意图（T32 轮替 BOSS 差异化）：护盾同时挡重击与反弹（守备/铁壁双克制）；

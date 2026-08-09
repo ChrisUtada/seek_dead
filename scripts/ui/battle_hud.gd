@@ -66,6 +66,34 @@ func set_interroom_enabled(on: bool) -> void:
 		interroom_shop_btn.disabled = not on
 	if interroom_next_btn != null:
 		interroom_next_btn.disabled = not on
+	# 下一房预告横幅：间歇态点亮（内容随当前房推进刷新），战斗隐藏
+	if on:
+		_refresh_next_room_bar()
+	elif next_room_bar != null:
+		next_room_bar.visible = false
+
+
+# 2026-08-09 下一房预告（L2 分级）：房型 + 敌人名 + 元素 + BOSS 机制图标。
+# 隐秘 BOSS（boss_role=hidden）幕内全清前不剧透 → ？？？；最后一房（通关整局）无下一房 → 隐藏。
+func _refresh_next_room_bar() -> void:
+	if next_room_bar == null or controller == null:
+		return
+	var rooms: Array = controller.state.ROOMS
+	var idx: int = controller.state.room_index
+	if idx + 1 >= rooms.size():
+		next_room_bar.visible = false
+		return
+	var r: RoomData = rooms[idx + 1]
+	if r.boss_role == "hidden":
+		next_room_bar.text = "▶ 下一房：？？？（隐秘 · 条件解锁）"
+		next_room_bar.visible = true
+		return
+	var kind_txt: String = {"normal": "普通", "elite": "精英", "boss": "★BOSS"}.get(r.kind, r.kind)
+	var icon := ""
+	if r.kind == "boss" and r.gimmick_script != null:
+		icon = String(r.gimmick_script.get_script_constant_map().get("ICON", ""))
+	next_room_bar.text = "▶ 下一房：%s（%s · %s%s）" % [r.name, ElementCounter.label(r.element), kind_txt, " " + icon if icon != "" else ""]
+	next_room_bar.visible = true
 
 func hide_reward_screen() -> void: reward_screen.hide_screen()
 func hide_meta_screen() -> void: meta_screen.hide_screen()
@@ -103,6 +131,8 @@ var anvil_screen                        # 铁砧锻造覆盖层（anvil_screen.t
 # 房间歇态按钮（opt-in 商店 + 下一房）：静态节点在 battle_hud.tscn InfoBar，默认禁用，间歇态由 controller 点亮
 @onready var interroom_shop_btn = $Margin/Content/InfoBar/ShopBtn
 @onready var interroom_next_btn = $Margin/Content/InfoBar/NextRoomBtn
+# 2026-08-09 下一房预告横幅：仅房间歇态显示（购买/腰带决策窗口），战斗隐藏零常驻占位
+@onready var next_room_bar = $Margin/Content/NextRoomBar
 
 # ---- 主 HUD 静态节点（P3b-1）：battle_hud.tscn 编辑器提供，脚本按节点路径引用 ----
 # 注：手写 .tscn 的 %Name 唯一名在含 instance= 覆盖节点的场景里注册不可靠，
@@ -795,6 +825,16 @@ func _refresh_meta() -> void:
 	# T30 玩家 frost 状态（冻结转轮列数）
 	if controller.state.player_frost > 0:
 		player_buff_label.text += " · ❄霜冻×%d" % controller.state.player_frost
+	# 2026-08-09 酸蚀恶鬼：玩家 DoT 状态（毒层；≥ 爆炸阈值整行警示色）
+	var poison: int = int(controller.state.player_status.get("poison", 0))
+	if poison > 0:
+		player_buff_label.text += " · ☣酸蚀×%d" % poison
+		if poison >= controller.state.player_dot_bomb_stacks:
+			player_buff_label.add_theme_color_override("font_color", Palette.POP_DAMAGE)
+		else:
+			player_buff_label.remove_theme_color_override("font_color")
+	else:
+		player_buff_label.remove_theme_color_override("font_color")
 	gold_label.text = "金币 %d" % controller.state.gold
 	enemy_name_label.text = controller.state.enemy_name
 	boss_badge.visible = is_boss

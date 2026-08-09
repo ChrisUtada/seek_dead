@@ -1,5 +1,7 @@
 extends BossGimmick
 
+const ICON := "🕳"   # 下一房预告横幅的机制图标（battle_hud 经 get_script_constant_map 读取）
+
 # 幕三 BOSS·深渊监视者「深渊侵蚀」：
 # 每回合向转轮带注入废铁（在 _build_strips 经 ctrl.boss_trash 落实），
 # 注入量 = 当前符号池大小比例，且敌人 HP 越低注入越快。
