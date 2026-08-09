@@ -528,7 +528,8 @@ func _on_boss_reward_chosen(cand: Dictionary) -> void:
 			var res: WeaponData = load(p)
 			if res != null:
 				var elem_txt := ElementCounter.label(res.element)
-				info = "新武器：%s · %s · 攻%d · %s" % [cand.get("label", "?"), res.rarity, int(res.base_power), elem_txt]
+				var hit_pct: int = int(res.hit_rate * 100)
+				info = "新武器：%s · %s · 攻%d · 命中%d%% · %s" % [cand.get("label", "?"), res.rarity, int(res.base_power), hit_pct, elem_txt]
 			else:
 				info = "新武器：%s" % cand.get("label", "?")
 			hud.request_weapon_replace("★ BOSS 战利品：替换武器", info, func(old_path: String):

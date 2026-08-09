@@ -46,7 +46,8 @@ func _on_shop_card_pressed(offer: Dictionary) -> void:
 		var res: Resource = load(offer.get("path", ""))
 		if res != null and "rarity" in res and "base_power" in res:
 			var elem_txt := ElementCounter.label(String(res.get("element") if "element" in res else "none"))
-			info = "新武器：%s · %s · 攻%d · %s" % [offer.get("name", "?"), String(res.get("rarity")), int(res.get("base_power")), elem_txt]
+			var hit_pct: int = int(float(res.get("hit_rate") if "hit_rate" in res else 1.0) * 100)
+			info = "新武器：%s · %s · 攻%d · 命中%d%% · %s" % [offer.get("name", "?"), String(res.get("rarity")), int(res.get("base_power")), hit_pct, elem_txt]
 		else:
 			info = "新武器：%s" % offer.get("name", "?")
 		hud.request_weapon_replace("替换武器", info, func(old_path: String):
