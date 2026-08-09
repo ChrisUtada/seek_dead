@@ -22,6 +22,7 @@ const BALANCE = preload("res://resources/config/balance_config.tres")    # T22�
 
 var _ctrl: DuelController          # DuelController 实例（类型标注，编译期检查）
 var shop_offers: Array[Dictionary] = []            # 当前商店货架（随机刷新）
+var reroll_used := 0               # 本房间歇期已刷新次数（_enter_interroom 清零；价格 = reroll_base + used×step，上限 reroll_max）
 var paid_price: Dictionary = {}        # path/uid -> 实际购入价（卖出返还约 50%；新一局清空）
 var gold_upgrades: Dictionary = {}   # 局内金币升级等级（每局清零；键 = 轨道 id：power/line/shield/hp_max）
 var _upgrade_defs: Array[GoldUpgradeDef] = []          # GoldUpgradeDef 资源列表（_init 扫描收集）
@@ -38,6 +39,7 @@ func _init(ctrl: DuelController) -> void:
 func reset_run() -> void:
 	paid_price = {}
 	gold_upgrades = {}
+	reroll_used = 0
 
 
 # ---------------------------------------------------------------------------
@@ -128,6 +130,30 @@ func roll_shop() -> void:
 	for i in n:
 		var c = candidates[i]
 		shop_offers.append({"path": c["path"], "kind": c["kind"], "name": shop_name(c["path"], c["kind"]), "sold": false})
+
+
+# 货架刷新（2026-08-09）：Balatro 式递增价 + 每房间歇期限次（双闸门防金币无限转化）。
+# 下一房预告（规划中）与刷新互为闭环：预告给目标、刷新给执行手段。
+func reroll_price() -> int:
+	return SHOP_CONFIG.reroll_base + reroll_used * SHOP_CONFIG.reroll_step
+
+
+func can_reroll() -> bool:
+	return reroll_used < SHOP_CONFIG.reroll_max
+
+
+func on_shop_reroll_pressed() -> void:
+	if not can_reroll():
+		_ctrl.hud._log("刷新已达本房上限（%d 次）" % SHOP_CONFIG.reroll_max)
+		return
+	var price := reroll_price()
+	if _ctrl.gold < price:
+		_ctrl.hud._log("金币不足（刷新需 %d）" % price)
+		return
+	_ctrl.gold -= price
+	reroll_used += 1
+	roll_shop()
+	_ctrl.hud._log("🔄 刷新货架（-%d 金，余 %d；下次刷新 %d 金）" % [price, _ctrl.gold, reroll_price()])
 
 
 func on_shop_buy_pressed(offer: Dictionary) -> void:

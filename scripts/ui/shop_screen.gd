@@ -8,6 +8,7 @@ class_name ShopScreen
 var controller
 var hud: BattleHud
 const DRAWER_W := 420          # 抽屉宽度（右侧 docked）
+const SHOP_CONFIG = preload("res://resources/config/shop_config.tres")   # 刷新价/限次（2026-08-09）
 var _open := false             # 抽屉是否处于展开态（供外部 toggle 判断）
 var _pending_offer: Dictionary = {}   # 待替换购买的武器货品（2026-08-07）
 
@@ -23,6 +24,7 @@ var _pending_offer: Dictionary = {}   # 待替换购买的武器货品（2026-08
 @onready var consum_list = $Margin/Content/SellPanel/SellBox/ConsumList
 @onready var shop_tab_buy_btn = $Margin/Content/TabBar/BuyTab
 @onready var shop_tab_sell_btn = $Margin/Content/TabBar/SellTab
+@onready var reroll_btn = $Margin/Content/Bot/RerollBtn
 @onready var leave_btn = $Margin/Content/Bot/LeaveBtn
 
 func configure(ctrl, h: BattleHud) -> void:
@@ -33,6 +35,7 @@ func configure(ctrl, h: BattleHud) -> void:
 	# 两页签（T28：升级页已迁出为 BOSS 战后的训练房）
 	shop_tab_buy_btn.connect("pressed", show_tab.bind("buy"))
 	shop_tab_sell_btn.connect("pressed", show_tab.bind("sell"))
+	reroll_btn.connect("pressed", hud.shop_reroll_requested.emit)
 	leave_btn.connect("pressed", hud.shop_leave_requested.emit)
 	hud.shop_card_pressed.connect(_on_shop_card_pressed)
 	show_tab("buy")
@@ -73,12 +76,26 @@ func is_shown() -> bool:
 
 func refresh() -> void:
 	gold_label.text = "金币: %d" % controller.state.gold
+	_refresh_reroll_btn()
 	for c in shop_grid.get_children():
 		shop_grid.remove_child(c)
 		c.queue_free()
 	for offer in controller.state.shop_offers:
 		shop_grid.add_child(hud._make_shop_card(offer))
 	_refresh_shop_sell()
+
+# 刷新按钮：显示当前次价格（Balatro 式递增 4→6→8→10），达限置灰
+func _refresh_reroll_btn() -> void:
+	if reroll_btn == null:
+		return
+	var used: int = controller.state.shop_reroll_used
+	var price: int = SHOP_CONFIG.reroll_base + used * SHOP_CONFIG.reroll_step
+	if used >= SHOP_CONFIG.reroll_max:
+		reroll_btn.text = "刷新已达上限"
+		reroll_btn.disabled = true
+	else:
+		reroll_btn.text = "🔄 刷新货架（%d 金）" % price
+		reroll_btn.disabled = controller.state.gold < price
 
 func _refresh_shop_sell() -> void:
 	_sell_fill(weapon_list, "weapon")

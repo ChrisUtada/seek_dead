@@ -34,6 +34,7 @@ var enemy_status: Dictionary = {}
 var charge_points: int = 0               # T21 元素充能进度（HUD 充能条读取）
 var player_frost: int = 0                # T30 寒霜侵蚀：玩家 frost 层数（HUD 玩家状态行）
 var frozen_cols: Array = []              # T30 本回合冻结列（HUD 冻结格标记）
+var shop_reroll_used: int = 0            # 2026-08-09 商店刷新：本房间歇期已刷次数（价格 = base + used×step）
 var enemy_armor_max: int = 0
 var consumable_slots: Array[Dictionary] = []
 var CONSUMABLE_CAP: int = 4

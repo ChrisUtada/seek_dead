@@ -43,6 +43,7 @@ signal anvil_back_requested                   # 铁砧返回整备
 signal train_continue_requested               # T28 训练房「继续」→ 推进下一房/元进度
 signal shop_card_pressed(offer: Dictionary)   # 商店卡片点击（shop_screen 拦截：武器满 2 弹替换）
 signal buy_replace_requested(offer: Dictionary, old_path: String)   # 替换购买（2026-08-07：武器槽上限 2 后的换装）
+signal shop_reroll_requested                   # 商店货架刷新（2026-08-09：Balatro 式递增价 + 每房间歇期限次）
 
 # ---- 公开语义接口（controller → HUD 单向调用，替代直接戳私有节点/字段；P2 解耦）----
 func build_all() -> void:

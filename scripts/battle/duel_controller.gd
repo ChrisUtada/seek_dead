@@ -271,6 +271,7 @@ func _build_state() -> BattleState:
 	s.SKILL_POOL = SKILL_POOL
 	s.skill_max = skill_max
 	s.shop_offers = _shop_system.shop_offers
+	s.shop_reroll_used = _shop_system.reroll_used
 	s.selected_consumables = selected_consumables
 	s.reward_is_boss = reward_is_boss
 	s.player_shield = player_shield
@@ -330,6 +331,7 @@ func _ready() -> void:
 	hud.buy_requested.connect(_on_shop_buy_pressed)
 	hud.buy_replace_requested.connect(_on_shop_buy_replace_pressed)
 	hud.sell_requested.connect(_on_shop_sell_pressed)
+	hud.shop_reroll_requested.connect(_on_shop_reroll_pressed)
 	hud.reward_chosen.connect(_on_reward_chosen)
 	hud.boss_reward_chosen.connect(_on_boss_reward_chosen)
 	hud.reward_skip_requested.connect(_on_reward_skip_pressed)
@@ -627,6 +629,12 @@ func _on_shop_sell_pressed(path: String, kind: String) -> void:
 	_after_shop_change()
 
 
+# 商店货架刷新（2026-08-09）：Balatro 式递增价 + 每房间歇期限次，见 shop_system.on_shop_reroll_pressed
+func _on_shop_reroll_pressed() -> void:
+	_shop_system.on_shop_reroll_pressed()
+	_after_shop_change()
+
+
 func _gold_upgrade_defs() -> Array:
 	return _shop_system.gold_upgrade_defs()
 
@@ -648,7 +656,8 @@ func _on_shop_leave_pressed() -> void:
 # ---------------------------------------------------------------------------
 func _enter_interroom(roll_shop: bool = true) -> void:
 	in_interroom = true
-	hud._hide_overlay()    # 防御性：确保胜利弹层已关闭，避免顶栏被其遮挡/重触发
+	_shop_system.reroll_used = 0   # 2026-08-09：刷新次数随房间歇期清零（价格重新从 reroll_base 起）
+	hud._hide_overlay()    # 防御性：确保胜利弹层已关闭，避免其遮挡/重触发
 	hud.set_interroom_enabled(true)
 	if roll_shop:
 		# 每房间歇期货架生成一次——反复开关商店不刷新（防「买完再开刷货架」）

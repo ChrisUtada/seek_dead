@@ -13,3 +13,6 @@ jitter_min = -1
 jitter_max = 2
 price_floor = 3
 sell_refund_ratio = 0.5
+reroll_base = 4
+reroll_step = 2
+reroll_max = 3

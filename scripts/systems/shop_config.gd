@@ -15,3 +15,10 @@ extends Resource
 @export var jitter_max: int = 2      # 每次报价的随机浮动上限
 @export var price_floor: int = 3     # 价格下限（防零价/负价）
 @export var sell_refund_ratio: float = 0.5   # 卖出返还实际购入价的比例（过高会刷金，过低换装几乎免费）
+
+# —— 货架刷新（reroll，2026-08-09）——
+# 每房间歇期可付费重滚货架：价格 = reroll_base + 已刷次数 × reroll_step（Balatro 式递增，自然抑制滥用），
+# 上限 reroll_max 次（双闸门防金币无限转化）。reroll_used 随房间歇期清零（_enter_interroom 重置）。
+@export var reroll_base: int = 4     # 首次刷新价格
+@export var reroll_step: int = 2     # 每次刷新递增价（4→6→8→10）
+@export var reroll_max: int = 3      # 每房间歇期刷新次数上限
