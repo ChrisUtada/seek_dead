@@ -292,6 +292,7 @@ var reel_system: ReelSystem             # 2026-08-09 拆分：转轮带/旋转/�
 var combat: CombatSystem                # 2026-08-09 拆分：回合结算/符号贡献/敌我攻防（combat_system.gd）
 var status_system: StatusSystem         # 2026-08-09 拆分：意图/状态定义与查询（status_system.gd）
 var consumable_system: ConsumableSystem # 2026-08-09 拆分：消耗品使用/效果分发（consumable_system.gd）
+var enemy_system: EnemySystem           # 2026-08-09 拆分：敌人回合/意图执行（enemy_system.gd）
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -317,6 +318,7 @@ func _ready() -> void:
 	combat = CombatSystem.new(self)
 	status_system = StatusSystem.new(self)
 	consumable_system = ConsumableSystem.new(self)
+	enemy_system = EnemySystem.new(self)
 	_meta_store.load_meta()
 	_meta_store.sanitize_owned()   # 自愈：清洗历史上误写入 owned_* 的非本类路径（如技能）
 	_meta_store.seed_default_owned()
@@ -895,7 +897,7 @@ func _on_spin_pressed() -> void:
 
 	# 阶段 3：敌人行动（先让玩家看清敌人刚掉的血）
 	await get_tree().create_timer(0.20).timeout
-	_enemy_turn()
+	enemy_system.take_turn()
 	hud._refresh_meta()
 	await get_tree().create_timer(0.35).timeout
 	if enemy_hp <= 0:
@@ -953,37 +955,6 @@ func _free_spin() -> void:
 	hud._refresh_meta()
 	_busy = false
 
-
-func _enemy_turn() -> void:
-	var it: Dictionary = enemy_intent
-	match it.get("type", "attack"):
-		"attack", "heavy":
-			combat.enemy_deal_damage(it.get("value", enemy_atk))
-		"jam":
-			pending_jam_reel = randi() % REELS
-			hud._log("敌人注废 → 下一轮第 %d 列被废铁占据" % (pending_jam_reel + 1))
-		"lock":
-			pending_lock_reel = randi() % REELS
-			hud._log("敌人锁轮 → 下一轮第 %d 列固定不变" % (pending_lock_reel + 1))
-		"chaos":
-			pending_chaos = true
-			hud._log("敌人乱权 → 下一轮权重被打乱（优势符号被削弱）")
-		"none":
-			hud._log("敌人意图落空（已被净化）")
-	enemy_intent = {}
-	combat.tick_status()
-
-
-
-# 对敌人造成伤害（先破甲后掉血）：非穿透先扣护甲、溢出进 HP；穿透直接扣 HP。返回实际造成的总值。
-
-# 反制即爆发（Plan C）：
-# · "special" = 通用破甲：清空敌人护甲，开启「伤害直击 HP」的爆发窗口（所有敌人通用破绽）。
-# · "element" = 进阶核爆：克制元素三连，除破甲外再追加一次直接打血（穿透）的核爆伤害。
-
-
-# T21 元素充能爆发（覆盖流赛道）：克制命中满 charge_max 次后自动释放——
-# 清甲 + 穿透核爆（无视护甲直击 HP），与三连破甲/核爆互补（分散积累 vs 单次高概率）。
 
 func _intent_name(t: String) -> String:
 	return status_system.intent_name(t)
