@@ -157,7 +157,7 @@ func evaluate() -> void:
 	# Phase C：先结算 buff 符号（本回合即生效，命中当回合就吃到增益）
 	for key in counts:
 		var s: SymbolData = counts[key][0]
-		if s == DuelController.TRASH_SYMBOL or s.kind != "buff":
+		if s.kind != "buff":   # trash/MISS(同为 kind=trash) 一律跳过
 			continue
 		grant_buff(s, counts[key][2])
 	# 金币符号（常驻）：落在线上的金币直接转化为金币资源，不造成任何伤害
@@ -174,7 +174,7 @@ func evaluate() -> void:
 		var s: SymbolData = counts[key][0]
 		var elem: String = counts[key][1]
 		var c: int = counts[key][2]
-		if s == DuelController.TRASH_SYMBOL or s.kind == "buff" or s == DuelController.GOLD_SYMBOL:
+		if s.kind == "trash" or s.kind == "buff" or s == DuelController.GOLD_SYMBOL:   # trash/MISS 不结算
 			continue
 		if s.kind == "special" and c < 1:
 			continue
@@ -342,7 +342,7 @@ func pick_frozen_cols() -> Array[int]:
 	var candidates: Array[int] = []
 	for r in DuelController.REELS:
 		var sym: SymbolData = _ctrl.grid[r][0] if _ctrl.grid.size() > r and _ctrl.grid[r].size() > 0 else null
-		if sym != null and sym != DuelController.TRASH_SYMBOL:
+		if sym != null and sym.kind != "trash":   # 冻结不封废铁/MISS
 			candidates.append(r)
 	if candidates.size() < n:
 		for r in DuelController.REELS:

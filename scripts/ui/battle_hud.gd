@@ -659,7 +659,7 @@ func _update_match_badges(counts: Dictionary) -> void:
 		var entry = counts[key]
 		var s: SymbolData = entry[0]
 		var c = entry[2]
-		if s == TRASH_SYMBOL or c < 2:
+		if s == TRASH_SYMBOL or s.kind == "trash" or c < 2:   # trash/MISS 不显示匹配角标
 			continue
 		for reel in controller.state.REELS:
 			for row in controller.state.ROWS:

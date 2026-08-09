@@ -11,8 +11,12 @@ extends RefCounted
 #
 # 落点规则（方案 A）：3 根转轮 = base 的洗牌副本，玩家按停时机决定落点，
 # 而非后台加权随机；频率 = 带子上该符号的格子数。
+# MISS（2026-08-09 恢复）：装备命中率 <1.0 → 带子聚合 MISS 格（占比随 hit_rate 浮动）；
+# MISS 与废铁同语义（kind=trash，不匹配/不结算），视觉显示「MISS」文字，玩家可滚过规避。
 
 signal spin_finished
+
+const MISS_SYMBOL = preload("res://resources/symbols/miss.tres")
 
 const _SPIN_BASE_WAIT := 0.15          # 起始每跳间隔（秒）——调慢以便看清落点、凑三连 special
 const _SPIN_MIN_WAIT := 0.06           # 最快每跳间隔（封顶也调慢，整体更易控）
@@ -76,7 +80,8 @@ func begin_spin() -> void:
 
 
 # 方案 B（2026-08-07）：跨装备聚合 (符号|有效元素) 权重，共享符号累加（同元素堆三连），
-# 符号总预算固定 _ITEM_STRIP_TARGET；2026-08-07 去 MISS：无静态废铁段。
+# 符号总预算固定 _ITEM_STRIP_TARGET；2026-08-09 恢复 MISS：装备命中率越低，带子 MISS 格越多
+# （激活 hit_rate 死字段：高 base 低命中武器付出命中代价，与「高 base 低暴击」代价轴同构）。
 # 结算/连锁/special 三连等下游逻辑不变（仍按 REELS x ROWS 落子统计）。
 func build_strips() -> void:
 	reel_strips = []
@@ -88,18 +93,27 @@ func build_strips() -> void:
 	# 同一 (符号, 有效元素) 被多件装备携带时权重累加（同元素武器堆三连；异元素互不稀释符号总价值）。
 	# 有效元素已在 _build_pool 用 _eff_element 解析（普通符号继承武器元素，special 优先 reel_element）。
 	var agg := {}   # key("path|elem") -> {sym, elem, w}
+	var miss_w := 0.0   # MISS 聚合权重：Σ 装备符号总权重 × (1 - hit_rate)
 	for it in _ctrl.pool_items:
 		var syms: Array = it["syms"]
 		if syms.is_empty():
 			continue
+		var it_total_w := 0.0
 		for s in syms:
 			var w = max(0.0, s[1] + _ctrl.combat.agg_symbol_weight_mod(s[0]) + _ctrl._synergy_system.weight_mod(s[0]))
 			if w <= 0.0:
 				continue
+			it_total_w += w
 			var key: String = s[0].resource_path + "|" + s[2]
 			if not agg.has(key):
 				agg[key] = {"sym": s[0], "elem": s[2], "w": 0.0}
 			agg[key]["w"] += w
+		# 2026-08-09 恢复 MISS：命中率 1.0 = 无 miss（当前武器/技能均 <1.0，形成带子 MISS 段）
+		var hit: float = clamp(it.get("hit", 1.0), 0.0, 1.0)
+		if hit < 1.0:
+			miss_w += it_total_w * (1.0 - hit)
+	if miss_w > 0.0:
+		agg["miss|none"] = {"sym": MISS_SYMBOL, "elem": "none", "w": miss_w}
 	var wsum: float = 0.0
 	for k in agg:
 		wsum += agg[k]["w"]
@@ -110,9 +124,8 @@ func build_strips() -> void:
 			var cnt: int = maxi(1, roundi(float(_ITEM_STRIP_TARGET) * agg[k]["w"] / wsum))
 			for _c in cnt:
 				base.append([agg[k]["sym"], agg[k]["elem"]])
-	# 2026-08-07 去 MISS（用户拍板，参考 Slots & Skulls）：转轮无静态废铁——hit_rate 不再生成 miss 段，
-	# 按停更准（带子纯符号）；废铁仅由敌人意图注入（chaos/abyss_erosion，见下）。hit_rate 字段保留但不再影响转轮。
-	# 金币常驻（经济引擎，与装备频率解耦）
+	# 2026-08-09 恢复 MISS：带子含 MISS 格（占比随装备命中率，见上方聚合）；
+	# 废铁仍由敌人意图注入（chaos/abyss_erosion，见下）。金币常驻（经济引擎，与装备频率解耦）
 	for _c in _GOLD_CELLS:
 		base.append([DuelController.GOLD_SYMBOL, "none"])
 	# 敌人乱权：向整带注入额外废铁（等比重削弱所有装备，忠实还原「削弱优势」意图）

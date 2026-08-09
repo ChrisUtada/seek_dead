@@ -21,7 +21,8 @@ extends Resource
 @export var status_dmg_mult: float = 3.0      # 敌人状态 DoT（灼烧/毒）永久倍率
 
 # —— 转轮频率 ——
-# 2026-08-07 去 MISS：miss_floor/miss_ceil 退役（转轮无静态废铁，按停更准；废铁仅由敌人意图注入）
+# 2026-08-09 恢复 MISS：带子按装备 hit_rate 聚合 MISS 格（高 base 低命中武器付出命中代价）；
+# miss_floor/miss_ceil（旧静态 miss 比例）不恢复——miss 占比由 hit_rate 自然决定，无需额外常量
 
 # —— 爆发 ——
 @export var crit_chance: float = 0.20         # 方案 B：非三连每符号实例独立暴击率（三连必暴）
