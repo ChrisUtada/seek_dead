@@ -242,7 +242,7 @@ func on_shop_sell_pressed(path: String, kind: String) -> void:
 # S12/T27 训练轨道（4 条 · 每局清零 · 消耗「训练点」（仅 BOSS 掉落），金币回归纯装备职能）
 # 效果经聚合层(_agg_*)与 _start_room 读取；此处仅管等级/价格(训练点)/购买。
 # 轨道（training/reel 静态 4 条，定义在 resources/config/gold_upgrades/*.tres，effect + per_level 数据驱动）：
-#   power 训练：锋锐 / line 卷轴掌握 / shield 训练：壁垒 / hp_max 训练：体魄
+#   power 训练：锋锐 / line 连线精通 / shield 训练：壁垒 / hp_max 训练：体魄
 # 收敛决策（2026-08-07）：精准由武器 hit_rate 自带、回复走内容渠道，二轨删除；
 #   T27：升级从金币改为训练点（BOSS 掉落），轨道上限收窄 3、锋锐每级 +4——升级与购买彻底解耦。
 # 铁律（§7.4）：玩家层无伤害乘区——power（加算）+ line（连线乘区）即上限；乘区全留给 build 层。
