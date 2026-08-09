@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rarity = "uncommon"
+category = "active"
+item_id = "cleanse_potion"
+item_name = "清净药剂"
+description = "解除自身负面状态：驱散寒霜（冻结转轮恢复）+ 清零酸蚀毒层。与净化药剂（抵消敌人意图）分工。"
+icon = "🌿"
+effect = "cleanse"
+value = 0
+charges = 1

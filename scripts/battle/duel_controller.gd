@@ -115,6 +115,8 @@ var charge_points := 0                   # T21 元素充能：克制命中累计
 var train_points := 0                    # T27 升级点：仅 BOSS 击败掉落（一局 3 点），商店升级轨道的唯一货币
 var player_frost := 0                    # T30 寒霜侵蚀：玩家 frost 层数（每层冻结转轮 1 列，上限见 frost StatusDef.max_cols）
 var frozen_cols: Array[int] = []         # T30：本回合被冻结的列（失效格：不参与匹配/结算），每轮 _begin_spin 重选
+var player_status: Dictionary = {}       # 2026-08-09 酸蚀恶鬼：玩家侧 DoT（{"poison": 层数}），本房清零；tick/爆炸由 gimmick 结算（acid_bomb_gimmick.on_turn_begin）
+var player_dot_bomb_stacks: int = 10     # 2026-08-09：玩家 DoT 爆炸阈值（HUD 警示用；gimmick on_room_start 按 gimmick_params 覆盖）
 
 # —— 实体转轮带（方案 A）：权重 = 带子上该符号的格子数，落点由停止时机决定 ——
 # 2026-08-09 拆分：转轮状态/旋转逻辑迁至 ReelSystem（scripts/battle/reel_system.gd），
@@ -192,6 +194,7 @@ var charm_interf_resist: int = 0       # 抗扰护符：本局敌人干扰概率
 # 净化完全走消耗品，「丰沛护符·净化上限」机制已废除（charm_purify_bonus 字段随之删除，purify_charm.tres 已删除）
 
 var charm_damage_mult: float = 1.0      # Phase G v2.0：护符全局乘区，默认 ×1.0
+var charm_dot_reduce: int = 0            # 2026-08-09 蚀毒壁垒护符：玩家侧挂毒量每回合 -N（acid_bomb 系 BOSS 读取）
 # T2 护符三项缺口（2026-08-07 落地，BOSS 克制矩阵 §59/§60/§62）：
 var charm_pierce_chance: float = 0.0    # 破甲护符：非穿透伤害符号直击 HP（穿透护甲）概率 0~1
 var charm_element_boost: float = 0.0    # 元素优势护符：克制倍率额外加成（×1.5 → ×1.5+boost，仅克制时）
@@ -259,6 +262,8 @@ func _build_state() -> BattleState:
 	s.charge_points = charge_points
 	s.player_frost = player_frost
 	s.frozen_cols = frozen_cols
+	s.player_status = player_status
+	s.player_dot_bomb_stacks = player_dot_bomb_stacks
 	s.enemy_armor_max = enemy_armor_max
 	s.consumable_slots = consumable_slots
 	s.CONSUMABLE_CAP = CONSUMABLE_CAP
@@ -266,6 +271,7 @@ func _build_state() -> BattleState:
 	s.charm_power_bonus = charm_power_bonus
 	s.charm_interf_resist = charm_interf_resist
 	s.charm_damage_mult = charm_damage_mult
+	s.charm_dot_reduce = charm_dot_reduce
 	s.room_element_mult = room_element_mult
 	s.turn_count = turn_count
 	s.SKILL_POOL = SKILL_POOL
@@ -462,6 +468,7 @@ func _apply_charms() -> void:
 	charm_pierce_chance = 0.0
 	charm_element_boost = 0.0
 	charm_status_boost = 1.0
+	charm_dot_reduce = 0
 	for path in selected_charms:
 		var cd: Resource = load(path)
 		if cd == null:
@@ -478,6 +485,7 @@ func _apply_charms() -> void:
 			"armor_pierce":          charm_pierce_chance = max(charm_pierce_chance, cd.mult_value)   # 破甲护符（T2）：取最高穿透概率
 			"element_boost":         charm_element_boost += cd.mult_value                            # 元素优势护符（T2）：克制倍率加法叠加
 			"status_boost":          charm_status_boost *= cd.mult_value                             # 状态护符（T2）：DoT 乘数
+			"dot_reduce":           charm_dot_reduce += cd.value                                    # 蚀毒壁垒护符（2026-08-09）：玩家侧挂毒量 -N/回合
 		# 混合护符的负面效果（未来卡用）：与正面同枚举、加成型数值取反、乘区型乘 downside_mult
 		if cd.downside_effect != "":
 			match cd.downside_effect:
@@ -490,6 +498,7 @@ func _apply_charms() -> void:
 				"armor_pierce":         charm_pierce_chance = max(0.0, charm_pierce_chance - cd.downside_value / 100.0)
 				"element_boost":        charm_element_boost = max(0.0, charm_element_boost - cd.downside_mult)
 				"status_boost":         charm_status_boost = max(1.0, charm_status_boost - (1.0 - cd.downside_mult))
+				"dot_reduce":           charm_dot_reduce = max(0, charm_dot_reduce - cd.downside_value)
 	# 总护符乘区硬上限（防失控膨胀）
 	charm_damage_mult = min(charm_damage_mult, BALANCE.charm_mult_cap)
 	var charm_log = "护符已装配：伤害+%d / 开局护盾+%d / 每回合护盾+%d / 每回合回血+%d / 抗扰+%d" % [charm_power_bonus, charm_room_shield, charm_shield_trickle, charm_heal_trickle, charm_interf_resist]
@@ -501,6 +510,8 @@ func _apply_charms() -> void:
 		charm_log += " / 元素优势+%s" % ElementCounter.fmt_mult(charm_element_boost)
 	if charm_status_boost != 1.0:
 		charm_log += " / 状态×%s" % ElementCounter.fmt_mult(charm_status_boost)
+	if charm_dot_reduce > 0:
+		charm_log += " / 蚀毒壁垒（挂毒量-%d/回合）" % charm_dot_reduce
 	hud._log(charm_log)
 
 
@@ -825,6 +836,8 @@ func _start_room(idx: int) -> void:
 	charge_points = 0                     # T21：元素充能每房清零
 	player_frost = 0                      # T30：寒霜侵蚀每房清零（BOSS 战状态，不跨房）
 	frozen_cols = []                      # T30：冻结列随 frost 清零
+	player_status = {}                    # 2026-08-09：玩家侧 DoT 每房清零（BOSS 战状态，不跨房）
+	player_dot_bomb_stacks = 10           # 2026-08-09：爆炸阈值回落默认（gimmick on_room_start 覆盖）
 	player_buffs = {}                     # Phase C：主动技能不跨房保留
 	player_shield = 0
 	player_shield += _reward_system.run_shield_next   # M4：上一房奖励的结界在本房开局生效
@@ -880,11 +893,11 @@ func _ante_scale(r: RoomData, idx: int) -> Dictionary:
 func _begin_player_turn() -> void:
 	if game_state != FlowState.PLAYING:
 		return
-	# 经典回合结构：回合开始统一结算持续效果（frost 先衰减再挂新层）→ 敌人声明意图 → 冻结声明
+	# 经典回合结构：回合开始统一结算持续效果（frozen 先衰减再挂新层）→ 敌人声明意图 → 冻结声明
 	turn_count += 1
 	hud._log("▶ 回合 %d 开始" % turn_count)
 	if player_frost > 0:
-		var sd: StatusDef = _status_def("frost")
+		var sd: StatusDef = _status_def("frozen")   # 2026-08-09 单侧性纪律：玩家侧冻结 = frozen（frost 回归纯敌人侧）
 		player_frost = max(0, player_frost - (sd.decay if sd != null else 1))
 		frozen_cols = []
 	enemy_intent = _roll_intent(ROOMS[room_index] if room_index >= 0 and room_index < ROOMS.size() else null)
@@ -898,7 +911,7 @@ func _begin_player_turn() -> void:
 		var cols_txt := PackedStringArray()
 		for c in frozen_cols:
 			cols_txt.append(str(c + 1))
-		hud._log("❄ 寒霜侵蚀：第 %s 列被冰封，本轮无法转动（净化可解）" % "/".join(cols_txt))
+		hud._log("❄ 寒霜侵蚀：第 %s 列被冰封，本轮无法转动（清净药剂可解）" % "/".join(cols_txt))
 		# 冻结列不参与 tick/按停刷新（reel_stopped 恒 true）——此处手动刷新格子，spin 前即显示蓝框
 		for r in REELS:
 			hud._refresh_cell(r, 0)

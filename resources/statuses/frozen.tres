@@ -4,10 +4,11 @@
 
 [resource]
 script = ExtResource("1")
-id = "frost"
-name = "霜"
-icon = "☣❄️"
+id = "frozen"
+name = "冻结"
+icon = "❄️"
 base = 0.0
 element = "ice"
 decay = 1
-desc = "霜冻（敌人侧·单侧）：敌人被冰武器挂上后减攻（每层 ×0.2，上限 50%）"
+max_cols = 2
+desc = "冻结（玩家侧·单侧）：spin 前冰封转轮一列（该列无法 spin，失效格），上限 2 列；清净药剂可解"

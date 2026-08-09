@@ -23,10 +23,12 @@ const DEFAULT_INTENT_WEIGHTS := {
 }
 
 # T23：状态定义资源化（StatusDef：base/element/name/icon/decay/desc），显示名替代原 STATUS_NAMES 硬编码
+# 2026-08-09 单侧性纪律：frost=敌人侧（减攻）/ frozen=玩家侧（冻结转轮）拆分，状态定义不得跨侧共享
 const STATUS_DEFS := {
 	"burn": preload("res://resources/statuses/burn.tres"),
 	"frost": preload("res://resources/statuses/frost.tres"),
 	"poison": preload("res://resources/statuses/poison.tres"),
+	"frozen": preload("res://resources/statuses/frozen.tres"),
 }
 
 var _ctrl  # DuelController

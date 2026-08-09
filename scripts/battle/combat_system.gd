@@ -335,8 +335,9 @@ func buff_damage_mult() -> float:
 
 # T30：按当前 frost 层数随机挑选冻结列（spin 前冰封，每轮重选，frost 持续期间不可瞄准）。
 # 不封废铁：跳过当前显示为 trash 的列（冻结废铁格 = 浪费），全为废铁时回落随机。
+# 2026-08-09 单侧性纪律：玩家侧冻结状态 = frozen StatusDef（frost 已回归纯敌人侧减攻）。
 func pick_frozen_cols() -> Array[int]:
-	var n: int = mini(_ctrl.player_frost, int(_ctrl.status_system.status_def("frost").max_cols))
+	var n: int = mini(_ctrl.player_frost, int(_ctrl.status_system.status_def("frozen").max_cols))
 	if n <= 0:
 		return []
 	var candidates: Array[int] = []

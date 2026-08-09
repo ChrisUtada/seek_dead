@@ -13,7 +13,7 @@ extends Resource
 @export var icon: String = "🧪"          # 展示用 emoji
 @export var rarity: String = "common"    # 强度档位 common|uncommon|rare|epic（T6：护符/消耗品分档，铁砧加权/商店定价用，不动结算）
 @export var category: String = "active"  # active / passive
-@export var effect: String = ""          # 主动: purify/heal/assault/reroll/element；被动: damage_bonus/room_shield/shield/interference_resist/damage_mult/armor_pierce/element_boost/status_boost（T2 三项缺口）
+@export var effect: String = ""          # 主动: purify/cleanse/heal/assault/reroll/element；被动: damage_bonus/room_shield/shield/interference_resist/damage_mult/armor_pierce/element_boost/status_boost/dot_reduce（T2 三项缺口；2026-08-09 cleanse 清净药剂/dot_reduce 蚀毒壁垒）
 @export var element: String = ""         # 元素类效果指定元素（如 effect="element" 的精华消耗品）
 @export var value: int = 0               # 效果数值（加成型）
 @export var mult_value: float = 1.0      # 乘区类效果数值（被动 damage_mult：如 1.5 = 全局 ×1.5）

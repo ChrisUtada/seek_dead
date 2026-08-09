@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rarity = "uncommon"
+category = "passive"
+item_id = "poison_ward"
+item_name = "蚀毒壁垒"
+description = "本局玩家受挂毒量每回合 -1（如酸蚀恶鬼 2 层/回合 → 1 层/回合）：爆炸窗口 5→10 回合拉宽，压力保留但可规划。"
+icon = "☣"
+effect = "dot_reduce"
+value = 1

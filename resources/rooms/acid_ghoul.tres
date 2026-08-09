@@ -1,0 +1,38 @@
+[gd_resource type="Resource" script_class="RoomData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/room_data.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/battle/gimmicks/acid_bomb_gimmick.gd" id="2"]
+[ext_resource type="Script" path="res://scripts/battle/intent_data.gd" id="3"]
+
+[sub_resource type="Resource" script_class="IntentData" id="intent_attack"]
+script = ExtResource("3")
+id = "attack"
+display_name = "攻击"
+icon = "⚔"
+weight = 70.0
+purifiable = false
+value_mult = 1.0
+
+[sub_resource type="Resource" script_class="IntentData" id="intent_heavy"]
+script = ExtResource("3")
+id = "heavy"
+display_name = "重击"
+icon = "💥"
+weight = 30.0
+purifiable = false
+value_mult = 2.0
+
+[resource]
+script = ExtResource("1")
+name = "酸蚀恶鬼"
+hp = 170
+atk = 12
+element = "poison"
+kind = "boss"
+act = 1
+boss_role = "rotating"
+armor = 10
+intents = Array[IntentData]([SubResource("intent_attack"), SubResource("intent_heavy")])
+gimmick_script = ExtResource("2")
+gimmick_params = {"dot_per_turn": 2, "dot_base": 1, "bomb_stacks": 10, "bomb_dmg": 30}
+boss_reward_weapons = Array[String](["res://resources/weapon_templates/holy_sword.tres", "res://resources/weapon_templates/dawn_bow.tres", "res://resources/weapon_templates/iron_sword.tres"])

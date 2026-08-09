@@ -39,6 +39,7 @@ func use(uid: String) -> void:
 	slot["charges"] -= 1
 	match data.effect:
 		"purify":  use_purify(data)
+		"cleanse": use_cleanse(data)
 		"heal":    use_heal(data)
 		"assault": use_assault(data)
 		"reroll":  await use_reroll(data)
@@ -51,23 +52,34 @@ func use(uid: String) -> void:
 	_ctrl.hud._refresh_meta()
 
 
-# 净化：①抵消当前干扰意图（T20：IntentData.purifiable）②清除玩家 frost 解冻（T30 寒霜侵蚀）
+# 净化药剂（2026-08-09 职责收敛）：只抵消敌人干扰意图（T20：IntentData.purifiable）。
+# 玩家侧状态（frost 冻结 / DoT 毒层）改由清净药剂（cleanse）解——净化不再跨「BOSS 侧 / 玩家侧」双职责。
 func use_purify(data: Resource) -> void:
-	var cleaned_any := false
 	var it_data: IntentData = _ctrl.enemy_intent.get("data")
 	var purifiable: bool = it_data.purifiable if it_data != null else _ctrl.enemy_intent.get("type") in ["jam", "lock", "chaos"]
 	if purifiable:
 		var t = _ctrl.enemy_intent.get("type")
 		_ctrl.enemy_intent = {"data": null, "type": "none", "value": 0}
 		_ctrl.hud._log("净化药剂：抵消了敌人的%s" % _ctrl._intent_name(t))
-		cleaned_any = true
+	else:
+		_ctrl.hud._log("净化药剂：当前无干扰意图可清除")
+
+
+# 清净药剂（2026-08-09 新增）：解除玩家自身负面状态——frost 冻结解冻 + DoT 毒层清零。
+# 职责单一：只作用于玩家侧，与净化药剂（敌人意图）分工。
+func use_cleanse(data: Resource) -> void:
+	var cleaned_any := false
 	if _ctrl.player_frost > 0:
 		_ctrl.player_frost = 0
-		_ctrl.frozen_cols = []
-		_ctrl.hud._log("净化药剂：驱散寒霜，冻结转轮恢复！")
+		_ctrl.frozen_cols.clear()   # 动态 _ctrl 访问下不能直接赋 []（untyped 数组赋 typed Array[int] 字段会运行时类型错误）
+		_ctrl.hud._log("清净药剂：驱散寒霜，冻结转轮恢复！")
+		cleaned_any = true
+	if int(_ctrl.player_status.get("poison", 0)) > 0:
+		_ctrl.player_status["poison"] = 0
+		_ctrl.hud._log("清净药剂：驱散酸蚀，毒层清零！")
 		cleaned_any = true
 	if not cleaned_any:
-		_ctrl.hud._log("净化药剂：当前无干扰意图/寒霜可清除")
+		_ctrl.hud._log("清净药剂：当前无寒霜/酸蚀可清除")
 
 
 func use_heal(data: Resource) -> void:

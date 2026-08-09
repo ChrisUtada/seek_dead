@@ -34,6 +34,8 @@ var enemy_status: Dictionary = {}
 var charge_points: int = 0               # T21 元素充能进度（HUD 充能条读取）
 var player_frost: int = 0                # T30 寒霜侵蚀：玩家 frost 层数（HUD 玩家状态行）
 var frozen_cols: Array = []              # T30 本回合冻结列（HUD 冻结格标记）
+var player_status: Dictionary = {}       # 2026-08-09：玩家侧 DoT（{"poison": 层数}，HUD 状态行读取）
+var player_dot_bomb_stacks: int = 10     # 2026-08-09：玩家 DoT 爆炸阈值（HUD 警示色判定）
 var shop_reroll_used: int = 0            # 2026-08-09 商店刷新：本房间歇期已刷次数（价格 = base + used×step）
 var enemy_armor_max: int = 0
 var consumable_slots: Array[Dictionary] = []
@@ -45,6 +47,7 @@ var charm_shield_trickle: int = 0
 var charm_heal_trickle: int = 0
 var charm_interf_resist: int = 0
 var charm_damage_mult: float = 1.0
+var charm_dot_reduce: int = 0            # 2026-08-09 蚀毒壁垒护符：挂毒量 -N/回合（gimmick 读取）
 var room_element_mult: Dictionary = {}    # 元素精华：本房间内元素 → 强制克制倍率（新房间清零，HUD 房间行显示）
 var turn_count: int = 1
 var SKILL_POOL: Array[String] = []
