@@ -6,6 +6,10 @@ import/
 *.md5
 *.meta
 
+# Export build artifacts（导出产物不入库；export_presets.cfg 保留跟踪）
+*.exe
+*.pck
+
 # IDE
 .idea/
 .vscode/

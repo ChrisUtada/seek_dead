@@ -315,6 +315,11 @@ func _ready() -> void:
 			push_warning("房间 %s 元素非法：%s" % [r.name, r.element])   # 启动即暴露错字，防战斗中才发现
 	REWARD_POOL.assign(ResourceScan.scan_resources("res://resources/rewards/", "RewardData"))
 	ELITE_REWARD_POOL.assign(ResourceScan.scan_resources("res://resources/rewards/elite/", "RewardData"))
+	# 导出构建防御：池为空即告警（防 ResourceScan 回归导致导出内容缺失——2026-08-10 修复）
+	if OS.has_feature("template") and WEAPON_POOL.is_empty():
+		push_warning("导出构建：武器池为空——资源扫描可能失效，请检查 ResourceScan")
+	if OS.has_feature("template") and ALL_ROOMS.is_empty():
+		push_warning("导出构建：房间池为空——资源扫描可能失效，请检查 ResourceScan")
 	hud = BATTLE_HUD.instantiate()
 	add_child(hud)
 	hud.controller = self
