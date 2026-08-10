@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/equipment/weapon_data.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/battle/symbol_weight.gd" id="sw"]
+[ext_resource type="Resource" path="res://resources/symbols/bolt_shot.tres" id="s0"]
+
+[sub_resource type="Resource" id="sw0"]
+script = ExtResource("sw")
+symbol = ExtResource("s0")
+weight = 5.0
+
+[resource]
+script = ExtResource("1")
+weapon_name = "穿甲重弩"
+category = "weapon"
+rarity = "uncommon"
+crit_chance = 0.10
+base_power = 14
+hit_rate = 0.82
+weapon_type = 1
+can_dual_wield = true
+damage = 34.0
+attack_speed = 2.0
+attack_range = 500.0
+bullet_speed = 700.0
+max_ammo = 30
+symbols = Array[ExtResource("sw")]([SubResource("sw0")])

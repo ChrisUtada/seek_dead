@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="RoomData" load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/battle/room_data.gd" id="1"]
-[ext_resource type="Script" path="res://scripts/battle/gimmicks/cocoon_sentinel_gimmick.gd" id="2"]
+[ext_resource type="Script" path="res://scripts/battle/gimmicks/cocoon_cycle_gimmick.gd" id="2"]
 [ext_resource type="Script" path="res://scripts/battle/intent_data.gd" id="3"]
 
 [sub_resource type="Resource" script_class="IntentData" id="intent_attack"]
@@ -9,27 +9,27 @@ script = ExtResource("3")
 id = "attack"
 display_name = "攻击"
 icon = "⚔"
-weight = 50.0
+weight = 45.0
 purifiable = false
 value_mult = 1.0
-
-[sub_resource type="Resource" script_class="IntentData" id="intent_heavy"]
-script = ExtResource("3")
-id = "heavy"
-display_name = "重击"
-icon = "💥"
-weight = 25.0
-purifiable = false
-value_mult = 2.0
 
 [sub_resource type="Resource" script_class="IntentData" id="intent_jam"]
 script = ExtResource("3")
 id = "jam"
 display_name = "注废"
 icon = "☣"
-weight = 25.0
+weight = 35.0
 purifiable = true
 value_mult = 0.0
+
+[sub_resource type="Resource" script_class="IntentData" id="intent_heavy"]
+script = ExtResource("3")
+id = "heavy"
+display_name = "重击"
+icon = "💥"
+weight = 20.0
+purifiable = false
+value_mult = 2.0
 
 [resource]
 script = ExtResource("1")
@@ -40,8 +40,8 @@ element = "ice"
 kind = "boss"
 act = 1
 boss_role = "hidden"
-armor = 15
-intents = Array[IntentData]([SubResource("intent_attack"), SubResource("intent_heavy"), SubResource("intent_jam")])
+armor = 45
+intents = Array[IntentData]([SubResource("intent_attack"), SubResource("intent_jam"), SubResource("intent_heavy")])
 gimmick_script = ExtResource("2")
-gimmick_params = {"shield_interval": 3, "shield_amount": 15, "shield_max": 45, "heal_per_turn": 6}
+gimmick_params = {"cycle_period": 4, "shell_armor": 45, "open_armor": 0, "heal_per_turn": 6, "open_heavy_mult": 2.0}
 boss_reward_weapons = Array[String](["res://resources/weapon_templates/fire_sword.tres", "res://resources/weapon_templates/flame_staff.tres", "res://resources/weapon_templates/iron_sword.tres"])

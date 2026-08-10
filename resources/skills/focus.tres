@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="SkillData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/items/skill_data.gd" id="1"]
+[ext_resource type="Resource" path="res://resources/symbols/buff_focus.tres" id="2"]
+
+[resource]
+script = ExtResource("1")
+buff_id = "focus"
+category = "skill"
+rarity = "uncommon"
+base_power = 6.0
+hit_rate = 0.90
+buff_name = "蓄势"
+icon = "⏳"
+description = "蓄势符入轮：本回合起伤害 +6（持续 2 回合）——闭合期开启、开合窗口内与强袭/充能叠加爆发"
+symbol = ExtResource("2")
+weight = 2.0

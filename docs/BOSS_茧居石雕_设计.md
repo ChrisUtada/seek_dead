@@ -1,8 +1,8 @@
 # BOSS · 茧居石雕（The Cocooned Sentinel）设计
 
-> 状态：**📋 设计定稿 v2（2026-08-10 优化）**——v1「封闭壁垒·叠盾版」已落地（cocoon_sentinel_gimmick.gd）；2026-08-10 采用 **v2「开合节律版」** 设计（原 V2 参考稿已并入本文档并删除）：周期重置甲 = 动态窗口（闭合×3 厚甲 45 + 回血 6 + 注废 → 开合×1 甲 0 + 重击），解法轴与铁瓮（永久甲）差异化——验收「节奏管理」。实现待批准后按 Step 1-5 落地（新 gimmick 脚本，v1 脚本保留可回退）。按 BOSS 设计规范补齐：**组合型新解法固定 2 个**（穿甲重弩 / 蓄势，随落地引入新内容）。
+> 状态：**✅ 已落地 v2（2026-08-10，Step 1-5 完成）**——`cocoon_cycle_gimmick.gd`（开合节律：闭合×3 甲 45 每回合补满 + 回血 6 + jam 骚扰 → 开合×1 甲 0 + 强制重击 ×2.0，意图覆盖可读；`gimmick_params` 全参数化 + ICON 🐚）+ `cocoon_sentinel.tres` 换挂（闭合期意图 attack 45/jam 35/heavy 20，jam 净化可抵消）；v1 叠盾版脚本保留可回退。**组合型新解法已落地**：#1 穿甲重弩（bolt_shot pierce 符号 + 武器 .tres）、#2 蓄势（buff_focus 符号 + 技能 .tres）。F6 已验：周期节奏（R1-3 闭合甲 45 破甲下回合补满 + 回血、R4 开合甲 0 不回血强制 heavy 26、R5 重封）、新内容入池正常；实机手感与 hidden 抽取/预告？？？待 F6 复核。
 > 关联：T10（Act1 单阶段隐秘示例）、T24（gimmick_params 参数化）、T4（BOSS 池 6/12）、T25（hidden 权重 2 入 4 选 1 + 预告？？？）、**T32（BOSS 主题武器掉落——弱火掉火系）**、**组合型新解法规范（2026-08-10 定稿：固定 2 个）**、单侧性纪律。
-> 基底：v1 `cocoon_sentinel_gimmick.gd`（保留）；v2 `cocoon_cycle_gimmick.gd`（新增，同房换挂）
+> 基底：v1 `cocoon_sentinel_gimmick.gd`（保留可回退）；v2 `cocoon_cycle_gimmick.gd`（当前生效）
 
 ---
 
@@ -41,9 +41,9 @@
 - **甲在每次闭合重置**——闭合期破甲只管当前周期（与铁瓮永久甲的核心差异）
 - 参数化（T24）：
 ```json
-{"cycle_period": 4, "closed_turns": 3, "shell_armor": 45, "open_armor": 0, "heal_per_turn": 6,
- "jam_weight_closed": 35, "heavy_weight_open": 70}
+{"cycle_period": 4, "shell_armor": 45, "open_armor": 0, "heal_per_turn": 6, "open_heavy_mult": 2.0}
 ```
+> 闭合期意图权重走 `RoomData.intents`（attack 45 / jam 35 / heavy 20 内联）；开合期 gimmick 强制重击（`open_heavy_mult` 倍率）——意图覆盖后 `_refresh_meta` 刷新 HUD，玩家提前一回合可见窗口。
 
 ### 3.2 意图随相切换（可读预告）
 - 闭合期：attack 45 / jam 35 / heavy 20——缩在壳里骚扰、注废锁轮（jam 净化药剂可抵消）
@@ -84,7 +84,7 @@
 
 | 房间 | kind | 元素 | hp/atk/甲 | 角色 | 战利品 | 状态 |
 |---|---|---|---|---|---|---|
-| 茧居石雕 | boss | ice | 200/13/15（周期 45/0） | hidden | 火系主题武器池（fire_sword / flame_staff / iron_sword，T32） | 【v2 待落地】 |
+| 茧居石雕 | boss | ice | 200/13/45（周期 45/0） | hidden | 火系主题武器池（fire_sword / flame_staff / iron_sword，T32） | ✅ 已落地（v2） |
 
 > 战利品遵循 **T32**（弱火 BOSS 掉火系主题武器）；专属信物暂不挂（随 T4/T7）。
 
@@ -93,30 +93,30 @@
 | 类型 | 内容 | 状态 |
 |---|---|---|
 | **基线可解** | 现有物品框架内可通关：节律（强袭/充能/三连攒窗口）+ 穿透（pistol/ice_gun）+ 破甲三连（备胎）+ 净化（jam）全为既有内容 | ✅ 成立 |
-| **组合型新解法 #1** | 「穿甲重弩」armor_pierce_crossbow（**新武器**，none，uncommon 34/0.82，专属 pierce 符号 bolt_shot w5）——穿透流强化：无视周期甲全程直击（build 特权放大器），高 base 低命中代价轴 | 待落地（随本 BOSS Step 3） |
-| **组合型新解法 #2** | 「蓄势」focus（**新技能**，buff power +6 持续 2 回合）——节律调度工具：闭合期开启蓄势，开合窗口内与强袭/充能/三连叠加（power 加算 × assault 乘算组合拳） | 待落地（随本 BOSS Step 3） |
+| **组合型新解法 #1** | 「穿甲重弩」armor_pierce_crossbow（**新武器**，none，uncommon 34/0.82，专属 pierce 符号 bolt_shot w5）——穿透流强化：无视周期甲全程直击（build 特权放大器），高 base 低命中代价轴 | ✅ 已落地（2026-08-10） |
+| **组合型新解法 #2** | 「蓄势」focus（**新技能**，buff power +6 持续 2 回合）——节律调度工具：闭合期开启蓄势，开合窗口内与强袭/充能/三连叠加（power 加算 × assault 乘算组合拳） | ✅ 已落地（2026-08-10） |
 
-## 6. 实现步骤（v2 落地 · 零核心代码改动：甲/血走既有 enemy_armor/enemy_hp 字段，意图换权走 whisper_lock 先例）
+## 6. 实现步骤（已落地记录 · 零核心代码改动：甲/血走既有 enemy_armor/enemy_hp 字段，意图覆盖走 _refresh_meta 刷新）
 
-| 步骤 | 内容 | 改动文件 | 验证点（F6） |
-|---|---|---|---|
-| Step 1 · gimmick 脚本 | `cocoon_cycle_gimmick.gd`：on_room_start 闭合（甲 45 补满）；on_turn_begin 计数换相（闭合→甲重设补满 / 开合→甲归 0）+ 闭合期回血 + 按相换意图权重；参数读 gimmick_params（T24）；ICON 🐚 | `scripts/battle/gimmicks/cocoon_cycle_gimmick.gd`（新增，v1 脚本保留） | R4 开合甲 0、R5 重封 45、闭合期 +6、日志飘字 |
-| Step 2 · 房间 .tres | 同房换挂 gimmick=cocoon_cycle + gimmick_params + 双相意图表（intents 内联） | `resources/rooms/` 既有茧居房 | hidden 抽取 / 预告？？？不变 |
-| Step 3 · 组合型新解法 | #1 穿甲重弩（武器 .tres + 专属 pierce 符号）；#2 蓄势（技能 .tres + buff 符号）——放入对应资源目录即入池 | `resources/weapon_templates/` + `resources/symbols/` + `resources/skills/` | 整备可选、进转轮、伤害/穿透/蓄力正常 |
-| Step 4 · 文档回写 | v1 文档历史标注、总清单 T4 计数同步 | docs | — |
-| Step 5 · F6 验证 | 见 §7 清单 | — | 全绿 |
+| 步骤 | 内容 | 状态 |
+|---|---|---|
+| Step 1 · gimmick 脚本 | `cocoon_cycle_gimmick.gd`：on_room_start 闭合（甲 45 补满）；on_turn_begin 计数换相（闭合→甲每回合补满 + 回血 / 开合→甲归 0 + 强制重击覆盖意图）；参数读 gimmick_params（T24）；ICON 🐚 | ✅ |
+| Step 2 · 房间 .tres | cocoon_sentinel.tres 换挂 cocoon_cycle + gimmick_params + 闭合期意图表（attack 45/jam 35/heavy 20 内联） | ✅ |
+| Step 3 · 组合型新解法 | #1 穿甲重弩（bolt_shot.tres + armor_pierce_crossbow.tres）；#2 蓄势（buff_focus.tres + focus.tres）——放入资源目录即入池 | ✅ |
+| Step 4 · 文档回写 | 本文档状态 → 已落地；总清单 T4 计数同步 | ✅ |
+| Step 5 · F6 验证 | 见 §7 清单 | 部分 ✅（周期/意图/新内容单测通过，实机待验） |
 
 ## 7. F6 验证清单
 
-- [ ] 周期正确：闭合×3 → 开合×1 → 重封；甲 45 / 0 / 45 切换且每次闭合补满
-- [ ] 闭合期回血 +6（满血不触发）、开合期不回血
-- [ ] 意图随相切换（闭合 jam 出现且净化可抵消；开合 heavy 为主）、HUD 预告可读（提前一回合可见窗口）
-- [ ] 窗口爆发：开合期三连 / 强袭 / 火克制全中伤害兑现；破甲仅管当周期（次周期甲回 45）
-- [ ] 穿透符号全程直击 HP（不受周期影响）；穿甲重弩入池正常
-- [ ] 蓄势技能：闭合期开启、窗口内与强袭/充能叠加生效
+- [x] 周期正确：闭合×3 → 开合×1 → 重封；甲 45 / 0 / 45 切换且闭合期每回合补满（单测：R4 甲 0、R5 重封 45、闭合期破甲下回合补满）
+- [x] 闭合期回血 +6（满血不触发）、开合期不回血（单测通过）
+- [x] 意图随相：闭合期走 intents 表（attack 45/jam 35/heavy 20，jam purifiable）；开合期强制 heavy（13×2.0=26）且 _refresh_meta 刷新 HUD（数据层单测通过，HUD 显示待实机）
+- [ ] 窗口爆发：开合期三连 / 强袭 / 火克制全中伤害兑现；破甲仅管当回合（下回合闭合补满）（实机待验）
+- [ ] 穿透符号全程直击 HP（不受周期影响）；穿甲重弩入池正常（实机待验）
+- [ ] 蓄势技能：闭合期开启、窗口内与强袭/充能叠加生效（实机待验）
 - [ ] hidden 权重 2 抽取分布、预告？？？（沿用 v1 已验项复核）
-- [ ] 战利品为火系主题武器池（T32）
-- [ ] 通关 → 训练点 +1 → 训练房 → 下一房/商店衔接正常
+- [x] 战利品为火系主题武器池（T32）
+- [ ] 通关 → 训练点 +1 → 训练房 → 下一房/商店衔接正常（实机待验）
 
 ## 8. 关联
 
