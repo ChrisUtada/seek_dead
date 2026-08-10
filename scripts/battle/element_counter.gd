@@ -95,6 +95,11 @@ static func resists(def: String) -> Array[String]:
 	return out
 
 
+# 元素合法性校验（启动扫描时断言，防手打错字；none 合法 = 无属性）
+static func is_valid_element(e: String) -> bool:
+	return e == "none" or ELEMENTS.has(e)
+
+
 # 倍率文本：1.50 → "1.5"、0.85 → "0.85"（去掉无意义的尾零）
 static func fmt_mult(m: float) -> String:
 	var s := "%.2f" % m

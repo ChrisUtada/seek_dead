@@ -310,6 +310,9 @@ func _ready() -> void:
 	ITEM_POOL.assign(ResourceScan.scan_paths("res://resources/charms/") + ResourceScan.scan_paths("res://resources/consumables/"))
 	SKILL_POOL.assign(ResourceScan.scan_paths("res://resources/skills/"))
 	ALL_ROOMS.assign(_sort_rooms(ResourceScan.scan_resources("res://resources/rooms/", "RoomData")))
+	for r in ALL_ROOMS:
+		if not ElementCounter.is_valid_element(r.element):
+			push_warning("房间 %s 元素非法：%s" % [r.name, r.element])   # 启动即暴露错字，防战斗中才发现
 	REWARD_POOL.assign(ResourceScan.scan_resources("res://resources/rewards/", "RewardData"))
 	ELITE_REWARD_POOL.assign(ResourceScan.scan_resources("res://resources/rewards/elite/", "RewardData"))
 	hud = BATTLE_HUD.instantiate()
