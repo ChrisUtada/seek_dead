@@ -709,19 +709,25 @@ func _update_enemy_element() -> void:
 	# 元素（始终显示，紧贴"敌人"标题）
 	enemy_element_label.text = "%s" % ElementCounter.label(eelem)
 	enemy_element_label.add_theme_color_override("font_color", ElementCounter.color(eelem))
-	# 弱 / 抗：仅在有属性时显示（none 元素没有克制定义）
+	# 弱 / 抗：仅在有属性时显示（none 元素没有克制定义）；多元素用「·」拼接（v2 互克对+毒链）
 	var ewk := ElementCounter.weakness(eelem)
-	if ewk == "none":
+	if ewk.is_empty():
 		enemy_weak_label.visible = false
 		enemy_resist_label.visible = false
 	else:
 		enemy_weak_label.visible = true
-		enemy_weak_label.text = "弱 %s ×%s" % [ElementCounter.label(ewk), ElementCounter.fmt_mult(ElementCounter.MULT_ADVANTAGE)]
-		enemy_weak_label.add_theme_color_override("font_color", ElementCounter.color(ewk))
+		var wk_names := []
+		for e in ewk:
+			wk_names.append(ElementCounter.label(e))
+		enemy_weak_label.text = "弱 %s ×%s" % ["·".join(wk_names), ElementCounter.fmt_mult(ElementCounter.MULT_ADVANTAGE)]
+		enemy_weak_label.add_theme_color_override("font_color", ElementCounter.color(ewk[0]))
 		var ers := ElementCounter.resists(eelem)
 		enemy_resist_label.visible = true
-		enemy_resist_label.text = "抗 %s ×%s" % [ElementCounter.label(ers), ElementCounter.fmt_mult(ElementCounter.MULT_RESIST)]
-		enemy_resist_label.add_theme_color_override("font_color", ElementCounter.color(ers))
+		var rs_names := []
+		for e in ers:
+			rs_names.append(ElementCounter.label(e))
+		enemy_resist_label.text = "抗 %s ×%s" % ["·".join(rs_names), ElementCounter.fmt_mult(ElementCounter.MULT_RESIST)]
+		enemy_resist_label.add_theme_color_override("font_color", ElementCounter.color(ers[0]))
 
 
 # 飘字：在 anchor 面板顶部中央弹出并上浮淡出（Phase 3：固定对象池借出/归还）
