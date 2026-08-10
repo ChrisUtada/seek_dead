@@ -125,5 +125,5 @@
 
 - 总清单 **T30**（冰封铁瓮 BOSS 设计实现 + Act1 配套）：本文档为唯一设计依据；随本 BOSS 落地 **T24**（gimmick 参数化）、**T23 延伸**（frozen 功能状态）、**T20 延伸**（净化职责拆分 → 清净药剂）、**T32**（主题武器掉落）、**T25**（fixed 权重 6）
 - 规范依据：BOSS 设计规范（2026-08-10 重置对齐）；格式范例：BOSS_迷宫低语者_设计.md
-- Act1 轮替/隐秘 BOSS：碎裂石像鬼（glass_cannon）/ 酸蚀恶鬼（status_bomb）/ 茧居石雕（shield_heal）——同幕候选，各文档独立
+- Act1 轮替/隐秘 BOSS：碎裂石像鬼（glass_cannon）/ 酸蚀恶鬼（status_bomb）/ 茧居石雕（cocoon_cycle 开合节律 v2）——同幕候选，各文档独立
 - 最终 BOSS：勇者的阴影（真·最终槽，final_boss 预留）

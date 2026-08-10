@@ -139,7 +139,7 @@
 | 原型 | gimmick | 幕 | 阶段 | 参数化示例（gimmick_params） |
 |---|---|---|---|---|
 | 熔铸护甲 | rust_armor | 1 | 单 | interval/per_stack/max_stacks |
-| 封闭壁垒 | cocoon_sentinel | 1 | 单 | shield_interval/shield_amount/shield_max/heal_per_turn |
+| 封闭壁垒 | cocoon_cycle | 1 | 单 | 开合节律（v2 定稿 2026-08-10）：cycle_period/closed_turns/shell_armor/open_armor/heal_per_turn/jam_weight_closed/heavy_weight_open（v1 cocoon_sentinel 叠盾版已落地保留） |
 | 玻璃大炮 | glass_cannon | 1 | 单 | 高 atk 低 hp（已落地，参数随定稿） |
 | 状态炸弹 | acid_bomb | 1 | 单 | 玩家侧 DoT + 层数爆炸 |
 | 呓语锁轮 | whisper_lock | 2 | 单/双 | lock_every/attack_mult/phase2_* |
@@ -149,7 +149,7 @@
 
 | 幕 | 已落地 | 角色 |
 |---|---|---|
-| Act1 | 冰封铁瓮（rust_armor）、碎裂石像鬼（glass_cannon）、酸蚀恶鬼（acid_bomb）、茧居石雕（cocoon_sentinel） | fixed / rotating / rotating / hidden |
+| Act1 | 冰封铁瓮（rust_armor）、碎裂石像鬼（glass_cannon）、酸蚀恶鬼（acid_bomb）、茧居石雕（cocoon_sentinel 已落地 / cocoon_cycle 开合节律 v2 定稿待落地） | fixed / rotating / rotating / hidden |
 | Act2 | 呓语教徒（whisper_lock 单）、迷宫低语者（whisper_lock 双） | fixed / rotating |
 | Act3 | 深渊监视者（abyss_erosion，P2/P3 待补） | fixed |
 | 真·最终 | 槽位预留（final_boss） | 独立 |
