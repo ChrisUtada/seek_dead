@@ -83,14 +83,15 @@ static func weakness(def: String) -> Array[String]:
 	return out
 
 
-# S3：敌人视角反查 —— 「它抗什么元素」= 同元素 + 它所克制的元素（这些元素打它 ×0.85）。
+# S3：敌人视角反查 —— 「它抗什么元素」= 打它伤害 ×0.85 的元素（同元素 + 被它克制且非互克的元素）。
+# 用 multiplier 反查而非 BEATS 直推：互克对（火↔冰）里火打冰是 1.5 克制而非抗性，直推会误报。
 static func resists(def: String) -> Array[String]:
 	var out: Array[String] = []
 	if def == "none":
 		return out
-	out.append(def)   # 同元素对打减伤
-	for a in BEATS.get(def, []):
-		out.append(a)
+	for a in ELEMENTS:
+		if multiplier(a, def) == MULT_RESIST:
+			out.append(a)
 	return out
 
 
