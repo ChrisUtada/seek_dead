@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="SymbolData" format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/symbol_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+label = "✦🕊"
+name = "定心"
+kind = "buff"
+base = 0.0
+element = "none"
+status_type = ""
+color = Color(0.75, 0.95, 0.90, 1)
+buff_effect = "shield"
+buff_value = 8.0
+buff_turns = 2

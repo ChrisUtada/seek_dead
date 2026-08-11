@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rarity = "rare"
+category = "passive"
+item_id = "mirror_charm"
+item_name = "明镜护符"
+description = "本局抗扰 +3（干扰类意图权重 -36%，保留 25% 下限）：迷宫低语者 P1/P2 干扰战的核心投资。"
+icon = "🪞"
+effect = "interference_resist"
+value = 3

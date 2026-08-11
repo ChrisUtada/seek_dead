@@ -1,0 +1,37 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/equipment/weapon_data.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/battle/symbol_weight.gd" id="sw"]
+[ext_resource type="Resource" path="res://resources/symbols/holy_slash.tres" id="s0"]
+[ext_resource type="Resource" path="res://resources/symbols/holy_bolt.tres" id="s1"]
+
+[sub_resource type="Resource" id="sw0"]
+script = ExtResource("sw")
+symbol = ExtResource("s0")
+weight = 4.0
+
+[sub_resource type="Resource" id="sw1"]
+script = ExtResource("sw")
+symbol = ExtResource("s1")
+weight = 2.0
+
+[resource]
+script = ExtResource("1")
+weapon_name = "圣辉长枪"
+category = "weapon"
+rarity = "rare"
+crit_chance = 0.05
+base_power = 14
+hit_rate = 0.86
+archetype = 1
+damage = 40.0
+attack_speed = 1.0
+attack_range = 90.0
+cleave_angle = 90.0
+knockback_force = 200.0
+status_effect_type = -1
+status_effect_damage = 0.0
+status_effect_duration = 3.0
+reel_element = "light"
+element = "light"
+symbols = Array[ExtResource("sw")]([SubResource("sw0"), SubResource("sw1")])

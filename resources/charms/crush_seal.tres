@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rarity = "epic"
+category = "passive"
+item_id = "crush_seal"
+item_name = "碎甲之印"
+description = "每符号伤害 40% 概率直击 HP（穿透护甲，覆盖破甲符 25%）——P2 破甲窗口强开，乱权/锁轮下免攒三连。"
+icon = "💢"
+effect = "armor_pierce"
+mult_value = 0.40
