@@ -141,6 +141,9 @@ func _make_cell(d: Dictionary) -> Control:
 	else:
 		var tag = "✨ 新获取" if d.get("is_new", false) else "↺ 重复"
 		cell.configure(d.get("name", "?"), "%s · %s" % [d.get("rarity", "?"), tag])
+		var p: String = d.get("path", "")
+		if p != "":
+			cell.tooltip_text = ItemTooltip.for_resource(load(p))   # 物品悬停信息窗（ItemTooltip 生成器）
 	return cell
 
 func hide_screen() -> void:

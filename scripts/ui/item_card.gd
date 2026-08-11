@@ -58,3 +58,8 @@ func set_status(text: String, color: Color) -> void:
 	_status_label.text = text
 	_status_label.add_theme_color_override("font_color", color)
 	_status_label.visible = text != ""
+
+
+# 物品悬停信息窗：按资源类型生成 BBCode 富文本（ItemTooltip 单一生成器，见 docs/物品悬停信息窗_设计.md）
+func set_tooltip(res: Resource, kind: String = "") -> void:
+	tooltip_text = ItemTooltip.for_resource(res, kind)

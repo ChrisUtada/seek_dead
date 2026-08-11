@@ -47,3 +47,9 @@ const CARD_SEL_BG      := Color(0.20, 0.32, 0.22, 1)  # 选中底
 const CARD_SEL_BORDER  := Color(0.45, 0.85, 0.50, 1)  # 选中边框
 const CARD_NORM_BG     := Color(0.16, 0.16, 0.22, 1)  # 常态底
 const CARD_NORM_BORDER := Color(0.30, 0.30, 0.38, 1)  # 常态边框
+
+# ---- 稀有度色（tooltip/卡片：common 灰 / uncommon 绿 / rare 蓝 / epic 紫）----
+const RARITY_COMMON   := Color(0.70, 0.70, 0.75, 1)
+const RARITY_UNCOMMON := Color(0.50, 0.95, 0.60, 1)
+const RARITY_RARE     := Color(0.55, 0.75, 1.00, 1)
+const RARITY_EPIC     := Color(0.85, 0.65, 1.00, 1)

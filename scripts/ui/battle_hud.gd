@@ -319,6 +319,8 @@ func _make_item_card(data: Resource, path: String, kind: String) -> Dictionary:
 	btn.autowrap_mode = TextServer.AUTOWRAP_OFF
 	btn.clip_text = true
 	btn.text = ""
+	if data != null:
+		btn.tooltip_text = ItemTooltip.for_resource(data, kind)   # 物品悬停信息窗（ItemTooltip 生成器）
 
 	var name := ""
 	var line1 := ""   # 图标/核心信息
@@ -493,6 +495,7 @@ func _make_shop_card(offer: Dictionary) -> Button:
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var kind_name = {"weapon": "武器", "passive": "护符", "active": "物品", "skill": "技能"}.get(offer["kind"], "物品")
 	card.configure("%s%s · %s" % [_source_tag(offer["kind"]), kind_name, offer["name"]], "", TypeScale.TITLE, 0.0, 2)
+	card.set_tooltip(load(offer["path"]), offer["kind"])   # 物品悬停信息窗（ItemTooltip 生成器）
 	var price = controller._shop_price(offer["kind"], -1, offer["path"])   # 价格随当前持有数递增 + 稀有度阶梯（T6/T21）；卖出回落，换装成本=买卖价差（防刷价）
 	var is_active = (offer["kind"] == "active")
 	var cap = controller.state.CONSUMABLE_CAP if is_active else controller._loadout_system.cat_max(offer["kind"])          # 消耗品按腰带总容量 4；其余按整备上限
@@ -530,12 +533,14 @@ func _make_shop_card(offer: Dictionary) -> Button:
 
 
 # 商店「卖出」区：四列列出已持有物品，点击回收约50%金币并释放槽位
-func _make_sell_card(title_text: String, sub_text: String, disabled: bool, cb: Callable) -> Button:
+func _make_sell_card(title_text: String, sub_text: String, disabled: bool, cb: Callable, res: Resource = null) -> Button:
 	var card: ItemCard = ITEM_CARD.instantiate()
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	card.custom_minimum_size = Vector2(0, 26)
 	card.configure(title_text, sub_text, TypeScale.TINY)
 	card.set_desc_color(Palette.ACCENT_GOLD if not disabled else Palette.MUTED_DIM)
+	if res != null:
+		card.set_tooltip(res)   # 物品悬停信息窗（ItemTooltip 生成器）
 	card.disabled = disabled
 	if not cb.is_null():
 		card.pressed.connect(cb)
@@ -1081,7 +1086,7 @@ func _refresh_consumable_panel() -> void:
 			var cd: Resource = load(slot["path"])
 			if cd != null:
 				cell.text = "%s %s" % [cd.icon, cd.item_name]
-				cell.tooltip_text = "%s · %s · 剩 %d 次" % [cd.item_name, cd.description, slot["charges"]]
+				cell.tooltip_text = ItemTooltip.for_resource(cd) + "\n剩 %d 次" % slot["charges"]   # 统一生成器 + 腰带余量
 			else:
 				cell.text = "?"
 				cell.tooltip_text = "资源缺失"

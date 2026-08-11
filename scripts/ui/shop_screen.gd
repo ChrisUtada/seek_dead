@@ -114,7 +114,7 @@ func _sell_fill(list: VBoxContainer, kind: String) -> void:
 			var name = hud._source_tag(kind) + controller._shop_name(slot["path"], kind)
 			var refund = controller._sell_price(kind, slot["uid"])
 			var sub = "卖出 +%d 金" % refund
-			list.add_child(hud._make_sell_card(name, sub, false, hud.sell_requested.emit.bind(slot["uid"], kind)))
+			list.add_child(hud._make_sell_card(name, sub, false, hud.sell_requested.emit.bind(slot["uid"], kind), load(slot["path"])))
 		return
 	var owned = controller._loadout_system.sel_arr(kind)
 	for path in owned:
@@ -126,7 +126,7 @@ func _sell_fill(list: VBoxContainer, kind: String) -> void:
 			sub = "最后一把 · 不可卖"
 		else:
 			sub = "卖出 +%d 金" % refund
-		list.add_child(hud._make_sell_card(name, sub, last, hud.sell_requested.emit.bind(path, kind)))
+		list.add_child(hud._make_sell_card(name, sub, last, hud.sell_requested.emit.bind(path, kind), load(path)))
 
 func show_tab(tab: String) -> void:
 	if buy_panel == null:
