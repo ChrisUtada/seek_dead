@@ -22,3 +22,5 @@ extends Resource
 @export var final_boss: bool = false     # T25：真·最终——独立于候选池，通关 Act3 后追加为整局最后一间（勇者的阴影）
 @export var boss_reward_weapons: Array[String] = []   # BOSS 战利品·主题武器池（武器 .tres 路径）；空则按 element 从 WEAPON_POOL 取未持有者
 @export var boss_relic_path: String = ""              # BOSS 战利品·专属信物（ItemData passive .tres 路径），占护符槽 1/3；空则不掉信物
+@export var art: Texture2D = null                     # 专属立绘（BOSS 用）：入场时替换默认 enemy.png 并演出退场/入场；空 = 默认敌人图
+@export var art_scale: float = 1.0                    # 立绘显示倍率（相对玩家 44×60 规格；1.0 = 同规格，2.0 = 2 倍）——素材观感验证用

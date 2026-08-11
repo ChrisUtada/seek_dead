@@ -5,6 +5,8 @@ class_name BattleHud
 # 通过 controller 引用回 DuelController 的游戏状态与逻辑方法。
 
 const TRASH_SYMBOL = preload("res://resources/symbols/trash.tres")
+const DEFAULT_ENEMY_TEXTURE = preload("res://assets/enemy.png")   # 默认敌人立绘（RoomData.art 为空时使用）
+const ENEMY_SPRITE_SIZE := Vector2(44, 60)    # 敌人立绘基础容器尺寸（stretch KEEP_ASPECT → 渲染 44×44，与玩家同规格）
 const ElementCounter = preload("res://scripts/battle/element_counter.gd")
 const UI_BUTTON = preload("res://scenes/ui/ui_button.tscn")
 const ITEM_CARD = preload("res://scenes/ui/item_card.tscn")
@@ -772,6 +774,27 @@ func _player_sprite_anchor() -> Control:
 
 func _enemy_sprite_anchor() -> Control:
 	return enemy_sprite if enemy_sprite != null else enemy_panel
+
+
+# 敌人立绘切换（RoomData.art 数据驱动）：旧图退场（淡出+缩小）→ 换图 → 新图入场（淡入复位）。
+# tex = null 恢复默认敌人图（非 BOSS 房）。入场时序由 controller._start_room 触发。
+# 尺寸按 RoomData.art_scale 倍率（1.0 = 44×60 同规格，2.0 = 2 倍）——素材观感验证用。
+func set_enemy_art(tex: Texture2D, art_scale: float = 1.0) -> void:
+	if enemy_sprite == null:
+		return
+	var target := tex if tex != null else DEFAULT_ENEMY_TEXTURE
+	var target_size := ENEMY_SPRITE_SIZE * art_scale
+	if enemy_sprite.texture == target and enemy_sprite.modulate.a >= 1.0 and enemy_sprite.custom_minimum_size == target_size:
+		return
+	var tw := create_tween()
+	tw.tween_property(enemy_sprite, "modulate:a", 0.0, 0.16)
+	tw.parallel().tween_property(enemy_sprite, "scale", Vector2(0.85, 0.85), 0.16)
+	tw.tween_callback(func() -> void:
+		enemy_sprite.texture = target
+		enemy_sprite.custom_minimum_size = target_size
+		enemy_sprite.modulate = Color.WHITE
+		enemy_sprite.scale = Vector2.ONE)
+	tw.tween_property(enemy_sprite, "modulate:a", 1.0, 0.16)
 
 
 # S4：元素样式缓存。旋转最高速约 28 跳/秒 × 3 列，若每次 new StyleBoxFlat

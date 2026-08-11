@@ -871,6 +871,8 @@ func _start_room(idx: int) -> void:
 	hud._hide_overlay()
 	reel_system.build_strips()
 	reel_system.reset_grid()
+	# BOSS 专属立绘（RoomData.art 数据驱动）：有 art 时旧敌人图退场 + 新图入场；无 art 恢复默认
+	hud.set_enemy_art(r.art, r.art_scale)
 	# S10 T2：BOSS 机制实例化（仅 BOSS 房；非 BOSS 房置 null，钩子调用处显式判空跳过）
 	current_gimmick = null
 	boss_atk_mult = 1.0
