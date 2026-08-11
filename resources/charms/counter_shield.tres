@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rarity = "rare"
+category = "passive"
+item_id = "counter_shield"
+item_name = "反击之盾"
+description = "本局每回合护盾 +6：双挡石像鬼重击与石屑反弹，碎裂石像鬼护盾流核心（覆盖守备 4 / 低于铁壁 8）。"
+icon = "🛡️"
+effect = "shield"
+value = 6
