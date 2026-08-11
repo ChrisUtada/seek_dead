@@ -22,3 +22,10 @@ func configure(line1: String, line2: String = "") -> void:
 	_line1.text = line1
 	_line2.text = line2
 	_line2.visible = line2 != ""
+
+
+# 铁砧格 tooltip 为 BBCode 富文本，需自定义 tooltip（内置不支持 BBCode）
+func _make_custom_tooltip(for_text: String) -> Control:
+	if for_text.is_empty():
+		return null
+	return ItemTooltip.tooltip_label(for_text)

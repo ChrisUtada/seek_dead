@@ -319,9 +319,6 @@ func _make_item_card(data: Resource, path: String, kind: String) -> Dictionary:
 	btn.autowrap_mode = TextServer.AUTOWRAP_OFF
 	btn.clip_text = true
 	btn.text = ""
-	if data != null:
-		btn.tooltip_text = ItemTooltip.for_resource(data, kind)   # 物品悬停信息窗（ItemTooltip 生成器）
-
 	var name := ""
 	var line1 := ""   # 图标/核心信息
 	var line2 := ""   # 数值/权重

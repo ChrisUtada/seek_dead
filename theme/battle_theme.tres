@@ -32,9 +32,11 @@ corner_radius_bottom_left = 0
 
 [resource]
 PanelContainer/styles/panel = SubResource("StyleBoxFlat_panel")
+RichTextLabel/fonts/normal_font = ExtResource("1_font")
+RichTextLabel/font_sizes/normal_font_size = 10
 TooltipPanel/styles/panel = SubResource("StyleBoxFlat_tooltip")
 TooltipLabel/fonts/font = ExtResource("1_font")
-TooltipLabel/font_sizes/font_size = 9
+TooltipLabel/font_sizes/font_size = 10
 TooltipLabel/colors/font_color = Color(0.92, 0.9, 0.86, 1)
 Label/fonts/font = ExtResource("1_font")
 Label/font_sizes/font_size = 10

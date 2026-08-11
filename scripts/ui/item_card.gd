@@ -63,3 +63,10 @@ func set_status(text: String, color: Color) -> void:
 # 物品悬停信息窗：按资源类型生成 BBCode 富文本（ItemTooltip 单一生成器，见 docs/物品悬停信息窗_设计.md）
 func set_tooltip(res: Resource, kind: String = "") -> void:
 	tooltip_text = ItemTooltip.for_resource(res, kind)
+
+
+# 内置 tooltip 不支持 BBCode（Godot 4.7 实证），自定义返回 RichTextLabel 渲染富文本
+func _make_custom_tooltip(for_text: String) -> Control:
+	if for_text.is_empty():
+		return null
+	return ItemTooltip.tooltip_label(for_text)
