@@ -856,7 +856,14 @@ func _refresh_meta() -> void:
 	var essence_txt := ""
 	for e in controller.state.room_element_mult:
 		essence_txt += " · 精华·%s" % ElementCounter.label(e)
-	room_label.text = "房间: %d/%d%s%s" % [controller.state.room_index + 1, controller.state.ROOMS.size(), " · ★BOSS" if is_boss else "", essence_txt]
+	# 2026-08-10 ACT 标注：当前幕（RoomData.act）+ 草案主题短名（BOSS设计草案三幕主题）
+	var act_txt := "ACT 1"
+	var act_theme := {1: "冰封", 2: "狂热", 3: "深渊"}
+	var rooms: Array = controller.state.ROOMS
+	if rooms.size() > 0 and controller.state.room_index >= 0 and controller.state.room_index < rooms.size():
+		var a: int = int(rooms[controller.state.room_index].act)
+		act_txt = "ACT %d%s" % [a, " " + act_theme.get(a, "") if act_theme.has(a) else ""]
+	room_label.text = "%s · 房间: %d/%d%s%s" % [act_txt, controller.state.room_index + 1, rooms.size(), " · ★BOSS" if is_boss else "", essence_txt]
 	turn_label.text = "回合: %d" % controller.state.turn_count
 	player_hp_label.text = "HP %d/%d · 护盾 %d" % [controller.state.player_hp, controller.state.player_hp_max, controller.state.player_shield]
 	player_buff_label.text = "【转轮】技能: " + controller._buff_summary()
