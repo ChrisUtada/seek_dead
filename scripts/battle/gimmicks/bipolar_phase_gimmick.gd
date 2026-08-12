@@ -2,11 +2,6 @@ extends BossGimmick
 
 const ICON := "🌊"   # 下一房预告横幅的机制图标（battle_hud 经 get_script_constant_map 读取）
 const RoomData = preload("res://scripts/battle/room_data.gd")
-const P2_INTENTS := [
-	preload("res://resources/intents/attack.tres"),
-	preload("res://resources/intents/heavy.tres"),
-	preload("res://resources/intents/jam.tres"),
-]
 
 # 幕二 BOSS·躁怒元素使「躁抑交替」（bipolar_phase，2026-08-10 定稿）：
 # P1 躁狂发作（HP 100%→50%）：攻击 ×manic_atk_mult + 每回合自扣 max HP 的 manic_self_damage_pct——
@@ -35,7 +30,9 @@ func on_room_start(ctrl) -> void:
 	_phase2 = false
 	_p2_room_data = RoomData.new()
 	_p2_room_data.kind = "boss"
-	_p2_room_data.intents = P2_INTENTS
+	# P2 意图剖面 attack 50 / heavy 20 / jam 30（注废可净化）——须内联构建实例设权重：
+	# 不能复用共享 intent .tres（weight 均为 1.0 → 33/33/33）且 untyped 数组赋 typed 字段会运行时类型错误
+	_p2_room_data.intents = _build_p2_intents()
 	ctrl.boss_atk_mult = _manic_atk_mult
 	ctrl.hud._log("🌊 躁怒元素使：躁狂发作——攻击 ×%s，每回合自扣 %d%% max HP（HP<%d%% 坠入抑郁：切冰属性 + 厚甲 %d）" % [_manic_atk_mult, int(_manic_self_damage_pct * 100), int(_phase2_hp_ratio * 100), _p2_armor])
 
@@ -70,3 +67,30 @@ func _try_enter_phase2(ctrl) -> void:
 		ctrl.hud._log("🌊 情绪坠入深渊：冰封防御展开——属性→冰（弱火），护甲 %d，攻击 ×%s，意图转入抑郁剖面" % [_p2_armor, _depressed_atk_mult])
 		ctrl.hud._popup("🌊 冰封防御展开！", Palette.POP_STATUS, ctrl.hud._enemy_sprite_anchor())
 		ctrl.hud._refresh_meta()
+
+
+# P2 意图剖面（attack 50 / heavy 20 / jam 30）：内联构建 IntentData 实例并设权重——
+# 不能复用共享 intent .tres（weight 恒 1.0）；返回 typed Array[IntentData] 避免赋值类型错误
+func _build_p2_intents() -> Array[IntentData]:
+	var att := IntentData.new()
+	att.id = "attack"
+	att.display_name = "攻击"
+	att.icon = "⚔"
+	att.weight = 50.0
+	att.purifiable = false
+	att.value_mult = 1.0
+	var hvy := IntentData.new()
+	hvy.id = "heavy"
+	hvy.display_name = "重击"
+	hvy.icon = "💥"
+	hvy.weight = 20.0
+	hvy.purifiable = false
+	hvy.value_mult = 2.0
+	var jam := IntentData.new()
+	jam.id = "jam"
+	jam.display_name = "注废"
+	jam.icon = "❌"
+	jam.weight = 30.0
+	jam.purifiable = true
+	jam.value_mult = 0.0
+	return [att, hvy, jam]
