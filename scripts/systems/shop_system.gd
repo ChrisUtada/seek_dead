@@ -56,7 +56,7 @@ func on_shop_buy_replace_pressed(offer: Dictionary, old_path: String) -> void:
 		return
 	if not arr.has(old_path):
 		return
-	var buy_price = shop_price("weapon", -1, offer["path"])
+	var buy_price: int = offer.get("price", shop_price("weapon", -1, offer["path"]))   # 2026-08-10 fix：读货架锁定报价
 	if _ctrl.gold < buy_price:
 		_ctrl.hud._log("金币不足（需 %d）" % buy_price)
 		return
@@ -129,7 +129,9 @@ func roll_shop() -> void:
 	shop_offers = []
 	for i in n:
 		var c = candidates[i]
-		shop_offers.append({"path": c["path"], "kind": c["kind"], "name": shop_name(c["path"], c["kind"]), "sold": false})
+		# 2026-08-10 fix：报价在货架生成时锁定（offer["price"]）——显示与购买统一读它，
+		# 否则每次调用 shop_price() 的随机 jitter 会让价格点击后跳动
+		shop_offers.append({"path": c["path"], "kind": c["kind"], "name": shop_name(c["path"], c["kind"]), "price": shop_price(c["kind"], -1, c["path"]), "sold": false})
 
 
 # 货架刷新（2026-08-09）：Balatro 式递增价 + 每房间歇期限次（双闸门防金币无限转化）。
@@ -166,7 +168,7 @@ func on_shop_buy_pressed(offer: Dictionary) -> void:
 		if _ctrl.consumable_slots.size() >= _ctrl.CONSUMABLE_CAP:
 			_ctrl.hud._log("消耗品腰带已满 %d/%d，无法购买" % [_ctrl.consumable_slots.size(), _ctrl.CONSUMABLE_CAP])
 			return
-		buy_price = shop_price(kind, -1, offer["path"])
+		buy_price = offer.get("price", shop_price(kind, -1, offer["path"]))   # 2026-08-10 fix：读货架锁定报价
 		if _ctrl.gold < buy_price:
 			_ctrl.hud._log("金币不足（需 %d）" % buy_price)
 			return
@@ -196,7 +198,7 @@ func on_shop_buy_pressed(offer: Dictionary) -> void:
 	if w >= cap and not _ctrl._loadout_system.can_grow_slot(kind):
 		_ctrl.hud._log("%s槽位已满 %d/%s（已达天花板），无法购买" % [_ctrl._loadout_system.cat_name(kind), w, _ctrl._loadout_system.cap_text(kind)])
 		return
-	buy_price = shop_price(kind, -1, offer["path"])       # 价格随当前持有数递增（售出回落，换装成本=买卖价差）
+	buy_price = offer.get("price", shop_price(kind, -1, offer["path"]))       # 2026-08-10 fix：读货架锁定报价（原每次重算含 jitter 随机 → 点击后价格跳动）
 	if _ctrl.gold < buy_price:
 		_ctrl.hud._log("金币不足（需 %d）" % buy_price)
 		return

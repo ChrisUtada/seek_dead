@@ -502,7 +502,7 @@ func _make_shop_card(offer: Dictionary) -> Button:
 	var kind_name = {"weapon": "武器", "passive": "护符", "active": "物品", "skill": "技能"}.get(offer["kind"], "物品")
 	card.configure("%s%s · %s" % [_source_tag(offer["kind"]), kind_name, offer["name"]], "", TypeScale.TITLE, 0.0, 2)
 	card.set_tooltip(load(offer["path"]), offer["kind"])   # 物品悬停信息窗（ItemTooltip 生成器）
-	var price = controller._shop_price(offer["kind"], -1, offer["path"])   # 价格随当前持有数递增 + 稀有度阶梯（T6/T21）；卖出回落，换装成本=买卖价差（防刷价）
+	var price = offer.get("price", controller._shop_price(offer["kind"], -1, offer["path"]))   # 2026-08-10 fix：显示货架锁定报价（不再每次重算 jitter 随机）
 	var is_active = (offer["kind"] == "active")
 	var cap = controller.state.CONSUMABLE_CAP if is_active else controller._loadout_system.cat_max(offer["kind"])          # 消耗品按腰带总容量 4；其余按整备上限
 	var cur = controller.state.consumable_slots.size() if is_active else controller._loadout_system.sel_arr(offer["kind"]).size()   # 消耗品按腰带实占数
