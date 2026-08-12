@@ -24,6 +24,11 @@ func on_damaged(ctrl, dmg: int) -> void:
 func on_turn_resolved(ctrl) -> void:
 	pass
 
+# 玩家停轮后、结算前调用（深渊监视者 abyss_erosion P2 闪回暴走）：返回 true 则本次停轮作废、强制免费重转
+# （gimmick 自行掷概率并消费标志；每回合仅一次，重转结果照常结算）
+func consume_flashback() -> bool:
+	return false
+
 # 玩家打出 special 三连时调用（rust_armor 等据此清层数）
 func on_special_triple(ctrl) -> void:
 	pass

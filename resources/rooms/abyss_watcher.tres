@@ -1,7 +1,26 @@
-[gd_resource type="Resource" script_class="RoomData" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="RoomData" load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/battle/room_data.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/battle/gimmicks/abyss_erosion_gimmick.gd" id="2"]
+[ext_resource type="Script" path="res://scripts/battle/intent_data.gd" id="3"]
+
+[sub_resource type="Resource" script_class="IntentData" id="intent_attack"]
+script = ExtResource("3")
+id = "attack"
+display_name = "攻击"
+icon = "⚔"
+weight = 60.0
+purifiable = false
+value_mult = 1.0
+
+[sub_resource type="Resource" script_class="IntentData" id="intent_heavy"]
+script = ExtResource("3")
+id = "heavy"
+display_name = "重击"
+icon = "💥"
+weight = 40.0
+purifiable = false
+value_mult = 2.0
 
 [resource]
 script = ExtResource("1")
@@ -11,7 +30,10 @@ atk = 27
 element = "light"
 kind = "boss"
 act = 3
+boss_role = "fixed"
 armor = 35
+intents = Array[IntentData]([SubResource("intent_attack"), SubResource("intent_heavy")])
 gimmick_script = ExtResource("2")
-boss_reward_weapons = Array[String](["res://resources/weapon_templates/flame_staff.tres", "res://resources/weapon_templates/fire_sword.tres", "res://resources/weapon_templates/battle_axe.tres"])
+gimmick_params = {"base_ratio": 0.1, "low_hp_bonus": 0.3, "max_trash": 24, "phase2_hp_ratio": 0.66, "phase2_trash_mult": 1.5, "phase2_flashback_chance": 0.5, "phase2_armor": 40, "phase3_hp_ratio": 0.33, "phase3_trash_mult": 2.0, "phase3_atk_mult": 1.3, "phase3_armor": 45}
+boss_reward_weapons = Array[String](["res://resources/weapon_templates/night_scythe.tres", "res://resources/weapon_templates/abyss_scythe.tres", "res://resources/weapon_templates/iron_sword.tres"])
 boss_relic_path = "res://resources/charms/abyss_relic.tres"

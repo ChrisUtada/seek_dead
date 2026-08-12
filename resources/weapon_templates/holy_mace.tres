@@ -1,0 +1,36 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=7 format=3]
+
+[ext_resource type="Script" uid="uid://rshxw30hg44e" path="res://scripts/equipment/weapon_data.gd" id="1"]
+[ext_resource type="Script" uid="uid://b7ejpof4wrtqt" path="res://scripts/battle/symbol_weight.gd" id="sw"]
+[ext_resource type="Resource" path="res://resources/symbols/holy_mace_smash.tres" id="s0"]
+[ext_resource type="Resource" path="res://resources/symbols/holy_slash.tres" id="s1"]
+
+[sub_resource type="Resource" id="sw0"]
+script = ExtResource("sw")
+symbol = ExtResource("s0")
+weight = 3.0
+
+[sub_resource type="Resource" id="sw1"]
+script = ExtResource("sw")
+symbol = ExtResource("s1")
+weight = 2.0
+
+[resource]
+script = ExtResource("1")
+weapon_name = "圣光钉锤"
+category = "weapon"
+rarity = "rare"
+crit_chance = 0.05
+base_power = 17
+hit_rate = 0.84
+archetype = 1
+weapon_type = 0
+damage = 42.0
+damage_type = 2
+attack_speed = 1.0
+attack_range = 75.0
+cleave_angle = 120.0
+knockback_force = 240.0
+symbols = Array[ExtResource("sw")]([SubResource("sw0"), SubResource("sw1")])
+reel_element = "light"
+element = "light"

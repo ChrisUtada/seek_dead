@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rarity = "rare"
+category = "passive"
+item_id = "abyss_bulwark"
+item_name = "深渊壁垒"
+description = "本局每回合护盾 +12：覆盖霜晶壁垒 10 的顶级常驻盾——深渊监视者注废期长线生存，P3 高攻窗口保命。"
+icon = "🛡️"
+effect = "shield"
+value = 12

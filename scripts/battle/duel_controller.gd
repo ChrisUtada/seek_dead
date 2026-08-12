@@ -196,6 +196,7 @@ var charm_interf_resist: int = 0       # 抗扰护符：本局敌人干扰概率
 
 var charm_damage_mult: float = 1.0      # Phase G v2.0：护符全局乘区，默认 ×1.0
 var charm_dot_reduce: int = 0            # 2026-08-09 蚀毒壁垒护符：玩家侧挂毒量每回合 -N（acid_bomb 系 BOSS 读取）
+var deprived_level: int = 0              # 无名虚空（emotional_vacuum）：装备剥夺开关——0=正常 / 1=护符禁 / 2=护符+技能禁（聚合层消费点读取）
 # T2 护符三项缺口（2026-08-07 落地，BOSS 克制矩阵 §59/§60/§62）：
 var charm_pierce_chance: float = 0.0    # 破甲护符：非穿透伤害符号直击 HP（穿透护甲）概率 0~1
 var charm_element_boost: float = 0.0    # 元素优势护符：克制倍率额外加成（×1.5 → ×1.5+boost，仅克制时）
@@ -274,6 +275,7 @@ func _build_state() -> BattleState:
 	s.charm_interf_resist = charm_interf_resist
 	s.charm_damage_mult = charm_damage_mult
 	s.charm_dot_reduce = charm_dot_reduce
+	s.deprived_level = deprived_level
 	s.room_element_mult = room_element_mult
 	s.turn_count = turn_count
 	s.SKILL_POOL = SKILL_POOL
@@ -384,17 +386,19 @@ func _build_pool(loadout: Array) -> void:
 			_item_crit_chance_map[sp] = max(_item_crit_chance_map.get(sp, 0.0), wd.crit_chance)
 			if wd.triple_pierce:
 				_item_pierce_map[sp] = true
-	for path in selected_skills:
-		var sd: SkillData = load(path)
-		if sd == null or sd.symbol == null:
-			continue
-		var eff: float = sd.base_power
-		var sp = sd.symbol.resource_path
-		_weapon_power_map[sp] = max(_weapon_power_map.get(sp, 0.0), eff)
-		_item_crit_map[sp] = max(_item_crit_map.get(sp, 1.0), sd.crit_mult)
-		_item_crit_chance_map[sp] = max(_item_crit_chance_map.get(sp, 0.0), sd.crit_chance)
-		if sd.triple_pierce:
-			_item_pierce_map[sp] = true
+	# 无名虚空（deprived_level≥2）：技能符号也不进强度聚合
+	if deprived_level < 2:
+		for path in selected_skills:
+			var sd: SkillData = load(path)
+			if sd == null or sd.symbol == null:
+				continue
+			var eff: float = sd.base_power
+			var sp = sd.symbol.resource_path
+			_weapon_power_map[sp] = max(_weapon_power_map.get(sp, 0.0), eff)
+			_item_crit_map[sp] = max(_item_crit_map.get(sp, 1.0), sd.crit_mult)
+			_item_crit_chance_map[sp] = max(_item_crit_chance_map.get(sp, 0.0), sd.crit_chance)
+			if sd.triple_pierce:
+				_item_pierce_map[sp] = true
 	# —— 装备自洽（docs/[已完成]物品中心重构方案.md §4 重构 + 方案 B）：频率由各装备 weight 决定，
 	# 命中率决定废铁占比；共享 (符号|元素) 在 _build_strips 跨装备累加权重（方案 B：同元素堆三连），
 	# 符号格子数 = 权重档位（2026-08-09 传统 slots 频率，见 reel_system.build_strips）。
@@ -415,14 +419,16 @@ func _build_pool(loadout: Array) -> void:
 		var wd_rar: Variant = wd.get("rarity")
 		pool_items.append({"name": wd.weapon_name, "hit": hit, "syms": syms, "rarity": String(wd_rar if wd_rar != null else "common")})
 	# 主动技能同样作为「装备」生成自己的符号段（与武器等权、频率由自身 weight 定）
-	for path in selected_skills:
-		var sd: SkillData = load(path)
-		if sd == null or sd.symbol == null:
-			continue
-		var eff_elem: String = sd.symbol.element if sd.symbol.element != "none" else "none"
-		var hit: float = clamp(sd.hit_rate, 0.0, 1.0)
-		var sd_rar: Variant = sd.get("rarity")
-		pool_items.append({"name": ("技能" + sd.icon), "hit": hit, "syms": [[sd.symbol, float(sd.weight), eff_elem]], "rarity": String(sd_rar if sd_rar != null else "common")})
+	# 无名虚空（deprived_level≥2）：技能被剥夺，符号不入池
+	if deprived_level < 2:
+		for path in selected_skills:
+			var sd: SkillData = load(path)
+			if sd == null or sd.symbol == null:
+				continue
+			var eff_elem: String = sd.symbol.element if sd.symbol.element != "none" else "none"
+			var hit: float = clamp(sd.hit_rate, 0.0, 1.0)
+			var sd_rar: Variant = sd.get("rarity")
+			pool_items.append({"name": ("技能" + sd.icon), "hit": hit, "syms": [[sd.symbol, float(sd.weight), eff_elem]], "rarity": String(sd_rar if sd_rar != null else "common")})
 	# 元素精华（消耗品）：使用后本房间内向转轮池注入对应元素的攻击符号（多一种攻击方式）
 	for e in room_element_mult:
 		var ess_sym: SymbolData = ESSENCE_SYMBOLS.get(e)
@@ -853,7 +859,7 @@ func _start_room(idx: int) -> void:
 	player_buffs = {}                     # Phase C：主动技能不跨房保留
 	player_shield = 0
 	player_shield += _reward_system.run_shield_next   # M4：上一房奖励的结界在本房开局生效
-	player_shield += charm_room_shield    # M6：守望护符每房开局护盾
+	player_shield += charm_room_shield    # M6：守望护符每房开局护盾（无名虚空由 gimmick on_room_start 扣回）
 	player_shield += int(_shop_system.track_level("shield") * _shop_system.track_per_level("shield"))   # S12：壁垒——每房开局护盾（韧性保底）
 	# T3 体魄（每房开局应用，升级即回满增量）：
 	var hp_bonus: int = int(_shop_system.track_level("hp_max") * _shop_system.track_per_level("hp_max"))
@@ -946,6 +952,12 @@ func _on_spin_pressed() -> void:
 	reel_system.begin_spin()
 	await reel_system.spin_finished
 	await get_tree().create_timer(0.15).timeout
+	# 深渊监视者 P2 闪回暴走：停轮后有概率强制重转（第一次停轮作废，玩家二次按停；结算只跑一次）
+	if current_gimmick != null and current_gimmick.consume_flashback():
+		hud._log("🕳 闪回暴走：噩梦闪回——停轮作废，强制重转！")
+		reel_system.begin_spin()
+		await reel_system.spin_finished
+		await get_tree().create_timer(0.15).timeout
 	# 阶段 1+2：结算（先防御/增益/状态，后攻击；含飘字）
 	await combat.evaluate()
 	if enemy_hp <= 0:

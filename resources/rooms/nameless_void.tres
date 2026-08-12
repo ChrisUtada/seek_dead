@@ -1,0 +1,38 @@
+[gd_resource type="Resource" script_class="RoomData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/room_data.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/battle/gimmicks/emotional_vacuum_gimmick.gd" id="2"]
+[ext_resource type="Script" path="res://scripts/battle/intent_data.gd" id="3"]
+
+[sub_resource type="Resource" script_class="IntentData" id="intent_attack"]
+script = ExtResource("3")
+id = "attack"
+display_name = "攻击"
+icon = "⚔"
+weight = 60.0
+purifiable = false
+value_mult = 1.0
+
+[sub_resource type="Resource" script_class="IntentData" id="intent_heavy"]
+script = ExtResource("3")
+id = "heavy"
+display_name = "重击"
+icon = "💥"
+weight = 40.0
+purifiable = false
+value_mult = 2.0
+
+[resource]
+script = ExtResource("1")
+name = "无名虚空"
+hp = 320
+atk = 18
+element = "dark"
+kind = "boss"
+act = 2
+boss_role = "hidden"
+armor = 20
+intents = Array[IntentData]([SubResource("intent_attack"), SubResource("intent_heavy")])
+gimmick_script = ExtResource("2")
+gimmick_params = {"phase2_hp_ratio": 0.5, "deprive_charms": true, "deprive_skills": true, "p2_atk_mult": 0.85, "p2_armor": 32}
+boss_reward_weapons = Array[String](["res://resources/weapon_templates/holy_sword.tres", "res://resources/weapon_templates/dawn_blade.tres", "res://resources/weapon_templates/iron_sword.tres"])

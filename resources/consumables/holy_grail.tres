@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rarity = "rare"
+category = "active"
+item_id = "holy_grail"
+item_name = "圣光圣杯"
+description = "立即回复 60 HP（覆盖治疗药剂 30 的高档恢复）——无名虚空护符禁期唯一恢复来源强化。"
+icon = "🏆"
+effect = "heal"
+value = 60
+charges = 1

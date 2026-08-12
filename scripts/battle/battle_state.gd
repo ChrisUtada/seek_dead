@@ -49,6 +49,7 @@ var charm_heal_trickle: int = 0
 var charm_interf_resist: int = 0
 var charm_damage_mult: float = 1.0
 var charm_dot_reduce: int = 0            # 2026-08-09 蚀毒壁垒护符：挂毒量 -N/回合（gimmick 读取）
+var deprived_level: int = 0              # 无名虚空：装备剥夺开关（0=正常 / 1=护符禁 / 2=护符+技能禁，HUD 概览显示）
 var room_element_mult: Dictionary = {}    # 元素精华：本房间内元素 → 强制克制倍率（新房间清零，HUD 房间行显示）
 var turn_count: int = 1
 var SKILL_POOL: Array[String] = []

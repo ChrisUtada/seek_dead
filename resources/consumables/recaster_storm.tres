@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rarity = "rare"
+category = "active"
+item_id = "recaster_storm"
+item_name = "重铸风暴"
+description = "立刻免费重转三次（不触发敌人回合）——深渊监视者 P3 废铁翻倍期高频洗盘（覆盖赦免令 ×2）。"
+icon = "🌀"
+effect = "reroll"
+value = 3
+charges = 1

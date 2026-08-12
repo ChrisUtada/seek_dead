@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="SkillData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/items/skill_data.gd" id="1"]
+[ext_resource type="Resource" path="res://resources/symbols/buff_shadow_regen.tres" id="2"]
+
+[resource]
+script = ExtResource("1")
+buff_id = "shadow_regen"
+category = "skill"
+rarity = "rare"
+base_power = 3.0
+hit_rate = 0.90
+buff_name = "暗影再生"
+icon = "🌑"
+description = "暗影之力入轮：每回合回复 6 HP 持续 2 回合（首个 regen buff）——深渊监视者 P3 高攻窗口持续恢复。"
+symbol = ExtResource("2")
+weight = 3.0

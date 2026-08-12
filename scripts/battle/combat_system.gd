@@ -37,7 +37,7 @@ func contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> voi
 	var em: float = 1.0
 	if sym.kind == "damage" or sym.kind == "special":
 		em = ElementCounter.multiplier(elem, _ctrl.enemy_element) * _ctrl._synergy_system.element_boost(elem)
-		if em > 1.0 and _ctrl.charm_element_boost > 0.0:
+		if em > 1.0 and _ctrl.deprived_level < 1 and _ctrl.charm_element_boost > 0.0:   # 无名虚空：元素加成护符剥离
 			em += _ctrl.charm_element_boost
 		if em > 1.0:
 			_ctrl._eval_adv = true
@@ -54,6 +54,8 @@ func contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> voi
 	# 共鸣 crit_bonus 在暴击触发时叠加到 crit_mult（激活集由 _synergy_system 缓存）。
 	var crit_rate: float = DuelController.BALANCE.crit_chance + _ctrl._item_crit_chance_map.get(sym.resource_path, 0.0)
 	var crit_mult_val: float = (_ctrl._item_crit_map.get(sym.resource_path, 1.0) + _ctrl._synergy_system.crit_bonus(sym)) if raw >= 3 or _ctrl._elem_triple or randf() < crit_rate else 1.0
+	# T2 破甲护符：非穿透符号按概率直击 HP（穿透护甲；无名虚空剥夺时概率归零）——damage/special 共用
+	var pierce_p: float = _ctrl.charm_pierce_chance if _ctrl.deprived_level < 1 else 0.0
 	match sym.kind:
 		"damage":
 			var dv = flat * mult * em
@@ -63,8 +65,7 @@ func contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> voi
 			# 破甲 = 仅带破甲机制（triple_pierce）的武器/技能三连触发（evaluate 里判 _item_pierce_map）
 			if raw >= 3:
 				acc["triple"] = true
-			# T2 破甲护符：非穿透符号按概率直击 HP（穿透护甲）
-			if sym.pierce_armor or randf() < _ctrl.charm_pierce_chance:
+			if sym.pierce_armor or randf() < pierce_p:
 				acc["pierce"] += dv     # 穿透护甲：直接扣 HP
 			else:
 				acc["dmg"] += dv
@@ -85,7 +86,7 @@ func contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> voi
 				sv *= crit_mult_val
 			if raw >= 3:
 				acc["triple"] = true
-			if sym.pierce_armor or randf() < _ctrl.charm_pierce_chance:
+			if sym.pierce_armor or randf() < pierce_p:
 				acc["pierce"] += sv
 			else:
 				acc["special"] += sv
@@ -303,17 +304,21 @@ func evaluate() -> void:
 # ---------------------------------------------------------------------------
 
 func agg_power_flat() -> float:
-	return BattleMath.agg_power_flat(_ctrl._reward_system.run_power_bonus, _ctrl.charm_power_bonus, _ctrl.player_buffs,
+	var charm_pb: int = _ctrl.charm_power_bonus if _ctrl.deprived_level < 1 else 0   # 无名虚空：护符剥夺
+	return BattleMath.agg_power_flat(_ctrl._reward_system.run_power_bonus, charm_pb, _ctrl.player_buffs,
 		float(_ctrl._shop_system.track_level("power")) * _ctrl._shop_system.track_per_level("power"))
 
 func agg_shield() -> float:
-	return BattleMath.agg_shield(_ctrl.player_buffs, _ctrl.charm_shield_trickle)
+	var charm_st: int = _ctrl.charm_shield_trickle if _ctrl.deprived_level < 1 else 0   # 无名虚空：护符剥夺
+	return BattleMath.agg_shield(_ctrl.player_buffs, charm_st)
 
 func agg_regen() -> float:
-	return BattleMath.agg_regen(_ctrl.player_buffs, _ctrl.charm_heal_trickle)
+	var charm_ht: int = _ctrl.charm_heal_trickle if _ctrl.deprived_level < 1 else 0   # 无名虚空：护符剥夺
+	return BattleMath.agg_regen(_ctrl.player_buffs, charm_ht)
 
 func agg_damage_mult() -> float:
-	return BattleMath.agg_damage_mult(_ctrl.charm_damage_mult, _ctrl.player_buffs)
+	var charm_dm: float = _ctrl.charm_damage_mult if _ctrl.deprived_level < 1 else 1.0   # 无名虚空：护符乘区剥离
+	return BattleMath.agg_damage_mult(charm_dm, _ctrl.player_buffs)
 
 # —— 符号权重轴（本局符号灌注；武器级权重见 _build_pool）——
 func agg_symbol_weight_mod(sym: SymbolData) -> float:
@@ -427,8 +432,9 @@ func tick_status() -> void:
 	for st in _ctrl.enemy_status.keys():
 		var base = _ctrl.status_system.status_base(st)
 		var mult = ElementCounter.multiplier(_ctrl.status_system.status_element(st), _ctrl.enemy_element)
-		# T2 状态护符：DoT 伤害乘倍率（状态叠加轴投资）；T23：衰减率由 StatusDef.decay 定义
-		dot += int(round(_ctrl.enemy_status[st] * base * mult * DuelController.BALANCE.status_dmg_mult * _ctrl.charm_status_boost))
+		# T2 状态护符：DoT 伤害乘倍率（状态叠加轴投资；无名虚空剥夺时 ×1.0）；T23：衰减率由 StatusDef.decay 定义
+		var status_boost: float = _ctrl.charm_status_boost if _ctrl.deprived_level < 1 else 1.0
+		dot += int(round(_ctrl.enemy_status[st] * base * mult * DuelController.BALANCE.status_dmg_mult * status_boost))
 		var sd: StatusDef = _ctrl.status_system.status_def(st)
 		_ctrl.enemy_status[st] = max(0, _ctrl.enemy_status[st] - (sd.decay if sd != null else 1))
 		if _ctrl.enemy_status[st] <= 0:

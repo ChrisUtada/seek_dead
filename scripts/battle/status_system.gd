@@ -55,11 +55,12 @@ func roll_intent(room: RoomData) -> Dictionary:
 	else:
 		wtable = DEFAULT_INTENT_WEIGHTS.get(room.kind if room != null else "normal", DEFAULT_INTENT_WEIGHTS["normal"]).duplicate()
 	var total := 0.0
+	var interf_rf: float = 1.0 if _ctrl.deprived_level >= 1 else _ctrl._interf_resist_rf   # 无名虚空：抗扰护符剥离
 	for k in wtable:
 		var w: float = wtable[k]
 		var sd: IntentData = intent_def(k)
 		if sd != null and sd.purifiable:
-			w *= _ctrl._interf_resist_rf   # 抗扰：干扰类意图权重打折
+			w *= interf_rf   # 抗扰：干扰类意图权重打折
 		wtable[k] = w
 		total += w
 	var r := randf() * total
