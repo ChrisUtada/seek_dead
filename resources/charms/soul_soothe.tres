@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rarity = "rare"
+category = "passive"
+item_id = "soul_soothe"
+item_name = "灵魂安抚"
+description = "本局每回合回复 10 HP（覆盖回春 6 的高档常驻回血）——碎裂魔王 P1 高攻 / P3 毒层期生存底线。"
+icon = "💗"
+effect = "heal"
+value = 10

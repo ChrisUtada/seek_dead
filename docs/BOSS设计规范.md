@@ -147,14 +147,15 @@
 | 律法强迫 | compulsion_rule | 2 | 双 | rule_pool/rule_every/rule_reward_atk_mult/rule_punish_mult/phase2_*/p2_armor/p2_lock_consumable（2026-08-10，含 on_turn_resolved 钩子与锁消耗品槽） |
 | 情感剥离 | emotional_vacuum | 2 | 双 | phase2_hp_ratio/deprive_charms/deprive_skills/p2_atk_mult/p2_armor（2026-08-10，含 deprived_level 聚合层装备剥夺开关） |
 | 深渊侵蚀 | abyss_erosion | 3 | 三 | base_ratio/low_hp_bonus/max_trash/phase2_*/phase3_*（2026-08-10 三阶段化，含 consume_flashback 强制重转钩子） |
+| 人格裂变 | split_ego | 3 | 三 | phase2_hp_ratio/phase3_hp_ratio/anger_atk_mult/fear_atk_mult/fear_armor_step/fear_armor_cap/grief_dot_per_turn/grief_dot_base（2026-08-10，三元素三人格切换） |
 
-## 12. BOSS 池进度（T4：目标每幕 4 候选 × 3 幕 + 真·最终 = 12，当前 10/12）
+## 12. BOSS 池进度（T4：目标每幕 4 候选 × 3 幕 + 真·最终 = 12，当前 11/12）
 
 | 幕 | 已落地 | 角色 |
 |---|---|---|
 | Act1 | 冰封铁瓮（rust_armor）、碎裂石像鬼（glass_cannon）、酸蚀恶鬼（acid_bomb）、茧居石雕（cocoon_cycle 开合节律 v2 已落地） | fixed / rotating / rotating / hidden |
 | Act2 | 呓语教徒（whisper_lock 单）、迷宫低语者（whisper_lock 双）、躁怒元素使（bipolar_phase 躁抑交替）、天平审判官（compulsion_rule 律法强迫）、无名虚空（emotional_vacuum 情感剥离，2026-08-10） | fixed / rotating / rotating / rotating / hidden |
-| Act3 | 深渊监视者（abyss_erosion 三阶段：注废 → 闪回暴走 → 深渊吞噬，2026-08-10） | fixed |
+| Act3 | 深渊监视者（abyss_erosion 三阶段：注废 → 闪回暴走 → 深渊吞噬，2026-08-10）、碎裂魔王（split_ego 人格裂变：愤怒/恐惧/悲伤三元素切换，2026-08-10） | fixed / rotating |
 | 真·最终 | 槽位预留（final_boss） | 独立 |
 
 **待补**（按阻塞排序）：Act3 轮替/隐秘候选 ×2、深渊监视者阶段化、真·最终 BOSS（勇者的阴影）、玻璃大炮/状态炸弹参数定稿回写。

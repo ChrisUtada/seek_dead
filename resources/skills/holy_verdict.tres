@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="SkillData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/items/skill_data.gd" id="1"]
+[ext_resource type="Resource" path="res://resources/symbols/holy_verdict.tres" id="2"]
+
+[resource]
+script = ExtResource("1")
+buff_id = "holy_verdict"
+category = "skill"
+rarity = "rare"
+base_power = 30.0
+hit_rate = 0.88
+buff_name = "圣辉审判"
+icon = "✨"
+description = "审判之光落线：造成 light 属性高伤——碎裂魔王 P3 切毒后的光克输出窗口（技能位光武）。"
+symbol = ExtResource("2")
+weight = 3.0

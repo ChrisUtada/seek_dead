@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rarity = "rare"
+category = "active"
+item_id = "purge_water"
+item_name = "净厄圣水"
+description = "驱散寒霜 + 毒层清零（可用 2 次）——碎裂魔王 P3 毒层清零双保险（覆盖清净药剂单次）。"
+icon = "💧"
+effect = "cleanse"
+value = 1
+charges = 2
