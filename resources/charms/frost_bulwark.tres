@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rarity = "rare"
+category = "passive"
+item_id = "frost_bulwark"
+item_name = "霜晶壁垒"
+description = "本局每回合护盾 +10：覆盖铁壁 8 的高档常驻盾——躁怒元素使 P1 ×2 重击窗口核心生存，与治疗/守备叠加。"
+icon = "🧊"
+effect = "shield"
+value = 10

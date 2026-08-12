@@ -1,6 +1,6 @@
 # BOSS · 躁怒元素使（The Manic Elementalist）设计
 
-> 状态：**📋 设计定稿（2026-08-10）**——Act2 轮替 BOSS（bipolar_phase 躁抑交替）：P1 躁狂发作（火属性，攻击 ×2 + 每回合自扣 5% max HP）→ P2 抑郁僵直（切冰属性 + 厚甲 + 低攻）。核心教学点：**敌人属性随阶段切换**——P1 弱冰（冰武克）、P2 弱火（火武克），逼玩家备双元素或临场切换。实现待批准后按 Step 1-5 落地（新 gimmick 脚本，零核心代码改动；元素切换走 `enemy_element` 字段 + `_update_enemy_element` 刷新）。按 BOSS 设计规范补齐：**组合型新解法 = 阶段数 × 2 = 4 个**（霜晶法杖 / 霜晶壁垒 / 熔火爆裂 / 炎息，随落地引入）。
+> 状态：**✅ 已落地（2026-08-10，Step 1-4 完成；F6 实机待验）**——`bipolar_phase_gimmick.gd`（P1 攻 ×`manic_atk_mult` + 每回合自扣 5% max HP → P2 HP<50% 一次性：切 ice 属性 + 甲重设 45 + 攻 ×0.6 + 意图 attack 50/heavy 20/jam 30 覆盖，全参数化 gimmick_params）+ `manic_elementalist.tres`（280/18/15 · fire · rotating · 冰系战利品池 T32）。**组合型新解法 4 个全部落地**（阶段数 × 2）：霜晶法杖 ice_staff / 霜晶壁垒 frost_bulwark（shield 10）/ 熔火爆裂 lava_burst_potion（assault ×3）/ 炎息 fire_breath（damage_mult ×1.3 2 回合）。属性切换 = 弱点切换先例（enemy_element + _update_enemy_element，零核心代码改动）。
 > 关联：T10（BOSS 阶段化·Act2 双阶段轮替示例）、T24（gimmick_params 参数化）、T4（BOSS 池 7/12→8/12）、T25（rotating 权重 3 入 Act2 BOSS 槽 3 候选）、**T32（BOSS 主题武器掉落——弱冰掉冰系池，现状冰系仅 ice_gun，随霜晶法杖补池）**、**组合型新解法规范（2026-08-10：阶段数 × 2）**、单侧性纪律。
 
 ---
@@ -79,7 +79,7 @@ P2 抑郁僵直（HP < 50% 触发一次）：切冰属性，攻击大幅下降 +
 
 | 房间 | kind | 元素 | hp/atk/甲 | 角色 | 战利品 | 状态 |
 |---|---|---|---|---|---|---|
-| 躁怒元素使 | boss | fire（P2→ice） | 280/18/15（P2 45） | rotating | **冰系主题武器池**（ice_gun / 霜晶法杖 / iron_sword） | 【新增】 |
+| 躁怒元素使 | boss | fire（P2→ice） | 280/18/15（P2 45） | rotating | **冰系主题武器池**（ice_gun / 霜晶法杖 / iron_sword） | ✅ 已落地 |
 
 > 战利品遵循 **T32**（弱冰 BOSS 掉冰系主题武器——现状冰系仅 ice_gun，随组合型 #1 霜晶法杖补池，2 主题 + 1 通用）；专属信物暂不挂（随 T4/T7）。
 
@@ -88,10 +88,10 @@ P2 抑郁僵直（HP < 50% 触发一次）：切冰属性，攻击大幅下降 +
 | 阶段 | 类型 | 内容 | 状态 |
 |---|---|---|---|
 | — | **基线可解** | 现有物品框架内可通关：P1 冰武（ice_gun）+ 护盾 + 治疗撑窗口；P2 火武（fire_sword 等）+ 破甲/穿透爆发 全为既有内容 | ✅ 成立 |
-| P1 | **组合型新解法 #1** | 「霜晶法杖」ice_staff（**新武器**，ice，rare 38/0.86，符号 冰霜晶弹 + frost w3）——P1 主解强化：冰武 ×1.5 + frost 减攻双压制，同时补 T32 冰系战利品池 | 待落地 |
-| P1 | **组合型新解法 #2** | 「霜晶壁垒」frost_bulwark（**新护符**，rare，effect=`shield` value=10——每回合护盾 +10，覆盖铁壁 8 的高档常驻盾）——P1 ×2 重击窗口核心生存，与治疗/守备叠加 | 待落地 |
-| P2 | **组合型新解法 #3** | 「熔火爆裂」lava_burst_potion（**新消耗品**，rare，assault ×3——覆盖强袭 ×2 的爆发强化版）——P2 厚甲 45 破甲窗口内三连/核爆全乘区叠加兑击杀 | 待落地 |
-| P2 | **组合型新解法 #4** | 「炎息」fire_breath（**新技能**，buff damage_mult ×1.3 持续 2 回合——中档增伤，与 rage ×1.5 区分）——P2 火武窗口增伤，与熔火爆裂/充能组合拳 | 待落地 |
+| P1 | **组合型新解法 #1** | 「霜晶法杖」ice_staff（**新武器**，ice，rare 38/0.86，符号 冰霜晶弹 + frost w3）——P1 主解强化：冰武 ×1.5 + frost 减攻双压制，同时补 T32 冰系战利品池 | ✅ 已落地 |
+| P1 | **组合型新解法 #2** | 「霜晶壁垒」frost_bulwark（**新护符**，rare，effect=`shield` value=10——每回合护盾 +10，覆盖铁壁 8 的高档常驻盾）——P1 ×2 重击窗口核心生存，与治疗/守备叠加 | ✅ 已落地 |
+| P2 | **组合型新解法 #3** | 「熔火爆裂」lava_burst_potion（**新消耗品**，rare，assault ×3——覆盖强袭 ×2 的爆发强化版）——P2 厚甲 45 破甲窗口内三连/核爆全乘区叠加兑击杀 | ✅ 已落地 |
+| P2 | **组合型新解法 #4** | 「炎息」fire_breath（**新技能**，buff damage_mult ×1.3 持续 2 回合——中档增伤，与 rage ×1.5 区分）——P2 火武窗口增伤，与熔火爆裂/充能组合拳 | ✅ 已落地 |
 
 ## 6. 实现步骤（零核心代码改动：攻击倍率走 boss_atk_mult、属性切换走 enemy_element + _update_enemy_element、厚甲走 enemy_armor、意图切换走覆盖——均有先例）
 
