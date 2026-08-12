@@ -1,7 +1,7 @@
 extends BossGimmick
 
 const ICON := "🌊"   # 下一房预告横幅的机制图标（battle_hud 经 get_script_constant_map 读取）
-const RoomData = preload("res://scripts/battle/room_data.gd")
+# RoomData 直接使用全局类名（room_data.gd 的 class_name），无需 preload 常量（避免 SHADOWED_GLOBAL_IDENTIFIER）
 
 # 幕二 BOSS·躁怒元素使「躁抑交替」（bipolar_phase，2026-08-10 定稿）：
 # P1 躁狂发作（HP 100%→50%）：攻击 ×manic_atk_mult + 每回合自扣 max HP 的 manic_self_damage_pct——
@@ -49,7 +49,8 @@ func on_turn_begin(ctrl) -> void:
 		ctrl.hud._refresh_meta()
 		_try_enter_phase2(ctrl)
 
-func on_damaged(ctrl, dmg: int) -> void:
+func on_damaged(ctrl, _dmg: int) -> void:
+	# _dmg 未使用：阶段切换只依赖 HP 阈值（_try_enter_phase2 读 enemy_hp），不依赖本次伤害量
 	_try_enter_phase2(ctrl)
 
 # P2 一次性触发（on_damaged / 自扣跨线均调用，防自毁跨过阈值错过阶段切换）

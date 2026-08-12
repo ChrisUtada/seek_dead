@@ -1,4 +1,4 @@
-extends BossGimmick
+﻿extends BossGimmick
 
 const ICON := "🌀"   # 呓语锁轮/迷宫低语者（battle_hud 经 get_script_constant_map 读取）
 
@@ -50,7 +50,7 @@ func on_turn_begin(ctrl) -> void:
 		ctrl.boss_atk_mult = mult
 		ctrl.hud._log("🌀 呓语锁轮：第 %d 列被锁定，本回合敌方攻击 ×%s" % [col + 1, mult])
 
-func on_damaged(ctrl, dmg: int) -> void:
+func on_damaged(ctrl, _dmg: int) -> void:
 	# P2 一次性触发：HP 跌破阈值进入疯狂呓语（不重复触发）
 	if _phase2 or _phase2_hp_ratio <= 0.0:
 		return
