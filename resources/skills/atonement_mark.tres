@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="SkillData" load_steps=3 format=3]
+﻿[gd_resource type="Resource" script_class="SkillData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/items/skill_data.gd" id="1"]
 [ext_resource type="Resource" path="res://resources/symbols/buff_atonement_mark.tres" id="2"]
@@ -14,4 +14,4 @@ buff_name = "赎罪烙印"
 icon = "⚡"
 description = "赎罪之力入轮：伤害符号 +10 持续 2 回合（覆盖噩梦凝视 +8）——耻辱审判官 P2 剥盾期速杀补强。"
 symbol = ExtResource("2")
-weight = 3.0
+weight = 1.0

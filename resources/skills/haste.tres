@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="SkillData" load_steps=3 format=3]
+﻿[gd_resource type="Resource" script_class="SkillData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/items/skill_data.gd" id="1"]
 [ext_resource type="Resource" path="res://resources/symbols/buff_haste.tres" id="2"]
@@ -14,4 +14,4 @@ buff_name = "迅捷印记"
 icon = "⚡"
 description = "迅符入轮：本回合总伤害 ×1.5"
 symbol = ExtResource("2")
-weight = 2.0
+weight = 1.0
