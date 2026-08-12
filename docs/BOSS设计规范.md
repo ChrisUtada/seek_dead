@@ -143,14 +143,16 @@
 | 玻璃大炮 | glass_cannon | 1 | 单 | 高 atk 低 hp（已落地，参数随定稿） |
 | 状态炸弹 | acid_bomb | 1 | 单 | 玩家侧 DoT + 层数爆炸 |
 | 呓语锁轮 | whisper_lock | 2 | 单/双 | lock_every/attack_mult/phase2_* |
+| 躁抑交替 | bipolar_phase | 2 | 双 | manic_atk_mult/manic_self_damage_pct/phase2_*/depressed_atk_mult/p2_armor（2026-08-10） |
+| 律法强迫 | compulsion_rule | 2 | 双 | rule_pool/rule_every/rule_reward_atk_mult/rule_punish_mult/phase2_*/p2_armor/p2_lock_consumable（2026-08-10，含 on_turn_resolved 钩子与锁消耗品槽） |
 | 深渊侵蚀 | abyss_erosion | 3 | 单（三阶段规划） | BASE_RATIO/LOW_HP_BONUS/MAX_TRASH |
 
-## 12. BOSS 池进度（T4：目标每幕 4 候选 × 3 幕 + 真·最终 = 12，当前 7/12）
+## 12. BOSS 池进度（T4：目标每幕 4 候选 × 3 幕 + 真·最终 = 12，当前 9/12）
 
 | 幕 | 已落地 | 角色 |
 |---|---|---|
 | Act1 | 冰封铁瓮（rust_armor）、碎裂石像鬼（glass_cannon）、酸蚀恶鬼（acid_bomb）、茧居石雕（cocoon_cycle 开合节律 v2 已落地） | fixed / rotating / rotating / hidden |
-| Act2 | 呓语教徒（whisper_lock 单）、迷宫低语者（whisper_lock 双） | fixed / rotating |
+| Act2 | 呓语教徒（whisper_lock 单）、迷宫低语者（whisper_lock 双）、躁怒元素使（bipolar_phase 躁抑交替）、天平审判官（compulsion_rule 律法强迫，2026-08-10） | fixed / rotating / rotating / rotating |
 | Act3 | 深渊监视者（abyss_erosion，P2/P3 待补） | fixed |
 | 真·最终 | 槽位预留（final_boss） | 独立 |
 

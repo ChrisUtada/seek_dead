@@ -19,6 +19,11 @@ func on_turn_begin(ctrl) -> void:
 func on_damaged(ctrl, dmg: int) -> void:
 	pass
 
+# 玩家转轮结算完成后调用（天平审判官 compulsion_rule 规则判定用：空转/MISS 回合也触发，
+# 时机 = combat.evaluate 攻击结算后、敌人行动前；gimmick 可读 ctrl.grid 停轮结果）
+func on_turn_resolved(ctrl) -> void:
+	pass
+
 # 玩家打出 special 三连时调用（rust_armor 等据此清层数）
 func on_special_triple(ctrl) -> void:
 	pass

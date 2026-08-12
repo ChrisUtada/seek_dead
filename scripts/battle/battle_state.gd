@@ -39,6 +39,7 @@ var player_dot_bomb_stacks: int = 10     # 2026-08-09：玩家 DoT 爆炸阈值�
 var shop_reroll_used: int = 0            # 2026-08-09 商店刷新：本房间歇期已刷次数（价格 = base + used×step）
 var enemy_armor_max: int = 0
 var consumable_slots: Array[Dictionary] = []
+var locked_consumable_slot: int = -1     # 天平审判官：律法惩罚锁定的腰带格（-1 = 未锁定）
 var CONSUMABLE_CAP: int = 4
 # 净化完全走消耗品（净化药剂·charges 用尽即移出腰带），battle_state 不再缓存 purify_* 字段
 var charm_room_shield: int = 0

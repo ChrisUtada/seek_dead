@@ -286,6 +286,9 @@ func evaluate() -> void:
 		release_element_burst()
 	_ctrl.hud._refresh_meta()   # 伤害落地后立即刷新：HP/护甲即时变化（破甲窗口需即时可见）
 	await _ctrl.get_tree().create_timer(0.35).timeout
+	# 天平审判官：玩家转轮结算完成通知（空转/MISS 回合也触发，规则判定读 ctrl.grid 停轮结果）
+	if _ctrl.current_gimmick != null:
+		_ctrl.current_gimmick.on_turn_resolved(_ctrl)
 	# Phase C：回合末递减增益剩余回合
 	tick_buffs()
 

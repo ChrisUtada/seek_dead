@@ -157,6 +157,7 @@ var player_buffs: Dictionary = {}
 
 # 消耗品运行时（战斗中主动使用）
 var consumable_slots: Array[Dictionary] = []          # 消耗品腰带实例：[{path, item_id, charges, uid}]，上限 CONSUMABLE_CAP，允许同类重复占格
+var locked_consumable_slot: int = -1                  # 天平审判官 P2：律法惩罚锁定的腰带格（-1 = 未锁定；回合开始复位）
 var _consumable_uid := 0                   # 腰带格唯一 id 计数器（卖出/使用精准定位，避免同类重复撞 key）
 # 4 格子（2x2）由 HUD 自管（hud.consumable_cells），controller 不再持有引用
 var assault_next_spin: int = 1            # 强袭药剂：下次转轮伤害倍率（1=正常）
@@ -266,6 +267,7 @@ func _build_state() -> BattleState:
 	s.player_dot_bomb_stacks = player_dot_bomb_stacks
 	s.enemy_armor_max = enemy_armor_max
 	s.consumable_slots = consumable_slots
+	s.locked_consumable_slot = locked_consumable_slot
 	s.CONSUMABLE_CAP = CONSUMABLE_CAP
 	s.charm_room_shield = charm_room_shield
 	s.charm_power_bonus = charm_power_bonus
@@ -907,6 +909,8 @@ func _begin_player_turn() -> void:
 		return
 	# 经典回合结构：回合开始统一结算持续效果（frozen 先衰减再挂新层）→ 敌人声明意图 → 冻结声明
 	turn_count += 1
+	locked_consumable_slot = -1   # 天平审判官：律法锁槽仅锁 1 回合，新回合开始即解锁
+	hud._refresh_consumable_panel()
 	hud._log("▶ 回合 %d 开始" % turn_count)
 	if player_frost > 0:
 		var sd: StatusDef = _status_def("frozen")   # 2026-08-09 单侧性纪律：玩家侧冻结 = frozen（frost 回归纯敌人侧）

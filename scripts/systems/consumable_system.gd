@@ -93,8 +93,11 @@ func use_assault(data: Resource) -> void:
 
 
 func use_reroll(data: Resource) -> void:
-	_ctrl.hud._log("重转卷轴：免费重转！")
-	await _ctrl._free_spin()
+	# value = 重转次数（重转卷轴 1；赦免令 2——连转洗盘，天平审判官律法解）
+	var times: int = maxi(1, int(data.value))
+	_ctrl.hud._log("重转卷轴：免费重转 %d 次！" % times)
+	for i in times:
+		await _ctrl._free_spin()
 
 
 # 元素精华：本房间内向转轮池注入对应元素攻击符号（多一种攻击方式），新房间失效

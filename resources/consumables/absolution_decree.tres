@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rarity = "rare"
+category = "active"
+item_id = "absolution_decree"
+item_name = "赦免令"
+description = "立刻免费重转两次（不触发敌人回合）——律法违逆前的洗盘补救，天平审判官 P2 锁槽期反制。"
+icon = "📜"
+effect = "reroll"
+value = 2
+charges = 1

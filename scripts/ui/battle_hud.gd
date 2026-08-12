@@ -7,20 +7,17 @@ class_name BattleHud
 const TRASH_SYMBOL = preload("res://resources/symbols/trash.tres")
 const DEFAULT_ENEMY_TEXTURE = preload("res://assets/enemy.png")   # 默认敌人立绘（RoomData.art 为空时使用）
 const ENEMY_SPRITE_SIZE := Vector2(44, 60)    # 敌人立绘基础容器尺寸（stretch KEEP_ASPECT → 渲染 44×44，与玩家同规格）
-const ElementCounter = preload("res://scripts/battle/element_counter.gd")
 const UI_BUTTON = preload("res://scenes/ui/ui_button.tscn")
 const ITEM_CARD = preload("res://scenes/ui/item_card.tscn")
 const UI_PANEL = preload("res://scenes/ui/ui_panel.tscn")
 const SYMBOL_CELL = preload("res://scenes/ui/symbol_cell.tscn")
 const Screen = preload("res://scripts/ui/screen.gd")
-const ItemData = preload("res://scripts/items/item_data.gd")
 const META_SCENE = preload("res://scenes/ui/meta_screen.tscn")
 const REWARD_SCENE = preload("res://scenes/ui/reward_screen.tscn")
 const ANVIL_SCENE = preload("res://scenes/ui/anvil_screen.tscn")
 const SHOP_SCENE = preload("res://scenes/ui/shop_screen.tscn")
 const LOADOUT_SCENE = preload("res://scenes/ui/loadout_scene.tscn")
 const TRAIN_SCENE = preload("res://scenes/ui/train_screen.tscn")   # T28 训练房
-const BattleAnimator = preload("res://scripts/ui/battle_animator.gd")
 
 var controller   # DuelController 引用（运行时由 _ready 设置）
 
@@ -28,10 +25,15 @@ var controller   # DuelController 引用（运行时由 _ready 设置）
 # HUD 只发「用户想做什么」，不调用 controller 私有方法、不读 controller 字段名。
 signal spin_requested                         # 点击「旋转」按钮
 signal reel_clicked(col: int)                # 点击某一列转轮
+# @warning_ignore 以下信号由子屏（shop_screen/anvil_screen/train_screen/reward_screen）emit、
+# controller connect——跨文件连接，静态分析器误报 UNUSED_SIGNAL。
+@warning_ignore("unused_signal")
 signal buy_requested(offer: Dictionary)      # 商店购入
+@warning_ignore("unused_signal")
 signal sell_requested(uid_or_path: String, kind: String)  # 卖出（消耗品按 uid，其余按 path）
 signal reward_chosen(id: String)             # 房奖励三选一
 signal boss_reward_chosen(cand: Dictionary)  # BOSS 战利品三选一
+@warning_ignore("unused_signal")
 signal reward_skip_requested                 # 跳过房奖励
 signal shop_requested                          # 🛒 打开商店（房间歇态 opt-in）
 signal next_room_requested                     # ▶ 下一房（房间歇态）
@@ -40,11 +42,16 @@ signal meta_choice_chosen(opt: Dictionary)    # 局末元进度三选一
 signal gold_upgrade_requested(id: String)     # 商店金币升级
 signal overlay_button_pressed                 # 失败弹层按钮（回整备）
 signal consumable_used(uid: String)           # 使用腰带消耗品
+@warning_ignore("unused_signal")
 signal shop_leave_requested                   # 离开商店（回房间歇态）
+@warning_ignore("unused_signal")
 signal anvil_back_requested                   # 铁砧返回整备
+@warning_ignore("unused_signal")
 signal train_continue_requested               # T28 训练房「继续」→ 推进下一房/元进度
 signal shop_card_pressed(offer: Dictionary)   # 商店卡片点击（shop_screen 拦截：武器满 2 弹替换）
+@warning_ignore("unused_signal")
 signal buy_replace_requested(offer: Dictionary, old_path: String)   # 替换购买（2026-08-07：武器槽上限 2 后的换装）
+@warning_ignore("unused_signal")
 signal shop_reroll_requested                   # 商店货架刷新（2026-08-09：Balatro 式递增价 + 每房间歇期限次）
 
 # ---- 公开语义接口（controller → HUD 单向调用，替代直接戳私有节点/字段；P2 解耦）----
@@ -177,12 +184,12 @@ var popup_layer                    # 飘字专用浮层（满屏，忽略鼠标�
 var _popup_pool := []              # 预建 Label 池
 var _popup_free := []              # 空闲 Label 栈
 
-func _label(text: String, size: int = TypeScale.BODY) -> Label:
+func _label(text: String, font_size: int = TypeScale.BODY) -> Label:
 	var l = Label.new()
 	l.text = text
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	if size > 0:
-		l.add_theme_font_size_override("font_size", size)
+	if font_size > 0:
+		l.add_theme_font_size_override("font_size", font_size)
 	return l
 
 
@@ -321,11 +328,11 @@ func _make_item_card(data: Resource, path: String, kind: String) -> Dictionary:
 	btn.autowrap_mode = TextServer.AUTOWRAP_OFF
 	btn.clip_text = true
 	btn.text = ""
-	var name := ""
+	var title := ""
 	var line1 := ""   # 图标/核心信息
 	var line2 := ""   # 数值/权重
 	if kind == "weapon":
-		name = data.weapon_name if (data != null) else path.get_file().get_basename()
+		title = data.weapon_name if (data != null) else path.get_file().get_basename()
 		if data != null:
 			var wd := data as WeaponData
 			# line1 = 符号概览（主攻 + 特殊机制符号的 label，不显示权重——2026-08-07 重构后武器只带主攻+机制）
@@ -352,7 +359,7 @@ func _make_item_card(data: Resource, path: String, kind: String) -> Dictionary:
 						break
 			line2 = "攻%d · %s · 命中%d%% · 暴%d%% · %s" % [int(wd.base_power), elem_txt, hit_pct, crit_total, mech_name]
 	elif kind == "skill":
-		name = data.buff_name if (data != null) else path.get_file().get_basename()
+		title = data.buff_name if (data != null) else path.get_file().get_basename()
 		if data != null:
 			line1 = "%s %s" % [data.icon, data.description]
 			# 技能强度轴（2026-08-09 更新）：攻击力 · 命中率 · 非三连暴击率 · 符号回合
@@ -363,14 +370,14 @@ func _make_item_card(data: Resource, path: String, kind: String) -> Dictionary:
 			var s_hit: int = int(data.hit_rate * 100)
 			line2 = "攻%d · 命中%d%% · 暴%d%% · %s" % [int(data.base_power), s_hit, s_crit, sym_txt]
 	else:
-		name = data.item_name if (data != null) else path.get_file().get_basename()
+		title = data.item_name if (data != null) else path.get_file().get_basename()
 		if data != null:
 			line1 = "%s %s" % [data.icon, data.description]
 			line2 = "持有 %d" % data.charges if (kind == "active" and data.get("charges") != null) else "被动"
 
-	name = _source_tag(kind) + name
-	# Button 多行：name(line1)line2。靠 \n 排版；首行用 BBCode 强调名字(可选)
-	var body := name
+	title = _source_tag(kind) + title
+	# Button 多行：title(line1)line2。靠 \n 排版；首行用 BBCode 强调名字(可选)
+	var body := title
 	if line1 != "":
 		body += "\n" + line1
 	if line2 != "":
@@ -1092,7 +1099,7 @@ func _refresh_gear_icons() -> void:
 
 
 # 4 格子刷新：按 consumable_slots 顺序填，缺位留空占位文案
-# - 有消耗品：显示 emoji + 名字 + charges 角标；按 game_state/in_loadout 决定是否禁用
+# - 有消耗品：显示 emoji + 名字 + charges 角标；按 game_state/in_loadout/律法锁槽 决定是否禁用
 # - 空格子：显示 "—"，禁用（仅占位）
 func _refresh_consumable_panel() -> void:
 	if consumable_cells.is_empty():
@@ -1110,7 +1117,10 @@ func _refresh_consumable_panel() -> void:
 			else:
 				cell.text = "?"
 				cell.tooltip_text = "资源缺失"
-			cell.disabled = not can_use or slot["charges"] <= 0
+			var locked: bool = controller.state.locked_consumable_slot == i   # 天平审判官：律法封印该格
+			cell.disabled = not can_use or slot["charges"] <= 0 or locked
+			if locked and not cell.text.begins_with("⚖ "):
+				cell.text = "⚖ " + cell.text
 		else:
 			cell.text = "—"
 			cell.tooltip_text = "消耗品空位"

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="SkillData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/items/skill_data.gd" id="1"]
+[ext_resource type="Resource" path="res://resources/symbols/buff_aura_of_order.tres" id="2"]
+
+[resource]
+script = ExtResource("1")
+buff_id = "aura_of_order"
+category = "skill"
+rarity = "rare"
+base_power = 3.0
+hit_rate = 0.90
+buff_name = "秩序光环"
+icon = "🛡️"
+description = "秩序之光入轮：护盾 +10 持续 2 回合（覆盖定心 8/不屈战旗 6）——天平审判官 P2 重击 + 锁槽期生存窗口。"
+symbol = ExtResource("2")
+weight = 3.0

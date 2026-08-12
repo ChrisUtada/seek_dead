@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rarity = "rare"
+category = "passive"
+item_id = "scales_of_judgment"
+item_name = "审判天平"
+description = "本局所有伤害 ×1.2（全局乘区，介于锋锐 ×1.10 与狂怒 ×1.5 之间）——天平审判官 P1/P2 全程输出强化。"
+icon = "⚖️"
+effect = "damage_mult"
+value = 0
+mult_value = 1.2
