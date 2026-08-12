@@ -29,6 +29,10 @@ func on_turn_resolved(ctrl) -> void:
 func consume_flashback() -> bool:
 	return false
 
+# 玩家使用消耗品后调用（effect = 消耗品 effect 字段；勇者的阴影 P3 和解检测用；显式判空）
+func on_consumable_used(ctrl, effect: String) -> void:
+	pass
+
 # 玩家打出 special 三连时调用（rust_armor 等据此清层数）
 func on_special_triple(ctrl) -> void:
 	pass

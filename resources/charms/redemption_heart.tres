@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rarity = "rare"
+category = "passive"
+item_id = "redemption_heart"
+item_name = "救赎之心"
+description = "本局每回合回复 12 HP（覆盖灵魂安抚 10 的顶级常驻回血）——耻辱审判官受击/血线期生存，罪业损失对冲。"
+icon = "❤️‍🔥"
+effect = "heal"
+value = 12

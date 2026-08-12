@@ -44,6 +44,9 @@ func use(uid: String) -> void:
 		"assault": use_assault(data)
 		"reroll":  await use_reroll(data)
 		"element": use_element(data)
+	# 勇者的阴影 P3 和解检测（heal/purify/cleanse 消耗品使用通知；显式判空）
+	if _ctrl.current_gimmick != null:
+		_ctrl.current_gimmick.on_consumable_used(_ctrl, str(data.effect))
 	refresh_panel()
 	if slot["charges"] <= 0:
 		_ctrl.consumable_slots.remove_at(target)

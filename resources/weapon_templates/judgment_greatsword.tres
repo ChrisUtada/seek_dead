@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=6 format=3]
+
+[ext_resource type="Script" uid="uid://rshxw30hg44e" path="res://scripts/equipment/weapon_data.gd" id="1"]
+[ext_resource type="Script" uid="uid://b7ejpof4wrtqt" path="res://scripts/battle/symbol_weight.gd" id="sw"]
+[ext_resource type="Resource" path="res://resources/symbols/shadow_slash.tres" id="s0"]
+
+[sub_resource type="Resource" id="sw0"]
+script = ExtResource("sw")
+symbol = ExtResource("s0")
+weight = 6.0
+
+[resource]
+script = ExtResource("1")
+weapon_name = "审判大剑"
+category = "weapon"
+rarity = "rare"
+crit_chance = 0.05
+base_power = 20
+hit_rate = 0.78
+archetype = 2
+weapon_type = 0
+damage = 52.0
+damage_type = 1
+attack_speed = 0.85
+attack_range = 90.0
+cleave_angle = 180.0
+knockback_force = 260.0
+symbols = Array[ExtResource("sw")]([SubResource("sw0")])
+reel_element = "dark"
+element = "dark"

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="SkillData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/items/skill_data.gd" id="1"]
+[ext_resource type="Resource" path="res://resources/symbols/buff_atonement_light.tres" id="2"]
+
+[resource]
+script = ExtResource("1")
+buff_id = "atonement_light"
+category = "skill"
+rarity = "rare"
+base_power = 3.0
+hit_rate = 0.90
+buff_name = "赎罪之光"
+icon = "🌅"
+description = "救赎之光入轮：每回合回复 10 HP 持续 2 回合（覆盖暗影再生 +6）——耻辱审判官 P3 血线期持续恢复。"
+symbol = ExtResource("2")
+weight = 3.0

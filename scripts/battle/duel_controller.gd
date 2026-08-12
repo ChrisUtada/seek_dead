@@ -205,6 +205,7 @@ var charm_status_boost: float = 1.0     # 状态护符：灼烧/霜冻/毒 DoT �
 # 流程状态（enum 化：原字符串字面量易拼错且无编译期检查）
 enum FlowState { PLAYING, WON, LOST }
 var game_state: FlowState = FlowState.PLAYING
+var peaceful_win := false              # 勇者的阴影 P3：和解通关标志（_start_room 复位；spin 流程检测早退）
 var turn_count = 1
 
 # M4 本局（Run）加成层（run_symbol_bonus / run_power_bonus / run_shield_next）已抽至
@@ -830,6 +831,7 @@ func _start_room(idx: int) -> void:
 		_reward_system.show_meta_choice()
 		return
 	room_element_mult = {}                # 元素精华：新房间失效（须在 _build_pool 之前清，否则旧房精华注入新房池）
+	peaceful_win = false                  # 勇者的阴影：和解标志每房复位
 	_apply_charms()                         # S7：每次开房重算护符被动（含商店购入的护符）
 	_build_pool(selected_loadout)           # S7：重建符号池（含商店购入的武器）
 	room_index = idx
@@ -939,6 +941,21 @@ func _begin_player_turn() -> void:
 			hud._refresh_cell(r, 0)
 
 
+# 勇者的阴影 P3：非暴力和解通关（gimmick 达成三连/治疗符号/恢复净化消耗品时调用）——训练点 + 奖励屏 + 元进度
+func resolve_peaceful_win() -> void:
+	if peaceful_win or game_state != FlowState.PLAYING:
+		return
+	peaceful_win = true
+	game_state = FlowState.WON
+	if _is_boss_room(room_index):
+		_award_train_point()          # T27：击败 BOSS 掉落升级点
+	hud._log("🤝 勇者放下武器，与阴影握手言和——非暴力通关！")
+	hud._popup("🤝 和解！", Palette.POP_HEAL, hud._player_sprite_anchor())
+	hud._show_reward_screen(_is_boss_room(room_index))
+	hud._refresh_meta()
+	_busy = false
+
+
 # T20：加权抽取意图（已迁至 StatusSystem.roll_intent，2026-08-09）
 func _roll_intent(room: RoomData) -> Dictionary:
 	return status_system.roll_intent(room)
@@ -960,6 +977,9 @@ func _on_spin_pressed() -> void:
 		await get_tree().create_timer(0.15).timeout
 	# 阶段 1+2：结算（先防御/增益/状态，后攻击；含飘字）
 	await combat.evaluate()
+	if peaceful_win:
+		_busy = false
+		return
 	if enemy_hp <= 0:
 		hud._log("★ 击败 %s！" % enemy_name)
 		game_state = FlowState.WON

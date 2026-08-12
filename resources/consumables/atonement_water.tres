@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rarity = "rare"
+category = "active"
+item_id = "atonement_water"
+item_name = "赎罪圣水"
+description = "立即回复 80 HP（覆盖圣光圣杯 60 的顶级大恢复）——耻辱审判官 P3 血线审判期保血线。"
+icon = "💧"
+effect = "heal"
+value = 80
+charges = 1

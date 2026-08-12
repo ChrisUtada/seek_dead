@@ -1,0 +1,47 @@
+[gd_resource type="Resource" script_class="RoomData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/room_data.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/battle/gimmicks/shadow_projection_gimmick.gd" id="2"]
+[ext_resource type="Script" path="res://scripts/battle/intent_data.gd" id="3"]
+
+[sub_resource type="Resource" script_class="IntentData" id="intent_attack"]
+script = ExtResource("3")
+id = "attack"
+display_name = "攻击"
+icon = "⚔"
+weight = 40.0
+purifiable = false
+value_mult = 1.0
+
+[sub_resource type="Resource" script_class="IntentData" id="intent_heavy"]
+script = ExtResource("3")
+id = "heavy"
+display_name = "重击"
+icon = "💥"
+weight = 40.0
+purifiable = false
+value_mult = 2.0
+
+[sub_resource type="Resource" script_class="IntentData" id="intent_jam"]
+script = ExtResource("3")
+id = "jam"
+display_name = "注废"
+icon = "❌"
+weight = 20.0
+purifiable = true
+value_mult = 0.0
+
+[resource]
+script = ExtResource("1")
+name = "勇者的阴影"
+hp = 600
+atk = 30
+element = "none"
+kind = "boss"
+act = 3
+boss_role = "fixed"
+final_boss = true
+armor = 40
+intents = Array[IntentData]([SubResource("intent_attack"), SubResource("intent_heavy"), SubResource("intent_jam")])
+gimmick_script = ExtResource("2")
+gimmick_params = {"projection_every": 2, "mirror_base_per": 0.05, "phase2_hp_ratio": 0.66, "phase3_hp_ratio": 0.2}
