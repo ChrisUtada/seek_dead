@@ -737,6 +737,15 @@ func _on_anvil_back_pressed() -> void:
 
 
 func _full_reset() -> void:
+	_reset_run_state()
+	ROOMS = _build_run()                 # T25 房数重排：每局从全量池按幕抽 24 房（5 普通 + 2 精英 + 1 常规 BOSS + 真·最终槽）
+	_build_pool(selected_loadout)
+	_start_room(0)
+
+
+# 新一局公共状态重置（不含开战）：_full_reset 与 _return_to_loadout（战败回整备）共用——
+# 槽位成长/金币/训练点/商店/奖励回到初始，避免战败后整备页显示上局商店扩槽的上限（突破限制错觉）
+func _reset_run_state() -> void:
 	_anvil_system.reset_run()   # 本局铁砧点数 drip 累计清零
 	train_points = 0            # T27：升级点每局清零（仅 BOSS 掉落重新积累）
 	player_hp = player_hp_max
@@ -748,9 +757,6 @@ func _full_reset() -> void:
 	charm_max = int(SLOT_INIT["passive"])
 	_shop_system.reset_run()   # 步骤3：新一局商店状态清零（购入价记录 + 金币升级等级）
 	_reward_system.reset_run()   # 步骤4：新一局本局加成层清零（符号灌注 / 伤害加成 / 下一房护盾）
-	ROOMS = _build_run()                 # T25 房数重排：每局从全量池按幕抽 24 房（5 普通 + 2 精英 + 1 常规 BOSS + 真·最终槽）
-	_build_pool(selected_loadout)
-	_start_room(0)
 
 
 # 房间是否为 BOSS 房：以 RoomData.kind == "boss" 判定（不再依赖「最后一间」的位置约定，
@@ -1080,7 +1086,9 @@ func _return_to_loadout() -> void:
 	# 玩家死亡 = 本局结束，回到整备页重选装备后开新 run（不再重开本房）。
 	# 先落盘，确保当局铁砧点数 drip / 商店购买 / 铁砧授予等写入 owned_* 的进度不丢失。
 	_meta_store.save_meta()
-	# 战败 = 重新开始：清空上局勾选与腰带，整备页回到初始状态（owned_* 跨局保留，玩家重新挑选）。
+	# 战败 = 重新开始：清空上局勾选与腰带 + 本局成长（槽位/金币/训练点/商店）回到初始——
+	# 否则整备页显示上局商店扩槽的上限（如护符 2/2），玩家可勾超过新局配额 = 突破限制（2026-08-10 fix）
+	_reset_run_state()
 	selected_loadout = []
 	selected_skills = []
 	selected_charms = []
