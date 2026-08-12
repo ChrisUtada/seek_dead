@@ -110,7 +110,7 @@ P3 终极审判（HP < 33% 触发一次）：玩家血量 < 50% 时敌方伤害�
 | P2 | **组合型新解法 #3** | 「赎罪烙印」atonement_mark（**新技能**，buff power +10 持续 2 回合——覆盖噩梦凝视 +8 的顶级增伤）——P2 剥盾期速杀补强 | ✅ 已落地 |
 | P2 | **组合型新解法 #4** | 「审判大剑」judgment_greatsword（**新武器**，dark，rare 52/0.78 顶级高攻，符号 暗斩 w6）——P2/P3 速杀主解（高 base 直压罪业窗口） | ✅ 已落地 |
 | P3 | **组合型新解法 #5** | 「赎罪圣水」atonement_water（**新消耗品**，rare，heal 80 charges 1——覆盖圣光圣杯 60 的顶级大恢复）——P3 血线审判期保血线 | ✅ 已落地 |
-| P3 | **组合型新解法 #6** | 「赎罪之光」atonement_light（**新技能**，buff regen +10 持续 2 回合——覆盖暗影再生 +6）——P3 血线期持续恢复 | ✅ 已落地 |
+| P3 | **组合型新解法 #6** | 「赎罪之光」atonement_light（**新技能**，buff regen +10 持续 2 回合——覆盖再生术 +6）——P3 血线期持续恢复 | ✅ 已落地 |
 
 ## 6. 实现步骤（罪业计数复用 on_turn_resolved 钩子（空转检测）+ on_turn_begin 受击检测；剥盾/血线走 player_hp/player_shield/boss_atk_mult——零核心代码改动）
 
