@@ -1,0 +1,42 @@
+[gd_resource type="Resource" script_class="RoomData" load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/room_data.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/battle/gimmicks/rust_armor_gimmick.gd" id="2"]
+[ext_resource type="Script" path="res://scripts/battle/intent_data.gd" id="3"]
+[ext_resource type="Texture2D" uid="uid://i4q4dcgqs7ur" path="res://assets/bossbf.png" id="4_art"]
+
+[sub_resource type="Resource" script_class="IntentData" id="intent_attack"]
+script = ExtResource("3")
+id = "attack"
+display_name = "攻击"
+icon = "⚔"
+weight = 60.0
+purifiable = false
+value_mult = 1.0
+
+[sub_resource type="Resource" script_class="IntentData" id="intent_heavy"]
+script = ExtResource("3")
+id = "heavy"
+display_name = "重击"
+icon = "💥"
+weight = 40.0
+purifiable = false
+value_mult = 2.0
+
+[resource]
+script = ExtResource("1")
+name = "冰封铁瓮"
+hp = 200
+atk = 15
+element = "ice"
+kind = "boss"
+act = 1
+boss_role = "fixed"
+armor = 20
+intents = Array[IntentData]([SubResource("intent_attack"), SubResource("intent_heavy")])
+gimmick_script = ExtResource("2")
+gimmick_params = {"interval": 3, "per_stack": 8, "max_stacks": 3}
+boss_reward_weapons = Array[String](["res://resources/weapon_templates/fire_sword.tres", "res://resources/weapon_templates/flame_staff.tres", "res://resources/weapon_templates/iron_sword.tres"])
+boss_relic_path = "res://resources/charms/rust_relic.tres"
+art = ExtResource("4_art")
+art_scale = 2.0

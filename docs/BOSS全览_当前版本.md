@@ -24,7 +24,7 @@
 
 | BOSS | 角色 | 元素/弱点 | HP/ATK/甲 | 机制 gimmick | 战利品池（T32） | 信物 |
 |---|---|---|---|---|---|---|
-| 冰封铁瓮 rusty_golem | fixed | ice / 弱火 | 175/15/20 | 熔铸护甲 rust_armor（每 3 回合 +1 层 8 甲，上限 3 层）+ 寒霜侵蚀（frost 冻结转轮 1 列，上限 2，清净可解） | fire_sword / flame_staff / iron_sword | 锈蚀核心 rust_relic |
+| 冰封铁瓮 frozen_urn | fixed | ice / 弱火 | 200/15/20 | 熔铸护甲 rust_armor（每 3 回合 +1 层 8 甲，上限 3 层）+ 寒霜侵蚀（frost 冻结转轮 1 列，上限 2，清净可解）；V2 起文件 rusty_golem → frozen_urn | fire_sword / flame_staff / iron_sword | 锈蚀核心 rust_relic |
 | 碎裂石像鬼 brittle_gargoyle | rotating | ice / 弱火 | 165/22/8 | 玻璃大炮 glass_cannon（石屑反弹 min(5, 总伤×15%)，护盾可挡、击杀不反弹） | fire_sword / flame_staff / iron_sword | — |
 | 酸蚀恶鬼 acid_ghoul | rotating | poison / 弱光 | 170/12/10 | 酸蚀挂毒 acid_bomb（玩家侧 DoT 2 层/回合、10 层爆炸 30，清净可解、蚀毒壁垒减层） | holy_sword / dawn_bow / iron_sword | — |
 | 茧居石雕 cocoon_sentinel | hidden | ice / 弱火 | 200/13/45（周期） | 开合节律 cocoon_cycle v2（闭合×3：甲 45 补满+回血 6+注废 → 开合×1：甲 0+强制重击 ×2.0） | fire_sword / flame_staff / iron_sword | — |
