@@ -4,9 +4,9 @@
 
 [resource]
 script = ExtResource("1")
-id = "power"
-icon = "⚔"
-label = "锋锐打磨"
-desc = "本局符号伤害 +1"
-value = 1
-rarity = "uncommon"
+id = "maxhp_heal"
+icon = "❤️‍🔥"
+label = "活力祝福"
+desc = "最大 HP +12 并恢复 20%"
+value = 12
+rarity = "rare"

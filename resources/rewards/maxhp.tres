@@ -9,3 +9,4 @@ icon = "♥"
 label = "强韧之心"
 desc = "最大 HP +20 并回满"
 value = 20
+rarity = "uncommon"

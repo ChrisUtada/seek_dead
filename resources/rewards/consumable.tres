@@ -4,9 +4,9 @@
 
 [resource]
 script = ExtResource("1")
-id = "power"
-icon = "⚔"
-label = "锋锐打磨"
-desc = "本局符号伤害 +1"
+id = "consumable"
+icon = "🧪"
+label = "补给品"
+desc = "随机消耗品进入腰带"
 value = 1
 rarity = "uncommon"

@@ -61,34 +61,90 @@ func on_meta_choice_chosen(opt: Dictionary) -> void:
 # ---------------------------------------------------------------------------
 # 房奖励三选一（Roguelike 构筑）
 # ---------------------------------------------------------------------------
+# 胜利奖励方案（2026-08-13，见 docs/胜利奖励方案.md）：
+# - 候选池 8 类（5 数值 + gold 经济 + consumable/weapon 构筑），三档稀有度加权（common 50 / uncommon 30 / rare 20，幕三 rare 升至 30）
+# - 组合保证：3 张里至少 1 张恢复/防御向（def）+ 至少 1 张输出/构筑向（atk）
+# - 按幕分层：幕一教学期不出 weapon（构筑武器）
+const REWARD_TAG := {
+	"heal": "def", "maxhp": "def", "shield": "def",
+	"power": "atk", "symbol": "atk", "gold": "atk", "consumable": "atk", "weapon": "atk",
+}
 
 func roll_rewards() -> Array:
-	# REWARD_POOL 现为 RewardData 资源数组；元素只读不修改，用浅拷贝即可（避免深拷贝复制资源）。
-	var copy = _ctrl.REWARD_POOL.duplicate()
+	var act: int = _ctrl.ROOMS[_ctrl.room_index].act if (_ctrl.room_index >= 0 and _ctrl.room_index < _ctrl.ROOMS.size()) else 1
+	var pool: Array = _ctrl.REWARD_POOL.duplicate()
+	# 幕一教学期不出构筑武器；武器槽满（2 把，A 方案 2026-08-13）时武器卡不入候选池——尊重「固定 2 把」规则
+	if act < 2 or _ctrl.selected_loadout.size() >= _ctrl._loadout_system.cat_cap("weapon"):
+		pool = pool.filter(func(rw): return rw.id != "weapon")
+	var def_pool: Array = pool.filter(func(rw): return REWARD_TAG.get(rw.id, "") == "def")
+	var atk_pool: Array = pool.filter(func(rw): return REWARD_TAG.get(rw.id, "") == "atk")
 	var out := []
-	for i in 3:
-		if copy.is_empty():
-			break
-		var idx = randi() % copy.size()
-		out.append(copy[idx])
-		copy.remove_at(idx)
+	var first: RewardData = _weighted_pick(def_pool, act)
+	if first != null:
+		out.append(first)
+	var second: RewardData = _weighted_pick(atk_pool, act)
+	if second != null:
+		out.append(second)
+	var rest: Array = pool.duplicate()
+	rest.erase(first)
+	rest.erase(second)
+	var third: RewardData = _weighted_pick(rest, act)
+	if third != null:
+		out.append(third)
 	return out
 
 
-# T6 精英房「战前补给」三选一：精英池恰为 3 项（金币囤 / 铁砧点 / 结界备战），
-# 直接全量返回供玩家三选一，保证每次精英都能看到全部 prep 选项。
+# 稀有度权重档（胜利奖励方案：common 50 / uncommon 30 / rare 20；幕三 rare 升至 30、common 降至 40）
+func _rarity_weight(r: String, act: int) -> float:
+	match r:
+		"rare":
+			return 0.3 if act >= 3 else 0.2
+		"uncommon":
+			return 0.3
+	return 0.4 if act >= 3 else 0.5
+
+
+func _weighted_pick(pool: Array, act: int) -> RewardData:
+	if pool.is_empty():
+		return null
+	var total := 0.0
+	for rw in pool:
+		total += _rarity_weight(rw.rarity, act)
+	var roll := randf() * total
+	for rw in pool:
+		roll -= _rarity_weight(rw.rarity, act)
+		if roll <= 0.0:
+			return rw
+	return pool[pool.size() - 1]
+
+
+# T6 精英房「战前补给」：2 固定（金币囤/铁砧点）+ 1 动态高品质位（rare 构筑/大数值——胜利奖励方案 2026-08-13）
 func roll_elite_rewards() -> Array:
-	return _ctrl.ELITE_REWARD_POOL.duplicate()
+	var out := []
+	for rw in _ctrl.ELITE_REWARD_POOL:
+		if rw.id == "elite_gold" or rw.id == "elite_anvil":
+			out.append(rw)
+	var act: int = _ctrl.ROOMS[_ctrl.room_index].act if (_ctrl.room_index >= 0 and _ctrl.room_index < _ctrl.ROOMS.size()) else 1
+	var high_pool: Array = []
+	for rw in _ctrl.REWARD_POOL:
+		if rw.id in ["weapon", "consumable", "maxhp_heal"] and (rw.id != "weapon" or _ctrl.selected_loadout.size() < _ctrl._loadout_system.cat_cap("weapon")):
+			high_pool.append(rw)
+	var bonus: RewardData = _weighted_pick(high_pool, act)
+	if bonus != null:
+		out.append(bonus)
+	return out
 
 
 # BOSS 战利品：从主题池+混合券抽 3 张候选卡（dict 结构，供 HUD 直接渲染）。
-# 候选构成：① 主题新武器（未持有，进池）② Boss 信物（占护符槽，若未占满）
+# 候选构成：① 主题新武器（未持有 + 武器槽未满，进池）② Boss 信物（占护符槽，若未占满）
 func roll_boss_rewards(room) -> Array:
 	var cands := []
-	# ① 主题新武器：房间指定池（空则按 element 从全部武器取）中，玩家尚未持有的
+	# ① 主题新武器：房间指定池（空则按 element 从全部武器取）中，玩家尚未持有且武器槽未满（A 方案 2026-08-13：
+	# 武器上限 2（cat_cap），槽满则主题武器卡不出——尊重「固定 2 把」规则，只出信物/其他候选）
 	var src: Array = room.boss_reward_weapons if (room.boss_reward_weapons.size() > 0) else _ctrl.WEAPON_POOL
+	var weapon_slots_free: bool = _ctrl.selected_loadout.size() < _ctrl._loadout_system.cat_cap("weapon")
 	for p in src:
-		if not _ctrl.selected_loadout.has(p):
+		if weapon_slots_free and not _ctrl.selected_loadout.has(p):
 			var wd: WeaponData = load(p)
 			var elem = wd.element if wd != null else "none"
 			cands.append({
@@ -156,6 +212,18 @@ func apply_reward(id: String) -> void:
 		"power":
 			run_power_bonus += rd.value
 			_ctrl.hud._log("奖励：本局符号伤害 +%d（当前 +%d）" % [rd.value, run_power_bonus])
+		# 胜利奖励方案（2026-08-13）新增：经济 / 构筑 / 双效
+		"gold":
+			_ctrl.gold += rd.value
+			_ctrl.hud._log("奖励：金币 +%d（共 %d）" % [rd.value, _ctrl.gold])
+		"consumable":
+			_pick_item_reward("active")
+		"weapon":
+			_pick_item_reward("weapon")
+		"maxhp_heal":
+			_ctrl.player_hp_max += rd.value
+			_ctrl.player_hp = mini(_ctrl.player_hp_max, _ctrl.player_hp + int(_ctrl.player_hp_max * 0.2))
+			_ctrl.hud._log("奖励：最大 HP +%d 并恢复 20%%" % rd.value)
 		# T6 精英房「战前补给」三类选项
 		"elite_gold":
 			_ctrl.gold += rd.value
@@ -168,14 +236,51 @@ func apply_reward(id: String) -> void:
 			_ctrl.hud._log("精英战利：下一房 +%d 护盾" % rd.value)
 
 
+# 构筑奖励：随机未持有武器进转轮带 / 随机未持有消耗品进腰带（胜利奖励方案 2026-08-13）
+func _pick_item_reward(kind: String) -> void:
+	# A 方案防御保底：武器槽满（上限 2）时不追加（候选层已拦截，此处双保险）
+	if kind == "weapon" and _ctrl.selected_loadout.size() >= _ctrl._loadout_system.cat_cap("weapon"):
+		return
+	var owned: Array = _ctrl.selected_loadout if kind == "weapon" else []
+	var src: Array = _ctrl.WEAPON_POOL if kind == "weapon" else _ctrl.ITEM_POOL
+	var cand := []
+	for p in src:
+		var res: Resource = load(p)
+		if res == null:
+			continue
+		if kind != "weapon" and res.get("category") != "active":
+			continue
+		if not owned.has(p):
+			cand.append(p)
+	if cand.is_empty():
+		for p in src:
+			var res: Resource = load(p)
+			if res != null and (kind == "weapon" or res.get("category") == "active"):
+				cand.append(p)
+	if cand.is_empty():
+		return
+	var path: String = cand[randi() % cand.size()]
+	var cd: Resource = load(path)
+	if kind == "weapon":
+		_ctrl._loadout_system.grow_slot("weapon")                 # 免费武器自动开槽（同 BOSS 战利品）
+		_ctrl.selected_loadout.append(path)
+		_ctrl._build_pool(_ctrl.selected_loadout)
+		_ctrl.hud._log("奖励：获得武器 %s（已加入转轮带）" % cd.weapon_name)
+	else:
+		_ctrl._consumable_uid += 1
+		_ctrl.consumable_slots.append({"path": path, "item_id": cd.item_id, "charges": cd.charges, "uid": "c%d" % _ctrl._consumable_uid})
+		_ctrl.hud._log("奖励：获得消耗品 %s（入腰带）" % cd.item_name)
+		_ctrl.hud._refresh_consumable_panel()
+
+
 # BOSS 战利品结算（主题池+混合券三选一）：新武器(进池) / 武器强化券(meta升级,不进池) / Boss信物(占护符槽1/3)
 func apply_boss_reward(cand: Dictionary) -> void:
 	match cand.get("kind", ""):
 		"boss_weapon":
 			var p = cand.get("path", "")
 			if p != "" and not _ctrl.selected_loadout.has(p):
-				_ctrl._loadout_system.grow_slot("weapon")                 # 免费武器自动开槽（武器 UNCAPPED，无天花板限制）
-				_ctrl.selected_loadout.append(p)          # 武器无上限（UNCAPPED），免费获得即自动开槽
+				_ctrl._loadout_system.grow_slot("weapon")                 # 免费武器自动开槽（武器槽上限 2：grow_slot 封顶兜底，候选层已拦截满槽）
+				_ctrl.selected_loadout.append(p)          # 武器槽未满才出候选（A 方案 2026-08-13：上限 2 尊重「固定 2 把」规则）
 				_ctrl._build_pool(_ctrl.selected_loadout)  # 重建符号池（新武器注入转轮带）
 				_ctrl.hud._log("BOSS 战利品：获得武器 %s（已加入转轮带）" % cand.get("label", p))
 		"boss_relic":

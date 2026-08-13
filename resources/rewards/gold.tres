@@ -4,9 +4,9 @@
 
 [resource]
 script = ExtResource("1")
-id = "power"
-icon = "⚔"
-label = "锋锐打磨"
-desc = "本局符号伤害 +1"
-value = 1
-rarity = "uncommon"
+id = "gold"
+icon = "💰"
+label = "金币袋"
+desc = "金币 +15"
+value = 15
+rarity = "common"

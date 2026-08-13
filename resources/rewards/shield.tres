@@ -9,3 +9,4 @@ icon = "🛡"
 label = "守望结界"
 desc = "下一房开局 +15 护盾"
 value = 15
+rarity = "common"

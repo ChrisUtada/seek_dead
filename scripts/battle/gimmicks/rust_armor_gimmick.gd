@@ -2,7 +2,7 @@ extends BossGimmick
 
 const ICON := "🛡❄"   # 下一房预告横幅的机制图标（battle_hud 经 get_script_constant_map 读取）
 
-# 幕一 BOSS·锈蚀傀儡「熔铸护甲」：
+# 幕一 BOSS·冰封铁瓮「熔铸护甲」：
 # 护甲为扁平池（先破甲后掉血，见 DuelController._apply_enemy_damage）；
 # 每 interval 回合叠 1 层护甲（每层 +per_stack，上限 max_stacks 层），叠加在 RoomData.armor 之上。
 # 玩家打出 special 三连清空全部护甲（由 DuelController._on_counter("special") 统一处理）。
