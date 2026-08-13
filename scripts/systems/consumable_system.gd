@@ -75,6 +75,9 @@ func use_cleanse(data: Resource) -> void:
 	if _ctrl.player_frost > 0:
 		_ctrl.player_frost = 0
 		_ctrl.frozen_cols.clear()   # 动态 _ctrl 访问下不能直接赋 []（untyped 数组赋 typed Array[int] 字段会运行时类型错误）
+		# 解冻立即刷新转轮格子（撤掉冻结蓝框），本回合即可正常转动（2026-08-13 落地：冻结不衰减后解冻须即时生效）
+		for r in _ctrl.REELS:
+			_ctrl.hud._refresh_cell(r, 0)
 		_ctrl.hud._log("清净药剂：驱散寒霜，冻结转轮恢复！")
 		cleaned_any = true
 	if int(_ctrl.player_status.get("poison", 0)) > 0:

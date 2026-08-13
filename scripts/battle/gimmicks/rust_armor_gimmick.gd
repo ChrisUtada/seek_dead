@@ -7,12 +7,13 @@ const ICON := "🛡❄"   # 下一房预告横幅的机制图标（battle_hud �
 # 每 interval 回合叠 1 层护甲（每层 +per_stack，上限 max_stacks 层），叠加在 RoomData.armor 之上。
 # 玩家打出 special 三连清空全部护甲（由 DuelController._on_counter("special") 统一处理）。
 # 设计意图：教玩家主动追求 special 三连 / 用穿透符号破甲（RPG 式破甲机制）。
-# T24 参数化：interval/per_stack/max_stacks 读 RoomData.gimmick_params（空则回落默认值，行为不变）——
+# T24 参数化：interval/per_stack/max_stacks/two_cols_chance 读 RoomData.gimmick_params（空则回落默认值，行为不变）——
 # Act2/3 复用脚本时在 .tres 调参即可，不再硬编码。
 
 var _interval := 2
 var _per_stack := 8
 var _max_stacks := 3
+var _two_cols_chance := 0.3   # 2026-08-13 用户拍板：冻结随机 1~2 列，2 列概率（1 列更常见）
 
 var _stacks := 0
 var _turns := 0
@@ -24,6 +25,7 @@ func on_room_start(ctrl) -> void:
 	_interval = int(p.get("interval", 2))
 	_per_stack = int(p.get("per_stack", 8))
 	_max_stacks = int(p.get("max_stacks", 3))
+	_two_cols_chance = float(p.get("two_cols_chance", 0.3))
 	ctrl.hud._log("🛡 熔铸护甲展开：每 %d 回合叠加一层护甲（上限 %d 层）" % [_interval, _max_stacks])
 
 func on_turn_begin(ctrl) -> void:
@@ -33,9 +35,14 @@ func on_turn_begin(ctrl) -> void:
 		ctrl.enemy_armor_max += _per_stack
 		ctrl.enemy_armor += _per_stack
 		ctrl.hud._log("🛡 熔铸护甲 +%d（%d/%d 层，护甲 %d/%d）" % [_per_stack, _stacks, _max_stacks, int(ctrl.enemy_armor), int(ctrl.enemy_armor_max)])
-		# T30 寒霜侵蚀：与叠甲同频挂 frost（固定节奏，第 3/6/9 回合；叠甲封顶后 frost 同步停止）
+		# T30 寒霜侵蚀：与叠甲同频（固定节奏，第 3/6/9 回合；叠甲封顶后 frost 同步停止）
 		# 2026-08-09 单侧性纪律：玩家侧冻结上限读 frozen StatusDef.max_cols（frost 已回归纯敌人侧）
+		# 2026-08-13 用户拍板：随机冻结 1~2 列（1 列更常见，two_cols_chance），次回合自动解除（frozen decay=1）——
+		# 无清净药剂不会死锁；清净药剂 = 当回合立即解除（保住输出），非必修
 		var fc_max: int = int(ctrl.status_system.status_def("frozen").max_cols) if ctrl.status_system.status_def("frozen") != null else 2
-		ctrl.player_frost = min(ctrl.player_frost + 1, fc_max)
-		ctrl.hud._log("❄ 寒霜侵蚀：frost +1（%d/%d 层，冻结转轮效果见后续实现）" % [ctrl.player_frost, fc_max])
+		var cols := 1
+		if fc_max >= 2 and randf() < _two_cols_chance:
+			cols = 2
+		ctrl.player_frost = cols
+		ctrl.hud._log("❄ 寒霜侵蚀：冻结 %d 列（次回合自消，清净药剂可当回合解除）" % cols)
 	# 护甲清空由 DuelController._on_counter("special") 统一处理（special 三连），此处不再重复
