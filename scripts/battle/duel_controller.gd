@@ -44,10 +44,13 @@ var SKILL_POOL: Array[String] = []
 #   本次购买直接把该类上限 +1（不单独售卖抽象的「槽扩展」商品）。
 #   节奏闸门 = 同类价格随已持数递增（见 _shop_price 的 step 表）。
 # 【天花板：按「进池 / 不进池」分野，不按类别拍脑袋】
-#   · 进池类（武器 weapon · 技能 skill）→ **无天花板**（UNCAPPED）。
+#   · 进池类（武器 weapon）→ **无天花板**（UNCAPPED）。
 #     它们的符号会挤进同一条转轮带，带越多则：废铁占比升高、目标符号命中率被稀释、
 #     克制浓度摊薄、按停到想要的符号更难 —— 稀释效应本身就是刹车，无需人为封顶。
 #     再叠加金币线性递增价（见 _shop_price），越买越贵，双闸门足矣。
+#   · 技能 skill（2026-08-10 起退出 UNCAPPED）→ 硬上限 3（初始 1 → 商店买到 3）。
+#     武器硬限 2 把，若技能无上限则技能符号（功能/buff）无限挤占主输出带子——不对称稀释
+#     （见 docs/整备结构_技能槽上限与频率规范.md）。
 #   · 不进池类（消耗品 active · 护符 passive）→ **硬天花板**（2 / 3）。
 #     它们不进转轮、零稀释代价、没有任何自然刹车（尤其护符是「唯一收集乘区」，
 #     纯收益、越多越强），故必须硬限量，否则乘区无限叠加直接崩坏数值。
@@ -734,6 +737,15 @@ func _on_anvil_back_pressed() -> void:
 
 
 func _full_reset() -> void:
+	_reset_run_state()
+	ROOMS = _build_run()                 # T25 房数重排：每局从全量池按幕抽 24 房（5 普通 + 2 精英 + 1 常规 BOSS + 真·最终槽）
+	_build_pool(selected_loadout)
+	_start_room(0)
+
+
+# 新一局公共状态重置（不含开战）：_full_reset 与 _return_to_loadout（战败回整备）共用——
+# 槽位成长/金币/训练点/商店/奖励回到初始，避免战败后整备页显示上局商店扩槽的上限（突破限制错觉）
+func _reset_run_state() -> void:
 	_anvil_system.reset_run()   # 本局铁砧点数 drip 累计清零
 	train_points = 0            # T27：升级点每局清零（仅 BOSS 掉落重新积累）
 	player_hp = player_hp_max
@@ -745,9 +757,6 @@ func _full_reset() -> void:
 	charm_max = int(SLOT_INIT["passive"])
 	_shop_system.reset_run()   # 步骤3：新一局商店状态清零（购入价记录 + 金币升级等级）
 	_reward_system.reset_run()   # 步骤4：新一局本局加成层清零（符号灌注 / 伤害加成 / 下一房护盾）
-	ROOMS = _build_run()                 # T25 房数重排：每局从全量池按幕抽 24 房（5 普通 + 2 精英 + 1 常规 BOSS + 真·最终槽）
-	_build_pool(selected_loadout)
-	_start_room(0)
 
 
 # 房间是否为 BOSS 房：以 RoomData.kind == "boss" 判定（不再依赖「最后一间」的位置约定，
@@ -1077,7 +1086,9 @@ func _return_to_loadout() -> void:
 	# 玩家死亡 = 本局结束，回到整备页重选装备后开新 run（不再重开本房）。
 	# 先落盘，确保当局铁砧点数 drip / 商店购买 / 铁砧授予等写入 owned_* 的进度不丢失。
 	_meta_store.save_meta()
-	# 战败 = 重新开始：清空上局勾选与腰带，整备页回到初始状态（owned_* 跨局保留，玩家重新挑选）。
+	# 战败 = 重新开始：清空上局勾选与腰带 + 本局成长（槽位/金币/训练点/商店）回到初始——
+	# 否则整备页显示上局商店扩槽的上限（如护符 2/2），玩家可勾超过新局配额 = 突破限制（2026-08-10 fix）
+	_reset_run_state()
 	selected_loadout = []
 	selected_skills = []
 	selected_charms = []

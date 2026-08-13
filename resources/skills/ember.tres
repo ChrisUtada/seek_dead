@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="SkillData" load_steps=3 format=3]
+﻿[gd_resource type="Resource" script_class="SkillData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/items/skill_data.gd" id="1"]
 [ext_resource type="Resource" path="res://resources/symbols/ember.tres" id="2"]
@@ -14,4 +14,4 @@ buff_name = "余烬"
 icon = "🔥"
 description = "余烬落线：挂灼烧 DoT——burn 无视护甲，碎裂魔王 P2 叠盾期跨阶段削血（草案克制解）。"
 symbol = ExtResource("2")
-weight = 3.0
+weight = 1.0

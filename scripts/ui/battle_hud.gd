@@ -502,7 +502,7 @@ func _make_shop_card(offer: Dictionary) -> Button:
 	var kind_name = {"weapon": "武器", "passive": "护符", "active": "物品", "skill": "技能"}.get(offer["kind"], "物品")
 	card.configure("%s%s · %s" % [_source_tag(offer["kind"]), kind_name, offer["name"]], "", TypeScale.TITLE, 0.0, 2)
 	card.set_tooltip(load(offer["path"]), offer["kind"])   # 物品悬停信息窗（ItemTooltip 生成器）
-	var price = controller._shop_price(offer["kind"], -1, offer["path"])   # 价格随当前持有数递增 + 稀有度阶梯（T6/T21）；卖出回落，换装成本=买卖价差（防刷价）
+	var price = offer.get("price", controller._shop_price(offer["kind"], -1, offer["path"]))   # 2026-08-10 fix：显示货架锁定报价（不再每次重算 jitter 随机）
 	var is_active = (offer["kind"] == "active")
 	var cap = controller.state.CONSUMABLE_CAP if is_active else controller._loadout_system.cat_max(offer["kind"])          # 消耗品按腰带总容量 4；其余按整备上限
 	var cur = controller.state.consumable_slots.size() if is_active else controller._loadout_system.sel_arr(offer["kind"]).size()   # 消耗品按腰带实占数
@@ -856,7 +856,14 @@ func _refresh_meta() -> void:
 	var essence_txt := ""
 	for e in controller.state.room_element_mult:
 		essence_txt += " · 精华·%s" % ElementCounter.label(e)
-	room_label.text = "房间: %d/%d%s%s" % [controller.state.room_index + 1, controller.state.ROOMS.size(), " · ★BOSS" if is_boss else "", essence_txt]
+	# 2026-08-10 ACT 标注：当前幕（RoomData.act）+ 草案主题短名（BOSS设计草案三幕主题）
+	var act_txt := "ACT 1"
+	var act_theme := {1: "冰封", 2: "狂热", 3: "深渊"}
+	var rooms: Array = controller.state.ROOMS
+	if rooms.size() > 0 and controller.state.room_index >= 0 and controller.state.room_index < rooms.size():
+		var a: int = int(rooms[controller.state.room_index].act)
+		act_txt = "ACT %d%s" % [a, " " + act_theme.get(a, "") if act_theme.has(a) else ""]
+	room_label.text = "%s · 房间: %d/%d%s%s" % [act_txt, controller.state.room_index + 1, rooms.size(), " · ★BOSS" if is_boss else "", essence_txt]
 	turn_label.text = "回合: %d" % controller.state.turn_count
 	player_hp_label.text = "HP %d/%d · 护盾 %d" % [controller.state.player_hp, controller.state.player_hp_max, controller.state.player_shield]
 	player_buff_label.text = "【转轮】技能: " + controller._buff_summary()

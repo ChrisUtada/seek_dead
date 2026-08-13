@@ -82,7 +82,7 @@ P3 深渊吞噬（HP < 33% 触发一次）：废铁注入 ×2 + 攻击 ×1.3 + �
 | **洗盘·注废** | 重转卷轴 / 赦免令 / **重铸风暴（组合型 #5，reroll ×3）**——转出废铁重转洗掉 | P1/P3 废铁稀释的直接对冲（草案克制解） |
 | **反向 build·注废** | 少带武器（稀释刹车）——武器越少注入基数越小 | 「进池类无天花板」的反向解（池稀释对抗的核心策略） |
 | **穿透·厚甲** | 穿甲重弩 / 破甲三连 / **深渊巨镰 pierce 符号** | P2/P3 护甲 40→45 强开直击（注废期输出不打折） |
-| **生存·闪回/高攻** | 守备/铁壁/**深渊壁垒（#2，盾 12/回合）** + **梦魇屏障（#3，buff 盾+12）** + **暗影再生（#6，buff 回血）** | P2 闪回白转期 / P3 高攻窗口的生存底线 |
+| **生存·闪回/高攻** | 守备/铁壁/**深渊壁垒（#2，盾 12/回合）** + **梦魇屏障（#3，buff 盾+12）** + **再生术（#6，buff 回血）** | P2 闪回白转期 / P3 高攻窗口的生存底线 |
 | **输出·闪回** | **噩梦凝视（#4，buff power+8）** + 元素充能核爆 | P2 闪回期照样输出（打不中就靠乘区） |
 | **净化·P2** | 净化药剂（抵消 jam 注废） | P2 骚扰应对 |
 | **基础功** | MISS 按停规避 + 闪回第二次按停 | 闪回 = 二次目押机会（惩罚转奖励的手感） |
@@ -109,7 +109,7 @@ P3 深渊吞噬（HP < 33% 触发一次）：废铁注入 ×2 + 攻击 ×1.3 + �
 | P2 | **组合型新解法 #3** | 「梦魇屏障」nightmare_veil（**新技能**，buff shield +12 持续 2 回合——覆盖秩序光环 10）——P2 闪回白转期生存窗口 | ✅ 已落地 |
 | P2 | **组合型新解法 #4** | 「噩梦凝视」nightmare_gaze（**新技能**，buff power +8 持续 2 回合——覆盖蓄势 +6 的顶级增伤）——P2 闪回期输出补强 | ✅ 已落地 |
 | P3 | **组合型新解法 #5** | 「重铸风暴」recaster_storm（**新消耗品**，rare，effect=`reroll` value=3——覆盖赦免令 ×2 的顶级洗盘）——P3 废铁翻倍期高频洗盘 | ✅ 已落地 |
-| P3 | **组合型新解法 #6** | 「暗影再生」shadow_regen（**新技能**，buff regen +6 持续 2 回合——首个 regen buff 符号）——P3 高攻窗口持续恢复 | ✅ 已落地 |
+| P3 | **组合型新解法 #6** | 「再生术」shadow_regen（**新技能**，buff regen +6 持续 2 回合——首个 regen buff 符号）——P3 高攻窗口持续恢复 | ✅ 已落地 |
 
 ## 6. 实现步骤（P1 现状逻辑保留；P2/P3 增量：强制重转 = spin 流程单点挂接（evaluate 完成后、敌人行动前检测 gimmick 消费标志），废铁/倍率/意图走 gimmick_params（T24）与现有字段——零结算改动）
 
@@ -118,7 +118,7 @@ P3 深渊吞噬（HP < 33% 触发一次）：废铁注入 ×2 + 攻击 ×1.3 + �
 | Step 1 · 核心小改 | duel_controller `_on_spin_pressed` 阶段 3 前挂接：`current_gimmick` 若声明 `consume_flashback()` 为真 → 强制免费重转一次（自动 begin_spin + await 玩家按停 + 重新 evaluate，第一次结果作废；本次重转不重复触发闪回）；boss_gimmick 基类加 `func consume_flashback() -> bool: return false` | `scripts/battle/duel_controller.gd` / `scripts/battle/gimmicks/boss_gimmick.gd` | P2 触发后 spin 结算后有概率强制重转、玩家二次按停生效 |
 | Step 2 · gimmick 脚本 | `abyss_erosion_gimmick.gd` 参数化（base_ratio/low_hp_bonus/max_trash/phase2_* /phase3_* 读 gimmick_params）+ 三阶段：on_room_start 读参；on_turn_begin 按阶段倍率注入废铁（P1 base / P2 ×1.5 / P3 ×2）+ P2/P3 意图覆盖（roll_intent P2/P3 表）；on_damaged HP<66% 一次性进 P2（日志飘字「闪回暴走」）、HP<33% 一次性进 P3（「深渊吞噬」）；P2 起 `consume_flashback()` 按概率返回真（每回合重置计数）；ICON 🕳 | `scripts/battle/gimmicks/abyss_erosion_gimmick.gd` | 三阶段触发/废铁注入倍率/闪回概率/意图切换 |
 | Step 3 · 房间 .tres | abyss_watcher.tres：保留 460/27/35 · light · boss · act=3 · **boss_role=fixed 显式** · intents(P1 attack 60/heavy 40 内联) · gimmick_params · **战利品池改暗系（T32 修正）** | `resources/rooms/abyss_watcher.tres` | Act3 槽抽取、三阶段触发、战利品暗系 |
-| Step 4 · 组合型新解法（阶段数 × 2 = 6 个） | #1 深渊巨镰（深渊撕咬符号 + 武器 .tres）；#2 深渊壁垒（护符 .tres）；#3 梦魇屏障（buff 符号 + 技能 .tres）；#4 噩梦凝视（buff 符号 + 技能 .tres）；#5 重铸风暴（消耗品 .tres）；#6 暗影再生（regen buff 符号 + 技能 .tres）——放入资源目录即入池 | `resources/` 对应目录 | 整备可选、进转轮、数值正确、reroll ×3 连转、regen 生效 |
+| Step 4 · 组合型新解法（阶段数 × 2 = 6 个） | #1 深渊巨镰（深渊撕咬符号 + 武器 .tres）；#2 深渊壁垒（护符 .tres）；#3 梦魇屏障（buff 符号 + 技能 .tres）；#4 噩梦凝视（buff 符号 + 技能 .tres）；#5 重铸风暴（消耗品 .tres）；#6 再生术（regen buff 符号 + 技能 .tres，原名暗影再生——2026-08-10 中性化：命名/视觉不再暗示暗系，纯恢复）——放入资源目录即入池 | `resources/` 对应目录 | 整备可选、进转轮、数值正确、reroll ×3 连转、regen 生效 |
 | Step 5 · 文档回写 | 总清单 T4 装备 57→63、BOSS 池保持 10/12（三阶段化不新增角色）；规范 §12 进度表同步（Act3 三阶段落地） | `docs/未完成任务_总清单.md` / `docs/BOSS设计规范.md` / `docs/项目概览_状态与内容.md` | — |
 | Step 6 · F6 验证 | 见 §7 清单 | — | 全绿 |
 
@@ -133,7 +133,7 @@ P3 深渊吞噬（HP < 33% 触发一次）：废铁注入 ×2 + 攻击 ×1.3 + �
 - [ ] P3：注废 ×2（与 P2 叠乘）、攻击 ×1.3、护甲 40→45、意图 attack 50/heavy 50
 - [ ] 暗武克制 ×1.5 + 充能核爆；P2/P3 穿透/破甲直击厚甲
 - [ ] 战利品暗系池生效（T32 修正）、abyss_relic 信物保留
-- [ ] 深渊巨镰（#1）/深渊壁垒（#2）/梦魇屏障（#3）/噩梦凝视（#4）/重铸风暴（#5 reroll ×3）/暗影再生（#6 regen）入池生效
+- [ ] 深渊巨镰（#1）/深渊壁垒（#2）/梦魇屏障（#3）/噩梦凝视（#4）/重铸风暴（#5 reroll ×3）/再生术（#6 regen）入池生效
 - [ ] 通关 → 训练点 +1 → 训练房 → 元进度/铁砧衔接正常
 
 ## 8. 关联

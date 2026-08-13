@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="SkillData" load_steps=3 format=3]
+﻿[gd_resource type="Resource" script_class="SkillData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/items/skill_data.gd" id="1"]
 [ext_resource type="Resource" path="res://resources/symbols/buff_war_banner.tres" id="2"]
@@ -14,4 +14,4 @@ buff_name = "不屈战旗"
 icon = "⚑"
 description = "战旗入轮：本回合起护盾 +6（持续 2 回合）——反弹压制流：对冲石屑自噬伤害，与守备/铁壁叠加"
 symbol = ExtResource("2")
-weight = 2.0
+weight = 1.0

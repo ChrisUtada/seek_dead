@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="SkillData" load_steps=3 format=3]
+﻿[gd_resource type="Resource" script_class="SkillData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/items/skill_data.gd" id="1"]
 [ext_resource type="Resource" path="res://resources/symbols/buff_fire_breath.tres" id="2"]
@@ -14,4 +14,4 @@ buff_name = "炎息"
 icon = "🔥"
 description = "炎息入轮：总伤害 ×1.3（2 回合）——躁怒元素使 P2 火武窗口增伤，与熔火爆裂/充能组合拳（与狂怒 ×1.5 区分）。"
 symbol = ExtResource("2")
-weight = 3.0
+weight = 1.0

@@ -4,13 +4,13 @@
 
 [resource]
 script = ExtResource("1")
-label = "🌑"
-name = "暗影再生"
+label = "🍃"
+name = "再生"
 kind = "buff"
 base = 0.0
 element = "none"
 status_type = ""
-color = Color(0.55, 0.45, 0.8, 1)
+color = Color(0.55, 0.90, 0.55, 1)
 buff_effect = "regen"
 buff_value = 6.0
 buff_turns = 2

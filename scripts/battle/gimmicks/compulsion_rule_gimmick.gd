@@ -1,8 +1,7 @@
-extends BossGimmick
+﻿extends BossGimmick
 
 const ICON := "⚖"   # 下一房预告横幅的机制图标（battle_hud 经 get_script_constant_map 读取）
 const IntentData = preload("res://scripts/battle/intent_data.gd")
-const RoomData = preload("res://scripts/battle/room_data.gd")
 const P2_INTENTS := [
 	preload("res://resources/intents/attack.tres"),
 	preload("res://resources/intents/heavy.tres"),
@@ -89,7 +88,7 @@ func on_turn_resolved(ctrl) -> void:
 		ctrl.hud._log("⚖ 严刑封印：腰带第 %d 格被律法锁定（本回合不可用）" % (ctrl.locked_consumable_slot + 1))
 		ctrl.hud._refresh_consumable_panel()
 
-func on_damaged(ctrl, dmg: int) -> void:
+func on_damaged(ctrl, _dmg: int) -> void:
 	if _phase2 or _phase2_hp_ratio <= 0.0:
 		return
 	if ctrl.enemy_hp <= int(float(ctrl.enemy_hp_max) * _phase2_hp_ratio):
