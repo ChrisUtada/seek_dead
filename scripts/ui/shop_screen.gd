@@ -8,7 +8,6 @@ class_name ShopScreen
 var controller
 var hud: BattleHud
 const DRAWER_W := 420          # 抽屉宽度（右侧 docked）
-const SHOP_CONFIG = preload("res://resources/config/shop_config.tres")   # 刷新价/限次（2026-08-09）
 var _open := false             # 抽屉是否处于展开态（供外部 toggle 判断）
 var _pending_offer: Dictionary = {}   # 待替换购买的武器货品（2026-08-07）
 
@@ -84,18 +83,17 @@ func refresh() -> void:
 		shop_grid.add_child(hud._make_shop_card(offer))
 	_refresh_shop_sell()
 
-# 刷新按钮：显示当前次价格（Balatro 式递增 4→6→8→10），达限置灰
+# 刷新按钮：价格/上限统一走 ShopSystem 查询（免费重转·迷宫回声信物在此生效），达限置灰
 func _refresh_reroll_btn() -> void:
 	if reroll_btn == null:
 		return
-	var used: int = controller.state.shop_reroll_used
-	var price: int = SHOP_CONFIG.reroll_base + used * SHOP_CONFIG.reroll_step
-	if used >= SHOP_CONFIG.reroll_max:
+	if not controller._shop_system.can_reroll():
 		reroll_btn.text = "刷新已达上限"
 		reroll_btn.disabled = true
-	else:
-		reroll_btn.text = "🔄 刷新货架（%d 金）" % price
-		reroll_btn.disabled = controller.state.gold < price
+		return
+	var price: int = controller._shop_system.reroll_price()
+	reroll_btn.text = "🔄 刷新货架（%d 金）" % price
+	reroll_btn.disabled = controller.state.gold < price
 
 func _refresh_shop_sell() -> void:
 	_sell_fill(weapon_list, "weapon")

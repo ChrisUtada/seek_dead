@@ -36,3 +36,4 @@ intents = Array[IntentData]([SubResource("intent_attack"), SubResource("intent_h
 gimmick_script = ExtResource("2")
 gimmick_params = {"dot_per_turn": 2, "dot_base": 1, "bomb_stacks": 10, "bomb_dmg": 30}
 boss_reward_weapons = Array[String](["res://resources/weapon_templates/holy_sword.tres", "res://resources/weapon_templates/dawn_bow.tres", "res://resources/weapon_templates/iron_sword.tres"])
+boss_relic_path = "res://resources/charms/venom_gland_relic.tres"

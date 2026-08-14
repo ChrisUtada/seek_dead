@@ -61,6 +61,10 @@ func contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> voi
 			var dv = flat * mult * em
 			if crit_mult_val > 1.0:
 				dv *= crit_mult_val
+			# 碎片王冠（信物）：每回合首个伤害符号 ×N（damage/special 共用标记）
+			if not _ctrl._turn_hit_used and _ctrl.charm_first_hit > 1.0 and _ctrl.deprived_level < 1:
+				dv *= _ctrl.charm_first_hit
+				_ctrl._turn_hit_used = true
 			# 2026-08-07 三连通用化：任意同符号 3 连 → 必暴（triple 标记供 gimmick/破甲判定）；
 			# 破甲 = 仅带破甲机制（triple_pierce）的武器/技能三连触发（evaluate 里判 _item_pierce_map）
 			if raw >= 3:
@@ -78,12 +82,16 @@ func contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> voi
 			acc["heal"] += sym.base * [1.0, 2.5, 5.0][mini(raw - 1, 2)]
 			if raw >= 3:
 				acc["heal_triple"] = true
-		"status":  acc["status_stacks"][sym.status_type] = acc["status_stacks"].get(sym.status_type, 0) + mult * crit_mult_val
+		"status":  acc["status_stacks"][sym.status_type] = acc["status_stacks"].get(sym.status_type, 0) + mult * crit_mult_val + (int(_ctrl.charm_dot_amp) if _ctrl.deprived_level < 1 else 0)   # 毒腺囊（信物）：挂 DoT 层数 +N
 		"special":
 			# special（火焰法杖等专属高伤符号，2026-08-07 起与 damage 同源；三连同样必暴/连锁/破甲机制）
 			var sv = flat * mult * em
 			if crit_mult_val > 1.0:
 				sv *= crit_mult_val
+			# 碎片王冠（信物）：每回合首个伤害符号 ×N
+			if not _ctrl._turn_hit_used and _ctrl.charm_first_hit > 1.0 and _ctrl.deprived_level < 1:
+				sv *= _ctrl.charm_first_hit
+				_ctrl._turn_hit_used = true
 			if raw >= 3:
 				acc["triple"] = true
 			if sym.pierce_armor or randf() < pierce_p:
@@ -129,6 +137,7 @@ func evaluate() -> void:
 	var acc = { "dmg": 0, "shield": 0, "heal": 0, "status_stacks": {}, "special": 0, "lines": [], "pierce": 0.0, "counter_triple": false, "triple": false, "heal_triple": false }
 	_ctrl._eval_adv = false
 	_ctrl._eval_dis = false
+	_ctrl._turn_hit_used = false   # 碎片王冠（信物）：每回合首击标记重置
 
 	# 按「符号 + 有效元素」计数（解决共享符号跨武器元素冲突；HUD 角标据此展示）
 	# T30：冻结列（失效格）不参与计数——不匹配、不结算、无攻击
@@ -256,7 +265,7 @@ func evaluate() -> void:
 		if assault != 1:
 			tail.append("强袭×%s" % ElementCounter.fmt_mult(float(assault)))
 		if pierce_total > 0:
-			tail.append("穿透×直接HP")
+			tail.append("穿透直击")
 		if tail.is_empty():
 			blk.append("   合计 = %d" % total)
 		else:
@@ -292,6 +301,7 @@ func evaluate() -> void:
 		_ctrl.current_gimmick.on_turn_resolved(_ctrl)
 	# Phase C：回合末递减增益剩余回合
 	tick_buffs()
+	_ctrl.invalidate_state()   # 伤害/护盾/充能/状态与 gimmick 钩子写入（on_special_triple/on_damaged/on_turn_resolved）统一在此覆盖
 
 
 # ---------------------------------------------------------------------------
@@ -392,6 +402,13 @@ func enemy_deal_damage(raw: int) -> void:
 		if _ctrl.hud.animator != null:
 			_ctrl.hud.animator.play_enemy_attack()
 	_ctrl.hud._log("敌人攻击 %d（盾挡 %d，受 %d）" % [eff, blocked, dealt])
+	# 石屑之心（信物）：反弹 thorns×原始攻击 给敌人（穿透护甲直击 HP；被剥夺时失效）
+	var thorns: float = _ctrl.charm_thorns if _ctrl.deprived_level < 1 else 0.0
+	if thorns > 0.0 and dealt > 0:
+		var thorns_dmg := int(round(float(eff) * thorns))
+		if thorns_dmg > 0:
+			apply_enemy_damage(thorns_dmg, true)
+			_ctrl.hud._log("🪨 石屑反弹：%d 伤害" % thorns_dmg)
 
 
 # 对敌人造成伤害（先破甲后掉血）：非穿透先扣护甲、溢出进 HP；穿透直接扣 HP。返回实际造成的总值。

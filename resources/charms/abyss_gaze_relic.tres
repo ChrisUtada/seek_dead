@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rarity = "epic"
+category = "passive"
+item_id = "abyss_gaze_relic"
+item_name = "深渊凝视"
+description = "深渊监视者的凝视：每回合开始元素充能 +1——深渊吞噬充能，你反过来吞噬深渊。"
+icon = "👁️"
+effect = "charge_start"
+value = 1

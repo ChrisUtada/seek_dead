@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rarity = "epic"
+category = "passive"
+item_id = "innocence_seal_relic"
+item_name = "无罪之印"
+description = "耻辱审判官的赦免之印：本局每回合回复 14 HP——罪业清算后，你已无罪（覆盖救赎之心 12）。"
+icon = "🕊️"
+effect = "heal"
+value = 14

@@ -65,5 +65,6 @@ var ITEM_POOL: Array[String] = []
 var enemy_name: String = "敌人"
 var enemy_hp_max: int = 120
 var enemy_hp: int = 120
+var enemy_atk: int = 14            # 敌人攻击力（快照完整性；HUD 未来展示用）
 var enemy_armor: int = 0
 var charm_max: int = 1

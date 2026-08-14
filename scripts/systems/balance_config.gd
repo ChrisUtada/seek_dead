@@ -35,6 +35,7 @@ extends Resource
 
 # —— 元进度/铁砧 ——
 @export var meta_anvil_bonus: int = 2         # 元进度三选一选「铁砧点数」获得的点数
+@export var boss_anvil_bonus: int = 3         # BOSS 战利品空池兜底（武器/护符槽双满）：铁砧点数补偿
 @export var meta_choice_count: int = 3        # 元进度候选张数（三选一）
 @export var anvil_roll_cost: int = 10
 @export var anvil_blank_chance: float = 0.10

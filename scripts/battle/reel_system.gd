@@ -96,7 +96,7 @@ func build_strips() -> void:
 	# —— 方案 B：跨装备聚合 (符号 | 有效元素) 权重 ——
 	# 同一 (符号, 有效元素) 被多件装备携带时权重累加（同元素武器堆三连；异元素互不稀释符号总价值）。
 	# 有效元素已在 _build_pool 用 _eff_element 解析（普通符号继承武器元素，special 优先 reel_element）。
-	var agg := {}   # key("path|elem") -> {sym, elem, w, rank}
+	var agg := {}   # key("path|elem") -> {sym, elem, w, rank, sources}
 	var miss_w := 0.0   # MISS 聚合权重：Σ 装备符号总权重 × (1 - hit_rate)
 	for it in _ctrl.pool_items:
 		var syms: Array = it["syms"]
@@ -111,9 +111,10 @@ func build_strips() -> void:
 			it_total_w += w
 			var key: String = s[0].resource_path + "|" + s[2]
 			if not agg.has(key):
-				agg[key] = {"sym": s[0], "elem": s[2], "w": 0.0, "rank": 0}
+				agg[key] = {"sym": s[0], "elem": s[2], "w": 0.0, "rank": 0, "sources": 0}
 			agg[key]["w"] += w
 			agg[key]["rank"] = maxi(int(agg[key]["rank"]), it_rank)
+			agg[key]["sources"] += 1   # 共享源数（2026-08-14：≥2 件装备共用 → 构筑投资突破稀有度封顶，见 _RARE_CAP 判定）
 		# 2026-08-09 恢复 MISS：命中率 1.0 = 无 miss（当前武器/技能均 <1.0，形成带子 MISS 段）
 		var hit: float = clamp(it.get("hit", 1.0), 0.0, 1.0)
 		if hit < 1.0:
@@ -125,7 +126,10 @@ func build_strips() -> void:
 	var total_cells := 0
 	if wsum > 0.0:
 		# 2026-08-09 传统 slots 频率：格子数 = 权重档位（保底 2 = 目押下限；≥2 → 3 格；≥4 → 4 格），
-		# rare/epic（rank ≥ 2）封顶 2 格——稀有符号不得超过普通符号（大奖罕见）
+		# rare/epic（rank ≥ 2）封顶 2 格——稀有符号不得超过普通符号（大奖罕见）。
+		# 2026-08-14 例外：同符号被 ≥2 件装备共享（sources ≥ 2）时突破封顶走正常档位——
+		# 修复「双同属性武器陷阱构装」（低攻第二把被 max 攻 + 封顶双重吃掉，收益≈0，蒙特卡洛实测 +1%）。
+		# 单件 rare/epic 仍封顶 2 格；共享突破后符号密度随聚合权重正常档位（2/3/4 格）。
 		for k in agg:
 			var cnt: int = 2
 			var w: float = agg[k]["w"]
@@ -133,7 +137,7 @@ func build_strips() -> void:
 				cnt = 4
 			elif w >= 2.0:
 				cnt = 3
-			if int(agg[k]["rank"]) >= RARITY_RANK["rare"]:
+			if int(agg[k]["rank"]) >= RARITY_RANK["rare"] and int(agg[k]["sources"]) < 2:
 				cnt = mini(cnt, _RARE_CAP_CELLS)
 			for _c in cnt:
 				base.append([agg[k]["sym"], agg[k]["elem"]])
@@ -267,3 +271,4 @@ func reset_grid() -> void:
 				_ctrl.grid[reel][row] = reel_strips[reel][idx][0]
 				_ctrl.grid_elem[reel][row] = reel_strips[reel][idx][1]
 			_ctrl.hud._refresh_cell(reel, row)
+	_ctrl.invalidate_state()   # grid_elem 重新实例化

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rarity = "epic"
+category = "passive"
+item_id = "rhythm_shell_relic"
+item_name = "节律之壳"
+description = "茧居石雕的甲壳：每间房间开局获得 18 点护盾（覆盖守望护符 12）——开合节律化为开局缓冲。"
+icon = "⏳"
+effect = "room_shield"
+value = 18

@@ -53,6 +53,7 @@ func use(uid: String) -> void:
 		refresh_panel()   # 4 cell 永远在位，只刷状态；charges=0 槽位自动变空
 		_ctrl.hud._log("「%s」已用尽，移出腰带（可于商店补给）" % slot["item_id"])
 	_ctrl.hud._refresh_meta()
+	_ctrl.invalidate_state()   # 玩家状态/意图/腰带（gimmick on_consumable_used 写入一并覆盖）
 
 
 # 净化药剂（2026-08-09 职责收敛）：只抵消敌人干扰意图（T20：IntentData.purifiable）。

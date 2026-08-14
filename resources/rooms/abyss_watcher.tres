@@ -36,4 +36,4 @@ intents = Array[IntentData]([SubResource("intent_attack"), SubResource("intent_h
 gimmick_script = ExtResource("2")
 gimmick_params = {"base_ratio": 0.1, "low_hp_bonus": 0.3, "max_trash": 24, "phase2_hp_ratio": 0.66, "phase2_trash_mult": 1.5, "phase2_flashback_chance": 0.5, "phase2_armor": 40, "phase3_hp_ratio": 0.33, "phase3_trash_mult": 2.0, "phase3_atk_mult": 1.3, "phase3_armor": 45}
 boss_reward_weapons = Array[String](["res://resources/weapon_templates/night_scythe.tres", "res://resources/weapon_templates/abyss_scythe.tres", "res://resources/weapon_templates/iron_sword.tres"])
-boss_relic_path = "res://resources/charms/abyss_relic.tres"
+boss_relic_path = "res://resources/charms/abyss_gaze_relic.tres"

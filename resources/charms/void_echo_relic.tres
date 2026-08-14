@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rarity = "epic"
+category = "passive"
+item_id = "void_echo_relic"
+item_name = "虚空回响"
+description = "无名虚空的回响：灼烧/霜冻/毒伤害 ×1.7——从虚空带回了力量（覆盖疫病祭符 ×1.5）。"
+icon = "🌑"
+effect = "status_boost"
+mult_value = 1.7

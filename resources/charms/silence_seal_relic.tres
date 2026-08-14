@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rarity = "epic"
+category = "passive"
+item_id = "silence_seal_relic"
+item_name = "静默之印"
+description = "呓语教徒的低语封印：本局抗扰 +3（干扰类意图权重 -36%，保留 25% 下限）——锁轮教头闭嘴了（覆盖明镜护符 3）。"
+icon = "🤫"
+effect = "interference_resist"
+value = 3

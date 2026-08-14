@@ -28,6 +28,7 @@ func take_turn() -> void:
 		"none":            _ctrl.hud._log("敌人意图落空（已被净化）")
 	_ctrl.enemy_intent = {}
 	_ctrl.combat.tick_status()
+	_ctrl.invalidate_state()   # 敌人攻击扣血/意图清空/DoT 结算
 
 
 func _do_attack(it: Dictionary) -> void:

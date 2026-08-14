@@ -40,6 +40,7 @@ func on_card_toggled(card: Dictionary) -> void:
 		arr.append(card["path"])
 	_ctrl.hud._update_loadout_cards_visual()
 	_ctrl.hud._update_loadout_count()
+	_ctrl.invalidate_state()
 
 
 func sel_arr(cat: String) -> Array:
@@ -90,6 +91,7 @@ func grow_slot(cat: String) -> void:
 		"weapon":  _ctrl.loadout_max = (_ctrl.loadout_max + 1 if ceiling == _ctrl.UNCAPPED else min(_ctrl.loadout_max + 1, ceiling))
 		"skill":   _ctrl.skill_max   = (_ctrl.skill_max + 1 if ceiling == _ctrl.UNCAPPED else min(_ctrl.skill_max + 1, ceiling))
 		"passive": _ctrl.charm_max   = min(_ctrl.charm_max + 1, ceiling)
+	_ctrl.invalidate_state()
 
 
 func cat_name(cat: String) -> String:

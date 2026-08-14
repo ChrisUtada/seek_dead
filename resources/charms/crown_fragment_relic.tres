@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rarity = "epic"
+category = "passive"
+item_id = "crown_fragment_relic"
+item_name = "碎片王冠"
+description = "碎裂魔王的王冠碎片：每回合首个伤害符号伤害 ×1.5——人格裂变教会你的符号裂变。"
+icon = "👑"
+effect = "first_hit"
+mult_value = 1.5

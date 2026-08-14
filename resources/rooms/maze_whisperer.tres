@@ -45,4 +45,4 @@ intents = Array[IntentData]([SubResource("intent_attack"), SubResource("intent_j
 gimmick_script = ExtResource("2")
 gimmick_params = {"lock_every": 3, "attack_mult": 1.5, "phase2_hp_ratio": 0.5, "phase2_lock_every": 2, "phase2_attack_mult": 1.8, "phase2_chaos_chance": 0.25}
 boss_reward_weapons = Array[String](["res://resources/weapon_templates/holy_sword.tres", "res://resources/weapon_templates/dawn_bow.tres", "res://resources/weapon_templates/iron_sword.tres"])
-boss_relic_path = "res://resources/charms/whisper_relic.tres"
+boss_relic_path = "res://resources/charms/maze_echo_relic.tres"

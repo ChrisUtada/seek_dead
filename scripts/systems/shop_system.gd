@@ -70,6 +70,7 @@ func on_shop_buy_replace_pressed(offer: Dictionary, old_path: String) -> void:
 	offer["sold"] = true
 	_ctrl._build_pool(_ctrl.selected_loadout)   # 换装立即重建符号池
 	_ctrl.hud._log("替换：%s → %s（-%d 金，余 %d）" % [old_name, offer["name"], buy_price, _ctrl.gold])
+	_ctrl.invalidate_state()
 
 
 func shop_price(kind: String, owned: int = -1, item_path: String = "") -> int:
@@ -132,16 +133,25 @@ func roll_shop() -> void:
 		# 2026-08-10 fix：报价在货架生成时锁定（offer["price"]）——显示与购买统一读它，
 		# 否则每次调用 shop_price() 的随机 jitter 会让价格点击后跳动
 		shop_offers.append({"path": c["path"], "kind": c["kind"], "name": shop_name(c["path"], c["kind"]), "price": shop_price(c["kind"], -1, c["path"]), "sold": false})
+	_ctrl.invalidate_state()
 
 
 # 货架刷新（2026-08-09）：Balatro 式递增价 + 每房间歇期限次（双闸门防金币无限转化）。
+# 迷宫回声（信物 2026-08-14）：每房间歇期前 N 次免费（价格 0，不占付费次数；之后照常计费递增）。
 # 下一房预告（规划中）与刷新互为闭环：预告给目标、刷新给执行手段。
+func free_reroll_count() -> int:
+	return _ctrl.charm_free_reroll if _ctrl.deprived_level < 1 else 0
+
+
 func reroll_price() -> int:
-	return SHOP_CONFIG.reroll_base + reroll_used * SHOP_CONFIG.reroll_step
+	var free: int = free_reroll_count()
+	if reroll_used < free:
+		return 0
+	return SHOP_CONFIG.reroll_base + (reroll_used - free) * SHOP_CONFIG.reroll_step
 
 
 func can_reroll() -> bool:
-	return reroll_used < SHOP_CONFIG.reroll_max
+	return reroll_used < SHOP_CONFIG.reroll_max + free_reroll_count()
 
 
 func on_shop_reroll_pressed() -> void:
@@ -156,6 +166,7 @@ func on_shop_reroll_pressed() -> void:
 	reroll_used += 1
 	roll_shop()
 	_ctrl.hud._log("🔄 刷新货架（-%d 金，余 %d；下次刷新 %d 金）" % [price, _ctrl.gold, reroll_price()])
+	_ctrl.invalidate_state()
 
 
 func on_shop_buy_pressed(offer: Dictionary) -> void:
@@ -186,6 +197,7 @@ func on_shop_buy_pressed(offer: Dictionary) -> void:
 		else:
 			_ctrl.hud._log("购买失败：资源缺失 %s" % offer["name"])
 		offer["sold"] = true
+		_ctrl.invalidate_state()
 		return
 	var arr = _ctrl._loadout_system.sel_arr(kind)
 	if arr.has(offer["path"]):
@@ -219,6 +231,7 @@ func on_shop_buy_pressed(offer: Dictionary) -> void:
 		_ctrl.hud._log("购买 %s（%s槽 +1 → %d/%s，-%d 金，余 %d）" % [offer["name"], _ctrl._loadout_system.cat_name(kind), _ctrl._loadout_system.cat_max(kind), _ctrl._loadout_system.cap_text(kind), buy_price, _ctrl.gold])
 	else:
 		_ctrl.hud._log("购买 %s（-%d 金，余 %d）" % [offer["name"], buy_price, _ctrl.gold])
+	_ctrl.invalidate_state()   # 金币/腰带/槽位上限已变更
 
 
 func sell_price(kind: String, path: String) -> int:
@@ -248,6 +261,7 @@ func on_shop_sell_pressed(path: String, kind: String) -> void:
 		paid_price.erase(slot["uid"])
 		_ctrl._refresh_consumable_panel()
 		_ctrl.hud._log("卖出 %s（+%d 金，腰带位释放）" % [shop_name(slot["path"], kind), sell_refund])
+		_ctrl.invalidate_state()
 		return
 	var arr = _ctrl._loadout_system.sel_arr(kind)
 	if not arr.has(path):
@@ -264,6 +278,7 @@ func on_shop_sell_pressed(path: String, kind: String) -> void:
 	elif kind == "passive":
 		_ctrl._apply_charms()                      # 重算护符被动（伤害乘区等随持有变化）
 	_ctrl.hud._log("卖出 %s（+%d 金，槽位释放）" % [shop_name(path, kind), sell_refund])
+	_ctrl.invalidate_state()
 
 
 # ---------------------------------------------------------------------------
@@ -352,3 +367,4 @@ func on_gold_upgrade_pressed(id: String) -> void:
 	_ctrl.train_points -= cost
 	gold_upgrades[id] = lvl + 1
 	_ctrl.hud._log("训练「%s」→ Lv%d（-%d 训练点，余 %d）" % [d["name"], gold_upgrades[id], cost, _ctrl.train_points])
+	_ctrl.invalidate_state()

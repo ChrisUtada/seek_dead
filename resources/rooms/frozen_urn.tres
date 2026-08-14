@@ -37,6 +37,6 @@ intents = Array[IntentData]([SubResource("intent_attack"), SubResource("intent_h
 gimmick_script = ExtResource("2")
 gimmick_params = {"interval": 3, "per_stack": 8, "max_stacks": 3, "two_cols_chance": 0.3}
 boss_reward_weapons = Array[String](["res://resources/weapon_templates/fire_sword.tres", "res://resources/weapon_templates/flame_staff.tres", "res://resources/weapon_templates/iron_sword.tres"])
-boss_relic_path = "res://resources/charms/rust_relic.tres"
+boss_relic_path = "res://resources/charms/frost_core_relic.tres"
 art = ExtResource("4_art")
 art_scale = 2.0

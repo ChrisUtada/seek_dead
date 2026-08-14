@@ -102,6 +102,7 @@ func configure(ctrl, h: BattleHud) -> void:
 
 func show_screen() -> void:
 	controller.in_loadout = true
+	controller.invalidate_state()
 	hud.hide()                 # 隐藏 Game Boy 外框 + 战斗 HUD
 	# 双重防御：Node2D.visible + CanvasLayer.visible + process_mode，
 	# 避免 Godot 4.7 在某些情况下 CanvasLayer 不随父级 visible 级联。
@@ -118,6 +119,7 @@ func show_screen() -> void:
 
 func hide_screen() -> void:
 	controller.in_loadout = false
+	controller.invalidate_state()
 	visible = false
 	if _ui_layer != null:
 		_ui_layer.visible = false          # 显式隐藏 CanvasLayer 覆盖层

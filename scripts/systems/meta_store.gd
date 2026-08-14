@@ -107,3 +107,4 @@ func award_gold(is_boss: bool) -> void:
 	var total = base + interest
 	_ctrl.gold += total
 	_ctrl.hud._log("金币 +%d（清房 %d + 利息 %d，共 %d）" % [total, base, interest, _ctrl.gold])
+	_ctrl.invalidate_state()

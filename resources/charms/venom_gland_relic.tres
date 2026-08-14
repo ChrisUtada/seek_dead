@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rarity = "epic"
+category = "passive"
+item_id = "venom_gland_relic"
+item_name = "毒腺囊"
+description = "酸蚀恶鬼的毒腺：你给敌人挂的灼烧/霜冻/毒层数 +1——以毒还毒。"
+icon = "🧪"
+effect = "dot_amp"
+value = 1

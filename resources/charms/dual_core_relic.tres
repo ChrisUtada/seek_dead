@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rarity = "epic"
+category = "passive"
+item_id = "dual_core_relic"
+item_name = "二元之核"
+description = "躁怒元素使的二元核心：元素克制倍率额外 +0.3（×1.5 → ×1.8，仅克制时生效）——属性翻转教会你克制（覆盖元素契印 0.2）。"
+icon = "☯️"
+effect = "element_boost"
+mult_value = 0.3

@@ -45,3 +45,4 @@ intents = Array[IntentData]([SubResource("intent_attack"), SubResource("intent_j
 gimmick_script = ExtResource("2")
 gimmick_params = {"cycle_period": 4, "shell_armor": 45, "open_armor": 0, "heal_per_turn": 6, "open_heavy_mult": 2.0}
 boss_reward_weapons = Array[String](["res://resources/weapon_templates/fire_sword.tres", "res://resources/weapon_templates/flame_staff.tres", "res://resources/weapon_templates/iron_sword.tres"])
+boss_relic_path = "res://resources/charms/rhythm_shell_relic.tres"

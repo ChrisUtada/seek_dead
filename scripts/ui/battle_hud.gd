@@ -94,7 +94,9 @@ func _refresh_next_room_bar() -> void:
 		return
 	var r: RoomData = rooms[idx + 1]
 	if r.boss_role == "hidden":
-		next_room_bar.text = "▶ 下一房：？？？（隐秘 · 条件解锁）"
+		# 隐秘 BOSS：不剧透名字/机制，但给元素信号（玩家可针对性换武器/备克制）
+		var hidden_elem: String = ElementCounter.label(r.element) if r.element != "none" else "无属性"
+		next_room_bar.text = "▶ 下一房：？？？· %s（隐秘 BOSS · 幕末强敌）" % hidden_elem
 		next_room_bar.visible = true
 		return
 	var kind_txt: String = {"normal": "普通", "elite": "精英", "boss": "★BOSS"}.get(r.kind, r.kind)
@@ -851,6 +853,7 @@ func _refresh_cell(reel: int, row: int) -> void:
 
 
 func _refresh_meta() -> void:
+	controller.invalidate_state()   # 语义刷新兜底：任何写方遗漏的字段变更在此重建（低频，开销可忽略）
 	_refresh_gear_icons()
 	var is_boss = controller._is_boss_room(controller.state.room_index)
 	var essence_txt := ""

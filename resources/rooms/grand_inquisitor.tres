@@ -45,3 +45,4 @@ intents = Array[IntentData]([SubResource("intent_attack"), SubResource("intent_h
 gimmick_script = ExtResource("2")
 gimmick_params = {"sin_atk_per": 0.08, "phase2_hp_ratio": 0.66, "phase2_atk_mult": 0.9, "phase3_hp_ratio": 0.33, "phase3_atk_mult": 1.0, "low_hp_ratio": 0.5, "low_hp_mult": 2.0}
 boss_reward_weapons = Array[String](["res://resources/weapon_templates/night_scythe.tres", "res://resources/weapon_templates/sin_blade.tres", "res://resources/weapon_templates/iron_sword.tres"])
+boss_relic_path = "res://resources/charms/innocence_seal_relic.tres"

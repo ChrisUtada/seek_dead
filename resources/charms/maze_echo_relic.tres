@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rarity = "epic"
+category = "passive"
+item_id = "maze_echo_relic"
+item_name = "迷宫回声"
+description = "迷宫低语者的回声：每间房间歇期免费刷新货架 1 次（不占付费次数）——迷路者学会自己找路。"
+icon = "🌀"
+effect = "free_reroll"
+value = 1

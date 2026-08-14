@@ -36,3 +36,4 @@ intents = Array[IntentData]([SubResource("intent_attack"), SubResource("intent_h
 gimmick_script = ExtResource("2")
 gimmick_params = {"phase2_hp_ratio": 0.66, "phase3_hp_ratio": 0.33, "anger_atk_mult": 1.15, "fear_atk_mult": 0.9, "fear_armor_step": 6, "fear_armor_cap": 45, "grief_dot_per_turn": 2, "grief_dot_base": 1}
 boss_reward_weapons = Array[String](["res://resources/weapon_templates/ice_gun.tres", "res://resources/weapon_templates/fire_sword.tres", "res://resources/weapon_templates/iron_sword.tres"])
+boss_relic_path = "res://resources/charms/crown_fragment_relic.tres"

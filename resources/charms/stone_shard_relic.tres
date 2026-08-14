@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rarity = "epic"
+category = "passive"
+item_id = "stone_shard_relic"
+item_name = "石屑之心"
+description = "碎裂石像鬼的碎核：敌人攻击你时反弹 20% 伤害给它（穿透护甲）——石屑反弹回收。"
+icon = "🪨"
+effect = "thorns"
+mult_value = 0.2

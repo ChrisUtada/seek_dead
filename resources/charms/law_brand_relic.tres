@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rarity = "epic"
+category = "passive"
+item_id = "law_brand_relic"
+item_name = "律法烙印"
+description = "天平审判官的律法烙印：本局所有伤害 ×1.3——律法从此归你（覆盖审判天平 ×1.2）。"
+icon = "⚖️"
+effect = "damage_mult"
+mult_value = 1.3

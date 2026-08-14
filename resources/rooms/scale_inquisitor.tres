@@ -36,3 +36,4 @@ intents = Array[IntentData]([SubResource("intent_attack"), SubResource("intent_h
 gimmick_script = ExtResource("2")
 gimmick_params = {"rule_pool": ["same_element", "all_distinct", "all_damage"], "rule_every": 2, "rule_reward_atk_mult": 0.5, "rule_punish_mult": 2.0, "phase2_hp_ratio": 0.5, "p2_atk_mult": 0.9, "p2_armor": 35, "p2_lock_consumable": true}
 boss_reward_weapons = Array[String](["res://resources/weapon_templates/night_scythe.tres", "res://resources/weapon_templates/shadow_guillotine.tres", "res://resources/weapon_templates/iron_sword.tres"])
+boss_relic_path = "res://resources/charms/law_brand_relic.tres"

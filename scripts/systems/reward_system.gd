@@ -33,6 +33,7 @@ func reset_run() -> void:
 	run_symbol_bonus = {}
 	run_power_bonus = 0
 	run_shield_next = 0
+	_ctrl.invalidate_state()
 
 
 # ---------------------------------------------------------------------------
@@ -164,6 +165,12 @@ func roll_boss_rewards(room) -> Array:
 			"tip": (rd.description if rd != null else "专属信物 · 占护符槽"),
 		})
 	cands.shuffle()
+	# 空池保底（2026-08-14，docs/BOSS信物_设计方案.md §4）：武器槽满 2 + 护符槽满/无信物
+	# → 两来源全被拦截，注入铁砧点兜底卡，战利品永不空屏
+	if cands.is_empty():
+		cands.append({"kind": "boss_anvil", "path": "", "icon": "🔨",
+			"label": "铁砧结晶", "desc": "铁砧点数 +%d（跨局）" % BALANCE.boss_anvil_bonus,
+			"tip": "敌库已空（武器/护符槽满），改赏铁砧点数"})
 	var out := []
 	for i in min(3, cands.size()):
 		out.append(cands[i])
@@ -234,6 +241,7 @@ func apply_reward(id: String) -> void:
 		"elite_ward":
 			run_shield_next += rd.value
 			_ctrl.hud._log("精英战利：下一房 +%d 护盾" % rd.value)
+	_ctrl.invalidate_state()   # 玩家 HP/金币/构筑奖励（腰带/转轮带）
 
 
 # 构筑奖励：随机未持有武器进转轮带 / 随机未持有消耗品进腰带（胜利奖励方案 2026-08-13）
@@ -292,6 +300,12 @@ func apply_boss_reward(cand: Dictionary) -> void:
 				_ctrl.selected_charms.append(p)            # 占护符槽 1/3（CHARM_CAP）
 				_ctrl._apply_charms()                     # 重算护符被动（伤害乘区等随持有变化）
 				_ctrl.hud._log("BOSS 战利品：获得专属信物 %s（占护符槽）" % cand.get("label", p))
+		# 空池兜底（2026-08-14）：武器/护符槽双满时的铁砧点补偿
+		"boss_anvil":
+			_ctrl.meta["anvil_points"] += BALANCE.boss_anvil_bonus
+			_ctrl._meta_store.save_meta()   # 跨局货币立即落盘
+			_ctrl.hud._log("BOSS 战利品：铁砧点数 +%d（共 %d）" % [BALANCE.boss_anvil_bonus, _ctrl.meta["anvil_points"]])
+	_ctrl.invalidate_state()
 
 
 # 打开奖励屏的语义入口：填充 reward_choices / reward_is_boss（HUD 从 state 快照读取）。
@@ -304,6 +318,7 @@ func open_reward_screen(is_boss: bool) -> void:
 		_ctrl.reward_choices = roll_elite_rewards()
 	else:
 		_ctrl.reward_choices = roll_rewards()
+	_ctrl.invalidate_state()
 
 
 # 局末元进度三选一弹屏（2026-08-09 由 controller._show_meta_choice 迁入）

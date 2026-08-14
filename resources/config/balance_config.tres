@@ -17,6 +17,7 @@ charm_mult_cap = 6.0
 loadout_min = 2
 slot_init = {"weapon": 2, "skill": 1, "active": 1, "passive": 1}
 meta_anvil_bonus = 2
+boss_anvil_bonus = 3
 meta_choice_count = 3
 anvil_roll_cost = 10
 anvil_blank_chance = 0.10

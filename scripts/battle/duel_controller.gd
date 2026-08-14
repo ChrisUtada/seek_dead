@@ -204,6 +204,13 @@ var deprived_level: int = 0              # 无名虚空（emotional_vacuum）：
 var charm_pierce_chance: float = 0.0    # 破甲护符：非穿透伤害符号直击 HP（穿透护甲）概率 0~1
 var charm_element_boost: float = 0.0    # 元素优势护符：克制倍率额外加成（×1.5 → ×1.5+boost，仅克制时）
 var charm_status_boost: float = 1.0     # 状态护符：灼烧/霜冻/毒 DoT 伤害倍率
+# BOSS 信物（12 个 epic 稀有护符，2026-08-14，见 docs/BOSS信物_设计方案.md）：
+var charm_thorns: float = 0.0           # 石屑之心：敌人攻击反弹比例（0.2 = 反弹 20%）
+var charm_dot_amp: int = 0              # 毒腺囊：你给敌人挂的 DoT 层数 +N
+var charm_free_reroll: int = 0          # 迷宫回声：每房间歇期免费货架刷新次数
+var charm_charge_start: int = 0         # 深渊凝视：每回合开始元素充能 +N
+var charm_first_hit: float = 1.0        # 碎片王冠：每回合首个伤害符号倍率（1.5 = ×1.5）
+var _turn_hit_used := false             # 碎片王冠：本回合是否已吃过首击加成（evaluate 重置）
 
 # 流程状态（enum 化：原字符串字面量易拼错且无编译期检查）
 enum FlowState { PLAYING, WON, LOST }
@@ -234,9 +241,22 @@ var PAYLINES = [
 ]
 
 # —— P1：只读状态快照（HUD 渲染只从此读，不再直读下方私有字段）——
+# 性能优化（2026-08-14）：快照缓存 + 显式置脏——每次访问重建会在转轮旋转热路径
+# （_refresh_cell 每跳每列多次读 state）产生每秒数百次 BattleState 分配；现改为
+# 写入方在语义函数末尾调用 invalidate_state()（读取方 _refresh_meta 前置脏兜底，
+# 防未来新增 gimmick 直写字段漏网），热路径纯命中缓存。
+var _state_cache: BattleState = null
+var _state_dirty := true
+
 var state: BattleState:
 	get:
-		return _build_state()
+		if _state_dirty:
+			_state_cache = _build_state()
+			_state_dirty = false
+		return _state_cache
+
+func invalidate_state() -> void:
+	_state_dirty = true
 
 func _build_state() -> BattleState:
 	var s := BattleState.new()
@@ -296,6 +316,7 @@ func _build_state() -> BattleState:
 	s.enemy_name = enemy_name
 	s.enemy_hp_max = enemy_hp_max
 	s.enemy_hp = enemy_hp
+	s.enemy_atk = enemy_atk
 	s.enemy_armor = enemy_armor
 	s.charm_max = charm_max
 	return s
@@ -445,6 +466,7 @@ func _build_pool(loadout: Array) -> void:
 	pool.append([GOLD_SYMBOL, BALANCE.gold_pool_weight, "none"])
 	# 敌人元素/弱/抗（取代原底部 LegendBar，写入右侧 EnemyPanel 三 Label）
 	hud._update_enemy_element()
+	invalidate_state()
 
 
 
@@ -477,6 +499,7 @@ func _confirm_loadout() -> void:
 			consumable_slots.append({"path": path, "item_id": cd.item_id, "charges": cd.charges, "uid": "c%d" % _consumable_uid})
 	hud._hide_loadout_screen()
 	_full_reset()
+	invalidate_state()   # consumable_slots 已重实例化
 
 
 # 结算护符被动（整局生效）
@@ -491,6 +514,11 @@ func _apply_charms() -> void:
 	charm_element_boost = 0.0
 	charm_status_boost = 1.0
 	charm_dot_reduce = 0
+	charm_thorns = 0.0
+	charm_dot_amp = 0
+	charm_free_reroll = 0
+	charm_charge_start = 0
+	charm_first_hit = 1.0
 	for path in selected_charms:
 		var cd: Resource = load(path)
 		if cd == null:
@@ -508,6 +536,11 @@ func _apply_charms() -> void:
 			"element_boost":         charm_element_boost += cd.mult_value                            # 元素优势护符（T2）：克制倍率加法叠加
 			"status_boost":          charm_status_boost *= cd.mult_value                             # 状态护符（T2）：DoT 乘数
 			"dot_reduce":           charm_dot_reduce += cd.value                                    # 蚀毒壁垒护符（2026-08-09）：玩家侧挂毒量 -N/回合
+			"thorns":               charm_thorns = max(charm_thorns, cd.mult_value)                 # 石屑之心（信物）：反弹比例取最高
+			"dot_amp":              charm_dot_amp += cd.value                                       # 毒腺囊（信物）：挂 DoT 层数 +N
+			"free_reroll":          charm_free_reroll += cd.value                                   # 迷宫回声（信物）：免费货架刷新次数
+			"charge_start":         charm_charge_start += cd.value                                  # 深渊凝视（信物）：每回合开始充能 +N
+			"first_hit":            charm_first_hit = max(charm_first_hit, cd.mult_value)           # 碎片王冠（信物）：首击倍率取最高
 		# 混合护符的负面效果（未来卡用）：与正面同枚举、加成型数值取反、乘区型乘 downside_mult
 		if cd.downside_effect != "":
 			match cd.downside_effect:
@@ -521,6 +554,11 @@ func _apply_charms() -> void:
 				"element_boost":        charm_element_boost = max(0.0, charm_element_boost - cd.downside_mult)
 				"status_boost":         charm_status_boost = max(1.0, charm_status_boost - (1.0 - cd.downside_mult))
 				"dot_reduce":           charm_dot_reduce = max(0, charm_dot_reduce - cd.downside_value)
+				"thorns":               charm_thorns = max(0.0, charm_thorns - cd.downside_mult)
+				"dot_amp":              charm_dot_amp = max(0, charm_dot_amp - cd.downside_value)
+				"free_reroll":          charm_free_reroll = max(0, charm_free_reroll - cd.downside_value)
+				"charge_start":         charm_charge_start = max(0, charm_charge_start - cd.downside_value)
+				"first_hit":            charm_first_hit = max(1.0, charm_first_hit - (1.0 - cd.downside_mult))
 	# 总护符乘区硬上限（防失控膨胀）
 	charm_damage_mult = min(charm_damage_mult, BALANCE.charm_mult_cap)
 	var charm_log = "护符已装配：伤害+%d / 开局护盾+%d / 每回合护盾+%d / 每回合回血+%d / 抗扰+%d" % [charm_power_bonus, charm_room_shield, charm_shield_trickle, charm_heal_trickle, charm_interf_resist]
@@ -534,7 +572,18 @@ func _apply_charms() -> void:
 		charm_log += " / 状态×%s" % ElementCounter.fmt_mult(charm_status_boost)
 	if charm_dot_reduce > 0:
 		charm_log += " / 蚀毒壁垒（挂毒量-%d/回合）" % charm_dot_reduce
+	if charm_thorns > 0.0:
+		charm_log += " / 荆棘反弹 %d%%" % int(charm_thorns * 100)
+	if charm_dot_amp > 0:
+		charm_log += " / 挂毒层+%d" % charm_dot_amp
+	if charm_free_reroll > 0:
+		charm_log += " / 免费刷新×%d" % charm_free_reroll
+	if charm_charge_start > 0:
+		charm_log += " / 充能+%d/回合" % charm_charge_start
+	if charm_first_hit != 1.0:
+		charm_log += " / 首击×%s" % ElementCounter.fmt_mult(charm_first_hit)
 	hud._log(charm_log)
+	invalidate_state()
 
 
 # ---------------------------------------------------------------------------
@@ -695,6 +744,7 @@ func _enter_interroom(roll_shop: bool = true) -> void:
 	if roll_shop:
 		# 每房间歇期货架生成一次——反复开关商店不刷新（防「买完再开刷货架」）
 		_roll_shop()
+	invalidate_state()
 
 
 func _on_shop_requested() -> void:
@@ -741,6 +791,7 @@ func _full_reset() -> void:
 	ROOMS = _build_run()                 # T25 房数重排：每局从全量池按幕抽 24 房（5 普通 + 2 精英 + 1 常规 BOSS + 真·最终槽）
 	_build_pool(selected_loadout)
 	_start_room(0)
+	invalidate_state()
 
 
 # 新一局公共状态重置（不含开战）：_full_reset 与 _return_to_loadout（战败回整备）共用——
@@ -757,6 +808,7 @@ func _reset_run_state() -> void:
 	charm_max = int(SLOT_INIT["passive"])
 	_shop_system.reset_run()   # 步骤3：新一局商店状态清零（购入价记录 + 金币升级等级）
 	_reward_system.reset_run()   # 步骤4：新一局本局加成层清零（符号灌注 / 伤害加成 / 下一房护盾）
+	invalidate_state()
 
 
 # 房间是否为 BOSS 房：以 RoomData.kind == "boss" 判定（不再依赖「最后一间」的位置约定，
@@ -904,6 +956,7 @@ func _start_room(idx: int) -> void:
 	hud._refresh_meta()
 	hud._update_enemy_element()
 	hud._log("▶ 进入房间 %d/%d：%s（HP %d，攻击 %d）" % [idx + 1, ROOMS.size(), enemy_name, enemy_hp_max, enemy_atk])
+	invalidate_state()
 
 
 # ante 难度曲线纯函数：RoomData.hp/atk 视为基础值，按「幕间台阶 × 幕内爬升」缩放。
@@ -926,6 +979,9 @@ func _begin_player_turn() -> void:
 		return
 	# 经典回合结构：回合开始统一结算持续效果（frozen 先衰减再挂新层）→ 敌人声明意图 → 冻结声明
 	turn_count += 1
+	# 深渊凝视（信物）：每回合开始元素充能 +N（不触发爆发，爆发仍由克制命中驱动）
+	if charm_charge_start > 0 and deprived_level < 1:
+		charge_points += charm_charge_start
 	locked_consumable_slot = -1   # 天平审判官：律法锁槽仅锁 1 回合，新回合开始即解锁
 	hud._refresh_consumable_panel()
 	hud._log("▶ 回合 %d 开始" % turn_count)
@@ -948,6 +1004,7 @@ func _begin_player_turn() -> void:
 		# 冻结列不参与 tick/按停刷新（reel_stopped 恒 true）——此处手动刷新格子，spin 前即显示蓝框
 		for r in REELS:
 			hud._refresh_cell(r, 0)
+	invalidate_state()   # turn_count/意图/冻结列/护符涓流已变更（gimmick on_turn_begin 写入一并覆盖）
 
 
 # 勇者的阴影 P3：非暴力和解通关（gimmick 达成三连/治疗符号/恢复净化消耗品时调用）——训练点 + 奖励屏 + 元进度
@@ -963,6 +1020,7 @@ func resolve_peaceful_win() -> void:
 	hud._show_reward_screen(_is_boss_room(room_index))
 	hud._refresh_meta()
 	_busy = false
+	invalidate_state()
 
 
 # T20：加权抽取意图（已迁至 StatusSystem.roll_intent，2026-08-09）
@@ -992,6 +1050,7 @@ func _on_spin_pressed() -> void:
 	if enemy_hp <= 0:
 		hud._log("★ 击败 %s！" % enemy_name)
 		game_state = FlowState.WON
+		invalidate_state()
 		if _is_boss_room(room_index):
 			_award_train_point()          # T27：击败 BOSS 掉落升级点
 		hud._show_reward_screen(_is_boss_room(room_index))
@@ -1008,6 +1067,7 @@ func _on_spin_pressed() -> void:
 		# 敌人可能在自身回合被状态 DoT 结算致死
 		hud._log("★ 击败 %s！（状态结算）" % enemy_name)
 		game_state = FlowState.WON
+		invalidate_state()
 		if _is_boss_room(room_index):
 			_award_train_point()          # T27：击败 BOSS 掉落升级点
 		hud._show_reward_screen(_is_boss_room(room_index))
@@ -1016,6 +1076,7 @@ func _on_spin_pressed() -> void:
 	if player_hp <= 0:
 		hud._log("✖ 你被 %s 击倒。" % enemy_name)
 		game_state = FlowState.LOST
+		invalidate_state()
 		hud._show_overlay("✖ 失败\n你倒在了 %s 面前" % enemy_name, "返回整备 ▶")
 		hud._refresh_meta()
 		_busy = false
@@ -1055,6 +1116,7 @@ func _free_spin() -> void:
 	if enemy_hp <= 0:
 		hud._log("★ 重转触发击败 %s！" % enemy_name)
 		game_state = FlowState.WON
+		invalidate_state()
 		hud._show_reward_screen(_is_boss_room(room_index))
 	hud._refresh_meta()
 	_busy = false
@@ -1096,6 +1158,7 @@ func _return_to_loadout() -> void:
 	consumable_slots = []
 	game_state = FlowState.PLAYING   # 解除 lost 终态，避免整备/铁砧界面误读终局
 	hud._show_loadout_screen()
+	invalidate_state()
 
 
 # ---------------------------------------------------------------------------
