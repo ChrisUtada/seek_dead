@@ -159,6 +159,8 @@ func _anvil_pool() -> Array:
 	for p in _ctrl.ITEM_POOL:
 		var d = load(p)
 		if d is ItemData and d.category == "passive":
+			if _ctrl._meta_store._is_boss_relic(d, p):
+				continue   # BOSS 信物不进铁砧池（仅 BOSS 战利品可获，见 docs/BOSS信物_设计方案.md）
 			pool.append(p)
 	return pool
 

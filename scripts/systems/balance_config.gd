@@ -31,7 +31,10 @@ extends Resource
 # —— 整备/槽位 ——
 @export var loadout_min: int = 2              # 武器最小携带数（2026-08-07：强制带满 2 把主+副——消灭单带，三连率结构性控制）
 @export var slot_init: Dictionary = {"weapon": 2, "skill": 1, "active": 1, "passive": 1}
-#   ↑ T21：weapon 2→1（整备 1 武器 + 1 技能开局，输出源 3→2；局内商店「买即开槽」扩到多武器）
+#   ↑ 2026-08-14 勘误：旧注释「T21：weapon 2→1（整备 1 武器开局）」与实际相反——weapon=2 + loadout_min=2 强制双武器（08-07 同日反转拍板），已删除
+
+# —— 玩家基础 ——
+@export var player_hp_base: int = 100         # 玩家基础生命上限（新一局起点；体魄/局内奖励在局中增长，跨局不保留）
 
 # —— 元进度/铁砧 ——
 @export var meta_anvil_bonus: int = 2         # 元进度三选一选「铁砧点数」获得的点数
@@ -49,10 +52,6 @@ extends Resource
 # —— T21 元素充能（覆盖流爆发赛道）——
 @export var charge_max: int = 5               # 克制命中充能上限（满则释放元素爆发）
 @export var charge_burst_pct: float = 0.15    # 元素爆发伤害 = 敌人 max HP × 此比例（穿透直击）
-
-# —— T27 升级点经济（BOSS 点）：升级用独立「训练点」，金币回归纯装备职能 ——
-@export var train_boss_reward: int = 1        # 击败 BOSS 获得的训练点（一局 3 常规 BOSS = 3 点，真·最终另 +1；精英是否 +1 待拍板）
-@export var train_per_level: int = 1          # 每级升级消耗的训练点（固定每级 1 点）
 
 # —— T25 关卡结构（2026-08-09 房数重排：一局 24 房 = 3 幕 × 每幕 8 房 + 真·最终通关后战）——
 @export var run_acts: int = 3                                     # 幕数

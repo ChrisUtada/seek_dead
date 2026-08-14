@@ -1,21 +1,18 @@
 class_name ShopSystem
 extends RefCounted
 
-# S6–S12 商店（买入 / 卖出 / 金币升级）——从 duel_controller.gd 抽出。
+# S6–S12 商店（买入 / 卖出）——从 duel_controller.gd 抽出。
 #
 # 由 controller 在 _ready 处实例化并注入：ShopSystem.new(ctrl)。
 # 约定（与 docs/[已完成]duel_controller拆分方案B.md 步骤3一致，延续步骤1/2 的写法）：
 # - 局内金币 gold / 腰带 consumable_slots / meta 仍由 controller 持有，本子系统经 _ctrl.xxx 读写；
-#   本局状态 gold_upgrades / paid_price / shop_offers 随本子系统走（方案B §4 状态归属表）。
-# - 金币升级定义收敛于 GoldUpgradeDef Resource（resources/config/gold_upgrades/*.tres，扫描收集，加新升级零代码）。
-# - 每级增量 per_level 随定义走；结算点经 track_level(id) / track_per_level(id) 读取（T3 6 轨道 + 动态锻造）。
+#   本局状态 paid_price / shop_offers 随本子系统走（方案B §4 状态归属表）。
 # - 跨系统联动（授予后刷新 UI 等）留在 controller 编排层；本子系统不互调其他子系统。
 # - ctrl 标类型 DuelController（已加 class_name），成员访问获得编译期检查。
 # - 3117c6d 修复保持：买入仅 kind=="weapon"/"passive" 写 owned_*，skill 跳过（防 SkillData 进 owned_weapons 崩溃）。
 # - 商店经济（价格表 / 随机浮动 / 下限 / 返现比）收敛于 ShopConfig Resource（resources/config/shop_config.tres），
 #   策划可直接在 Inspector 调参，不再改代码。
-# - 金币升级定义收敛于 GoldUpgradeDef Resource（resources/config/gold_upgrades/*.tres，扫描收集，加新升级零代码）。
-# - 每级增量 per_level 随定义走；结算点经 track_level(id) / track_per_level(id) 读取（T3 6 轨道 + 动态锻造）。
+# ⚠ 2026-08-14：训练点/四轨升级系统（GoldUpgradeDef / track_level / gold_upgrade_* / train_screen）已整体移除。
 
 const SHOP_CONFIG = preload("res://resources/config/shop_config.tres")   # 商店经济配置（.tres，可 Inspector 编辑）
 const BALANCE = preload("res://resources/config/balance_config.tres")    # T22：平衡常量（slot_init / loadout_min 等）
@@ -24,12 +21,9 @@ var _ctrl: DuelController          # DuelController 实例（类型标注，编�
 var shop_offers: Array[Dictionary] = []            # 当前商店货架（随机刷新）
 var reroll_used := 0               # 本房间歇期已刷新次数（_enter_interroom 清零；价格 = reroll_base + used×step，上限 reroll_max）
 var paid_price: Dictionary = {}        # path/uid -> 实际购入价（卖出返还约 50%；新一局清空）
-var gold_upgrades: Dictionary = {}   # 局内金币升级等级（每局清零；键 = 轨道 id：power/line/shield/hp_max）
-var _upgrade_defs: Array[GoldUpgradeDef] = []          # GoldUpgradeDef 资源列表（_init 扫描收集）
 
 func _init(ctrl: DuelController) -> void:
 	_ctrl = ctrl
-	_upgrade_defs.assign(ResourceScan.scan_resources("res://resources/config/gold_upgrades/", "GoldUpgradeDef"))
 
 
 # ---------------------------------------------------------------------------
@@ -38,7 +32,6 @@ func _init(ctrl: DuelController) -> void:
 
 func reset_run() -> void:
 	paid_price = {}
-	gold_upgrades = {}
 	reroll_used = 0
 
 
@@ -120,6 +113,8 @@ func roll_shop() -> void:
 		if d is ItemData:
 			if d.category == "passive" and _ctrl.selected_charms.has(p):
 				continue   # 护符：本局已带不上架（避免占位拒单）；已拥有但未带可买
+			if d.category == "passive" and _ctrl._meta_store._is_boss_relic(d, p):
+				continue   # BOSS 信物不进商店（仅 BOSS 战利品可获，见 docs/BOSS信物_设计方案.md）
 			candidates.append({"path": p, "kind": d.category})   # 消耗品不过滤：腰带允许同类重复占格
 	for p in _ctrl.SKILL_POOL:
 		if _ctrl.selected_skills.has(p):
@@ -281,90 +276,7 @@ func on_shop_sell_pressed(path: String, kind: String) -> void:
 	_ctrl.invalidate_state()
 
 
-# ---------------------------------------------------------------------------
-# S12/T27 训练轨道（4 条 · 每局清零 · 消耗「训练点」（仅 BOSS 掉落），金币回归纯装备职能）
-# 效果经聚合层(_agg_*)与 _start_room 读取；此处仅管等级/价格(训练点)/购买。
-# 轨道（training/reel 静态 4 条，定义在 resources/config/gold_upgrades/*.tres，effect + per_level 数据驱动）：
-#   power 训练：锋锐 / line 连线精通 / shield 训练：壁垒 / hp_max 训练：体魄
-# 收敛决策（2026-08-07）：精准由武器 hit_rate 自带、回复走内容渠道，二轨删除；
-#   T27：升级从金币改为训练点（BOSS 掉落），轨道上限收窄 3、锋锐每级 +4——升级与购买彻底解耦。
-# 铁律（§7.4）：玩家层无伤害乘区——power（加算）+ line（连线乘区）即上限；乘区全留给 build 层。
-# ---------------------------------------------------------------------------
-
-func track_level(id: String) -> int:
-	return int(gold_upgrades.get(id, 0))
-
-
-func track_per_level(id: String) -> float:
-	var d = _track_def(id)
-	return d.get("per_level", 0.0) if d != null else 0.0
-
-
-# 统一轨道定义（静态 .tres），返回同构 Dictionary
-func _track_def(id: String) -> Dictionary:
-	for d in _upgrade_defs:
-		if d.id == id:
-			return {"id": d.id, "effect": d.effect, "per_level": d.per_level, "bind": d.bind,
-				"icon": d.icon, "name": d.name, "base": d.base, "step": d.step, "max": d.max}
-	return {}
-
-
-# 全部轨道 id：静态 .tres
-func _all_track_ids() -> Array:
-	var ids := []
-	for d in _upgrade_defs:
-		ids.append(d.id)
-	return ids
-
-
-func gold_upgrade_cost(id: String) -> int:
-	# T27：升级只花训练点（固定每级 1 点），不再花金币
-	return BALANCE.train_per_level
-
-
-func gold_upgrade_desc(id: String, lvl: int) -> String:
-	var d = _track_def(id)
-	if d.is_empty():
-		return ""
-	var per = float(d["per_level"])
-	match String(d["effect"]):
-		"power":   return "本局所有伤害符号基础 +%d（当前 +%d）" % [int(per), int(lvl * per)]
-		"line":    return "连线倍率 +%d（2连变×%d、3连变×%d，仅匹配生效）" % [int(per), 2 + int(per), 3 + int(per)]
-		"shield":  return "每房开局护盾 +%d（当前 +%d）" % [int(per), int(lvl * per)]
-		"hp_max":  return "生命上限 +%d（当前 +%d，升级即回满该增量）" % [int(per), int(lvl * per)]
-	return ""
-
-
-func gold_upgrade_defs() -> Array:
-	var out := []
-	for id in _all_track_ids():
-		var d = _track_def(id)
-		if d.is_empty():
-			continue
-		var lvl = gold_upgrades.get(id, 0)
-		var cost = gold_upgrade_cost(id)
-		var maxed = lvl >= int(d["max"])
-		out.append({
-			"id": id, "icon": d["icon"], "name": d["name"],
-			"desc": gold_upgrade_desc(id, lvl), "level": lvl, "max": int(d["max"]),
-			"cost": cost, "maxed": maxed, "can_afford": (not maxed) and _ctrl.train_points >= cost,
-		})
-	return out
-
-
-func on_gold_upgrade_pressed(id: String) -> void:
-	var d = _track_def(id)
-	if d.is_empty():
-		return
-	var lvl = gold_upgrades.get(id, 0)
-	if lvl >= int(d["max"]):
-		_ctrl.hud._log("金币升级「%s」已满级" % d["name"])
-		return
-	var cost = gold_upgrade_cost(id)
-	if _ctrl.train_points < cost:
-		_ctrl.hud._log("训练点不足（%s 需 %d 点，现有 %d）" % [d["name"], cost, _ctrl.train_points])
-		return
-	_ctrl.train_points -= cost
-	gold_upgrades[id] = lvl + 1
-	_ctrl.hud._log("训练「%s」→ Lv%d（-%d 训练点，余 %d）" % [d["name"], gold_upgrades[id], cost, _ctrl.train_points])
-	_ctrl.invalidate_state()
+# ⚠ 2026-08-14 训练点/四轨升级系统已整体移除（docs/训练轨道_成长频率增强_执行方案.md 弃案记录）：
+# 四轨（锋锐/连线/壁垒/体魄）属 RPG 属性点框架残留，数值贡献已由奖励 9 类 + 护符 34 件 + 消耗品覆盖，
+# 成长感走"装备收集 + 符号构筑"统一语言。训练房（train_screen）、gold_upgrades/*.tres、
+# GoldUpgradeDef、track_level/track_per_level/gold_upgrade_defs/on_gold_upgrade_pressed 均已删。

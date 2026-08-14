@@ -22,9 +22,8 @@ func _init(ctrl) -> void:
 
 # 单符号贡献：按 kind 路由到伤害/护盾/治疗/状态/特殊。acc 为回合累计字典（见 evaluate）。
 func contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> void:
-	# 连线精通(S12)：仅当实落 ≥2（确为连线匹配）时才叠加倍率，单符号必结算不受影响
-	var line_bonus: int = int(_ctrl._shop_system.track_level("line") * _ctrl._shop_system.track_per_level("line"))
-	var mult = raw + (line_bonus if raw >= 2 else 0)
+	# 2026-08-14：连线精通训练轨已随训练点系统移除——连线倍率 = 原始匹配数（raw）
+	var mult = raw
 	# 2026-08-07 武器系统重构（T12）：伤害只由武器攻击力决定——flat = item_power + 元进度加成，
 	# 符号 sym.base 不再参与缩放（BASE_POWER_REF 退役）；非武器符号（异常路径）兜底 sym.base。
 	var item_power: float = _ctrl._weapon_power_map.get(sym.resource_path, 0.0)
@@ -315,8 +314,7 @@ func evaluate() -> void:
 
 func agg_power_flat() -> float:
 	var charm_pb: int = _ctrl.charm_power_bonus if _ctrl.deprived_level < 1 else 0   # 无名虚空：护符剥夺
-	return BattleMath.agg_power_flat(_ctrl._reward_system.run_power_bonus, charm_pb, _ctrl.player_buffs,
-		float(_ctrl._shop_system.track_level("power")) * _ctrl._shop_system.track_per_level("power"))
+	return BattleMath.agg_power_flat(_ctrl._reward_system.run_power_bonus, charm_pb, _ctrl.player_buffs)
 
 func agg_shield() -> float:
 	var charm_st: int = _ctrl.charm_shield_trickle if _ctrl.deprived_level < 1 else 0   # 无名虚空：护符剥夺

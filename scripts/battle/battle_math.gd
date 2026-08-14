@@ -47,8 +47,8 @@ static func buff_effect_name(effect: String) -> String:
 		_:             return effect
 
 # —— 本局全局乘区聚合 ——
-static func agg_power_flat(run_power_bonus: int, charm_power_bonus: int, player_buffs: Dictionary, track_power_flat: float) -> float:
-	return float(run_power_bonus) + float(charm_power_bonus) + buff_power(player_buffs) + track_power_flat
+static func agg_power_flat(run_power_bonus: int, charm_power_bonus: int, player_buffs: Dictionary) -> float:
+	return float(run_power_bonus) + float(charm_power_bonus) + buff_power(player_buffs)
 
 static func agg_shield(player_buffs: Dictionary, charm_shield_trickle: int) -> float:
 	return buff_shield(player_buffs) + float(charm_shield_trickle)

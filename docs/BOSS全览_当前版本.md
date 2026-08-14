@@ -1,8 +1,9 @@
-# BOSS 全览 · 当前版本盘点（2026-08-10）
+# BOSS 全览 · 当前版本盘点（2026-08-14 修订）
 
 > 按 `resources/rooms/` 实际资源 + 各 BOSS 设计文档逐项核查整理。**BOSS 池 12/12 齐 + 真·最终落地 = 13 个 BOSS**。
 > 数值均为 .tres 基础值（ante 缩放后 ≈ 幕间台阶 × 幕内爬升，见 §7）。
 > 抽取机制：每幕常规 BOSS 战 4 候选选 1（`run_boss_weights`：fixed 6 / rotating 3 / hidden 2），真·最终通关 Act3 后独立追加。
+> 2026-08-14 修订：信物列更新为 12 个 epic 专属信物（仅 BOSS 战利品可获）；碎裂石像鬼意图修正（40/60）；呓语教徒战利品池按实际资源列出（违 T32 例外待修）；ante 口径统一 ria=7。
 
 ---
 
@@ -24,16 +25,16 @@
 
 | BOSS | 角色 | 元素/弱点 | HP/ATK/甲 | 机制 gimmick | 战利品池（T32） | 信物 |
 |---|---|---|---|---|---|---|
-| 冰封铁瓮 frozen_urn | fixed | ice / 弱火 | 200/15/20 | 熔铸护甲 rust_armor（每 3 回合 +1 层 8 甲，上限 3 层）+ 寒霜侵蚀（frost 冻结转轮 1 列，上限 2，清净可解）；V2 起文件 rusty_golem → frozen_urn | fire_sword / flame_staff / iron_sword | 锈蚀核心 rust_relic |
-| 碎裂石像鬼 brittle_gargoyle | rotating | ice / 弱火 | 165/22/8 | 玻璃大炮 glass_cannon（石屑反弹 min(5, 总伤×15%)，护盾可挡、击杀不反弹） | fire_sword / flame_staff / iron_sword | — |
-| 酸蚀恶鬼 acid_ghoul | rotating | poison / 弱光 | 170/12/10 | 酸蚀挂毒 acid_bomb（玩家侧 DoT 2 层/回合、10 层爆炸 30，清净可解、蚀毒壁垒减层） | holy_sword / dawn_bow / iron_sword | — |
-| 茧居石雕 cocoon_sentinel | hidden | ice / 弱火 | 200/13/45（周期） | 开合节律 cocoon_cycle v2（闭合×3：甲 45 补满+回血 6+注废 → 开合×1：甲 0+强制重击 ×2.0） | fire_sword / flame_staff / iron_sword | — |
+| 冰封铁瓮 frozen_urn | fixed | ice / 弱火 | 200/15/20 | 熔铸护甲 rust_armor（每 3 回合 +1 层 8 甲，上限 3 层）+ 寒霜侵蚀（frost 冻结转轮随机 1~2 列，上限 2，清净可解）；V2 起文件 rusty_golem → frozen_urn | fire_sword / flame_staff / iron_sword | 霜核之心 frost_core_relic |
+| 碎裂石像鬼 brittle_gargoyle | rotating | ice / 弱火 | 165/22/8 | 玻璃大炮 glass_cannon（石屑反弹 min(5, 总伤×15%)，护盾可挡、击杀不反弹） | fire_sword / flame_staff / iron_sword | 石屑之心 stone_shard_relic |
+| 酸蚀恶鬼 acid_ghoul | rotating | poison / 弱光 | 170/12/10 | 酸蚀挂毒 acid_bomb（玩家侧 DoT 2 层/回合、10 层爆炸 30，清净可解、蚀毒壁垒减层） | holy_sword / dawn_bow / iron_sword | 毒腺囊 venom_gland_relic |
+| 茧居石雕 cocoon_sentinel | hidden | ice / 弱火 | 200/13/45（周期） | 开合节律 cocoon_cycle v2（闭合×3：甲 45 补满+回血 6+注废 → 开合×1：甲 0+强制重击 ×2.0） | fire_sword / flame_staff / iron_sword | 节律之壳 rhythm_shell_relic |
 
 ### 1.1 阶段与意图
 | BOSS | 阶段 | 意图剖面 | 组合型新解法 |
 |---|---|---|---|
 | 冰封铁瓮 | 单阶段（教学位，早于组合型规范） | boss 默认表 | —（解法 = 破甲三件套 + 烈焰印记） |
-| 碎裂石像鬼 | 单阶段 | attack 70 / heavy 30 | 2 件：不屈战旗（盾+6）/ 反击之盾（盾 6/回合） |
+| 碎裂石像鬼 | 单阶段 | attack 40 / heavy 60 | 2 件：不屈战旗（盾+6）/ 反击之盾（盾 6/回合） |
 | 酸蚀恶鬼 | 单阶段 | attack 70 / heavy 30 | 2 件：清净药剂 / 蚀毒壁垒（dot_reduce） |
 | 茧居石雕 | 单阶段 v2 | 闭合 attack 45/jam 35/heavy 20（jam 可净化）；开合强制 heavy | 2 件：穿甲重弩（pierce）/ 蓄势（power+6） |
 
@@ -45,11 +46,11 @@
 
 | BOSS | 角色 | 元素/弱点 | HP/ATK/甲 | 机制 gimmick | 战利品池（T32） | 信物 |
 |---|---|---|---|---|---|---|
-| 呓语教徒 whispering_cultist | fixed | dark / 弱光 | 290/20/25 | 呓语锁轮 whisper_lock 单阶段（每 3 回合锁 1 列 + 攻 ×1.5） | 默认池 | — |
-| 迷宫低语者 maze_whisperer | rotating | dark / 弱光 | 300/16/25 | 呓语锁轮双阶段（P2 HP<50%：乱权 + 锁轮加速 + 攻 ×1.8） | holy_sword / dawn_bow / iron_sword | 呓语残页 whisper_relic |
-| 躁怒元素使 manic_elementalist | rotating | fire→ice | 280/18/15→45 | 躁抑交替 bipolar_phase（P1 攻 ×2 + 自扣 5% max HP/回合 → P2 HP<50% 切冰+甲 45+攻 ×0.6） | ice_gun / ice_staff / iron_sword | — |
-| 天平审判官 scale_inquisitor | rotating | light / 弱暗 | 300/17/20→35 | 律法强迫 compulsion_rule（每 2 回合宣告律法：纯律/清规/杀律——达成攻 ×0.5、违逆重击 ×2；P2 HP<50% +锁 1 消耗品槽） | night_scythe / shadow_guillotine / iron_sword | — |
-| 无名虚空 nameless_void | hidden | dark / 弱光 | 320/18/20→32 | 情感剥离 emotional_vacuum（P1 护符全失效 → P2 HP<50% 技能也失效+甲 32+攻 ×0.85） | holy_sword / dawn_blade / iron_sword | — |
+| 呓语教徒 whispering_cultist | fixed | dark / 弱光 | 290/20/25 | 呓语锁轮 whisper_lock 单阶段（每 3 回合锁 1 列 + 攻 ×1.5） | holy_sword / dawn_bow / iron_sword（光系，T32 修正 2026-08-14） | 静默之印 silence_seal_relic |
+| 迷宫低语者 maze_whisperer | rotating | dark / 弱光 | 300/16/25 | 呓语锁轮双阶段（P2 HP<50%：乱权 + 锁轮加速 + 攻 ×1.8） | holy_sword / dawn_bow / iron_sword | 迷宫回声 maze_echo_relic |
+| 躁怒元素使 manic_elementalist | rotating | fire→ice | 280/18/15→45 | 躁抑交替 bipolar_phase（P1 攻 ×2 + 自扣 5% max HP/回合 → P2 HP<50% 切冰+甲 45+攻 ×0.6） | ice_gun / ice_staff / iron_sword | 二元之核 dual_core_relic |
+| 天平审判官 scale_inquisitor | rotating | light / 弱暗 | 300/17/20→35 | 律法强迫 compulsion_rule（每 2 回合宣告律法：纯律/清规/杀律——达成攻 ×0.5、违逆重击 ×2；P2 HP<50% +锁 1 消耗品槽） | night_scythe / shadow_guillotine / iron_sword | 律法烙印 law_brand_relic |
+| 无名虚空 nameless_void | hidden | dark / 弱光 | 320/18/20→32 | 情感剥离 emotional_vacuum（P1 护符全失效 → P2 HP<50% 技能也失效+甲 32+攻 ×0.85） | holy_sword / dawn_blade / iron_sword | 虚空回响 void_echo_relic |
 
 ### 2.1 阶段与意图
 | BOSS | P1（HP 100→50%） | P2（HP<50%） | 组合型新解法 |
@@ -68,9 +69,9 @@
 
 | BOSS | 角色 | 元素/弱点 | HP/ATK/甲 | 机制 gimmick | 战利品池（T32） | 信物 |
 |---|---|---|---|---|---|---|
-| 深渊监视者 abyss_watcher | fixed | light / 弱暗 | 460/27/35→45 | 深渊侵蚀 abyss_erosion 三阶段（注废稀释 → 闪回暴走 → 深渊吞噬） | night_scythe / abyss_scythe / iron_sword | 深渊之瞳 abyss_relic |
-| 碎裂魔王 shattered_king | rotating | fire→ice→poison | 440/24/20→叠甲45 | 人格裂变 split_ego（愤怒高攻 → 恐惧叠甲 → 悲伤挂毒） | ice_gun / fire_sword / iron_sword（双主题） | — |
-| 耻辱审判官 grand_inquisitor | hidden | light / 弱暗 | 450/26/25 | 罪业清算 shame_counter（受击/空转记罪 → 剥盾 → 血线审判） | night_scythe / sin_blade / iron_sword | — |
+| 深渊监视者 abyss_watcher | fixed | light / 弱暗 | 460/27/35→45 | 深渊侵蚀 abyss_erosion 三阶段（注废稀释 → 闪回暴走 → 深渊吞噬） | night_scythe / abyss_scythe / iron_sword | 深渊凝视 abyss_gaze_relic |
+| 碎裂魔王 shattered_king | rotating | fire→ice→poison | 440/24/20→叠甲45 | 人格裂变 split_ego（愤怒高攻 → 恐惧叠甲 → 悲伤挂毒） | ice_gun / fire_sword / iron_sword（双主题） | 碎片王冠 crown_fragment_relic |
+| 耻辱审判官 grand_inquisitor | hidden | light / 弱暗 | 450/26/25 | 罪业清算 shame_counter（受击/空转记罪 → 剥盾 → 血线审判） | night_scythe / sin_blade / iron_sword | 无罪之印 innocence_seal_relic |
 
 ### 3.1 阶段与意图
 | BOSS | P1（100→66%） | P2（<66%） | P3（<33%） | 组合型新解法 |
@@ -138,8 +139,8 @@
 
 ## 7. 附注
 
-- **ante 缩放**：RoomData.hp/atk 为基础值，按「幕间台阶 × 幕内爬升」缩放（ria=3 时 BOSS 为幕内峰值，幕三 ante 后 ≈ 2100 HP 基准）。
-- **主题池规则**（T32）：弱 X 的 BOSS 掉 X 系主题武器（2 主题 + 1 通用）；三弱点 BOSS（碎裂魔王）取双主题变体；真·最终无池。
-- **信物**：3 个 BOSS 挂专属信物（铁瓮→锈蚀核心 / 低语者→呓语残页 / 深渊监视者→深渊之瞳），其余暂不挂（随 T4/T7）。
+- **ante 缩放**：RoomData.hp/atk 为基础值，按「幕间台阶 × 幕内爬升」缩放。2026-08-14 统一口径：T25 后 BOSS 恒为幕内第 8 房（**ria=7**），幕三 BOSS ante 后 ≈ 基础 × 8.1（1.75² × 1.15⁷；如深渊监视者 460 → ≈3750）。
+- **主题池规则**（T32）：弱 X 的 BOSS 掉 X 系主题武器（2 主题 + 1 通用）；三弱点 BOSS（碎裂魔王）取双主题变体；真·最终无池（空池回退已禁用 2026-08-14，直接走铁砧点兜底）。
+- **信物**：12 个常规 BOSS 全挂专属 epic 信物（`*_relic.tres`，2026-08-14 落地）——仅 BOSS 战利品可获（商店/铁砧/新档种子已三处过滤）；真·最终无信物。旧 3 信物（锈蚀核心/呓语残页/深渊之瞳）降为普通护符池。
 - **意图剖面**：默认三档表（normal 60/20/10/5/5 · elite 40/20/15/15/10 · boss 60/40），BOSS 房可内联自定义（上表已列实际配置）。
 - **gimmick 参数化**（T24）：全部 BOSS 机制数值走 `gimmick_params`，改数值 = 改 .tres（详见各 BOSS 设计文档 §3.5）。

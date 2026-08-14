@@ -66,7 +66,7 @@ func cat_max(cat: String) -> int:
 func cat_cap(cat: String) -> int:
 	match cat:
 		"weapon":  return 2   # 2026-08-07 用户拍板：武器上限 2（主手+副手），商店不可买第 3 把
-		"skill":    return 3   # 2026-08-10 用户拍板：技能槽硬上限 3（初始 1 → 商店买到 3 封顶）——防技能符号无限挤占主输出带子（武器硬限 2 的不对称稀释，见 docs/整备结构_技能槽上限与频率规范.md）
+		"skill":    return 3   # 2026-08-10 用户拍板：技能槽硬上限 3（初始 1 → 商店买到 3 封顶）——防技能符号无限挤占主输出带子（武器硬限 2 的不对称稀释，见 docs/[已完成]整备结构_技能槽上限与频率规范.md）
 		"active":  return int(BALANCE.slot_init["active"])   # 整备天花板 = 1（消耗品不「买即开槽」，改为腰带追加，容量见 CONSUMABLE_CAP）
 		"passive": return _ctrl.CHARM_CAP
 	return 0

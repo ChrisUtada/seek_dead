@@ -44,17 +44,18 @@ var SKILL_POOL: Array[String] = []
 #   本次购买直接把该类上限 +1（不单独售卖抽象的「槽扩展」商品）。
 #   节奏闸门 = 同类价格随已持数递增（见 _shop_price 的 step 表）。
 # 【天花板：按「进池 / 不进池」分野，不按类别拍脑袋】
-#   · 进池类（武器 weapon）→ **无天花板**（UNCAPPED）。
-#     它们的符号会挤进同一条转轮带，带越多则：废铁占比升高、目标符号命中率被稀释、
-#     克制浓度摊薄、按停到想要的符号更难 —— 稀释效应本身就是刹车，无需人为封顶。
+#   · 进池类（武器 weapon）→ **硬上限 2**（2026-08-07 拍板：主手+副手，商店不可买第 3 把，
+#     cat_cap("weapon")=2；原「UNCAPPED + 稀释自刹车」语义已失效，哨兵常量仅留给逻辑分支复用）。
+#     武器符号挤进同一条转轮带；硬限 2 后武器符号密度恒定，稀释只来自技能种类（封顶 3）/
+#     MISS / 废铁注入 / 符号灌注（见 docs/[已完成]整备结构_技能槽上限与频率规范.md §4.3）。
 #     再叠加金币线性递增价（见 _shop_price），越买越贵，双闸门足矣。
 #   · 技能 skill（2026-08-10 起退出 UNCAPPED）→ 硬上限 3（初始 1 → 商店买到 3）。
 #     武器硬限 2 把，若技能无上限则技能符号（功能/buff）无限挤占主输出带子——不对称稀释
-#     （见 docs/整备结构_技能槽上限与频率规范.md）。
+#     （见 docs/[已完成]整备结构_技能槽上限与频率规范.md）。
 #   · 不进池类（消耗品 active · 护符 passive）→ **硬天花板**（2 / 3）。
 #     它们不进转轮、零稀释代价、没有任何自然刹车（尤其护符是「唯一收集乘区」，
 #     纯收益、越多越强），故必须硬限量，否则乘区无限叠加直接崩坏数值。
-# 初始配额（每局开局值；_full_reset 与 _shop_price 的加价起点均以此为准；T21：武器 2→1，见 balance_config.slot_init）
+# 初始配额（每局开局值；_full_reset 与 _shop_price 的加价起点均以此为准；weapon=2 + loadout_min=2 强制双武器，见 balance_config.slot_init）
 var SLOT_INIT: Dictionary = BALANCE.slot_init
 const UNCAPPED := -1        # 天花板哨兵值：该类无上限，仅由稀释效应 + 金币递增价约束
 const CONSUMABLE_CAP := 4   # 消耗品腰带上限（不进池，硬限；每格独立持有、允许同类重复占格）
@@ -62,7 +63,7 @@ const CHARM_CAP      := 3   # 护符槽天花板（不进池、唯一收集乘�
 var LOADOUT_MIN: int = BALANCE.loadout_min   # 武器最小携带数（T22：来自平衡配置）
 # 房间序列排序权重：normal/elite 在前、boss 殿后（同档按路径稳定排序）
 const ROOM_KIND_RANK := {"normal": 0, "elite": 0, "boss": 2}
-# 各类当前上限：每局从初始配额起步（T21：武器初始 1，见 balance_config.slot_init），商店「买即开槽」逐步逼近天花板（_full_reset 重置）
+# 各类当前上限：每局从初始配额起步（武器 2 起步 + loadout_min=2 强制双武），商店「买即开槽」逐步逼近天花板（武器硬限 2 / 技能硬限 3，_full_reset 重置）
 var loadout_max: int = int(BALANCE.slot_init["weapon"])
 var skill_max: int = int(BALANCE.slot_init["skill"])
 var charm_max: int = int(BALANCE.slot_init["passive"])
@@ -115,7 +116,8 @@ var _eval_dis := false                  # _evaluate 阶段2：本回合是否触
 var _elem_triple := false               # 2026-08-07 同元素三连：3 列有效元素相同（可不同符号）→ 必暴 + 克制核爆（参考 Slots & Skulls 匹配判定宽容化）
 var _last_triple := false               # 保留（重转机制移除后暂未使用，供未来重转设计）
 var charge_points := 0                   # T21 元素充能：克制命中累计，满 BALANCE.charge_max 释放元素爆发（每房清零）
-var train_points := 0                    # T27 升级点：仅 BOSS 击败掉落（一局 3 点），商店升级轨道的唯一货币
+var train_points := 0                    # ⚠ 已废弃（训练点系统 2026-08-14 移除），保留字段兼容旧存档读取
+
 var player_frost := 0                    # T30 寒霜侵蚀：玩家 frost 层数（每层冻结转轮 1 列，上限见 frost StatusDef.max_cols）
 var frozen_cols: Array[int] = []         # T30：本回合被冻结的列（失效格：不参与匹配/结算），每轮 _begin_spin 重选
 var player_status: Dictionary = {}       # 2026-08-09 酸蚀恶鬼：玩家侧 DoT（{"poison": 层数}），本房清零；tick/爆炸由 gimmick 结算（acid_bomb_gimmick.on_turn_begin）
@@ -135,10 +137,6 @@ var player_dot_bomb_stacks: int = 10     # 2026-08-09：玩家 DoT 爆炸阈值�
 #   · shield 训练：壁垒 —— 每房开局护盾 +N（韧性保底，少量）
 #   · hp_max 训练：体魄 —— 生命上限 +N（替换 joker，§7.4 拍板）
 # 收敛决策（2026-08-07）：原 6 轨的 精准/回复 已删——精准由武器 hit_rate 自带（命中成长=换武器），
-# 回复走内容渠道（治疗符号/回春护符/药剂/房奖励）；动态 charm/weapon 轨道一并退役（升级页保持 4 卡极简）。
-# 铁律（§7.4）：玩家层无伤害乘区——power（加算）+ line（连线乘区）即上限；乘区全留给 build 层。
-# 每级增量/价格/上限全部在 GoldUpgradeDef 资源里（resources/config/gold_upgrades/*.tres），
-# 结算点经 _shop_system.track_level(id) / track_per_level(id) 读取，改数值零代码。
 # 注：不设自动停止上限——转轮何时停完全由玩家决定，不操作就一直转。
 
 var current_gimmick = null              # 当前房间 BOSS 机制实例（S10 T2 赋值；非 BOSS 房为 null，钩子空安全跳过）
@@ -167,8 +165,8 @@ var assault_next_spin: int = 1            # 强袭药剂：下次转轮伤害倍
 var room_element_mult: Dictionary = {}    # 元素精华（消耗品）：本房间内 元素 → 强制克制倍率（新房间清零）
 
 # 玩家状态
-var player_hp: int = 100
-var player_hp_max: int = 100
+var player_hp: int = int(BALANCE.player_hp_base)
+var player_hp_max: int = int(BALANCE.player_hp_base)
 var gold = 4                           # S6：局内金币（每局清零，见 §11）
 var player_shield = 0
 
@@ -222,7 +220,7 @@ var turn_count = 1
 # RewardSystem（步骤4，见 _reward_system）；reward_choices / reward_is_boss 仍由本 controller 持有（HUD 直读写）
 var reward_choices: Array = []         # 当前展示的 3 个奖励
 var reward_is_boss: bool = false       # 当前奖励是否来自 Boss 房（选完开新局）
-# S7/S12 商店状态（shop_offers / paid_price / gold_upgrades）已抽至 ShopSystem（步骤3，见 _shop_system）
+# S7/S12 商店状态（shop_offers / paid_price）已抽至 ShopSystem（步骤3，见 _shop_system）
 
 # M5 元进度（铁砧锻造 + 存档持久化，跨局保留）
 # 已退役键（元进度三选一退化为仅 anvil）：weapon_upgrades / weapon_base_bonus / weapon_hit_bonus / charm_upgrades / interference_resist / first_clears
@@ -382,7 +380,6 @@ func _ready() -> void:
 	hud.next_room_requested.connect(_on_next_room_pressed)
 	hud.card_toggled.connect(_loadout_system.on_card_toggled)
 	hud.meta_choice_chosen.connect(_on_meta_choice_chosen)
-	hud.gold_upgrade_requested.connect(_on_gold_upgrade_pressed)
 	hud.overlay_button_pressed.connect(_on_overlay_button_pressed)
 	hud.consumable_used.connect(_on_consumable_pressed)
 	hud.shop_leave_requested.connect(_on_shop_leave_pressed)
@@ -587,11 +584,8 @@ func _apply_charms() -> void:
 
 
 # ---------------------------------------------------------------------------
-# T27 击败 BOSS 掉落训练点（升级轨道唯一货币；金币不再参与升级）
-func _award_train_point() -> void:
-	train_points += BALANCE.train_boss_reward
-	hud._popup("训练点+%d" % BALANCE.train_boss_reward, Palette.ACCENT_GOLD, hud._enemy_sprite_anchor())
-	hud._log("⚔ 击败 BOSS：训练点 +%d（共 %d）" % [BALANCE.train_boss_reward, train_points])
+# 2026-08-14：训练点/四轨升级系统已整体移除（四轨 = RPG 属性点残留，数值由奖励/护符/消耗品覆盖）
+# 战后节奏：战利品/奖励屏 → 房间歇态（商店 opt-in），不再弹训练房
 
 
 # M4 房奖励三选一界面（Roguelike 构筑）
@@ -638,19 +632,14 @@ func _apply_boss_weapon_replace(p: String, old_path: String) -> void:
 
 
 # 房奖励三选一 / 跳过 / BOSS 战利品共用的房间推进编排：
-# hide → 应用奖励（可选）→ 发放铁砧点数 + 金币 → BOSS 战则弹训练房（T28：当场分配训练点）→
-# 通关则元进度三选一，否则进房间歇态 → 刷元进度栏。
+# hide → 应用奖励（可选）→ 发放铁砧点数 + 金币 → 通关则元进度三选一，否则进房间歇态 → 刷元进度栏。
+# 2026-08-14：训练房弹窗已移除（训练点系统整体移除）
 func _finish_room(apply_fn: Callable, is_boss: bool) -> void:
 	hud.hide_reward_screen()
 	if apply_fn.is_valid():
 		apply_fn.call()
 	_anvil_system.award_meta(is_boss)    # M5：房间通关发放铁砧点数
 	_meta_store.award_gold(is_boss)    # S6+S8：清房金币 + 利息
-	if is_boss:
-		# T28：BOSS 战利品选完后、进下一房前，弹训练房当场分配训练点（每幕 1 点）
-		hud._show_train_screen()
-		await hud.train_continue_requested
-		hud.hide_train_screen()
 	if _is_run_final(room_index):
 		_reward_system.show_meta_choice()        # 通关整局（最终 BOSS）→元进度三选一（持久生效）
 	else:
@@ -673,7 +662,7 @@ func _on_meta_choice_chosen(opt: Dictionary) -> void:
 # M5 元进度（铁砧锻造 + 存档持久化）已全迁至 MetaStore（load/save/seed/sanitize/award_gold）
 # ---------------------------------------------------------------------------
 # S6–S12 商店逻辑已抽至 ShopSystem（步骤3）：shop_price / shop_name / roll_shop /
-# on_shop_buy_pressed / sell_price / on_shop_sell_pressed / gold_upgrade_* / on_gold_upgrade_pressed
+# on_shop_buy_pressed / sell_price / on_shop_sell_pressed
 func _shop_price(kind: String, owned: int = -1, item_path: String = "") -> int:
 	return _shop_system.shop_price(kind, owned, item_path)
 
@@ -715,16 +704,6 @@ func _on_shop_sell_pressed(path: String, kind: String) -> void:
 func _on_shop_reroll_pressed() -> void:
 	_shop_system.on_shop_reroll_pressed()
 	_after_shop_change()
-
-
-func _gold_upgrade_defs() -> Array:
-	return _shop_system.gold_upgrade_defs()
-
-
-func _on_gold_upgrade_pressed(id: String) -> void:
-	_shop_system.on_gold_upgrade_pressed(id)
-	_after_shop_change()
-	hud.train_screen.refresh()
 
 
 func _on_shop_leave_pressed() -> void:
@@ -798,7 +777,10 @@ func _full_reset() -> void:
 # 槽位成长/金币/训练点/商店/奖励回到初始，避免战败后整备页显示上局商店扩槽的上限（突破限制错觉）
 func _reset_run_state() -> void:
 	_anvil_system.reset_run()   # 本局铁砧点数 drip 累计清零
-	train_points = 0            # T27：升级点每局清零（仅 BOSS 掉落重新积累）
+	train_points = 0            # ⚠ 已废弃字段清零（训练点系统 2026-08-14 移除，保留字段兼容旧存档）
+	# 2026-08-14 fix：新一局生命上限回基础值——体魄/局内奖励（maxhp/maxhp_heal）不跨局，
+	# 否则战败回整备再出发时 player_hp_max 沿用上局膨胀值（曾出现 280+/100 的"HP 未重置"）。
+	player_hp_max = int(BALANCE.player_hp_base)
 	player_hp = player_hp_max
 	in_interroom = false                     # opt-in 商店：新一局不可能处于房间歇态
 	gold = 4                                 # S6：新一局金币清零（每局清零，见 §11）
@@ -923,13 +905,6 @@ func _start_room(idx: int) -> void:
 	player_shield = 0
 	player_shield += _reward_system.run_shield_next   # M4：上一房奖励的结界在本房开局生效
 	player_shield += charm_room_shield    # M6：守望护符每房开局护盾（无名虚空由 gimmick on_room_start 扣回）
-	player_shield += int(_shop_system.track_level("shield") * _shop_system.track_per_level("shield"))   # S12：壁垒——每房开局护盾（韧性保底）
-	# T3 体魄（每房开局应用，升级即回满增量）：
-	var hp_bonus: int = int(_shop_system.track_level("hp_max") * _shop_system.track_per_level("hp_max"))
-	if hp_bonus > 0:
-		player_hp_max += hp_bonus
-		player_hp = min(player_hp_max, player_hp + hp_bonus)
-		hud._log("训练·体魄：生命上限 +%d（%d）" % [hp_bonus, player_hp_max])
 	_reward_system.run_shield_next = 0
 	pending_jam_reel = -1
 	pending_lock_reel = -1
@@ -1013,8 +988,6 @@ func resolve_peaceful_win() -> void:
 		return
 	peaceful_win = true
 	game_state = FlowState.WON
-	if _is_boss_room(room_index):
-		_award_train_point()          # T27：击败 BOSS 掉落升级点
 	hud._log("🤝 勇者放下武器，与阴影握手言和——非暴力通关！")
 	hud._popup("🤝 和解！", Palette.POP_HEAL, hud._player_sprite_anchor())
 	hud._show_reward_screen(_is_boss_room(room_index))
@@ -1051,8 +1024,6 @@ func _on_spin_pressed() -> void:
 		hud._log("★ 击败 %s！" % enemy_name)
 		game_state = FlowState.WON
 		invalidate_state()
-		if _is_boss_room(room_index):
-			_award_train_point()          # T27：击败 BOSS 掉落升级点
 		hud._show_reward_screen(_is_boss_room(room_index))
 		hud._refresh_meta()
 		_busy = false
@@ -1068,8 +1039,6 @@ func _on_spin_pressed() -> void:
 		hud._log("★ 击败 %s！（状态结算）" % enemy_name)
 		game_state = FlowState.WON
 		invalidate_state()
-		if _is_boss_room(room_index):
-			_award_train_point()          # T27：击败 BOSS 掉落升级点
 		hud._show_reward_screen(_is_boss_room(room_index))
 		_busy = false
 		return

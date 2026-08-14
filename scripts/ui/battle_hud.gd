@@ -17,7 +17,6 @@ const REWARD_SCENE = preload("res://scenes/ui/reward_screen.tscn")
 const ANVIL_SCENE = preload("res://scenes/ui/anvil_screen.tscn")
 const SHOP_SCENE = preload("res://scenes/ui/shop_screen.tscn")
 const LOADOUT_SCENE = preload("res://scenes/ui/loadout_scene.tscn")
-const TRAIN_SCENE = preload("res://scenes/ui/train_screen.tscn")   # T28 训练房
 
 var controller   # DuelController 引用（运行时由 _ready 设置）
 
@@ -25,7 +24,7 @@ var controller   # DuelController 引用（运行时由 _ready 设置）
 # HUD 只发「用户想做什么」，不调用 controller 私有方法、不读 controller 字段名。
 signal spin_requested                         # 点击「旋转」按钮
 signal reel_clicked(col: int)                # 点击某一列转轮
-# @warning_ignore 以下信号由子屏（shop_screen/anvil_screen/train_screen/reward_screen）emit、
+# @warning_ignore 以下信号由子屏（shop_screen/anvil_screen/reward_screen）emit、
 # controller connect——跨文件连接，静态分析器误报 UNUSED_SIGNAL。
 @warning_ignore("unused_signal")
 signal buy_requested(offer: Dictionary)      # 商店购入
@@ -39,15 +38,12 @@ signal shop_requested                          # 🛒 打开商店（房间歇�
 signal next_room_requested                     # ▶ 下一房（房间歇态）
 signal card_toggled(card: Dictionary)         # 整备卡片勾选
 signal meta_choice_chosen(opt: Dictionary)    # 局末元进度三选一
-signal gold_upgrade_requested(id: String)     # 商店金币升级
 signal overlay_button_pressed                 # 失败弹层按钮（回整备）
 signal consumable_used(uid: String)           # 使用腰带消耗品
 @warning_ignore("unused_signal")
 signal shop_leave_requested                   # 离开商店（回房间歇态）
 @warning_ignore("unused_signal")
 signal anvil_back_requested                   # 铁砧返回整备
-@warning_ignore("unused_signal")
-signal train_continue_requested               # T28 训练房「继续」→ 推进下一房/元进度
 signal shop_card_pressed(offer: Dictionary)   # 商店卡片点击（shop_screen 拦截：武器满 2 弹替换）
 @warning_ignore("unused_signal")
 signal buy_replace_requested(offer: Dictionary, old_path: String)   # 替换购买（2026-08-07：武器槽上限 2 后的换装）
@@ -62,7 +58,6 @@ func build_all() -> void:
 	_build_anvil_screen()
 	_build_shop_screen()
 	_build_meta_screen()
-	_build_train_screen()
 	_show_loadout_screen()
 
 func set_reel_enabled(reel: int, enabled: bool) -> void:
@@ -134,7 +129,6 @@ var loadout_screen                     # 整备场景（scenes/ui/loadout_scene.
 ]
 var reward_screen                       # 奖励三选一覆盖层（reward_screen.tscn 实例）
 var meta_screen                         # 每局结束元进度三选一覆盖层（meta_screen.tscn 实例）
-var train_screen                        # T28 训练房覆盖层（train_screen.tscn 实例）
 
 var shop_screen                         # 商店覆盖层（shop_screen.tscn 实例）
 var anvil_screen                        # 铁砧锻造覆盖层（anvil_screen.tscn 实例）
@@ -172,6 +166,10 @@ var anvil_screen                        # 铁砧锻造覆盖层（anvil_screen.t
 @onready var turn_label = $Margin/Content/InfoBar/TurnLabel
 @onready var run_label = $Margin/Content/InfoBar/RunLabel
 @onready var gold_label = $Margin/Content/MainRow/PlayerPanel/VBox/GoldLabel
+# 2026-08-14 玩家属性行常驻展示（成长可见性，docs/训练轨道_成长频率增强_执行方案.md B 增强版）：
+# 伤害/连线/护盾/生命四基础属性聚合——训练轨 + 护符 + 房奖励各来源统一显示，升级/换装/捡护符即数字跳变。
+# 频率纪律：不同频率不混加（每房 vs 每回合分列）；一次性来源（assault/run_shield_next）不混入。
+var track_label: Label
 
 var animator = null   # P4 战斗动画器（tween 驱动立绘演出），_build_ui 末尾创建
 
@@ -291,6 +289,13 @@ func _build_ui() -> void:
 	# Phase 3：悬停 tooltip 与飘字对象池浮层
 	_build_symbol_tooltip()
 	_build_popup_layer()
+	# 2026-08-14 玩家属性行：代码构建追加到 PlayerPanel/VBox（避免手写 .tscn 覆盖子节点风险）
+	track_label = Label.new()
+	track_label.name = "TrackLabel"
+	track_label.add_theme_font_size_override("font_size", TypeScale.META)
+	track_label.add_theme_color_override("font_color", Palette.ACCENT_GOLD)
+	$Margin/Content/MainRow/PlayerPanel/VBox.add_child(track_label)
+	_refresh_stats()
 
 	# 房间歇态按钮（opt-in 商店 + 下一房）：静态节点已在 battle_hud.tscn，这里只接信号
 	interroom_shop_btn.connect("pressed", shop_requested.emit)
@@ -454,22 +459,6 @@ func _build_meta_screen() -> void:
 	meta_screen.hide_screen()
 
 
-# T28 训练房：BOSS 战后当场分配训练点（升级轨道唯一货币）
-func _build_train_screen() -> void:
-	train_screen = TRAIN_SCENE.instantiate()
-	add_child(train_screen)   # 必须先入树：configure 内访问 @onready 节点
-	train_screen.configure(controller, self)
-	train_screen.hide_screen()
-
-
-func _show_train_screen() -> void:
-	train_screen.show_screen()
-
-
-func hide_train_screen() -> void:
-	train_screen.hide_screen()
-
-
 func _show_meta_choice() -> void:
 	meta_screen.show_choice()
 
@@ -554,17 +543,6 @@ func _make_sell_card(title_text: String, sub_text: String, disabled: bool, cb: C
 		card.pressed.connect(cb)
 	return card
 
-
-func _make_upgrade_card(u: Dictionary) -> Button:
-	var card: ItemCard = ITEM_CARD.instantiate()
-	card.custom_minimum_size = Vector2(0, 60)   # 训练房轨道卡：2行=60×2+6=126 ≤ 网格区131，不溢出
-	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	card.configure("%s %s" % [u["icon"], u["name"]], "", TypeScale.OVERLAY, 0.0, 6)
-	var status = "已满级" if u["maxed"] else ("Lv%d/%d · %d点" % [u["level"], u["max"], u["cost"]])
-	card.set_status(status, Palette.MUTED_DIM if u["maxed"] else (Palette.ACCENT_GOLD if u["can_afford"] else Palette.ENEMY))
-	card.disabled = (u["maxed"] or not u["can_afford"])
-	card.pressed.connect(gold_upgrade_requested.emit.bind(u["id"]))
-	return card
 
 func _build_anvil_screen() -> void:
 	anvil_screen = ANVIL_SCENE.instantiate()
@@ -855,6 +833,7 @@ func _refresh_cell(reel: int, row: int) -> void:
 func _refresh_meta() -> void:
 	controller.invalidate_state()   # 语义刷新兜底：任何写方遗漏的字段变更在此重建（低频，开销可忽略）
 	_refresh_gear_icons()
+	_refresh_stats()
 	var is_boss = controller._is_boss_room(controller.state.room_index)
 	var essence_txt := ""
 	for e in controller.state.room_element_mult:
@@ -1044,6 +1023,33 @@ func _element_icon(elem: String) -> String:
 		"light":  return "✨"
 		"dark":   return "🌑"
 		_:        return "⚔️"
+
+
+# 2026-08-14 玩家属性行：伤害/护盾聚合显示（各段 >0 才显示），换装/捡护符变化即时跳变
+#  伤害 = 最强武器 base_power（_weapon_power_map max）+ 护符 damage_bonus + 房奖励 power（乘区不混入加号）
+#  盾 = 护符 room_shield（每房）· 护符 shield 涓流（每回合）分列；训练轨（连线/体魄）已随系统移除
+func _refresh_stats() -> void:
+	if track_label == null:
+		return
+	var segs := []
+	# 伤害（每符号基础，加算源聚合）
+	var weapon_max: float = 0.0
+	for v in controller._weapon_power_map.values():
+		weapon_max = maxf(weapon_max, float(v))
+	var dmg: int = int(weapon_max) + int(controller.charm_power_bonus) + int(controller._reward_system.run_power_bonus)
+	if dmg > 0:
+		segs.append("伤害 %d" % dmg)
+	# 护盾（分频：每房 / 每回合）
+	var shield_room: int = int(controller.charm_room_shield)
+	var shield_tick: int = int(controller.charm_shield_trickle)
+	if shield_room > 0 or shield_tick > 0:
+		var s := "盾"
+		if shield_room > 0:
+			s += " %d/房" % shield_room
+		if shield_tick > 0:
+			s += " +%d/回合" % shield_tick
+		segs.append(s)
+	track_label.text = ("属性: " + " · ".join(segs)) if not segs.is_empty() else ""
 
 
 func _refresh_gear_icons() -> void:

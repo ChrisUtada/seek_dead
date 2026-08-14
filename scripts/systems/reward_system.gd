@@ -142,7 +142,9 @@ func roll_boss_rewards(room) -> Array:
 	var cands := []
 	# ① 主题新武器：房间指定池（空则按 element 从全部武器取）中，玩家尚未持有且武器槽未满（A 方案 2026-08-13：
 	# 武器上限 2（cat_cap），槽满则主题武器卡不出——尊重「固定 2 把」规则，只出信物/其他候选）
-	var src: Array = room.boss_reward_weapons if (room.boss_reward_weapons.size() > 0) else _ctrl.WEAPON_POOL
+	# 2026-08-14 拍板（审查 §3.4）：真·最终（final_boss）不写池 = 明确「无战利品」——禁止空池回退全 WEAPON_POOL，
+	# 直接走 boss_anvil 兜底（与勇者的阴影设计文档「无战利品」口径一致）
+	var src: Array = room.boss_reward_weapons if (room.boss_reward_weapons.size() > 0) else ([] if room.final_boss else _ctrl.WEAPON_POOL)
 	var weapon_slots_free: bool = _ctrl.selected_loadout.size() < _ctrl._loadout_system.cat_cap("weapon")
 	for p in src:
 		if weapon_slots_free and not _ctrl.selected_loadout.has(p):
@@ -207,10 +209,25 @@ func apply_reward(id: String) -> void:
 			_ctrl.hud._popup("❤上限+%d 回满" % rd.value, Palette.POP_HEAL, _ctrl.hud._player_sprite_anchor())
 		# "purify" 净化上限奖励已删除（净化完全走消耗品）
 		"symbol":
+			# 2026-08-14 方案 A（docs/[已完成]整备结构_技能槽上限与频率规范.md §5）：灌注候选 = 当前未封顶的
+			# damage 符号（有效权重 < 4.0，与 reel_system.build_strips 档位制 w≥4→4 格对齐）。
+			# 排除：非攻击符号（技能 buff/status/金币——灌注会白加或抬频稀释攻击占比）、
+			# 已 4 格封顶的符号（权重再 +3 也是死 roll）。
 			var cand := []
 			for p in _ctrl.pool:
-				if p[0] != _ctrl.TRASH_SYMBOL:
-					cand.append(p[0])
+				var csym: SymbolData = p[0]
+				if csym == _ctrl.TRASH_SYMBOL or csym.kind != "damage":
+					continue
+				var eff_w: float = maxf(0.0, float(p[1]) + _ctrl.combat.agg_symbol_weight_mod(csym) + _ctrl._synergy_system.weight_mod(csym))
+				if eff_w < 4.0:
+					cand.append(csym)
+			# 兜底（极罕见：双单符号武器且主符号均已 4 格封顶）：回退全 damage 符号——
+			# 宁可死 roll（权重记录但格数不变）也绝不命中非攻击符号稀释主输出
+			if cand.is_empty():
+				for p in _ctrl.pool:
+					var csym: SymbolData = p[0]
+					if csym != _ctrl.TRASH_SYMBOL and csym.kind == "damage" and not cand.has(csym):
+						cand.append(csym)
 			if cand.is_empty():
 				cand = [_ctrl.TRASH_SYMBOL]
 			var sym: SymbolData = cand[randi() % cand.size()]
@@ -313,8 +330,13 @@ func apply_boss_reward(cand: Dictionary) -> void:
 					_ctrl.hud._log("BOSS 战利品：护符槽已满，信物无法拾取")
 					return
 				_ctrl.selected_charms.append(p)            # 占护符槽 1/3（CHARM_CAP）
+				# 2026-08-14 拍板（审查 §3.4）：信物跨局持久化——写入 owned_charms（收藏金字塔顶端定位），
+				# 后续整备页可随时再选（BOSS 信物不进商店/铁砧/新档种子，仅 BOSS 战利品与后续重选两条路径）
+				if not _ctrl.meta["owned_charms"].has(p):
+					_ctrl.meta["owned_charms"].append(p)
+					_ctrl._meta_store.save_meta()
 				_ctrl._apply_charms()                     # 重算护符被动（伤害乘区等随持有变化）
-				_ctrl.hud._log("BOSS 战利品：获得专属信物 %s（占护符槽）" % cand.get("label", p))
+				_ctrl.hud._log("BOSS 战利品：获得专属信物 %s（占护符槽，已入图鉴）" % cand.get("label", p))
 				_ctrl.hud._popup("🏆 获得信物 %s" % cand.get("label", p), Palette.ACCENT_GOLD, _ctrl.hud._player_sprite_anchor())
 		# 空池兜底（2026-08-14）：武器/护符槽双满时的铁砧点补偿
 		"boss_anvil":

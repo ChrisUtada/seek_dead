@@ -51,13 +51,15 @@ func seed_default_owned() -> void:
 	if _ctrl.SMALL_OWNED:
 		if meta["owned_weapons"].is_empty():
 			meta["owned_weapons"] = _ctrl.WEAPON_POOL.slice(0, _ctrl.SMALL_OWNED_WEAPONS)
-		if meta["owned_charms"].is_empty():
-			var ps := []
-			for p in _ctrl.ITEM_POOL:
-				var d = load(p)
-				if d is ItemData and d.category == "passive":
-					ps.append(p)
-			meta["owned_charms"] = ps.slice(0, _ctrl.SMALL_OWNED_CHARMS)
+	if meta["owned_charms"].is_empty():
+		var ps := []
+		for p in _ctrl.ITEM_POOL:
+			var d = load(p)
+			if d is ItemData and d.category == "passive":
+				if _is_boss_relic(d, p):
+					continue   # BOSS 信物（epic *_relic）不种子——仅 BOSS 战利品可获（见 docs/BOSS信物_设计方案.md）
+				ps.append(p)
+		meta["owned_charms"] = ps.slice(0, _ctrl.SMALL_OWNED_CHARMS)
 		self.save_meta()
 		return
 	if meta["owned_weapons"].is_empty():
@@ -67,6 +69,8 @@ func seed_default_owned() -> void:
 		for p in _ctrl.ITEM_POOL:
 			var d = load(p)
 			if d is ItemData and d.category == "passive":
+				if _is_boss_relic(d, p):
+					continue   # BOSS 信物不种子（见上）
 				ps.append(p)
 		meta["owned_charms"] = ps
 	if meta["owned_consumables"].is_empty():
@@ -77,6 +81,13 @@ func seed_default_owned() -> void:
 				cs.append(p)
 		meta["owned_consumables"] = cs
 	self.save_meta()
+
+
+# BOSS 信物判定（2026-08-14）：epic 稀有度 + *_relic 文件名的 passive——
+# 12 个 BOSS 信物仅 BOSS 战利品可获（docs/BOSS信物_设计方案.md），不进种子/商店/铁砧池。
+# 旧 3 信物（rust/whisper/abyss_relic，rare/common/uncommon）与非信物 epic（crush_seal/status_charm）不受影响。
+static func _is_boss_relic(d: Resource, p: String) -> bool:
+	return d.get("rarity") == "epic" and p.get_file().contains("_relic")
 
 
 func sanitize_owned() -> void:

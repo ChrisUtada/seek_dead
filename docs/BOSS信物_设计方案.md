@@ -14,6 +14,8 @@
 | **信物 = `category="passive"` + `rarity="epic"` 的稀有护符** | ✅ 选定：零槽位改动、零 UI 改动、复用勾选/商店/铁砧逻辑；「带 BOSS 信物还是带商店护符」的 3 格护符槽竞争本身就是健康取舍 |
 
 - 新 12 信物**仅 BOSS 战利品可获**（不入商店/铁砧池——护符槽满拦截 + 候选仅在 roll_boss_rewards 生成）。
+  > 落地补丁（2026-08-14）：审查发现三处渠道泄漏（新档种子 `meta_store.seed_default_owned`、商店货架 `roll_shop`、铁砧池 `_anvil_pool`），已统一过滤——`MetaStore._is_boss_relic`（passive + epic + `*_relic` 文件名）三处调用。旧 3 信物（rust/whisper/abyss_relic，非 epic）与非信物 epic（crush_seal/status_charm）不受影响。
+  > 持久化拍板（2026-08-14）：拾取信物同时写入 `meta["owned_charms"]`——跨局保留、整备页可再选（收藏金字塔顶端定位）；获取路径 = BOSS 战利品（首次）+ 整备重选（此后）。
 - 旧 4 信物（锈蚀核心/呓语残页/深渊之瞳/审判天平）保留为普通护符池成员，BOSS 房路径改指新信物。
 - 真·最终「勇者的阴影」不给信物（保持毕业战独特性：击败/和解走元进度三选一）。
 

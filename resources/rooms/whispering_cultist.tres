@@ -1,11 +1,11 @@
-[gd_resource type="Resource" script_class="RoomData" load_steps=3 format=3]
+﻿[gd_resource type="Resource" script_class="RoomData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/battle/room_data.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/battle/gimmicks/whisper_lock_gimmick.gd" id="2"]
 
 [resource]
 script = ExtResource("1")
-name = "呓语教徒"
+name = "鍛撹鏁欏緬"
 hp = 290
 atk = 20
 element = "dark"
@@ -13,5 +13,5 @@ kind = "boss"
 act = 2
 armor = 25
 gimmick_script = ExtResource("2")
-boss_reward_weapons = Array[String](["res://resources/weapon_templates/poison_dagger.tres", "res://resources/weapon_templates/pistol.tres", "res://resources/weapon_templates/dagger.tres"])
+boss_reward_weapons = Array[String](["res://resources/weapon_templates/holy_sword.tres", "res://resources/weapon_templates/dawn_bow.tres", "res://resources/weapon_templates/iron_sword.tres"])
 boss_relic_path = "res://resources/charms/silence_seal_relic.tres"

@@ -24,7 +24,7 @@ P3 悲伤人格（HP < 33% 触发一次）：切毒属性（弱光），每回�
 |---|---|---|
 | 名称 | 碎裂魔王（The Shattered King） | 游戏内显示名随 .tres 的 name |
 | 元素 / 弱点 | **fire（P1）→ ice（P2）→ poison（P3）**；弱 **ice / fire / light** | 克制 v2：互克对 火↔冰、毒链 光>毒——P1 冰武 / P2 火武 / P3 光武克制 |
-| HP / ATK | **440 / 24**（ante 后 ≈2000 / 110，ria=3） | Act3 rotating 略低于 fixed（深渊监视者 460/27） |
+| HP / ATK | **440 / 24**（ante 后 ≈3590 / 100，ria=7） | Act3 rotating 略低于 fixed（深渊监视者 460/27） |
 | 基础护甲 | **20** → P2 每回合叠甲（+6/回合，上限 45） | 恐惧人格「不断叠盾」= 节奏压力（rust_armor 先例），破甲/穿透价值回升 |
 | 阶段 / 角色 | **三阶段**（P2 HP<66% / P3 HP<33%）/ **rotating** | Act3 BOSS 槽 2 候选（fixed 6 : rotating 3） |
 | 意图（P1） | **attack 40 / heavy 60** | 愤怒重击偏置——配合攻 ×1.15，重击回合 ≈ 24×1.15×2 = 55 |

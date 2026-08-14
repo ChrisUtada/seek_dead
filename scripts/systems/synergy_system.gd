@@ -3,7 +3,7 @@ extends RefCounted
 
 # 装备共鸣（Synergy）系统：自由组合的条件效果层，叠加在方案 B 频率经济之上。
 # 扫描 resources/synergies/*.tres（SynergyData）；_build_pool 时 refresh() 评估激活集并缓存，
-# 结算点经查询方法读取效果（weight_mod / crit_bonus / chain_bonus / element_boost），
+# 结算点经查询方法读取效果（weight_mod / crit_bonus / element_boost），
 # 不在 _contribute/_evaluate 热路径重复扫描。匹配语义见 synergy_data.gd 头注释。
 
 var _ctrl: DuelController

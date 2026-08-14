@@ -24,7 +24,7 @@ P3 终极审判（HP < 33% 触发一次）：玩家血量 < 50% 时敌方伤害�
 |---|---|---|
 | 名称 | 耻辱审判官（The Grand Inquisitor） | 游戏内显示名随 .tres 的 name |
 | 元素 / 弱点 | **light** / 弱 **dark** | 克制 v2：互克对 光↔暗——暗武克制（night_scythe / 暗影铡刀 / 深渊巨镰 / #1 罪孽之刃） |
-| HP / ATK | **450 / 26**（ante 后 ≈2000 / 120，ria=3） | Act3 hidden（晚解锁）——略高于 rotating 碎裂魔王（440/24） |
+| HP / ATK | **450 / 26**（ante 后 ≈3670 / 108，ria=7） | Act3 hidden（晚解锁）——略高于 rotating 碎裂魔王（440/24） |
 | 基础护甲 | **25** | 中甲（威胁在罪业乘区而非护甲） |
 | 阶段 / 角色 | **三阶段**（P2 HP<66% / P3 HP<33%）/ **hidden** | Act3 BOSS 槽 3 候选（fixed 6 : rotating 3 : hidden 2） |
 | 意图（P1） | **attack 50 / heavy 30 / jam 20** | 罪业记录期——普通压力，重点在玩家自身失误 |

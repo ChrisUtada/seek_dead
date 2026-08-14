@@ -1,6 +1,6 @@
 # BOSS 设计规范（总纲）
 
-> 状态：**现行规范（2026-08-10 整合）**——汇总 BOSS_设计_执行方案 / BOSS机制扩展指南 / 各 BOSS 定稿文档 / 内容规格化_总量清单的现行规则，作为"新 BOSS 设计"的唯一入口规范。
+> 状态：**现行规范（2026-08-10 整合）**——汇总 [已完成]BOSS_设计_执行方案 / BOSS机制扩展指南 / 各 BOSS 定稿文档 / 内容规格化_总量清单的现行规则，作为"新 BOSS 设计"的唯一入口规范。
 > 设计哲学：**BOSS 先行**——武器/技能/护符全部围绕"如何克制 BOSS 的谜题轴"展开；出题（BOSS）→ 解题（克制动词 × 工具）闭环。
 > 关联文档：各 BOSS 定稿文档（冰封铁瓮/碎裂石像鬼/酸蚀恶鬼/茧居石雕/迷宫低语者）为**格式范例**；BOSS机制扩展指南为**实现细节**；本文档只管规范本身。
 
@@ -10,14 +10,14 @@
 
 一局 = 3 幕 × 每幕 8 房（5 普通 + 2 精英 + 1 常规 BOSS 战）+ 真·最终（通关 Act3 后独立战）= 24+ 房。
 
-**每幕 BOSS 槽 =「4 候选选 1」**（目标；当前进度见 §11）：
+**每幕 BOSS 槽 =「每幕 ≥4 候选选 1」**（池不全时剩余候选撑权重；Act2 实际 5 候选；当前进度见 §11）：
 
 | 角色（boss_role） | 权重 | 定位 |
 |---|---|---|
 | fixed 固定首领 | 6 | 默认高权重，教学位（Act1 铁瓮、Act2 呓语教徒） |
-| rotating 轮替 | 3 | 随机出现，同解的验收变体（Act1 石像鬼/酸蚀、Act2 迷宫低语者） |
+| rotating 轮替 | 3 | 随机出现，同解的验收变体（Act1 石像鬼/酸蚀、Act2 迷宫低语者/元素使/审判官） |
 | hidden 隐秘 | 2 | 幕内全清后开启（BOSS 槽恒为幕内最后一房，条件恒满足）；预告显示？？？不剧透（Act1 茧居石雕） |
-| 真·最终 | 独立 | `final_boss=true`，通关 Act3 追加，槽位预留 |
+| 真·最终 | 独立 | `final_boss=true`，通关 Act3 追加（勇者的阴影已落地） |
 
 抽取实现：`_pick_boss` 按 `BALANCE.run_boss_weights`（fixed 6 / rotating 3 / hidden 2）加权。
 
@@ -27,7 +27,7 @@
 |---|---|---|
 | Act1 | **单阶段** | 教学位（铁瓮教破甲、石像鬼教克制、酸蚀教净化） |
 | Act2 | **双阶段** | 阶段化验收（迷宫低语者：P1 干扰教学 → P2 HP<50% 乱权+锁轮加速） |
-| Act3 | **三阶段** | 规划目标（深渊监视者 P1 注废 / P2 强制重转 / P3 废铁翻倍——待补 P2/P3） |
+| Act3 | **三阶段** | 深渊监视者：P1 注废 / P2 闪回暴走（强制重转）/ P3 深渊吞噬（废铁翻倍 + 高攻厚甲，2026-08-10 落地） |
 
 **阶段切换规范**：用 `on_damaged` 钩子检测 HP 阈值（`enemy_hp <= enemy_hp_max * ratio`）一次性触发；参数进 `gimmick_params`（`phase2_*` 缺省 = 单阶段，教学位零改动——迷宫低语者范例）。
 
@@ -36,13 +36,13 @@
 | 项 | 规范 |
 |---|---|
 | HP/ATK/护甲 | 房内写 `hp/atk/armor`（0 = 取 archetype 基准）；ante 缩放自动（幕间 ×1.75/×1.46 × 幕内 ×1.15/×1.10） |
-| 血攻配比 | 干扰/消耗型 BOSS 血多攻低（茧居 200/13、低语者 300/16）；爆发型可攻高血低（待玻璃大炮） |
+| 血攻配比 | 干扰/消耗型 BOSS 血多攻低（茧居 200/13、低语者 300/16）；爆发型可攻高血低（石像鬼 165/22 已落地） |
 | 护甲 | 扁平池（先破甲后掉血），25 为 Act2 基线；叠加机制见 gimmick |
 | 意图剖面 | `RoomData.intents`（IntentData 权重）优先 > archetype.intent_weights > kind 默认表；干扰类（jam/lock/chaos）须含可净化项供对策 |
 | 元素/弱点 | 按 **元素克制 v2**（互克对+同元素+毒链）：冰→弱火、暗→弱光（毒备选）、光→弱暗（毒备选）、毒→弱火·光、火→弱冰 |
 | 玩家侧 MISS | 全局 10-22%，非 BOSS 专属 |
 
-**BOSS 血量参考**（ante 后，F6 复核）：幕一 ≈ 500-600 / 幕二 ≈ 800 / 幕三 ≈ 2100（含 BOSS 池进度调整）。
+**BOSS 血量参考**（ante 后，F6 复核；BOSS 恒为幕内第 8 房 → 幕内序号 ria=7）：幕一 ≈ 基础 ×1.15⁷ ≈ 基础×2.66；幕二 ≈ 基础 ×1.75×1.15⁷ ≈ 基础×4.66；幕三 ≈ 基础 ×1.75²×1.15⁷ ≈ 基础×8.14（ante 实现见 duel_controller._ante_scale，参数在 BALANCE.ante_act_step_hp / ante_room_step_hp）。
 
 ## 4. 机制规范（gimmick）
 
@@ -53,7 +53,10 @@
 | `on_room_start(ctrl)` | 进房一次 | 读 gimmick_params、开场日志 |
 | `on_turn_begin(ctrl)` | 每回合开始 | 锁轮/叠盾/回血/乱权 |
 | `on_damaged(ctrl, dmg)` | 敌人受伤 | HP 阈值阶段切换 |
-| `on_special_triple(ctrl)` | 玩家 special 三连 | BOSS 自定义响应 |
+| `on_turn_resolved(ctrl)` | 玩家结算后、敌人行动前（空转/MISS 也触发） | 律法判定/空转记罪/和解检测（compulsion_rule / shame_counter / shadow_projection） |
+| `consume_flashback() -> bool` | 停轮后、结算前（返回 true 本次停轮作废强制重转） | 闪回暴走（abyss_erosion P2） |
+| `on_consumable_used(ctrl, effect)` | 使用消耗品后（effect = 消耗品 effect 字段） | 消耗品触发响应（shadow_projection P3 和解） |
+| `on_special_triple(ctrl)` | 任意同符号三连（不限 special 符号） | BOSS 自定义响应 |
 
 **参数化（T24）**：所有数值进 `RoomData.gimmick_params`（`{"interval": 3, "amount": 15, ...}`），gimmick 内 `p.get(key, 默认)`——调参零代码。
 **单侧性纪律**：gimmick 只操作"该 BOSS 自己的"资源（敌人侧/本房），不得跨玩家/敌人侧共享新状态；资源文件单侧归属。
@@ -140,8 +143,8 @@
 |---|---|---|---|---|
 | 熔铸护甲 | rust_armor | 1 | 单 | interval/per_stack/max_stacks |
 | 封闭壁垒 | cocoon_cycle | 1 | 单 | 开合节律（v2 已落地 2026-08-10）：cycle_period/shell_armor/open_armor/heal_per_turn/open_heavy_mult（v1 cocoon_sentinel 叠盾版保留可回退） |
-| 玻璃大炮 | glass_cannon | 1 | 单 | 高 atk 低 hp（已落地，参数随定稿） |
-| 状态炸弹 | acid_bomb | 1 | 单 | 玩家侧 DoT + 层数爆炸 |
+| 玻璃大炮 | glass_cannon | 1 | 单 | 高 atk 低 hp（已落地）：reflect_ratio/reflect_cap |
+| 状态炸弹 | acid_bomb | 1 | 单 | 玩家侧 DoT + 层数爆炸（已落地）：dot_per_turn/dot_base/bomb_stacks/bomb_dmg |
 | 呓语锁轮 | whisper_lock | 2 | 单/双 | lock_every/attack_mult/phase2_* |
 | 躁抑交替 | bipolar_phase | 2 | 双 | manic_atk_mult/manic_self_damage_pct/phase2_*/depressed_atk_mult/p2_armor（2026-08-10） |
 | 律法强迫 | compulsion_rule | 2 | 双 | rule_pool/rule_every/rule_reward_atk_mult/rule_punish_mult/phase2_*/p2_armor/p2_lock_consumable（2026-08-10，含 on_turn_resolved 钩子与锁消耗品槽） |
@@ -161,8 +164,6 @@
 | 真·最终 | 勇者的阴影（shadow_projection 万象投影：复刻全机制 + 镜像 + 非暴力和解，2026-08-10） | final_boss 独立 |
 
 **待补**：常规 BOSS 池已齐（12/12）；真·最终已落地；后续 = 数值打磨 / 内容扩充（T4 装备 125 缺口）。
-
-**待补**（按阻塞排序）：Act3 轮替/隐秘候选 ×2、深渊监视者阶段化、真·最终 BOSS（勇者的阴影）、玻璃大炮/状态炸弹参数定稿回写。
 
 ## 13. 关联与维护约定
 
