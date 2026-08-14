@@ -127,9 +127,11 @@ func build_strips() -> void:
 	if wsum > 0.0:
 		# 2026-08-09 传统 slots 频率：格子数 = 权重档位（保底 2 = 目押下限；≥2 → 3 格；≥4 → 4 格），
 		# rare/epic（rank ≥ 2）封顶 2 格——稀有符号不得超过普通符号（大奖罕见）。
-		# 2026-08-14 例外：同符号被 ≥2 件装备共享（sources ≥ 2）时突破封顶走正常档位——
-		# 修复「双同属性武器陷阱构装」（低攻第二把被 max 攻 + 封顶双重吃掉，收益≈0，蒙特卡洛实测 +1%）。
-		# 单件 rare/epic 仍封顶 2 格；共享突破后符号密度随聚合权重正常档位（2/3/4 格）。
+		# 2026-08-14 按 kind 分流：damage 攻击符号【不受】稀有度封顶（主输出按权重档位 2/3/4 格——
+		# 修「反向稀有度惩罚」：同权重 5 的 uncommon 弩矢 4 格 vs rare 暗斩 2 格，带高稀有武器反而更刮）；
+		# status/buff 等功能符号维持 rare/epic 封顶 2 格（大奖罕见语义本就指向机制符号）。
+		# 2026-08-14 例外：共享符号 ≥2 源（sources ≥ 2）突破封顶走正常档位——修复「双同属性武器陷阱构装」
+		# （低攻第二把被 max 攻 + 封顶双重吃掉，收益≈0，蒙特卡洛实测 +1%）。单件仍封顶。
 		for k in agg:
 			var cnt: int = 2
 			var w: float = agg[k]["w"]
@@ -137,7 +139,7 @@ func build_strips() -> void:
 				cnt = 4
 			elif w >= 2.0:
 				cnt = 3
-			if int(agg[k]["rank"]) >= RARITY_RANK["rare"] and int(agg[k]["sources"]) < 2:
+			if agg[k]["sym"].kind != "damage" and int(agg[k]["rank"]) >= RARITY_RANK["rare"] and int(agg[k]["sources"]) < 2:
 				cnt = mini(cnt, _RARE_CAP_CELLS)
 			for _c in cnt:
 				base.append([agg[k]["sym"], agg[k]["elem"]])

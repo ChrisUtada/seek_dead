@@ -655,7 +655,7 @@ func _finish_room(apply_fn: Callable, is_boss: bool) -> void:
 		_reward_system.show_meta_choice()        # 通关整局（最终 BOSS）→元进度三选一（持久生效）
 	else:
 		_enter_interroom()        # opt-in 商店：进入房间歇态（🛒 可选，▶ 下一房继续）
-	hud._refresh_meta()
+	hud._refresh_meta()   # 幂等兜底：各子系统方法已自包含刷新（apply_reward/award_gold 等），此处防编排层遗漏
 
 
 # 元进度三选一确认：应用 + 落盘（子系统内）→ 开新一局（编排层）

@@ -107,4 +107,6 @@ func award_gold(is_boss: bool) -> void:
 	var total = base + interest
 	_ctrl.gold += total
 	_ctrl.hud._log("金币 +%d（清房 %d + 利息 %d，共 %d）" % [total, base, interest, _ctrl.gold])
+	_ctrl.hud._popup("💰+%d" % total, Palette.POP_GOLD, _ctrl.hud._player_sprite_anchor())
 	_ctrl.invalidate_state()
+	_ctrl.hud._refresh_meta()   # 自包含刷新：直接调用本方法的新路径不依赖外部收尾

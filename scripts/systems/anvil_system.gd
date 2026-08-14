@@ -93,6 +93,7 @@ func award_meta(is_boss: bool) -> void:
 	_ctrl.meta["anvil_points"] += amt
 	_ctrl._meta_store.save_meta()
 	_ctrl.hud._log("铁砧点数 +%d（本局 %d/%d，共 %d）" % [amt, anvil_run_awarded, BALANCE.anvil_per_run_cap, _ctrl.meta["anvil_points"]])
+	_ctrl.hud._popup("🔨铁砧点+%d" % amt, Palette.ACCENT_GOLD, _ctrl.hud._player_sprite_anchor())
 
 
 # ---------------------------------------------------------------------------

@@ -198,10 +198,13 @@ func apply_reward(id: String) -> void:
 			var h = int(_ctrl.player_hp_max * float(rd.value) / 100.0)
 			_ctrl.player_hp = min(_ctrl.player_hp_max, _ctrl.player_hp + h)
 			_ctrl.hud._log("奖励：治疗 +%d HP" % h)
+			if h > 0:
+				_ctrl.hud._popup("❤+%d" % h, Palette.POP_HEAL, _ctrl.hud._player_sprite_anchor())
 		"maxhp":
 			_ctrl.player_hp_max += rd.value
 			_ctrl.player_hp = _ctrl.player_hp_max
 			_ctrl.hud._log("奖励：最大 HP +%d 并回满" % rd.value)
+			_ctrl.hud._popup("❤上限+%d 回满" % rd.value, Palette.POP_HEAL, _ctrl.hud._player_sprite_anchor())
 		# "purify" 净化上限奖励已删除（净化完全走消耗品）
 		"symbol":
 			var cand := []
@@ -213,16 +216,20 @@ func apply_reward(id: String) -> void:
 			var sym: SymbolData = cand[randi() % cand.size()]
 			run_symbol_bonus[sym.resource_path] = run_symbol_bonus.get(sym.resource_path, 0) + rd.value
 			_ctrl.hud._log("奖励：%s 符号权重 +%d" % [sym.name, rd.value])
+			_ctrl.hud._popup("✨%s 权重+%d" % [sym.label, rd.value], Palette.POP_BUFF, _ctrl.hud._player_sprite_anchor())
 		"shield":
 			run_shield_next += rd.value
 			_ctrl.hud._log("奖励：下一房 +%d 护盾" % rd.value)
+			_ctrl.hud._popup("🛡下一房+%d" % rd.value, Palette.POP_SHIELD, _ctrl.hud._player_sprite_anchor())
 		"power":
 			run_power_bonus += rd.value
 			_ctrl.hud._log("奖励：本局符号伤害 +%d（当前 +%d）" % [rd.value, run_power_bonus])
+			_ctrl.hud._popup("⚔伤害+%d" % rd.value, Palette.POP_BUFF, _ctrl.hud._player_sprite_anchor())
 		# 胜利奖励方案（2026-08-13）新增：经济 / 构筑 / 双效
 		"gold":
 			_ctrl.gold += rd.value
 			_ctrl.hud._log("奖励：金币 +%d（共 %d）" % [rd.value, _ctrl.gold])
+			_ctrl.hud._popup("💰+%d" % rd.value, Palette.POP_GOLD, _ctrl.hud._player_sprite_anchor())
 		"consumable":
 			_pick_item_reward("active")
 		"weapon":
@@ -231,17 +238,22 @@ func apply_reward(id: String) -> void:
 			_ctrl.player_hp_max += rd.value
 			_ctrl.player_hp = mini(_ctrl.player_hp_max, _ctrl.player_hp + int(_ctrl.player_hp_max * 0.2))
 			_ctrl.hud._log("奖励：最大 HP +%d 并恢复 20%%" % rd.value)
+			_ctrl.hud._popup("❤上限+%d 恢复20%%" % rd.value, Palette.POP_HEAL, _ctrl.hud._player_sprite_anchor())
 		# T6 精英房「战前补给」三类选项
 		"elite_gold":
 			_ctrl.gold += rd.value
 			_ctrl.hud._log("精英战利：金币 +%d（共 %d）" % [rd.value, _ctrl.gold])
+			_ctrl.hud._popup("💰+%d" % rd.value, Palette.POP_GOLD, _ctrl.hud._player_sprite_anchor())
 		"elite_anvil":
 			_ctrl.meta["anvil_points"] += rd.value
 			_ctrl.hud._log("精英战利：铁砧点数 +%d（共 %d）" % [rd.value, _ctrl.meta["anvil_points"]])
+			_ctrl.hud._popup("🔨铁砧点+%d" % rd.value, Palette.ACCENT_GOLD, _ctrl.hud._player_sprite_anchor())
 		"elite_ward":
 			run_shield_next += rd.value
 			_ctrl.hud._log("精英战利：下一房 +%d 护盾" % rd.value)
+			_ctrl.hud._popup("🛡下一房+%d" % rd.value, Palette.POP_SHIELD, _ctrl.hud._player_sprite_anchor())
 	_ctrl.invalidate_state()   # 玩家 HP/金币/构筑奖励（腰带/转轮带）
+	_ctrl.hud._refresh_meta()   # 自包含刷新：任何直接调用本方法的新路径不依赖外部收尾（controller 收尾刷新降级为幂等兜底）
 
 
 # 构筑奖励：随机未持有武器进转轮带 / 随机未持有消耗品进腰带（胜利奖励方案 2026-08-13）
@@ -274,10 +286,12 @@ func _pick_item_reward(kind: String) -> void:
 		_ctrl.selected_loadout.append(path)
 		_ctrl._build_pool(_ctrl.selected_loadout)
 		_ctrl.hud._log("奖励：获得武器 %s（已加入转轮带）" % cd.weapon_name)
+		_ctrl.hud._popup("🎁 获得武器 %s" % cd.weapon_name, Palette.ACCENT_GOLD, _ctrl.hud._player_sprite_anchor())
 	else:
 		_ctrl._consumable_uid += 1
 		_ctrl.consumable_slots.append({"path": path, "item_id": cd.item_id, "charges": cd.charges, "uid": "c%d" % _ctrl._consumable_uid})
 		_ctrl.hud._log("奖励：获得消耗品 %s（入腰带）" % cd.item_name)
+		_ctrl.hud._popup("🎁 获得 %s" % cd.item_name, Palette.POP_GOLD, _ctrl.hud._player_sprite_anchor())
 		_ctrl.hud._refresh_consumable_panel()
 
 
@@ -291,6 +305,7 @@ func apply_boss_reward(cand: Dictionary) -> void:
 				_ctrl.selected_loadout.append(p)          # 武器槽未满才出候选（A 方案 2026-08-13：上限 2 尊重「固定 2 把」规则）
 				_ctrl._build_pool(_ctrl.selected_loadout)  # 重建符号池（新武器注入转轮带）
 				_ctrl.hud._log("BOSS 战利品：获得武器 %s（已加入转轮带）" % cand.get("label", p))
+				_ctrl.hud._popup("⚔ 获得武器 %s" % cand.get("label", p), Palette.ACCENT_GOLD, _ctrl.hud._player_sprite_anchor())
 		"boss_relic":
 			var p = cand.get("path", "")
 			if p != "" and not _ctrl.selected_charms.has(p):
@@ -300,12 +315,15 @@ func apply_boss_reward(cand: Dictionary) -> void:
 				_ctrl.selected_charms.append(p)            # 占护符槽 1/3（CHARM_CAP）
 				_ctrl._apply_charms()                     # 重算护符被动（伤害乘区等随持有变化）
 				_ctrl.hud._log("BOSS 战利品：获得专属信物 %s（占护符槽）" % cand.get("label", p))
+				_ctrl.hud._popup("🏆 获得信物 %s" % cand.get("label", p), Palette.ACCENT_GOLD, _ctrl.hud._player_sprite_anchor())
 		# 空池兜底（2026-08-14）：武器/护符槽双满时的铁砧点补偿
 		"boss_anvil":
 			_ctrl.meta["anvil_points"] += BALANCE.boss_anvil_bonus
 			_ctrl._meta_store.save_meta()   # 跨局货币立即落盘
 			_ctrl.hud._log("BOSS 战利品：铁砧点数 +%d（共 %d）" % [BALANCE.boss_anvil_bonus, _ctrl.meta["anvil_points"]])
+			_ctrl.hud._popup("🔨铁砧点+%d" % BALANCE.boss_anvil_bonus, Palette.ACCENT_GOLD, _ctrl.hud._player_sprite_anchor())
 	_ctrl.invalidate_state()
+	_ctrl.hud._refresh_meta()   # 自包含刷新（同上：新调用路径不依赖外部收尾）
 
 
 # 打开奖励屏的语义入口：填充 reward_choices / reward_is_boss（HUD 从 state 快照读取）。
