@@ -166,10 +166,6 @@ var anvil_screen                        # 铁砧锻造覆盖层（anvil_screen.t
 @onready var turn_label = $Margin/Content/InfoBar/TurnLabel
 @onready var run_label = $Margin/Content/InfoBar/RunLabel
 @onready var gold_label = $Margin/Content/MainRow/PlayerPanel/VBox/GoldLabel
-# 2026-08-14 玩家属性行常驻展示（成长可见性，docs/训练轨道_成长频率增强_执行方案.md B 增强版）：
-# 伤害/连线/护盾/生命四基础属性聚合——训练轨 + 护符 + 房奖励各来源统一显示，升级/换装/捡护符即数字跳变。
-# 频率纪律：不同频率不混加（每房 vs 每回合分列）；一次性来源（assault/run_shield_next）不混入。
-var track_label: Label
 
 var animator = null   # P4 战斗动画器（tween 驱动立绘演出），_build_ui 末尾创建
 
@@ -289,13 +285,6 @@ func _build_ui() -> void:
 	# Phase 3：悬停 tooltip 与飘字对象池浮层
 	_build_symbol_tooltip()
 	_build_popup_layer()
-	# 2026-08-14 玩家属性行：代码构建追加到 PlayerPanel/VBox（避免手写 .tscn 覆盖子节点风险）
-	track_label = Label.new()
-	track_label.name = "TrackLabel"
-	track_label.add_theme_font_size_override("font_size", TypeScale.META)
-	track_label.add_theme_color_override("font_color", Palette.ACCENT_GOLD)
-	$Margin/Content/MainRow/PlayerPanel/VBox.add_child(track_label)
-	_refresh_stats()
 
 	# 房间歇态按钮（opt-in 商店 + 下一房）：静态节点已在 battle_hud.tscn，这里只接信号
 	interroom_shop_btn.connect("pressed", shop_requested.emit)
@@ -849,7 +838,6 @@ func _refresh_cell(reel: int, row: int) -> void:
 func _refresh_meta() -> void:
 	controller.invalidate_state()   # 语义刷新兜底：任何写方遗漏的字段变更在此重建（低频，开销可忽略）
 	_refresh_gear_icons()
-	_refresh_stats()
 	var is_boss = controller._is_boss_room(controller.state.room_index)
 	var essence_txt := ""
 	for e in controller.state.room_element_mult:
@@ -1041,32 +1029,9 @@ func _element_icon(elem: String) -> String:
 		_:        return "⚔️"
 
 
-# 2026-08-14 玩家属性行：伤害/护盾聚合显示（各段 >0 才显示），换装/捡护符变化即时跳变
-#  伤害 = 最强武器 base_power（_weapon_power_map max）+ 护符 damage_bonus + 房奖励 power（乘区不混入加号）
-#  盾 = 护符 room_shield（每房）· 护符 shield 涓流（每回合）分列；训练轨（连线/体魄）已随系统移除
-func _refresh_stats() -> void:
-	if track_label == null:
-		return
-	var segs := []
-	# 伤害（每符号基础，加算源聚合）
-	var weapon_max: float = 0.0
-	for v in controller._weapon_power_map.values():
-		weapon_max = maxf(weapon_max, float(v))
-	var dmg: int = int(weapon_max) + int(controller.charm_power_bonus) + int(controller._reward_system.run_power_bonus)
-	if dmg > 0:
-		segs.append("伤害 %d" % dmg)
-	# 护盾（分频：每房 / 每回合）
-	var shield_room: int = int(controller.charm_room_shield)
-	var shield_tick: int = int(controller.charm_shield_trickle)
-	if shield_room > 0 or shield_tick > 0:
-		var s := "盾"
-		if shield_room > 0:
-			s += " %d/房" % shield_room
-		if shield_tick > 0:
-			s += " +%d/回合" % shield_tick
-		segs.append(s)
-	track_label.text = ("属性: " + " · ".join(segs)) if not segs.is_empty() else ""
-
+# 2026-08-14 玩家属性行已整体移除（"伤害 26 · 盾 5/房 +4/回合"聚合显示弃用）——
+# 伤害锚定在符号上非玩家属性，聚合数字语义失真；盾/回血/克制在 HP 行与飘字已有天然反馈。
+# 变强可见性由战斗日志（伤害分解）与飘字承担。
 
 func _refresh_gear_icons() -> void:
 	if weapons_row == null or charms_row == null or skills_row == null:
