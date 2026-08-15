@@ -67,6 +67,18 @@ func begin_spin() -> void:
 			_locked_prev_elem.append(_ctrl.grid_elem[r][0] if _ctrl.grid_elem.size() > r and _ctrl.grid_elem[r].size() > 0 else "none")
 			_ctrl.hud.set_reel_enabled(r, false)
 			continue
+		if r == _ctrl.pending_lock_reel:
+			# 2026-08-14 锁轮语义修正（用户拍板）：锁定列本轮不转——转轮开始前即固定显示
+			# 上一轮符号（金框标记），玩家直接看到"被锁"，不再有"转了但被替换"的割裂；
+			# 锁住的符号【照常参与结算】（与冻结的"失效格"语义区分——锁 = 保留，冻 = 作废）
+			reel_cursor.append(0)
+			reel_stopped.append(true)
+			_locked_prev_sym.append(_ctrl.grid[r][0] if _ctrl.grid.size() > r and _ctrl.grid[r].size() > 0 else DuelController.TRASH_SYMBOL)
+			_locked_prev_elem.append(_ctrl.grid_elem[r][0] if _ctrl.grid_elem.size() > r and _ctrl.grid_elem[r].size() > 0 else "none")
+			_ctrl.hud.set_reel_enabled(r, false)
+			_ctrl.hud._refresh_cell(r, 0)   # spin 前刷新：金框 + 固定符号立即可见
+			_ctrl.hud._log("🔒 第 %d 列被锁轮：本轮固定不转（符号照常结算）" % (r + 1))
+			continue
 		var strip_len = reel_strips[r].size() if reel_strips.size() > r and not reel_strips[r].is_empty() else 1
 		reel_cursor.append(randi() % strip_len)
 		reel_stopped.append(false)
