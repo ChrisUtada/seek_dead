@@ -32,7 +32,7 @@ func on_room_start(ctrl) -> void:
 	_p2_room_data.kind = "boss"
 	# P2 意图剖面 attack 50 / heavy 20 / jam 30（注废可净化）——须内联构建实例设权重：
 	# 不能复用共享 intent .tres（weight 均为 1.0 → 33/33/33）且 untyped 数组赋 typed 字段会运行时类型错误
-	_p2_room_data.intents = _build_p2_intents()
+	_p2_room_data.intents.assign(_build_p2_intents())
 	ctrl.boss_atk_mult = _manic_atk_mult
 	ctrl.hud._log("🌊 躁怒元素使：躁狂发作——攻击 ×%s，每回合自扣 %d%% max HP（HP<%d%% 坠入抑郁：切冰属性 + 厚甲 %d）" % [_manic_atk_mult, int(_manic_self_damage_pct * 100), int(_phase2_hp_ratio * 100), _p2_armor])
 

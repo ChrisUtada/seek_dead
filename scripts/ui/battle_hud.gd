@@ -812,6 +812,10 @@ func _refresh_cell(reel: int, row: int) -> void:
 	var fc: Color = s.color if elem == "none" else s.color.lerp(ElementCounter.color(elem), 0.55)
 	# T30 冻结格（失效格）：蓝色边框框住作为 frost 提示（❄ 前缀/冰色文字不需要，边框即提示）
 	var frozen: bool = controller.state.frozen_cols.has(reel)
+	# 2026-08-14 UX：干扰/锁轮列标记——jam=红框（按停作废变废铁）、lock=黄框（按停保留旋转前符号）。
+	# 敌人声明意图后即显示（spin 前可见），旋转中随列位持续；不再"按下去才知道被吞"
+	var jammed: bool = controller.state.pending_jam_reel == reel
+	var locked: bool = controller.state.pending_lock_reel == reel
 	if not frozen:
 		b.add_theme_color_override("font_color", fc)
 		b.add_theme_color_override("font_disabled_color", fc)
@@ -824,6 +828,18 @@ func _refresh_cell(reel: int, row: int) -> void:
 		fsb.set_border_width_all(3)
 		fsb.border_color = ElementCounter.color("ice")
 		sb = fsb
+	elif jammed:
+		# 干扰列：红色边框（按停即废铁，勿停）
+		var jsb: StyleBoxFlat = sb.duplicate()
+		jsb.set_border_width_all(3)
+		jsb.border_color = Palette.POP_DAMAGE
+		sb = jsb
+	elif locked:
+		# 锁轮列：金色边框（按停保留旋转前符号）
+		var lsb: StyleBoxFlat = sb.duplicate()
+		lsb.set_border_width_all(3)
+		lsb.border_color = Palette.ACCENT_GOLD
+		sb = lsb
 	b.add_theme_stylebox_override("normal", sb)
 	b.add_theme_stylebox_override("hover", sb)
 	b.add_theme_stylebox_override("pressed", sb)

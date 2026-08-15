@@ -49,10 +49,10 @@ func on_room_start(ctrl) -> void:
 	_phase3 = false
 	_p2_room_data = RoomData.new()
 	_p2_room_data.kind = "boss"
-	_p2_room_data.intents = P2_INTENTS
+	_p2_room_data.intents.assign(P2_INTENTS)
 	_p3_room_data = RoomData.new()
 	_p3_room_data.kind = "boss"
-	_p3_room_data.intents = P3_INTENTS
+	_p3_room_data.intents.assign(P3_INTENTS)
 	ctrl.boss_atk_mult = _anger_atk_mult
 	ctrl.hud._log("💔 碎裂魔王：愤怒人格——攻击 ×%s（HP<%d%% 恐惧人格：切冰叠甲；HP<%d%% 悲伤人格：切毒挂毒）" % [_anger_atk_mult, int(_phase2_hp_ratio * 100), int(_phase3_hp_ratio * 100)])
 	ctrl.hud._popup("💔 愤怒人格：烈焰暴怒！", Palette.POP_STATUS, ctrl.hud._enemy_sprite_anchor())

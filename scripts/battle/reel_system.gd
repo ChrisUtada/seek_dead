@@ -216,10 +216,12 @@ func lock_reel(r: int) -> void:
 		_ctrl.grid[r][0] = DuelController.TRASH_SYMBOL
 		_ctrl.grid_elem[r][0] = "none"
 		_ctrl.pending_jam_reel = -1
+		_ctrl.hud._log("⚠ 干扰列作废：第 %d 列被废铁占据（红框列，按停即废）" % (r + 1))   # 2026-08-14 UX：替换即时提示
 	elif r == _ctrl.pending_lock_reel:
 		_ctrl.grid[r][0] = _locked_prev_sym[r]
 		_ctrl.grid_elem[r][0] = _locked_prev_elem[r]
 		_ctrl.pending_lock_reel = -1
+		_ctrl.hud._log("🔒 锁轮列：第 %d 列保留旋转前符号（金框列）" % (r + 1))
 	else:
 		var strip = reel_strips[r]
 		var idx = reel_cursor[r] % strip.size()

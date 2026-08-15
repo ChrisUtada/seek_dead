@@ -286,6 +286,8 @@ func _build_state() -> BattleState:
 	s.charge_points = charge_points
 	s.player_frost = player_frost
 	s.frozen_cols = frozen_cols
+	s.pending_jam_reel = pending_jam_reel
+	s.pending_lock_reel = pending_lock_reel
 	s.player_status = player_status
 	s.player_dot_bomb_stacks = player_dot_bomb_stacks
 	s.enemy_armor_max = enemy_armor_max
@@ -971,12 +973,14 @@ func _begin_player_turn() -> void:
 		current_gimmick.on_turn_begin(self)
 	# T30 寒霜侵蚀：回合一开始敌人即冻结（frost 挂上后立即声明冻结列，spin 前玩家可见蓝框提示）
 	frozen_cols = combat.pick_frozen_cols()
-	if not frozen_cols.is_empty():
-		var cols_txt := PackedStringArray()
-		for c in frozen_cols:
-			cols_txt.append(str(c + 1))
-		hud._log("❄ 寒霜侵蚀：第 %s 列被冰封，本轮无法转动（清净药剂可解）" % "/".join(cols_txt))
-		# 冻结列不参与 tick/按停刷新（reel_stopped 恒 true）——此处手动刷新格子，spin 前即显示蓝框
+	# 2026-08-14 UX：干扰/锁轮列标记（敌人上回合已声明 pending_*，spin 前刷新格子显示红/黄框）
+	if not frozen_cols.is_empty() or pending_jam_reel >= 0 or pending_lock_reel >= 0:
+		if not frozen_cols.is_empty():
+			var cols_txt := PackedStringArray()
+			for c in frozen_cols:
+				cols_txt.append(str(c + 1))
+			hud._log("❄ 寒霜侵蚀：第 %s 列被冰封，本轮无法转动（清净药剂可解）" % "/".join(cols_txt))
+		# 冻结列不参与 tick/按停刷新（reel_stopped 恒 true）——此处手动刷新格子，spin 前即显示边框
 		for r in REELS:
 			hud._refresh_cell(r, 0)
 	invalidate_state()   # turn_count/意图/冻结列/护符涓流已变更（gimmick on_turn_begin 写入一并覆盖）

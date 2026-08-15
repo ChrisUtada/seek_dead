@@ -53,7 +53,7 @@ func on_room_start(ctrl) -> void:
 	_pending_rule = ""
 	_p2_room_data = RoomData.new()
 	_p2_room_data.kind = "boss"
-	_p2_room_data.intents = P2_INTENTS
+	_p2_room_data.intents.assign(P2_INTENTS)   # 2026-08-14 fix：RoomData.intents 为 Array[IntentData] 强类型，直接赋普通 Array 报 Invalid assignment
 	ctrl.hud._log("⚖ 天平审判官：律法宣告——每 %d 回合 1 条律法（达成 → 敌方攻击 ×%s；违逆 → 重击 ×%s）；HP<%d%% 严刑惩戒（护甲 %d + 惩罚升级锁槽）" % [_rule_every, _rule_reward_atk_mult, _rule_punish_mult, int(_phase2_hp_ratio * 100), _p2_armor])
 
 func on_turn_begin(ctrl) -> void:

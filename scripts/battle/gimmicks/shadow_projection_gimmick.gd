@@ -66,7 +66,7 @@ func on_room_start(ctrl) -> void:
 		_instances.append(s.new())
 	_p2_room_data = RoomData.new()
 	_p2_room_data.kind = "boss"
-	_p2_room_data.intents = P2_INTENTS
+	_p2_room_data.intents.assign(P2_INTENTS)
 	ctrl.hud._log("🌘 勇者的阴影：万象投影——每 %d 回合复刻 1 个 BOSS 机制（HP<%d%% 深渊镜像，HP<%d%% 终极和解：非暴力通关）" % [_projection_every, int(_phase2_hp_ratio * 100), int(_phase3_hp_ratio * 100)])
 
 func on_turn_begin(ctrl) -> void:

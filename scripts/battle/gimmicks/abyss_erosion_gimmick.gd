@@ -58,10 +58,10 @@ func on_room_start(ctrl) -> void:
 	_flashback_pending = false
 	_p2_room_data = RoomData.new()
 	_p2_room_data.kind = "boss"
-	_p2_room_data.intents = P2_INTENTS
+	_p2_room_data.intents.assign(P2_INTENTS)
 	_p3_room_data = RoomData.new()
 	_p3_room_data.kind = "boss"
-	_p3_room_data.intents = P3_INTENTS
+	_p3_room_data.intents.assign(P3_INTENTS)
 	ctrl.boss_trash = 0
 	var phase_txt := ""
 	if _phase2_hp_ratio > 0.0:

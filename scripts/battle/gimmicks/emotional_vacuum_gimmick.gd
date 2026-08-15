@@ -37,7 +37,7 @@ func on_room_start(ctrl) -> void:
 	_rebuild_pending = false
 	_p2_room_data = RoomData.new()
 	_p2_room_data.kind = "boss"
-	_p2_room_data.intents = P2_INTENTS
+	_p2_room_data.intents.assign(P2_INTENTS)
 	# P1 情感剥离：护符被动全部失效（deprived_level=1，聚合层读取）+ 开局盾扣回
 	if _deprive_charms:
 		ctrl.deprived_level = 1

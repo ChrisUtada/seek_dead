@@ -53,10 +53,10 @@ func on_room_start(ctrl) -> void:
 	_last_enemy_hp = float(ctrl.enemy_hp)
 	_p2_room_data = RoomData.new()
 	_p2_room_data.kind = "boss"
-	_p2_room_data.intents = P2_INTENTS
+	_p2_room_data.intents.assign(P2_INTENTS)
 	_p3_room_data = RoomData.new()
 	_p3_room_data.kind = "boss"
-	_p3_room_data.intents = P3_INTENTS
+	_p3_room_data.intents.assign(P3_INTENTS)
 	ctrl.hud._log("⚖ 耻辱审判官：罪业清算——受击/空转记罪 +1（攻击 ×(1+罪业×%s)）；HP<%d%% 拷问心防（剥盾），HP<%d%% 终极审判（血线 ×%s）" % [_sin_atk_per, int(_phase2_hp_ratio * 100), int(_phase3_hp_ratio * 100), _low_hp_mult])
 
 func on_turn_begin(ctrl) -> void:
