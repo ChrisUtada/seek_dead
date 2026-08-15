@@ -63,7 +63,7 @@ func on_meta_choice_chosen(opt: Dictionary) -> void:
 # 房奖励三选一（Roguelike 构筑）
 # ---------------------------------------------------------------------------
 # 胜利奖励方案（2026-08-13，见 docs/胜利奖励方案.md）：
-# - 候选池 8 类（5 数值 + gold 经济 + consumable/weapon 构筑），三档稀有度加权（common 50 / uncommon 30 / rare 20，幕三 rare 升至 30）
+# - 候选池 9 类（5 数值 + gold 经济 + consumable/weapon 构筑 + maxhp_heal 双效），三档稀有度加权（common 50 / uncommon 30 / rare 20，幕三 rare 升至 30）
 # - 组合保证：3 张里至少 1 张恢复/防御向（def）+ 至少 1 张输出/构筑向（atk）
 # - 按幕分层：幕一教学期不出 weapon（构筑武器）
 const REWARD_TAG := {

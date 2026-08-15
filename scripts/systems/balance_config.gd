@@ -7,7 +7,7 @@ extends Resource
 # 调试旗标（SMALL_OWNED_*）留 controller（非平衡数值）。
 
 # —— 经济 ——
-@export var gold_pool_weight: float = 3.0     # 金币符号在转轮池中的权重（远低于伤害符号，防稀释 DPS）
+@export var gold_pool_weight: float = 3.0     # 金币符号权重——⚠ 2026-08-14 勘误：仅喂 legacy 展示池（duel_controller:467 图例/查询），带子金币格数由 _GOLD_CELLS=2 固定决定，与频率解耦；旧注释「防稀释 DPS」为误导
 @export var gold_per_coin: int = 1            # 每枚落在连线上的金币符号产出的金币数
 
 # —— 难度曲线（ante）：幕间台阶 × 幕内爬升 ——
