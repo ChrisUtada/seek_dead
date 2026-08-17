@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rarity = "uncommon"
+category = "active"
+item_id = "flame_flask"
+item_name = "炽热瓶"
+description = "立即造成 20 火属性伤害（参与克制）+ 敌人挂 1 层灼烧——打冰系敌人 ×1.5 且克制充能 +1。"
+icon = "🔥"
+effect = "attack"
+element = "fire"
+value = 20
+status_type = "burn"
+status_value = 1
+charges = 1

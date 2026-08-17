@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rarity = "uncommon"
+category = "active"
+item_id = "frost_flask"
+item_name = "冰霜瓶"
+description = "立即造成 10 冰属性伤害 + 敌人挂 2 层霜冻（每层敌人攻击 -20%，上限 -50%）——控制向攻击。"
+icon = "❄️"
+effect = "attack"
+element = "ice"
+value = 10
+status_type = "frost"
+status_value = 2
+charges = 1

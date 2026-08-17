@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rarity = "uncommon"
+category = "active"
+item_id = "acid_solvent"
+item_name = "破甲酸液"
+description = "立即清除敌人 12 点护甲——破甲节奏的即时解（茧居闭合期 / 铁瓮叠甲窗口不浪费回合）。"
+icon = "🧴"
+effect = "armor_shred"
+value = 12
+charges = 1

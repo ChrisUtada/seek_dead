@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rarity = "uncommon"
+category = "active"
+item_id = "venom_dagger"
+item_name = "毒刃药剂"
+description = "立即造成 15 毒属性伤害（参与克制）+ 敌人挂 2 层毒（每回合毒伤，无视护甲）——酸蚀恶鬼系解法，DoT 破甲节奏。"
+icon = "🗡️"
+effect = "attack"
+element = "poison"
+value = 15
+status_type = "poison"
+status_value = 2
+charges = 1

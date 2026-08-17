@@ -44,6 +44,8 @@ func use(uid: String) -> void:
 		"assault": use_assault(data)
 		"reroll":  await use_reroll(data)
 		"element": use_element(data)
+		"attack":  use_attack(data)
+		"armor_shred": use_armor_shred(data)
 	# 勇者的阴影 P3 和解检测（heal/purify/cleanse 消耗品使用通知；显式判空）
 	if _ctrl.current_gimmick != null:
 		_ctrl.current_gimmick.on_consumable_used(_ctrl, str(data.effect))
@@ -117,6 +119,37 @@ func use_element(data: Resource) -> void:
 		_ctrl.reel_system.build_strips()
 		_ctrl.reel_system.reset_grid()
 		_ctrl.hud._refresh_meta()
+
+
+# 攻击型消耗品（2026-08-14，docs/BOSS信物_设计方案.md 讨论落地）：立即元素伤害 + 可选对敌挂状态。
+# 规则：带元素参与克制（×1.5/×0.85）+ 克制命中充能 +1；不吃 assault（assault 是「下次转轮」专属）；
+# 伤害先破甲后掉血（apply_enemy_damage）；挂层走 enemy_status（tick_status 每回合结算，DoT 无视护甲）。
+func use_attack(data: Resource) -> void:
+	var elem: String = data.element
+	var em: float = ElementCounter.multiplier(elem, _ctrl.enemy_element) if elem != "none" else 1.0
+	var dmg: int = int(round(float(data.value) * em))
+	if dmg > 0:
+		_ctrl.combat.apply_enemy_damage(float(dmg), false)
+		if em > 1.0:
+			_ctrl.charge_points += 1   # 克制命中充能（与转轮符号一致）
+	var st: String = data.status_type
+	var stacks: int = data.status_value
+	if st != "" and stacks > 0:
+		_ctrl.enemy_status[st] = _ctrl.enemy_status.get(st, 0) + stacks
+	_ctrl.hud._log("%s：%d 伤害%s%s" % [data.item_name, dmg, " [克制]" if em > 1.0 else "", ("，敌人获得状态: " + _ctrl.status_system.status_summary({st: stacks})) if stacks > 0 else ""])
+	if dmg > 0:
+		_ctrl.hud._popup("-%d%s" % [dmg, " [克制]" if em > 1.0 else ""], Palette.POP_DAMAGE, _ctrl.hud._enemy_sprite_anchor())
+	if stacks > 0:
+		_ctrl.hud._popup(_ctrl.status_system.status_summary({st: stacks}), Palette.POP_STATUS, _ctrl.hud._enemy_sprite_anchor())
+
+
+# 破甲酸液（2026-08-14）：立即清除敌人 N 点护甲（破甲节奏的消耗品版——茧居闭合期/铁瓮叠甲窗口即时解）。
+func use_armor_shred(data: Resource) -> void:
+	var shred: int = mini(int(data.value), _ctrl.enemy_armor)
+	_ctrl.enemy_armor -= shred
+	_ctrl.hud._log("%s：清除护甲 %d（剩 %d）" % [data.item_name, shred, _ctrl.enemy_armor])
+	if shred > 0:
+		_ctrl.hud._popup("💥破甲-%d" % shred, Palette.POP_DAMAGE, _ctrl.hud._enemy_sprite_anchor())
 
 
 func refresh_panel() -> void:
