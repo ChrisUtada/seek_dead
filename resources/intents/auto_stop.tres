@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="IntentData" format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/intent_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "auto_stop"
+display_name = "夺轮"
+icon = "⏹️"
+desc = "敌人夺走转轮控制权：下一轮旋转自动停止（落点随机、无法目押）+ 注入 1 列废铁（转轮完全失控），净化药剂可抵消"
+weight = 1.0
+purifiable = true
+value_mult = 0.0

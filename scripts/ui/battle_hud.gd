@@ -914,7 +914,7 @@ func _refresh_meta() -> void:
 		match t:
 			"attack": enemy_intent_label.text = "意图: %s%s %d" % [icon if icon != "" else "⚔", name_txt, controller.state.enemy_intent["value"]]
 			"heavy":  enemy_intent_label.text = "意图: %s%s %d" % [icon if icon != "" else "💥", name_txt, controller.state.enemy_intent["value"]]
-			"jam", "lock", "chaos":
+			"jam", "lock", "chaos", "auto_stop":
 				enemy_intent_label.text = "意图: %s%s（用净化药剂）" % [icon if icon != "" else "☣", name_txt]
 			"none":   enemy_intent_label.text = "意图: —"
 			_:        enemy_intent_label.text = "意图: %s%s" % [icon if icon != "" else "", name_txt]
@@ -928,6 +928,7 @@ func _intent_display_name(t: String) -> String:
 		"chaos":  return "乱权"
 		"heavy":  return "重击"
 		"attack": return "攻击"
+		"auto_stop": return "夺轮"
 	return t
 
 

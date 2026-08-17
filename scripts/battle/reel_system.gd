@@ -203,6 +203,9 @@ func on_spin_tick() -> void:
 	if not any_moving:
 		finish_spin()
 		return
+	# 敌人夺轮（auto_stop）：每跳自动停一列（落点随机，玩家无法目押停轮时机；与手动按停共存）
+	if _ctrl.pending_auto_stop:
+		stop_next_reel()
 	var w = max(_SPIN_MIN_WAIT, _SPIN_BASE_WAIT - _spin_ticks * 0.0010)
 	_timer.wait_time = w
 
@@ -270,6 +273,7 @@ func finish_spin() -> void:
 	_ctrl.pending_jam_reel = -1
 	_ctrl.pending_lock_reel = -1
 	_ctrl.pending_chaos = false
+	_ctrl.pending_auto_stop = false
 	spin_finished.emit()
 
 

@@ -185,6 +185,7 @@ var enemy_element: String = "none"     # 敌人属性元素（用于单向克制
 var pending_jam_reel = -1              # 敌人注废 → 下一轮强制废铁列索引（-1 无）
 var pending_lock_reel = -1             # 敌人锁轮 → 下一轮该列固定为当前符号（-1 无）
 var pending_chaos = false              # 敌人乱权 → 下一轮权重削弱优势符号
+var pending_auto_stop = false          # 敌人夺轮（auto_stop）→ 下一轮转轮自动停止（落点随机，无法目押）
 # 净化完全走消耗品（净化药剂·charges 用尽即移出腰带），不再有"净化上限/净化次数"局内缓存
 
 # M6 护符被动（整局生效，_apply_charms 在 _confirm_loadout 结算）
@@ -911,6 +912,7 @@ func _start_room(idx: int) -> void:
 	pending_jam_reel = -1
 	pending_lock_reel = -1
 	pending_chaos = false
+	pending_auto_stop = false
 	# 净化完全走消耗品（净化药剂·charges 用尽即移出腰带），无需每房回满
 	game_state = FlowState.PLAYING                # 必须在重建消耗品按钮前置为 playing，否则房间过渡瞬间按钮被误判为禁用
 	_refresh_consumable_panel()

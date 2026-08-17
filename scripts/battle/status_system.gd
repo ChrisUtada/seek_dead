@@ -14,11 +14,13 @@ const INTENT_DEFS := {
 	"jam": preload("res://resources/intents/jam.tres"),
 	"lock": preload("res://resources/intents/lock.tres"),
 	"chaos": preload("res://resources/intents/chaos.tres"),
+	"auto_stop": preload("res://resources/intents/auto_stop.tres"),
 }
 # 默认表权重（id → 权重；房间 RoomData.intents 非空时用房间表（IntentData.weight）覆盖）
+# 2026-08-14 新增 auto_stop「夺轮」：从 jam/chaos 各挪部分权重，干扰类总量占比基本不变
 const DEFAULT_INTENT_WEIGHTS := {
-	"normal": {"attack": 60, "heavy": 20, "jam": 10, "lock": 5, "chaos": 5},
-	"elite":  {"attack": 40, "heavy": 20, "jam": 15, "lock": 15, "chaos": 10},
+	"normal": {"attack": 60, "heavy": 20, "jam": 8, "lock": 5, "chaos": 4, "auto_stop": 5},
+	"elite":  {"attack": 40, "heavy": 20, "jam": 12, "lock": 15, "chaos": 8, "auto_stop": 10},
 	"boss":   {"attack": 60, "heavy": 40},
 }
 

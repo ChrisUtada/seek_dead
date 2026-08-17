@@ -25,6 +25,7 @@ func take_turn() -> void:
 		"jam":             _do_jam()
 		"lock":            _do_lock()
 		"chaos":           _do_chaos()
+		"auto_stop":       _do_auto_stop()
 		"none":            _ctrl.hud._log("敌人意图落空（已被净化）")
 	_ctrl.enemy_intent = {}
 	_ctrl.combat.tick_status()
@@ -51,3 +52,11 @@ func _do_lock() -> void:
 func _do_chaos() -> void:
 	_ctrl.pending_chaos = true
 	_ctrl.hud._log("敌人乱权 → 下一轮权重被打乱（优势符号被削弱）")
+
+
+# 夺轮（2026-08-14 v2）：下一轮转轮自动停止——每跳自动停一列（落点随机，玩家无法目押停轮时机，
+# 见 ReelSystem.on_spin_tick）+ 顺带注废 1 列（转轮完全失控），净化药剂可抵消
+func _do_auto_stop() -> void:
+	_ctrl.pending_auto_stop = true
+	_ctrl.pending_jam_reel = randi() % DuelController.REELS
+	_ctrl.hud._log("敌人夺轮 → 下一轮转轮自动停止并注入废铁（第 %d 列被占据）" % (_ctrl.pending_jam_reel + 1))
