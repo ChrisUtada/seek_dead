@@ -116,6 +116,7 @@ var _eval_dis := false                  # _evaluate 阶段2：本回合是否触
 var _elem_triple := false               # 2026-08-07 同元素三连：3 列有效元素相同（可不同符号）→ 必暴 + 克制核爆（参考 Slots & Skulls 匹配判定宽容化）
 var _last_triple := false               # 保留（重转机制移除后暂未使用，供未来重转设计）
 var charge_points := 0                   # T21 元素充能：克制命中累计，满 BALANCE.charge_max 释放元素爆发（每房清零）
+var _charge_elem_counts: Dictionary = {} # 2026-08-14 主导元素统计：本回合各元素克制命中次数（释放爆发时取最高者）
 var train_points := 0                    # ⚠ 已废弃（训练点系统 2026-08-14 移除），保留字段兼容旧存档读取
 
 var player_frost := 0                    # T30 寒霜侵蚀：玩家 frost 层数（每层冻结转轮 1 列，上限见 frost StatusDef.max_cols）
@@ -285,6 +286,7 @@ func _build_state() -> BattleState:
 	s.game_state = game_state
 	s.enemy_status = enemy_status
 	s.charge_points = charge_points
+	s.charge_elem_counts = _charge_elem_counts
 	s.player_frost = player_frost
 	s.frozen_cols = frozen_cols
 	s.pending_jam_reel = pending_jam_reel
@@ -900,6 +902,7 @@ func _start_room(idx: int) -> void:
 	_interf_resist_rf = max(0.25, 1.0 - total_resist * 0.12) if total_resist > 0 else 1.0
 	enemy_status = {}
 	charge_points = 0                     # T21：元素充能每房清零
+	_charge_elem_counts = {}              # 主导元素统计随充能清零
 	player_frost = 0                      # T30：寒霜侵蚀每房清零（BOSS 战状态，不跨房）
 	frozen_cols = []                      # T30：冻结列随 frost 清零
 	player_status = {}                    # 2026-08-09：玩家侧 DoT 每房清零（BOSS 战状态，不跨房）

@@ -41,6 +41,7 @@ func contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> voi
 		if em > 1.0:
 			_ctrl._eval_adv = true
 			_ctrl.charge_points += 1              # T21 元素充能：每次克制命中 +1（仅伤害类符号）
+			_ctrl._charge_elem_counts[elem] = int(_ctrl._charge_elem_counts.get(elem, 0)) + 1   # 主导元素统计
 			# 反制即爆发（Plan C）：克制元素连线/三连标记，供 evaluate 触发核爆
 			# 2026-08-07 同元素三连：同元素 3 格（可不同符号）也触发核爆
 			if raw >= 2 or _ctrl._elem_triple:
@@ -137,6 +138,7 @@ func evaluate() -> void:
 	_ctrl._eval_adv = false
 	_ctrl._eval_dis = false
 	_ctrl._turn_hit_used = false   # 碎片王冠（信物）：每回合首击标记重置
+	_ctrl._charge_elem_counts = {}   # 主导元素统计每回合重置
 
 	# 按「符号 + 有效元素」计数（解决共享符号跨武器元素冲突；HUD 角标据此展示）
 	# T30：冻结列（失效格）不参与计数——不匹配、不结算、无攻击
@@ -461,6 +463,8 @@ func tick_status() -> void:
 
 # T21 元素充能爆发（覆盖流赛道）：克制命中满 charge_max 次后自动释放——
 # 清甲 + 穿透核爆（无视护甲直击 HP），与三连破甲/核爆互补（分散积累 vs 单次高概率）。
+# 2026-08-14 主导元素：按本回合克制命中最多的元素，追加一次元素附伤（吃克制 ×1.5/×0.85）——
+# 「元素身份感」回归（爆发记住你主要用哪个元素），池子不拆、HUD 不变、混合构筑不惩罚。
 func release_element_burst() -> void:
 	var burst := int(_ctrl.enemy_hp_max * DuelController.BALANCE.charge_burst_pct)
 	if _ctrl.enemy_armor > 0:
@@ -470,5 +474,18 @@ func release_element_burst() -> void:
 		apply_enemy_damage(burst, true)
 		_ctrl.hud._popup("⚡元素爆发!-%d" % burst, Palette.POP_DAMAGE, _ctrl.hud._enemy_sprite_anchor())
 		_ctrl.hud._log("⚡ 元素充能爆发：%d 穿透伤害（直击 HP，无视护甲）" % burst)
+	var lead := ""
+	var lead_max := 0
+	for e in _ctrl._charge_elem_counts:
+		if int(_ctrl._charge_elem_counts[e]) > lead_max:
+			lead_max = int(_ctrl._charge_elem_counts[e])
+			lead = e
+	if lead != "" and lead != "none":
+		var em: float = ElementCounter.multiplier(lead, _ctrl.enemy_element)
+		var extra := int(round(float(DuelController.BALANCE.charge_extra_base) * em))
+		if extra > 0:
+			apply_enemy_damage(float(extra), false)
+			_ctrl.hud._popup("%s爆发!-%d" % [ElementCounter.label(lead), extra], ElementCounter.color(lead), _ctrl.hud._enemy_sprite_anchor())
+			_ctrl.hud._log("⚡ %s系爆发附伤：%d（×%s）" % [ElementCounter.label(lead), extra, ElementCounter.fmt_mult(em)])
 	if _ctrl.hud.animator != null:
 		_ctrl.hud.animator.play_counter("element")

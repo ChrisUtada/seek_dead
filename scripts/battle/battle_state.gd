@@ -32,6 +32,7 @@ var in_loadout: bool = false
 var game_state: int = DuelController.FlowState.PLAYING   # 与 controller.game_state 同步（FlowState 枚举）
 var enemy_status: Dictionary = {}
 var charge_points: int = 0               # T21 元素充能进度（HUD 充能条读取）
+var charge_elem_counts: Dictionary = {}  # 2026-08-14 主导元素：本回合各元素克制命中数（HUD 充能条显示主导）
 var player_frost: int = 0                # T30 寒霜侵蚀：玩家 frost 层数（HUD 玩家状态行）
 var frozen_cols: Array = []              # T30 本回合冻结列（HUD 冻结格标记）
 var pending_jam_reel: int = -1           # 本回合干扰列（按停变废铁，HUD 红框标记；-1 无）——2026-08-14 UX

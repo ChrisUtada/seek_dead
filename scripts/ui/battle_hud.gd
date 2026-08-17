@@ -874,9 +874,18 @@ func _refresh_meta() -> void:
 	enemy_armor_label.visible = controller.state.enemy_armor_max > 0
 	enemy_armor_label.text = "护甲 %d/%d" % [max(controller.state.enemy_armor, 0), controller.state.enemy_armor_max]
 	enemy_status_label.text = "状态: " + ("无" if controller.state.enemy_status.is_empty() else controller.status_system.status_summary(controller.state.enemy_status))
-	# T21 元素充能条：克制命中进度（满额释放元素爆发）
+	# T21 元素充能条：克制命中进度（满额释放元素爆发）+ 主导元素（2026-08-14：本回合命中最多的元素）
 	if controller.state.charge_points > 0:
-		enemy_charge_label.text = "⚡充能 %d/%d（克制命中攒满爆发）" % [controller.state.charge_points, controller.BALANCE.charge_max]
+		var lead_txt := ""
+		var lead_max := 0
+		var lead_elem := ""
+		for e in controller.state.charge_elem_counts:
+			if int(controller.state.charge_elem_counts[e]) > lead_max:
+				lead_max = int(controller.state.charge_elem_counts[e])
+				lead_elem = e
+		if lead_elem != "":
+			lead_txt = " · 主导%s" % ElementCounter.label(lead_elem)
+		enemy_charge_label.text = "⚡充能 %d/%d（克制命中攒满爆发）%s" % [controller.state.charge_points, controller.BALANCE.charge_max, lead_txt]
 		enemy_charge_label.visible = true
 	else:
 		enemy_charge_label.visible = false

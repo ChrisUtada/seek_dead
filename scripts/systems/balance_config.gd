@@ -52,6 +52,7 @@ extends Resource
 # —— T21 元素充能（覆盖流爆发赛道）——
 @export var charge_max: int = 5               # 克制命中充能上限（满则释放元素爆发）
 @export var charge_burst_pct: float = 0.15    # 元素爆发伤害 = 敌人 max HP × 此比例（穿透直击）
+@export var charge_extra_base: int = 30       # 主导元素爆发附伤基础值（× 该元素克制倍率，2026-08-14）
 
 # —— T25 关卡结构（2026-08-09 房数重排：一局 24 房 = 3 幕 × 每幕 8 房 + 真·最终通关后战）——
 @export var run_acts: int = 3                                     # 幕数
