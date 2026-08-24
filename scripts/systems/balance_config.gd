@@ -59,3 +59,8 @@ extends Resource
 @export var run_act_layout: Array = ["normal", "normal", "normal", "elite", "normal", "normal", "elite", "boss"]   # 每幕房型序列（5 普通 + 2 精英 + 1 常规 BOSS 战）
 @export var run_boss_weights: Dictionary = {"fixed": 6, "rotating": 3, "hidden": 2}   # 常规 BOSS「4 候选选 1」角色权重（固定首领默认高权重；隐秘=幕内全清后开启，恒可入选）
 @export var run_include_final_boss: bool = true                    # 真·最终（RoomData.final_boss 房）通关 Act3 后追加为整局最后一间（当前无内容，槽位预留）
+
+# —— T8 掉落渠道（2026-08-24，docs/装备收集规划_200.md §11/§12.1）——
+@export var drop_consumable_chance_normal: float = 0.12   # 普通房清房掉 1 消耗品概率（设计区间 10~15% 取中值；不吃稀有竞争，active 池均匀）
+@export var acquisition_weight: Dictionary = {"common": 100, "uncommon": 55, "rare": 28, "epic": 12}   # 共享获取权重表（§11.1，×100 整数；精英护符保底/商店/BOSS 武器候选共用）
+@export var boss_depth_bias: Array = [1.0, 1.8, 2.5]   # §11.2 BOSS 深度偏置（按幕乘算 rare/epic 权重，越深越出好货；商店不加偏置）

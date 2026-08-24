@@ -120,11 +120,10 @@ func roll_shop() -> void:
 		if _ctrl.selected_skills.has(p):
 			continue   # 本局已带技能不上架（技能唯一持有、无 owned 池）
 		candidates.append({"path": p, "kind": "skill"})
-	candidates.shuffle()                      # 随机刷新，防背公式
-	var n = min(candidates.size(), 6)
+	# T7（2026-08-24）：货架改 acquisition_weight 加权无放回抽样（替代 shuffle 均匀）——
+	# 稀有度驱动获取频率轴；商店不加深度偏置（§11.2 偏置为 BOSS 渠道专属）
 	shop_offers = []
-	for i in n:
-		var c = candidates[i]
+	for c in _ctrl._reward_system.acq_weighted_sample(candidates, 6):
 		# 2026-08-10 fix：报价在货架生成时锁定（offer["price"]）——显示与购买统一读它，
 		# 否则每次调用 shop_price() 的随机 jitter 会让价格点击后跳动
 		shop_offers.append({"path": c["path"], "kind": c["kind"], "name": shop_name(c["path"], c["kind"]), "price": shop_price(c["kind"], -1, c["path"]), "sold": false})

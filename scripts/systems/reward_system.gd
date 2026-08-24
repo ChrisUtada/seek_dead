@@ -137,26 +137,32 @@ func roll_elite_rewards() -> Array:
 
 
 # BOSS 战利品：从主题池+混合券抽 3 张候选卡（dict 结构，供 HUD 直接渲染）。
-# 候选构成：① 主题新武器（未持有 + 武器槽未满，进池）② Boss 信物（占护符槽，若未占满）
+# 候选构成：① 主题新武器（未持有 + 武器槽未满，进池）② Boss 信物（占护符槽，若未占满）。
+# T7（2026-08-24）：武器候选改 acq_weighted_sample 加权无放回抽样（替代 shuffle 均匀），
+# 并按幕乘 boss_depth_bias 深度偏置（只抬 rare/epic——越深越出好货，§11.2）。
 func roll_boss_rewards(room) -> Array:
 	var cands := []
-	# ① 主题新武器：房间指定池（空则按 element 从全部武器取）中，玩家尚未持有且武器槽未满（A 方案 2026-08-13：
-	# 武器上限 2（cat_cap），槽满则主题武器卡不出——尊重「固定 2 把」规则，只出信物/其他候选）
-	# 2026-08-14 拍板（审查 §3.4）：真·最终（final_boss）不写池 = 明确「无战利品」——禁止空池回退全 WEAPON_POOL，
-	# 直接走 boss_anvil 兜底（与勇者的阴影设计文档「无战利品」口径一致）
+	# ① 主题新武器：房间指定池（空则按 element 从全部武器取；真·最终不回退=明确「无战利品」），
+	# 玩家尚未持有且武器槽未满才入候选；按获取权重 × 幕深度偏置 加权抽至多 3 把
 	var src: Array = room.boss_reward_weapons if (room.boss_reward_weapons.size() > 0) else ([] if room.final_boss else _ctrl.WEAPON_POOL)
 	var weapon_slots_free: bool = _ctrl.selected_loadout.size() < _ctrl._loadout_system.cat_cap("weapon")
+	var weapon_pool := []
 	for p in src:
 		if weapon_slots_free and not _ctrl.selected_loadout.has(p):
-			var wd: WeaponData = load(p)
-			var elem = wd.element if wd != null else "none"
-			cands.append({
-				"kind": "boss_weapon", "path": p,
-				"icon": ElementCounter.label(elem),
-				"label": (wd.weapon_name if wd != null else p.get_file().get_basename()),
-				"desc": "新武器 · 进转轮带",
-			})
-	# ③ Boss 信物：占护符槽 1/3（CHARM_CAP），护符槽满则不出
+			weapon_pool.append(p)
+	var act: int = int(room.act) if room.act >= 1 and room.act <= _ctrl.BALANCE.boss_depth_bias.size() else 1
+	var bias: float = float(_ctrl.BALANCE.boss_depth_bias[act - 1])
+	var picked_weapons: Array = acq_weighted_sample(weapon_pool, mini(3, weapon_pool.size()), bias)
+	for p in picked_weapons:
+		var wd: WeaponData = load(p)
+		var elem = wd.element if wd != null else "none"
+		cands.append({
+			"kind": "boss_weapon", "path": p,
+			"icon": ElementCounter.label(elem),
+			"label": (wd.weapon_name if wd != null else p.get_file().get_basename()),
+			"desc": "新武器 · 进转轮带",
+		})
+	# ② Boss 信物：占护符槽 1/3（CHARM_CAP），护符槽满则不出
 	if room.boss_relic_path != "" and _ctrl._loadout_system.sel_arr("passive").size() < _ctrl._loadout_system.cat_max("passive"):
 		var rd: ItemData = load(room.boss_relic_path)
 		cands.append({
@@ -166,7 +172,7 @@ func roll_boss_rewards(room) -> Array:
 			"desc": "信物 · 占护符槽",
 			"tip": (rd.description if rd != null else "专属信物 · 占护符槽"),
 		})
-	cands.shuffle()
+	cands.shuffle()   # 展示顺序随机（抽取本身已加权）
 	# 空池保底（2026-08-14，docs/BOSS信物_设计方案.md §4）：武器槽满 2 + 护符槽满/无信物
 	# → 两来源全被拦截，注入铁砧点兜底卡，战利品永不空屏
 	if cands.is_empty():
@@ -364,3 +370,127 @@ func open_reward_screen(is_boss: bool) -> void:
 # 局末元进度三选一弹屏（2026-08-09 由 controller._show_meta_choice 迁入）
 func show_meta_choice() -> void:
 	_ctrl.hud._show_meta_choice()
+
+
+# ---------------------------------------------------------------------------
+# T8 掉落渠道（2026-08-24，docs/装备收集规划_200.md §12.1）：
+# 普通房 12% 掉 1 消耗品（active 池均匀，不吃稀有竞争）；精英房保底 1 护符
+# （acquisition_weight 加权，排除 BOSS 信物）。BOSS 房走自身战利品不经此处。
+# 入口：room_flow.finish_room 在铁砧点/金币入账后调用。
+# ---------------------------------------------------------------------------
+func apply_room_drops() -> void:
+	if _ctrl.room_index < 0 or _ctrl.room_index >= _ctrl.ROOMS.size():
+		return
+	var kind: String = _ctrl.ROOMS[_ctrl.room_index].kind
+	if kind == "elite":
+		_drop_elite_charm()
+	elif kind == "normal" and randf() < BALANCE.drop_consumable_chance_normal:
+		var cand := []
+		for p in _ctrl.ITEM_POOL:
+			var res: Resource = load(p)
+			if res != null and res.get("category") == "active":
+				cand.append(p)
+		if not cand.is_empty():
+			_grant_drop_consumable(cand[randi() % cand.size()])
+
+
+# 精英保底护符：acquisition_weight 加权抽取；护符槽未达天花板时免费开槽（先例：武器奖励自动开槽），
+# 已达 CHARM_CAP 天花板则折算金币（卖价），保底永不落空。排除 BOSS 信物（信物仅 BOSS 战利品可获）。
+func _drop_elite_charm() -> void:
+	var relics := relic_paths()
+	var cand := []
+	for p in _ctrl.ITEM_POOL:
+		if p in relics:
+			continue
+		var res: Resource = load(p)
+		if res != null and res.get("category") == "passive":
+			cand.append(p)
+	if cand.is_empty():
+		return
+	var path := acq_weighted_pick(cand)
+	if sel_passive_size() >= _ctrl._loadout_system.cat_max("passive"):
+		if _ctrl._loadout_system.can_grow_slot("passive"):
+			_ctrl._loadout_system.grow_slot("passive")
+		else:
+			var refund: int = _ctrl._sell_price("passive", path)
+			_ctrl.gold += refund
+			var nm2: Resource = load(path)
+			_ctrl.hud._log("精英掉落：%s 但护符槽已满（3/3）→ 折算金币 +%d" % [(nm2.item_name if nm2 != null else path), refund])
+			_ctrl.hud._popup("💰+%d" % refund, Palette.POP_GOLD, _ctrl.hud._player_sprite_anchor())
+			return
+	_ctrl.selected_charms.append(path)
+	_ctrl._apply_charms()
+	var cd: Resource = load(path)
+	_ctrl.hud._log("精英掉落：获得护符 %s（按获取权重加权，占护符槽）" % (cd.item_name if cd != null else path))
+	_ctrl.hud._popup("🎁 获得护符 %s" % (cd.icon if cd != null else "🛡"), Palette.ACCENT_GOLD, _ctrl.hud._player_sprite_anchor())
+
+
+# 普通房消耗品掉落授予：腰带满（CONSUMABLE_CAP）→ 折算金币（卖价），保底语义不落空。
+func _grant_drop_consumable(path: String) -> void:
+	if _ctrl.consumable_slots.size() >= _ctrl.CONSUMABLE_CAP:
+		var refund: int = _ctrl._sell_price("active", path)
+		_ctrl.gold += refund
+		var nm: Resource = load(path)
+		_ctrl.hud._log("掉落：%s 但腰带已满 → 折算金币 +%d" % [(nm.item_name if nm != null else path), refund])
+		_ctrl.hud._popup("💰+%d" % refund, Palette.POP_GOLD, _ctrl.hud._player_sprite_anchor())
+		return
+	var cd: Resource = load(path)
+	_ctrl._consumable_uid += 1
+	_ctrl.consumable_slots.append({"path": path, "item_id": cd.item_id, "charges": cd.charges, "uid": "c%d" % _ctrl._consumable_uid})
+	_ctrl.hud._log("掉落：获得消耗品 %s（入腰带）" % cd.item_name)
+	_ctrl.hud._popup("🎁 获得 %s" % cd.item_name, Palette.POP_GOLD, _ctrl.hud._player_sprite_anchor())
+	_ctrl.hud._refresh_consumable_panel()
+
+
+# 共享获取权重（§11.1）：单件物品权重 = acquisition_weight[rarity]；bias ≠ 1 时乘算 rare/epic
+# （§11.2 BOSS 深度偏置——只抬高稀，common/uncommon 不动；商店传 1.0）。
+func acq_weight(path: String, bias: float = 1.0) -> float:
+	var res: Resource = load(path)
+	var r: String = String(res.get("rarity")) if res != null and res.get("rarity") != null else "common"
+	var w: float = float(BALANCE.acquisition_weight.get(r, 100))
+	if bias != 1.0 and (r == "rare" or r == "epic"):
+		w *= bias
+	return w
+
+
+func acq_weighted_pick(paths: Array, bias: float = 1.0) -> String:
+	var total := 0.0
+	for p in paths:
+		total += acq_weight(p, bias)
+	var roll := randf() * total
+	for p in paths:
+		roll -= acq_weight(p, bias)
+		if roll <= 0.0:
+			return p
+	return paths[paths.size() - 1]
+
+
+# 无放回加权抽样（T7 商店货架 / BOSS 武器候选共用）。items 元素为 String 路径或含 "path" 的 Dictionary。
+func acq_weighted_sample(items: Array, n: int, bias: float = 1.0) -> Array:
+	var pool := items.duplicate()
+	var out := []
+	while out.size() < n and not pool.is_empty():
+		var paths := []
+		for it in pool:
+			paths.append(it if it is String else it["path"])
+		var chosen: String = acq_weighted_pick(paths, bias)
+		for i in range(pool.size()):
+			var it = pool[i]
+			if (it if it is String else it["path"]) == chosen:
+				out.append(it)
+				pool.remove_at(i)
+				break
+	return out
+
+
+# BOSS 信物路径全集（数据驱动：扫描全部房间的 boss_relic_path）——精英掉落排除集。
+func relic_paths() -> Array:
+	var out := []
+	for r in _ctrl.ALL_ROOMS:
+		if r.boss_relic_path != "":
+			out.append(r.boss_relic_path)
+	return out
+
+
+func sel_passive_size() -> int:
+	return _ctrl._loadout_system.sel_arr("passive").size()
