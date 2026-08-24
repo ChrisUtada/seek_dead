@@ -6,8 +6,8 @@
 script = ExtResource("1")
 id = "elite_hexer"
 display_name = "精英咒师"
-intent_weights = {"attack": 40, "jam": 30, "lock": 30}
+intent_weights = {"attack": 25, "jam": 30, "lock": 30, "auto_stop": 15}
 hp_base = 150
 atk_base = 13
 armor_base = 0
-desc = "debuff 风暴：双干扰意图"
+desc = "debuff 风暴：双干扰意图；干扰系——Act3 起夺轮"

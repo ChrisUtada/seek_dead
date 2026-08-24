@@ -6,8 +6,8 @@
 script = ExtResource("1")
 id = "elite_caster"
 display_name = "精英术士"
-intent_weights = {"attack": 50, "chaos": 25, "heavy": 25}
+intent_weights = {"attack": 35, "chaos": 25, "heavy": 10, "auto_stop": 30}
 hp_base = 160
 atk_base = 15
 armor_base = 0
-desc = "多元素状态施压"
+desc = "多元素状态施压；播种系——Act3 起高频夺轮"

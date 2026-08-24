@@ -6,8 +6,8 @@
 script = ExtResource("1")
 id = "trickster"
 display_name = "诡匠"
-intent_weights = {"attack": 40, "jam": 20, "lock": 20, "chaos": 20}
+intent_weights = {"attack": 25, "jam": 20, "lock": 20, "chaos": 20, "auto_stop": 15}
 hp_base = 95
 atk_base = 12
 armor_base = 0
-desc = "不可预测：全意图均匀混（chaos 高）"
+desc = "不可预测：全意图均匀混（chaos 高）；干扰系——Act3 起夺轮"

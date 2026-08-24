@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="WeaponData" load_steps=5 format=3]
 
-[ext_resource type="Script" uid="uid://dkgpb1yi42sdb" path="res://scripts/equipment/weapon_data.gd" id="1"]
+[ext_resource type="Script" uid="uid://rshxw30hg44e" path="res://scripts/equipment/weapon_data.gd" id="1"]
 [ext_resource type="Script" uid="uid://b7ejpof4wrtqt" path="res://scripts/battle/symbol_weight.gd" id="sw"]
 [ext_resource type="Resource" path="res://resources/symbols/iron_slash.tres" id="s0"]
 

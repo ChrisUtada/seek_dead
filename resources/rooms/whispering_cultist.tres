@@ -5,7 +5,7 @@
 
 [resource]
 script = ExtResource("1")
-name = "鍛撹鏁欏緬"
+name = "呓语教徒"
 hp = 290
 atk = 20
 element = "dark"

@@ -6,8 +6,8 @@
 script = ExtResource("1")
 id = "status_sower"
 display_name = "状态播种者"
-intent_weights = {"attack": 60, "chaos": 20, "heavy": 20}
+intent_weights = {"attack": 35, "chaos": 20, "heavy": 15, "auto_stop": 30}
 hp_base = 100
 atk_base = 11
 armor_base = 0
-desc = "混乱转轮权重，配合状态符号（毒/灼烧）施压"
+desc = "混乱转轮权重，配合状态符号（毒/灼烧）施压；播种系——Act3 起高频夺轮"

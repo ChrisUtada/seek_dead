@@ -8,8 +8,8 @@ extends Resource
 @export var name: String = ""
 @export var hp: int = 0
 @export var atk: int = 0
-@export var archetype: EnemyArchetype = null  # T5 行为族引用（意图剖面/数值基准；空 = 走 kind 默认表 + 自身数值）
-@export var intents: Array[IntentData] = []  # T20：本房意图加权表（空 = 按 kind 取默认三档表，见 DuelController.DEFAULT_INTENT_WEIGHTS）
+@export var archetype: EnemyArchetype = null  # T5 行为族引用（意图剖面/数值基准；空 = 走按幕分档默认表 + 自身数值）
+@export var intents: Array[IntentData] = []  # T20：本房意图加权表（空 = 行为族剖面/按幕分档默认表，见 StatusSystem.ACT_INTENT_WEIGHTS；显式表不受按幕过滤）
 @export var armor: int = 0          # 护甲（扁平池）：伤害先破甲后掉血；0 = 无护甲（RPG 式破甲机制）
 # 检查器下拉：@export_enum 需字面量（Godot 限制），词汇与 ElementCounter.ELEMENT_ENUM 同步，
 # 漂移由 duel_controller._ready 的 is_valid_element 启动校验兜底。
