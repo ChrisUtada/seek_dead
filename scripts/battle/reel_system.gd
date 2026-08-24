@@ -292,3 +292,91 @@ func reset_grid() -> void:
 				_ctrl.grid_elem[reel][row] = reel_strips[reel][idx][1]
 			_ctrl.hud._refresh_cell(reel, row)
 	_ctrl.invalidate_state()   # grid_elem 重新实例化
+
+
+# ----------------------------------------------------------------------------
+# P2 架构还债（2026-08-24）：符号池构建自 duel_controller._build_pool 迁入——
+# 池/带子/落子同域（pool_items 在此被 build_strips 消费）。controller 留单行转发器。
+# ----------------------------------------------------------------------------
+
+# 装备自洽建池：强度轴映射 → 武器/技能/精华各生成符号段 → 扁平池 + 金币常驻。
+func build_pool(loadout: Array) -> void:
+	_ctrl._synergy_system.refresh()   # 装备集合变化：重估共鸣激活集（每房/换装时一次）
+	_ctrl.pool.clear()
+	_ctrl.pool_items.clear()
+	_ctrl.loadout_names.clear()
+	_ctrl._weapon_power_map = {}
+	_ctrl._item_crit_map = {}
+	# 强度轴映射：符号 resource_path -> 该物品有效攻击力(base_power)；共享符号取最高者（最强来源）。
+	for path in loadout:
+		var wd: WeaponData = load(path)
+		if wd == null or wd.symbols == null:
+			_ctrl.hud._log("⚠ 武器加载失败（符号未入池）: %s" % path)
+			continue
+		var eff: float = wd.base_power
+		for sw in wd.symbols:
+			if sw == null or sw.symbol == null:
+				continue
+			var sp = sw.symbol.resource_path
+			_ctrl._weapon_power_map[sp] = max(_ctrl._weapon_power_map.get(sp, 0.0), eff)
+			_ctrl._item_crit_map[sp] = max(_ctrl._item_crit_map.get(sp, 1.0), wd.crit_mult)
+			_ctrl._item_crit_chance_map[sp] = max(_ctrl._item_crit_chance_map.get(sp, 0.0), wd.crit_chance)
+			if wd.triple_pierce:
+				_ctrl._item_pierce_map[sp] = true
+	# 无名虚空（deprived_level≥2）：技能符号也不进强度聚合
+	if _ctrl.deprived_level < 2:
+		for path in _ctrl.selected_skills:
+			var sd: SkillData = load(path)
+			if sd == null or sd.symbol == null:
+				continue
+			var eff2: float = sd.base_power
+			var sp2 = sd.symbol.resource_path
+			_ctrl._weapon_power_map[sp2] = max(_ctrl._weapon_power_map.get(sp2, 0.0), eff2)
+			_ctrl._item_crit_map[sp2] = max(_ctrl._item_crit_map.get(sp2, 1.0), sd.crit_mult)
+			_ctrl._item_crit_chance_map[sp2] = max(_ctrl._item_crit_chance_map.get(sp2, 0.0), sd.crit_chance)
+			if sd.triple_pierce:
+				_ctrl._item_pierce_map[sp2] = true
+	for path in loadout:
+		var wd: WeaponData = load(path)
+		if wd == null:
+			continue
+		_ctrl.loadout_names.append(wd.weapon_name)
+		if wd.symbols == null or wd.symbols.is_empty():
+			continue
+		var syms := []
+		for sw in wd.symbols:
+			if sw == null or sw.symbol == null:
+				continue
+			syms.append([sw.symbol, float(sw.weight), eff_element(sw.symbol, wd)])
+		var hit: float = clamp(wd.hit_rate, 0.0, 1.0)
+		var wd_rar: Variant = wd.get("rarity")
+		_ctrl.pool_items.append({"name": wd.weapon_name, "hit": hit, "syms": syms, "rarity": String(wd_rar if wd_rar != null else "common")})
+	# 技能段（deprived_level≥2 剥离不入池）
+	if _ctrl.deprived_level < 2:
+		for path in _ctrl.selected_skills:
+			var sd: SkillData = load(path)
+			if sd == null or sd.symbol == null:
+				continue
+			var ess_elem: String = sd.symbol.element if sd.symbol.element != "none" else "none"
+			var hit: float = clamp(sd.hit_rate, 0.0, 1.0)
+			var sd_rar: Variant = sd.get("rarity")
+			_ctrl.pool_items.append({"name": ("技能" + sd.icon), "hit": hit, "syms": [[sd.symbol, float(sd.weight), ess_elem]], "rarity": String(sd_rar if sd_rar != null else "common")})
+	# 元素精华：使用后本房间内注入对应元素攻击符号
+	for e in _ctrl.room_element_mult:
+		var ess_sym: SymbolData = DuelController.ESSENCE_SYMBOLS.get(e)
+		if ess_sym != null:
+			_ctrl.pool_items.append({"name": ("精华·" + ElementCounter.label(e)), "hit": 1.0, "syms": [[ess_sym, DuelController.ESSENCE_POOL_WEIGHT, e]], "rarity": "common"})
+	# 扁平池（图例/状态查询等 legacy 消费者）+ 金币常驻
+	for it in _ctrl.pool_items:
+		for s in it["syms"]:
+			_ctrl.pool.append([s[0], s[1], s[2]])
+	_ctrl.pool.append([DuelController.GOLD_SYMBOL, _ctrl.BALANCE.gold_pool_weight, "none"])
+	_ctrl.hud._update_enemy_element()
+	_ctrl.invalidate_state()
+
+
+# 符号「有效元素」（武器元素化）：special 优先武器 reel_element；其余自身优先、否则继承武器元素。
+func eff_element(sym: SymbolData, wd: WeaponData) -> String:
+	if sym.kind == "special":
+		return wd.reel_element if wd.reel_element != "none" else sym.element
+	return sym.element if sym.element != "none" else wd.element

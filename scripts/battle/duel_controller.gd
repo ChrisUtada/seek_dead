@@ -259,70 +259,7 @@ func invalidate_state() -> void:
 	_state_dirty = true
 
 func _build_state() -> BattleState:
-	var s := BattleState.new()
-	s.grid = grid
-	s.grid_elem = grid_elem
-	s.reward_choices = reward_choices
-	s.room_index = room_index
-	s.REELS = REELS
-	s.meta = meta
-	s.gold = gold
-	s.enemy_intent = enemy_intent
-	s.enemy_element = enemy_element
-	s.selected_loadout = selected_loadout
-	s.run_symbol_bonus = _reward_system.run_symbol_bonus
-	s.ROWS = ROWS
-	s.ROOMS = ROOMS
-	s.LOADOUT_MIN = LOADOUT_MIN
-	s.WEAPON_POOL = WEAPON_POOL
-	s.UNCAPPED = UNCAPPED
-	s.selected_skills = selected_skills
-	s.selected_charms = selected_charms
-	s.run_shield_next = _reward_system.run_shield_next
-	s.run_power_bonus = _reward_system.run_power_bonus
-	s.pool = pool
-	s.loadout_names = loadout_names
-	s.in_loadout = in_loadout
-	s.game_state = game_state
-	s.enemy_status = enemy_status
-	s.charge_points = charge_points
-	s.charge_elem_counts = _charge_elem_counts
-	s.player_frost = player_frost
-	s.frozen_cols = frozen_cols
-	s.pending_jam_reel = pending_jam_reel
-	s.pending_lock_reel = pending_lock_reel
-	s.player_status = player_status
-	s.player_dot_bomb_stacks = player_dot_bomb_stacks
-	s.enemy_armor_max = enemy_armor_max
-	s.consumable_slots = consumable_slots
-	s.locked_consumable_slot = locked_consumable_slot
-	s.CONSUMABLE_CAP = CONSUMABLE_CAP
-	s.charm_room_shield = charm_room_shield
-	s.charm_power_bonus = charm_power_bonus
-	s.charm_interf_resist = charm_interf_resist
-	s.charm_damage_mult = charm_damage_mult
-	s.charm_dot_reduce = charm_dot_reduce
-	s.deprived_level = deprived_level
-	s.room_element_mult = room_element_mult
-	s.turn_count = turn_count
-	s.SKILL_POOL = SKILL_POOL
-	s.skill_max = skill_max
-	s.shop_offers = _shop_system.shop_offers
-	s.shop_reroll_used = _shop_system.reroll_used
-	s.selected_consumables = selected_consumables
-	s.reward_is_boss = reward_is_boss
-	s.player_shield = player_shield
-	s.player_hp_max = player_hp_max
-	s.player_hp = player_hp
-	s.loadout_max = loadout_max
-	s.ITEM_POOL = ITEM_POOL
-	s.enemy_name = enemy_name
-	s.enemy_hp_max = enemy_hp_max
-	s.enemy_hp = enemy_hp
-	s.enemy_atk = enemy_atk
-	s.enemy_armor = enemy_armor
-	s.charm_max = charm_max
-	return s
+	return BattleState.build(self)   # P2：快照构建迁至 BattleState.build（数据类自带工厂）
 
 
 
@@ -333,9 +270,13 @@ var combat: CombatSystem                # 2026-08-09 拆分：回合结算/符�
 var status_system: StatusSystem         # 2026-08-09 拆分：意图/状态定义与查询（status_system.gd）
 var consumable_system: ConsumableSystem # 2026-08-09 拆分：消耗品使用/效果分发（consumable_system.gd）
 var enemy_system: EnemySystem           # 2026-08-09 拆分：敌人回合/意图执行（enemy_system.gd）
+var run_setup                         # P2 架构还债（2026-08-24）：对局构建/BOSS 抽取/ante 曲线（run_setup.gd，preload 实例化）
+var room_flow                         # P2 架构还债（2026-08-24）：房间推进/间歇态/元进度/铁砧编排（room_flow.gd）
+var turn_flow                         # P2 架构还债（2026-08-24）：SPIN 主流程/回合开始/免费重转/和解（turn_flow.gd）
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	run_setup = preload("res://scripts/battle/run_setup.gd").new(self)   # 须先于 ALL_ROOMS 扫描（_sort_rooms 依赖）
 	# Phase D：文件夹自动扫描内容池（替代手写路径数组）。必须在构建整备界面之前完成。
 	# 扫描返回未泛型 Array，经 assign() 显式转为泛型（元素逐一校验）。
 	WEAPON_POOL.assign(ResourceScan.scan_paths("res://resources/weapon_templates/"))
@@ -367,6 +308,8 @@ func _ready() -> void:
 	status_system = StatusSystem.new(self)
 	consumable_system = ConsumableSystem.new(self)
 	enemy_system = EnemySystem.new(self)
+	room_flow = preload("res://scripts/battle/room_flow.gd").new(self)
+	turn_flow = preload("res://scripts/battle/turn_flow.gd").new(self)
 	_meta_store.load_meta()
 	_meta_store.sanitize_owned()   # 自愈：清洗历史上误写入 owned_* 的非本类路径（如技能）
 	_meta_store.seed_default_owned()
@@ -390,221 +333,25 @@ func _ready() -> void:
 	hud.shop_leave_requested.connect(_on_shop_leave_pressed)
 	hud.anvil_back_requested.connect(_on_anvil_back_pressed)
 func _build_pool(loadout: Array) -> void:
-	_synergy_system.refresh()   # 装备集合变化：重估共鸣激活集（每房/换装时一次，缓存供结算点查询）
-	pool = []
-	pool_items = []
-	loadout_names = []
-	_weapon_power_map = {}
-	_item_crit_map = {}
-	# 强度轴映射（P3，未变）：符号 resource_path -> 该物品有效攻击力(base_power)；
-	# 共享符号若被多装备持有，取最高者（反映「最强来源」）。结算时 _contribute 读此值把强度轴灌进符号伤害。
-	for path in loadout:
-		var wd: WeaponData = load(path)
-		if wd == null or wd.symbols == null:
-			hud._log("⚠ 武器加载失败（符号未入池）: %s" % path)
-			continue
-		var eff: float = wd.base_power
-		for sw in wd.symbols:
-			if sw == null or sw.symbol == null:
-				continue
-			var sp = sw.symbol.resource_path
-			_weapon_power_map[sp] = max(_weapon_power_map.get(sp, 0.0), eff)
-			_item_crit_map[sp] = max(_item_crit_map.get(sp, 1.0), wd.crit_mult)
-			_item_crit_chance_map[sp] = max(_item_crit_chance_map.get(sp, 0.0), wd.crit_chance)
-			if wd.triple_pierce:
-				_item_pierce_map[sp] = true
-	# 无名虚空（deprived_level≥2）：技能符号也不进强度聚合
-	if deprived_level < 2:
-		for path in selected_skills:
-			var sd: SkillData = load(path)
-			if sd == null or sd.symbol == null:
-				continue
-			var eff: float = sd.base_power
-			var sp = sd.symbol.resource_path
-			_weapon_power_map[sp] = max(_weapon_power_map.get(sp, 0.0), eff)
-			_item_crit_map[sp] = max(_item_crit_map.get(sp, 1.0), sd.crit_mult)
-			_item_crit_chance_map[sp] = max(_item_crit_chance_map.get(sp, 0.0), sd.crit_chance)
-			if sd.triple_pierce:
-				_item_pierce_map[sp] = true
-	# —— 装备自洽（docs/[已完成]物品中心重构方案.md §4 重构 + 方案 B）：频率由各装备 weight 决定，
-	# 命中率决定废铁占比；共享 (符号|元素) 在 _build_strips 跨装备累加权重（方案 B：同元素堆三连），
-	# 符号格子数 = 权重档位（2026-08-09 传统 slots 频率，见 reel_system.build_strips）。
-	# 稀有度定强度（base_power / hit_rate）+ 出现次数上限（2026-08-09 拍板：rare/epic 符号封顶 2 格 ≤ 普通——大奖罕见，推翻旧「稀有度不影响次数」决策）。
-	for path in loadout:
-		var wd: WeaponData = load(path)
-		if wd == null:
-			continue
-		loadout_names.append(wd.weapon_name)
-		if wd.symbols == null or wd.symbols.is_empty():
-			continue
-		var syms := []
-		for sw in wd.symbols:
-			if sw == null or sw.symbol == null:
-				continue
-			syms.append([sw.symbol, float(sw.weight), _eff_element(sw.symbol, wd)])
-		var hit: float = clamp(wd.hit_rate, 0.0, 1.0)
-		var wd_rar: Variant = wd.get("rarity")
-		pool_items.append({"name": wd.weapon_name, "hit": hit, "syms": syms, "rarity": String(wd_rar if wd_rar != null else "common")})
-	# 主动技能同样作为「装备」生成自己的符号段（与武器等权、频率由自身 weight 定）
-	# 无名虚空（deprived_level≥2）：技能被剥夺，符号不入池
-	if deprived_level < 2:
-		for path in selected_skills:
-			var sd: SkillData = load(path)
-			if sd == null or sd.symbol == null:
-				continue
-			var eff_elem: String = sd.symbol.element if sd.symbol.element != "none" else "none"
-			var hit: float = clamp(sd.hit_rate, 0.0, 1.0)
-			var sd_rar: Variant = sd.get("rarity")
-			pool_items.append({"name": ("技能" + sd.icon), "hit": hit, "syms": [[sd.symbol, float(sd.weight), eff_elem]], "rarity": String(sd_rar if sd_rar != null else "common")})
-	# 元素精华（消耗品）：使用后本房间内向转轮池注入对应元素的攻击符号（多一种攻击方式）
-	for e in room_element_mult:
-		var ess_sym: SymbolData = ESSENCE_SYMBOLS.get(e)
-		if ess_sym != null:
-			pool_items.append({"name": ("精华·" + ElementCounter.label(e)), "hit": 1.0, "syms": [[ess_sym, ESSENCE_POOL_WEIGHT, e]], "rarity": "common"})
-	# 扁平池（供图例 / 状态查询 / 奖励随机 等 legacy 消费者；weight 仅作展示/兼容）
-	for it in pool_items:
-		for s in it["syms"]:
-			pool.append([s[0], s[1], s[2]])
-	pool.append([GOLD_SYMBOL, BALANCE.gold_pool_weight, "none"])
-	# 敌人元素/弱/抗（取代原底部 LegendBar，写入右侧 EnemyPanel 三 Label）
-	hud._update_enemy_element()
-	invalidate_state()
+	reel_system.build_pool(loadout)   # P2 架构还债（2026-08-24）：池构建迁 ReelSystem（池/带子/落子同域）
 
 
-
-# 计算某符号的「有效元素」（Phase G v2.0 武器元素化）：
-# - special 符号：优先用武器 reel_element（特殊符号属性），否则用符号自身 element
-# - 其余符号：自身 element 非 none 用之，否则继承武器 element（火武器 → 伤害符号带火）
-func _eff_element(sym: SymbolData, wd: WeaponData) -> String:
-	if sym.kind == "special":
-		return wd.reel_element if wd.reel_element != "none" else sym.element
-	return sym.element if sym.element != "none" else wd.element
-
+# 符号「有效元素」解析已随池构建迁 reel_system.eff_element（唯一调用方是建池本身）。
 
 
 # ---------------------------------------------------------------------------
-# UI 构建（全代码）
-# ---------------------------------------------------------------------------
-# 整备勾选 / 槽位 / 拥有池已全迁至 LoadoutSystem（2026-08-09）：on_card_toggled / sel_arr /
-# cat_max / cat_cap / can_grow_slot / cap_text / grow_slot / cat_name / owned_arr——
-# controller 无转发，调用点直指 _loadout_system；_confirm_loadout / _apply_charms 留本编排层。
-
-func _confirm_loadout() -> void:
-	if selected_loadout.size() < LOADOUT_MIN:
-		return
-	# 消耗品：整备确认时把去重勾选清单实例化为腰带格（每格独立 charges；允许后续商店重复购买同类）
-	consumable_slots = []
-	for path in selected_consumables:
-		var cd: Resource = load(path)
-		if cd != null:
-			_consumable_uid += 1
-			consumable_slots.append({"path": path, "item_id": cd.item_id, "charges": cd.charges, "uid": "c%d" % _consumable_uid})
-	hud._hide_loadout_screen()
-	_full_reset()
-	invalidate_state()   # consumable_slots 已重实例化
-
-
-# 结算护符被动（整局生效）
-func _apply_charms() -> void:
-	charm_power_bonus = 0
-	charm_room_shield = 0
-	charm_interf_resist = 0
-	charm_damage_mult = 1.0
-	charm_shield_trickle = 0
-	charm_heal_trickle = 0
-	charm_pierce_chance = 0.0
-	charm_element_boost = 0.0
-	charm_status_boost = 1.0
-	charm_dot_reduce = 0
-	charm_thorns = 0.0
-	charm_dot_amp = 0
-	charm_free_reroll = 0
-	charm_charge_start = 0
-	charm_first_hit = 1.0
-	for path in selected_charms:
-		var cd: Resource = load(path)
-		if cd == null:
-			continue
-		match cd.effect:
-			"damage_bonus":         charm_power_bonus += cd.value
-			"room_shield":          charm_room_shield += cd.value
-			"interference_resist":  charm_interf_resist += cd.value
-			# "purify_bonus" 丰沛护符已删除（净化完全走消耗品）
-			"shield":               charm_shield_trickle += cd.value   # 守备护符：每回合护盾涓流
-			"heal":                charm_heal_trickle += cd.value    # 回春护符：每回合回复
-			"damage_mult":
-				charm_damage_mult *= cd.mult_value   # 护符乘数增值（封顶在循环后）
-			"armor_pierce":          charm_pierce_chance = max(charm_pierce_chance, cd.mult_value)   # 破甲护符（T2）：取最高穿透概率
-			"element_boost":         charm_element_boost += cd.mult_value                            # 元素优势护符（T2）：克制倍率加法叠加
-			"status_boost":          charm_status_boost *= cd.mult_value                             # 状态护符（T2）：DoT 乘数
-			"dot_reduce":           charm_dot_reduce += cd.value                                    # 蚀毒壁垒护符（2026-08-09）：玩家侧挂毒量 -N/回合
-			"thorns":               charm_thorns = max(charm_thorns, cd.mult_value)                 # 石屑之心（信物）：反弹比例取最高
-			"dot_amp":              charm_dot_amp += cd.value                                       # 毒腺囊（信物）：挂 DoT 层数 +N
-			"free_reroll":          charm_free_reroll += cd.value                                   # 迷宫回声（信物）：免费货架刷新次数
-			"charge_start":         charm_charge_start += cd.value                                  # 深渊凝视（信物）：每回合开始充能 +N
-			"first_hit":            charm_first_hit = max(charm_first_hit, cd.mult_value)           # 碎片王冠（信物）：首击倍率取最高
-		# 混合护符的负面效果（未来卡用）：与正面同枚举、加成型数值取反、乘区型乘 downside_mult
-		if cd.downside_effect != "":
-			match cd.downside_effect:
-				"damage_bonus":         charm_power_bonus -= cd.downside_value
-				"room_shield":          charm_room_shield -= cd.downside_value
-				"interference_resist":  charm_interf_resist -= cd.downside_value
-				"shield":               charm_shield_trickle -= cd.downside_value
-				"heal":                charm_heal_trickle -= cd.downside_value
-				"damage_mult":          charm_damage_mult *= cd.downside_mult
-				"armor_pierce":         charm_pierce_chance = max(0.0, charm_pierce_chance - cd.downside_value / 100.0)
-				"element_boost":        charm_element_boost = max(0.0, charm_element_boost - cd.downside_mult)
-				"status_boost":         charm_status_boost = max(1.0, charm_status_boost - (1.0 - cd.downside_mult))
-				"dot_reduce":           charm_dot_reduce = max(0, charm_dot_reduce - cd.downside_value)
-				"thorns":               charm_thorns = max(0.0, charm_thorns - cd.downside_mult)
-				"dot_amp":              charm_dot_amp = max(0, charm_dot_amp - cd.downside_value)
-				"free_reroll":          charm_free_reroll = max(0, charm_free_reroll - cd.downside_value)
-				"charge_start":         charm_charge_start = max(0, charm_charge_start - cd.downside_value)
-				"first_hit":            charm_first_hit = max(1.0, charm_first_hit - (1.0 - cd.downside_mult))
-	# 总护符乘区硬上限（防失控膨胀）
-	charm_damage_mult = min(charm_damage_mult, BALANCE.charm_mult_cap)
-	var charm_log = "护符已装配：伤害+%d / 开局护盾+%d / 每回合护盾+%d / 每回合回血+%d / 抗扰+%d" % [charm_power_bonus, charm_room_shield, charm_shield_trickle, charm_heal_trickle, charm_interf_resist]
-	if charm_damage_mult != 1.0:
-		charm_log += " / 伤害×%s" % ElementCounter.fmt_mult(charm_damage_mult)
-	if charm_pierce_chance > 0.0:
-		charm_log += " / 破甲穿透 %d%%" % int(charm_pierce_chance * 100)
-	if charm_element_boost > 0.0:
-		charm_log += " / 元素优势+%s" % ElementCounter.fmt_mult(charm_element_boost)
-	if charm_status_boost != 1.0:
-		charm_log += " / 状态×%s" % ElementCounter.fmt_mult(charm_status_boost)
-	if charm_dot_reduce > 0:
-		charm_log += " / 蚀毒壁垒（挂毒量-%d/回合）" % charm_dot_reduce
-	if charm_thorns > 0.0:
-		charm_log += " / 荆棘反弹 %d%%" % int(charm_thorns * 100)
-	if charm_dot_amp > 0:
-		charm_log += " / 挂毒层+%d" % charm_dot_amp
-	if charm_free_reroll > 0:
-		charm_log += " / 免费刷新×%d" % charm_free_reroll
-	if charm_charge_start > 0:
-		charm_log += " / 充能+%d/回合" % charm_charge_start
-	if charm_first_hit != 1.0:
-		charm_log += " / 首击×%s" % ElementCounter.fmt_mult(charm_first_hit)
-	hud._log(charm_log)
-	invalidate_state()
-
-
-# ---------------------------------------------------------------------------
-# 2026-08-14：训练点/四轨升级系统已整体移除（四轨 = RPG 属性点残留，数值由奖励/护符/消耗品覆盖）
-# 战后节奏：战利品/奖励屏 → 房间歇态（商店 opt-in），不再弹训练房
-
-
-# M4 房奖励三选一界面（Roguelike 构筑）
+# 房奖励 / BOSS 战利品 / 清房推进 / 元进度确认：已迁 RoomFlow（P2 架构还债，2026-08-24）——单行转发。
 # ---------------------------------------------------------------------------
 func _on_reward_chosen(id: String) -> void:
-	_finish_room(func(): _reward_system.apply_reward(id), reward_is_boss)
+	room_flow.finish_room(func(): _reward_system.apply_reward(id), reward_is_boss)
 
 
 func _on_reward_skip_pressed() -> void:
-	_finish_room(Callable(), reward_is_boss)    # 跳过奖励：不应用任何效果
+	room_flow.finish_room(Callable(), reward_is_boss)
 
 
 func _on_boss_reward_chosen(cand: Dictionary) -> void:
-	# 2026-08-07 武器槽上限 2：BOSS 武器战利品满 2 时 → 替换弹层（旧武器回 owned 图鉴）
+	# 武器槽上限 2：BOSS 武器战利品满 2 时 → 替换弹层（旧武器回 owned 图鉴）
 	if cand.get("kind", "") == "boss_weapon" and selected_loadout.size() >= 2:
 		var p: String = cand.get("path", "")
 		if p != "" and not selected_loadout.has(p):
@@ -636,34 +383,22 @@ func _apply_boss_weapon_replace(p: String, old_path: String) -> void:
 	_finish_room(Callable(), true)
 
 
-# 房奖励三选一 / 跳过 / BOSS 战利品共用的房间推进编排：
-# hide → 应用奖励（可选）→ 发放铁砧点数 + 金币 → 通关则元进度三选一，否则进房间歇态 → 刷元进度栏。
-# 2026-08-14：训练房弹窗已移除（训练点系统整体移除）
 func _finish_room(apply_fn: Callable, is_boss: bool) -> void:
-	hud.hide_reward_screen()
-	if apply_fn.is_valid():
-		apply_fn.call()
-	_anvil_system.award_meta(is_boss)    # M5：房间通关发放铁砧点数
-	_meta_store.award_gold(is_boss)    # S6+S8：清房金币 + 利息
-	if _is_run_final(room_index):
-		_reward_system.show_meta_choice()        # 通关整局（最终 BOSS）→元进度三选一（持久生效）
-	else:
-		_enter_interroom()        # opt-in 商店：进入房间歇态（🛒 可选，▶ 下一房继续）
-	hud._refresh_meta()   # 幂等兜底：各子系统方法已自包含刷新（apply_reward/award_gold 等），此处防编排层遗漏
+	room_flow.finish_room(apply_fn, is_boss)
 
 
-# 元进度三选一确认：应用 + 落盘（子系统内）→ 开新一局（编排层）
 func _on_meta_choice_chosen(opt: Dictionary) -> void:
-	hud.hide_meta_screen()
-	_reward_system.on_meta_choice_chosen(opt)   # 元进度应用 + 落盘（_save_meta 在子系统内）
-	hud._refresh_meta()
-	_full_reset()   # 元进度生效后开新一局（金币/槽位随局清零，但 meta 持久）
+	room_flow.on_meta_choice_chosen(opt)
 
 
-# ---------------------------------------------------------------------------
-# 奖励/BOSS/元进度逻辑已全迁至 RewardSystem（roll_* / apply_* / open_reward_screen /
-# show_meta_choice，2026-08-09）；_on_reward_* 信号编排与 _finish_room 留本编排层。
-# ---------------------------------------------------------------------------
+func _confirm_loadout() -> void:
+	_loadout_system.confirm_loadout()
+
+
+func _apply_charms() -> void:
+	_loadout_system.apply_charms()
+
+
 # M5 元进度（铁砧锻造 + 存档持久化）已全迁至 MetaStore（load/save/seed/sanitize/award_gold）
 # ---------------------------------------------------------------------------
 # S6–S12 商店逻辑已抽至 ShopSystem（步骤3）：shop_price / shop_name / roll_shop /
@@ -712,90 +447,37 @@ func _on_shop_reroll_pressed() -> void:
 
 
 func _on_shop_leave_pressed() -> void:
-	hud.hide_shop_screen()
-	hud.set_shop_button_text("🛒 商店")
-	_enter_interroom(false)   # 离开商店回房间歇态：不重滚货架（每房一次，防刷商店）
+	room_flow.on_shop_leave_pressed()
 
 
-# ---------------------------------------------------------------------------
-# opt-in 房间歇态（替代强制全屏商店）
-# ---------------------------------------------------------------------------
+# 间歇态 / 下一房 / 铁砧入口：已迁 RoomFlow（P2 架构还债，2026-08-24）——单行转发。
 func _enter_interroom(roll_shop: bool = true) -> void:
-	in_interroom = true
-	_shop_system.reroll_used = 0   # 2026-08-09：刷新次数随房间歇期清零（价格重新从 reroll_base 起）
-	hud._hide_overlay()    # 防御性：确保胜利弹层已关闭，避免其遮挡/重触发
-	hud.set_interroom_enabled(true)
-	if roll_shop:
-		# 每房间歇期货架生成一次——反复开关商店不刷新（防「买完再开刷货架」）
-		_roll_shop()
-	invalidate_state()
+	room_flow.enter_interroom(roll_shop)
 
 
 func _on_shop_requested() -> void:
-	if not in_interroom:
-		return
-	# 🛒 按钮在抽屉展开/收起间切换
-	if hud.shop_screen_is_open():
-		hud.hide_shop_screen()
-		hud.set_shop_button_text("🛒 商店")
-	else:
-		hud._show_shop_screen()
-		hud.set_shop_button_text("🛒 收起")
+	room_flow.on_shop_requested()
 
 
 func _on_next_room_pressed() -> void:
-	# 若抽屉仍展开，进下一房前先收起，避免遮挡新房间
-	if hud.shop_screen_is_open():
-		hud.hide_shop_screen()
-		hud.set_shop_button_text("🛒 商店")
-	in_interroom = false
-	hud.set_interroom_enabled(false)
-	_start_room(room_index + 1)
-
+	room_flow.on_next_room_pressed()
 
 
 func _on_anvil_roll_pressed() -> void:
-	# 铁砧纯 gacha：委托 AnvilSystem 完成扣点→摇→结算→写 last_anvil_drops→落盘（§6 纯 gacha 定案）
-	var drops = _anvil_system.roll_anvil()
-	if drops.is_empty():
-		return   # 点数不足（已在子系统内日志）
-	# 注意：不在此处刷新铁砧屏——由 anvil_screen 旋转动画收尾后自行 refresh
-	hud._refresh_meta()
-	hud._refresh_loadout_cards()
-	hud._update_loadout_anvil()
-# M6 铁砧 gacha 核心已抽至 AnvilSystem（步骤2）：roll_anvil / award_meta / _anvil_*
+	room_flow.on_anvil_roll_pressed()
+
+
 func _on_anvil_back_pressed() -> void:
-	hud.hide_anvil_screen()
-	hud._show_loadout_screen()   # 铁砧返回后重建整备 2D 场景（loadout 内会 hud.hide()）
-	hud._update_loadout_anvil()
+	room_flow.on_anvil_back_pressed()
 
 
 func _full_reset() -> void:
-	_reset_run_state()
-	ROOMS = _build_run()                 # T25 房数重排：每局从全量池按幕抽 24 房（5 普通 + 2 精英 + 1 常规 BOSS + 真·最终槽）
-	_build_pool(selected_loadout)
-	_start_room(0)
-	invalidate_state()
+	_loadout_system.full_reset()
 
 
-# 新一局公共状态重置（不含开战）：_full_reset 与 _return_to_loadout（战败回整备）共用——
-# 槽位成长/金币/训练点/商店/奖励回到初始，避免战败后整备页显示上局商店扩槽的上限（突破限制错觉）
+# 新一局公共状态重置（不含开战）：已迁至 LoadoutSystem.reset_run_state（P2 架构还债，2026-08-24）——单行转发。
 func _reset_run_state() -> void:
-	_anvil_system.reset_run()   # 本局铁砧点数 drip 累计清零
-	train_points = 0            # ⚠ 已废弃字段清零（训练点系统 2026-08-14 移除，保留字段兼容旧存档）
-	# 2026-08-14 fix：新一局生命上限回基础值——体魄/局内奖励（maxhp/maxhp_heal）不跨局，
-	# 否则战败回整备再出发时 player_hp_max 沿用上局膨胀值（曾出现 280+/100 的"HP 未重置"）。
-	player_hp_max = int(BALANCE.player_hp_base)
-	player_hp = player_hp_max
-	in_interroom = false                     # opt-in 商店：新一局不可能处于房间歇态
-	gold = 4                                 # S6：新一局金币清零（每局清零，见 §11）
-	# 新一局四类槽位回到初始配额（商店「买即开槽」可再逐步扩至各自天花板）
-	loadout_max = int(SLOT_INIT["weapon"])
-	skill_max = int(SLOT_INIT["skill"])
-	charm_max = int(SLOT_INIT["passive"])
-	_shop_system.reset_run()   # 步骤3：新一局商店状态清零（购入价记录 + 金币升级等级）
-	_reward_system.reset_run()   # 步骤4：新一局本局加成层清零（符号灌注 / 伤害加成 / 下一房护盾）
-	invalidate_state()
+	_loadout_system.reset_run_state()
 
 
 # 房间是否为 BOSS 房：以 RoomData.kind == "boss" 判定（不再依赖「最后一间」的位置约定，
@@ -810,68 +492,17 @@ func _is_run_final(idx: int) -> bool:
 	return idx >= ROOMS.size() - 1
 
 
-# T25 房数重排（2026-08-09）：关卡结构读 BalanceConfig——
-# 每幕按 run_act_layout 抽房（5 普通 + 2 精英 + 1 常规 BOSS 战 = 8 房），run_acts 幕共 24 房；
-# 常规 BOSS 从本幕候选池按 run_boss_weights 加权抽 1（「4 候选选 1」：固定首领默认高权重 + 轮替 + 隐秘，池不全时剩余候选自然撑起权重）；
-# 真·最终（RoomData.final_boss 房）独立于候选池，通关 Act3 后追加为整局最后一间（当前无内容，槽位预留）。
-# 房间序列不依赖文件名字母序或固定数组；每局随机、按幕分组（幕内顺序：普通×3 → 精英 → 普通×2 → 精英 → BOSS）。
-# 未抽中的房间留作内容广度（不同 run 体验不同）。
+# T25 对局构建 / BOSS 加权抽取 / 房间语义排序：已迁至 RunSetup（P2 架构还债，2026-08-24）——单行转发。
 func _build_run() -> Array[RoomData]:
-	var by_act := {}   # act -> {kind: [RoomData,...]}
-	var final_boss: RoomData = null
-	for r in ALL_ROOMS:
-		if r.final_boss:
-			if final_boss == null:
-				final_boss = r
-			continue
-		var a = int(r.act)
-		if not by_act.has(a):
-			by_act[a] = {"normal": [], "elite": [], "boss": []}
-		by_act[a][r.kind].append(r)
-	var run: Array[RoomData] = []
-	for a in range(1, int(BALANCE.run_acts) + 1):
-		if not by_act.has(a):
-			continue
-		var pools := {}   # kind -> 打乱后的候选（pop 逐个取用）
-		for k in ["normal", "elite", "boss"]:
-			var arr: Array = by_act[a][k].duplicate()
-			arr.shuffle()
-			pools[k] = arr
-		for kind in BALANCE.run_act_layout:
-			if pools[kind].is_empty():
-				continue
-			var pick: RoomData = _pick_boss(pools["boss"]) if kind == "boss" else pools[kind].pop_back()
-			run.append(pick)
-	if BALANCE.run_include_final_boss and final_boss != null:
-		run.append(final_boss)
-	return run
+	return run_setup.build_run()
 
 
-# 常规 BOSS 抽取（4 候选选 1）：按角色权重加权（fixed 固定首领默认高权重、rotating 轮替随机、
-# hidden 隐秘——条件「幕内全清后开启」在 BOSS 槽（幕内最后一房）恒满足，故恒可入选）。
 func _pick_boss(candidates: Array) -> RoomData:
-	var weights: Dictionary = BALANCE.run_boss_weights
-	var total := 0
-	for c in candidates:
-		total += int(weights.get(c.boss_role, 1))
-	var roll: int = randi() % maxi(1, total)
-	for c in candidates:
-		roll -= int(weights.get(c.boss_role, 1))
-		if roll < 0:
-			return c
-	return candidates[0]
+	return run_setup.pick_boss(candidates)
 
 
-# 房间序列排序：normal/elite 在前、boss 殿后（同档按 resource_path 稳定排序）。
-# 保持「扫描文件夹」资源化原则（不硬编码路径），仅对扫描结果做语义重排。
 func _sort_rooms(rms: Array) -> Array:
-	rms.sort_custom(func(a, b):
-		var ra = ROOM_KIND_RANK.get(a.kind, 0)
-		var rb = ROOM_KIND_RANK.get(b.kind, 0)
-		if ra != rb:
-			return ra < rb
-		return a.resource_path < b.resource_path)
-	return rms
+	return run_setup.sort_rooms(rms)
 
 
 func _start_room(idx: int) -> void:
@@ -941,68 +572,18 @@ func _start_room(idx: int) -> void:
 	invalidate_state()
 
 
-# ante 难度曲线纯函数：RoomData.hp/atk 视为基础值，按「幕间台阶 × 幕内爬升」缩放。
-# act = RoomData.act（1/2/3）；幕内位置 = 本房之前与本房同幕房数 - 1（boss 恒为 3 = 幕内峰值）。
+# Ante 难度曲线纯函数：已迁至 RunSetup.ante_scale（P2 架构还债，2026-08-24）——单行转发。
 func _ante_scale(r: RoomData, idx: int) -> Dictionary:
-	var a = r.act
-	var ria = 0   # room-in-act：同幕内序号（0 起）
-	for i in range(idx + 1):
-		if ROOMS[i].act == a:
-			ria += 1
-	ria -= 1
-	return {
-		"hp_scale": pow(BALANCE.ante_act_step_hp, a - 1) * pow(BALANCE.ante_room_step_hp, ria),
-		"atk_scale": pow(BALANCE.ante_act_step_atk, a - 1) * pow(BALANCE.ante_room_step_atk, ria),
-	}
+	return run_setup.ante_scale(r, idx)
 
 
 func _begin_player_turn() -> void:
-	if game_state != FlowState.PLAYING:
-		return
-	# 经典回合结构：回合开始统一结算持续效果（frozen 先衰减再挂新层）→ 敌人声明意图 → 冻结声明
-	turn_count += 1
-	# 深渊凝视（信物）：每回合开始元素充能 +N（不触发爆发，爆发仍由克制命中驱动）
-	if charm_charge_start > 0 and deprived_level < 1:
-		charge_points += charm_charge_start
-	locked_consumable_slot = -1   # 天平审判官：律法锁槽仅锁 1 回合，新回合开始即解锁
-	hud._refresh_consumable_panel()
-	hud._log("▶ 回合 %d 开始" % turn_count)
-	if player_frost > 0:
-		var sd: StatusDef = _status_def("frozen")   # 2026-08-09 单侧性纪律：玩家侧冻结 = frozen（frost 回归纯敌人侧）
-		player_frost = max(0, player_frost - (sd.decay if sd != null else 1))
-		frozen_cols = []
-	enemy_intent = _roll_intent(ROOMS[room_index] if room_index >= 0 and room_index < ROOMS.size() else null)
-	# S10 T2：每玩家回合重置 BOSS 倍率，再由 gimmick 钩子按本回合状态设定
-	boss_atk_mult = 1.0
-	if current_gimmick != null:
-		current_gimmick.on_turn_begin(self)
-	# T30 寒霜侵蚀：回合一开始敌人即冻结（frost 挂上后立即声明冻结列，spin 前玩家可见蓝框提示）
-	frozen_cols = combat.pick_frozen_cols()
-	# 2026-08-14 UX：干扰/锁轮列标记（敌人上回合已声明 pending_*，spin 前刷新格子显示红/黄框）
-	if not frozen_cols.is_empty() or pending_jam_reel >= 0 or pending_lock_reel >= 0:
-		if not frozen_cols.is_empty():
-			var cols_txt := PackedStringArray()
-			for c in frozen_cols:
-				cols_txt.append(str(c + 1))
-			hud._log("❄ 寒霜侵蚀：第 %s 列被冰封，本轮无法转动（清净药剂可解）" % "/".join(cols_txt))
-		# 冻结列不参与 tick/按停刷新（reel_stopped 恒 true）——此处手动刷新格子，spin 前即显示边框
-		for r in REELS:
-			hud._refresh_cell(r, 0)
-	invalidate_state()   # turn_count/意图/冻结列/护符涓流已变更（gimmick on_turn_begin 写入一并覆盖）
+	turn_flow.begin_player_turn()
 
 
-# 勇者的阴影 P3：非暴力和解通关（gimmick 达成三连/治疗符号/恢复净化消耗品时调用）——训练点 + 奖励屏 + 元进度
+# 勇者的阴影 P3：非暴力和解通关（gimmick 调用）——已迁 TurnFlow（P2 架构还债，2026-08-24）。
 func resolve_peaceful_win() -> void:
-	if peaceful_win or game_state != FlowState.PLAYING:
-		return
-	peaceful_win = true
-	game_state = FlowState.WON
-	hud._log("🤝 勇者放下武器，与阴影握手言和——非暴力通关！")
-	hud._popup("🤝 和解！", Palette.POP_HEAL, hud._player_sprite_anchor())
-	hud._show_reward_screen(_is_boss_room(room_index))
-	hud._refresh_meta()
-	_busy = false
-	invalidate_state()
+	turn_flow.resolve_peaceful_win()
 
 
 # T20：加权抽取意图（已迁至 StatusSystem.roll_intent，2026-08-09）
@@ -1011,60 +592,7 @@ func _roll_intent(room: RoomData) -> Dictionary:
 
 
 func _on_spin_pressed() -> void:
-	if in_loadout or in_interroom or game_state != FlowState.PLAYING or _busy:
-		return
-	_busy = true
-	# 阶段 0：旋转（实体转轮带滚动，玩家按停止键锁定落点；不立即结算）
-	reel_system.begin_spin()
-	await reel_system.spin_finished
-	await get_tree().create_timer(0.15).timeout
-	# 深渊监视者 P2 闪回暴走：停轮后有概率强制重转（第一次停轮作废，玩家二次按停；结算只跑一次）
-	if current_gimmick != null and current_gimmick.consume_flashback():
-		hud._log("🕳 闪回暴走：噩梦闪回——停轮作废，强制重转！")
-		reel_system.begin_spin()
-		await reel_system.spin_finished
-		await get_tree().create_timer(0.15).timeout
-	# 阶段 1+2：结算（先防御/增益/状态，后攻击；含飘字）
-	await combat.evaluate()
-	if peaceful_win:
-		_busy = false
-		return
-	if enemy_hp <= 0:
-		hud._log("★ 击败 %s！" % enemy_name)
-		game_state = FlowState.WON
-		invalidate_state()
-		hud._show_reward_screen(_is_boss_room(room_index))
-		hud._refresh_meta()
-		_busy = false
-		return
-
-	# 阶段 3：敌人行动（先让玩家看清敌人刚掉的血）
-	await get_tree().create_timer(0.20).timeout
-	enemy_system.take_turn()
-	hud._refresh_meta()
-	await get_tree().create_timer(0.35).timeout
-	if enemy_hp <= 0:
-		# 敌人可能在自身回合被状态 DoT 结算致死
-		hud._log("★ 击败 %s！（状态结算）" % enemy_name)
-		game_state = FlowState.WON
-		invalidate_state()
-		hud._show_reward_screen(_is_boss_room(room_index))
-		_busy = false
-		return
-	if player_hp <= 0:
-		hud._log("✖ 你被 %s 击倒。" % enemy_name)
-		game_state = FlowState.LOST
-		invalidate_state()
-		hud._show_overlay("✖ 失败\n你倒在了 %s 面前" % enemy_name, "返回整备 ▶")
-		hud._refresh_meta()
-		_busy = false
-		return
-
-	await get_tree().create_timer(0.20).timeout
-	# 阶段 4：预告下一回合意图
-	_begin_player_turn()
-	hud._refresh_meta()
-	_busy = false
+	turn_flow.on_spin_pressed()   # 协程体在 TurnFlow（fire-and-forget，调用方不 await——语义同前）
 
 
 # SPIN 按钮：旋转中=停止下一列，否则开始旋转。
@@ -1084,20 +612,7 @@ func _on_reel_clicked(r: int) -> void:
 
 # 重转卷轴：免费重转一次（不触发敌人回合）
 func _free_spin() -> void:
-	if _busy:
-		return
-	_busy = true
-	reel_system.begin_spin()
-	await reel_system.spin_finished
-	await get_tree().create_timer(0.15).timeout
-	await combat.evaluate()
-	if enemy_hp <= 0:
-		hud._log("★ 重转触发击败 %s！" % enemy_name)
-		game_state = FlowState.WON
-		invalidate_state()
-		hud._show_reward_screen(_is_boss_room(room_index))
-	hud._refresh_meta()
-	_busy = false
+	turn_flow.free_spin()
 
 
 func _intent_name(t: String) -> String:
@@ -1117,26 +632,11 @@ func _on_consumable_pressed(uid: String) -> void:
 
 
 func _on_overlay_button_pressed() -> void:
-	hud._hide_overlay()    # 关闭失败弹层（通关已改走 reward→meta 直链，无 cleared 弹层）
-	match game_state:
-		FlowState.LOST:   _return_to_loadout()
+	room_flow.on_overlay_button_pressed()
 
 
 func _return_to_loadout() -> void:
-	# 玩家死亡 = 本局结束，回到整备页重选装备后开新 run（不再重开本房）。
-	# 先落盘，确保当局铁砧点数 drip / 商店购买 / 铁砧授予等写入 owned_* 的进度不丢失。
-	_meta_store.save_meta()
-	# 战败 = 重新开始：清空上局勾选与腰带 + 本局成长（槽位/金币/训练点/商店）回到初始——
-	# 否则整备页显示上局商店扩槽的上限（如护符 2/2），玩家可勾超过新局配额 = 突破限制（2026-08-10 fix）
-	_reset_run_state()
-	selected_loadout = []
-	selected_skills = []
-	selected_charms = []
-	selected_consumables = []
-	consumable_slots = []
-	game_state = FlowState.PLAYING   # 解除 lost 终态，避免整备/铁砧界面误读终局
-	hud._show_loadout_screen()
-	invalidate_state()
+	room_flow.return_to_loadout()
 
 
 # ---------------------------------------------------------------------------

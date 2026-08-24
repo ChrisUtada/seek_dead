@@ -52,6 +52,8 @@ signal shop_reroll_requested                   # 商店货架刷新（2026-08-09
 
 # ---- 公开语义接口（controller → HUD 单向调用，替代直接戳私有节点/字段；P2 解耦）----
 func build_all() -> void:
+	panel_view = preload("res://scripts/ui/player_panel_view.gd").new()
+	panel_view.configure(self, weapons_row, charms_row, skills_row, consumable_cells)   # P2：左栏刷新逻辑外迁（须先于 _build_ui——其内会首次刷腰带）
 	_build_ui()
 	_build_loadout_screen()
 	_build_reward_screen()
@@ -169,7 +171,7 @@ var anvil_screen                        # 铁砧锻造覆盖层（anvil_screen.t
 
 var animator = null   # P4 战斗动画器（tween 驱动立绘演出），_build_ui 末尾创建
 
-# 覆盖层 / tooltip / popup（P3b-1 仍代码构建，后续 P3b-2 抽独立 .tscn）
+var panel_view                       # P2（2026-08-24）：左栏玩家面板视图逻辑（player_panel_view.gd）
 var overlay
 var overlay_label
 var overlay_button
@@ -1030,113 +1032,21 @@ func _log(msg: String) -> void:
 # 临时图标区分（T21 配套，待美术资源替换）：
 # 攻击武器 = 「⚔️ + 元素」；技能/护符保持自身 icon——避免武器取符号 label 与技能共用同一元素符号分不清
 func _element_icon(elem: String) -> String:
-	match elem:
-		"fire":   return "🔥"
-		"ice":    return "❄️"
-		"poison": return "☠️"
-		"light":  return "✨"
-		"dark":   return "🌑"
-		_:        return "⚔️"
+	return panel_view.element_icon(elem)
 
 
-# 2026-08-14 玩家属性行已整体移除（"伤害 26 · 盾 5/房 +4/回合"聚合显示弃用）——
-# 伤害锚定在符号上非玩家属性，聚合数字语义失真；盾/回血/克制在 HP 行与飘字已有天然反馈。
-# 变强可见性由战斗日志（伤害分解）与飘字承担。
-
+# 2026-08-14 玩家属性行已整体移除——变强可见性由战斗日志（伤害分解）与飘字承担。
 func _refresh_gear_icons() -> void:
-	if weapons_row == null or charms_row == null or skills_row == null:
-		return
-	for child in weapons_row.get_children().duplicate():
-		if child.name.begins_with("WIcon_"):
-			weapons_row.remove_child(child)
-			child.queue_free()
-	for child in charms_row.get_children().duplicate():
-		if child.name.begins_with("CIcon_"):
-			charms_row.remove_child(child)
-			child.queue_free()
-	for child in skills_row.get_children().duplicate():
-		if child.name.begins_with("SIcon_"):
-			skills_row.remove_child(child)
-			child.queue_free()
-	for path in controller.state.selected_loadout:
-		var wd = load(path)
-		if wd == null:
-			continue
-		var icon := "⚔️"
-		if wd != null and "element" in wd:
-			icon = "⚔️" + _element_icon(String(wd.element))
-		var tip: String = wd.weapon_name if "weapon_name" in wd else path.get_file().get_basename()
-		var lbl = Label.new()
-		lbl.name = "WIcon_" + path.get_file().get_basename()
-		lbl.text = icon
-		lbl.add_theme_font_size_override("font_size", TypeScale.REEL)
-		lbl.tooltip_text = tip
-		lbl.mouse_filter = Control.MOUSE_FILTER_STOP
-		weapons_row.add_child(lbl)
-	for path in controller.state.selected_charms:
-		var cd = load(path)
-		if cd == null:
-			continue
-		var icon_str: String = cd.get("icon") if cd.get("icon") != null else ""
-		var icon: String = icon_str if icon_str != "" else "🛡"
-		var name_str: String = cd.get("item_name") if cd.get("item_name") != null else path.get_file().get_basename()
-		var desc_str: String = cd.get("description") if cd.get("description") != null else ""
-		var lbl = Label.new()
-		lbl.name = "CIcon_" + path.get_file().get_basename()
-		lbl.text = icon
-		lbl.add_theme_font_size_override("font_size", TypeScale.REEL)
-		lbl.tooltip_text = name_str + (" · " + desc_str if desc_str != "" else "")
-		lbl.mouse_filter = Control.MOUSE_FILTER_STOP
-		charms_row.add_child(lbl)
-	for path in controller.state.selected_skills:
-		var sd = load(path)
-		if sd == null:
-			continue
-		var icon_str: String = sd.get("icon") if sd.get("icon") != null else ""
-		var icon: String = icon_str if icon_str != "" else "✦"
-		var name_str: String = sd.get("buff_name") if sd.get("buff_name") != null else path.get_file().get_basename()
-		var desc_str: String = sd.get("description") if sd.get("description") != null else ""
-		var lbl = Label.new()
-		lbl.name = "SIcon_" + path.get_file().get_basename()
-		lbl.text = icon
-		lbl.add_theme_font_size_override("font_size", TypeScale.REEL)
-		lbl.tooltip_text = name_str + (" · " + desc_str if desc_str != "" else "")
-		lbl.mouse_filter = Control.MOUSE_FILTER_STOP
-		skills_row.add_child(lbl)
+	panel_view.refresh_gear_icons()
 
 
 # 4 格子刷新：按 consumable_slots 顺序填，缺位留空占位文案
 # - 有消耗品：显示 emoji + 名字 + charges 角标；按 game_state/in_loadout/律法锁槽 决定是否禁用
 # - 空格子：显示 "—"，禁用（仅占位）
 func _refresh_consumable_panel() -> void:
-	if consumable_cells.is_empty():
-		return
-	# 与 consumable_used 信号的 controller 守卫保持一致：playing 状态 + 非整备
-	var can_use = (controller.state.game_state == DuelController.FlowState.PLAYING) and (not controller.state.in_loadout)
-	for i in range(consumable_cells.size()):
-		var cell = consumable_cells[i]
-		if i < controller.state.consumable_slots.size():
-			var slot = controller.state.consumable_slots[i]
-			var cd: Resource = load(slot["path"])
-			if cd != null:
-				cell.text = "%s %s" % [cd.icon, cd.item_name]
-				cell.tooltip_text = ItemTooltip.for_resource(cd) + "\n剩 %d 次" % slot["charges"]   # 统一生成器 + 腰带余量
-			else:
-				cell.text = "?"
-				cell.tooltip_text = "资源缺失"
-			var locked: bool = controller.state.locked_consumable_slot == i   # 天平审判官：律法封印该格
-			cell.disabled = not can_use or slot["charges"] <= 0 or locked
-			if locked and not cell.text.begins_with("⚖ "):
-				cell.text = "⚖ " + cell.text
-		else:
-			cell.text = "—"
-			cell.tooltip_text = "消耗品空位"
-			cell.disabled = true   # 空位不响应点击
+	panel_view.refresh_consumable_panel()
 
 
 # 4 格子点击：发 consumable_used(uid) 信号让 controller 走统一扣减+结算路径
 func _on_consumable_cell_pressed(cell_index: int) -> void:
-	if cell_index < 0 or cell_index >= controller.state.consumable_slots.size():
-		return
-	var uid = controller.state.consumable_slots[cell_index]["uid"]
-	consumable_used.emit(uid)
+	panel_view.on_consumable_cell_pressed(cell_index)
