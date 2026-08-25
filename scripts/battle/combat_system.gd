@@ -294,7 +294,7 @@ func evaluate() -> void:
 	# T21 元素充能：克制命中满额 → 释放元素爆发（穿透核爆 + 清甲，覆盖流爆发赛道）
 	if _ctrl.charge_points >= DuelController.BALANCE.charge_max:
 		_ctrl.charge_points = 0
-	release_element_burst()
+		release_element_burst()
 	_ctrl.apply_enemy_hp_floor()   # P-审计 P1：爆发/穿透等一切扣血后统一收口（血锁防旁路）
 	_ctrl.hud._refresh_meta()   # 伤害落地后立即刷新：HP/护甲即时变化（破甲窗口需即时可见）
 	await _ctrl.get_tree().create_timer(0.35).timeout

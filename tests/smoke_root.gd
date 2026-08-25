@@ -227,6 +227,20 @@ func _drive_run(duel: DuelController, assist: bool, god: bool) -> Dictionary:
 			out["terminal"] = "STUCK"
 			break
 		if god and duel._is_run_final(duel.room_index):
+			# 测试保障：血锁期和解依赖恢复/净化类消耗品——进末房前确保腰带有一支治疗
+			var has_heal := false
+			for it in duel.consumable_slots:
+				var r2: Resource = load(it["path"])
+				if r2 != null and r2.effect == "heal":
+					has_heal = true
+					break
+			if not has_heal:
+				for p in duel.ITEM_POOL:
+					var res: Resource = load(p)
+					if res != null and res.effect == "heal":
+						duel._consumable_uid += 1
+						duel.consumable_slots.append({"path": p, "item_id": res.item_id, "charges": res.charges, "uid": "c%d" % duel._consumable_uid})
+						break
 			_spam_consumables_for_peace(duel)      # 真·最终 P3 血锁 → 非暴力和解通道
 		else:
 			_auto_consume(duel)

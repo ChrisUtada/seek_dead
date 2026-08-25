@@ -14,6 +14,14 @@ func _init(ctrl) -> void:
 
 # 回合开始：持续效果衰减（frozen 先衰减再挂新层）→ 敌人声明意图 → gimmick 回合钩子 → 冻结列声明。
 func begin_player_turn() -> void:
+	# P-审计补充（2026-08-24）：上一回合收尾阶段的 DoT/爆炸击杀不经过任何胜利检查点，
+	# 会留下「尸体局」软锁——在此统一收口声明胜利。
+	if _ctrl.enemy_hp <= 0 and _ctrl.game_state == DuelController.FlowState.PLAYING and not _ctrl.peaceful_win:
+		_ctrl.hud._log("★ 击败 %s！（状态结算）" % _ctrl.enemy_name)
+		_ctrl.game_state = DuelController.FlowState.WON
+		_ctrl.invalidate_state()
+		_ctrl.hud._show_reward_screen(_ctrl._is_boss_room(_ctrl.room_index))
+		return
 	if _ctrl.game_state != _ctrl.FlowState.PLAYING:
 		return
 	_ctrl.turn_count += 1
