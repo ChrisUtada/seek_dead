@@ -50,7 +50,7 @@ extends Resource
 @export var anvil_milestone_bonus: Array = [50, 100, 150, 200]
 
 # —— T21 元素充能（覆盖流爆发赛道）——
-@export var charge_max: int = 5               # 克制命中充能上限（满则释放元素爆发）
+@export var charge_max: int = 6               # 克制命中充能上限（满则释放元素爆发）
 @export var charge_burst_pct: float = 0.15    # 元素爆发伤害 = 敌人 max HP × 此比例（穿透直击）
 @export var charge_extra_base: int = 30       # 主导元素爆发附伤基础值（× 该元素克制倍率，2026-08-14）
 

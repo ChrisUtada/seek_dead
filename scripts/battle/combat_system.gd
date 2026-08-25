@@ -40,11 +40,11 @@ func contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> voi
 			em += _ctrl.charm_element_boost
 		if em > 1.0:
 			_ctrl._eval_adv = true
-			_ctrl.charge_points += 1              # T21 元素充能：每次克制命中 +1（仅伤害类符号）
-			_ctrl._charge_elem_counts[elem] = int(_ctrl._charge_elem_counts.get(elem, 0)) + 1   # 主导元素统计
-			# 反制即爆发（Plan C）：克制元素连线/三连标记，供 evaluate 触发核爆
-			# 2026-08-07 同元素三连：同元素 3 格（可不同符号）也触发核爆
+			_ctrl._charge_elem_counts[elem] = int(_ctrl._charge_elem_counts.get(elem, 0)) + 1   # 主导元素统计（不受充能规则影响，保证爆发元素归属准确）
+			# P-调参（2026-08-24 拍板 A+B）：充能收紧——单格擦边克制不再充能，
+			# 需「同符号双连或同元素三连」的有效克制命中才 +1（奖励打点准，抑制核爆机关枪化）
 			if raw >= 2 or _ctrl._elem_triple:
+				_ctrl.charge_points += 1              # T21 元素充能：有效克制命中 +1
 				acc["counter_triple"] = true
 		elif em < 1.0:
 			_ctrl._eval_dis = true
