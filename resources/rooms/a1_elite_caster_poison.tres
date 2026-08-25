@@ -1,7 +1,8 @@
-[gd_resource type="Resource" script_class="RoomData" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="RoomData" load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/battle/room_data.gd" id="1"]
 [ext_resource type="Resource" path="res://resources/archetypes/elite_caster.tres" id="2"]
+[ext_resource type="Script" path="res://scripts/battle/gimmicks/acid_bomb_gimmick.gd" id="3"]
 
 [resource]
 script = ExtResource("1")
@@ -11,4 +12,6 @@ atk = 0
 archetype = ExtResource("2")
 element = "poison"
 kind = "elite"
+gimmick_script = ExtResource("3")
+gimmick_params = {"dot_per_turn": 1, "dot_base": 1, "bomb_stacks": 12, "bomb_dmg": 20}
 act = 1

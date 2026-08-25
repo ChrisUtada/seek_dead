@@ -1,6 +1,7 @@
-[gd_resource type="Resource" script_class="RoomData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="RoomData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/battle/room_data.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/battle/gimmicks/abyss_erosion_gimmick.gd" id="2"]
 
 [resource]
 script = ExtResource("1")
@@ -9,5 +10,7 @@ hp = 370
 atk = 24
 element = "light"
 kind = "elite"
+gimmick_script = ExtResource("2")
+gimmick_params = {"base_ratio": 0.06, "low_hp_bonus": 0.15, "max_trash": 10, "phase2_hp_ratio": 0.5, "phase2_trash_mult": 1.2, "phase2_flashback_chance": 0, "phase2_armor": 25, "phase3_hp_ratio": 0}
 act = 3
 armor = 28

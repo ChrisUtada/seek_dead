@@ -561,7 +561,9 @@ func _start_room(idx: int) -> void:
 	current_gimmick = null
 	boss_atk_mult = 1.0
 	boss_trash = 0
-	if _is_boss_room(idx) and r.gimmick_script != null:
+	# 课程化（2026-08-24）：精英房挂 BOSS gimmick 弱化版（mini 机制）——门控从「仅 boss」
+	# 放宽为「凡配置了 gimmick_script 即实例化」；普通房不配脚本，行为不变。
+	if r.gimmick_script != null:
 		current_gimmick = r.gimmick_script.new()
 		current_gimmick.on_room_start(self)
 	_begin_player_turn()
