@@ -297,36 +297,48 @@ func refresh_data() -> void:
 
 
 # ---------------------------------------------------------------------------
-# T29 整备软默认预选（基础版，2026-08-24 拍板：立即执行）
+# T29 整备软默认预选（基础版，2026-08-24 拍板：立即执行；同日修正——只从 owned 预选）
 # 仅当「四类全空」时生效（首次开整备 / 战败回来）——玩家动过任何一类即视为有意图，不再自动补。
-# 预选策略：武器火+光（双克制轴）→ 技能治疗 → 消耗品治疗药剂 → 护符守备（防御向兜底）。
-# T4 完成后只需调整下方偏好表（数据），逻辑零改动。
+# ⚠ 必须从 owned_arr 预选：整备副屏卡片只构建 owned 项（§12.3 铁律「整备选装唯一约束点 = owned_*」），
+#   从全池预选会产出「隐形选中」——占槽却无卡片可看可改（用户实测：护符 1/1 但列表无选中项且无法更改）。
+# 预选策略：武器火+光（双克制轴）→ 技能治疗 → 消耗品治疗药剂 → 护符守备（防御向兜底）；
+#   偏好未命中 owned 时回落「owned 首件」。T4 完成后只需调整偏好表（数据），逻辑零改动。
 # ---------------------------------------------------------------------------
 func apply_soft_default() -> void:
 	var c = controller   # loadout_scene.controller 为无类型引用，动态访问
 	if c.selected_loadout.size() > 0 or c.selected_skills.size() > 0 \
 			or c.selected_charms.size() > 0 or c.selected_consumables.size() > 0:
 		return
-	while c.selected_loadout.size() < c.LOADOUT_MIN:
-		var p := _pref_pick(c.WEAPON_POOL, ["fire_sword", "holy_sword"])
+	var guard := 0
+	while c.selected_loadout.size() < c.LOADOUT_MIN and guard < 8:
+		guard += 1
+		var p := _pref_pick(c._loadout_system.owned_arr("weapon"), ["fire_sword", "holy_sword"])
 		if p == "" or c.selected_loadout.has(p):
-			p = _pref_pick(c.WEAPON_POOL, c.WEAPON_POOL)
-		if p == "" or c.selected_loadout.has(p):
+			p = _first_owned_not_in(c._loadout_system.owned_arr("weapon"), c.selected_loadout)
+		if p == "":
 			break
 		c.selected_loadout.append(p)
 	if c.selected_skills.is_empty():
-		var s := _pref_pick(c.SKILL_POOL, ["recovery"])
+		var s := _pref_pick(c._loadout_system.owned_arr("skill"), ["recovery"])
 		if s != "":
 			c.selected_skills.append(s)
 	if c.selected_charms.is_empty():
-		var ch := _pref_pick(c.ITEM_POOL, ["guard_charm", "sharp_charm"])
+		var ch := _pref_pick(c._loadout_system.owned_arr("passive"), ["guard_charm", "sharp_charm"])
 		if ch != "":
 			c.selected_charms.append(ch)
 	if c.selected_consumables.is_empty():
-		var cs := _pref_pick(c.ITEM_POOL, ["heal_potion", "purify_potion"])
+		var cs := _pref_pick(c._loadout_system.owned_arr("active"), ["heal_potion"])
 		if cs != "":
 			c.selected_consumables.append(cs)
-	c.hud._log("已为你预选默认配装（可自由调整后再开战）")
+	if c.selected_loadout.size() >= c.LOADOUT_MIN:
+		c.hud._log("已为你预选默认配装（可自由调整后再开战）")
+
+
+func _first_owned_not_in(pool: Array, exclude: Array) -> String:
+	for p in pool:
+		if not exclude.has(p):
+			return p
+	return ""
 
 
 func _pref_pick(pool: Array, wants: Array) -> String:
