@@ -34,24 +34,25 @@ func element_icon(elem: String) -> String:
 		_:        return "⚔️"
 
 
-# 装备图标刷新：武器取「⚔️+元素」、护符取 icon、技能取 icon；
-# 每次清空旧的 WIcon_/CIcon_/SIcon_ 子节点后重建（数量极小，无性能问题）。
+# 装备图标刷新：武器取「⚔️+元素」、护符取 icon、技能取 icon。
+# P-修复（用户实测 2026-08-24）：清空不能按 WIcon_/CIcon_ 前缀匹配——同名护符重复时
+# Label 会被 Godot 自动改名 @Label@N，前缀匹配失效导致图标无限累积拉满整行。
+# 改为「静态 Tag（CharmsTag）之外全清」；命名追加索引防碰撞。
 func refresh_gear_icons() -> void:
 	if weapons_row == null or charms_row == null or skills_row == null:
 		return
-	for child in weapons_row.get_children().duplicate():
-		if child.name.begins_with("WIcon_"):
-			weapons_row.remove_child(child)
-			child.queue_free()
-	for child in charms_row.get_children().duplicate():
-		if child.name.begins_with("CIcon_"):
+	for child in weapons_row.get_children():
+		weapons_row.remove_child(child)
+		child.queue_free()
+	for child in charms_row.get_children():
+		if child.name != "CharmsTag":
 			charms_row.remove_child(child)
 			child.queue_free()
-	for child in skills_row.get_children().duplicate():
-		if child.name.begins_with("SIcon_"):
-			skills_row.remove_child(child)
-			child.queue_free()
+	for child in skills_row.get_children():
+		skills_row.remove_child(child)
+		child.queue_free()
 	var st = controller().state
+	var idx := 0
 	for path in st.selected_loadout:
 		var wd = load(path)
 		if wd == null:
@@ -61,12 +62,14 @@ func refresh_gear_icons() -> void:
 			icon = "⚔️" + element_icon(String(wd.element))
 		var tip: String = wd.weapon_name if "weapon_name" in wd else path.get_file().get_basename()
 		var lbl = Label.new()
-		lbl.name = "WIcon_" + path.get_file().get_basename()
+		lbl.name = "WIcon_%d_%s" % [idx, path.get_file().get_basename()]
 		lbl.text = icon
 		lbl.add_theme_font_size_override("font_size", TypeScale.REEL)
 		lbl.tooltip_text = tip
 		lbl.mouse_filter = Control.MOUSE_FILTER_STOP
 		weapons_row.add_child(lbl)
+		idx += 1
+	idx = 0
 	for path in st.selected_charms:
 		var cd = load(path)
 		if cd == null:
@@ -76,12 +79,14 @@ func refresh_gear_icons() -> void:
 		var name_str: String = cd.get("item_name") if cd.get("item_name") != null else path.get_file().get_basename()
 		var desc_str: String = cd.get("description") if cd.get("description") != null else ""
 		var lbl = Label.new()
-		lbl.name = "CIcon_" + path.get_file().get_basename()
+		lbl.name = "CIcon_%d_%s" % [idx, path.get_file().get_basename()]
 		lbl.text = icon
 		lbl.add_theme_font_size_override("font_size", TypeScale.REEL)
 		lbl.tooltip_text = name_str + (" · " + desc_str if desc_str != "" else "")
 		lbl.mouse_filter = Control.MOUSE_FILTER_STOP
 		charms_row.add_child(lbl)
+		idx += 1
+	idx = 0
 	for path in st.selected_skills:
 		var sd = load(path)
 		if sd == null:
@@ -91,12 +96,13 @@ func refresh_gear_icons() -> void:
 		var name_str: String = sd.get("buff_name") if sd.get("buff_name") != null else path.get_file().get_basename()
 		var desc_str: String = sd.get("description") if sd.get("description") != null else ""
 		var lbl = Label.new()
-		lbl.name = "SIcon_" + path.get_file().get_basename()
+		lbl.name = "SIcon_%d_%s" % [idx, path.get_file().get_basename()]
 		lbl.text = icon
 		lbl.add_theme_font_size_override("font_size", TypeScale.REEL)
 		lbl.tooltip_text = name_str + (" · " + desc_str if desc_str != "" else "")
 		lbl.mouse_filter = Control.MOUSE_FILTER_STOP
 		skills_row.add_child(lbl)
+		idx += 1
 
 
 # 腰带 4 格刷新：按 consumable_slots 顺序填，缺位留空占位；
