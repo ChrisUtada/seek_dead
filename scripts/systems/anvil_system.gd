@@ -78,12 +78,17 @@ func collection_info() -> Dictionary:
 # ---------------------------------------------------------------------------
 
 func award_meta(is_boss: bool) -> void:
-	var amt: int = 5
-	if not is_boss:
-		var kind = "normal"
-		if _ctrl.room_index >= 0 and _ctrl.room_index < _ctrl.ROOMS.size():
-			kind = _ctrl.ROOMS[_ctrl.room_index].kind
-		amt = 3 if kind == "elite" else 1
+	# 三拍板（2026-08-24）：里程碑加权制——普通房 0 / 精英 3 / BOSS 5 / 真·最终 8。
+	# 通关局 29 点≈3 抽 vs 死亡局（Act2 中）≈1 抽，激励「活得更久赚更多」；cap 40 保留为防刷保险。
+	var amt: int = BALANCE.anvil_award_boss
+	var is_final := false
+	if _ctrl.room_index >= 0 and _ctrl.room_index < _ctrl.ROOMS.size():
+		var r: RoomData = _ctrl.ROOMS[_ctrl.room_index]
+		is_final = r.final_boss
+		if not is_boss:
+			amt = BALANCE.anvil_award_elite if r.kind == "elite" else BALANCE.anvil_award_normal
+		elif is_final:
+			amt = BALANCE.anvil_award_final
 	var remain = BALANCE.anvil_per_run_cap - anvil_run_awarded
 	if remain <= 0:
 		_ctrl.hud._log("铁砧点数本局已达上限 %d（本次 +0）" % BALANCE.anvil_per_run_cap)

@@ -78,13 +78,16 @@ func _part_a_shop_distribution(duel: DuelController) -> void:
 		cand_paths.append(p)
 		expect[_rarity_of(p)] += duel_weight_of(self, p, 1.0)
 		total_w += duel_weight_of(self, p, 1.0)
+	# 期望构成镜像 roll_shop 过滤：排除信物、本局已装备护符/技能（T29 软默认后常驻 1+1）
 	var relics: Array = duel._reward_system.relic_paths()
 	for p in duel.ITEM_POOL:
-		if p in relics:
+		if p in relics or p in duel.selected_charms:
 			continue
 		expect[_rarity_of(p)] += duel_weight_of(self, p, 1.0)
 		total_w += duel_weight_of(self, p, 1.0)
 	for p in duel.SKILL_POOL:
+		if p in duel.selected_skills:
+			continue
 		expect[_rarity_of(p)] += duel_weight_of(self, p, 1.0)
 		total_w += duel_weight_of(self, p, 1.0)
 	for k in expect.keys():

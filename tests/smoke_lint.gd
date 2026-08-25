@@ -134,6 +134,11 @@ func _check_balance() -> void:
 		_check(v != null and float(v) > 0.0, "BalanceConfig.%s > 0（=%s）" % [field, v])
 	_check(float(b.crit_chance) < 1.0, "crit_chance < 1")
 	_check(float(b.ante_act_step_hp) >= 1.0 and float(b.ante_act_step_atk) >= 1.0, "ante 幕间台阶 ≥1（递增曲线）")
+	# 三拍板键值（2026-08-24）
+	for kv in [["anvil_award_normal", 0], ["anvil_award_elite", 3], ["anvil_award_boss", 5], ["anvil_award_final", 8]]:
+		_check(int(b.get(kv[0])) == int(kv[1]), "BalanceConfig.%s == %s" % [kv[0], kv[1]])
+	var hoc: float = float(b.heal_overflow_shield_cap_pct)
+	_check(hoc > 0.0 and hoc <= 1.0, "heal_overflow_shield_cap_pct ∈ (0,1]（=%s）" % hoc)
 
 
 func _check_battle_math() -> void:

@@ -36,6 +36,7 @@ func _run() -> void:
 	_part_c_elite_guarantee(duel)
 	_part_d_boss_isolated(duel)
 	_part_e_reward_belt_guard(duel)
+	_part_f_anvil_milestones(duel)
 
 	print("---")
 	print("PASSED %d / FAILED %d" % [_checks - _fails, _fails])
@@ -53,8 +54,9 @@ func _boot() -> DuelController:
 
 func _room_of_kind(duel: DuelController, kind: String) -> RoomData:
 	for r in duel.ALL_ROOMS:
-		if r.kind == kind and not r.final_boss and r.boss_relic_path == "":
-			return r
+		if r.kind == kind and not r.final_boss:
+			if kind == "boss" or r.boss_relic_path == "":
+				return r
 	return duel.ALL_ROOMS[0]
 
 
@@ -157,6 +159,7 @@ func _part_c_elite_guarantee(duel: DuelController) -> void:
 	var room := _room_of_kind(duel, "elite")
 	var relics: Array = duel._reward_system.relic_paths()
 	_setup_room(duel, room)   # 仅首试做整局重置：charm_max 随局保持，才能真实走到天花板分支
+	duel.selected_charms.clear()   # 清掉 T29 软默认预选占位（CHARM_CAP=3 全留给掉落测试）
 	var charm_grants := 0
 	var gold_fallbacks := 0
 	var relic_violations := 0
@@ -222,3 +225,25 @@ func _part_e_reward_belt_guard(duel: DuelController) -> void:
 	duel._reward_system._pick_item_reward("active")
 	_check(duel.consumable_slots.size() == duel.CONSUMABLE_CAP, "满腰带不溢出（%d/%d）" % [duel.consumable_slots.size(), duel.CONSUMABLE_CAP])
 	_check(int(duel.gold) > g0, "满腰带折算金币 +%d" % (int(duel.gold) - g0))
+
+
+# ⑥ 铁砧里程碑加权：normal 0 / elite 3 / boss 5 / final 8（三拍板①）
+func _part_f_anvil_milestones(duel: DuelController) -> void:
+	seed(8006)
+	duel._reset_run_state()
+	for cfg in [["normal", 0], ["elite", 3], ["boss", 5]]:
+		var room := _room_of_kind(duel, cfg[0])
+		_setup_room(duel, room)
+		var a0: int = int(duel.meta["anvil_points"])
+		duel._anvil_system.award_meta(room.kind == "boss")
+		_check(int(duel.meta["anvil_points"]) - a0 == int(cfg[1]),
+			"铁砧里程碑 %s +%d（实测 %+d）" % [cfg[0], cfg[1], int(duel.meta["anvil_points"]) - a0])
+	var fin: RoomData = null
+	for r in duel.ALL_ROOMS:
+		if r.final_boss:
+			fin = r
+			break
+	_setup_room(duel, fin)
+	var a1: int = int(duel.meta["anvil_points"])
+	duel._anvil_system.award_meta(true)
+	_check(int(duel.meta["anvil_points"]) - a1 == 8, "真·最终 +8（实测 %+d）" % (int(duel.meta["anvil_points"]) - a1))

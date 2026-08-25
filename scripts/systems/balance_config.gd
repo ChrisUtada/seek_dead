@@ -64,3 +64,10 @@ extends Resource
 @export var drop_consumable_chance_normal: float = 0.12   # 普通房清房掉 1 消耗品概率（设计区间 10~15% 取中值；不吃稀有竞争，active 池均匀）
 @export var acquisition_weight: Dictionary = {"common": 100, "uncommon": 55, "rare": 28, "epic": 12}   # 共享获取权重表（§11.1，×100 整数；精英护符保底/商店/BOSS 武器候选共用）
 @export var boss_depth_bias: Array = [1.0, 1.8, 2.5]   # §11.2 BOSS 深度偏置（按幕乘算 rare/epic 权重，越深越出好货；商店不加偏置）
+
+# —— 三拍板落地（2026-08-24）——
+@export var anvil_award_normal: int = 0    # 铁砧里程碑：普通房 0（金币/奖励卡/T8 掉落已三渠道，防平摊稀释）
+@export var anvil_award_elite: int = 3     # 精英 +3
+@export var anvil_award_boss: int = 5      # 幕 BOSS +5
+@export var anvil_award_final: int = 8     # 真·最终 +8（毕业战特殊化；通关局 29 点≈3 抽 vs 死亡局 1 抽）
+@export var heal_overflow_shield_cap_pct: float = 0.2   # 治疗三连溢出转盾单次上限（×maxHP；防爆炸性囤盾，全面衰减挂 F6 盾流实测）

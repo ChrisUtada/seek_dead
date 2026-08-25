@@ -212,11 +212,14 @@ func evaluate() -> void:
 			_ctrl.hud._popup("❤+%d" % hp_gain, Palette.POP_HEAL, _ctrl.hud._player_sprite_anchor())
 			_ctrl.hud._log("回复 %d HP" % hp_gain)
 		# 2026-08-07 方案 A：治疗三连溢出转护盾（满血不浪费，三连独有奖励）
+		# 三拍板②（2026-08-24）：单次溢出转盾 ≤ maxHP × heal_overflow_shield_cap_pct（20%）——
+		# 防单次爆炸性囤盾；全面衰减机制挂 F6 盾流实测后再议
 		if acc.get("heal_triple", false) and int(acc["heal"]) > missing:
 			var shield_gain: int = int(acc["heal"]) - missing
+			var overflow_cap: int = int(_ctrl.player_hp_max * DuelController.BALANCE.heal_overflow_shield_cap_pct)
+			shield_gain = mini(shield_gain, overflow_cap)
 			_ctrl.player_shield += shield_gain
-			_ctrl.hud._popup("🛡+%d" % shield_gain, Palette.POP_SHIELD, _ctrl.hud._player_sprite_anchor())
-			_ctrl.hud._log("治疗三连溢出转护盾 +%d" % shield_gain)
+			_ctrl.hud._log("治疗三连溢出转护盾 +%d（上限 %d）" % [shield_gain, overflow_cap])
 	if not acc["status_stacks"].is_empty():
 		_ctrl.hud._log("敌人获得状态: " + _ctrl.status_system.status_summary(acc["status_stacks"]))
 		_ctrl.hud._popup(_ctrl.status_system.status_summary(acc["status_stacks"]), Palette.POP_STATUS, _ctrl.hud._enemy_sprite_anchor())
