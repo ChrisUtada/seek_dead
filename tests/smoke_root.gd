@@ -177,6 +177,8 @@ func _drive_run(duel: DuelController, assist: bool, god: bool) -> Dictionary:
 		if duel.game_state == DuelController.FlowState.WON:
 			if not just_won:
 				_check(duel.enemy_hp <= 0 or duel.peaceful_win, "WON 时敌人死亡或和解（%s）" % duel.enemy_name)
+				if duel._is_run_final(duel.room_index):
+					_check(duel.peaceful_win, "P-审计 P1：真·最终血锁后必以非暴力和解结算（旁路击杀已封死）")
 				out["rooms_won"] = duel.room_index + 1
 				_log("ROOM|won|%d|%s|%dturns|gold=%d%s" % [duel.room_index + 1, duel.enemy_name, int(duel.turn_count), int(duel.gold), "|peaceful" if duel.peaceful_win else ""])
 				duel._on_reward_skip_pressed()

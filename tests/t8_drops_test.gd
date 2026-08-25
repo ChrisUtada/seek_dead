@@ -35,6 +35,7 @@ func _run() -> void:
 	await _part_b_normal_drop_rate(duel)
 	_part_c_elite_guarantee(duel)
 	_part_d_boss_isolated(duel)
+	_part_e_reward_belt_guard(duel)
 
 	print("---")
 	print("PASSED %d / FAILED %d" % [_checks - _fails, _fails])
@@ -205,3 +206,19 @@ func _fail(label: String) -> void:
 	_checks += 1
 	_fails += 1
 	printerr("FAIL  ", label)
+
+# ⑤ P-审计 P2：奖励卡消耗品腰带守卫——未满入腰带；满则折算金币（卖价），绝不溢出
+func _part_e_reward_belt_guard(duel: DuelController) -> void:
+	seed(8005)
+	var room := _room_of_kind(duel, "normal")
+	_setup_room(duel, room)
+	duel.consumable_slots.clear()
+	duel._reward_system._pick_item_reward("active")
+	_check(duel.consumable_slots.size() == 1, "未满时奖励卡消耗品入腰带（%d）" % duel.consumable_slots.size())
+	while duel.consumable_slots.size() < duel.CONSUMABLE_CAP:
+		duel._consumable_uid += 1
+		duel.consumable_slots.append({"path": duel.ITEM_POOL[0], "item_id": "filler", "charges": 9, "uid": "c%d" % duel._consumable_uid})
+	var g0 := int(duel.gold)
+	duel._reward_system._pick_item_reward("active")
+	_check(duel.consumable_slots.size() == duel.CONSUMABLE_CAP, "满腰带不溢出（%d/%d）" % [duel.consumable_slots.size(), duel.CONSUMABLE_CAP])
+	_check(int(duel.gold) > g0, "满腰带折算金币 +%d" % (int(duel.gold) - g0))

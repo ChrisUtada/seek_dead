@@ -36,3 +36,9 @@ func on_consumable_used(ctrl, effect: String) -> void:
 # 玩家打出 special 三连时调用（rust_armor 等据此清层数）
 func on_special_triple(ctrl) -> void:
 	pass
+
+# P-审计 P1（2026-08-24）：敌人 HP 任意路径变动后的「不可击杀」下限声明钩子。
+# 返回 >0 的值则 controller 统一收口 enemy_hp = max(下限, hp)；默认 -1 = 无下限。
+# 用例：勇者的阴影 P3 血锁（和解为唯一出口）——直击/穿透/DoT/元素爆发全部覆盖，杜绝旁路击杀。
+func hp_floor(ctrl) -> int:
+	return -1

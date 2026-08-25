@@ -136,3 +136,7 @@ func on_damaged(ctrl, _dmg: int) -> void:
 		return
 	if _phase3:
 		ctrl.enemy_hp = maxi(1, ctrl.enemy_hp)   # 非暴力：锁 1 兜底（防 DoT/爆炸等旁路击杀）
+
+# P-审计 P1：P3 血锁统一收口——任何扣血路径（含元素爆发/DoT 旁路）结束后由 controller 调用。
+func hp_floor(ctrl) -> int:
+	return 1 if _phase3 else -1

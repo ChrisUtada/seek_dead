@@ -687,3 +687,13 @@ func _input(event) -> void:
 			reel_system.stop_next_reel()
 		else:
 			_on_spin_pressed()
+
+
+## P-审计 P1（2026-08-24）：不可击杀锁血统一收口。
+## 任何扣血路径（直击/穿透/DoT/元素爆发）结算后调用；由当前 gimmick 声明下限
+## （勇者的阴影 P3 = 1，和解为唯一出口），杜绝旁路击杀。无 gimmick 或未声明 = 不干预。
+func apply_enemy_hp_floor() -> void:
+	if current_gimmick != null and current_gimmick.has_method("hp_floor"):
+		var floor_v: int = current_gimmick.hp_floor(self)
+		if floor_v > 0:
+			enemy_hp = maxi(floor_v, enemy_hp)

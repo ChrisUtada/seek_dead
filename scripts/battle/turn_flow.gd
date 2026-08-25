@@ -79,8 +79,8 @@ func on_spin_pressed() -> void:
 	# 阶段 3：敌人行动（先让玩家看清敌人刚掉的血）
 	await _ctrl.get_tree().create_timer(0.20).timeout
 	_ctrl.enemy_system.take_turn()
+	_ctrl.apply_enemy_hp_floor()   # P-审计 P1：DoT/爆炸等敌人回合内扣血的旁路收口
 	_ctrl.hud._refresh_meta()
-	await _ctrl.get_tree().create_timer(0.35).timeout
 	if _ctrl.enemy_hp <= 0:
 		# 敌人可能在自身回合被状态 DoT 结算致死
 		_ctrl.hud._log("★ 击败 %s！（状态结算）" % _ctrl.enemy_name)

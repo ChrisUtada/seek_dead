@@ -311,6 +311,14 @@ func _pick_item_reward(kind: String) -> void:
 		_ctrl.hud._log("奖励：获得武器 %s（已加入转轮带）" % cd.weapon_name)
 		_ctrl.hud._popup("🎁 获得武器 %s" % cd.weapon_name, Palette.ACCENT_GOLD, _ctrl.hud._player_sprite_anchor())
 	else:
+		# P-审计 P2：腰带满不硬塞（CONSUMABLE_CAP 之外的格子不可见不可用）——
+		# 折算金币（卖价），与 T8 掉落兜底同语义，保底不落空
+		if _ctrl.consumable_slots.size() >= _ctrl.CONSUMABLE_CAP:
+			var refund: int = _ctrl._sell_price("active", path)
+			_ctrl.gold += refund
+			_ctrl.hud._log("奖励：%s 但腰带已满 → 折算金币 +%d" % [cd.item_name, refund])
+			_ctrl.hud._popup("💰+%d" % refund, Palette.POP_GOLD, _ctrl.hud._player_sprite_anchor())
+			return
 		_ctrl._consumable_uid += 1
 		_ctrl.consumable_slots.append({"path": path, "item_id": cd.item_id, "charges": cd.charges, "uid": "c%d" % _ctrl._consumable_uid})
 		_ctrl.hud._log("奖励：获得消耗品 %s（入腰带）" % cd.item_name)
