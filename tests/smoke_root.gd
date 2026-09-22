@@ -299,8 +299,18 @@ func _spam_consumables_for_peace(duel: DuelController) -> void:
 		var res: Resource = load(it["path"])
 		if res == null or not (res.effect in ["heal", "purify", "cleanse"]):
 			continue
+		var guard := 0
 		while duel.consumable_slots.has(it):
+			# 2026-09-22 修：ConsumableSystem.use() 在非 PLAYING 时直接 return（不扣次、不移除槽位）。
+			# 第一支恢复品触发非暴力和解后 game_state 即离场，若腰带里还有第二支同类物品，
+			# 本 while 永不退出 → CPU 100% 空转、日志停在「已用尽，移出腰带」，整套 smoke 假死。
+			if duel.game_state != DuelController.FlowState.PLAYING:
+				return
 			duel.consumable_system.use(it["uid"])
+			guard += 1
+			if guard > 64:   # 兜底：测试绝不允许挂死
+				_fail("消耗品刷取未收敛（uid=%s，仍未被移除）" % str(it.get("uid", "?")))
+				return
 
 
 func _use_first_effect(duel: DuelController, effect: String) -> bool:

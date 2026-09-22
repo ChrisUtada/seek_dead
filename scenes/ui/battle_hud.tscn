@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://ddxuthgtam243" path="res://scripts/ui/battle_hud.gd" id="1_hud"]
 [ext_resource type="PackedScene" path="res://scenes/ui/ui_button.tscn" id="3_btn"]
-[ext_resource type="Texture2D" uid="uid://wl2j7n6un7ys" path="res://assets/char.png" id="4_char"]
+[ext_resource type="Texture2D" uid="uid://dhmichk7xoa11" path="res://assets/knight/knight1.png" id="4_knight"]
 [ext_resource type="Texture2D" uid="uid://yl04f4whty6s" path="res://assets/enemy.png" id="5_enemy"]
 
 [sub_resource type="StyleBoxFlat" id="sb_frame"]
@@ -243,9 +243,9 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 
 [node name="PlayerSprite" type="TextureRect" parent="Margin/Content/MainRow/CenterStage/StageRow/PlayerCenter" unique_id=1571310140]
-custom_minimum_size = Vector2(44, 60)
+custom_minimum_size = Vector2(48, 60)
 layout_mode = 2
-texture = ExtResource("4_char")
+texture = ExtResource("4_knight")
 stretch_mode = 5
 
 [node name="EnemyCenter" type="CenterContainer" parent="Margin/Content/MainRow/CenterStage/StageRow" unique_id=817341559]

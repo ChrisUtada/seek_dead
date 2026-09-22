@@ -3,11 +3,29 @@ extends Node
 # P4 战斗动画骨架：tween 驱动玩家/敌人立绘的攻击 / 受击 / 暴击 / 核爆演出。
 # 只读结算结果演出，绝不修改 BattleMath / duel_controller 的结算逻辑（解耦原则）。
 # 浮空伤害数字由 BattleHud._popup 负责，本脚本专注立绘 sprite 动效。
+# 2026-09-22：玩家立绘换 48×48 骑士（assets/knight/），攻击时播放 5 帧挥剑序列。
+
+# 玩家攻击帧序列（knight1-5：站立→举剑蓄力→下劈→命中斩击→收势）。
+# 帧长 0.06s × 5 ≈ 0.30s，必须 ≤ combat_system 在 play_attack 之后的 0.35s 等待窗口，
+# 否则动画会被敌人回合打断（若改帧长/帧数，须同步核对那一处等待值）。
+const PLAYER_IDLE := preload("res://assets/knight/knight1.png")
+const PLAYER_ATTACK_FRAMES := [
+	preload("res://assets/knight/knight1.png"),
+	preload("res://assets/knight/knight2.png"),
+	preload("res://assets/knight/knight3.png"),
+	preload("res://assets/knight/knight4.png"),
+	preload("res://assets/knight/knight5.png"),
+]
+const PLAYER_ATTACK_FRAME_TIME := 0.06
+const PLAYER_IMPACT_FRAME := 3        # 索引 3 = knight4（命中斩击帧）→ 触发轻微屏震
+const PLAYER_IMPACT_SHAKE := 4.0
 
 var hud = null
 var player_sprite: Control = null
 var enemy_sprite: Control = null
 var _shake_base := Transform2D()   # 屏震基准变换，供 _apply_shake 读取
+var _player_anim_tween: Tween = null   # 玩家帧序列 tween（重入先 kill，避免半帧残留）
+var _rng := RandomNumberGenerator.new()   # 动画专用随机源（见 _shake 的 use_local_rng 说明）
 
 func setup(p_hud) -> void:
 	hud = p_hud
@@ -25,6 +43,9 @@ func play_attack(attacker: String, target: String) -> void:
 	var tgt = _sprite(target)
 	if atk == null or tgt == null:
 		return
+	# 仅玩家攻击播骑士帧序列（敌人攻击走 play_enemy_attack → 此处 attacker=="enemy"，跳过）
+	if attacker == "player":
+		_play_player_attack_frames()
 	_center_pivot(atk)
 	var dir := 1.0 if attacker == "player" else -1.0
 	var home_scale = atk.scale
@@ -38,6 +59,25 @@ func play_attack(attacker: String, target: String) -> void:
 	var tw2 = create_tween()
 	tw2.tween_property(tgt, "modulate", Color(1.6, 0.5, 0.5), 0.07)
 	tw2.tween_property(tgt, "modulate", base, 0.24)
+
+
+# 玩家攻击帧序列：逐帧换 player_sprite.texture（非阻塞；播完回站立帧）。
+# 与 play_attack 的 scale/rotation tween 并行，互不冲突（操作的是不同属性）。
+func _play_player_attack_frames() -> void:
+	if player_sprite == null:
+		return
+	if _player_anim_tween != null and _player_anim_tween.is_valid():
+		_player_anim_tween.kill()   # 连击/重转重入：先掐掉上一轮，避免停在半帧
+	_player_anim_tween = create_tween()
+	for i in PLAYER_ATTACK_FRAMES.size():
+		var idx: int = i
+		_player_anim_tween.tween_callback(func() -> void:
+			player_sprite.texture = PLAYER_ATTACK_FRAMES[idx]
+			if idx == PLAYER_IMPACT_FRAME:
+				_shake(PLAYER_IMPACT_SHAKE, true))   # 命中帧打击感；true=用动画专用随机源，不扰动种子局
+		_player_anim_tween.tween_interval(PLAYER_ATTACK_FRAME_TIME)
+	_player_anim_tween.tween_callback(func() -> void:
+		player_sprite.texture = PLAYER_IDLE)
 
 
 # P1：敌人反击（前冲 + 玩家红闪 + 屏震）
@@ -76,15 +116,27 @@ func _center_pivot(c: Control) -> void:
 
 
 # 屏幕轻微震动：通过 viewport canvas_transform 偏移（不影响任何布局）
-func _shake(intensity: float) -> void:
+# 2026-09-22：新增 use_local_rng——新增的玩家攻击命中帧屏震必须走动画专用随机源。
+# 理由：全局 randf_range 是种子局的唯一随机流（商店货架 / 房奖励 / 敌人意图全走它）。
+# 动画若借全局流取随机数，等于整体平移种子流，会让同种子的局跑出不同结局
+# （实测：多加这一次屏震后，tests/smoke_root.gd 的 Run C 种子局走向改变，撞出该测试
+#  里一个潜伏的死循环——详见该文件 _spam_consumables_for_peace 的守卫注释）。
+# 既有调用点（敌人攻击 / 暴击 / 核爆）保持走全局流不变，以免平移已验收的基线。
+func _shake(intensity: float, use_local_rng: bool = false) -> void:
 	var vp = get_viewport()
 	_shake_base = vp.canvas_transform
 	var tw = create_tween()
 	for i in 6:
-		var o1 = Vector2(randf_range(-intensity, intensity), randf_range(-intensity, intensity))
-		var o2 = Vector2(randf_range(-intensity, intensity), randf_range(-intensity, intensity))
+		var o1 = _rand_off(intensity, use_local_rng)
+		var o2 = _rand_off(intensity, use_local_rng)
 		tw.tween_method(_apply_shake, o1, o2, 0.03)
 	tw.tween_method(_apply_shake, Vector2.ZERO, Vector2.ZERO, 0.03)
+
+
+func _rand_off(intensity: float, use_local_rng: bool) -> Vector2:
+	if use_local_rng:
+		return Vector2(_rng.randf_range(-intensity, intensity), _rng.randf_range(-intensity, intensity))
+	return Vector2(randf_range(-intensity, intensity), randf_range(-intensity, intensity))
 
 
 func _apply_shake(off: Vector2) -> void:
