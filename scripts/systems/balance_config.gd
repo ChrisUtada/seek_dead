@@ -17,8 +17,8 @@ extends Resource
 @export var ante_room_step_atk: float = 1.10  # 同幕每过一房敌方 ATK ×
 
 # —— 伤害基准 ——
-@export var player_dmg_mult: float = 1.5      # 玩家直击总伤害永久倍率（F6 验证手感）
-@export var status_dmg_mult: float = 3.0      # 敌人状态 DoT（灼烧/毒）永久倍率
+@export var player_dmg_mult: float = 1.5      # 玩家直击总伤害全局倍率（2026-09-29 拍板转正：全部平衡基线/ante 拍板均在此值下测得，即正式基准，不回退 1.0）
+# 状态 DoT 无全局倍率：原 status_dmg_mult=3.0 已于 2026-09-29 等值折入 StatusDef.base（burn 4→12 / poison 3→9），数值所见即所得
 
 # —— 转轮频率 ——
 # 2026-08-09 恢复 MISS：带子按装备 hit_rate 聚合 MISS 格（高 base 低命中武器付出命中代价）；

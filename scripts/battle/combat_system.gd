@@ -268,6 +268,8 @@ func evaluate() -> void:
 			tail.append("增益×%s" % ElementCounter.fmt_mult(bm))
 		if assault != 1:
 			tail.append("强袭×%s" % ElementCounter.fmt_mult(float(assault)))
+		if DuelController.BALANCE.player_dmg_mult != 1.0:
+			tail.append("全局×%s" % ElementCounter.fmt_mult(DuelController.BALANCE.player_dmg_mult))
 		if pierce_total > 0:
 			tail.append("穿透直击")
 		if tail.is_empty():
@@ -454,8 +456,9 @@ func tick_status() -> void:
 		var base = _ctrl.status_system.status_base(st)
 		var mult = ElementCounter.multiplier(_ctrl.status_system.status_element(st), _ctrl.enemy_element)
 		# T2 状态护符：DoT 伤害乘倍率（状态叠加轴投资；无名虚空剥夺时 ×1.0）；T23：衰减率由 StatusDef.decay 定义
+		# 2026-09-29：原全局 status_dmg_mult=3.0 已等值折入 StatusDef.base（burn 12 / poison 9），base 即实跳伤害
 		var status_boost: float = _ctrl.charm_status_boost if _ctrl.deprived_level < 1 else 1.0
-		dot += int(round(_ctrl.enemy_status[st] * base * mult * DuelController.BALANCE.status_dmg_mult * status_boost))
+		dot += int(round(_ctrl.enemy_status[st] * base * mult * status_boost))
 		var sd: StatusDef = _ctrl.status_system.status_def(st)
 		_ctrl.enemy_status[st] = max(0, _ctrl.enemy_status[st] - (sd.decay if sd != null else 1))
 		if _ctrl.enemy_status[st] <= 0:

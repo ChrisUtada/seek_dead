@@ -11,7 +11,6 @@ ante_act_step_atk = 1.30
 ante_room_step_hp = 1.15
 ante_room_step_atk = 1.06
 player_dmg_mult = 1.5
-status_dmg_mult = 3.0
 crit_chance = 0.20
 charm_mult_cap = 6.0
 loadout_min = 2

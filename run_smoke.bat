@@ -2,14 +2,14 @@
 REM ============================================================================
 REM One-click smoke entry: run all regression suites after changes.
 REM Usage: run_smoke.bat [godot console exe]
-REM   default: .workbuddy\godot_tmp\Godot_v4.7-stable_win64_console.exe
+REM   default: D:\Godot\Godot_v4.7-stable_win64.exe\Godot_v4.7-stable_win64_console.exe
 REM Exit code: 0 = all green, 1 = any failure. Logs go to %TEMP%\smoke_*.log
 REM Suites: L0 intent gating / L0 boss loot theme / L1 lint / L2+L3 full smoke /
 REM         T8 drops / T7 acquisition weighting
 REM ============================================================================
 setlocal
 set "GODOT=%~1"
-if "%GODOT%"=="" set "GODOT=%~dp0.workbuddy\godot_tmp\Godot_v4.7-stable_win64_console.exe"
+if "%GODOT%"=="" set "GODOT=D:\Godot\Godot_v4.7-stable_win64.exe\Godot_v4.7-stable_win64_console.exe"
 if not exist "%GODOT%" (
   echo [smoke] Godot exe not found: %GODOT%
   exit /b 1
