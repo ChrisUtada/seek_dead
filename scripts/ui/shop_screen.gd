@@ -53,7 +53,7 @@ func _on_shop_card_pressed(offer: Dictionary) -> void:
 		else:
 			info = "新武器：%s" % offer.get("name", "?")
 		hud.request_weapon_replace("替换武器", info, func(old_path: String):
-			hud.buy_replace_requested.emit(_pending_offer, old_path))
+			hud.buy_replace_requested.emit(_pending_offer, old_path), String(offer.get("path", "")))
 	else:
 		hud.buy_requested.emit(offer)
 

@@ -308,6 +308,8 @@ func evaluate() -> void:
 		_ctrl.current_gimmick.on_turn_resolved(_ctrl)
 	# Phase C：回合末递减增益剩余回合
 	tick_buffs()
+	if _ctrl._telemetry != null:
+		_ctrl._telemetry.on_turn(bool(acc.get("triple", false)))   # M1-06：回合与三连率
 	_ctrl.invalidate_state()   # 伤害/护盾/充能/状态与 gimmick 钩子写入（on_special_triple/on_damaged/on_turn_resolved）统一在此覆盖
 
 
@@ -403,6 +405,8 @@ func enemy_deal_damage(raw: int) -> void:
 	_ctrl.player_shield -= blocked
 	var dealt = max(0, eff - blocked)
 	_ctrl.player_hp -= dealt
+	if _ctrl._telemetry != null:
+		_ctrl._telemetry.on_player_hit(eff, blocked, dealt)   # M1-06：意图出手/承伤/格挡
 	if dealt > 0:
 		_ctrl.hud._popup("-%d" % dealt, Palette.POP_DAMAGE, _ctrl.hud._player_sprite_anchor())
 		if _ctrl.hud.animator != null:

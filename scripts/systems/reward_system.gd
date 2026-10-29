@@ -97,10 +97,13 @@ func roll_rewards() -> Array:
 
 # 房奖励候选池（M1-01）：幕一教学期不出构筑武器；
 # 武器槽满（2 把）不再把武器卡排除——改为「展示具体武器 + 选择时走替换弹层」。
+# M1-02：符号灌注若没有任何「能让转轮带格数真正变多」的候选，则不进入候选池。
 func build_reward_pool(act: int) -> Array:
 	var pool: Array = _ctrl.REWARD_POOL.duplicate()
 	if act < 2:
 		pool = pool.filter(func(rw): return rw.id != "weapon")
+	if symbol_infusions().is_empty():
+		pool = pool.filter(func(rw): return rw.id != "symbol")
 	return pool
 
 
@@ -114,7 +117,16 @@ func payload_at(index: int) -> Dictionary:
 func _fill_reward_payloads(choices: Array) -> void:
 	choice_payloads = []
 	for rw in choices:
-		choice_payloads.append(_weapon_payload() if rw != null and rw.id == "weapon" else {})
+		var pl := {}
+		if rw != null:
+			match rw.id:
+				"weapon":
+					pl = _weapon_payload()
+				"symbol":
+					pl = _symbol_payload()
+				"consumable":
+					pl = _consumable_payload()
+		choice_payloads.append(pl)
 
 
 # 武器奖励预确定：从当前未装备的武器按获取权重抽一把（展示前定死，确认后不再随机）
@@ -141,10 +153,105 @@ func _weapon_payload() -> Dictionary:
 	}
 
 
+# M1-02 符号灌注预确定：候选只收「灌注后转轮带格数真的变多」的 damage 符号。
+# 展示时即定死具体符号 + 实际格数变化；确认后不再二次随机；无有效变化则整张卡不进候选。
+func symbol_infusions() -> Array:
+	var out := []
+	var seen := {}
+	var bonus := float(_symbol_bonus_value())
+	for it in _ctrl.pool_items:
+		for s in it["syms"]:
+			var sym: SymbolData = s[0]
+			if sym == null or sym == _ctrl.TRASH_SYMBOL or sym.kind != "damage":
+				continue
+			if seen.has(sym.resource_path):
+				continue
+			seen[sym.resource_path] = true
+			var before: int = _symbol_cells(sym, 0.0)
+			var after: int = _symbol_cells(sym, bonus)
+			if after > before:
+				out.append({"path": sym.resource_path, "sym": sym, "before": before, "after": after})
+	return out
+
+
+# 该符号在当前装备集合下实际占用的转轮带格数（口径与 reel_system.build_strips 一致：
+# 同 (符号|有效元素) 聚合权重 → 档位 2/3/4；非 damage 的 rare/epic 单源封顶 2；零权重不占格）。
+func _symbol_cells(sym: SymbolData, extra: float) -> int:
+	var grouped := {}
+	for it in _ctrl.pool_items:
+		var it_rank: int = ReelSystem.RARITY_RANK.get(String(it.get("rarity", "common")), 0)
+		for s in it["syms"]:
+			var csym: SymbolData = s[0]
+			if csym == null or csym.resource_path != sym.resource_path:
+				continue
+			var w: float = maxf(0.0, float(s[1]) + _ctrl.combat.agg_symbol_weight_mod(csym) + _ctrl._synergy_system.weight_mod(csym) + extra)
+			if w <= 0.0:
+				continue
+			var key := String(s[2])
+			if not grouped.has(key):
+				grouped[key] = {"w": 0.0, "rank": 0, "sources": 0}
+			var g: Dictionary = grouped[key]
+			g["w"] = float(g["w"]) + w
+			g["rank"] = maxi(int(g["rank"]), it_rank)
+			g["sources"] = int(g["sources"]) + 1
+	var total := 0
+	for key in grouped:
+		var g: Dictionary = grouped[key]
+		total += ReelSystem.cells_for(float(g["w"]), sym.kind, int(g["rank"]), int(g["sources"]))
+	return total
+
+
+func _symbol_bonus_value() -> int:
+	var rd: RewardData = _find_reward("symbol")
+	return rd.value if rd != null else 0
+
+
+func _symbol_payload() -> Dictionary:
+	var cands: Array = symbol_infusions()
+	if cands.is_empty():
+		return {}
+	var pick: Dictionary = cands[randi() % cands.size()]
+	var sym: SymbolData = pick["sym"]
+	return {
+		"kind": "symbol", "path": sym.resource_path,
+		"title": "符号 · %s 权重+%d" % [sym.label, _symbol_bonus_value()],
+		"desc": "转轮带 %d 格 → %d 格（本局生效）" % [int(pick["before"]), int(pick["after"])],
+	}
+
+
+func _consumable_payload() -> Dictionary:
+	var path := pick_active_item_path()
+	if path == "":
+		return {}
+	var cd: ItemData = load(path)
+	var nm: String = cd.item_name if cd != null else path.get_file().get_basename()
+	var desc := ""
+	if _ctrl.consumable_slots.size() >= _ctrl.CONSUMABLE_CAP:
+		desc = "腰带已满 → 折算金币 +%d" % _ctrl._sell_price("active", path)
+	elif cd != null:
+		desc = "入腰带：%s" % cd.description
+	else:
+		desc = "入腰带"
+	return {"kind": "consumable", "path": path, "title": "消耗品 · %s" % nm, "desc": desc}
+
+
+# 随机消耗品路径（active 池均匀；展示预确定与旧调用路径兜底共用）。
+func pick_active_item_path() -> String:
+	var cand := []
+	for p in _ctrl.ITEM_POOL:
+		var res: Resource = load(p)
+		if res != null and res.get("category") == "active":
+			cand.append(p)
+	if cand.is_empty():
+		return ""
+	return cand[randi() % cand.size()]
+
+
 # 新武器写入局外收藏（图鉴/开局池）；落盘时机与商店一致（局末统一保存）
 func remember_weapon(path: String) -> void:
 	if path != "" and not _ctrl.meta["owned_weapons"].has(path):
 		_ctrl.meta["owned_weapons"].append(path)
+		_ctrl._anvil_system.check_collection_milestones()   # M1-03：按真实收集进度结算图鉴里程碑
 
 
 # 稀有度权重档（胜利奖励方案：common 50 / uncommon 30 / rare 20；幕三 rare 升至 30、common 降至 40）
@@ -268,31 +375,7 @@ func apply_reward(id: String, index: int = -1) -> void:
 			_ctrl.hud._popup("❤上限+%d 回满" % rd.value, Palette.POP_HEAL, _ctrl.hud._player_sprite_anchor())
 		# "purify" 净化上限奖励已删除（净化完全走消耗品）
 		"symbol":
-			# 2026-08-14 方案 A（docs/[已完成]整备结构_技能槽上限与频率规范.md §5）：灌注候选 = 当前未封顶的
-			# damage 符号（有效权重 < 4.0，与 reel_system.build_strips 档位制 w≥4→4 格对齐）。
-			# 排除：非攻击符号（技能 buff/status/金币——灌注会白加或抬频稀释攻击占比）、
-			# 已 4 格封顶的符号（权重再 +3 也是死 roll）。
-			var cand := []
-			for p in _ctrl.pool:
-				var csym: SymbolData = p[0]
-				if csym == _ctrl.TRASH_SYMBOL or csym.kind != "damage":
-					continue
-				var eff_w: float = maxf(0.0, float(p[1]) + _ctrl.combat.agg_symbol_weight_mod(csym) + _ctrl._synergy_system.weight_mod(csym))
-				if eff_w < 4.0:
-					cand.append(csym)
-			# 兜底（极罕见：双单符号武器且主符号均已 4 格封顶）：回退全 damage 符号——
-			# 宁可死 roll（权重记录但格数不变）也绝不命中非攻击符号稀释主输出
-			if cand.is_empty():
-				for p in _ctrl.pool:
-					var csym: SymbolData = p[0]
-					if csym != _ctrl.TRASH_SYMBOL and csym.kind == "damage" and not cand.has(csym):
-						cand.append(csym)
-			if cand.is_empty():
-				cand = [_ctrl.TRASH_SYMBOL]
-			var sym: SymbolData = cand[randi() % cand.size()]
-			run_symbol_bonus[sym.resource_path] = run_symbol_bonus.get(sym.resource_path, 0) + rd.value
-			_ctrl.hud._log("奖励：%s 符号权重 +%d" % [sym.name, rd.value])
-			_ctrl.hud._popup("✨%s 权重+%d" % [sym.label, rd.value], Palette.POP_BUFF, _ctrl.hud._player_sprite_anchor())
+			_grant_symbol_reward(rd, index)
 		"shield":
 			run_shield_next += rd.value
 			_ctrl.hud._log("奖励：下一房 +%d 护盾" % rd.value)
@@ -307,7 +390,7 @@ func apply_reward(id: String, index: int = -1) -> void:
 			_ctrl.hud._log("奖励：金币 +%d（共 %d）" % [rd.value, _ctrl.gold])
 			_ctrl.hud._popup("💰+%d" % rd.value, Palette.POP_GOLD, _ctrl.hud._player_sprite_anchor())
 		"consumable":
-			_pick_item_reward("active")
+			_grant_consumable_reward(index)
 		"weapon":
 			_grant_weapon_reward(index)
 		"maxhp_heal":
@@ -355,6 +438,47 @@ func _grant_weapon_reward(index: int) -> void:
 	_ctrl.hud._popup("🎁 获得武器 %s" % nm, Palette.ACCENT_GOLD, _ctrl.hud._player_sprite_anchor())
 
 
+# 构筑奖励·消耗品（M1-02）：展示前已定具体物品，确认后按 payload 授予；旧路径缺 payload 时才抽。
+func _grant_consumable_reward(index: int) -> void:
+	var path := String(payload_at(index).get("path", ""))
+	if path == "":
+		path = pick_active_item_path()
+	if path == "":
+		return
+	_grant_consumable_path(path)
+
+
+func _grant_consumable_path(path: String) -> void:
+	var cd: Resource = load(path)
+	if _ctrl.consumable_slots.size() >= _ctrl.CONSUMABLE_CAP:
+		# P-审计 P2：腰带满不硬塞（超出 CONSUMABLE_CAP 的格子不可见不可用）——折算金币（卖价），保底不落空
+		var refund: int = _ctrl._sell_price("active", path)
+		_ctrl.gold += refund
+		_ctrl.hud._log("奖励：%s 但腰带已满 → 折算金币 +%d" % [(cd.item_name if cd != null else path), refund])
+		_ctrl.hud._popup("💰+%d" % refund, Palette.POP_GOLD, _ctrl.hud._player_sprite_anchor())
+		return
+	_ctrl._consumable_uid += 1
+	_ctrl.consumable_slots.append({"path": path, "item_id": cd.item_id, "charges": cd.charges, "uid": "c%d" % _ctrl._consumable_uid})
+	_ctrl.hud._log("奖励：获得消耗品 %s（入腰带）" % cd.item_name)
+	_ctrl.hud._popup("🎁 获得 %s" % cd.item_name, Palette.POP_GOLD, _ctrl.hud._player_sprite_anchor())
+	_ctrl.hud._refresh_consumable_panel()
+
+
+# 符号灌注（M1-02）：按展示前确定的符号生效，不再二次随机；日志/飘字报真实格数变化。
+func _grant_symbol_reward(rd: RewardData, index: int) -> void:
+	var payload := payload_at(index)
+	var spath := String(payload.get("path", ""))
+	var sym: SymbolData = load(spath) if spath != "" else null
+	if sym == null:
+		_ctrl.hud._log("奖励：符号灌注候选缺失（未生效，不进行二次随机）")
+		return
+	var before: int = _symbol_cells(sym, 0.0)
+	run_symbol_bonus[sym.resource_path] = run_symbol_bonus.get(sym.resource_path, 0) + rd.value
+	var after: int = _symbol_cells(sym, 0.0)
+	_ctrl.hud._log("奖励：%s 符号权重 +%d（转轮带 %d → %d 格）" % [sym.name, rd.value, before, after])
+	_ctrl.hud._popup("✨%s %d→%d 格" % [sym.label, before, after], Palette.POP_BUFF, _ctrl.hud._player_sprite_anchor())
+
+
 # 构筑奖励：随机未持有武器进转轮带 / 随机未持有消耗品进腰带（胜利奖励方案 2026-08-13）
 func _pick_item_reward(kind: String) -> void:
 	# A 方案防御保底：武器槽满（上限 2）时不追加（候选层已拦截，此处双保险）
@@ -388,19 +512,7 @@ func _pick_item_reward(kind: String) -> void:
 		_ctrl.hud._log("奖励：获得武器 %s（已加入转轮带）" % cd.weapon_name)
 		_ctrl.hud._popup("🎁 获得武器 %s" % cd.weapon_name, Palette.ACCENT_GOLD, _ctrl.hud._player_sprite_anchor())
 	else:
-		# P-审计 P2：腰带满不硬塞（CONSUMABLE_CAP 之外的格子不可见不可用）——
-		# 折算金币（卖价），与 T8 掉落兜底同语义，保底不落空
-		if _ctrl.consumable_slots.size() >= _ctrl.CONSUMABLE_CAP:
-			var refund: int = _ctrl._sell_price("active", path)
-			_ctrl.gold += refund
-			_ctrl.hud._log("奖励：%s 但腰带已满 → 折算金币 +%d" % [cd.item_name, refund])
-			_ctrl.hud._popup("💰+%d" % refund, Palette.POP_GOLD, _ctrl.hud._player_sprite_anchor())
-			return
-		_ctrl._consumable_uid += 1
-		_ctrl.consumable_slots.append({"path": path, "item_id": cd.item_id, "charges": cd.charges, "uid": "c%d" % _ctrl._consumable_uid})
-		_ctrl.hud._log("奖励：获得消耗品 %s（入腰带）" % cd.item_name)
-		_ctrl.hud._popup("🎁 获得 %s" % cd.item_name, Palette.POP_GOLD, _ctrl.hud._player_sprite_anchor())
-		_ctrl.hud._refresh_consumable_panel()
+		_grant_consumable_path(path)
 
 
 # BOSS 战利品结算（主题池+混合券三选一）：新武器(进池) / 武器强化券(meta升级,不进池) / Boss信物(占护符槽1/3)
@@ -430,6 +542,7 @@ func apply_boss_reward(cand: Dictionary) -> void:
 				# 后续整备页可随时再选（BOSS 信物不进商店/铁砧/新档种子，仅 BOSS 战利品与后续重选两条路径）
 				if not _ctrl.meta["owned_charms"].has(p):
 					_ctrl.meta["owned_charms"].append(p)
+					_ctrl._anvil_system.check_collection_milestones()   # M1-03
 					_ctrl._meta_store.save_meta()
 				_ctrl._apply_charms()                     # 重算护符被动（伤害乘区等随持有变化）
 				_ctrl.hud._log("BOSS 战利品：获得专属信物 %s（占护符槽，已入图鉴）" % cand.get("label", p))
@@ -454,6 +567,8 @@ func open_reward_screen(is_boss: bool) -> void:
 		_ctrl.reward_choices = roll_elite_rewards()
 	else:
 		_ctrl.reward_choices = roll_rewards()
+	if _ctrl._telemetry != null:
+		_ctrl._telemetry.on_reward_shown(_ctrl.reward_choices.size())   # M1-06：奖励选择率分母
 	_ctrl.invalidate_state()
 
 

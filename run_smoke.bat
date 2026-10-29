@@ -5,7 +5,7 @@ REM Usage: run_smoke.bat [godot console exe]
 REM   default: D:\Godot\Godot_v4.7-stable_win64.exe\Godot_v4.7-stable_win64_console.exe
 REM Exit code: 0 = all green, 1 = any failure. Logs go to %TEMP%\smoke_*.log
 REM Suites: L0 intent gating / L0 boss loot theme / L1 lint / L2+L3 full smoke /
-REM         T8 drops / T7 acquisition weighting / curriculum / charge / M1 reward reach
+REM         T8 drops / T7 acquisition weighting / curriculum / charge / M1 reward suite
 REM ============================================================================
 setlocal
 set "GODOT=%~1"
@@ -91,7 +91,7 @@ if errorlevel 1 (
   echo   ok
 )
 
-echo [9/9] M1-01 weapon reward reachability regression ...
+echo [9/9] M1 reward reach / prepick / collection / preview / telemetry ...
 "%GODOT%" --headless --fixed-fps 60 --path . res://tests/m1_reward_reach_test.tscn > "%TEMP%\smoke_m1.log" 2>&1
 if errorlevel 1 (
   set FAIL=1

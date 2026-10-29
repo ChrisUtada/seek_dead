@@ -23,6 +23,11 @@ var loadout_cards := []         # 副屏卡片元数据 {path, btn, selected, ki
 var sub_open := false
 var _tween: Tween
 
+# ---- M1-04 转轮带预览（运行时构建，不改 tscn）----
+var _preview_btn: Button = null
+var _preview_panel: PanelContainer = null
+var _preview_box: VBoxContainer = null
+
 # ---- 静态节点（来自 scenes/ui/loadout_scene.tscn，可在编辑器调整）----
 @onready var chars_root: Node2D = $CharsRoot
 @onready var ring: Line2D = $CharsRoot/Ring
@@ -97,6 +102,7 @@ func configure(ctrl, h: BattleHud) -> void:
 	title_label.text = "⚙ 整备 · 选择携带物品"
 	confirm_btn.text = "确认开战 ▶"
 	confirm_btn.pressed.connect(controller._confirm_loadout)
+	_build_preview_ui()
 	_update_loadout_anvil()
 
 
@@ -110,6 +116,8 @@ func show_screen() -> void:
 	visible = true
 	if _ui_layer != null:
 		_ui_layer.visible = true
+	if _preview_panel != null:
+		_preview_panel.visible = false
 	process_mode = Node.PROCESS_MODE_INHERIT
 	_update_loadout_anvil()
 	_fill_sub(selected_char)
@@ -265,6 +273,107 @@ func _update_loadout_count() -> void:
 	var ok = controller.state.selected_loadout.size() >= controller.state.LOADOUT_MIN
 	confirm_btn.disabled = not ok
 	confirm_btn.text = ("确认开战 ▶" if ok else "至少选 %d 把武器 ▶" % controller.state.LOADOUT_MIN)
+	if _preview_panel != null and _preview_panel.visible:
+		_refresh_preview()
+
+
+# ---------------------------------------------------------------------------
+# M1-04 转轮带预览：装备集合 → 真实带子构成（符号/有效元素/实际格数，含聚合/稀有度/
+# 共享来源/MISS/金币）+ 已激活共鸣与触发装备。纯计算（ReelPreview），不写入局内状态。
+# ---------------------------------------------------------------------------
+func _build_preview_ui() -> void:
+	if _preview_panel != null:
+		return
+	_preview_btn = Button.new()
+	_preview_btn.text = "🎰带"
+	_preview_btn.add_theme_font_size_override("font_size", 9)
+	_preview_btn.pressed.connect(_toggle_preview)
+	var bar: Node = confirm_btn.get_parent()
+	bar.add_child(_preview_btn)
+	bar.move_child(_preview_btn, confirm_btn.get_index())
+
+	_preview_panel = PanelContainer.new()
+	_preview_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_preview_panel.z_index = 30
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Palette.BG_OVERLAY
+	_preview_panel.add_theme_stylebox_override("panel", sb)
+	_preview_panel.gui_input.connect(func(ev: InputEvent) -> void:
+		if ev is InputEventMouseButton and ev.pressed:
+			_preview_panel.visible = false)   # 点遮罩任意处可退出（内容超屏时的兜底）
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var dlg := PanelContainer.new()
+	var sb2 := StyleBoxFlat.new()
+	sb2.bg_color = Palette.PANEL_BG
+	sb2.border_color = Palette.ACCENT_GOLD
+	sb2.set_border_width_all(2)
+	dlg.add_theme_stylebox_override("panel", sb2)
+	dlg.custom_minimum_size = Vector2(430, 240)
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(410, 220)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_preview_box = VBoxContainer.new()
+	_preview_box.add_theme_constant_override("separation", 2)
+	_preview_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(_preview_box)
+	dlg.add_child(scroll)
+	center.add_child(dlg)
+	_preview_panel.add_child(center)
+	ui_root.add_child(_preview_panel)
+	_preview_panel.visible = false
+
+
+func _toggle_preview() -> void:
+	_preview_panel.visible = not _preview_panel.visible
+	if _preview_panel.visible:
+		_refresh_preview()
+
+
+func _refresh_preview() -> void:
+	for c in _preview_box.get_children():
+		_preview_box.remove_child(c)
+		c.queue_free()
+	var comp: Dictionary = ReelPreview.compose(
+		controller.selected_loadout, controller.selected_skills, controller.selected_charms,
+		[], controller._reward_system.run_symbol_bonus, controller.deprived_level)
+	var head = hud._label("🎰 转轮带预览", TypeScale.MEDIUM)
+	head.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_preview_box.add_child(head)
+	var sum = hud._label(ReelPreview.summary_line(comp), TypeScale.TINY)
+	sum.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	sum.add_theme_color_override("font_color", Palette.MUTED)
+	_preview_box.add_child(sum)
+	for r in comp["rows"]:
+		var line := "%s · %s · 权重%.0f → %d格 · 来源:%s" % [
+			String(r["name"]), ElementCounter.label(String(r["elem"])),
+			float(r["weight"]), int(r["cells"]), "、".join(r["items"])]
+		var l = hud._label(line, TypeScale.TINY)
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		l.custom_minimum_size = Vector2(320, 0)
+		_preview_box.add_child(l)
+	for s in comp["synergies"]:
+		var sd: SynergyData = s["def"]
+		var names := []
+		for p in s["paths"]:
+			var d = load(String(p))
+			names.append(controller._shop_name(String(p), "weapon" if d is WeaponData else "passive"))
+		var sl = hud._label("共鸣 %s（%s）：%s" % [sd.name, "、".join(names), sd.desc], TypeScale.TINY)
+		sl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		sl.custom_minimum_size = Vector2(320, 0)
+		sl.add_theme_color_override("font_color", Palette.ACCENT_GOLD)
+		_preview_box.add_child(sl)
+	var hint = hud._label("权重是格数档位依据（≥2→3 格、≥4→4 格；共享来源可突破稀有封顶）；落点由按停时机决定", TypeScale.TINY)
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hint.custom_minimum_size = Vector2(320, 0)
+	hint.add_theme_color_override("font_color", Palette.MUTED_DIM)
+	_preview_box.add_child(hint)
+	var close := Button.new()
+	close.text = "关闭"
+	close.custom_minimum_size = Vector2(120, 26)
+	close.pressed.connect(func(): _preview_panel.visible = false)
+	_preview_box.add_child(close)
 
 
 func _sync_card_selection() -> void:

@@ -37,7 +37,7 @@ signal reward_skip_requested                 # 跳过房奖励
 signal shop_requested                          # 🛒 打开商店（房间歇态 opt-in）
 signal next_room_requested                     # ▶ 下一房（房间歇态）
 signal card_toggled(card: Dictionary)         # 整备卡片勾选
-signal meta_choice_chosen(opt: Dictionary)    # 局末元进度三选一
+signal meta_choice_chosen(opt: Dictionary)    # 局末元进度结算（当前仅铁砧点单结果，GAME+ 后恢复多选）
 signal overlay_button_pressed                 # 失败弹层按钮（回整备）
 signal consumable_used(uid: String)           # 使用腰带消耗品
 @warning_ignore("unused_signal")
@@ -955,7 +955,7 @@ var _replace_dialog: PanelContainer = null
 var _replace_vbox: VBoxContainer = null
 var _replace_cb: Callable = Callable()
 
-func request_weapon_replace(title: String, new_weapon_info: String, on_chosen: Callable) -> void:
+func request_weapon_replace(title: String, new_weapon_info: String, on_chosen: Callable, new_path: String = "") -> void:
 	_replace_cb = on_chosen
 	if _replace_dialog == null:
 		_replace_dialog = PanelContainer.new()
@@ -997,6 +997,23 @@ func request_weapon_replace(title: String, new_weapon_info: String, on_chosen: C
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_replace_vbox.add_child(hint)
 	for path in controller.selected_loadout:
+		# M1-04：替换预览——真实格数增减 + 共鸣得失（口径同 build_strips，纯计算不写入局内状态）
+		if new_path != "":
+			var hypo: Array = controller.selected_loadout.duplicate()
+			hypo.erase(path)
+			hypo.append(new_path)
+			var lines := ReelPreview.diff_lines(
+				controller.selected_loadout, hypo,
+				controller.selected_skills, controller.selected_charms,
+				controller.room_element_mult, controller._reward_system.run_symbol_bonus,
+				controller.deprived_level, controller.pending_chaos, int(controller.boss_trash))
+			var dl = _label("", TypeScale.TINY)
+			dl.text = "替换后：无变化" if lines.is_empty() else "替换后：" + "；".join(lines)
+			dl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			dl.custom_minimum_size = Vector2(300, 0)
+			dl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			dl.add_theme_color_override("font_color", Palette.MUTED)
+			_replace_vbox.add_child(dl)
 		var btn = UI_BUTTON.instantiate()
 		btn.text = "替换「%s」" % controller._shop_name(path, "weapon")
 		btn.custom_minimum_size = Vector2(220, 34)

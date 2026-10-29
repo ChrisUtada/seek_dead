@@ -43,44 +43,66 @@ func save_meta() -> void:
 	SaveSystem.flush_lobby_data()   # 关键节点立即落盘，避免丢失
 
 
+# M1-03 新档初始收藏（M0-02 已确认）：4 把初始武器 + 4 个基础护符 + 全部基础消耗品。
+# 目的：新档保留真实未解锁内容，铁砧/图鉴有成长空间（旧行为播种全池 → 图鉴一步到 76%，里程碑集中补发）。
+const STARTER_WEAPONS: Array[String] = [
+	"res://resources/weapon_templates/dagger.tres",
+	"res://resources/weapon_templates/fire_sword.tres",
+	"res://resources/weapon_templates/battle_axe.tres",
+	"res://resources/weapon_templates/ice_staff.tres",
+]
+const STARTER_CHARM_COUNT := 4
+
 func seed_default_owned() -> void:
-	# 新档/迁移：owned_* 为空时用当前全池种子填充，保证整备屏有可选范围。
-	# Gungeon 化可改为只给基础子集（如 WEAPON_POOL 前 N 个）。
-	# 调试开关 SMALL_OWNED：仅在 owned 为空时把拥有池压到 3 武器/4 护符（便于观察铁砧抽新）；
-	#   关掉恢复正式全池。仅「空时」播种，铁砧授予的新件不会被重载后抹掉（要恢复全池请清存档）。
-	if _ctrl.SMALL_OWNED:
-		if meta["owned_weapons"].is_empty():
-			meta["owned_weapons"] = _ctrl.WEAPON_POOL.slice(0, _ctrl.SMALL_OWNED_WEAPONS)
-	if meta["owned_charms"].is_empty():
-		var ps := []
-		for p in _ctrl.ITEM_POOL:
-			var d = load(p)
-			if d is ItemData and d.category == "passive":
-				if _is_boss_relic(d, p):
-					continue   # BOSS 信物（epic *_relic）不种子——仅 BOSS 战利品可获（见 docs/BOSS信物_设计方案.md）
-				ps.append(p)
-		meta["owned_charms"] = ps.slice(0, _ctrl.SMALL_OWNED_CHARMS)
-		self.save_meta()
-		return
-	if meta["owned_weapons"].is_empty():
-		meta["owned_weapons"] = _ctrl.WEAPON_POOL.duplicate()
-	if meta["owned_charms"].is_empty():
-		var ps := []
-		for p in _ctrl.ITEM_POOL:
-			var d = load(p)
-			if d is ItemData and d.category == "passive":
-				if _is_boss_relic(d, p):
-					continue   # BOSS 信物不种子（见上）
-				ps.append(p)
-		meta["owned_charms"] = ps
-	if meta["owned_consumables"].is_empty():
-		var cs := []
-		for p in _ctrl.ITEM_POOL:
-			var d = load(p)
-			if d is ItemData and d.category == "active":
-				cs.append(p)
-		meta["owned_consumables"] = cs
+	# 迁移口径：只「补足」基础子集，从不删除已有收藏——老存档的全池收藏原样保留（不回收已获得内容）。
+	_ensure_owned("owned_weapons", _starter_weapons())
+	_ensure_owned("owned_charms", _starter_charms())
+	_ensure_owned("owned_consumables", _all_active_items())
 	self.save_meta()
+
+
+func _ensure_owned(key: String, paths: Array) -> void:
+	if not meta.has(key):
+		meta[key] = []
+	for p in paths:
+		if not meta[key].has(p):
+			meta[key].append(p)
+
+
+func _starter_weapons() -> Array:
+	var out := []
+	for p in STARTER_WEAPONS:
+		if ResourceLoader.exists(p):
+			out.append(p)
+	return out
+
+
+# 初始护符：非 BOSS 信物的 passive 中优先 common（保证新档有基础防御向构筑），按路径稳定排序取前 N。
+func _starter_charms() -> Array:
+	var pool := []
+	for p in _ctrl.ITEM_POOL:
+		var d = load(p)
+		if d is ItemData and d.category == "passive" and not _is_boss_relic(d, p):
+			pool.append(p)
+	pool.sort()
+	var common := pool.filter(func(p): return String(load(p).get("rarity")) == "common")
+	var out: Array = common.slice(0, STARTER_CHARM_COUNT)
+	if out.size() < STARTER_CHARM_COUNT:
+		for p in pool:
+			if out.size() >= STARTER_CHARM_COUNT:
+				break
+			if not out.has(p):
+				out.append(p)
+	return out
+
+
+func _all_active_items() -> Array:
+	var out := []
+	for p in _ctrl.ITEM_POOL:
+		var d = load(p)
+		if d is ItemData and d.category == "active":
+			out.append(p)
+	return out
 
 
 # BOSS 信物判定（2026-08-14）：epic 稀有度 + *_relic 文件名的 passive——

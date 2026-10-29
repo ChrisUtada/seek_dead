@@ -216,6 +216,11 @@ func _resolve_anvil_drop(d: Dictionary) -> void:
 	_check_collection_milestones()
 
 
+# 公开入口（M1-03）：商店 / 奖励 / BOSS 战利品写入收藏后也要按真实进度结算图鉴里程碑。
+func check_collection_milestones() -> void:
+	_check_collection_milestones()
+
+
 func _anvil_collection_pct() -> float:
 	var pool = _anvil_pool()
 	if pool.is_empty():

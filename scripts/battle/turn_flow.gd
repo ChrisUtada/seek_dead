@@ -100,6 +100,8 @@ func on_spin_pressed() -> void:
 	if _ctrl.player_hp <= 0:
 		_ctrl.hud._log("✖ 你被 %s 击倒。" % _ctrl.enemy_name)
 		_ctrl.game_state = _ctrl.FlowState.LOST
+		if _ctrl._telemetry != null:
+			_ctrl.room_flow.log_telemetry()   # M1-06：战败局也记录遥测
 		_ctrl.invalidate_state()
 		_ctrl.hud._show_overlay("✖ 失败\n你倒在了 %s 面前" % _ctrl.enemy_name, "返回整备 ▶")
 		_ctrl.hud._refresh_meta()

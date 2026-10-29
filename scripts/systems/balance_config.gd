@@ -4,7 +4,7 @@ extends Resource
 # T22 平衡常量表（resources/config/balance_config.tres，策划可在 Inspector 直接编辑，替代 controller 顶部散落 @export）。
 # 用法：各处 `const BALANCE = preload("res://resources/config/balance_config.tres")`（与 ShopConfig 同模式）。
 # 结构常量（转轮引擎/流程）不迁入：REELS/ROWS/_SPIN_*/_ITEM_STRIP_TARGET/_GOLD_CELLS/UNCAPPED/CONSUMABLE_CAP 等留代码。
-# 调试旗标（SMALL_OWNED_*）留 controller（非平衡数值）。
+# M1-03：新档 everything-owned 调试旗标（原 SMALL_OWNED_*）已删除——初始池本身即基础子集。
 
 # —— 经济 ——
 @export var gold_pool_weight: float = 3.0     # 金币符号权重——⚠ 2026-08-14 勘误：仅喂 legacy 展示池（duel_controller:467 图例/查询），带子金币格数由 _GOLD_CELLS=2 固定决定，与频率解耦；旧注释「防稀释 DPS」为误导

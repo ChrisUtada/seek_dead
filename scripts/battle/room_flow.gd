@@ -14,16 +14,30 @@ func _init(ctrl) -> void:
 # 清房推进编排：hide → 应用奖励（可选）→ 铁砧点/金币入账 → T8 掉落（普通消耗品概率/精英保底护符）→ 元进度或间歇态 → 刷元进度栏。
 func finish_room(apply_fn: Callable, is_boss: bool) -> void:
 	_ctrl.hud.hide_reward_screen()
+	if _ctrl._telemetry != null:
+		_ctrl._telemetry.on_room_clear()   # M1-06：清房耗时
 	if apply_fn.is_valid():
 		apply_fn.call()
 	_ctrl._anvil_system.award_meta(is_boss)    # M5：房间通关发放铁砧点数
 	_ctrl._meta_store.award_gold(is_boss)    # S6+S8：清房金币 + 利息
 	_ctrl._reward_system.apply_room_drops()   # T8：普通房 12% 掉消耗品 / 精英房保底护符（BOSS 走自身战利品）
 	if _ctrl._is_run_final(_ctrl.room_index):
+		log_telemetry()                               # M1-06：整局结束打印遥测
 		_ctrl._reward_system.show_meta_choice()        # 通关整局（最终 BOSS）→元进度三选一（持久生效）
 	else:
 		enter_interroom()        # opt-in 商店：进入房间歇态（🛒 可选，▶ 下一房继续）
 	_ctrl.hud._refresh_meta()   # 幂等兜底：各子系统方法已自包含刷新（apply_reward/award_gold 等），此处防编排层遗漏
+
+
+# M1-06：局末遥测输出（真人评测指标；只打印/记日志，不改变结算）
+func log_telemetry() -> void:
+	if _ctrl._telemetry == null:
+		return
+	var txt: String = _ctrl._telemetry.summary_text()
+	print("TELEMETRY|" + txt)
+	_ctrl.hud._log("📊 本局遥测：" + txt)
+
+
 func enter_interroom(roll_shop: bool = true) -> void:
 	_ctrl.in_interroom = true
 	_ctrl._shop_system.reroll_used = 0   # 2026-08-09：刷新次数随房间歇期清零（价格重新从 reroll_base 起）

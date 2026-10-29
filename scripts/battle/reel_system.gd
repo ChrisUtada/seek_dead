@@ -91,6 +91,8 @@ func begin_spin() -> void:
 	_spin_ticks = 0
 	_timer.wait_time = _SPIN_BASE_WAIT
 	_timer.start()
+	if _ctrl._telemetry != null:
+		_ctrl._telemetry.spin_start()   # M1-06：旋转耗时
 	_ctrl.hud._log("转轮旋转中——按【空格】逐列停止，或点击某一列单独停下（不停就一直转）")
 
 
@@ -145,14 +147,7 @@ func build_strips() -> void:
 		# 2026-08-14 例外：共享符号 ≥2 源（sources ≥ 2）突破封顶走正常档位——修复「双同属性武器陷阱构装」
 		# （低攻第二把被 max 攻 + 封顶双重吃掉，收益≈0，蒙特卡洛实测 +1%）。单件仍封顶。
 		for k in agg:
-			var cnt: int = 2
-			var w: float = agg[k]["w"]
-			if w >= 4.0:
-				cnt = 4
-			elif w >= 2.0:
-				cnt = 3
-			if agg[k]["sym"].kind != "damage" and int(agg[k]["rank"]) >= RARITY_RANK["rare"] and int(agg[k]["sources"]) < 2:
-				cnt = mini(cnt, _RARE_CAP_CELLS)
+			var cnt: int = cells_for(agg[k]["w"], agg[k]["sym"].kind, int(agg[k]["rank"]), int(agg[k]["sources"]))
 			for _c in cnt:
 				base.append([agg[k]["sym"], agg[k]["elem"]])
 			total_cells += cnt
@@ -186,6 +181,19 @@ func build_strips() -> void:
 			copy[i] = copy[j]
 			copy[j] = tmp
 		reel_strips.append(copy)
+
+
+# 单条 (符号|有效元素) 聚合项的格子数（M1-02：build_strips 与奖励灌注预览共用，
+# 避免「卡片说 +N 格、实际带子不变」的口径漂移）。
+static func cells_for(w: float, kind: String, rank: int, sources: int) -> int:
+	var cnt := 2
+	if w >= 4.0:
+		cnt = 4
+	elif w >= 2.0:
+		cnt = 3
+	if kind != "damage" and rank >= RARITY_RANK["rare"] and sources < 2:
+		cnt = mini(cnt, _RARE_CAP_CELLS)
+	return cnt
 
 
 # 节拍器回调：推进仍在旋转的转轮并逐步加速。没有自动停止——只有玩家按停才会锁定。
@@ -268,6 +276,8 @@ func finish_spin() -> void:
 		return
 	_spinning = false
 	_timer.stop()
+	if _ctrl._telemetry != null:
+		_ctrl._telemetry.spin_end()
 	for r in DuelController.REELS:
 		_ctrl.hud.set_reel_enabled(r, false)
 	_ctrl.pending_jam_reel = -1
@@ -377,6 +387,11 @@ func build_pool(loadout: Array) -> void:
 
 # 符号「有效元素」（武器元素化）：special 优先武器 reel_element；其余自身优先、否则继承武器元素。
 func eff_element(sym: SymbolData, wd: WeaponData) -> String:
+	return effective_element(sym, wd.element, wd.reel_element)
+
+
+# 纯计算版本（M1-04 预览共用，避免两处口径漂移）；技能/精华传 weapon_element="none"。
+static func effective_element(sym: SymbolData, weapon_element: String, reel_element: String) -> String:
 	if sym.kind == "special":
-		return wd.reel_element if wd.reel_element != "none" else sym.element
-	return sym.element if sym.element != "none" else wd.element
+		return reel_element if reel_element != "none" else sym.element
+	return sym.element if sym.element != "none" else weapon_element

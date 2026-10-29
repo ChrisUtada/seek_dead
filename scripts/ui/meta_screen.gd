@@ -17,14 +17,22 @@ func configure(ctrl, h: BattleHud) -> void:
 	controller = ctrl
 	hud = h
 	bg.color = Palette.BG_REWARD
-	title_label.text = "★ 通关一局！选择一项元进度升级（持久生效）"
-	sub_label.text = "武器基础伤害 / 命中率 线性成长 × 护符伤害乘区增值——下一局起爆炸"
+	# M1-05：当前元进度只有「铁砧点数」一个真实结果——不再伪装成三选一，也不承诺线性成长。
+	title_label.text = "★ 一局结束 · 元进度结算"
+	sub_label.text = "铁砧点数用于铁砧抽取装备（跨局保留）；更多元进度候选待 GAME+ 上线后恢复。"
 
 func show_choice() -> void:
 	for c in meta_grid.get_children():
 		meta_grid.remove_child(c)
 		c.queue_free()
 	var choices = controller._reward_system.roll_meta_choices()
+	# M1-05：单结果直接以「本局获得」呈现；未来 GAME+ 多候选上线时自动回到选择语义。
+	if choices.size() <= 1:
+		title_label.text = "★ 一局结束 · 本局获得"
+		sub_label.text = "以下奖励已直接结算（跨局保留）"
+	else:
+		title_label.text = "★ 一局结束 · 选择一项元进度"
+		sub_label.text = "以下选项持久生效，下一局起可用。"
 	for opt in choices:
 		meta_grid.add_child(hud._make_meta_card(opt))
 	visible = true

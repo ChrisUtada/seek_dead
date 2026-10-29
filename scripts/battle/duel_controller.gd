@@ -74,9 +74,7 @@ const ROWS = 1
 # 房间难度曲线（ante）：数值见 balance_config.tres（ante_act_step_*/ante_room_step_*，T22 资源化）。
 # 等价关系：原 1.15^idx（每幕恰 4 房）= (1.15^4)^(act-1)·1.15^(幕内位置)。T25 房数重排（2026-08-09）后每幕 8 房、
 # BOSS 幕内位置 ria=3→7（ante 倍率随 ria 自动爬升，数值待 F6 复核）。当前手感：幕1/2/3 BOSS HP ≈ 266/771/2140。
-@export var SMALL_OWNED: bool = false   # 调试用：铁砧效果测试时把拥有池压到 SMALL_OWNED_WEAPONS 武器 / SMALL_OWNED_CHARMS 护符（默认 false 用正式全池）
-@export var SMALL_OWNED_WEAPONS: int = 3
-@export var SMALL_OWNED_CHARMS: int = 4
+# M1-03：新档改为只播种基础子集（MetaStore.STARTER_*），SMALL_OWNED 调试开关已删除（不再需要压缩全池）。
 
 # M4 房奖励池（每清一房随机 3 选 1；Boss 房走同池但标为「残余物」）。
 # Phase D 资源化：改为扫描 resources/rewards/*.tres（RewardData），见 _ready 内填充。
@@ -234,6 +232,7 @@ var _shop_system                       # 商店子系统 ShopSystem（步骤3抽
 var _reward_system                     # 奖励子系统 RewardSystem（步骤4抽出；_ready 实例化并注入 self）
 var _loadout_system                    # 整备子系统 LoadoutSystem（步骤5抽出；_ready 实例化并注入 self）
 var _synergy_system                    # 装备共鸣系统 SynergySystem（方案 B 配套；_ready 实例化并注入 self）
+var _telemetry                         # M1-06 局内遥测（内存计数，不落盘/不吃随机；每局清零）
 
 # 仅 1 行 3 格。特殊符号需 3 同才触发；普通符号单颗即结算，出现 n 次 ×n。
 var PAYLINES = [
@@ -310,6 +309,7 @@ func _ready() -> void:
 	enemy_system = EnemySystem.new(self)
 	room_flow = preload("res://scripts/battle/room_flow.gd").new(self)
 	turn_flow = preload("res://scripts/battle/turn_flow.gd").new(self)
+	_telemetry = preload("res://scripts/systems/run_telemetry.gd").new()
 	_meta_store.load_meta()
 	_meta_store.sanitize_owned()   # 自愈：清洗历史上误写入 owned_* 的非本类路径（如技能）
 	_meta_store.seed_default_owned()
@@ -343,13 +343,15 @@ func _build_pool(loadout: Array) -> void:
 # 房奖励 / BOSS 战利品 / 清房推进 / 元进度确认：已迁 RoomFlow（P2 架构还债，2026-08-24）——单行转发。
 # ---------------------------------------------------------------------------
 func _on_reward_chosen(id: String, index: int = -1) -> void:
+	if _telemetry != null:
+		_telemetry.on_reward_pick(id)   # M1-06：奖励选择率
 	# M1-01：满双武器时武器奖励不再被隐藏——卡片展示前已定具体武器，选择后走替换弹层
 	if id == "weapon":
 		var payload: Dictionary = _reward_system.payload_at(index)
 		var p: String = String(payload.get("path", ""))
 		if p != "" and not selected_loadout.has(p) and selected_loadout.size() >= _loadout_system.cat_cap("weapon"):
 			hud.request_weapon_replace("胜利奖励：替换武器", _weapon_info(p), func(old_path: String) -> void:
-				_apply_reward_weapon_replace(p, old_path))
+				_apply_reward_weapon_replace(p, old_path), p)
 			return
 	room_flow.finish_room(func(): _reward_system.apply_reward(id, index), reward_is_boss)
 
@@ -363,6 +365,8 @@ func _apply_reward_weapon_replace(p: String, old_path: String) -> void:
 	selected_loadout.erase(old_path)
 	selected_loadout.append(p)
 	_reward_system.remember_weapon(p)
+	if _telemetry != null:
+		_telemetry.on_weapon_swap()
 	_build_pool(selected_loadout)
 	hud._log("奖励替换：%s → %s" % [old_name, _shop_name(p, "weapon")])
 	room_flow.finish_room(Callable(), reward_is_boss)
@@ -382,12 +386,14 @@ func _on_reward_skip_pressed() -> void:
 
 
 func _on_boss_reward_chosen(cand: Dictionary) -> void:
+	if _telemetry != null:
+		_telemetry.on_reward_pick("boss_" + String(cand.get("kind", "")))
 	# 武器槽上限 2：BOSS 武器战利品满 2 时 → 替换弹层（旧武器回 owned 图鉴）
 	if cand.get("kind", "") == "boss_weapon" and selected_loadout.size() >= _loadout_system.cat_cap("weapon"):
 		var p: String = cand.get("path", "")
 		if p != "" and not selected_loadout.has(p):
 			hud.request_weapon_replace("★ BOSS 战利品：替换武器", _weapon_info(p), func(old_path: String):
-				_apply_boss_weapon_replace(p, old_path))
+				_apply_boss_weapon_replace(p, old_path), p)
 			return
 	_finish_room(func(): _reward_system.apply_boss_reward(cand), true)
 
@@ -400,6 +406,8 @@ func _apply_boss_weapon_replace(p: String, old_path: String) -> void:
 	selected_loadout.erase(old_path)
 	selected_loadout.append(p)
 	_reward_system.remember_weapon(p)
+	if _telemetry != null:
+		_telemetry.on_weapon_swap()
 	_build_pool(selected_loadout)
 	hud._log("BOSS 武器替换：%s → %s" % [old_name, _shop_name(p, "weapon")])
 	_finish_room(Callable(), true)
@@ -500,6 +508,8 @@ func _full_reset() -> void:
 # 新一局公共状态重置（不含开战）：已迁至 LoadoutSystem.reset_run_state（P2 架构还债，2026-08-24）——单行转发。
 func _reset_run_state() -> void:
 	_loadout_system.reset_run_state()
+	if _telemetry != null:
+		_telemetry.reset()   # M1-06：新一局遥测清零
 
 
 # 房间是否为 BOSS 房：以 RoomData.kind == "boss" 判定（不再依赖「最后一间」的位置约定，
@@ -536,6 +546,8 @@ func _start_room(idx: int) -> void:
 	_apply_charms()                         # S7：每次开房重算护符被动（含商店购入的护符）
 	_build_pool(selected_loadout)           # S7：重建符号池（含商店购入的武器）
 	room_index = idx
+	if _telemetry != null:
+		_telemetry.on_room_start()   # M1-06：TTK 观测起点
 	var r: RoomData = ROOMS[idx]
 	enemy_name = r.name
 	# ante 难度曲线：RoomData.hp/atk 视为基础值（T5：为 0 时取行为族基准），按「幕间台阶 × 幕内爬升」缩放。
