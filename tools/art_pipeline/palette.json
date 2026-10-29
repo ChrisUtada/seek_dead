@@ -1,0 +1,47 @@
+{
+  "version": 3,
+  "updated": "2026-10-29",
+  "note": "Seek Dead 主色板 v3：v2 角色 22 色 + 新视觉 UI 令牌 10 色。元素色沿用 ElementCounter.color()，不改运行时。",
+  "limits": {
+    "sprite48": 12,
+    "boss96": 16,
+    "icon24": 8,
+    "icon16": 6,
+    "ui": 32
+  },
+  "colors": [
+    { "name": "line_deep",      "hex": "#3F2631", "role": "角色暗描边 / 图标暗部 / 深隔断" },
+    { "name": "cold_light",     "hex": "#C0CBDC", "role": "冷色高光（金属、冰甲）" },
+    { "name": "brown",          "hex": "#BD6C4A", "role": "皮革 / 木质 / 锈" },
+    { "name": "slate",          "hex": "#8B9BB4", "role": "冷灰中间调" },
+    { "name": "skin",           "hex": "#EAA56C", "role": "皮肤中间调" },
+    { "name": "navy_dark",      "hex": "#262B44", "role": "深蓝阴影（旧 UI 主色，转为局部暗部）" },
+    { "name": "navy",           "hex": "#52607C", "role": "蓝灰中间调（旧 UI）" },
+    { "name": "skin_light",     "hex": "#F7C282", "role": "皮肤亮部" },
+    { "name": "skin_mid",       "hex": "#E19A65", "role": "皮肤暗部" },
+    { "name": "element_fire",   "hex": "#FF7333", "role": "火元素（= ElementCounter）" },
+    { "name": "element_ice",    "hex": "#80CCFF", "role": "冰元素（= ElementCounter）" },
+    { "name": "element_poison", "hex": "#99E666", "role": "毒元素（= ElementCounter）" },
+    { "name": "element_light",  "hex": "#FFEB8C", "role": "光元素（= ElementCounter）" },
+    { "name": "element_dark",   "hex": "#A68CD9", "role": "暗元素（= ElementCounter）" },
+    { "name": "gray_light",     "hex": "#B3B3BF", "role": "中性灰亮部" },
+    { "name": "white",          "hex": "#F4F4F4", "role": "纯高光 / 白刃" },
+    { "name": "gold_bright",    "hex": "#FFD94D", "role": "火花 / 强奖励点" },
+    { "name": "enemy_body",     "hex": "#FF6659", "role": "敌人主体（珊瑚红）" },
+    { "name": "black",          "hex": "#17141F", "role": "最深暗部 / 描边黑" },
+    { "name": "enemy_dark",     "hex": "#B43430", "role": "敌人暗部" },
+    { "name": "enemy_mid",      "hex": "#CE603E", "role": "敌人中间调" },
+    { "name": "yellow",         "hex": "#FFFF30", "role": "电光 / 极亮强调" },
+
+    { "name": "bg",             "hex": "#160D13", "role": "UI 主背景（暗紫褐）" },
+    { "name": "panel",          "hex": "#1D1219", "role": "UI 面板 / 卡片 / 抽屉底" },
+    { "name": "text_main",      "hex": "#E2D7BD", "role": "主文字 / 主暖白线框" },
+    { "name": "text_muted",     "hex": "#A99D89", "role": "次级文字 / 次线框" },
+    { "name": "player_body",    "hex": "#B9B8B0", "role": "玩家灰白主体" },
+    { "name": "danger_text",    "hex": "#E35B50", "role": "伤害 / 危险文字（UI 层，不等同敌人主体）" },
+    { "name": "gold_ui",        "hex": "#D5A33D", "role": "主按钮 / 奖励 / 当前选择" },
+    { "name": "shield",         "hex": "#62A1C2", "role": "护盾 / 护甲 / 防御信息" },
+    { "name": "player_shade",   "hex": "#7E7D76", "role": "玩家暗部" },
+    { "name": "impact",         "hex": "#FFF4D6", "role": "命中暖白闪 / 受击高光" }
+  ]
+}

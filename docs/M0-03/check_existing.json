@@ -1,0 +1,124 @@
+[
+  {
+    "file": "assets\\characters\\char\\idle_01.png",
+    "status": "PASS",
+    "metrics": {
+      "size": [
+        48,
+        48
+      ],
+      "mode": "RGBA",
+      "bbox": [
+        1,
+        6,
+        37,
+        48
+      ],
+      "opaque_pixels": 964,
+      "transparent_ratio": 0.582,
+      "unique_colors": 9,
+      "off_palette_pixels": 0,
+      "off_palette_ratio": 0.0,
+      "feet_gap": 0,
+      "center_offset": -5.0,
+      "bbox_fill": 0.656
+    },
+    "fails": [],
+    "warns": [
+      "水平中心偏移 -5.0px（应 ≤1px）"
+    ]
+  },
+  {
+    "file": "assets\\bossbf.png",
+    "status": "FAIL",
+    "metrics": {
+      "size": [
+        48,
+        48
+      ],
+      "mode": "RGBA",
+      "bbox": [
+        6,
+        3,
+        42,
+        46
+      ],
+      "opaque_pixels": 908,
+      "transparent_ratio": 0.606,
+      "unique_colors": 435,
+      "off_palette_pixels": 908,
+      "off_palette_ratio": 1.0,
+      "feet_gap": 2,
+      "center_offset": 0.0,
+      "bbox_fill": 0.672
+    },
+    "fails": [
+      "色数 435 > 上限 12",
+      "板外色占比 100.0% > 5%"
+    ],
+    "warns": [
+      "脚底离画布底 2px（角色类应 0–1px）"
+    ]
+  },
+  {
+    "file": "assets\\enemy.png",
+    "status": "FAIL",
+    "metrics": {
+      "size": [
+        16,
+        16
+      ],
+      "mode": "P",
+      "bbox": [
+        0,
+        0,
+        16,
+        16
+      ],
+      "opaque_pixels": 216,
+      "transparent_ratio": 0.156,
+      "unique_colors": 7,
+      "off_palette_pixels": 11,
+      "off_palette_ratio": 0.0509,
+      "feet_gap": 0,
+      "center_offset": 0.0,
+      "bbox_fill": 1.0
+    },
+    "fails": [
+      "尺寸 [16, 16] != 目标 [48, 48]",
+      "板外色占比 5.1% > 5%"
+    ],
+    "warns": []
+  },
+  {
+    "file": "assets\\wq.png",
+    "status": "FAIL",
+    "metrics": {
+      "size": [
+        16,
+        16
+      ],
+      "mode": "P",
+      "bbox": [
+        0,
+        0,
+        16,
+        16
+      ],
+      "opaque_pixels": 199,
+      "transparent_ratio": 0.223,
+      "unique_colors": 6,
+      "off_palette_pixels": 9,
+      "off_palette_ratio": 0.0452,
+      "feet_gap": 0,
+      "center_offset": 0.0,
+      "bbox_fill": 1.0
+    },
+    "fails": [
+      "尺寸 [16, 16] != 目标 [48, 48]"
+    ],
+    "warns": [
+      "板外色 9 像素（≤5%，建议归一）"
+    ]
+  }
+]

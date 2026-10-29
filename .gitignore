@@ -37,3 +37,6 @@ roombuild.tscn
 
 # Asset source packs
 kenney_tiny-dungeon*
+
+# AI 原始候选图（不入库）
+raw/
