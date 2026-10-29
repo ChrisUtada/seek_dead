@@ -20,6 +20,8 @@ var _ctrl: DuelController          # DuelController 实例（类型标注，编�
 var run_symbol_bonus: Dictionary = {}   # resource_path -> 额外权重（本局符号灌注，房奖励）
 var run_power_bonus: int = 0            # 本局符号基础伤害加成（房奖励：攻击研磨）
 var run_shield_next: int = 0            # 进入下一房时获得的护盾（房奖励：守望结界 / 精英备战）
+var choice_payloads: Array[Dictionary] = []   # M1-01：与 reward_choices 按 index 对齐的预确定结果 {kind,path,title,desc}
+var _acq_cache: Dictionary = {}         # path -> {w, hi}：获取权重缓存（shop/BOSS 抽样每局数万次 load() 的性能修复）
 
 func _init(ctrl: DuelController) -> void:
 	_ctrl = ctrl
@@ -73,10 +75,7 @@ const REWARD_TAG := {
 
 func roll_rewards() -> Array:
 	var act: int = _ctrl.ROOMS[_ctrl.room_index].act if (_ctrl.room_index >= 0 and _ctrl.room_index < _ctrl.ROOMS.size()) else 1
-	var pool: Array = _ctrl.REWARD_POOL.duplicate()
-	# 幕一教学期不出构筑武器；武器槽满（2 把，A 方案 2026-08-13）时武器卡不入候选池——尊重「固定 2 把」规则
-	if act < 2 or _ctrl.selected_loadout.size() >= _ctrl._loadout_system.cat_cap("weapon"):
-		pool = pool.filter(func(rw): return rw.id != "weapon")
+	var pool: Array = build_reward_pool(act)
 	var def_pool: Array = pool.filter(func(rw): return REWARD_TAG.get(rw.id, "") == "def")
 	var atk_pool: Array = pool.filter(func(rw): return REWARD_TAG.get(rw.id, "") == "atk")
 	var out := []
@@ -92,7 +91,60 @@ func roll_rewards() -> Array:
 	var third: RewardData = _weighted_pick(rest, act)
 	if third != null:
 		out.append(third)
+	_fill_reward_payloads(out)
 	return out
+
+
+# 房奖励候选池（M1-01）：幕一教学期不出构筑武器；
+# 武器槽满（2 把）不再把武器卡排除——改为「展示具体武器 + 选择时走替换弹层」。
+func build_reward_pool(act: int) -> Array:
+	var pool: Array = _ctrl.REWARD_POOL.duplicate()
+	if act < 2:
+		pool = pool.filter(func(rw): return rw.id != "weapon")
+	return pool
+
+
+# 与 reward_choices 对齐的预确定结果（无 payload 的奖励返回空字典）
+func payload_at(index: int) -> Dictionary:
+	if index < 0 or index >= choice_payloads.size():
+		return {}
+	return choice_payloads[index]
+
+
+func _fill_reward_payloads(choices: Array) -> void:
+	choice_payloads = []
+	for rw in choices:
+		choice_payloads.append(_weapon_payload() if rw != null and rw.id == "weapon" else {})
+
+
+# 武器奖励预确定：从当前未装备的武器按获取权重抽一把（展示前定死，确认后不再随机）
+func pick_reward_weapon_path() -> String:
+	var cand := []
+	for p in _ctrl.WEAPON_POOL:
+		if not _ctrl.selected_loadout.has(p):
+			cand.append(p)
+	if cand.is_empty():
+		return ""
+	return acq_weighted_pick(cand)
+
+
+func _weapon_payload() -> Dictionary:
+	var p := pick_reward_weapon_path()
+	if p == "":
+		return {}
+	var wd: WeaponData = load(p)
+	var nm: String = wd.weapon_name if wd != null else p.get_file().get_basename()
+	return {
+		"kind": "weapon", "path": p,
+		"title": "武器 · %s" % nm,
+		"desc": "加入转轮带；武器槽满则替换",
+	}
+
+
+# 新武器写入局外收藏（图鉴/开局池）；落盘时机与商店一致（局末统一保存）
+func remember_weapon(path: String) -> void:
+	if path != "" and not _ctrl.meta["owned_weapons"].has(path):
+		_ctrl.meta["owned_weapons"].append(path)
 
 
 # 稀有度权重档（胜利奖励方案：common 50 / uncommon 30 / rare 20；幕三 rare 升至 30、common 降至 40）
@@ -128,27 +180,28 @@ func roll_elite_rewards() -> Array:
 	var act: int = _ctrl.ROOMS[_ctrl.room_index].act if (_ctrl.room_index >= 0 and _ctrl.room_index < _ctrl.ROOMS.size()) else 1
 	var high_pool: Array = []
 	for rw in _ctrl.REWARD_POOL:
-		if rw.id in ["weapon", "consumable", "maxhp_heal"] and (rw.id != "weapon" or _ctrl.selected_loadout.size() < _ctrl._loadout_system.cat_cap("weapon")):
+		# M1-01：武器槽满不再排除武器（选择时走替换）
+		if rw.id in ["weapon", "consumable", "maxhp_heal"]:
 			high_pool.append(rw)
 	var bonus: RewardData = _weighted_pick(high_pool, act)
 	if bonus != null:
 		out.append(bonus)
+	_fill_reward_payloads(out)
 	return out
 
 
 # BOSS 战利品：从主题池+混合券抽 3 张候选卡（dict 结构，供 HUD 直接渲染）。
-# 候选构成：① 主题新武器（未持有 + 武器槽未满，进池）② Boss 信物（占护符槽，若未占满）。
+# 候选构成：① 主题新武器（未持有即进池——满双武器也进，选择时走替换弹层，M1-01）② Boss 信物（占护符槽，若未占满）。
 # T7（2026-08-24）：武器候选改 acq_weighted_sample 加权无放回抽样（替代 shuffle 均匀），
 # 并按幕乘 boss_depth_bias 深度偏置（只抬 rare/epic——越深越出好货，§11.2）。
 func roll_boss_rewards(room) -> Array:
 	var cands := []
 	# ① 主题新武器：房间指定池（空则按 element 从全部武器取；真·最终不回退=明确「无战利品」），
-	# 玩家尚未持有且武器槽未满才入候选；按获取权重 × 幕深度偏置 加权抽至多 3 把
+	# 玩家尚未持有即入候选（槽满由 controller 的替换弹层处理）；按获取权重 × 幕深度偏置 加权抽至多 3 把
 	var src: Array = room.boss_reward_weapons if (room.boss_reward_weapons.size() > 0) else ([] if room.final_boss else _ctrl.WEAPON_POOL)
-	var weapon_slots_free: bool = _ctrl.selected_loadout.size() < _ctrl._loadout_system.cat_cap("weapon")
 	var weapon_pool := []
 	for p in src:
-		if weapon_slots_free and not _ctrl.selected_loadout.has(p):
+		if not _ctrl.selected_loadout.has(p):
 			weapon_pool.append(p)
 	var act: int = int(room.act) if room.act >= 1 and room.act <= _ctrl.BALANCE.boss_depth_bias.size() else 1
 	var bias: float = float(_ctrl.BALANCE.boss_depth_bias[act - 1])
@@ -196,7 +249,7 @@ func _find_reward(id: String) -> RewardData:
 	return null
 
 
-func apply_reward(id: String) -> void:
+func apply_reward(id: String, index: int = -1) -> void:
 	var rd = _find_reward(id)
 	if rd == null:
 		_ctrl.hud._log("奖励资源缺失：%s" % id)
@@ -256,7 +309,7 @@ func apply_reward(id: String) -> void:
 		"consumable":
 			_pick_item_reward("active")
 		"weapon":
-			_pick_item_reward("weapon")
+			_grant_weapon_reward(index)
 		"maxhp_heal":
 			_ctrl.player_hp_max += rd.value
 			_ctrl.player_hp = mini(_ctrl.player_hp_max, _ctrl.player_hp + int(_ctrl.player_hp_max * 0.2))
@@ -277,6 +330,29 @@ func apply_reward(id: String) -> void:
 			_ctrl.hud._popup("🛡下一房+%d" % rd.value, Palette.POP_SHIELD, _ctrl.hud._player_sprite_anchor())
 	_ctrl.invalidate_state()   # 玩家 HP/金币/构筑奖励（腰带/转轮带）
 	_ctrl.hud._refresh_meta()   # 自包含刷新：任何直接调用本方法的新路径不依赖外部收尾（controller 收尾刷新降级为幂等兜底）
+
+
+# 构筑奖励·武器（M1-01）：优先使用候选展示前已确定的武器；槽满时由 controller 先走替换弹层，
+# 正常不会以「满槽」状态调用到这里（兜底只记日志、不塞第 3 把）。
+func _grant_weapon_reward(index: int) -> void:
+	var payload := payload_at(index)
+	var path := String(payload.get("path", ""))
+	if path == "" or _ctrl.selected_loadout.has(path):
+		_pick_item_reward("weapon")   # 旧调用路径 / 候选未预选：退回随机抽取
+		return
+	if _ctrl.selected_loadout.size() >= _ctrl._loadout_system.cat_cap("weapon"):
+		_ctrl.hud._log("武器槽已满 %d/%d：%s 需替换后才能获得" % [
+			_ctrl.selected_loadout.size(), _ctrl._loadout_system.cat_cap("weapon"),
+			_ctrl._shop_name(path, "weapon")])
+		return
+	_ctrl._loadout_system.grow_slot("weapon")
+	_ctrl.selected_loadout.append(path)
+	_ctrl._build_pool(_ctrl.selected_loadout)
+	remember_weapon(path)
+	var wd: WeaponData = load(path)
+	var nm: String = wd.weapon_name if wd != null else path.get_file().get_basename()
+	_ctrl.hud._log("奖励：获得武器 %s（已加入转轮带）" % nm)
+	_ctrl.hud._popup("🎁 获得武器 %s" % nm, Palette.ACCENT_GOLD, _ctrl.hud._player_sprite_anchor())
 
 
 # 构筑奖励：随机未持有武器进转轮带 / 随机未持有消耗品进腰带（胜利奖励方案 2026-08-13）
@@ -308,6 +384,7 @@ func _pick_item_reward(kind: String) -> void:
 		_ctrl._loadout_system.grow_slot("weapon")                 # 免费武器自动开槽（同 BOSS 战利品）
 		_ctrl.selected_loadout.append(path)
 		_ctrl._build_pool(_ctrl.selected_loadout)
+		remember_weapon(path)
 		_ctrl.hud._log("奖励：获得武器 %s（已加入转轮带）" % cd.weapon_name)
 		_ctrl.hud._popup("🎁 获得武器 %s" % cd.weapon_name, Palette.ACCENT_GOLD, _ctrl.hud._player_sprite_anchor())
 	else:
@@ -332,11 +409,16 @@ func apply_boss_reward(cand: Dictionary) -> void:
 		"boss_weapon":
 			var p = cand.get("path", "")
 			if p != "" and not _ctrl.selected_loadout.has(p):
-				_ctrl._loadout_system.grow_slot("weapon")                 # 免费武器自动开槽（武器槽上限 2：grow_slot 封顶兜底，候选层已拦截满槽）
-				_ctrl.selected_loadout.append(p)          # 武器槽未满才出候选（A 方案 2026-08-13：上限 2 尊重「固定 2 把」规则）
-				_ctrl._build_pool(_ctrl.selected_loadout)  # 重建符号池（新武器注入转轮带）
-				_ctrl.hud._log("BOSS 战利品：获得武器 %s（已加入转轮带）" % cand.get("label", p))
-				_ctrl.hud._popup("⚔ 获得武器 %s" % cand.get("label", p), Palette.ACCENT_GOLD, _ctrl.hud._player_sprite_anchor())
+				# 槽满时 controller 已路由到替换弹层；走到这里仍满槽说明调用路径异常，不硬塞第 3 把
+				if _ctrl.selected_loadout.size() >= _ctrl._loadout_system.cat_cap("weapon"):
+					_ctrl.hud._log("BOSS 战利品：武器槽已满，%s 未拾取" % cand.get("label", p))
+				else:
+					_ctrl._loadout_system.grow_slot("weapon")                 # 免费武器自动开槽（武器槽上限 2：grow_slot 封顶兜底）
+					_ctrl.selected_loadout.append(p)          # 武器槽未满才出候选（A 方案 2026-08-13：上限 2 尊重「固定 2 把」规则）
+					_ctrl._build_pool(_ctrl.selected_loadout)  # 重建符号池（新武器注入转轮带）
+					remember_weapon(p)                        # M1-01：新武器写入局外收藏
+					_ctrl.hud._log("BOSS 战利品：获得武器 %s（已加入转轮带）" % cand.get("label", p))
+					_ctrl.hud._popup("⚔ 获得武器 %s" % cand.get("label", p), Palette.ACCENT_GOLD, _ctrl.hud._player_sprite_anchor())
 		"boss_relic":
 			var p = cand.get("path", "")
 			if p != "" and not _ctrl.selected_charms.has(p):
@@ -452,11 +534,16 @@ func _grant_drop_consumable(path: String) -> void:
 
 # 共享获取权重（§11.1）：单件物品权重 = acquisition_weight[rarity]；bias ≠ 1 时乘算 rare/epic
 # （§11.2 BOSS 深度偏置——只抬高稀，common/uncommon 不动；商店传 1.0）。
+# 性能：权重与稀有度按路径缓存（资源静态，进程内不变），避免抽样循环里反复 load()。
 func acq_weight(path: String, bias: float = 1.0) -> float:
-	var res: Resource = load(path)
-	var r: String = String(res.get("rarity")) if res != null and res.get("rarity") != null else "common"
-	var w: float = float(BALANCE.acquisition_weight.get(r, 100))
-	if bias != 1.0 and (r == "rare" or r == "epic"):
+	var e = _acq_cache.get(path)
+	if e == null:
+		var res: Resource = load(path)
+		var r: String = String(res.get("rarity")) if res != null and res.get("rarity") != null else "common"
+		e = {"w": float(BALANCE.acquisition_weight.get(r, 100)), "hi": r == "rare" or r == "epic"}
+		_acq_cache[path] = e
+	var w: float = float(e["w"])
+	if bias != 1.0 and bool(e["hi"]):
 		w *= bias
 	return w
 

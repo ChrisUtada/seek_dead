@@ -30,7 +30,7 @@ signal reel_clicked(col: int)                # 点击某一列转轮
 signal buy_requested(offer: Dictionary)      # 商店购入
 @warning_ignore("unused_signal")
 signal sell_requested(uid_or_path: String, kind: String)  # 卖出（消耗品按 uid，其余按 path）
-signal reward_chosen(id: String)             # 房奖励三选一
+signal reward_chosen(id: String, index: int)  # 房奖励三选一（index 对齐 reward_payloads，M1-01）
 signal boss_reward_chosen(cand: Dictionary)  # BOSS 战利品三选一
 @warning_ignore("unused_signal")
 signal reward_skip_requested                 # 跳过房奖励
@@ -420,12 +420,19 @@ func _show_reward_screen(is_boss: bool) -> void:
 	reward_screen.show_screen(is_boss)
 
 
-func _make_reward_card(rw: RewardData) -> Button:
+func _make_reward_card(rw: RewardData, index: int = -1) -> Button:
 	var card: ItemCard = ITEM_CARD.instantiate()
 	card.custom_minimum_size = Vector2(84, 60)
-	card.configure("%s %s" % [rw.icon, rw.label], rw.desc)
+	# M1-01：候选在展示前已确定具体物品（payload），卡片直接显示真实结果
+	var payload: Dictionary = controller._reward_system.payload_at(index) if index >= 0 else {}
+	var label_text := "%s %s" % [rw.icon, rw.label]
+	var desc_text := rw.desc
+	if not payload.is_empty():
+		label_text = "%s %s" % [rw.icon, payload.get("title", rw.label)]
+		desc_text = String(payload.get("desc", rw.desc))
+	card.configure(label_text, desc_text)
 	card.set_art(rw.art)
-	card.pressed.connect(reward_chosen.emit.bind(rw.id))
+	card.pressed.connect(func() -> void: reward_chosen.emit(rw.id, index))
 	return card
 
 

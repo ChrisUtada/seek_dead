@@ -342,8 +342,39 @@ func _build_pool(loadout: Array) -> void:
 # ---------------------------------------------------------------------------
 # 房奖励 / BOSS 战利品 / 清房推进 / 元进度确认：已迁 RoomFlow（P2 架构还债，2026-08-24）——单行转发。
 # ---------------------------------------------------------------------------
-func _on_reward_chosen(id: String) -> void:
-	room_flow.finish_room(func(): _reward_system.apply_reward(id), reward_is_boss)
+func _on_reward_chosen(id: String, index: int = -1) -> void:
+	# M1-01：满双武器时武器奖励不再被隐藏——卡片展示前已定具体武器，选择后走替换弹层
+	if id == "weapon":
+		var payload: Dictionary = _reward_system.payload_at(index)
+		var p: String = String(payload.get("path", ""))
+		if p != "" and not selected_loadout.has(p) and selected_loadout.size() >= _loadout_system.cat_cap("weapon"):
+			hud.request_weapon_replace("胜利奖励：替换武器", _weapon_info(p), func(old_path: String) -> void:
+				_apply_reward_weapon_replace(p, old_path))
+			return
+	room_flow.finish_room(func(): _reward_system.apply_reward(id, index), reward_is_boss)
+
+
+# 武器奖励替换：旧武器回收藏（本局卸下），新武器进槽并入图鉴；替换即消耗本次奖励
+func _apply_reward_weapon_replace(p: String, old_path: String) -> void:
+	if p == "" or not selected_loadout.has(old_path) or selected_loadout.has(p):
+		room_flow.finish_room(Callable(), reward_is_boss)
+		return
+	var old_name = _shop_name(old_path, "weapon")
+	selected_loadout.erase(old_path)
+	selected_loadout.append(p)
+	_reward_system.remember_weapon(p)
+	_build_pool(selected_loadout)
+	hud._log("奖励替换：%s → %s" % [old_name, _shop_name(p, "weapon")])
+	room_flow.finish_room(Callable(), reward_is_boss)
+
+
+# 新武器摘要（商店替换 / 奖励替换 / BOSS 战利品共用）
+func _weapon_info(p: String) -> String:
+	var res: WeaponData = load(p)
+	if res == null:
+		return "新武器：%s" % _shop_name(p, "weapon")
+	return "新武器：%s · %s · 攻%d · 命中%d%% · %s" % [
+		res.weapon_name, res.rarity, int(res.base_power), int(res.hit_rate * 100), ElementCounter.label(res.element)]
 
 
 func _on_reward_skip_pressed() -> void:
@@ -352,18 +383,10 @@ func _on_reward_skip_pressed() -> void:
 
 func _on_boss_reward_chosen(cand: Dictionary) -> void:
 	# 武器槽上限 2：BOSS 武器战利品满 2 时 → 替换弹层（旧武器回 owned 图鉴）
-	if cand.get("kind", "") == "boss_weapon" and selected_loadout.size() >= 2:
+	if cand.get("kind", "") == "boss_weapon" and selected_loadout.size() >= _loadout_system.cat_cap("weapon"):
 		var p: String = cand.get("path", "")
 		if p != "" and not selected_loadout.has(p):
-			var info := ""
-			var res: WeaponData = load(p)
-			if res != null:
-				var elem_txt := ElementCounter.label(res.element)
-				var hit_pct: int = int(res.hit_rate * 100)
-				info = "新武器：%s · %s · 攻%d · 命中%d%% · %s" % [cand.get("label", "?"), res.rarity, int(res.base_power), hit_pct, elem_txt]
-			else:
-				info = "新武器：%s" % cand.get("label", "?")
-			hud.request_weapon_replace("★ BOSS 战利品：替换武器", info, func(old_path: String):
+			hud.request_weapon_replace("★ BOSS 战利品：替换武器", _weapon_info(p), func(old_path: String):
 				_apply_boss_weapon_replace(p, old_path))
 			return
 	_finish_room(func(): _reward_system.apply_boss_reward(cand), true)
@@ -376,8 +399,7 @@ func _apply_boss_weapon_replace(p: String, old_path: String) -> void:
 	var old_name = _shop_name(old_path, "weapon")
 	selected_loadout.erase(old_path)
 	selected_loadout.append(p)
-	if not meta["owned_weapons"].has(p):
-		meta["owned_weapons"].append(p)
+	_reward_system.remember_weapon(p)
 	_build_pool(selected_loadout)
 	hud._log("BOSS 武器替换：%s → %s" % [old_name, _shop_name(p, "weapon")])
 	_finish_room(Callable(), true)

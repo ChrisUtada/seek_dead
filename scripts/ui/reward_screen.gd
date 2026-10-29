@@ -44,12 +44,12 @@ func show_screen(is_boss: bool) -> void:
 			reward_grid.add_child(hud._make_boss_reward_card(rw))
 	elif kind == "elite":
 		title_label.text = "⚔ 精英 · 战前补给"
-		for rw in choices:
-			reward_grid.add_child(hud._make_reward_card(rw))
+		for i in range(choices.size()):
+			reward_grid.add_child(hud._make_reward_card(choices[i], i))
 	else:
 		title_label.text = "胜利！选一项奖励"
-		for rw in choices:
-			reward_grid.add_child(hud._make_reward_card(rw))
+		for i in range(choices.size()):
+			reward_grid.add_child(hud._make_reward_card(choices[i], i))
 	visible = true
 
 func hide_screen() -> void:
