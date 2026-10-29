@@ -1,0 +1,20 @@
+Seek Dead · M0-01 回归基线（2026-10-29）
+================================================
+代码基准 : e4266e0（本地 master，领先 origin/master 1 个提交）
+入口     : run_smoke.bat
+Godot    : Godot_v4.7-stable_win64_console.exe
+耗时     : 约 11 分钟（本机；文档旧估 37 秒偏乐观）
+结果     : ALL GREEN / exit code 0
+
+[1/8] L0 意图按幕闸门 p0a_intent_act_gate      -> ok  PASSED 42 / FAILED 0
+[2/8] L0 BOSS 掉落主题 p0b_boss_loot_theme      -> ok  PASSED 234 / FAILED 0
+[3/8] L1 内容与数学 lint smoke_lint            -> ok  PASSED 393 / FAILED 0
+[4/8] L2+L3 全流程 smoke_root                  -> ok  PASS  checks=4505 fails=0
+[5/8] T8 掉落渠道 t8_drops                     -> ok  PASSED 20 / FAILED 0
+[6/8] T7 获取加权 t7_acquisition               -> ok  PASSED 10 / FAILED 0
+[7/8] 课程化 curriculum                        -> ok  PASSED 99 / FAILED 0
+[8/8] 充能规则 charge_rule                     -> ok  PASSED 8 / FAILED 0
+
+[smoke] RESULT: ALL GREEN
+
+附：本入口不包含独立探针 tests/p1b_baseline.tscn 与 tests/audit_playthrough.tscn。

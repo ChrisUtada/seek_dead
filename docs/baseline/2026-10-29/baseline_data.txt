@@ -1,0 +1,93 @@
+# Seek Dead · M0-01 当前基线数据
+# 采集时间：2026-10-29T23:08:07
+
+## 整备（启动时软默认）
+武器：火焰剑 [fire_sword.tres]，战斧 [battle_axe.tres]
+技能：res://resources/skills/recovery.tres [recovery.tres]
+护符：守备护符 [guard_charm.tres]
+消耗品：治疗药剂 [heal_potion.tres]
+金币=4  HP=100/100
+
+截图：01_loadout.png  960x540  err=0
+## 本局构建（确认开战后）
+ACT1 配装（实际入池）：火焰剑 [fire_sword.tres]，战斧 [battle_axe.tres]
+
+### 房间顺序（_build_run 产物）
+R01 act1 normal 重锤蛮兵       elem=none   hp=0    atk=0   armor=0  boss_role=fixed    final=false
+R02 act1 normal 暗影诡匠       elem=dark   hp=0    atk=0   armor=0  boss_role=fixed    final=false
+R03 act1 normal 余烬傀儡       elem=fire   hp=85   atk=10  armor=0  boss_role=fixed    final=false
+R04 act1 elite  酸蚀傀儡       elem=ice    hp=155  atk=14  armor=22 boss_role=fixed    final=false
+R05 act1 normal 毒壳壁垒       elem=poison hp=0    atk=0   armor=0  boss_role=fixed    final=false
+R06 act1 normal 腐化史莱姆      elem=poison hp=90   atk=11  armor=12 boss_role=fixed    final=false
+R07 act1 elite  毒疫术士       elem=poison hp=0    atk=0   armor=0  boss_role=fixed    final=false
+R08 act1 boss   冰封铁瓮       elem=ice    hp=200  atk=15  armor=20 boss_role=fixed    final=false
+R09 act2 normal 石壳壁垒       elem=none   hp=0    atk=0   armor=0  boss_role=fixed    final=false
+R10 act2 normal 毒雾术士       elem=poison hp=0    atk=0   armor=0  boss_role=fixed    final=false
+R11 act2 normal 铁臂蛮兵       elem=none   hp=0    atk=0   armor=0  boss_role=fixed    final=false
+R12 act2 elite  深渊咒师       elem=dark   hp=0    atk=0   armor=0  boss_role=fixed    final=false
+R13 act2 normal 迷面诡匠       elem=none   hp=0    atk=0   armor=0  boss_role=fixed    final=false
+R14 act2 normal 暗影信徒       elem=dark   hp=125  atk=12  armor=0  boss_role=fixed    final=false
+R15 act2 elite  深渊咏者       elem=dark   hp=240  atk=18  armor=20 boss_role=fixed    final=false
+R16 act2 boss   呓语教徒       elem=dark   hp=290  atk=20  armor=25 boss_role=fixed    final=false
+R17 act3 normal 熔壳壁垒       elem=fire   hp=0    atk=0   armor=0  boss_role=fixed    final=false
+R18 act3 normal 深渊蛮兵       elem=none   hp=0    atk=0   armor=0  boss_role=fixed    final=false
+R19 act3 normal 毒针群蝠       elem=poison hp=0    atk=0   armor=0  boss_role=fixed    final=false
+R20 act3 elite  圣盾守关       elem=light  hp=0    atk=0   armor=0  boss_role=fixed    final=false
+R21 act3 normal 坍缩星核       elem=light  hp=195  atk=17  armor=0  boss_role=fixed    final=false
+R22 act3 normal 霜语术士       elem=ice    hp=0    atk=0   armor=0  boss_role=fixed    final=false
+R23 act3 elite  终焉守望       elem=light  hp=370  atk=24  armor=28 boss_role=fixed    final=false
+R24 act3 boss   深渊监视者      elem=light  hp=460  atk=27  armor=35 boss_role=fixed    final=false
+R25 act3 boss   勇者的阴影      elem=none   hp=600  atk=30  armor=40 boss_role=fixed    final=true
+
+### ACT1 符号带（默认双武器构建后）
+转轮 1（30 格）：MISS(trash/none) -> none×4，☣🔥(status/fire) -> fire×4，❤️(heal/light) -> light×4，💰(gold/none) -> none×4，🔥(damage/none) -> fire×6，🪓(damage/none) -> none×8
+转轮 2（30 格）：MISS(trash/none) -> none×4，☣🔥(status/fire) -> fire×4，❤️(heal/light) -> light×4，💰(gold/none) -> none×4，🔥(damage/none) -> fire×6，🪓(damage/none) -> none×8
+转轮 3（30 格）：MISS(trash/none) -> none×4，☣🔥(status/fire) -> fire×4，❤️(heal/light) -> light×4，💰(gold/none) -> none×4，🔥(damage/none) -> fire×6，🪓(damage/none) -> none×8
+
+### 奖励池
+普通房 REWARD_POOL（9）：
+  consumable 补给品 rarity=uncommon value=1
+  gold 金币袋 rarity=common value=15
+  heal 治疗药剂 rarity=common value=35
+  maxhp 强韧之心 rarity=uncommon value=20
+  maxhp_heal 活力祝福 rarity=rare value=12
+  power 锋锐打磨 rarity=uncommon value=1
+  shield 守望结界 rarity=common value=15
+  symbol 符号灌注 rarity=common value=3
+  weapon 新武器 rarity=rare value=1
+精英 ELITE_REWARD_POOL（3）：
+  elite_anvil 铁砧结晶 rarity=common value=2
+  elite_gold 战利金库 rarity=common value=18
+  elite_ward 结界备战 rarity=common value=30
+
+### BOSS 候选（按幕）
+act3 深渊监视者      role=fixed    final=false element=light
+act1 酸蚀恶鬼       role=rotating final=false element=poison
+act1 碎裂石像鬼      role=rotating final=false element=ice
+act1 茧居石雕       role=hidden   final=false element=ice
+act1 冰封铁瓮       role=fixed    final=false element=ice
+act3 耻辱审判官      role=hidden   final=false element=light
+act3 勇者的阴影      role=fixed    final=true element=none
+act2 躁怒元素使      role=rotating final=false element=fire
+act2 迷宫低语者      role=rotating final=false element=dark
+act2 无名虚空       role=hidden   final=false element=dark
+act2 天平审判官      role=rotating final=false element=light
+act3 碎裂魔王       role=rotating final=false element=fire
+act2 呓语教徒       role=fixed    final=false element=dark
+
+### 关键平衡值（balance_config 实值）
+player_dmg_mult = 1.5
+player_hp_base = 100
+ante_act_step_atk = 1.3
+ante_room_step_atk = 1.06
+ante_act_step_hp = 1.75
+ante_room_step_hp = 1.15
+charge_max = 6
+loadout_min = 2
+anvil_roll_cost = 10
+
+截图：02_battle.png  960x540  err=0
+截图：03_shop.png  960x540  err=0
+截图：04_reward.png  960x540  err=0
+截图：05_anvil.png  960x540  err=0
+截图：06_meta.png  960x540  err=0
