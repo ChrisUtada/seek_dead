@@ -7,7 +7,7 @@ class_name Palette
 extends RefCounted
 
 # ---- 屏幕背景（ColorRect）----
-const BG_MAIN    := Color(0.09, 0.09, 0.13, 1)      # 主对决界面
+const BG_MAIN    := Color(0.12, 0.09, 0.12, 1)      # 主对决界面：暗紫褐底（M3-01）
 const BG_LOADOUT := Color(0.06, 0.06, 0.10, 0.98)   # 整备界面
 const BG_REWARD  := Color(0.05, 0.07, 0.12, 0.98)   # 奖励界面
 const BG_ANVIL   := Color(0.10, 0.08, 0.05, 0.98)   # 铁砧界面
@@ -18,16 +18,16 @@ const PANEL_RADIUS := 0     # 所有面板/卡片圆角 → 0（硬边）
 const BORDER_WIDTH := 2     # 基础面板边框加粗（默认 1 → 2）
 
 # ---- 面板样式（StyleBoxFlat）----
-const PANEL_BG        := Color(0.11, 0.11, 0.16, 0.75)  # 侧栏面板底（已收入 battle_theme.tres）
-const PANEL_BORDER    := Color(0.22, 0.22, 0.30, 1)     # 面板边框（多条共用）
+const PANEL_BG        := Color(0.15, 0.11, 0.14, 0.85)  # 侧栏面板底：暗紫褐（M3-01，已收入 battle_theme.tres）
+const PANEL_BORDER    := Color(0.78, 0.72, 0.62, 1)     # 面板边框：暖白线框（M3-01）
 const PANEL_BG_ALT    := Color(0.09, 0.09, 0.13, 0.85)  # 图例面板底（差异化，保留 override）
 const CARD_BG         := Color(0.10, 0.10, 0.15, 0.80)  # 装备卡面板底
-const CELL_BG         := Color(0.18, 0.18, 0.24, 1)     # 转轮格子底
+const CELL_BG         := Color(0.20, 0.16, 0.20, 1)     # 转轮格子底（暗紫褐，同面板系）
 const TOOLTIP_BG      := Color(0.07, 0.07, 0.11, 0.96)  # 悬停提示面板底（Phase 3 tooltip）
 
 # ---- 文本/标题色 ----
 const TITLE      := Color(0.90, 0.85, 0.70, 1)  # 标题金
-const PLAYER     := Color(0.60, 0.85, 0.95, 1)  # 玩家强调
+const PLAYER     := Color(0.88, 0.87, 0.84, 1)  # 玩家强调：灰白（M3-01，原冷蓝）
 const ENEMY      := Color(0.95, 0.55, 0.55, 1)  # 敌人强调
 const MUTED      := Color(0.70, 0.70, 0.75, 1)  # 次级文本
 const MUTED_DIM  := Color(0.65, 0.65, 0.75, 1)  # 更弱文本

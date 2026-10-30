@@ -3,21 +3,31 @@ extends Node
 # P4 战斗动画骨架：tween 驱动玩家/敌人立绘的攻击 / 受击 / 暴击 / 核爆演出。
 # 只读结算结果演出，绝不修改 BattleMath / duel_controller 的结算逻辑（解耦原则）。
 # 浮空伤害数字由 BattleHud._popup 负责，本脚本专注立绘 sprite 动效。
-# 2026-09-22：玩家立绘换 48×48 骑士（assets/knight/），攻击时播放 5 帧挥剑序列。
+# 2026-10-30（M3-02）：玩家立绘换 48×48 维京战士（assets/characters/viking/），
+# idle 4 帧循环 + attack 5 帧序列；旧 knight 素材保留不回退、不删除。
+# 注意：这偏离 M0-02「灰白流亡者」的样板范围——viking 是当前唯一完整的 48×48 角色帧组，
+# 样板范围待用户确认后回写文档。
 
-# 玩家攻击帧序列（knight1-5：站立→举剑蓄力→下劈→命中斩击→收势）。
+# 站立循环帧（4 帧，0.18s/帧）。
+const PLAYER_IDLE_FRAMES := [
+	preload("res://assets/characters/viking/idle_01.png"),
+	preload("res://assets/characters/viking/idle_02.png"),
+	preload("res://assets/characters/viking/idle_03.png"),
+	preload("res://assets/characters/viking/idle_04.png"),
+]
+const PLAYER_IDLE_FRAME_TIME := 0.18
+# 玩家攻击帧序列（attack_01-05：蓄力→挥击→命中→收势）。
 # 帧长 0.06s × 5 ≈ 0.30s，必须 ≤ combat_system 在 play_attack 之后的 0.35s 等待窗口，
 # 否则动画会被敌人回合打断（若改帧长/帧数，须同步核对那一处等待值）。
-const PLAYER_IDLE := preload("res://assets/knight/knight1.png")
 const PLAYER_ATTACK_FRAMES := [
-	preload("res://assets/knight/knight1.png"),
-	preload("res://assets/knight/knight2.png"),
-	preload("res://assets/knight/knight3.png"),
-	preload("res://assets/knight/knight4.png"),
-	preload("res://assets/knight/knight5.png"),
+	preload("res://assets/characters/viking/attack_01.png"),
+	preload("res://assets/characters/viking/attack_02.png"),
+	preload("res://assets/characters/viking/attack_03.png"),
+	preload("res://assets/characters/viking/attack_04.png"),
+	preload("res://assets/characters/viking/attack_05.png"),
 ]
 const PLAYER_ATTACK_FRAME_TIME := 0.06
-const PLAYER_IMPACT_FRAME := 3        # 索引 3 = knight4（命中斩击帧）→ 触发轻微屏震
+const PLAYER_IMPACT_FRAME := 3        # 索引 3 = attack_04（命中斩击帧）→ 触发轻微屏震
 const PLAYER_IMPACT_SHAKE := 4.0
 
 var hud = null
@@ -25,12 +35,29 @@ var player_sprite: Control = null
 var enemy_sprite: Control = null
 var _shake_base := Transform2D()   # 屏震基准变换，供 _apply_shake 读取
 var _player_anim_tween: Tween = null   # 玩家帧序列 tween（重入先 kill，避免半帧残留）
+var _idle_timer: Timer = null          # 站立循环节拍器（攻击演出期间暂停换帧）
+var _idle_index := 0                   # 站立当前帧
+var _attacking := false                # 攻击帧序列进行中（站立循环不抢帧）
 var _rng := RandomNumberGenerator.new()   # 动画专用随机源（见 _shake 的 use_local_rng 说明）
 
 func setup(p_hud) -> void:
 	hud = p_hud
 	player_sprite = hud.get_node("Margin/Content/MainRow/CenterStage/StageRow/PlayerCenter/PlayerSprite")
 	enemy_sprite = hud.get_node("Margin/Content/MainRow/CenterStage/StageRow/EnemyCenter/EnemySprite")
+	_idle_timer = Timer.new()
+	_idle_timer.one_shot = false
+	_idle_timer.wait_time = PLAYER_IDLE_FRAME_TIME
+	_idle_timer.timeout.connect(_on_idle_tick)
+	hud.add_child(_idle_timer)
+	_idle_timer.start()
+
+
+# 站立循环：仅在空闲时换帧（攻击序列与命中闪回由各自 tween 管理）。
+func _on_idle_tick() -> void:
+	if _attacking or player_sprite == null:
+		return
+	_idle_index = (_idle_index + 1) % PLAYER_IDLE_FRAMES.size()
+	player_sprite.texture = PLAYER_IDLE_FRAMES[_idle_index]
 
 
 func _sprite(which: String) -> Control:
@@ -57,7 +84,8 @@ func play_attack(attacker: String, target: String) -> void:
 	twr.tween_property(atk, "rotation", 0.0, 0.15)
 	var base = tgt.modulate
 	var tw2 = create_tween()
-	tw2.tween_property(tgt, "modulate", Color(1.6, 0.5, 0.5), 0.07)
+	# M3-02：受击反馈改暖白闪（红色敌人用红闪会糊成一片）；亮而不偏色 = 明暗反相观感。
+	tw2.tween_property(tgt, "modulate", Color(1.75, 1.70, 1.55), 0.07)
 	tw2.tween_property(tgt, "modulate", base, 0.24)
 
 
@@ -68,6 +96,7 @@ func _play_player_attack_frames() -> void:
 		return
 	if _player_anim_tween != null and _player_anim_tween.is_valid():
 		_player_anim_tween.kill()   # 连击/重转重入：先掐掉上一轮，避免停在半帧
+	_attacking = true
 	_player_anim_tween = create_tween()
 	for i in PLAYER_ATTACK_FRAMES.size():
 		var idx: int = i
@@ -77,7 +106,8 @@ func _play_player_attack_frames() -> void:
 				_shake(PLAYER_IMPACT_SHAKE, true))   # 命中帧打击感；true=用动画专用随机源，不扰动种子局
 		_player_anim_tween.tween_interval(PLAYER_ATTACK_FRAME_TIME)
 	_player_anim_tween.tween_callback(func() -> void:
-		player_sprite.texture = PLAYER_IDLE)
+		_attacking = false
+		player_sprite.texture = PLAYER_IDLE_FRAMES[_idle_index])
 
 
 # P1：敌人反击（前冲 + 玩家红闪 + 屏震）
