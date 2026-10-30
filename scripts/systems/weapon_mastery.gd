@@ -1,17 +1,13 @@
-# WeaponMastery — 武器熟练 R1–R4 与铭印（M2-02，ACT1 样板）
+# WeaponMastery — 武器熟练 R1–R4 与铭印（M2-02 样板；M4-01 起覆盖全部武器）
 # 运行时经 duel_controller preload 实例化（不注册全局 class_name——headless 测试环境不刷新类缓存）。
-# 职责：房间胜利时按「本房有效符号结算」给样板武器累计熟练 → R2 / R3 各欠一次铭印选择 →
+# 职责：房间胜利时按「本房有效符号结算」给已装备武器累计熟练 → R2 / R3 各欠一次铭印选择 →
 # 铭印写入本局运行时状态（锋铸 +基础攻击 / 调律 +符号权重），不改共享 .tres。
 # 规格见 docs/M0-02_样板范围.md §2；R4 一期只保留等级与外观。
+# M4-01：不再限定 4 把样板武器——ACT1 白名单内全部武器（正式版即全部武器）走同一规则；
+#         具体可用面由 DemoConfig 白名单收窄，成长规则本身不分叉。
 
 var _ctrl  # DuelController
 
-const SAMPLE_WEAPONS := [
-	"res://resources/weapon_templates/dagger.tres",
-	"res://resources/weapon_templates/fire_sword.tres",
-	"res://resources/weapon_templates/battle_axe.tres",
-	"res://resources/weapon_templates/ice_staff.tres",
-]
 const ROOM_GAIN_CAP := 3                                  # 每把每房熟练上限
 const R_THRESHOLDS := {2: 3, 3: 7, 4: 12}                 # R 等级累计熟练门槛
 const IMPRINT_LEVELS := [2, 3]                            # 升到这些 R 等级时欠一次铭印选择
@@ -59,13 +55,13 @@ func r_level(path: String) -> int:
 	return lv
 
 
-# 房间胜利：样板武器（已装备且本房有有效结算）获得熟练；跨过 R2 / R3 则欠一次铭印。
+# 房间胜利：已装备且本房有有效结算的武器获得熟练；跨过 R2 / R3 则欠一次铭印。
 func settle_room(kind: String) -> void:
 	if not enabled:
 		return
 	var gain_base := 1 + (1 if kind == "elite" else 0) + (1 if kind == "boss" else 0)
 	for path in _ctrl.selected_loadout:
-		if not SAMPLE_WEAPONS.has(path) or not _weapon_settled(path):
+		if not _weapon_settled(path):
 			continue
 		var room_so_far: int = int(_room_gain.get(path, 0))
 		var gain := mini(gain_base, ROOM_GAIN_CAP - room_so_far)
@@ -171,9 +167,9 @@ func tune_bonus(path: String, sym_path: String) -> float:
 	return float(tune_map().get(path, {}).get(sym_path, 0))
 
 
-# 武器区文案：R 等级 + 熟练进度（满级后显示累计）。非样板武器返回空串。
+# 武器区文案：R 等级 + 熟练进度（满级后显示累计）。非武器路径返回空串。
 func progress_text(path: String) -> String:
-	if not SAMPLE_WEAPONS.has(path):
+	if not (load(path) is WeaponData):
 		return ""
 	var lv: int = r_level(path)
 	var m: int = int(mastery.get(path, 0))

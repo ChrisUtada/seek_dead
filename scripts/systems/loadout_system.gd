@@ -105,12 +105,21 @@ func cat_name(cat: String) -> String:
 
 func owned_arr(kind: String) -> Array:
 	# 整备屏/商店读取拥有池（盘外跨局）。skills 暂用全池（待扩 owned_skills）。
+	# M4-01：demo 开启时只展示白名单内内容；meta 原样保留，关闭开关后立即恢复。
+	var arr: Array
 	match kind:
-		"weapon":  return _ctrl.meta["owned_weapons"]
-		"passive": return _ctrl.meta["owned_charms"]
-		"active":  return _ctrl.meta["owned_consumables"]
-		"skill":   return _ctrl.SKILL_POOL
+		"weapon":  arr = _ctrl.meta["owned_weapons"]
+		"passive": arr = _ctrl.meta["owned_charms"]
+		"active":  arr = _ctrl.meta["owned_consumables"]
+		"skill":   arr = _ctrl.SKILL_POOL
 		_:         return []
+	if _ctrl.demo_active():
+		match kind:
+			"weapon":  return _ctrl.demo_config.filter_weapons(arr)
+			"passive": return _ctrl.demo_config.filter_items(arr)
+			"active":  return _ctrl.demo_config.filter_items(arr)
+			"skill":   return _ctrl.demo_config.filter_skills(arr)
+	return arr
 
 
 # ---------------------------------------------------------------------------

@@ -306,6 +306,9 @@ func roll_boss_rewards(room) -> Array:
 	# ① 主题新武器：房间指定池（空则按 element 从全部武器取；真·最终不回退=明确「无战利品」），
 	# 玩家尚未持有即入候选（槽满由 controller 的替换弹层处理）；按获取权重 × 幕深度偏置 加权抽至多 3 把
 	var src: Array = room.boss_reward_weapons if (room.boss_reward_weapons.size() > 0) else ([] if room.final_boss else _ctrl.WEAPON_POOL)
+	# M4-01：demo 白名单收窄——房间主题池可能含池外武器（如 ACT1 的 flame_staff），过滤后为空则视为无战利品
+	if _ctrl.demo_active():
+		src = _ctrl.demo_config.filter_weapons(src)
 	var weapon_pool := []
 	for p in src:
 		if not _ctrl.selected_loadout.has(p):

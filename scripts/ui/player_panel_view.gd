@@ -61,7 +61,7 @@ func refresh_gear_icons() -> void:
 		if wd != null and "element" in wd:
 			icon = "⚔️" + element_icon(String(wd.element))
 		var tip: String = wd.weapon_name if "weapon_name" in wd else path.get_file().get_basename()
-		# M2-03 武器区：R 等级角标 + 熟练进度 / 铭印 tooltip（仅样板武器有 R 进度）
+		# M2-03 武器区：R 等级角标 + 熟练进度 / 铭印 tooltip（M4-01 起全部武器有 R 进度）
 		var mastery = controller().mastery
 		var prog: String = mastery.progress_text(path)
 		var badge := ""

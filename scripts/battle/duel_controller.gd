@@ -26,6 +26,9 @@ const ESSENCE_SYMBOLS: Dictionary = {
 const ESSENCE_POOL_WEIGHT := 7.0           # 精华符号注入权重（≈普通武器 3-5 的 1.5-2 倍：让带子有 2-4 格，2/3 连可达成）
 # T22：平衡常量全部收敛于 BalanceConfig（resources/config/balance_config.tres，Inspector 可编辑）
 const BALANCE = preload("res://resources/config/balance_config.tres")
+# M4-01：ACT1 Demo 开关 + 内容白名单（resources/config/demo_config.tres，enabled 或导出 custom_features 启用）
+const DEMO_CONFIG = preload("res://resources/config/demo_config.tres")
+var demo_config = DEMO_CONFIG   # 无 class_name：避免 headless 首次加载的全局类缓存依赖
 
 # Phase 1 组件化：UI 复用场景与脚手架（按钮/面板/卡片构建均在 battle_hud 与各 screen，本控制器不再持有）
 
@@ -289,6 +292,7 @@ func _ready() -> void:
 			push_warning("房间 %s 元素非法：%s" % [r.name, r.element])   # 启动即暴露错字，防战斗中才发现
 	REWARD_POOL.assign(ResourceScan.scan_resources("res://resources/rewards/", "RewardData"))
 	ELITE_REWARD_POOL.assign(ResourceScan.scan_resources("res://resources/rewards/elite/", "RewardData"))
+	_apply_demo_filters()   # M4-01：demo 开关只收窄池，必须在 seed_default_owned / build_all 之前
 	# 导出构建防御：池为空即告警（防 ResourceScan 回归导致导出内容缺失——2026-08-10 修复）
 	if OS.has_feature("template") and WEAPON_POOL.is_empty():
 		push_warning("导出构建：武器池为空——资源扫描可能失效，请检查 ResourceScan")
@@ -336,6 +340,27 @@ func _ready() -> void:
 	hud.consumable_used.connect(_on_consumable_pressed)
 	hud.shop_leave_requested.connect(_on_shop_leave_pressed)
 	hud.anvil_back_requested.connect(_on_anvil_back_pressed)
+
+
+# M4-01：ACT1 Demo 内容收窄（关闭时零影响）。只过滤池，不删除存档已有内容。
+# 白名单覆盖 ACT1 全量敌人/装备；ACT1 四 BOSS 主题武器里不在白名单的（如 flame_staff）在奖励候选处再过滤。
+func demo_active() -> bool:
+	return demo_config.is_active()
+
+func _apply_demo_filters() -> void:
+	if not demo_config.is_active():
+		return
+	WEAPON_POOL.assign(demo_config.filter_weapons(WEAPON_POOL))
+	ITEM_POOL.assign(demo_config.filter_items(ITEM_POOL))
+	SKILL_POOL.assign(demo_config.filter_skills(SKILL_POOL))
+	if not demo_config.act_only:
+		return
+	var act1_rooms: Array[RoomData] = []
+	for r in ALL_ROOMS:
+		if not r.final_boss and int(r.act) == 1:
+			act1_rooms.append(r)
+	ALL_ROOMS.assign(act1_rooms)
+
 func _build_pool(loadout: Array) -> void:
 	reel_system.build_pool(loadout)   # P2 架构还债（2026-08-24）：池构建迁 ReelSystem（池/带子/落子同域）
 

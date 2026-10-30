@@ -1,0 +1,13 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://scripts/systems/demo_config.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+enabled = false
+act_only = true
+feature_flag = "act1_demo"
+weapon_pool = Array[String](["res://resources/weapon_templates/dagger.tres", "res://resources/weapon_templates/fire_sword.tres", "res://resources/weapon_templates/flame_scimitar.tres", "res://resources/weapon_templates/battle_axe.tres", "res://resources/weapon_templates/iron_sword.tres", "res://resources/weapon_templates/pistol.tres", "res://resources/weapon_templates/frost_blade.tres", "res://resources/weapon_templates/ice_gun.tres", "res://resources/weapon_templates/ice_staff.tres", "res://resources/weapon_templates/poison_dagger.tres", "res://resources/weapon_templates/holy_sword.tres", "res://resources/weapon_templates/dawn_bow.tres", "res://resources/weapon_templates/night_scythe.tres", "res://resources/weapon_templates/shadow_dagger.tres"])
+skill_pool = Array[String](["res://resources/skills/rage.tres", "res://resources/skills/focus.tres", "res://resources/skills/calm.tres", "res://resources/skills/war_banner.tres", "res://resources/skills/recovery.tres", "res://resources/skills/shadow_regen.tres", "res://resources/skills/fire_breath.tres", "res://resources/skills/flame_mark.tres", "res://resources/skills/magic_bolt.tres", "res://resources/skills/ember.tres"])
+charm_pool = Array[String](["res://resources/charms/sharp_charm.tres", "res://resources/charms/rage_charm.tres", "res://resources/charms/guard_charm.tres", "res://resources/charms/bulwark_charm.tres", "res://resources/charms/ward_charm.tres", "res://resources/charms/regen_charm.tres", "res://resources/charms/resist_charm.tres", "res://resources/charms/mirror_charm.tres", "res://resources/charms/pierce_charm.tres", "res://resources/charms/rust_relic.tres", "res://resources/charms/element_charm.tres", "res://resources/charms/status_charm.tres", "res://resources/charms/poison_ward.tres", "res://resources/charms/frost_core_relic.tres", "res://resources/charms/stone_shard_relic.tres", "res://resources/charms/venom_gland_relic.tres", "res://resources/charms/rhythm_shell_relic.tres"])
+consumable_pool = Array[String](["res://resources/consumables/heal_potion.tres", "res://resources/consumables/holy_grail.tres", "res://resources/consumables/assault_potion.tres", "res://resources/consumables/lava_burst_potion.tres", "res://resources/consumables/reroll_scroll.tres", "res://resources/consumables/purify_potion.tres", "res://resources/consumables/cleanse_potion.tres", "res://resources/consumables/fire_essence.tres", "res://resources/consumables/ice_essence.tres", "res://resources/consumables/poison_essence.tres"])

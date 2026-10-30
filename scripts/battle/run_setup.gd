@@ -31,7 +31,11 @@ func build_run() -> Array[RoomData]:
 			by_act[a] = {"normal": [], "elite": [], "boss": []}
 		by_act[a][r.kind].append(r)
 	var run: Array[RoomData] = []
-	for a in range(1, int(_ctrl.BALANCE.run_acts) + 1):
+	# M4-01：demo.act_only 时只跑 ACT1（ALL_ROOMS 已在 controller 侧收窄，这里再显式兜底）
+	var acts := int(_ctrl.BALANCE.run_acts)
+	if _ctrl.demo_active() and _ctrl.demo_config.act_only:
+		acts = 1
+	for a in range(1, acts + 1):
 		if not by_act.has(a):
 			continue
 		var pools := {}   # kind -> 打乱后的候选（pop 逐个取用）
@@ -45,7 +49,8 @@ func build_run() -> Array[RoomData]:
 			var pick: RoomData = pick_boss(pools["boss"]) if kind == "boss" else pools[kind].pop_back()
 			run.append(pick)
 	if _ctrl.BALANCE.run_include_final_boss and final_boss != null:
-		run.append(final_boss)
+		if not (_ctrl.demo_active() and _ctrl.demo_config.act_only):
+			run.append(final_boss)
 	return run
 
 
