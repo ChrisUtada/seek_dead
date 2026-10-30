@@ -31,70 +31,69 @@ func finish_room(apply_fn: Callable, is_boss: bool) -> void:
 	_ctrl.hud._refresh_meta()   # 幂等兜底：各子系统方法已自包含刷新（apply_reward/award_gold 等），此处防编排层遗漏
 
 
-# M2-01/02：三选一队列。先清技艺待选，再清铭印欠选（每项 = 一次选择）；队列空则进入房间间歇态。
-# 当前待选的候选与回调记在 _offer_* 中：玩家点选与 bot 自动选（auto_pick_growth）走同一路径。
-var _offer_choices: Array = []
-var _offer_handler: Callable = Callable()
+# M2-03 成长结算：技艺待选与武器铭印欠选合并为一屏，一次确认（每次间歇最多打断一次）。
+# 当前屏的分组记在 _offer_sections：玩家确认与 bot 自动确认（auto_pick_growth）走同一套应用路径。
+var _offer_sections: Array = []
 
 
 func _offer_next_growth_pick() -> void:
 	var g = _ctrl.growth
-	if g.pending_picks > 0:
-		_present_offer("★ 历练升级 · 选择一项技艺", "同一技艺本局只能拥有 1 次；效果以下方描述为准。",
-			g.roll_choices(), _on_growth_picked)
-		return
 	var m = _ctrl.mastery
-	while not m.owed.is_empty():
-		var path: String = m.owed[0]
-		if not _ctrl.selected_loadout.has(path):
-			m.owed.pop_front()   # 已卸下的武器不再铭印（保留选择权给在装武器）
+	var sections: Array = []
+	if g.pending_picks > 0:
+		sections.append({"key": "perk", "title": "★ 历练 Lv.%d · 选择一项技艺" % g.level,
+			"sub": "同一技艺本局只能拥有 1 次；效果以下方描述为准。", "choices": g.roll_choices()})
+	var shown: Array[String] = []
+	for path in m.owed:   # 欠选去重；已卸下 / 无有效候选的武器直接移出欠选，不展示死升级
+		if shown.has(path) or not _ctrl.selected_loadout.has(path):
 			continue
 		var choices: Array = m.imprint_choices(path)
 		if choices.is_empty():
-			m.owed.pop_front()   # 无有效候选（调律无格数变化 + 锋铸已满）→ 不展示死升级
 			continue
-		_present_offer("★ 武器铭印 · %s（R%d）" % [m.display_name(path), m.r_level(path)], "同一铭印每把最多 2 次；调律仅在真实改变格数时出现。",
-			choices, func(id): _on_imprint_picked(path, id))
+		shown.append(path)
+		sections.append({"key": path, "title": "★ 武器铭印 · %s（R%d）" % [m.display_name(path), m.r_level(path)],
+			"sub": "同一铭印每把最多 2 次；调律仅在真实改变格数时出现。", "choices": choices})
+	for path in m.owed.duplicate():
+		if not shown.has(path):
+			m.owed.erase(path)
+	if sections.is_empty():
+		enter_interroom()        # opt-in 商店：进入房间歇态（🛒 可选，▶ 下一房继续）
 		return
-	enter_interroom()        # opt-in 商店：进入房间歇态（🛒 可选，▶ 下一房继续）
+	_offer_sections = sections
+	_ctrl.hud.show_growth_settlement("★ 成长结算", sections, _on_settlement_picked)
 
 
-func _present_offer(title: String, sub: String, choices: Array, handler: Callable) -> void:
-	_offer_choices = choices
-	_offer_handler = handler
-	_ctrl.hud.show_growth_picker(title, sub, choices, func(id): _resolve_offer(id))
+func _on_settlement_picked(picked: Dictionary) -> void:
+	_offer_sections = []
+	_apply_settlement(picked)
 
 
-func _resolve_offer(id: String) -> void:
-	var handler: Callable = _offer_handler
-	_offer_handler = Callable()
-	_offer_choices = []
-	handler.call(id)
+func _apply_settlement(picked: Dictionary) -> void:
+	for key in picked:
+		if key == "perk":
+			_ctrl.growth.pick(picked[key])
+		else:
+			_ctrl.mastery.choose(key, picked[key])
+	_ctrl.hud._refresh_meta()   # 坚韧 / 升级改最大 HP；铭印改基础攻击 / 带子，刷新玩家与武器区
+	_ctrl.invalidate_state()
+	enter_interroom()
 
 
-func _on_growth_picked(id: String) -> void:
-	_ctrl.growth.pick(id)
-	_ctrl.hud._refresh_meta()   # 坚韧 / 升级会改最大 HP，刷新玩家 HP 行
-	_offer_next_growth_pick()
-
-
-func _on_imprint_picked(path: String, id: String) -> void:
-	_ctrl.mastery.choose(path, id)
-	_ctrl.hud._refresh_meta()
-	_ctrl.invalidate_state()   # 锋铸 / 调律改变带子与基础攻击
-	_offer_next_growth_pick()
-
-
-# 测试 / bot 用：取当前待选的首项，与玩家点选走同一回调。
+# 测试 / bot 用：当前屏是否待确认。
 func growth_pick_pending() -> bool:
-	return _offer_handler.is_valid()
+	return not _offer_sections.is_empty()
 
 
+# 测试 / bot 用：每组取首项并确认（与玩家点选确认走同一套应用路径）。
 func auto_pick_growth() -> void:
-	if _offer_choices.is_empty():
+	if _offer_sections.is_empty():
 		return
 	_ctrl.hud.hide_growth_picker()
-	_resolve_offer(_offer_choices[0]["id"])
+	var picked := {}
+	for sec in _offer_sections:
+		picked[sec["key"]] = sec["choices"][0]["id"]
+	_offer_sections = []
+	_apply_settlement(picked)
 
 
 # M1-06：局末遥测输出（真人评测指标；只打印/记日志，不改变结算）

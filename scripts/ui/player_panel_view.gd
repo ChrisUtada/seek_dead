@@ -61,6 +61,17 @@ func refresh_gear_icons() -> void:
 		if wd != null and "element" in wd:
 			icon = "⚔️" + element_icon(String(wd.element))
 		var tip: String = wd.weapon_name if "weapon_name" in wd else path.get_file().get_basename()
+		# M2-03 武器区：R 等级角标 + 熟练进度 / 铭印 tooltip（仅样板武器有 R 进度）
+		var mastery = controller().mastery
+		var prog: String = mastery.progress_text(path)
+		if prog != "":
+			icon += " R%d" % mastery.r_level(path)
+			tip += "
+" + prog
+			var imp: String = mastery.imprint_text(path)
+			if imp != "":
+				tip += "
+" + imp
 		var lbl = Label.new()
 		lbl.name = "WIcon_%d_%s" % [idx, path.get_file().get_basename()]
 		lbl.text = icon
@@ -103,6 +114,16 @@ func refresh_gear_icons() -> void:
 		lbl.mouse_filter = Control.MOUSE_FILTER_STOP
 		skills_row.add_child(lbl)
 		idx += 1
+
+	# M2-03 技艺：每个已习得技艺一枚图标（tooltip 为名称 · 效果）
+	for pid in controller().growth.perk_ids:
+		var lbl = Label.new()
+		lbl.name = "PIcon_%s" % pid
+		lbl.text = "🎓"
+		lbl.add_theme_font_size_override("font_size", TypeScale.REEL)
+		lbl.tooltip_text = "技艺 · %s · %s" % [controller().growth.perk_name(pid), controller().growth.perk_desc(pid)]
+		lbl.mouse_filter = Control.MOUSE_FILTER_STOP
+		skills_row.add_child(lbl)
 
 
 # 腰带 4 格刷新：按 consumable_slots 顺序填，缺位留空占位；

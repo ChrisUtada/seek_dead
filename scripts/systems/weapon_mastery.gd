@@ -21,6 +21,7 @@ const FORGE_STEP := 2                                     # 锋铸：每次 +基
 var mastery: Dictionary = {}          # 武器路径 -> 熟练累计
 var imprints: Dictionary = {}         # 武器路径 -> {"forge": n, "tune": {符号路径: n}}
 var owed: Array[String] = []          # 欠铭印选择的武器路径（每项 = 一次选择）
+var enabled: bool = true              # 探针开关（M2-04 对照组）：false 时不累计熟练、不欠铭印
 var _room_gain: Dictionary = {}       # 本房各武器已获熟练（每房上限用）
 var _settled: Dictionary = {}         # 本房产生过有效结算的符号路径
 
@@ -60,6 +61,8 @@ func r_level(path: String) -> int:
 
 # 房间胜利：样板武器（已装备且本房有有效结算）获得熟练；跨过 R2 / R3 则欠一次铭印。
 func settle_room(kind: String) -> void:
+	if not enabled:
+		return
 	var gain_base := 1 + (1 if kind == "elite" else 0) + (1 if kind == "boss" else 0)
 	for path in _ctrl.selected_loadout:
 		if not SAMPLE_WEAPONS.has(path) or not _weapon_settled(path):
@@ -166,6 +169,28 @@ func tune_map() -> Dictionary:
 
 func tune_bonus(path: String, sym_path: String) -> float:
 	return float(tune_map().get(path, {}).get(sym_path, 0))
+
+
+# 武器区文案：R 等级 + 熟练进度（满级后显示累计）。非样板武器返回空串。
+func progress_text(path: String) -> String:
+	if not SAMPLE_WEAPONS.has(path):
+		return ""
+	var lv: int = r_level(path)
+	var m: int = int(mastery.get(path, 0))
+	if lv >= 4:
+		return "R%d · 熟练 %d（满级）" % [lv, m]
+	return "R%d · 熟练 %d/%d" % [lv, m, _next_threshold(lv)]
+
+
+# 铭印文案：锋铸 / 调律 次数（无则为空串）。
+func imprint_text(path: String) -> String:
+	var im: Dictionary = imprints.get(path, {"forge": 0, "tune": {}})
+	var parts: Array[String] = []
+	if int(im["forge"]) > 0:
+		parts.append("锋铸×%d（攻 +%d）" % [int(im["forge"]), forge_bonus(path)])
+	if _tune_count(path) > 0:
+		parts.append("调律×%d" % _tune_count(path))
+	return " · ".join(parts)
 
 
 func display_name(path: String) -> String:

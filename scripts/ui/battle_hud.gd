@@ -868,7 +868,7 @@ func _refresh_meta() -> void:
 		act_txt = "ACT %d%s" % [a, " " + act_theme.get(a, "") if act_theme.has(a) else ""]
 	room_label.text = "%s · 房间: %d/%d%s%s" % [act_txt, controller.state.room_index + 1, rooms.size(), " · ★BOSS" if is_boss else "", essence_txt]
 	turn_label.text = "回合: %d" % controller.state.turn_count
-	player_hp_label.text = "HP %d/%d · 护盾 %d" % [controller.state.player_hp, controller.state.player_hp_max, controller.state.player_shield]
+	player_hp_label.text = "HP %d/%d · 护盾 %d · %s" % [controller.state.player_hp, controller.state.player_hp_max, controller.state.player_shield, controller.growth.progress_text()]   # M2-03：玩家区显示等级与历练
 	player_buff_label.text = "【转轮】技能: " + controller._buff_summary()
 	# T30 玩家 frost 状态（冻结转轮列数）
 	if controller.state.player_frost > 0:
@@ -964,12 +964,12 @@ var _replace_vbox: VBoxContainer = null
 var _replace_cb: Callable = Callable()
 var _growth_picker = null   # M2-01 技艺三选一覆盖层（懒构建）
 
-# M2-01/M2-02 三选一（技艺 / 铭印）：懒构建覆盖层；选定后回调 on_chosen(id)
-func show_growth_picker(title: String, sub: String, choices: Array, on_chosen: Callable) -> void:
+# M2-03 成长结算（技艺 + 铭印合并为一屏）：懒构建覆盖层；全部选定并确认后回调 on_confirm({key: id})
+func show_growth_settlement(title: String, sections: Array, on_confirm: Callable) -> void:
 	if _growth_picker == null:
 		_growth_picker = GROWTH_PICKER.new()
 		add_child(_growth_picker)
-	_growth_picker.show_choices(title, sub, choices, on_chosen)
+	_growth_picker.show_sections(title, sections, on_confirm)
 
 
 func hide_growth_picker() -> void:

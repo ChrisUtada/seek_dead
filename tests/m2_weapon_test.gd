@@ -43,6 +43,7 @@ func _run() -> void:
 	_test_forge_applies(duel)
 	_test_tune_applies(duel)
 	_test_offer_queue(duel)
+	_test_merged_settlement(duel)
 
 	duel.mastery.reset_run()
 	duel.meta.clear()
@@ -198,6 +199,49 @@ func _test_tune_applies(duel: DuelController) -> void:
 	_check(is_equal_approx(w_fs, 4.0), "池内火焰剑火斩权重 3 → 4")
 	m.imprints.clear()
 	duel.reel_system.build_pool(duel.selected_loadout)
+
+
+# M2-03：同一房间既升技艺又欠铭印 → 只弹一屏（两组），一次确认同时应用。
+func _test_merged_settlement(duel: DuelController) -> void:
+	_equip(duel)
+	duel.growth.reset_run()
+	var m = duel.mastery
+	var idx := 0
+	for i in range(duel.ROOMS.size()):
+		if duel.ROOMS[i].kind == "normal":
+			idx = i
+			break
+	duel.room_index = idx
+	duel.in_interroom = false
+	duel.growth.xp = 2   # 普通房 +1 → Lv.2，待选技艺
+	m.mastery[FIRE] = 2
+	m.reset_room()
+	_settle_fire(duel)
+	duel.room_flow.finish_room(Callable(), false)
+	var picker = duel.hud._growth_picker
+	_check(picker.visible and picker._section_keys.size() == 2, "技艺 + 铭印合并为一屏（两组）")
+	_check(not duel.in_interroom, "确认前不进入间歇（只打断一次）")
+	duel.room_flow.auto_pick_growth()
+	_check(duel.growth.perk_ids.size() == 1 and int(m.imprints[FIRE]["forge"]) + m._tune_count(FIRE) == 1, "一次确认同时应用技艺与铭印")
+	_check(duel.in_interroom and not duel.room_flow.growth_pick_pending(), "确认后进入间歇且无残留")
+	duel.hud._refresh_meta()
+	var row = duel.hud.panel_view.weapons_row
+	var fire_lbl = null
+	var perk_count := 0
+	for c in row.get_children():
+		if c.name.begins_with("WIcon_") and c.name.ends_with("fire_sword"):
+			fire_lbl = c
+	for c in duel.hud.panel_view.skills_row.get_children():
+		if c.name.begins_with("PIcon_"):
+			perk_count += 1
+	_check(fire_lbl != null and fire_lbl.text.ends_with("R2"), "武器区：火焰剑显示 R2 角标")
+	_check(fire_lbl != null and fire_lbl.tooltip_text.find("熟练") >= 0, "武器 tooltip 含熟练进度")
+	_check(perk_count == 1, "技艺区：习得技艺显示一枚图标")
+	_check(duel.hud.player_hp_label.text.find("Lv.2") >= 0, "玩家区：HP 行显示等级")
+	duel.growth.reset_run()
+	m.reset_run()
+	duel.hud.set_interroom_enabled(false)
+	duel.in_interroom = false
 
 
 func _test_offer_queue(duel: DuelController) -> void:

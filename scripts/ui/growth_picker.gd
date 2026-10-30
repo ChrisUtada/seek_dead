@@ -1,13 +1,17 @@
 extends Control
 
-# 技艺三选一覆盖层（M2-01）：历练升级时在房间间歇前弹出；候选在展示时已定完整效果，点选后回调。
-# 由 BattleHud.show_growth_picker 懒构建（不注册全局 class_name，同 meta_screen 之外的 UI 覆盖层约定）。
-
-signal perk_chosen(id: String)
+# 成长结算覆盖层（M2-03）：房间胜利后于间歇前弹出一次，合并技艺三选一与武器铭印。
+# 每个 section 为一组单选（key 区分：技艺 "perk" / 武器路径），全部选定后方可确认；确认一次性回调 {key: id}。
+# 候选在展示时已定完整效果（含真实格数与共鸣变化的预览文案）。
+# 由 BattleHud.show_growth_settlement 懒构建（不注册全局 class_name，同 meta_screen 之外的 UI 覆盖层约定）。
 
 const UI_BUTTON = preload("res://scenes/ui/ui_button.tscn")
 
 var _vbox: VBoxContainer
+var _confirm_btn: Button = null
+var _picked: Dictionary = {}          # key -> 已选 id
+var _section_keys: Array = []         # 需要选择的 key（顺序同展示）
+var _on_confirm: Callable = Callable()
 
 
 func _ready() -> void:
@@ -34,18 +38,34 @@ func _ready() -> void:
 	visible = false
 
 
-# 通用三选一（技艺 / 铭印共用）：title 与 sub 由调用方给出；候选字段 id / family / name / desc。
-func show_choices(title: String, sub: String, choices: Array, on_chosen: Callable) -> void:
+# sections: [{"key": String, "title": String, "sub": String, "choices": [{id, family, name, desc}]}]
+# on_confirm: Callable(picked: Dictionary)  —— 每个 key 都选定后才可确认。
+func show_sections(title: String, sections: Array, on_confirm: Callable) -> void:
 	for c in _vbox.get_children():
 		_vbox.remove_child(c)
 		c.queue_free()
+	_picked = {}
+	_section_keys = []
+	_on_confirm = on_confirm
 	_vbox.add_child(_text_label(title, TypeScale.OVERLAY, Palette.ACCENT_GOLD))
-	_vbox.add_child(_text_label(sub, TypeScale.TINY, Palette.MUTED))
-	for opt in choices:
-		var btn = UI_BUTTON.instantiate()
-		btn.text = "[%s] %s\n%s" % [opt["family"], opt["name"], opt["desc"]]
-		btn.pressed.connect(_on_pressed.bind(opt["id"], on_chosen))
-		_vbox.add_child(btn)
+	for sec in sections:
+		var key: String = sec["key"]
+		_section_keys.append(key)
+		_vbox.add_child(_text_label(sec["title"], TypeScale.MEDIUM, Palette.ACCENT_GOLD))
+		_vbox.add_child(_text_label(sec["sub"], TypeScale.TINY, Palette.MUTED))
+		var group := ButtonGroup.new()
+		for opt in sec["choices"]:
+			var btn = UI_BUTTON.instantiate()
+			btn.text = "[%s] %s\n%s" % [opt["family"], opt["name"], opt["desc"]]
+			btn.toggle_mode = true
+			btn.button_group = group
+			btn.toggled.connect(_on_toggled.bind(key, opt["id"]))
+			_vbox.add_child(btn)
+	_confirm_btn = UI_BUTTON.instantiate()
+	_confirm_btn.text = "确认成长"
+	_confirm_btn.disabled = true
+	_confirm_btn.pressed.connect(_on_confirm_pressed)
+	_vbox.add_child(_confirm_btn)
 	visible = true
 
 
@@ -53,9 +73,18 @@ func hide_picker() -> void:
 	visible = false
 
 
-func _on_pressed(id: String, on_chosen: Callable) -> void:
+func _on_toggled(on: bool, key: String, id: String) -> void:
+	if not on:
+		return
+	_picked[key] = id
+	_confirm_btn.disabled = _picked.size() < _section_keys.size()
+
+
+func _on_confirm_pressed() -> void:
+	if _picked.size() < _section_keys.size():
+		return
 	visible = false
-	on_chosen.call(id)
+	_on_confirm.call(_picked.duplicate())
 
 
 func _text_label(text: String, font_size: int, color: Color) -> Label:

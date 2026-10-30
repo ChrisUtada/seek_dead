@@ -25,6 +25,7 @@ const STEADY_WAIT := 0.17        # 稳定节奏：每房前 2 回合的基础每
 const STEADY_TURNS := 2
 const GUARD_SHIELD := 8
 
+var enabled: bool = true         # 探针开关（M2-04 对照组）：false 时房间胜利不发历练
 var xp: int = 0
 var level: int = 1
 var perk_ids: Array[String] = []
@@ -47,8 +48,17 @@ func has_perk(id: String) -> bool:
 	return perk_ids.has(id)
 
 
+# 玩家区文案：等级 + 距下一级的历练进度（满级后显示累计）。
+func progress_text() -> String:
+	if level >= LEVEL_MAX:
+		return "Lv.%d 满级 · 历练 %d" % [level, xp]
+	return "Lv.%d · 历练 %d/%d" % [level, xp, int(LEVEL_XP[level + 1])]
+
+
 # 房间胜利：累计经验并逐级升级。返回待选技艺次数（>0 时 RoomFlow 先弹三选一再进间歇）。
 func grant_room_xp(kind: String) -> int:
+	if not enabled:
+		return pending_picks
 	xp += int(ROOM_XP.get(kind, 0))
 	while level < LEVEL_MAX and xp >= int(LEVEL_XP[level + 1]):
 		level += 1
@@ -82,7 +92,16 @@ func roll_choices() -> Array:
 				break
 			if not picks.has(p):
 				picks.append(p)
-	return picks.map(func(p): return {"id": p["id"], "family": FAMILIES[p["family"]], "name": p["name"], "desc": p["desc"]})
+	return picks.map(func(p): return _choice_view(p))
+
+
+# 候选展示口径：描述 + 展示时的当前→升级后数值（确认前预览）。
+func _choice_view(p: Dictionary) -> Dictionary:
+	var desc: String = p["desc"]
+	if p["id"] == "tough":
+		var hp: int = _ctrl.player_hp_max
+		desc += "（最大 HP %d → %d）" % [hp, hp + 10]
+	return {"id": p["id"], "family": FAMILIES[p["family"]], "name": p["name"], "desc": desc}
 
 
 func _unowned_in(family: String) -> Array:

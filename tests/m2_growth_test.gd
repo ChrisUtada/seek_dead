@@ -189,13 +189,19 @@ func _test_room_flow_offers_pick(duel: DuelController) -> void:
 	duel.in_interroom = false
 	duel.room_flow.finish_room(Callable(), false)
 	_check(g.level == 2 and g.pending_picks == 1, "房间胜利升 Lv.2 后待选 1 次")
-	_check(duel.hud._growth_picker != null and duel.hud._growth_picker.visible, "待选时弹出技艺三选一")
-	_check(not duel.in_interroom, "三选一未完成前不进入房间间歇")
-	var first_btn = duel.hud._growth_picker._vbox.get_child(2)
-	_check(first_btn.text.begins_with("["), "三选一按钮已渲染（含家族标签）")
-	duel.room_flow._on_growth_picked(g.roll_choices()[0]["id"])
-	_check(g.pending_picks == 0 and g.perk_ids.size() == 1, "选定后待选清零、技艺入列")
-	_check(duel.in_interroom, "选完技艺后进入房间间歇")
+	_check(duel.hud._growth_picker != null and duel.hud._growth_picker.visible, "待选时弹出成长结算")
+	_check(not duel.in_interroom, "成长结算确认前不进入房间间歇")
+	_check(duel.hud._growth_picker._confirm_btn.disabled, "未选定技艺前确认按钮禁用")
+	var has_btn := false
+	for c in duel.hud._growth_picker._vbox.get_children():
+		if c is Button and c.text.begins_with("["):
+			has_btn = true
+	_check(has_btn, "技艺候选按钮已渲染（含家族标签）")
+	_check(duel.room_flow.growth_pick_pending(), "成长结算待确认")
+	duel.room_flow.auto_pick_growth()
+	_check(g.pending_picks == 0 and g.perk_ids.size() == 1, "确认后待选清零、技艺入列")
+	_check(duel.in_interroom, "确认成长后进入房间间歇")
+	_check(not duel.room_flow.growth_pick_pending(), "确认后无待确认项")
 	duel.hud._growth_picker.visible = false
 	duel.in_interroom = false
 	duel.hud.set_interroom_enabled(false)
