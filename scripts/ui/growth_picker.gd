@@ -26,14 +26,37 @@ func _ready() -> void:
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(center)
 	var dlg := PanelContainer.new()
+	# 2026-10-30 UI 反馈：弹窗固定 320×240，内容超出时内部滚动，避免撑满并裁掉确认按钮
+	dlg.custom_minimum_size = Vector2(320, 240)
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Palette.PANEL_BG
 	sb.border_color = Palette.ACCENT_GOLD
 	sb.set_border_width_all(2)
+	sb.content_margin_left = 6
+	sb.content_margin_right = 6
+	sb.content_margin_top = 5
+	sb.content_margin_bottom = 5
 	dlg.add_theme_stylebox_override("panel", sb)
+	var wrap := VBoxContainer.new()
+	wrap.add_theme_constant_override("separation", 4)
+	dlg.add_child(wrap)
+	var scroll := ScrollContainer.new()
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	wrap.add_child(scroll)
 	_vbox = VBoxContainer.new()
-	_vbox.add_theme_constant_override("separation", 6)
-	dlg.add_child(_vbox)
+	_vbox.custom_minimum_size = Vector2(300, 0)
+	_vbox.add_theme_constant_override("separation", 4)
+	scroll.add_child(_vbox)
+	# 确认按钮固定在滚动区外，长列表也不需要滚到底
+	_confirm_btn = UI_BUTTON.instantiate()
+	_confirm_btn.text = "确认成长"
+	_confirm_btn.custom_minimum_size = Vector2(0, 24)
+	_confirm_btn.add_theme_font_size_override("font_size", TypeScale.META)
+	_confirm_btn.disabled = true
+	_confirm_btn.pressed.connect(_on_confirm_pressed)
+	wrap.add_child(_confirm_btn)
 	center.add_child(dlg)
 	visible = false
 
@@ -59,13 +82,13 @@ func show_sections(title: String, sections: Array, on_confirm: Callable) -> void
 			btn.text = "[%s] %s\n%s" % [opt["family"], opt["name"], opt["desc"]]
 			btn.toggle_mode = true
 			btn.button_group = group
+			# 2026-10-30 UI 反馈：限制宽度并允许换行，避免长描述把弹窗撑满屏幕
+			btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			btn.custom_minimum_size = Vector2(300, 0)
+			btn.add_theme_font_size_override("font_size", TypeScale.META)
 			btn.toggled.connect(_on_toggled.bind(key, opt["id"]))
 			_vbox.add_child(btn)
-	_confirm_btn = UI_BUTTON.instantiate()
-	_confirm_btn.text = "确认成长"
 	_confirm_btn.disabled = true
-	_confirm_btn.pressed.connect(_on_confirm_pressed)
-	_vbox.add_child(_confirm_btn)
 	visible = true
 
 
@@ -92,7 +115,7 @@ func _text_label(text: String, font_size: int, color: Color) -> Label:
 	l.text = text
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	l.custom_minimum_size = Vector2(300, 0)
+	l.custom_minimum_size = Vector2(280, 0)
 	l.add_theme_font_size_override("font_size", font_size)
 	l.add_theme_color_override("font_color", color)
 	return l

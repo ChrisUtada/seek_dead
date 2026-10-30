@@ -43,6 +43,13 @@ var spinning: bool:
 		return _spinning
 
 
+# 当前旋转节拍（秒/格）：供转轮滚动视觉按同一速度推进（UI 只读）。
+func current_spin_wait() -> float:
+	if _timer == null:
+		return _SPIN_BASE_WAIT
+	return _timer.wait_time
+
+
 func _init(ctrl) -> void:
 	_ctrl = ctrl
 	_timer = Timer.new()

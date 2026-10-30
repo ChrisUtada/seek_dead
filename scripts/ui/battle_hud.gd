@@ -6,12 +6,13 @@ class_name BattleHud
 
 const TRASH_SYMBOL = preload("res://resources/symbols/trash.tres")
 const DEFAULT_ENEMY_TEXTURE = preload("res://assets/enemy.png")   # 默认敌人立绘（RoomData.art 为空时使用）
-const ENEMY_SPRITE_SIZE := Vector2(44, 60)    # 敌人立绘基础容器尺寸（stretch KEEP_ASPECT → 渲染 44×44，与玩家同规格）
+const ENEMY_SPRITE_SIZE := Vector2(88, 88)    # 敌人立绘容器尺寸（2× 最近邻放大；stretch KEEP_ASPECT → 渲染 88×88）
 const UI_BUTTON = preload("res://scenes/ui/ui_button.tscn")
 const GROWTH_PICKER = preload("res://scripts/ui/growth_picker.gd")
 const ITEM_CARD = preload("res://scenes/ui/item_card.tscn")
 const UI_PANEL = preload("res://scenes/ui/ui_panel.tscn")
 const SYMBOL_CELL = preload("res://scenes/ui/symbol_cell.tscn")
+const REEL_SPIN_VIEW = preload("res://scripts/ui/reel_spin_view.gd")
 const Screen = preload("res://scripts/ui/screen.gd")
 const META_SCENE = preload("res://scenes/ui/meta_screen.tscn")
 const REWARD_SCENE = preload("res://scenes/ui/reward_screen.tscn")
@@ -147,6 +148,7 @@ var anvil_screen                        # 铁砧锻造覆盖层（anvil_screen.t
 #     故改用确定性 $节点路径（.tscn 结构改动时同步更新此处路径）。
 @onready var grid_container = $Margin/Content/MainRow/CenterStage/ReelDock/TopRow/ReelCenter/GridContainer
 @onready var player_hp_label = $Margin/Content/MainRow/PlayerPanel/VBox/PlayerHpLabel
+@onready var player_level_label = $Margin/Content/MainRow/PlayerPanel/VBox/PlayerLevelLabel
 @onready var weapons_row = $Margin/Content/MainRow/PlayerPanel/VBox/GearBox/WeaponsRow
 @onready var charms_row = $Margin/Content/MainRow/PlayerPanel/VBox/GearBox/CharmsRow
 @onready var skills_row = $Margin/Content/MainRow/PlayerPanel/VBox/GearBox/SkillsRow
@@ -255,8 +257,8 @@ func _build_ui() -> void:
 		cell_badges.append([])
 		for row in controller.state.ROWS:
 			var cell = SYMBOL_CELL.instantiate()
-			cell.custom_minimum_size = Vector2(32, 32)
-			cell.add_theme_font_size_override("font_size", TypeScale.REEL)
+			cell.custom_minimum_size = Vector2(56, 56)
+			cell.add_theme_font_size_override("font_size", TypeScale.SYMBOL)
 			cell.disabled = true   # 无锁定，格子仅作展示
 			cell.mouse_default_cursor_shape = Control.CURSOR_HELP   # Phase 3：悬停提示
 			cell.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -269,6 +271,10 @@ func _build_ui() -> void:
 			# 匹配角标（右上角锚定，封装在 symbol_cell.tscn 的 Badge 子节点）
 			var badge = cell.get_node("Badge")
 			cell_badges[reel].append(badge)
+			# 2026-10-30：旋转时覆盖纵向滚动视觉（纯展示层，停止后隐藏）
+			var spin_view = REEL_SPIN_VIEW.new()
+			cell.add_child(spin_view)
+			spin_view.configure(controller, reel)
 
 	# 底部操作栏按钮（SpinBar 在转轮下方居中）：由 .tscn 提供，这里连信号与快捷键。
 	# 注：原"重置"按钮（Ctrl+R → _full_reset 放弃整局重开）已删除——其为无确认的一键自毁本局陷阱，
@@ -341,7 +347,7 @@ func _make_item_card(data: Resource, path: String, kind: String) -> Dictionary:
 					if sw == null or sw.symbol == null:
 						continue
 					parts.append(sw.symbol.label)
-				line1 = "⚔️ " + " ".join(parts)
+				line1 = "🗡️ " + " ".join(parts)
 			# line2 = 强度轴（2026-08-09 更新）：攻击力 · 元素 · 命中率 · 非三连暴击率 · 特殊机制（MISS 恢复后命中率复活）
 			var elem_txt := "无"
 			if wd != null and wd.element != "":
@@ -712,14 +718,14 @@ func _update_enemy_element() -> void:
 		var wk_names := []
 		for e in ewk:
 			wk_names.append(ElementCounter.label(e))
-		enemy_weak_label.text = "弱 %s ×%s" % ["·".join(wk_names), ElementCounter.fmt_mult(ElementCounter.MULT_ADVANTAGE)]
+		enemy_weak_label.text = "弱%s×%s" % ["·".join(wk_names), ElementCounter.fmt_mult(ElementCounter.MULT_ADVANTAGE)]
 		enemy_weak_label.add_theme_color_override("font_color", ElementCounter.color(ewk[0]))
 		var ers := ElementCounter.resists(eelem)
 		enemy_resist_label.visible = true
 		var rs_names := []
 		for e in ers:
 			rs_names.append(ElementCounter.label(e))
-		enemy_resist_label.text = "抗 %s ×%s" % ["·".join(rs_names), ElementCounter.fmt_mult(ElementCounter.MULT_RESIST)]
+		enemy_resist_label.text = "抗%s×%s" % ["·".join(rs_names), ElementCounter.fmt_mult(ElementCounter.MULT_RESIST)]
 		enemy_resist_label.add_theme_color_override("font_color", ElementCounter.color(ers[0]))
 
 
@@ -810,19 +816,21 @@ func _refresh_cell(reel: int, row: int) -> void:
 	# S4：按「有效元素」着色。同一个共享符号（如 special.tres）在火剑下是火、在铁剑下是无属性，
 	# 靠边框/底色一眼分辨谁吃 ×1.5；元素为 none 时回落符号自身配色。
 	var elem = _cell_element(reel, row)
+	var rs = controller.reel_system
+	# 2026-10-30：旋转中的未停列由 ReelSpinView 显示纵向滚动，格子自身清空文字避免重影。
+	var scrolling: bool = rs != null and rs.spinning and not rs.reel_stopped[reel]
+	if scrolling:
+		b.icon = null
+		b.text = ""
 	# M3-03：有 16×16 图标则用图标（文字清空）；无图回落 label。洞察预览在图标模式退化为 ▸。
-	if s.icon_tex != null:
+	elif s.icon_tex != null:
 		b.icon = s.icon_tex
 		b.text = ""
 	else:
 		b.icon = null
 		b.text = s.label
-	# M2-01 洞察：旋转中未停列在格内追加下一格符号（停轮后自然消失）
-	var rs = controller.reel_system
-	if controller.growth.has_perk("insight") and rs.spinning and not rs.reel_stopped[reel]:
-		var nxt: SymbolData = rs.next_symbol(reel)
-		if nxt != null:
-			b.text += "▸" if s.icon_tex != null else "\n▸" + nxt.label
+	# M2-01 洞察：旋转中下一格预览由 ReelSpinView 贴在格底显示（见 reel_spin_view._sync_preview）——
+	# 滚动视觉会盖住格子自身文字，这里不再写 b.text。
 	var fc: Color = s.color if elem == "none" else s.color.lerp(ElementCounter.color(elem), 0.55)
 	# T30 冻结格（失效格）：蓝色边框框住作为 frost 提示（❄ 前缀/冰色文字不需要，边框即提示）
 	var frozen: bool = controller.state.frozen_cols.has(reel)
@@ -876,8 +884,11 @@ func _refresh_meta() -> void:
 		act_txt = "ACT %d%s" % [a, " " + act_theme.get(a, "") if act_theme.has(a) else ""]
 	room_label.text = "%s · 房间: %d/%d%s%s" % [act_txt, controller.state.room_index + 1, rooms.size(), " · ★BOSS" if is_boss else "", essence_txt]
 	turn_label.text = "回合: %d" % controller.state.turn_count
-	player_hp_label.text = "HP %d/%d · 护盾 %d · %s" % [controller.state.player_hp, controller.state.player_hp_max, controller.state.player_shield, controller.growth.progress_text()]   # M2-03：玩家区显示等级与历练
-	player_buff_label.text = "【转轮】技能: " + controller._buff_summary()
+	# 2026-10-30 UI 反馈：左栏收窄后 HP 行只放 HP/上限，护盾有值才另起一行（无盾时不占位）
+	var shield_txt := ("\n盾 %d" % controller.state.player_shield) if controller.state.player_shield > 0 else ""
+	player_hp_label.text = "HP%d/%d%s" % [controller.state.player_hp, controller.state.player_hp_max, shield_txt]
+	player_level_label.text = controller.growth.progress_text()   # M2-03 玩家区：等级与历练独立一行，避免挤压战斗区
+	player_buff_label.text = "技能: " + controller._buff_summary()
 	# T30 玩家 frost 状态（冻结转轮列数）
 	if controller.state.player_frost > 0:
 		player_buff_label.text += " · ❄霜冻×%d" % controller.state.player_frost
@@ -910,7 +921,7 @@ func _refresh_meta() -> void:
 				lead_elem = e
 		if lead_elem != "":
 			lead_txt = " · 主导%s" % ElementCounter.label(lead_elem)
-		enemy_charge_label.text = "⚡充能 %d/%d（克制命中攒满爆发）%s" % [controller.state.charge_points, controller.BALANCE.charge_max, lead_txt]
+		enemy_charge_label.text = "⚡充能 %d/%d%s" % [controller.state.charge_points, controller.BALANCE.charge_max, lead_txt]
 		enemy_charge_label.visible = true
 	else:
 		enemy_charge_label.visible = false
@@ -937,6 +948,7 @@ func _refresh_meta() -> void:
 	run_label.text = "本局加成: " + ("无" if parts.is_empty() else " / ".join(parts))
 	if controller.state.enemy_intent.is_empty():
 		enemy_intent_label.text = "意图: —"
+		enemy_intent_label.tooltip_text = ""
 	else:
 		# T20：图标/名字读 IntentData（enemy_intent.data）；match 仅剩攻击/重击的数值格式分支
 		var t = controller.state.enemy_intent["type"]
@@ -946,16 +958,18 @@ func _refresh_meta() -> void:
 		if data != null and data.display_name != "":
 			name_txt = data.display_name
 		match t:
-			"attack": enemy_intent_label.text = "意图: %s%s %d" % [icon if icon != "" else "⚔", name_txt, controller.state.enemy_intent["value"]]
-			"heavy":  enemy_intent_label.text = "意图: %s%s %d" % [icon if icon != "" else "💥", name_txt, controller.state.enemy_intent["value"]]
+			"attack": enemy_intent_label.text = "意图:%s%s%d" % [icon if icon != "" else "🗡️", name_txt, controller.state.enemy_intent["value"]]
+			"heavy":  enemy_intent_label.text = "意图:%s%s%d" % [icon if icon != "" else "💥", name_txt, controller.state.enemy_intent["value"]]
 			"jam", "lock", "chaos", "auto_stop":
-				enemy_intent_label.text = "意图: %s%s（用净化药剂）" % [icon if icon != "" else "☣", name_txt]
+				enemy_intent_label.text = "意图:%s%s" % [icon if icon != "" else "☣", name_txt]
 			"none":   enemy_intent_label.text = "意图: —"
 			_:        enemy_intent_label.text = "意图: %s%s" % [icon if icon != "" else "", name_txt]
-	# M3-04：下一意图是视觉重点——有效意图用金色强调并加大一号，无意图回落弱化色。
+		# 面板收窄后「（用净化药剂）」不再塞进正文，改挂 tooltip 保留这条指引
+		enemy_intent_label.tooltip_text = "可用净化药剂解除" if String(t) in ["jam", "lock", "chaos", "auto_stop"] else ""
+	# M3-04：下一意图是视觉重点——有效意图用金色强调；2026-10-30 面板收窄后字号统一 META，避免换行
 	var has_intent: bool = not controller.state.enemy_intent.is_empty() and String(controller.state.enemy_intent.get("type", "none")) != "none"
 	enemy_intent_label.add_theme_color_override("font_color", Palette.ACCENT_GOLD if has_intent else Palette.MUTED)
-	enemy_intent_label.add_theme_font_size_override("font_size", TypeScale.BODY if has_intent else TypeScale.META)
+	enemy_intent_label.add_theme_font_size_override("font_size", TypeScale.META)
 
 
 func _intent_display_name(t: String) -> String:
@@ -1085,11 +1099,11 @@ func _log(msg: String) -> void:
 	Debug.log(msg)
 
 
-# 玩家面板装备图标刷新：武器取首个符号 label emoji（无符号回退 ⚔️），
+# 玩家面板装备图标刷新：武器取首个符号 label emoji（无符号回退 🗡️），
 # 护符取 ItemData.icon emoji；技能取 SkillData.icon（回退 ✦）。tooltip = 名字(+ 描述)。
 # 每次清空旧的 WIcon_/CIcon_/SIcon_ 子节点后重建（数量极小，无性能问题）。
 # 临时图标区分（T21 配套，待美术资源替换）：
-# 攻击武器 = 「⚔️ + 元素」；技能/护符保持自身 icon——避免武器取符号 label 与技能共用同一元素符号分不清
+# 攻击武器 = 「🗡️ + 元素」；技能/护符保持自身 icon——避免武器取符号 label 与技能共用同一元素符号分不清
 func _element_icon(elem: String) -> String:
 	return panel_view.element_icon(elem)
 

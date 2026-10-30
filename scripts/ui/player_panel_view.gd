@@ -27,14 +27,14 @@ func controller():
 func element_icon(elem: String) -> String:
 	match elem:
 		"fire":   return "🔥"
-		"ice":    return "❄️"
-		"poison": return "☠️"
+		"ice":    return "❄"
+		"poison": return "☠"
 		"light":  return "✨"
 		"dark":   return "🌑"
-		_:        return "⚔️"
+		_:        return ""   # 无属性：仅保留武器本体符号（⚔），避免 ⚔️ 变体在像素字体里成豆腐块
 
 
-# 装备图标刷新：武器取「⚔️+元素」、护符取 icon、技能取 icon。
+# 装备图标刷新：武器取「🗡️+元素」、护符取 icon、技能取 icon。
 # P-修复（用户实测 2026-08-24）：清空不能按 WIcon_/CIcon_ 前缀匹配——同名护符重复时
 # Label 会被 Godot 自动改名 @Label@N，前缀匹配失效导致图标无限累积拉满整行。
 # 改为「静态 Tag（CharmsTag）之外全清」；命名追加索引防碰撞。
@@ -57,9 +57,9 @@ func refresh_gear_icons() -> void:
 		var wd = load(path)
 		if wd == null:
 			continue
-		var icon := "⚔️"
+		var icon := "🗡️"
 		if wd != null and "element" in wd:
-			icon = "⚔️" + element_icon(String(wd.element))
+			icon = "🗡️" + element_icon(String(wd.element))
 		var tip: String = wd.weapon_name if "weapon_name" in wd else path.get_file().get_basename()
 		# M2-03 武器区：R 等级角标 + 熟练进度 / 铭印 tooltip（M4-01 起全部武器有 R 进度）
 		var mastery = controller().mastery
@@ -159,8 +159,10 @@ func refresh_consumable_panel() -> void:
 			var slot = controller().state.consumable_slots[i]
 			var cd: Resource = load(slot["path"])
 			if cd != null:
-				cell.text = "%s %s" % [cd.icon, cd.item_name]
-				cell.tooltip_text = ItemTooltip.for_resource(cd) + "\n剩 %d 次" % slot["charges"]   # 统一生成器 + 腰带余量
+				# 2026-10-30 UI 反馈：腰带格子只放「图标 + 剩余次数」，名称/详情进 tooltip——
+				# 左栏收窄后放进全名会把面板撑宽，挤压战斗区。
+				cell.text = "%s×%d" % [cd.icon, slot["charges"]]
+				cell.tooltip_text = "%s · %s\n剩 %d 次" % [cd.item_name, ItemTooltip.for_resource(cd), slot["charges"]]
 			else:
 				cell.text = "?"
 				cell.tooltip_text = "资源缺失"

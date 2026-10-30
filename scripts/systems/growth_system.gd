@@ -51,8 +51,8 @@ func has_perk(id: String) -> bool:
 # 玩家区文案：等级 + 距下一级的历练进度（满级后显示累计）。
 func progress_text() -> String:
 	if level >= LEVEL_MAX:
-		return "Lv.%d 满级 · 历练 %d" % [level, xp]
-	return "Lv.%d · 历练 %d/%d" % [level, xp, int(LEVEL_XP[level + 1])]
+		return "Lv.%d · %d（满）" % [level, xp]
+	return "Lv.%d · %d/%d" % [level, xp, int(LEVEL_XP[level + 1])]
 
 
 # 房间胜利：累计经验并逐级升级。返回待选技艺次数（>0 时 RoomFlow 先弹三选一再进间歇）。

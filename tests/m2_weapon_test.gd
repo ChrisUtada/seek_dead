@@ -237,7 +237,7 @@ func _test_merged_settlement(duel: DuelController) -> void:
 	_check(fire_lbl != null and fire_lbl.text.ends_with("R2"), "武器区：火焰剑显示 R2 角标")
 	_check(fire_lbl != null and fire_lbl.tooltip_text.find("熟练") >= 0, "武器 tooltip 含熟练进度")
 	_check(perk_count == 1, "技艺区：习得技艺显示一枚图标")
-	_check(duel.hud.player_hp_label.text.find("Lv.2") >= 0, "玩家区：HP 行显示等级")
+	_check(duel.hud.player_level_label.text.find("Lv.2") >= 0, "玩家区：等级行显示 Lv.2")
 	duel.growth.reset_run()
 	m.reset_run()
 	duel.hud.set_interroom_enabled(false)

@@ -42,14 +42,14 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 10
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 6
 
 [node name="Content" type="VBoxContainer" parent="Margin" unique_id=1636078098]
 layout_mode = 2
-theme_override_constants/separation = 2
+theme_override_constants/separation = 1
 
 [node name="InfoBar" type="HBoxContainer" parent="Margin/Content" unique_id=399666215]
 layout_mode = 2
@@ -100,16 +100,16 @@ horizontal_alignment = 1
 [node name="MainRow" type="HBoxContainer" parent="Margin/Content" unique_id=275023102]
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_constants/separation = 4
+theme_override_constants/separation = 3
 
 [node name="PlayerPanel" type="PanelContainer" parent="Margin/Content/MainRow" unique_id=1574190775]
-custom_minimum_size = Vector2(90, 0)
+custom_minimum_size = Vector2(76, 0)
 layout_mode = 2
 theme_override_styles/panel = SubResource("sb_panel_compact")
 
 [node name="VBox" type="VBoxContainer" parent="Margin/Content/MainRow/PlayerPanel" unique_id=1534531178]
 layout_mode = 2
-theme_override_constants/separation = 2
+theme_override_constants/separation = 1
 
 [node name="PlayerTitle" type="Label" parent="Margin/Content/MainRow/PlayerPanel/VBox" unique_id=194085103]
 layout_mode = 2
@@ -120,21 +120,29 @@ text = "玩家"
 [node name="PlayerHpLabel" type="Label" parent="Margin/Content/MainRow/PlayerPanel/VBox" unique_id=341642241]
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
-text = "HP 100/100 · 护盾 0"
+text = "HP100/100"
+autowrap_mode = 3
+
+[node name="PlayerLevelLabel" type="Label" parent="Margin/Content/MainRow/PlayerPanel/VBox" unique_id=341642242]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.78, 0.72, 0.62, 1)
+theme_override_font_sizes/font_size = 9
+text = "Lv.1 · 0/3"
+autowrap_mode = 3
 
 [node name="GearBox" type="VBoxContainer" parent="Margin/Content/MainRow/PlayerPanel/VBox" unique_id=108381182]
 layout_mode = 2
 theme_override_constants/separation = 1
 
-[node name="WeaponsRow" type="HBoxContainer" parent="Margin/Content/MainRow/PlayerPanel/VBox/GearBox" unique_id=31706021]
+[node name="WeaponsRow" type="VBoxContainer" parent="Margin/Content/MainRow/PlayerPanel/VBox/GearBox" unique_id=31706021]
 layout_mode = 2
-theme_override_constants/separation = 2
+theme_override_constants/separation = 1
 
 [node name="WeaponsTag" type="Label" parent="Margin/Content/MainRow/PlayerPanel/VBox/GearBox/WeaponsRow" unique_id=251811621]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.95, 0.75, 0.45, 1)
 theme_override_font_sizes/font_size = 9
-text = "⚔"
+text = "武"
 
 [node name="CharmsRow" type="HBoxContainer" parent="Margin/Content/MainRow/PlayerPanel/VBox/GearBox" unique_id=517139566]
 layout_mode = 2
@@ -144,7 +152,7 @@ theme_override_constants/separation = 2
 layout_mode = 2
 theme_override_colors/font_color = Color(0.55, 0.85, 0.95, 1)
 theme_override_font_sizes/font_size = 9
-text = "🛡"
+text = "护"
 
 [node name="SkillsRow" type="HBoxContainer" parent="Margin/Content/MainRow/PlayerPanel/VBox/GearBox" unique_id=227886405]
 layout_mode = 2
@@ -154,7 +162,7 @@ theme_override_constants/separation = 2
 layout_mode = 2
 theme_override_colors/font_color = Color(0.7, 0.9, 0.7, 1)
 theme_override_font_sizes/font_size = 9
-text = "✦"
+text = "技"
 
 [node name="ConsumableTitle" type="Label" parent="Margin/Content/MainRow/PlayerPanel/VBox" unique_id=1288618581]
 layout_mode = 2
@@ -169,25 +177,25 @@ theme_override_constants/v_separation = 2
 columns = 2
 
 [node name="Cell1" parent="Margin/Content/MainRow/PlayerPanel/VBox/ConsumablePanel" unique_id=2097403575 instance=ExtResource("3_btn")]
-custom_minimum_size = Vector2(30, 18)
+custom_minimum_size = Vector2(28, 18)
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 text = "—"
 
 [node name="Cell2" parent="Margin/Content/MainRow/PlayerPanel/VBox/ConsumablePanel" unique_id=764738953 instance=ExtResource("3_btn")]
-custom_minimum_size = Vector2(30, 18)
+custom_minimum_size = Vector2(28, 18)
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 text = "—"
 
 [node name="Cell3" parent="Margin/Content/MainRow/PlayerPanel/VBox/ConsumablePanel" unique_id=1271823786 instance=ExtResource("3_btn")]
-custom_minimum_size = Vector2(30, 18)
+custom_minimum_size = Vector2(28, 18)
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 text = "—"
 
 [node name="Cell4" parent="Margin/Content/MainRow/PlayerPanel/VBox/ConsumablePanel" unique_id=341833789 instance=ExtResource("3_btn")]
-custom_minimum_size = Vector2(30, 18)
+custom_minimum_size = Vector2(28, 18)
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 text = "—"
@@ -225,7 +233,7 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 
 [node name="PlayerSprite" type="TextureRect" parent="Margin/Content/MainRow/CenterStage/StageRow/PlayerCenter" unique_id=1571310140]
-custom_minimum_size = Vector2(48, 60)
+custom_minimum_size = Vector2(120, 120)
 layout_mode = 2
 texture = ExtResource("4_knight")
 stretch_mode = 5
@@ -236,7 +244,7 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 
 [node name="EnemySprite" type="TextureRect" parent="Margin/Content/MainRow/CenterStage/StageRow/EnemyCenter" unique_id=38426286]
-custom_minimum_size = Vector2(44, 60)
+custom_minimum_size = Vector2(88, 88)
 layout_mode = 2
 texture = ExtResource("5_enemy")
 stretch_mode = 5
@@ -257,8 +265,8 @@ size_flags_horizontal = 3
 
 [node name="GridContainer" type="GridContainer" parent="Margin/Content/MainRow/CenterStage/ReelDock/TopRow/ReelCenter" unique_id=753079757]
 layout_mode = 2
-theme_override_constants/h_separation = 4
-theme_override_constants/v_separation = 4
+theme_override_constants/h_separation = 6
+theme_override_constants/v_separation = 6
 columns = 3
 
 [node name="SpinBar" type="HBoxContainer" parent="Margin/Content/MainRow/CenterStage/ReelDock" unique_id=613794076]
@@ -267,19 +275,19 @@ theme_override_constants/separation = 4
 alignment = 1
 
 [node name="SpinButton" parent="Margin/Content/MainRow/CenterStage/ReelDock/SpinBar" unique_id=1202759145 instance=ExtResource("3_btn")]
-custom_minimum_size = Vector2(96, 26)
+custom_minimum_size = Vector2(104, 24)
 layout_mode = 2
 theme_override_font_sizes/font_size = 10
 text = "SPIN (空格)"
 
 [node name="EnemyPanel" type="PanelContainer" parent="Margin/Content/MainRow" unique_id=2000227142]
-custom_minimum_size = Vector2(90, 0)
+custom_minimum_size = Vector2(84, 0)
 layout_mode = 2
 theme_override_styles/panel = SubResource("sb_panel_compact")
 
 [node name="VBox" type="VBoxContainer" parent="Margin/Content/MainRow/EnemyPanel" unique_id=722214282]
 layout_mode = 2
-theme_override_constants/separation = 2
+theme_override_constants/separation = 1
 
 [node name="EnemyTitle" type="Label" parent="Margin/Content/MainRow/EnemyPanel/VBox" unique_id=198916010]
 layout_mode = 2
@@ -303,6 +311,7 @@ text = "★ BOSS"
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 text = "—"
+autowrap_mode = 3
 
 [node name="EnemyHpLabel" type="Label" parent="Margin/Content/MainRow/EnemyPanel/VBox" unique_id=1047730389]
 layout_mode = 2
@@ -321,22 +330,26 @@ visible = false
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 text = "—"
+autowrap_mode = 3
 
 [node name="EnemyResistLabel" type="Label" parent="Margin/Content/MainRow/EnemyPanel/VBox" unique_id=2123456703]
 visible = false
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 text = "—"
+autowrap_mode = 3
 
 [node name="EnemyIntentLabel" type="Label" parent="Margin/Content/MainRow/EnemyPanel/VBox" unique_id=1520650189]
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 text = "意图: —"
+autowrap_mode = 3
 
 [node name="EnemyStatusLabel" type="Label" parent="Margin/Content/MainRow/EnemyPanel/VBox" unique_id=143588646]
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 text = "状态: 无"
+autowrap_mode = 3
 
 [node name="EnemyChargeLabel" type="Label" parent="Margin/Content/MainRow/EnemyPanel/VBox"]
 layout_mode = 2

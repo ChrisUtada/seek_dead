@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "attack"
 display_name = "攻击"
-icon = "⚔"
+icon = "🗡️"
 weight = 1.0
 purifiable = false
 value_mult = 1.0
