@@ -89,7 +89,7 @@ func begin_spin() -> void:
 		_ctrl.hud.set_reel_enabled(r, true)
 	_spinning = true
 	_spin_ticks = 0
-	_timer.wait_time = _SPIN_BASE_WAIT
+	_timer.wait_time = _ctrl.growth.spin_wait_base(_SPIN_BASE_WAIT)   # M2-01：稳定节奏前 2 回合放慢
 	_timer.start()
 	if _ctrl._telemetry != null:
 		_ctrl._telemetry.spin_start()   # M1-06：旋转耗时
@@ -214,7 +214,7 @@ func on_spin_tick() -> void:
 	# 敌人夺轮（auto_stop）：每跳自动停一列（落点随机，玩家无法目押停轮时机；与手动按停共存）
 	if _ctrl.pending_auto_stop:
 		stop_next_reel()
-	var w = max(_SPIN_MIN_WAIT, _SPIN_BASE_WAIT - _spin_ticks * 0.0010)
+	var w = max(_SPIN_MIN_WAIT, _ctrl.growth.spin_wait_base(_SPIN_BASE_WAIT) - _spin_ticks * 0.0010)
 	_timer.wait_time = w
 
 
@@ -229,6 +229,14 @@ func write_reel_cell(r: int) -> void:
 		_ctrl.grid[r][0] = strip[idx][0]
 		_ctrl.grid_elem[r][0] = strip[idx][1]
 	_ctrl.hud._refresh_cell(r, 0)
+
+
+# M2-01 洞察：某列当前带子位置的下一格符号（只读，供 HUD 旋转中预览）。无带子返回 null。
+func next_symbol(r: int) -> SymbolData:
+	var strip = reel_strips[r] if reel_strips.size() > r else null
+	if strip == null or strip.is_empty():
+		return null
+	return strip[(reel_cursor[r] + 1) % strip.size()][0]
 
 
 # 锁定某列：pos<0 表示锁定在当前带子位置（按停时机）。注废/锁轮列覆盖结果。
@@ -323,7 +331,7 @@ func build_pool(loadout: Array) -> void:
 		if wd == null or wd.symbols == null:
 			_ctrl.hud._log("⚠ 武器加载失败（符号未入池）: %s" % path)
 			continue
-		var eff: float = wd.base_power
+		var eff: float = wd.base_power + _ctrl.mastery.forge_bonus(path)   # M2-02：锋铸加基础攻击
 		for sw in wd.symbols:
 			if sw == null or sw.symbol == null:
 				continue
@@ -357,7 +365,7 @@ func build_pool(loadout: Array) -> void:
 		for sw in wd.symbols:
 			if sw == null or sw.symbol == null:
 				continue
-			syms.append([sw.symbol, float(sw.weight), eff_element(sw.symbol, wd)])
+			syms.append([sw.symbol, float(sw.weight) + _ctrl.mastery.tune_bonus(path, sw.symbol.resource_path), eff_element(sw.symbol, wd)])   # M2-02：调律加主符号权重
 		var hit: float = clamp(wd.hit_rate, 0.0, 1.0)
 		var wd_rar: Variant = wd.get("rarity")
 		_ctrl.pool_items.append({"name": wd.weapon_name, "hit": hit, "syms": syms, "rarity": String(wd_rar if wd_rar != null else "common")})

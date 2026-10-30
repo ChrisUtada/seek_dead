@@ -232,6 +232,8 @@ var _shop_system                       # 商店子系统 ShopSystem（步骤3抽
 var _reward_system                     # 奖励子系统 RewardSystem（步骤4抽出；_ready 实例化并注入 self）
 var _loadout_system                    # 整备子系统 LoadoutSystem（步骤5抽出；_ready 实例化并注入 self）
 var _synergy_system                    # 装备共鸣系统 SynergySystem（方案 B 配套；_ready 实例化并注入 self）
+var growth                             # M2-01 角色历练与技艺（经验/等级/三选一技艺；每局清零）
+var mastery                            # M2-02 武器熟练 R1–R4 与铭印（锋铸/调律；每局清零）
 var _telemetry                         # M1-06 局内遥测（内存计数，不落盘/不吃随机；每局清零）
 
 # 仅 1 行 3 格。特殊符号需 3 同才触发；普通符号单颗即结算，出现 n 次 ×n。
@@ -301,6 +303,8 @@ func _ready() -> void:
 	_reward_system = preload("res://scripts/systems/reward_system.gd").new(self)
 	_loadout_system = preload("res://scripts/systems/loadout_system.gd").new(self)
 	_synergy_system = preload("res://scripts/systems/synergy_system.gd").new(self)
+	growth = preload("res://scripts/systems/growth_system.gd").new(self)
+	mastery = preload("res://scripts/systems/weapon_mastery.gd").new(self)
 	# 2026-08-09 拆分：转轮系统独立（ReelSystem）
 	reel_system = ReelSystem.new(self)
 	combat = CombatSystem.new(self)
@@ -576,6 +580,8 @@ func _start_room(idx: int) -> void:
 	player_shield = 0
 	player_shield += _reward_system.run_shield_next   # M4：上一房奖励的结界在本房开局生效
 	player_shield += charm_room_shield    # M6：守望护符每房开局护盾（无名虚空由 gimmick on_room_start 扣回）
+	player_shield += growth.room_shield()   # M2-01：技艺「守势」每房开局护盾
+	mastery.reset_room()                  # M2-02：本房结算记录清零（熟练按房结算）
 	_reward_system.run_shield_next = 0
 	pending_jam_reel = -1
 	pending_lock_reel = -1

@@ -243,4 +243,6 @@ func reset_run_state() -> void:
 	_ctrl.charm_max = int(_ctrl.SLOT_INIT["passive"])
 	_ctrl._shop_system.reset_run()   # 商店状态清零（购入价记录 + 金币升级等级）
 	_ctrl._reward_system.reset_run()   # 本局加成层清零（符号灌注 / 伤害加成 / 下一房护盾）
+	_ctrl.growth.reset_run()           # M2-01：历练经验 / 等级 / 技艺清零
+	_ctrl.mastery.reset_run()          # M2-02：武器熟练 / 铭印 / 欠选清零
 	_ctrl.invalidate_state()

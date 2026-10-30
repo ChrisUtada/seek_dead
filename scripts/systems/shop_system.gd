@@ -137,7 +137,7 @@ func roll_shop() -> void:
 # 迷宫回声（信物 2026-08-14）：每房间歇期前 N 次免费（价格 0，不占付费次数；之后照常计费递增）。
 # 下一房预告（规划中）与刷新互为闭环：预告给目标、刷新给执行手段。
 func free_reroll_count() -> int:
-	return _ctrl.charm_free_reroll if _ctrl.deprived_level < 1 else 0
+	return (_ctrl.charm_free_reroll if _ctrl.deprived_level < 1 else 0) + _ctrl.growth.free_reroll_bonus()   # M2-01：技艺「精打细算」叠加
 
 
 func reroll_price() -> int:

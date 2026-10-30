@@ -8,6 +8,7 @@ const TRASH_SYMBOL = preload("res://resources/symbols/trash.tres")
 const DEFAULT_ENEMY_TEXTURE = preload("res://assets/enemy.png")   # 默认敌人立绘（RoomData.art 为空时使用）
 const ENEMY_SPRITE_SIZE := Vector2(44, 60)    # 敌人立绘基础容器尺寸（stretch KEEP_ASPECT → 渲染 44×44，与玩家同规格）
 const UI_BUTTON = preload("res://scenes/ui/ui_button.tscn")
+const GROWTH_PICKER = preload("res://scripts/ui/growth_picker.gd")
 const ITEM_CARD = preload("res://scenes/ui/item_card.tscn")
 const UI_PANEL = preload("res://scenes/ui/ui_panel.tscn")
 const SYMBOL_CELL = preload("res://scenes/ui/symbol_cell.tscn")
@@ -807,6 +808,13 @@ func _refresh_cell(reel: int, row: int) -> void:
 	# 靠边框/底色一眼分辨谁吃 ×1.5；元素为 none 时回落符号自身配色。
 	var elem = _cell_element(reel, row)
 	b.text = s.label
+	# M2-01 洞察：旋转中未停列在格内追加下一格符号（停轮后自然消失）
+	var rs = controller.reel_system
+	if controller.growth.has_perk("insight") and rs.spinning and not rs.reel_stopped[reel]:
+		var nxt: SymbolData = rs.next_symbol(reel)
+		if nxt != null:
+			b.text += "
+▸" + nxt.label
 	var fc: Color = s.color if elem == "none" else s.color.lerp(ElementCounter.color(elem), 0.55)
 	# T30 冻结格（失效格）：蓝色边框框住作为 frost 提示（❄ 前缀/冰色文字不需要，边框即提示）
 	var frozen: bool = controller.state.frozen_cols.has(reel)
@@ -954,6 +962,20 @@ func _intent_display_name(t: String) -> String:
 var _replace_dialog: PanelContainer = null
 var _replace_vbox: VBoxContainer = null
 var _replace_cb: Callable = Callable()
+var _growth_picker = null   # M2-01 技艺三选一覆盖层（懒构建）
+
+# M2-01/M2-02 三选一（技艺 / 铭印）：懒构建覆盖层；选定后回调 on_chosen(id)
+func show_growth_picker(title: String, sub: String, choices: Array, on_chosen: Callable) -> void:
+	if _growth_picker == null:
+		_growth_picker = GROWTH_PICKER.new()
+		add_child(_growth_picker)
+	_growth_picker.show_choices(title, sub, choices, on_chosen)
+
+
+func hide_growth_picker() -> void:
+	if _growth_picker != null:
+		_growth_picker.hide_picker()
+
 
 func request_weapon_replace(title: String, new_weapon_info: String, on_chosen: Callable, new_path: String = "") -> void:
 	_replace_cb = on_chosen
@@ -1006,7 +1028,8 @@ func request_weapon_replace(title: String, new_weapon_info: String, on_chosen: C
 				controller.selected_loadout, hypo,
 				controller.selected_skills, controller.selected_charms,
 				controller.room_element_mult, controller._reward_system.run_symbol_bonus,
-				controller.deprived_level, controller.pending_chaos, int(controller.boss_trash))
+				controller.deprived_level, controller.pending_chaos, int(controller.boss_trash),
+				controller.mastery.tune_map(), controller.mastery.tune_map())
 			var dl = _label("", TypeScale.TINY)
 			dl.text = "替换后：无变化" if lines.is_empty() else "替换后：" + "；".join(lines)
 			dl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

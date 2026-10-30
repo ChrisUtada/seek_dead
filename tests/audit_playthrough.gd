@@ -104,6 +104,7 @@ func _one_run(duel: DuelController, seed_v: int) -> void:
 					room_turns, dmg_room, int(duel.gold), "|peaceful" if duel.peaceful_win else ""])
 				duel._on_reward_skip_pressed()
 				await get_tree().process_frame
+				_auto_growth_pick(duel)        # M2-01：技艺三选一（bot 取首项）
 				if duel.in_interroom:
 					just_won = true
 				elif duel._is_run_final(duel.room_index):
@@ -210,3 +211,9 @@ func _fail(label: String) -> void:
 	_checks += 1
 	_fails += 1
 	printerr("FAIL  ", label)
+
+
+# M2-01/02：技艺 / 铭印三选一由玩家点选；bot 无界面，逐次取候选首项直至队列清空（选完自动进间歇态）。
+func _auto_growth_pick(duel: DuelController) -> void:
+	while duel.room_flow.growth_pick_pending():
+		duel.room_flow.auto_pick_growth()

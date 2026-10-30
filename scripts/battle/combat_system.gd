@@ -189,6 +189,7 @@ func evaluate() -> void:
 			continue
 		if s.kind == "special" and c < 1:
 			continue
+		_ctrl.mastery.note_settle(s.resource_path)   # M2-02：本房有效符号结算（武器熟练依据）
 		contribute(s, c, acc, elem)
 
 	# 匹配角标（×N，N>=2）

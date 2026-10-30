@@ -13,7 +13,7 @@ static var _syn_defs: Array = []
 # 敌方注入（乱权废铁 / 深渊侵蚀）来自房间状态，默认 0/false；传入后按 build_strips 同式计入带长。
 static func compose(weapons: Array, skills: Array, charms: Array, elements = [],
 		run_bonus: Dictionary = {}, deprived_level: int = 0,
-		chaos: bool = false, boss_trash: int = 0) -> Dictionary:
+		chaos: bool = false, boss_trash: int = 0, tune: Dictionary = {}) -> Dictionary:
 	var agg := {}
 	var miss_w := 0.0
 	var wsum := 0.0
@@ -29,7 +29,8 @@ static func compose(weapons: Array, skills: Array, charms: Array, elements = [],
 				continue
 			var sym: SymbolData = sw.symbol
 			var elem: String = ReelSystem.effective_element(sym, wd.element, wd.reel_element)
-			var w: float = _add(agg, sym, elem, float(sw.weight), float(run_bonus.get(sym.resource_path, 0.0)) + float(syn_w.get(sym.resource_path, 0.0)), rank, wd.weapon_name)
+			var tune_w: float = float(tune.get(wpath, {}).get(sym.resource_path, 0))   # M2-02 调律：按武器+主符号加权（与 build_pool 同口径）
+			var w: float = _add(agg, sym, elem, float(sw.weight) + tune_w, float(run_bonus.get(sym.resource_path, 0.0)) + float(syn_w.get(sym.resource_path, 0.0)), rank, wd.weapon_name)
 			if w > 0.0:
 				it_total += w
 		if it_total > 0.0:
@@ -110,9 +111,9 @@ static func active_synergies(weapons: Array, charms: Array) -> Array:
 # 两套配装的差异文案（替换弹层用）：格数增减 + 共鸣得失；无变化返回空数组。
 static func diff_lines(weapons_a: Array, weapons_b: Array, skills: Array, charms: Array,
 		elements = [], run_bonus: Dictionary = {}, deprived_level: int = 0,
-		chaos: bool = false, boss_trash: int = 0) -> Array:
-	var a := compose(weapons_a, skills, charms, elements, run_bonus, deprived_level, chaos, boss_trash)
-	var b := compose(weapons_b, skills, charms, elements, run_bonus, deprived_level, chaos, boss_trash)
+		chaos: bool = false, boss_trash: int = 0, tune_a: Dictionary = {}, tune_b: Dictionary = {}) -> Array:
+	var a := compose(weapons_a, skills, charms, elements, run_bonus, deprived_level, chaos, boss_trash, tune_a)
+	var b := compose(weapons_b, skills, charms, elements, run_bonus, deprived_level, chaos, boss_trash, tune_b)
 	var out := []
 	var ca := _cells_by_key(a["rows"])
 	var cb := _cells_by_key(b["rows"])

@@ -337,7 +337,7 @@ func _refresh_preview() -> void:
 		c.queue_free()
 	var comp: Dictionary = ReelPreview.compose(
 		controller.selected_loadout, controller.selected_skills, controller.selected_charms,
-		[], controller._reward_system.run_symbol_bonus, controller.deprived_level)
+		[], controller._reward_system.run_symbol_bonus, controller.deprived_level, false, 0, controller.mastery.tune_map())
 	var head = hud._label("🎰 转轮带预览", TypeScale.MEDIUM)
 	head.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_preview_box.add_child(head)

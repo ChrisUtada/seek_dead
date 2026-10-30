@@ -21,12 +21,80 @@ func finish_room(apply_fn: Callable, is_boss: bool) -> void:
 	_ctrl._anvil_system.award_meta(is_boss)    # M5：房间通关发放铁砧点数
 	_ctrl._meta_store.award_gold(is_boss)    # S6+S8：清房金币 + 利息
 	_ctrl._reward_system.apply_room_drops()   # T8：普通房 12% 掉消耗品 / 精英房保底护符（BOSS 走自身战利品）
+	_ctrl.growth.grant_room_xp(_ctrl.ROOMS[_ctrl.room_index].kind)   # M2-01：房间胜利发放历练经验（升级即时入账）
+	_ctrl.mastery.settle_room(_ctrl.ROOMS[_ctrl.room_index].kind)    # M2-02：样板武器按本房有效结算累计熟练
 	if _ctrl._is_run_final(_ctrl.room_index):
 		log_telemetry()                               # M1-06：整局结束打印遥测
 		_ctrl._reward_system.show_meta_choice()        # 通关整局（最终 BOSS）→元进度三选一（持久生效）
 	else:
-		enter_interroom()        # opt-in 商店：进入房间歇态（🛒 可选，▶ 下一房继续）
+		_offer_next_growth_pick()   # M2-01/02：技艺 → 铭印 依次三选一；全部选完才进间歇（无待选则直接进间歇）
 	_ctrl.hud._refresh_meta()   # 幂等兜底：各子系统方法已自包含刷新（apply_reward/award_gold 等），此处防编排层遗漏
+
+
+# M2-01/02：三选一队列。先清技艺待选，再清铭印欠选（每项 = 一次选择）；队列空则进入房间间歇态。
+# 当前待选的候选与回调记在 _offer_* 中：玩家点选与 bot 自动选（auto_pick_growth）走同一路径。
+var _offer_choices: Array = []
+var _offer_handler: Callable = Callable()
+
+
+func _offer_next_growth_pick() -> void:
+	var g = _ctrl.growth
+	if g.pending_picks > 0:
+		_present_offer("★ 历练升级 · 选择一项技艺", "同一技艺本局只能拥有 1 次；效果以下方描述为准。",
+			g.roll_choices(), _on_growth_picked)
+		return
+	var m = _ctrl.mastery
+	while not m.owed.is_empty():
+		var path: String = m.owed[0]
+		if not _ctrl.selected_loadout.has(path):
+			m.owed.pop_front()   # 已卸下的武器不再铭印（保留选择权给在装武器）
+			continue
+		var choices: Array = m.imprint_choices(path)
+		if choices.is_empty():
+			m.owed.pop_front()   # 无有效候选（调律无格数变化 + 锋铸已满）→ 不展示死升级
+			continue
+		_present_offer("★ 武器铭印 · %s（R%d）" % [m.display_name(path), m.r_level(path)], "同一铭印每把最多 2 次；调律仅在真实改变格数时出现。",
+			choices, func(id): _on_imprint_picked(path, id))
+		return
+	enter_interroom()        # opt-in 商店：进入房间歇态（🛒 可选，▶ 下一房继续）
+
+
+func _present_offer(title: String, sub: String, choices: Array, handler: Callable) -> void:
+	_offer_choices = choices
+	_offer_handler = handler
+	_ctrl.hud.show_growth_picker(title, sub, choices, func(id): _resolve_offer(id))
+
+
+func _resolve_offer(id: String) -> void:
+	var handler: Callable = _offer_handler
+	_offer_handler = Callable()
+	_offer_choices = []
+	handler.call(id)
+
+
+func _on_growth_picked(id: String) -> void:
+	_ctrl.growth.pick(id)
+	_ctrl.hud._refresh_meta()   # 坚韧 / 升级会改最大 HP，刷新玩家 HP 行
+	_offer_next_growth_pick()
+
+
+func _on_imprint_picked(path: String, id: String) -> void:
+	_ctrl.mastery.choose(path, id)
+	_ctrl.hud._refresh_meta()
+	_ctrl.invalidate_state()   # 锋铸 / 调律改变带子与基础攻击
+	_offer_next_growth_pick()
+
+
+# 测试 / bot 用：取当前待选的首项，与玩家点选走同一回调。
+func growth_pick_pending() -> bool:
+	return _offer_handler.is_valid()
+
+
+func auto_pick_growth() -> void:
+	if _offer_choices.is_empty():
+		return
+	_ctrl.hud.hide_growth_picker()
+	_resolve_offer(_offer_choices[0]["id"])
 
 
 # M1-06：局末遥测输出（真人评测指标；只打印/记日志，不改变结算）
