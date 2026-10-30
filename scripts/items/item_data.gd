@@ -11,6 +11,7 @@ extends Resource
 @export var item_name: String = ""
 @export var description: String = ""
 @export var icon: String = "🧪"          # 展示用 emoji
+@export var icon_tex: Texture2D = null   # M3-03：通用图标绑定；为空时回落 emoji
 @export var rarity: String = "common"    # 强度档位 common|uncommon|rare|epic（T6：护符/消耗品分档，铁砧加权/商店定价用，不动结算）
 @export var category: String = "active"  # active / passive
 @export var effect: String = ""          # 主动: purify/cleanse/heal/assault/reroll/element；被动: damage_bonus/room_shield/shield/interference_resist/damage_mult/armor_pierce/element_boost/status_boost/dot_reduce（T2 三项缺口；2026-08-09 cleanse 清净药剂/dot_reduce 蚀毒壁垒）

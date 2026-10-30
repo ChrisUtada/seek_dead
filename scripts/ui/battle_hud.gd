@@ -382,6 +382,9 @@ func _make_item_card(data: Resource, path: String, kind: String) -> Dictionary:
 	if line2 != "":
 		body += "\n" + line2
 	btn.text = body
+	# M3-03：通用图标绑定（武器 / 技能 / 消耗品 / 护符）；无图保持 emoji 文本。
+	if data != null and data.get("icon_tex") != null:
+		btn.icon = data.icon_tex
 	var card := {"path": path, "btn": btn, "selected": false, "kind": kind}
 	btn.connect("pressed", card_toggled.emit.bind(card))
 	return card
@@ -807,14 +810,19 @@ func _refresh_cell(reel: int, row: int) -> void:
 	# S4：按「有效元素」着色。同一个共享符号（如 special.tres）在火剑下是火、在铁剑下是无属性，
 	# 靠边框/底色一眼分辨谁吃 ×1.5；元素为 none 时回落符号自身配色。
 	var elem = _cell_element(reel, row)
-	b.text = s.label
+	# M3-03：有 16×16 图标则用图标（文字清空）；无图回落 label。洞察预览在图标模式退化为 ▸。
+	if s.icon_tex != null:
+		b.icon = s.icon_tex
+		b.text = ""
+	else:
+		b.icon = null
+		b.text = s.label
 	# M2-01 洞察：旋转中未停列在格内追加下一格符号（停轮后自然消失）
 	var rs = controller.reel_system
 	if controller.growth.has_perk("insight") and rs.spinning and not rs.reel_stopped[reel]:
 		var nxt: SymbolData = rs.next_symbol(reel)
 		if nxt != null:
-			b.text += "
-▸" + nxt.label
+			b.text += "▸" if s.icon_tex != null else "\n▸" + nxt.label
 	var fc: Color = s.color if elem == "none" else s.color.lerp(ElementCounter.color(elem), 0.55)
 	# T30 冻结格（失效格）：蓝色边框框住作为 frost 提示（❄ 前缀/冰色文字不需要，边框即提示）
 	var frozen: bool = controller.state.frozen_cols.has(reel)

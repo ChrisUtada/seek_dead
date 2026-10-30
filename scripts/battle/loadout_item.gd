@@ -14,6 +14,11 @@ extends Resource
 # 稀有度只定强度（base_power 量级 / hit_rate 基线 / 升级上限 / 商店价），不定频率，
 # 避免「神装稀有→符号少出现→打不出去」的退化。
 
+# M3-03 通用美术绑定：列表/详情图标与卡面主图。为空时 UI 回落 emoji / 默认呈现。
+# 只给「真实单位或可选美术」用；武器与符号不因此获得角色动画。
+@export var icon_tex: Texture2D = null
+@export var art: Texture2D = null
+
 @export var category: String = "weapon"   # "weapon" | "skill" —— 槽位规则与 UI 分列依据
 @export var rarity: String = "common"     # 强度档位 common|uncommon|rare|epic（只定强度，不定频率）
 @export var base_power: float = 10.0      # 攻击力 / 效能（升级主通道；P3 结算改读此字段取代 weapon.damage 缝合）

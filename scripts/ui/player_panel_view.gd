@@ -64,21 +64,42 @@ func refresh_gear_icons() -> void:
 		# M2-03 武器区：R 等级角标 + 熟练进度 / 铭印 tooltip（仅样板武器有 R 进度）
 		var mastery = controller().mastery
 		var prog: String = mastery.progress_text(path)
+		var badge := ""
 		if prog != "":
-			icon += " R%d" % mastery.r_level(path)
-			tip += "
-" + prog
+			badge = "R%d" % mastery.r_level(path)
+			tip += "\n" + prog
 			var imp: String = mastery.imprint_text(path)
 			if imp != "":
-				tip += "
-" + imp
-		var lbl = Label.new()
-		lbl.name = "WIcon_%d_%s" % [idx, path.get_file().get_basename()]
-		lbl.text = icon
-		lbl.add_theme_font_size_override("font_size", TypeScale.REEL)
-		lbl.tooltip_text = tip
-		lbl.mouse_filter = Control.MOUSE_FILTER_STOP
-		weapons_row.add_child(lbl)
+				tip += "\n" + imp
+		# M3-03 通用图标绑定：有 icon_tex 用 16px 图标 + 角标；无图回落 emoji
+		var icon_tex: Texture2D = wd.get("icon_tex") if wd != null else null
+		if icon_tex != null:
+			var row = HBoxContainer.new()
+			row.name = "WIcon_%d_%s" % [idx, path.get_file().get_basename()]
+			row.tooltip_text = tip
+			var tr = TextureRect.new()
+			tr.texture = icon_tex
+			tr.custom_minimum_size = Vector2(16, 16)
+			tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			tr.mouse_filter = Control.MOUSE_FILTER_STOP
+			tr.tooltip_text = tip
+			row.add_child(tr)
+			if badge != "":
+				var bl = Label.new()
+				bl.text = badge
+				bl.add_theme_font_size_override("font_size", TypeScale.TINY)
+				bl.tooltip_text = tip
+				bl.mouse_filter = Control.MOUSE_FILTER_STOP
+				row.add_child(bl)
+			weapons_row.add_child(row)
+		else:
+			var lbl = Label.new()
+			lbl.name = "WIcon_%d_%s" % [idx, path.get_file().get_basename()]
+			lbl.text = icon + (" " + badge if badge != "" else "")
+			lbl.add_theme_font_size_override("font_size", TypeScale.REEL)
+			lbl.tooltip_text = tip
+			lbl.mouse_filter = Control.MOUSE_FILTER_STOP
+			weapons_row.add_child(lbl)
 		idx += 1
 	idx = 0
 	for path in st.selected_charms:
