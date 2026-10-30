@@ -952,6 +952,10 @@ func _refresh_meta() -> void:
 				enemy_intent_label.text = "意图: %s%s（用净化药剂）" % [icon if icon != "" else "☣", name_txt]
 			"none":   enemy_intent_label.text = "意图: —"
 			_:        enemy_intent_label.text = "意图: %s%s" % [icon if icon != "" else "", name_txt]
+	# M3-04：下一意图是视觉重点——有效意图用金色强调并加大一号，无意图回落弱化色。
+	var has_intent: bool = not controller.state.enemy_intent.is_empty() and String(controller.state.enemy_intent.get("type", "none")) != "none"
+	enemy_intent_label.add_theme_color_override("font_color", Palette.ACCENT_GOLD if has_intent else Palette.MUTED)
+	enemy_intent_label.add_theme_font_size_override("font_size", TypeScale.BODY if has_intent else TypeScale.META)
 
 
 func _intent_display_name(t: String) -> String:
