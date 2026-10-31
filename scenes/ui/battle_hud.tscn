@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://ddxuthgtam243" path="res://scripts/ui/battle_hud.gd" id="1_hud"]
 [ext_resource type="PackedScene" path="res://scenes/ui/ui_button.tscn" id="3_btn"]
 [ext_resource type="Texture2D" path="res://assets/characters/viking/idle_01.png" id="4_knight"]
-[ext_resource type="Texture2D" uid="uid://yl04f4whty6s" path="res://assets/enemy.png" id="5_enemy"]
+[ext_resource type="Texture2D" path="res://assets/enemy.png" id="5_enemy"]
 
 [sub_resource type="StyleBoxFlat" id="sb_panel_compact"]
 content_margin_left = 4.0
@@ -233,7 +233,7 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 
 [node name="PlayerSprite" type="TextureRect" parent="Margin/Content/MainRow/CenterStage/StageRow/PlayerCenter" unique_id=1571310140]
-custom_minimum_size = Vector2(120, 120)
+custom_minimum_size = Vector2(96, 96)
 layout_mode = 2
 texture = ExtResource("4_knight")
 stretch_mode = 5
@@ -244,7 +244,7 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 
 [node name="EnemySprite" type="TextureRect" parent="Margin/Content/MainRow/CenterStage/StageRow/EnemyCenter" unique_id=38426286]
-custom_minimum_size = Vector2(88, 88)
+custom_minimum_size = Vector2(64, 64)
 layout_mode = 2
 texture = ExtResource("5_enemy")
 stretch_mode = 5

@@ -45,10 +45,18 @@
 
 两种方式任选：
 
-1. **编辑器 / F6**：把 `resources/config/demo_config.tres` 的 `enabled` 勾上（`act_only` 保持 true）。
-2. **导出构建**：使用导出 preset「ACT1 Demo」；其 `custom_features = "act1_demo"` 会自动启用 demo 模式，无需改资源。
+1. **导出构建（发给试玩者用这个）**：已打包为单文件 `build/ACT1_Demo/Seek Dead ACT1 Demo.exe`，双击即玩（PCK 已内嵌，无需配套文件）。重新打包：
+   ```
+   Godot_v4.7-stable_win64_console.exe --headless --path . --export-release "ACT1 Demo" "build/ACT1_Demo/Seek Dead ACT1 Demo.exe"
+   ```
+   preset 的 `custom_features = "act1_demo"` 会自动启用 demo 模式，无需改资源；`tests/` 与 `tools/` 已从包内排除。
+2. **编辑器 / F6**：把 `resources/config/demo_config.tres` 的 `enabled` 勾上（`act_only` 保持 true）。
 
 关闭方式：取消 `enabled` 或使用正式版 preset。
+
+> 调试构建（编辑器 F6 / `--export-debug`）启动时日志会打印
+> 「◆ ACT1 DEMO 模式：武器 14 / 技能 10 / 道具 27 / 房间 20（仅 ACT1，不含真·最终）」，
+> 可据此确认白名单与 ACT1 收窄生效；release 包按 Debug.log 约定静默。
 
 ## 请反馈什么
 

@@ -353,13 +353,16 @@ func _apply_demo_filters() -> void:
 	WEAPON_POOL.assign(demo_config.filter_weapons(WEAPON_POOL))
 	ITEM_POOL.assign(demo_config.filter_items(ITEM_POOL))
 	SKILL_POOL.assign(demo_config.filter_skills(SKILL_POOL))
-	if not demo_config.act_only:
-		return
-	var act1_rooms: Array[RoomData] = []
-	for r in ALL_ROOMS:
-		if not r.final_boss and int(r.act) == 1:
-			act1_rooms.append(r)
-	ALL_ROOMS.assign(act1_rooms)
+	if demo_config.act_only:
+		var act1_rooms: Array[RoomData] = []
+		for r in ALL_ROOMS:
+			if not r.final_boss and int(r.act) == 1:
+				act1_rooms.append(r)
+		ALL_ROOMS.assign(act1_rooms)
+	# 启动日志：试玩包 / 编辑器里一眼确认白名单已生效，也便于按日志定位试玩反馈
+	Debug.log("◆ ACT1 DEMO 模式：武器 %d / 技能 %d / 道具 %d / 房间 %d%s" % [
+		WEAPON_POOL.size(), SKILL_POOL.size(), ITEM_POOL.size(), ALL_ROOMS.size(),
+		"（仅 ACT1，不含真·最终）" if demo_config.act_only else "（全幕）"])
 
 func _build_pool(loadout: Array) -> void:
 	reel_system.build_pool(loadout)   # P2 架构还债（2026-08-24）：池构建迁 ReelSystem（池/带子/落子同域）

@@ -6,7 +6,7 @@ class_name BattleHud
 
 const TRASH_SYMBOL = preload("res://resources/symbols/trash.tres")
 const DEFAULT_ENEMY_TEXTURE = preload("res://assets/enemy.png")   # 默认敌人立绘（RoomData.art 为空时使用）
-const ENEMY_SPRITE_SIZE := Vector2(88, 88)    # 敌人立绘容器尺寸（2× 最近邻放大；stretch KEEP_ASPECT → 渲染 88×88）
+const ENEMY_SPRITE_SIZE := Vector2(64, 64)    # 敌人立绘容器尺寸（4× 最近邻放大；stretch KEEP_ASPECT → 渲染 64×64）
 const UI_BUTTON = preload("res://scenes/ui/ui_button.tscn")
 const GROWTH_PICKER = preload("res://scripts/ui/growth_picker.gd")
 const ITEM_CARD = preload("res://scenes/ui/item_card.tscn")
@@ -257,7 +257,7 @@ func _build_ui() -> void:
 		cell_badges.append([])
 		for row in controller.state.ROWS:
 			var cell = SYMBOL_CELL.instantiate()
-			cell.custom_minimum_size = Vector2(56, 56)
+			cell.custom_minimum_size = Vector2(48, 48)
 			cell.add_theme_font_size_override("font_size", TypeScale.SYMBOL)
 			cell.disabled = true   # 无锁定，格子仅作展示
 			cell.mouse_default_cursor_shape = Control.CURSOR_HELP   # Phase 3：悬停提示
