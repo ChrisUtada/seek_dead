@@ -74,8 +74,23 @@ func _run() -> void:
 	_test_shop_anvil_filtered(demo)
 	_test_boss_reward_filtered(demo)
 	_test_non_sample_mastery(demo, "demo 白名单内非样板武器熟练")
+	_test_run_end_returns_to_loadout(demo)
 
 	_finish(cfg, was_enabled, demo, meta_backup)
+
+
+func _test_run_end_returns_to_loadout(duel: DuelController) -> void:
+	# 2026-10-31（P0）：一局结束（元进度结算）后回整备，而不是静默开新一局——
+	# 试玩者要能花铁砧点、看图鉴、换配装；同时 demo 标题写成试玩收束口径。
+	duel.hud._show_meta_choice()
+	_check(duel.hud.meta_screen.visible, "局末弹出元进度结算屏")
+	_check(String(duel.hud.meta_screen.title_label.text).find("试玩结束") >= 0, "demo 局末标题为「ACT1 试玩结束」")
+	var opt: Dictionary = duel._reward_system.roll_meta_choices()[0]
+	var before: int = int(duel.meta.get("anvil_points", 0))
+	duel._on_meta_choice_chosen(opt)
+	_check(int(duel.meta.get("anvil_points", 0)) == before + int(duel.BALANCE.meta_anvil_bonus), "元进度结算：铁砧点数入账")
+	_check(not duel.hud.meta_screen.visible, "结算后关闭元进度屏")
+	_check(duel.hud.loadout_screen != null and duel.hud.loadout_screen.visible, "一局结束回整备（可换配装 / 花铁砧点 / 看图鉴）")
 
 
 func _finish(cfg, was_enabled: bool, duel: DuelController, meta_backup: Dictionary) -> void:

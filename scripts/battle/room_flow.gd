@@ -25,7 +25,7 @@ func finish_room(apply_fn: Callable, is_boss: bool) -> void:
 	_ctrl.mastery.settle_room(_ctrl.ROOMS[_ctrl.room_index].kind)    # M2-02：样板武器按本房有效结算累计熟练
 	if _ctrl._is_run_final(_ctrl.room_index):
 		log_telemetry()                               # M1-06：整局结束打印遥测
-		_ctrl._reward_system.show_meta_choice()        # 通关整局（最终 BOSS）→元进度三选一（持久生效）
+		_ctrl._reward_system.show_meta_choice()        # 通关整局（最终 BOSS）→元进度结算（持久生效）→回整备
 	else:
 		_offer_next_growth_pick()   # M2-01/02：技艺 → 铭印 依次三选一；全部选完才进间歇（无待选则直接进间歇）
 	_ctrl.hud._refresh_meta()   # 幂等兜底：各子系统方法已自包含刷新（apply_reward/award_gold 等），此处防编排层遗漏
@@ -144,12 +144,15 @@ func on_shop_leave_pressed() -> void:
 	enter_interroom(false)   # 离开商店回房间歇态：不重滚货架（每房一次，防刷商店）
 
 
-# 元进度三选一确认：应用 + 落盘（子系统内）→ 开新一局。
+# 元进度确认：应用 + 落盘（子系统内）→ 回整备。
+# 2026-10-31（P0）：原实现直接 _full_reset() 开新一局，导致「通关 / 一局结束」没有落点——
+# 试玩者看不到结束信号，且整备 / 铁砧 / 图鉴只能靠战败进入，刚攒的铁砧点数无从花掉。
+# 改为回整备：换配装、花铁砧点、看图鉴，确认后由 confirm_loadout → full_reset 开新局。
 func on_meta_choice_chosen(opt: Dictionary) -> void:
 	_ctrl.hud.hide_meta_screen()
 	_ctrl._reward_system.on_meta_choice_chosen(opt)   # 元进度应用 + 落盘（_save_meta 在子系统内）
 	_ctrl.hud._refresh_meta()
-	_ctrl._full_reset()   # 元进度生效后开新一局（金币/槽位随局清零，但 meta 持久）
+	return_to_loadout()
 
 
 # 失败弹层按钮：关闭弹层；LOST → 回整备开新局。

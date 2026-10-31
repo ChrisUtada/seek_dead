@@ -27,7 +27,12 @@ func show_choice() -> void:
 		c.queue_free()
 	var choices = controller._reward_system.roll_meta_choices()
 	# M1-05：单结果直接以「本局获得」呈现；未来 GAME+ 多候选上线时自动回到选择语义。
-	if choices.size() <= 1:
+	# 2026-10-31（P0.5）：ACT1 试玩包把「一局结束」写成试玩收束口径——本局结算后回整备，
+	# 告诉试玩者接下来能做什么（铁砧 / 图鉴 / 换配装）以及怎么反馈。
+	if controller.demo_active():
+		title_label.text = "★ ACT1 试玩结束"
+		sub_label.text = "感谢试玩！本局获得已结算并跨局保留。\n确认后回整备：可用铁砧点数、看图鉴、换配装再开一局。"
+	elif choices.size() <= 1:
 		title_label.text = "★ 一局结束 · 本局获得"
 		sub_label.text = "以下奖励已直接结算（跨局保留）"
 	else:

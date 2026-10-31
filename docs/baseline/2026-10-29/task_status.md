@@ -60,6 +60,6 @@
 
 ## 4. 当前验证基线
 
-- `run_smoke.bat`：**13/13 全绿，exit code 0**（2026-10-30 M4-01 后复跑；`smoke_root` 判定看 fails=0；M1 套件 51 断言、M2 growth 51、M2 weapon 41、M4 demo 43）。
+- `run_smoke.bat`：**13/13 全绿，exit code 0**（2026-10-30 M4-01 后复跑；`smoke_root` 判定看 fails=0；M1 套件 51 断言、M2 growth 51、M2 weapon 41、M4 demo 48）。
 - 代码基准 `d5d22e2`（M0–M2 完成 + 第一版视觉改动保留）；M1/M2 未改战斗结算数值。
 - 工作区：`project.godot` 仅有行尾（LF→CRLF）差异，内容与索引一致。
