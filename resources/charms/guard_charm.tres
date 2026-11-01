@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="ItemData" format=3]
 
 [ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/icons/16/shield.png" id="2_icon"]
 
 [resource]
 script = ExtResource("1")
@@ -12,3 +13,4 @@ description = "本局每回合获得 4 点护盾：挨打才消耗，不挨打�
 icon = "🛡️"
 effect = "shield"
 value = 4
+icon_tex = ExtResource("2_icon")

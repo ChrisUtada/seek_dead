@@ -5,12 +5,12 @@ extends Control
 # 纯展示层：不推进 cursor、不改 grid、不参与结算；带子与节拍均从 ReelSystem 读取。
 # 由 battle_hud._build_ui 作为每个 symbol_cell 的子节点创建（不注册 class_name）。
 #
-# 观感要点：滚动槽间距（SPACING）小于格子高度（48），窗口里同时能看到 2 个符号——
+# 观感要点：滚动槽间距（SPACING）小于格子高度（38），窗口里同时能看到 2 个符号——
 # 只放 3 个与格子等高的大槽时，滚动中格心会空出来，看着像「符号跳动」而不是「转轮」。
 # 槽位覆盖方向按符号流动方向排列：索引大的槽在下（先滚出视野）。
 
-const SLOTS := 5          # 滚动槽数量（覆盖 56px 窗口 + 上下各一格余量）
-const SPACING := 24.0     # 相邻符号的中心距（≈ 符号高度，转轮感来源）
+const SLOTS := 5          # 滚动槽数量（覆盖 38px 窗口 + 上下各一格余量）
+const SPACING := 19.0     # 相邻符号的中心距（≈ 符号高度，与 38px 格同步）
 
 var controller   # DuelController
 var reel: int = 0

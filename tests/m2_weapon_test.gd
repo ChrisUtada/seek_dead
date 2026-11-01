@@ -225,18 +225,23 @@ func _test_merged_settlement(duel: DuelController) -> void:
 	_check(duel.growth.perk_ids.size() == 1 and int(m.imprints[FIRE]["forge"]) + m._tune_count(FIRE) == 1, "一次确认同时应用技艺与铭印")
 	_check(duel.in_interroom and not duel.room_flow.growth_pick_pending(), "确认后进入间歇且无残留")
 	duel.hud._refresh_meta()
+	# 2026-10-31 纠偏 C2：武器区改为大图标卡片，R 等级/熟练/铭印按任务书放进 tooltip；
+	# 技艺不再单独占图标行，按任务书并入技能卡 tooltip。断言改为校验新结构的可见信息。
 	var row = duel.hud.panel_view.weapons_row
-	var fire_lbl = null
-	var perk_count := 0
+	var fire_card = null
 	for c in row.get_children():
-		if c.name.begins_with("WIcon_") and c.name.ends_with("fire_sword"):
-			fire_lbl = c
-	for c in duel.hud.panel_view.skills_row.get_children():
-		if c.name.begins_with("PIcon_"):
-			perk_count += 1
-	_check(fire_lbl != null and fire_lbl.text.ends_with("R2"), "武器区：火焰剑显示 R2 角标")
-	_check(fire_lbl != null and fire_lbl.tooltip_text.find("熟练") >= 0, "武器 tooltip 含熟练进度")
-	_check(perk_count == 1, "技艺区：习得技艺显示一枚图标")
+		if c.name.begins_with("WCard_") and c.name.ends_with("fire_sword"):
+			fire_card = c
+	var skill_card = null
+	if duel.hud.panel_view.skills_row.get_child_count() > 0:
+		skill_card = duel.hud.panel_view.skills_row.get_child(0)
+	var perk_name := ""
+	if duel.growth.perk_ids.size() > 0:
+		perk_name = duel.growth.perk_name(duel.growth.perk_ids[0])
+	_check(fire_card != null and fire_card.tooltip_text.find("R2") >= 0, "武器卡 tooltip 含 R2 熟练等级")
+	_check(fire_card != null and fire_card.tooltip_text.find("熟练") >= 0, "武器 tooltip 含熟练进度")
+	_check(skill_card != null and perk_name != "" and skill_card.tooltip_text.find(perk_name) >= 0,
+		"技能卡 tooltip 含已习得技艺")
 	_check(duel.hud.player_level_label.text.find("Lv.2") >= 0, "玩家区：等级行显示 Lv.2")
 	duel.growth.reset_run()
 	m.reset_run()

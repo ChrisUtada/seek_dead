@@ -1,21 +1,119 @@
-[gd_scene format=3 uid="uid://cbxngx2q0tsrp"]
+[gd_scene load_steps=19 format=3 uid="uid://cbxngx2q0tsrp"]
 
 [ext_resource type="Script" uid="uid://ddxuthgtam243" path="res://scripts/ui/battle_hud.gd" id="1_hud"]
 [ext_resource type="PackedScene" path="res://scenes/ui/ui_button.tscn" id="3_btn"]
-[ext_resource type="Texture2D" path="res://assets/characters/viking/idle_01.png" id="4_knight"]
-[ext_resource type="Texture2D" path="res://assets/enemy.png" id="5_enemy"]
+[ext_resource type="Texture2D" path="res://assets/characters/viking_ash/idle_01.png" id="4_knight"]
+[ext_resource type="Texture2D" path="res://assets/enemy_ember.png" id="5_enemy"]
+[ext_resource type="Texture2D" path="res://assets/icons/16/gold.png" id="6_gold"]
+[ext_resource type="Texture2D" path="res://assets/icons/16/hp.png" id="7_hp"]
+[ext_resource type="Texture2D" path="res://assets/icons/16/shield.png" id="8_shield"]
+[ext_resource type="Texture2D" path="res://assets/icons/16/armor.png" id="9_armor"]
+[ext_resource type="Texture2D" path="res://assets/icons/16/charge.png" id="10_charge"]
+[ext_resource type="Texture2D" path="res://assets/icons/16/fire_slash.png" id="11_intent"]
 
 [sub_resource type="StyleBoxFlat" id="sb_panel_compact"]
 content_margin_left = 4.0
 content_margin_top = 4.0
 content_margin_right = 4.0
 content_margin_bottom = 4.0
-bg_color = Color(0.15, 0.11, 0.14, 0.85)
+bg_color = Color(0.113725, 0.070588, 0.098039, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.662745, 0.615686, 0.537255, 1)
+
+[sub_resource type="StyleBoxFlat" id="sb_frame"]
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.886275, 0.843137, 0.741176, 1)
+
+[sub_resource type="StyleBoxFlat" id="sb_spin_normal"]
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
+bg_color = Color(0.113725, 0.070588, 0.098039, 1)
 border_width_left = 2
 border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
-border_color = Color(0.22, 0.22, 0.3, 1)
+border_color = Color(0.835294, 0.639216, 0.239216, 1)
+
+[sub_resource type="StyleBoxFlat" id="sb_spin_hover"]
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
+bg_color = Color(0.227451, 0.133333, 0.168627, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.835294, 0.639216, 0.239216, 1)
+
+[sub_resource type="StyleBoxFlat" id="sb_spin_pressed"]
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
+bg_color = Color(0.086275, 0.05098, 0.07451, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.835294, 0.639216, 0.239216, 1)
+
+[sub_resource type="StyleBoxFlat" id="sb_spin_disabled"]
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
+bg_color = Color(0.086275, 0.05098, 0.07451, 0.55)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.227451, 0.133333, 0.168627, 1)
+
+[sub_resource type="StyleBoxFlat" id="sb_cell"]
+content_margin_left = 1.0
+content_margin_top = 1.0
+content_margin_right = 1.0
+content_margin_bottom = 1.0
+bg_color = Color(0.113725, 0.070588, 0.098039, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.662745, 0.615686, 0.537255, 1)
+
+[sub_resource type="StyleBoxFlat" id="sb_cell_disabled"]
+content_margin_left = 1.0
+content_margin_top = 1.0
+content_margin_right = 1.0
+content_margin_bottom = 1.0
+bg_color = Color(0.113725, 0.070588, 0.098039, 0.55)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.227451, 0.133333, 0.168627, 1)
+
+[sub_resource type="StyleBoxFlat" id="sb_stage_intent"]
+content_margin_left = 2.0
+content_margin_top = 1.0
+content_margin_right = 2.0
+content_margin_bottom = 1.0
+bg_color = Color(0.113725, 0.070588, 0.098039, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.54902, 0.203922, 0.219608, 1)
 
 [node name="BattleHud" type="Control" unique_id=359964419]
 layout_mode = 3
@@ -33,7 +131,61 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.12, 0.09, 0.12, 1)
+color = Color(0.086275, 0.05098, 0.07451, 1)
+
+[node name="Frame" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("sb_frame")
+
+[node name="RivetTL" type="ColorRect" parent="Frame"]
+layout_mode = 1
+offset_left = 3.0
+offset_top = 3.0
+offset_right = 5.0
+offset_bottom = 5.0
+mouse_filter = 2
+color = Color(0.662745, 0.615686, 0.537255, 1)
+
+[node name="RivetTR" type="ColorRect" parent="Frame"]
+layout_mode = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -5.0
+offset_top = 3.0
+offset_right = -3.0
+offset_bottom = 5.0
+mouse_filter = 2
+color = Color(0.662745, 0.615686, 0.537255, 1)
+
+[node name="RivetBL" type="ColorRect" parent="Frame"]
+layout_mode = 1
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 3.0
+offset_top = -5.0
+offset_right = 5.0
+offset_bottom = -3.0
+mouse_filter = 2
+color = Color(0.662745, 0.615686, 0.537255, 1)
+
+[node name="RivetBR" type="ColorRect" parent="Frame"]
+layout_mode = 1
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -5.0
+offset_top = -5.0
+offset_right = -3.0
+offset_bottom = -3.0
+mouse_filter = 2
+color = Color(0.662745, 0.615686, 0.537255, 1)
 
 [node name="Margin" type="MarginContainer" parent="." unique_id=53368100]
 layout_mode = 1
@@ -42,14 +194,14 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 6
-theme_override_constants/margin_top = 6
-theme_override_constants/margin_right = 6
-theme_override_constants/margin_bottom = 6
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 5
+theme_override_constants/margin_bottom = 5
 
 [node name="Content" type="VBoxContainer" parent="Margin" unique_id=1636078098]
 layout_mode = 2
-theme_override_constants/separation = 1
+theme_override_constants/separation = 2
 
 [node name="InfoBar" type="HBoxContainer" parent="Margin/Content" unique_id=399666215]
 layout_mode = 2
@@ -58,41 +210,59 @@ theme_override_constants/separation = 4
 [node name="RoomLabel" type="Label" parent="Margin/Content/InfoBar" unique_id=26759840]
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
-text = "房间: 1/1"
+text = "ACT I · 房 1/8"
 
-[node name="TurnLabel" type="Label" parent="Margin/Content/InfoBar" unique_id=561931368]
+[node name="GoldIcon" type="TextureRect" parent="Margin/Content/InfoBar"]
 layout_mode = 2
+size_flags_vertical = 4
+texture = ExtResource("6_gold")
+stretch_mode = 5
+
+[node name="GoldLabel" type="Label" parent="Margin/Content/InfoBar" unique_id=818987730]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.835294, 0.639216, 0.239216, 1)
 theme_override_font_sizes/font_size = 9
-text = "回合: 1"
+text = "4"
 
 [node name="InfoSpacer" type="Control" parent="Margin/Content/InfoBar" unique_id=823611040]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="RunLabel" type="Label" parent="Margin/Content/InfoBar" unique_id=11068898]
+[node name="TurnLabel" type="Label" parent="Margin/Content/InfoBar" unique_id=561931368]
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
-text = "本局加成: —"
-horizontal_alignment = 2
+text = "回合 1"
+
+[node name="InfoSpacer2" type="Control" parent="Margin/Content/InfoBar"]
+layout_mode = 2
+size_flags_horizontal = 3
 
 [node name="ShopBtn" parent="Margin/Content/InfoBar" unique_id=399666216 instance=ExtResource("3_btn")]
-custom_minimum_size = Vector2(60, 18)
+custom_minimum_size = Vector2(54, 18)
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
-text = "🛒 商店"
+text = "商店"
 disabled = true
 
 [node name="NextRoomBtn" parent="Margin/Content/InfoBar" unique_id=399666217 instance=ExtResource("3_btn")]
-custom_minimum_size = Vector2(64, 18)
+custom_minimum_size = Vector2(58, 18)
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
-text = "▶ 下一房"
+text = "下一房"
 disabled = true
 
-[node name="NextRoomBar" type="Label" parent="Margin/Content"]
+[node name="NextRoomBar" type="Label" parent="."]
 visible = false
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.85, 0.3, 1)
+z_index = 4
+layout_mode = 1
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -220.0
+offset_top = 25.0
+offset_right = 220.0
+offset_bottom = 39.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.835294, 0.639216, 0.239216, 1)
 theme_override_font_sizes/font_size = 9
 text = "▶ 下一房：—"
 horizontal_alignment = 1
@@ -100,118 +270,176 @@ horizontal_alignment = 1
 [node name="MainRow" type="HBoxContainer" parent="Margin/Content" unique_id=275023102]
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_constants/separation = 3
+theme_override_constants/separation = 4
 
 [node name="PlayerPanel" type="PanelContainer" parent="Margin/Content/MainRow" unique_id=1574190775]
-custom_minimum_size = Vector2(76, 0)
+custom_minimum_size = Vector2(88, 0)
 layout_mode = 2
 theme_override_styles/panel = SubResource("sb_panel_compact")
 
 [node name="VBox" type="VBoxContainer" parent="Margin/Content/MainRow/PlayerPanel" unique_id=1534531178]
 layout_mode = 2
-theme_override_constants/separation = 1
+theme_override_constants/separation = 0
 
 [node name="PlayerTitle" type="Label" parent="Margin/Content/MainRow/PlayerPanel/VBox" unique_id=194085103]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.88, 0.87, 0.84, 1)
+theme_override_colors/font_color = Color(0.72549, 0.721569, 0.690196, 1)
 theme_override_font_sizes/font_size = 10
 text = "玩家"
 
-[node name="PlayerHpLabel" type="Label" parent="Margin/Content/MainRow/PlayerPanel/VBox" unique_id=341642241]
+[node name="HpRow" type="HBoxContainer" parent="Margin/Content/MainRow/PlayerPanel/VBox"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 9
-text = "HP100/100"
-autowrap_mode = 3
+theme_override_constants/separation = 2
 
-[node name="PlayerLevelLabel" type="Label" parent="Margin/Content/MainRow/PlayerPanel/VBox" unique_id=341642242]
+[node name="HpIcon" type="TextureRect" parent="Margin/Content/MainRow/PlayerPanel/VBox/HpRow"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.78, 0.72, 0.62, 1)
+size_flags_vertical = 4
+texture = ExtResource("7_hp")
+stretch_mode = 5
+
+[node name="PlayerHpLabel" type="Label" parent="Margin/Content/MainRow/PlayerPanel/VBox/HpRow" unique_id=341642241]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.643137, 0.737255, 0.301961, 1)
+theme_override_font_sizes/font_size = 10
+text = "100/100"
+clip_text = true
+
+[node name="ShieldRow" type="HBoxContainer" parent="Margin/Content/MainRow/PlayerPanel/VBox"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="ShieldIcon" type="TextureRect" parent="Margin/Content/MainRow/PlayerPanel/VBox/ShieldRow"]
+layout_mode = 2
+size_flags_vertical = 4
+texture = ExtResource("8_shield")
+stretch_mode = 5
+
+[node name="PlayerShieldLabel" type="Label" parent="Margin/Content/MainRow/PlayerPanel/VBox/ShieldRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.384314, 0.631373, 0.760784, 1)
 theme_override_font_sizes/font_size = 9
-text = "Lv.1 · 0/3"
-autowrap_mode = 3
+text = "盾 0"
+clip_text = true
 
 [node name="GearBox" type="VBoxContainer" parent="Margin/Content/MainRow/PlayerPanel/VBox" unique_id=108381182]
 layout_mode = 2
-theme_override_constants/separation = 1
-
-[node name="WeaponsRow" type="VBoxContainer" parent="Margin/Content/MainRow/PlayerPanel/VBox/GearBox" unique_id=31706021]
-layout_mode = 2
-theme_override_constants/separation = 1
-
-[node name="WeaponsTag" type="Label" parent="Margin/Content/MainRow/PlayerPanel/VBox/GearBox/WeaponsRow" unique_id=251811621]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.95, 0.75, 0.45, 1)
-theme_override_font_sizes/font_size = 9
-text = "武"
-
-[node name="CharmsRow" type="HBoxContainer" parent="Margin/Content/MainRow/PlayerPanel/VBox/GearBox" unique_id=517139566]
-layout_mode = 2
 theme_override_constants/separation = 2
 
-[node name="CharmsTag" type="Label" parent="Margin/Content/MainRow/PlayerPanel/VBox/GearBox/CharmsRow" unique_id=1841581371]
+[node name="WeaponsTitle" type="Label" parent="Margin/Content/MainRow/PlayerPanel/VBox/GearBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.55, 0.85, 0.95, 1)
-theme_override_font_sizes/font_size = 9
-text = "护"
+theme_override_colors/font_color = Color(0.662745, 0.615686, 0.537255, 1)
+theme_override_font_sizes/font_size = 8
+text = "武器 2/2"
 
-[node name="SkillsRow" type="HBoxContainer" parent="Margin/Content/MainRow/PlayerPanel/VBox/GearBox" unique_id=227886405]
-layout_mode = 2
-theme_override_constants/separation = 2
-
-[node name="SkillsTag" type="Label" parent="Margin/Content/MainRow/PlayerPanel/VBox/GearBox/SkillsRow" unique_id=1009645343]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.7, 0.9, 0.7, 1)
-theme_override_font_sizes/font_size = 9
-text = "技"
-
-[node name="ConsumableTitle" type="Label" parent="Margin/Content/MainRow/PlayerPanel/VBox" unique_id=1288618581]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.75, 0.65, 0.95, 1)
-theme_override_font_sizes/font_size = 9
-text = "消耗品"
-
-[node name="ConsumablePanel" type="GridContainer" parent="Margin/Content/MainRow/PlayerPanel/VBox" unique_id=938518459]
+[node name="WeaponsRow" type="GridContainer" parent="Margin/Content/MainRow/PlayerPanel/VBox/GearBox" unique_id=31706021]
 layout_mode = 2
 theme_override_constants/h_separation = 2
 theme_override_constants/v_separation = 2
 columns = 2
 
-[node name="Cell1" parent="Margin/Content/MainRow/PlayerPanel/VBox/ConsumablePanel" unique_id=2097403575 instance=ExtResource("3_btn")]
-custom_minimum_size = Vector2(28, 18)
+[node name="GearTitle" type="Label" parent="Margin/Content/MainRow/PlayerPanel/VBox/GearBox"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.662745, 0.615686, 0.537255, 1)
+theme_override_font_sizes/font_size = 8
+text = "技能 / 护符"
+
+[node name="GearCards" type="HBoxContainer" parent="Margin/Content/MainRow/PlayerPanel/VBox/GearBox"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="SkillsRow" type="HBoxContainer" parent="Margin/Content/MainRow/PlayerPanel/VBox/GearBox/GearCards" unique_id=227886405]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 2
+
+[node name="CharmsRow" type="HBoxContainer" parent="Margin/Content/MainRow/PlayerPanel/VBox/GearBox/GearCards" unique_id=517139566]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 2
+
+[node name="ConsumableTitle" type="Label" parent="Margin/Content/MainRow/PlayerPanel/VBox" unique_id=1288618581]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.662745, 0.615686, 0.537255, 1)
 theme_override_font_sizes/font_size = 9
+text = "消耗品"
+
+[node name="ConsumablePanel" type="GridContainer" parent="Margin/Content/MainRow/PlayerPanel/VBox" unique_id=938518459]
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_constants/h_separation = 2
+theme_override_constants/v_separation = 2
+columns = 2
+
+[node name="Cell1" parent="Margin/Content/MainRow/PlayerPanel/VBox/ConsumablePanel" unique_id=2097403575 instance=ExtResource("3_btn")]
+custom_minimum_size = Vector2(34, 30)
+layout_mode = 2
+theme_override_constants/h_separation = 0
+theme_override_font_sizes/font_size = 9
+theme_override_styles/normal = SubResource("sb_cell")
+theme_override_styles/hover = SubResource("sb_cell")
+theme_override_styles/pressed = SubResource("sb_cell")
+theme_override_styles/disabled = SubResource("sb_cell_disabled")
+icon_alignment = 1
 text = "—"
+clip_text = true
 
 [node name="Cell2" parent="Margin/Content/MainRow/PlayerPanel/VBox/ConsumablePanel" unique_id=764738953 instance=ExtResource("3_btn")]
-custom_minimum_size = Vector2(28, 18)
+custom_minimum_size = Vector2(34, 30)
 layout_mode = 2
+theme_override_constants/h_separation = 0
 theme_override_font_sizes/font_size = 9
+theme_override_styles/normal = SubResource("sb_cell")
+theme_override_styles/hover = SubResource("sb_cell")
+theme_override_styles/pressed = SubResource("sb_cell")
+theme_override_styles/disabled = SubResource("sb_cell_disabled")
+icon_alignment = 1
 text = "—"
+clip_text = true
 
 [node name="Cell3" parent="Margin/Content/MainRow/PlayerPanel/VBox/ConsumablePanel" unique_id=1271823786 instance=ExtResource("3_btn")]
-custom_minimum_size = Vector2(28, 18)
+custom_minimum_size = Vector2(34, 30)
 layout_mode = 2
+theme_override_constants/h_separation = 0
 theme_override_font_sizes/font_size = 9
+theme_override_styles/normal = SubResource("sb_cell")
+theme_override_styles/hover = SubResource("sb_cell")
+theme_override_styles/pressed = SubResource("sb_cell")
+theme_override_styles/disabled = SubResource("sb_cell_disabled")
+icon_alignment = 1
 text = "—"
+clip_text = true
 
 [node name="Cell4" parent="Margin/Content/MainRow/PlayerPanel/VBox/ConsumablePanel" unique_id=341833789 instance=ExtResource("3_btn")]
-custom_minimum_size = Vector2(28, 18)
+custom_minimum_size = Vector2(34, 30)
 layout_mode = 2
+theme_override_constants/h_separation = 0
 theme_override_font_sizes/font_size = 9
+theme_override_styles/normal = SubResource("sb_cell")
+theme_override_styles/hover = SubResource("sb_cell")
+theme_override_styles/pressed = SubResource("sb_cell")
+theme_override_styles/disabled = SubResource("sb_cell_disabled")
+icon_alignment = 1
 text = "—"
+clip_text = true
+
+[node name="PlayerLevelLabel" type="Label" parent="Margin/Content/MainRow/PlayerPanel/VBox" unique_id=341642242]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.662745, 0.615686, 0.537255, 1)
+theme_override_font_sizes/font_size = 9
+text = "Lv.1 · 0/3"
+clip_text = true
 
 [node name="PlayerBuffLabel" type="Label" parent="Margin/Content/MainRow/PlayerPanel/VBox" unique_id=1884088919]
+visible = false
 layout_mode = 2
-theme_override_colors/font_color = Color(0.85, 0.65, 1, 1)
+theme_override_colors/font_color = Color(0.662745, 0.615686, 0.537255, 1)
 theme_override_font_sizes/font_size = 9
-text = "增益: 无"
-autowrap_mode = 3
-
-[node name="GoldLabel" type="Label" parent="Margin/Content/MainRow/PlayerPanel/VBox" unique_id=818987730]
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.85, 0.3, 1)
-theme_override_font_sizes/font_size = 9
-text = "金币 4"
+text = "技能: 无"
+clip_text = true
 
 [node name="PlayerSpacer" type="Control" parent="Margin/Content/MainRow/PlayerPanel/VBox" unique_id=1739451902]
 layout_mode = 2
@@ -227,27 +455,79 @@ layout_mode = 2
 size_flags_vertical = 3
 theme_override_constants/separation = 8
 
-[node name="PlayerCenter" type="CenterContainer" parent="Margin/Content/MainRow/CenterStage/StageRow" unique_id=1294201573]
+[node name="PlayerCenter" type="VBoxContainer" parent="Margin/Content/MainRow/CenterStage/StageRow" unique_id=1294201573]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+theme_override_constants/separation = 1
+alignment = 2
 
 [node name="PlayerSprite" type="TextureRect" parent="Margin/Content/MainRow/CenterStage/StageRow/PlayerCenter" unique_id=1571310140]
-custom_minimum_size = Vector2(96, 96)
+custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
+size_flags_horizontal = 4
 texture = ExtResource("4_knight")
 stretch_mode = 5
 
-[node name="EnemyCenter" type="CenterContainer" parent="Margin/Content/MainRow/CenterStage/StageRow" unique_id=817341559]
+[node name="PlayerLift" type="Control" parent="Margin/Content/MainRow/CenterStage/StageRow/PlayerCenter"]
+custom_minimum_size = Vector2(0, 24)
+layout_mode = 2
+
+[node name="EnemyCenter" type="VBoxContainer" parent="Margin/Content/MainRow/CenterStage/StageRow" unique_id=817341559]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+theme_override_constants/separation = 1
+alignment = 2
 
 [node name="EnemySprite" type="TextureRect" parent="Margin/Content/MainRow/CenterStage/StageRow/EnemyCenter" unique_id=38426286]
-custom_minimum_size = Vector2(64, 64)
+custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
+size_flags_horizontal = 4
 texture = ExtResource("5_enemy")
 stretch_mode = 5
+
+[node name="EnemyStageIntent" type="PanelContainer" parent="Margin/Content/MainRow/CenterStage/StageRow/EnemyCenter/EnemySprite"]
+visible = false
+layout_mode = 0
+offset_left = 0.0
+offset_top = -34.0
+offset_right = 96.0
+offset_bottom = -14.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("sb_stage_intent")
+
+[node name="Row" type="HBoxContainer" parent="Margin/Content/MainRow/CenterStage/StageRow/EnemyCenter/EnemySprite/EnemyStageIntent"]
+layout_mode = 2
+theme_override_constants/separation = 2
+alignment = 1
+
+[node name="Icon" type="TextureRect" parent="Margin/Content/MainRow/CenterStage/StageRow/EnemyCenter/EnemySprite/EnemyStageIntent/Row"]
+layout_mode = 2
+size_flags_vertical = 4
+texture = ExtResource("11_intent")
+stretch_mode = 5
+
+[node name="Label" type="Label" parent="Margin/Content/MainRow/CenterStage/StageRow/EnemyCenter/EnemySprite/EnemyStageIntent/Row"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.890196, 0.356863, 0.313725, 1)
+theme_override_font_sizes/font_size = 9
+text = "重击 18"
+
+[node name="EnemyStageName" type="Label" parent="Margin/Content/MainRow/CenterStage/StageRow/EnemyCenter/EnemySprite"]
+layout_mode = 0
+offset_left = 0.0
+offset_top = -10.0
+offset_right = 96.0
+offset_bottom = 4.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.890196, 0.356863, 0.313725, 1)
+theme_override_font_sizes/font_size = 9
+horizontal_alignment = 1
+
+[node name="EnemyLift" type="Control" parent="Margin/Content/MainRow/CenterStage/StageRow/EnemyCenter"]
+custom_minimum_size = Vector2(0, 32)
+layout_mode = 2
 
 [node name="ReelDock" type="VBoxContainer" parent="Margin/Content/MainRow/CenterStage" unique_id=878859411]
 layout_mode = 2
@@ -275,13 +555,29 @@ theme_override_constants/separation = 4
 alignment = 1
 
 [node name="SpinButton" parent="Margin/Content/MainRow/CenterStage/ReelDock/SpinBar" unique_id=1202759145 instance=ExtResource("3_btn")]
-custom_minimum_size = Vector2(104, 24)
+custom_minimum_size = Vector2(96, 22)
 layout_mode = 2
+theme_override_colors/font_color = Color(0.835294, 0.639216, 0.239216, 1)
+theme_override_colors/font_color_hover = Color(0.886275, 0.843137, 0.741176, 1)
+theme_override_colors/font_color_pressed = Color(0.662745, 0.615686, 0.537255, 1)
+theme_override_colors/font_color_disabled = Color(0.431373, 0.372549, 0.341176, 1)
 theme_override_font_sizes/font_size = 10
+theme_override_styles/normal = SubResource("sb_spin_normal")
+theme_override_styles/hover = SubResource("sb_spin_hover")
+theme_override_styles/pressed = SubResource("sb_spin_pressed")
+theme_override_styles/disabled = SubResource("sb_spin_disabled")
 text = "SPIN (空格)"
 
+[node name="FeedbackLabel" type="Label" parent="Margin/Content/MainRow/CenterStage/ReelDock"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 12)
+theme_override_colors/font_color = Color(0.886275, 0.843137, 0.741176, 1)
+theme_override_font_sizes/font_size = 9
+text = ""
+horizontal_alignment = 1
+
 [node name="EnemyPanel" type="PanelContainer" parent="Margin/Content/MainRow" unique_id=2000227142]
-custom_minimum_size = Vector2(84, 0)
+custom_minimum_size = Vector2(88, 0)
 layout_mode = 2
 theme_override_styles/panel = SubResource("sb_panel_compact")
 
@@ -290,40 +586,73 @@ layout_mode = 2
 theme_override_constants/separation = 1
 
 [node name="EnemyTitle" type="Label" parent="Margin/Content/MainRow/EnemyPanel/VBox" unique_id=198916010]
+visible = false
 layout_mode = 2
-theme_override_colors/font_color = Color(0.95, 0.55, 0.55, 1)
+theme_override_colors/font_color = Color(0.890196, 0.356863, 0.313725, 1)
 theme_override_font_sizes/font_size = 10
 text = "敌人"
-
-[node name="EnemyElementLabel" type="Label" parent="Margin/Content/MainRow/EnemyPanel/VBox" unique_id=2123456701]
-layout_mode = 2
-theme_override_font_sizes/font_size = 9
-text = "—"
 
 [node name="BossBadge" type="Label" parent="Margin/Content/MainRow/EnemyPanel/VBox" unique_id=1813915626]
 visible = false
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.85, 0.3, 1)
-theme_override_font_sizes/font_size = 9
+theme_override_colors/font_color = Color(0.835294, 0.639216, 0.239216, 1)
+theme_override_font_sizes/font_size = 10
 text = "★ BOSS"
 
-[node name="EnemyNameLabel" type="Label" parent="Margin/Content/MainRow/EnemyPanel/VBox" unique_id=417397038]
+[node name="NameRow" type="HBoxContainer" parent="Margin/Content/MainRow/EnemyPanel/VBox"]
 layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="EnemyNameLabel" type="Label" parent="Margin/Content/MainRow/EnemyPanel/VBox/NameRow" unique_id=417397038]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.890196, 0.356863, 0.313725, 1)
+theme_override_font_sizes/font_size = 10
+text = "—"
+clip_text = true
+
+[node name="EnemyElementLabel" type="Label" parent="Margin/Content/MainRow/EnemyPanel/VBox/NameRow" unique_id=2123456701]
+layout_mode = 2
+size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 9
 text = "—"
-autowrap_mode = 3
 
-[node name="EnemyHpLabel" type="Label" parent="Margin/Content/MainRow/EnemyPanel/VBox" unique_id=1047730389]
+[node name="HpRow" type="HBoxContainer" parent="Margin/Content/MainRow/EnemyPanel/VBox"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 9
-text = "HP 0/0"
+theme_override_constants/separation = 2
 
-[node name="EnemyArmorLabel" type="Label" parent="Margin/Content/MainRow/EnemyPanel/VBox" unique_id=476966310]
+[node name="EnemyHpIcon" type="TextureRect" parent="Margin/Content/MainRow/EnemyPanel/VBox/HpRow"]
+layout_mode = 2
+size_flags_vertical = 4
+texture = ExtResource("7_hp")
+stretch_mode = 5
+
+[node name="EnemyHpLabel" type="Label" parent="Margin/Content/MainRow/EnemyPanel/VBox/HpRow" unique_id=1047730389]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.643137, 0.737255, 0.301961, 1)
+theme_override_font_sizes/font_size = 9
+text = "0/0"
+clip_text = true
+
+[node name="ArmorRow" type="HBoxContainer" parent="Margin/Content/MainRow/EnemyPanel/VBox"]
 visible = false
 layout_mode = 2
-theme_override_colors/font_color = Color(0.75, 0.8, 0.9, 1)
+theme_override_constants/separation = 2
+
+[node name="EnemyArmorIcon" type="TextureRect" parent="Margin/Content/MainRow/EnemyPanel/VBox/ArmorRow"]
+layout_mode = 2
+size_flags_vertical = 4
+texture = ExtResource("9_armor")
+stretch_mode = 5
+
+[node name="EnemyArmorLabel" type="Label" parent="Margin/Content/MainRow/EnemyPanel/VBox/ArmorRow" unique_id=476966310]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.384314, 0.631373, 0.760784, 1)
 theme_override_font_sizes/font_size = 9
 text = "护甲 0/0"
+clip_text = true
 
 [node name="EnemyWeakLabel" type="Label" parent="Margin/Content/MainRow/EnemyPanel/VBox" unique_id=2123456702]
 visible = false
@@ -339,21 +668,59 @@ theme_override_font_sizes/font_size = 9
 text = "—"
 autowrap_mode = 3
 
-[node name="EnemyIntentLabel" type="Label" parent="Margin/Content/MainRow/EnemyPanel/VBox" unique_id=1520650189]
+[node name="EnemyIntentTitle" type="Label" parent="Margin/Content/MainRow/EnemyPanel/VBox"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.662745, 0.615686, 0.537255, 1)
+theme_override_font_sizes/font_size = 8
+text = "下一意图"
+
+[node name="IntentRow" type="HBoxContainer" parent="Margin/Content/MainRow/EnemyPanel/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="EnemyIntentIcon" type="TextureRect" parent="Margin/Content/MainRow/EnemyPanel/VBox/IntentRow"]
+layout_mode = 2
+size_flags_vertical = 4
+texture = ExtResource("11_intent")
+stretch_mode = 5
+
+[node name="EnemyIntentLabel" type="Label" parent="Margin/Content/MainRow/EnemyPanel/VBox/IntentRow" unique_id=1520650189]
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 9
-text = "意图: —"
-autowrap_mode = 3
+text = "—"
+clip_text = true
+
+[node name="ChargeRow" type="HBoxContainer" parent="Margin/Content/MainRow/EnemyPanel/VBox"]
+visible = true
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="EnemyChargeIcon" type="TextureRect" parent="Margin/Content/MainRow/EnemyPanel/VBox/ChargeRow"]
+layout_mode = 2
+size_flags_vertical = 4
+texture = ExtResource("10_charge")
+stretch_mode = 5
+
+[node name="EnemyChargeLabel" type="Label" parent="Margin/Content/MainRow/EnemyPanel/VBox/ChargeRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.662745, 0.615686, 0.537255, 1)
+theme_override_font_sizes/font_size = 9
+text = "0/5"
+clip_text = true
 
 [node name="EnemyStatusLabel" type="Label" parent="Margin/Content/MainRow/EnemyPanel/VBox" unique_id=143588646]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.662745, 0.615686, 0.537255, 1)
 theme_override_font_sizes/font_size = 9
 text = "状态: 无"
 autowrap_mode = 3
 
-[node name="EnemyChargeLabel" type="Label" parent="Margin/Content/MainRow/EnemyPanel/VBox"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 9
-theme_override_colors/font_color = Color(1, 0.92, 0.55, 1)
-text = "⚡充能 0/5"
+[node name="EnemyMechanicLabel" type="Label" parent="Margin/Content/MainRow/EnemyPanel/VBox"]
 visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.662745, 0.615686, 0.537255, 1)
+theme_override_font_sizes/font_size = 9
+text = ""
+autowrap_mode = 3

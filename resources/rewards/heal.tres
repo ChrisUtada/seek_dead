@@ -1,9 +1,11 @@
-[gd_resource type="Resource" script_class="RewardData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="RewardData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/items/reward_data.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/icons/24/hp.png" id="2_art"]
 
 [resource]
 script = ExtResource("1")
+art = ExtResource("2_art")
 id = "heal"
 icon = "✚"
 label = "治疗药剂"

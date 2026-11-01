@@ -47,9 +47,12 @@ func set_desc_color(color: Color) -> void:
 
 
 # 卡片美术（预留位）：传 null / 不调用 = 保持 emoji 图标呈现，隐藏图格
-func set_art(tex: Texture2D) -> void:
+# min_size 默认 48（大量美术预留位）；结算/奖励这类 60 高的小卡传 (24,24)，
+# 否则 48 图格 + 两行文字会顶破卡片。图格本身只做居中显示，不做放大。
+func set_art(tex: Texture2D, min_size: Vector2 = Vector2(48, 48)) -> void:
 	_resolve()
 	_icon_rect.texture = tex
+	_icon_rect.custom_minimum_size = min_size
 	_icon_rect.visible = tex != null
 
 

@@ -3,8 +3,8 @@
 [ext_resource type="FontFile" path="res://assets/fonts/VonwaonBitmap-12px.tres" id="von_btn"]
 
 [sub_resource type="StyleBoxFlat" id="sb_normal"]
-bg_color = Color(0.16, 0.16, 0.22, 1)
-border_color = Color(0.22, 0.22, 0.30, 1)
+bg_color = Color(0.113725, 0.070588, 0.098039, 1)
+border_color = Color(0.431373, 0.372549, 0.341176, 1)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
@@ -19,8 +19,8 @@ content_margin_top = 6
 content_margin_bottom = 6
 
 [sub_resource type="StyleBoxFlat" id="sb_hover"]
-bg_color = Color(0.24, 0.24, 0.32, 1)
-border_color = Color(0.30, 0.30, 0.40, 1)
+bg_color = Color(0.227451, 0.133333, 0.168627, 1)
+border_color = Color(0.662745, 0.615686, 0.537255, 1)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
@@ -35,8 +35,8 @@ content_margin_top = 6
 content_margin_bottom = 6
 
 [sub_resource type="StyleBoxFlat" id="sb_pressed"]
-bg_color = Color(0.12, 0.12, 0.17, 1)
-border_color = Color(0.22, 0.22, 0.30, 1)
+bg_color = Color(0.086275, 0.050980, 0.074510, 1)
+border_color = Color(0.662745, 0.615686, 0.537255, 1)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
@@ -51,8 +51,8 @@ content_margin_top = 6
 content_margin_bottom = 6
 
 [sub_resource type="StyleBoxFlat" id="sb_disabled"]
-bg_color = Color(0.12, 0.12, 0.16, 0.55)
-border_color = Color(0.18, 0.18, 0.24, 1)
+bg_color = Color(0.086275, 0.050980, 0.074510, 0.55)
+border_color = Color(0.227451, 0.133333, 0.168627, 1)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
@@ -71,10 +71,10 @@ Button/styles/normal = SubResource("sb_normal")
 Button/styles/hover = SubResource("sb_hover")
 Button/styles/pressed = SubResource("sb_pressed")
 Button/styles/disabled = SubResource("sb_disabled")
-Button/colors/font_color = Color(0.92, 0.90, 0.86, 1)
-Button/colors/font_color_hover = Color(0.98, 0.97, 0.93, 1)
-Button/colors/font_color_pressed = Color(0.80, 0.78, 0.74, 1)
-Button/colors/font_color_disabled = Color(0.55, 0.55, 0.60, 1)
+Button/colors/font_color = Color(0.886275, 0.843137, 0.741176, 1)
+Button/colors/font_color_hover = Color(0.886275, 0.843137, 0.741176, 1)
+Button/colors/font_color_pressed = Color(0.662745, 0.615686, 0.537255, 1)
+Button/colors/font_color_disabled = Color(0.431373, 0.372549, 0.341176, 1)
 Button/fonts/font = ExtResource("von_btn")
 Button/fonts/font_size = 10
 

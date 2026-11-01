@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="ItemData" format=3]
 
 [ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/icons/16/potion.png" id="2_icon"]
 
 [resource]
 script = ExtResource("1")
@@ -13,3 +14,4 @@ icon = "❤️"
 effect = "heal"
 value = 30
 charges = 1
+icon_tex = ExtResource("2_icon")

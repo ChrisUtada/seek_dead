@@ -1,0 +1,43 @@
+# Seek Dead · 战斗 UI 重构 Step 0 基线
+# 采集时间：2026-10-31T18:41:34
+# 颜色基准：palette.gd / theme/battle_theme.tres 当前值
+
+## 整备（启动时软默认）
+视口逻辑尺寸 = 480×270；窗口 = 960×540
+
+截图：01_loadout_960.png  960x540  err=0
+## 普通房 · 刚入场
+左栏宽 = 88；右栏宽 = 88
+转轮格最小尺寸 = (42.0, 42.0)；实际 = (42.0, 42.0)
+玩家立绘 = res://assets/characters/viking_ash/idle_03.png（尺寸 (96.0, 96.0)）
+敌人立绘 = res://assets/enemy.png（尺寸 (64.0, 64.0)）
+中央舞台可用宽 = 286；高度 = 235
+转轮状态：spinning=false stopped=[]
+元素条：<Object#null> elem=light visible=true color=(1.0, 0.92, 0.55, 1.0) | (res://assets/icons/16/gold.png):<CompressedTexture2D#-9223372000179780092> elem=none visible=false color=(0.0, 0.0, 0.0, 0.0) | <Object#null> elem=light visible=true color=(1.0, 0.92, 0.55, 1.0)
+
+截图：02_battle_960.png  960x540  err=0
+## BOSS 房（样板冰封铁瓮，直跳 idx=7）
+左栏宽 = 88；右栏宽 = 88
+转轮格最小尺寸 = (42.0, 42.0)；实际 = (42.0, 42.0)
+玩家立绘 = res://assets/characters/viking_ash/idle_01.png（尺寸 (96.0, 96.0)）
+敌人立绘 = res://assets/bossbf_ember.png（尺寸 (144.0, 144.0)）
+中央舞台可用宽 = 286；高度 = 235
+转轮状态：spinning=false stopped=[]
+元素条：(res://assets/icons/16/burn.png):<CompressedTexture2D#-9223371873427912220> elem=fire visible=true color=(1.0, 0.45, 0.2, 1.0) | <Object#null> elem=none visible=false color=(0.0, 0.0, 0.0, 0.0) | (res://assets/icons/16/fire_slash.png):<CompressedTexture2D#-9223371873075590692> elem=fire visible=true color=(1.0, 0.45, 0.2, 1.0)
+
+截图：03_boss_960.png  960x540  err=0
+截图：12_attack_flash_960.png  960x540  err=0
+截图：13_attack_impact_960.png  960x540  err=0
+截图：04_shop_960.png  960x540  err=0
+截图：05_reward_960.png  960x540  err=0
+截图：14_reward_icons_960.png  960x540  err=0
+截图：06_anvil_960.png  960x540  err=0
+截图：07_meta_960.png  960x540  err=0
+截图：09_battle_1440.png  1440x810  err=0
+截图：10_boss_1440.png  1440x810  err=0
+截图：11_battle_1920.png  1920x1080  err=0
+截图：08_spin_960.png  960x540  err=0
+旋转中：spinning=true stopped=[false, false, false]
+截图：08b_spin_960.png  960x540  err=0
+截图：15_after_spin_960.png  960x540  err=0
+匹配角标：无

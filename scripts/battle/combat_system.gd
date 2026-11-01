@@ -297,6 +297,8 @@ func evaluate() -> void:
 		_ctrl.hud._log("连线造成 %d 伤害%s（护甲剩 %d）" % [total, elem_tag, int(_ctrl.enemy_armor)])
 		if _ctrl.hud.animator != null:
 			_ctrl.hud.animator.play_attack("player", "enemy")
+	# Step 5：底部单行短反馈（连击/克制/总伤害）。纯展示：读本回合结算结果，不改数值、不加时序等待。
+	_ctrl.hud._show_turn_feedback(counts, total)
 	# T21 元素充能：克制命中满额 → 释放元素爆发（穿透核爆 + 清甲，覆盖流爆发赛道）
 	if _ctrl.charge_points >= DuelController.BALANCE.charge_max:
 		_ctrl.charge_points = 0

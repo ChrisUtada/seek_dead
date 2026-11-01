@@ -5,8 +5,8 @@ class_name BattleHud
 # 通过 controller 引用回 DuelController 的游戏状态与逻辑方法。
 
 const TRASH_SYMBOL = preload("res://resources/symbols/trash.tres")
-const DEFAULT_ENEMY_TEXTURE = preload("res://assets/enemy.png")   # 默认敌人立绘（RoomData.art 为空时使用）
-const ENEMY_SPRITE_SIZE := Vector2(64, 64)    # 敌人立绘容器尺寸（4× 最近邻放大；stretch KEEP_ASPECT → 渲染 64×64）
+const DEFAULT_ENEMY_TEXTURE = preload("res://assets/enemy_ember.png")   # 普通敌人立绘（C5：红色少色副本；RoomData.art 为空时使用）
+const ENEMY_SPRITE_SIZE := Vector2(48, 48)    # 敌人立绘基准尺寸（1× = 48×48，与玩家同规格；art_scale 为整数倍）
 const UI_BUTTON = preload("res://scenes/ui/ui_button.tscn")
 const GROWTH_PICKER = preload("res://scripts/ui/growth_picker.gd")
 const ITEM_CARD = preload("res://scenes/ui/item_card.tscn")
@@ -74,11 +74,14 @@ func set_interroom_enabled(on: bool) -> void:
 		interroom_shop_btn.disabled = not on
 	if interroom_next_btn != null:
 		interroom_next_btn.disabled = not on
-	# 下一房预告横幅：间歇态点亮（内容随当前房推进刷新），战斗隐藏
+	# 间歇时战斗已结束，隐藏中央 BOSS 名称/意图，避免与下一房浮层重叠
 	if on:
+		enemy_stage_intent.visible = false
+		enemy_stage_name.visible = false
 		_refresh_next_room_bar()
 	elif next_room_bar != null:
 		next_room_bar.visible = false
+		_refresh_meta()
 
 
 # 2026-08-09 下一房预告（L2 分级）：房型 + 敌人名 + 元素 + BOSS 机制图标。
@@ -120,6 +123,7 @@ func hide_anvil_screen() -> void: anvil_screen.hide_screen()
 # ---- UI 节点引用 ----
 var cells = []   # 展示用 Button 引用 [reel][row]
 var cell_badges = []   # 每格右上角匹配角标 Label 引用 [reel][row]
+var cell_elem_strips = []   # 每格底部元素色条（Step 4：图标模式下替代文字染色）[reel][row]
 var loadout_screen                     # 整备场景（scenes/ui/loadout_scene.tscn 实例，hud 兄弟节点）
 # 消耗品腰带 4 个固定格子（2x2），由 hud._refresh_consumable_panel 同步状态；
 # consumable_panel 字段（controller 持有）已废弃，HUD 内聚管理 cell。
@@ -140,37 +144,49 @@ var anvil_screen                        # 铁砧锻造覆盖层（anvil_screen.t
 # 房间歇态按钮（opt-in 商店 + 下一房）：静态节点在 battle_hud.tscn InfoBar，默认禁用，间歇态由 controller 点亮
 @onready var interroom_shop_btn = $Margin/Content/InfoBar/ShopBtn
 @onready var interroom_next_btn = $Margin/Content/InfoBar/NextRoomBtn
-# 2026-08-09 下一房预告横幅：仅房间歇态显示（购买/腰带决策窗口），战斗隐藏零常驻占位
-@onready var next_room_bar = $Margin/Content/NextRoomBar
+# 下一房预告为根节点浮层：不参与 Content 高度计算，避免间歇态把 HUD 顶出 480×270
+@onready var next_room_bar = $NextRoomBar
 
 # ---- 主 HUD 静态节点（P3b-1）：battle_hud.tscn 编辑器提供，脚本按节点路径引用 ----
 # 注：手写 .tscn 的 %Name 唯一名在含 instance= 覆盖节点的场景里注册不可靠，
 #     故改用确定性 $节点路径（.tscn 结构改动时同步更新此处路径）。
 @onready var grid_container = $Margin/Content/MainRow/CenterStage/ReelDock/TopRow/ReelCenter/GridContainer
-@onready var player_hp_label = $Margin/Content/MainRow/PlayerPanel/VBox/PlayerHpLabel
+@onready var player_title = $Margin/Content/MainRow/PlayerPanel/VBox/PlayerTitle
+@onready var player_hp_label = $Margin/Content/MainRow/PlayerPanel/VBox/HpRow/PlayerHpLabel
+@onready var player_hp_icon = $Margin/Content/MainRow/PlayerPanel/VBox/HpRow/HpIcon
+@onready var player_shield_row = $Margin/Content/MainRow/PlayerPanel/VBox/ShieldRow
+@onready var player_shield_label = $Margin/Content/MainRow/PlayerPanel/VBox/ShieldRow/PlayerShieldLabel
 @onready var player_level_label = $Margin/Content/MainRow/PlayerPanel/VBox/PlayerLevelLabel
+@onready var weapons_title = $Margin/Content/MainRow/PlayerPanel/VBox/GearBox/WeaponsTitle
 @onready var weapons_row = $Margin/Content/MainRow/PlayerPanel/VBox/GearBox/WeaponsRow
-@onready var charms_row = $Margin/Content/MainRow/PlayerPanel/VBox/GearBox/CharmsRow
-@onready var skills_row = $Margin/Content/MainRow/PlayerPanel/VBox/GearBox/SkillsRow
+@onready var charms_row = $Margin/Content/MainRow/PlayerPanel/VBox/GearBox/GearCards/CharmsRow
+@onready var skills_row = $Margin/Content/MainRow/PlayerPanel/VBox/GearBox/GearCards/SkillsRow
 @onready var player_buff_label = $Margin/Content/MainRow/PlayerPanel/VBox/PlayerBuffLabel
-@onready var enemy_name_label = $Margin/Content/MainRow/EnemyPanel/VBox/EnemyNameLabel
+@onready var enemy_name_label = $Margin/Content/MainRow/EnemyPanel/VBox/NameRow/EnemyNameLabel
 @onready var boss_badge = $Margin/Content/MainRow/EnemyPanel/VBox/BossBadge
-@onready var enemy_hp_label = $Margin/Content/MainRow/EnemyPanel/VBox/EnemyHpLabel
-@onready var enemy_armor_label = $Margin/Content/MainRow/EnemyPanel/VBox/EnemyArmorLabel
-@onready var enemy_intent_label = $Margin/Content/MainRow/EnemyPanel/VBox/EnemyIntentLabel
+@onready var enemy_hp_label = $Margin/Content/MainRow/EnemyPanel/VBox/HpRow/EnemyHpLabel
+@onready var enemy_armor_row = $Margin/Content/MainRow/EnemyPanel/VBox/ArmorRow
+@onready var enemy_armor_label = $Margin/Content/MainRow/EnemyPanel/VBox/ArmorRow/EnemyArmorLabel
+@onready var enemy_intent_icon = $Margin/Content/MainRow/EnemyPanel/VBox/IntentRow/EnemyIntentIcon
+@onready var enemy_intent_label = $Margin/Content/MainRow/EnemyPanel/VBox/IntentRow/EnemyIntentLabel
 @onready var enemy_status_label = $Margin/Content/MainRow/EnemyPanel/VBox/EnemyStatusLabel
-@onready var enemy_charge_label = $Margin/Content/MainRow/EnemyPanel/VBox/EnemyChargeLabel
-@onready var enemy_element_label = $Margin/Content/MainRow/EnemyPanel/VBox/EnemyElementLabel
+@onready var enemy_charge_row = $Margin/Content/MainRow/EnemyPanel/VBox/ChargeRow
+@onready var enemy_charge_label = $Margin/Content/MainRow/EnemyPanel/VBox/ChargeRow/EnemyChargeLabel
+@onready var enemy_element_label = $Margin/Content/MainRow/EnemyPanel/VBox/NameRow/EnemyElementLabel
 @onready var enemy_weak_label = $Margin/Content/MainRow/EnemyPanel/VBox/EnemyWeakLabel
 @onready var enemy_resist_label = $Margin/Content/MainRow/EnemyPanel/VBox/EnemyResistLabel
+@onready var enemy_mechanic_label = $Margin/Content/MainRow/EnemyPanel/VBox/EnemyMechanicLabel
 @onready var player_sprite = $Margin/Content/MainRow/CenterStage/StageRow/PlayerCenter/PlayerSprite
 @onready var enemy_sprite = $Margin/Content/MainRow/CenterStage/StageRow/EnemyCenter/EnemySprite
+@onready var enemy_stage_intent = $Margin/Content/MainRow/CenterStage/StageRow/EnemyCenter/EnemySprite/EnemyStageIntent
+@onready var enemy_stage_intent_label = $Margin/Content/MainRow/CenterStage/StageRow/EnemyCenter/EnemySprite/EnemyStageIntent/Row/Label
+@onready var enemy_stage_name = $Margin/Content/MainRow/CenterStage/StageRow/EnemyCenter/EnemySprite/EnemyStageName
+@onready var feedback_label = $Margin/Content/MainRow/CenterStage/ReelDock/FeedbackLabel
 @onready var player_panel = $Margin/Content/MainRow/PlayerPanel
 @onready var enemy_panel = $Margin/Content/MainRow/EnemyPanel
 @onready var room_label = $Margin/Content/InfoBar/RoomLabel
 @onready var turn_label = $Margin/Content/InfoBar/TurnLabel
-@onready var run_label = $Margin/Content/InfoBar/RunLabel
-@onready var gold_label = $Margin/Content/MainRow/PlayerPanel/VBox/GoldLabel
+@onready var gold_label = $Margin/Content/InfoBar/GoldLabel
 
 var animator = null   # P4 战斗动画器（tween 驱动立绘演出），_build_ui 末尾创建
 
@@ -255,9 +271,11 @@ func _build_ui() -> void:
 		cells.append([])
 		controller.grid.append([])
 		cell_badges.append([])
+		cell_elem_strips.append([])
 		for row in controller.state.ROWS:
 			var cell = SYMBOL_CELL.instantiate()
-			cell.custom_minimum_size = Vector2(48, 48)
+			cell.custom_minimum_size = Vector2(38, 38)
+			cell.clip_text = true
 			cell.add_theme_font_size_override("font_size", TypeScale.SYMBOL)
 			cell.disabled = true   # 无锁定，格子仅作展示
 			cell.mouse_default_cursor_shape = Control.CURSOR_HELP   # Phase 3：悬停提示
@@ -271,6 +289,22 @@ func _build_ui() -> void:
 			# 匹配角标（右上角锚定，封装在 symbol_cell.tscn 的 Badge 子节点）
 			var badge = cell.get_node("Badge")
 			cell_badges[reel].append(badge)
+			# Step 4：图标模式不再用文字染色表达元素，改格底 2px 元素色条（元素=none 时隐藏）
+			var strip := ColorRect.new()
+			strip.name = "ElemStrip"
+			strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			strip.color = Color(0, 0, 0, 0)
+			strip.anchor_left = 0.0
+			strip.anchor_top = 1.0
+			strip.anchor_right = 1.0
+			strip.anchor_bottom = 1.0
+			strip.offset_left = 4.0
+			strip.offset_top = -2.0
+			strip.offset_right = -4.0
+			strip.offset_bottom = 0.0
+			strip.visible = false
+			cell.add_child(strip)
+			cell_elem_strips[reel].append(strip)
 			# 2026-10-30：旋转时覆盖纵向滚动视觉（纯展示层，停止后隐藏）
 			var spin_view = REEL_SPIN_VIEW.new()
 			cell.add_child(spin_view)
@@ -432,16 +466,28 @@ func _show_reward_screen(is_boss: bool) -> void:
 
 func _make_reward_card(rw: RewardData, index: int = -1) -> Button:
 	var card: ItemCard = ITEM_CARD.instantiate()
-	card.custom_minimum_size = Vector2(84, 60)
+	# Step 4：有 24px 主图时卡片需要更高，否则「图 24 + 标题 + 描述」会顶出卡片（原 60 高）
+	card.custom_minimum_size = Vector2(84, 84)
 	# M1-01：候选在展示前已确定具体物品（payload），卡片直接显示真实结果
 	var payload: Dictionary = controller._reward_system.payload_at(index) if index >= 0 else {}
-	var label_text := "%s %s" % [rw.icon, rw.label]
-	var desc_text := rw.desc
+	# Step 4：卡片主图优先用「候选物品自身的美术」（payload.path → art/icon_tex），
+	# 其次用奖励类型美术（rw.art），都没有则保持 emoji 文本。
+	var art: Texture2D = rw.art
 	if not payload.is_empty():
-		label_text = "%s %s" % [rw.icon, payload.get("title", rw.label)]
-		desc_text = String(payload.get("desc", rw.desc))
-	card.configure(label_text, desc_text)
-	card.set_art(rw.art)
+		var p := String(payload.get("path", ""))
+		if p != "":
+			var res: Resource = load(p)
+			if res != null:
+				if res.get("art") != null:
+					art = res.get("art")
+				elif art == null and res.get("icon_tex") != null:
+					art = res.get("icon_tex")
+	# 有主图时不再重复显示 emoji 图标前缀（否则图 + emoji 并列重复）
+	var prefix: String = "" if art != null else rw.icon + " "
+	var title_text: String = String(payload.get("title", rw.label)) if not payload.is_empty() else rw.label
+	var desc_text: String = String(payload.get("desc", rw.desc)) if not payload.is_empty() else rw.desc
+	card.configure(prefix + title_text, desc_text)
+	card.set_art(art, Vector2(24, 24))
 	card.pressed.connect(func() -> void: reward_chosen.emit(rw.id, index))
 	return card
 
@@ -615,11 +661,13 @@ func _build_symbol_tooltip() -> void:
 func _cell_element(reel: int, row: int) -> String:
 	if controller == null:
 		return "none"
-	if controller.state.grid_elem.size() <= reel:
+	# 读活数据（controller.grid_elem）而非只读快照：写方（reset_grid / lock_reel）都是先写 grid_elem
+	# 再调 _refresh_cell，而快照要到 invalidate_state() 才更新——读快照会让元素色/元素条落后一步
+	# （Step 4 实测：房间开场格子有图标却无元素色条，正是快照未失效导致）。
+	var ge = controller.grid_elem
+	if ge.size() <= reel or ge[reel].size() <= row:
 		return "none"
-	if controller.state.grid_elem[reel].size() <= row:
-		return "none"
-	return controller.state.grid_elem[reel][row]
+	return ge[reel][row]
 
 
 func _on_cell_hover(reel: int, row: int) -> void:
@@ -683,6 +731,10 @@ func _clear_badges() -> void:
 		for row in controller.state.ROWS:
 			if cell_badges.size() > reel and cell_badges[reel].size() > row:
 				cell_badges[reel][row].text = ""
+	# Step 5：回合结算开始时一并清掉上一回合的底部短反馈（与角标同一生命周期）。
+	# 只清文本不隐藏——该行常驻占位，避免反馈出现/消失时转轮区上下跳动。
+	if feedback_label != null:
+		feedback_label.text = ""
 
 
 func _update_match_badges(counts: Dictionary) -> void:
@@ -697,6 +749,35 @@ func _update_match_badges(counts: Dictionary) -> void:
 			for row in controller.state.ROWS:
 				if controller.state.grid[reel][row] == s:
 					cell_badges[reel][row].text = "×%d" % c
+
+
+# Step 5：底部单行短反馈（最高连击符号 / 克制或抵抗倍率 / 本回合总伤害）。
+# 纯展示：结算数据由 CombatSystem 在 evaluate() 末尾原样传入，不参与任何数值计算。
+# 不恢复大段伤害分解——完整分解仍只进 Debug.log（见 combat_system.push_dmg_line）。
+func _show_turn_feedback(counts: Dictionary, total: int) -> void:
+	if feedback_label == null:
+		return
+	var best_label := ""
+	var best_n := 0
+	for key in counts:
+		var entry = counts[key]
+		var s: SymbolData = entry[0]
+		var c: int = entry[2]
+		if s == null or s == TRASH_SYMBOL or s.kind == "trash" or c <= best_n:
+			continue
+		# 文字优先用符号名（火斩/匕斩），不显示 emoji——图标化后 emoji 只作资源缺失回落
+		best_label = String(s.name) if String(s.name) != "" else String(s.label)
+		best_n = c
+	var parts: Array[String] = []
+	if best_n >= 2:
+		parts.append("%s×%d" % [best_label, best_n])
+	if controller._eval_adv:
+		parts.append("克制×%s" % ElementCounter.fmt_mult(ElementCounter.MULT_ADVANTAGE))
+	elif controller._eval_dis:
+		parts.append("抵抗×%s" % ElementCounter.fmt_mult(ElementCounter.MULT_RESIST))
+	if total > 0:
+		parts.append("-%d" % total)
+	feedback_label.text = " / ".join(parts)
 
 
 # 敌人元素 / 弱 / 抗：写入右侧 EnemyPanel 内三 Label（取代原底部 LegendBar）。
@@ -773,7 +854,7 @@ func _enemy_sprite_anchor() -> Control:
 
 # 敌人立绘切换（RoomData.art 数据驱动）：旧图退场（淡出+缩小）→ 换图 → 新图入场（淡入复位）。
 # tex = null 恢复默认敌人图（非 BOSS 房）。入场时序由 controller._start_room 触发。
-# 尺寸按 RoomData.art_scale 倍率（1.0 = 44×60 同规格，2.0 = 2 倍）——素材观感验证用。
+# 尺寸按 RoomData.art_scale 倍率（基准 48×48；1.0 = 同规格，2.0 = 96×96）——只允许整数倍。
 func set_enemy_art(tex: Texture2D, art_scale: float = 1.0) -> void:
 	if enemy_sprite == null:
 		return
@@ -813,9 +894,16 @@ func _cell_style(elem: String) -> StyleBoxFlat:
 func _refresh_cell(reel: int, row: int) -> void:
 	var b: Button = cells[reel][row]
 	var s: SymbolData = controller.state.grid[reel][row]
+	b.add_theme_font_size_override("font_size", TypeScale.REEL if s.kind == "trash" else TypeScale.SYMBOL)
 	# S4：按「有效元素」着色。同一个共享符号（如 special.tres）在火剑下是火、在铁剑下是无属性，
 	# 靠边框/底色一眼分辨谁吃 ×1.5；元素为 none 时回落符号自身配色。
 	var elem = _cell_element(reel, row)
+	# Step 4：图标模式下元素色改由格底 2px 色条表达（文字染色在图标模式无文字可染）
+	if cell_elem_strips.size() > reel and cell_elem_strips[reel].size() > row:
+		var strip: ColorRect = cell_elem_strips[reel][row]
+		strip.visible = elem != "none"
+		if elem != "none":
+			strip.color = ElementCounter.color(elem)
 	var rs = controller.reel_system
 	# 2026-10-30：旋转中的未停列由 ReelSpinView 显示纵向滚动，格子自身清空文字避免重影。
 	var scrolling: bool = rs != null and rs.spinning and not rs.reel_stopped[reel]
@@ -872,22 +960,41 @@ func _refresh_meta() -> void:
 	controller.invalidate_state()   # 语义刷新兜底：任何写方遗漏的字段变更在此重建（低频，开销可忽略）
 	_refresh_gear_icons()
 	var is_boss = controller._is_boss_room(controller.state.room_index)
-	var essence_txt := ""
+	var essence_names := []
 	for e in controller.state.room_element_mult:
-		essence_txt += " · 精华·%s" % ElementCounter.label(e)
-	# 2026-08-10 ACT 标注：当前幕（RoomData.act）+ 草案主题短名（BOSS设计草案三幕主题）
-	var act_txt := "ACT 1"
-	var act_theme := {1: "冰封", 2: "狂热", 3: "深渊"}
+		essence_names.append(ElementCounter.label(e))
+	# C3 顶栏：ACT + 房间在左（金币紧随其后）；精华/房型等细节进 tooltip，不占主信息位
+	var act_txt := "ACT I"
+	var act_names := {1: "I", 2: "II", 3: "III"}
 	var rooms: Array = controller.state.ROOMS
 	if rooms.size() > 0 and controller.state.room_index >= 0 and controller.state.room_index < rooms.size():
 		var a: int = int(rooms[controller.state.room_index].act)
-		act_txt = "ACT %d%s" % [a, " " + act_theme.get(a, "") if act_theme.has(a) else ""]
-	room_label.text = "%s · 房间: %d/%d%s%s" % [act_txt, controller.state.room_index + 1, rooms.size(), " · ★BOSS" if is_boss else "", essence_txt]
-	turn_label.text = "回合: %d" % controller.state.turn_count
-	# 2026-10-30 UI 反馈：左栏收窄后 HP 行只放 HP/上限，护盾有值才另起一行（无盾时不占位）
-	var shield_txt := ("\n盾 %d" % controller.state.player_shield) if controller.state.player_shield > 0 else ""
-	player_hp_label.text = "HP%d/%d%s" % [controller.state.player_hp, controller.state.player_hp_max, shield_txt]
-	player_level_label.text = controller.growth.progress_text()   # M2-03 玩家区：等级与历练独立一行，避免挤压战斗区
+		act_txt = "ACT %s" % act_names.get(a, str(a))
+	room_label.text = "%s · 房 %d/%d" % [act_txt, controller.state.room_index + 1, rooms.size()]
+	room_label.tooltip_text = "房间 %d/%d%s\n精华: %s" % [
+		controller.state.room_index + 1, rooms.size(),
+		" · ★BOSS" if is_boss else "",
+		"、".join(essence_names) if not essence_names.is_empty() else "无"]
+	turn_label.text = "回合 %d" % controller.state.turn_count
+	gold_label.text = "%d" % controller.state.gold
+	gold_label.tooltip_text = "金币"
+	weapons_title.text = "武器 %d/%d" % [controller.state.selected_loadout.size(), controller._loadout_system.cat_cap("weapon")]
+	# Step 5 信息层级：HP 是左栏第一重点（生命绿；≤35% 转危险红）；护盾有值才单独占一行（护盾蓝）
+	var hp_now: int = controller.state.player_hp
+	var hp_max: int = max(1, controller.state.player_hp_max)
+	var hp_color: Color = Palette.POP_DAMAGE if float(hp_now) / float(hp_max) <= 0.35 else Palette.POP_HEAL
+	player_hp_label.text = "%d/%d" % [hp_now, controller.state.player_hp_max]
+	player_hp_label.add_theme_color_override("font_color", hp_color)
+	player_hp_label.tooltip_text = "生命 %d/%d" % [hp_now, controller.state.player_hp_max]
+	player_hp_icon.modulate = hp_color
+	player_shield_row.visible = controller.state.player_shield > 0
+	player_shield_label.text = "盾 %d" % controller.state.player_shield
+	# 等级并入玩家标题，空增益不占独立行，给护盾和动态状态预留固定空间
+	var growth_progress: String = controller.growth.progress_text()
+	player_title.text = "玩家 · %s" % growth_progress.get_slice("·", 0).strip_edges()
+	player_title.tooltip_text = growth_progress
+	player_level_label.text = growth_progress
+	player_level_label.tooltip_text = growth_progress
 	player_buff_label.text = "技能: " + controller._buff_summary()
 	# T30 玩家 frost 状态（冻结转轮列数）
 	if controller.state.player_frost > 0:
@@ -902,14 +1009,32 @@ func _refresh_meta() -> void:
 			player_buff_label.remove_theme_color_override("font_color")
 	else:
 		player_buff_label.remove_theme_color_override("font_color")
-	gold_label.text = "金币 %d" % controller.state.gold
+	player_buff_label.visible = controller._buff_summary() != "无" or controller.state.player_frost > 0 or poison > 0
 	enemy_name_label.text = controller.state.enemy_name
+	enemy_name_label.tooltip_text = controller.state.enemy_name
+	enemy_stage_name.text = controller.state.enemy_name
+	enemy_stage_name.visible = is_boss
 	boss_badge.visible = is_boss
-	enemy_hp_label.text = "HP %d/%d" % [max(controller.state.enemy_hp, 0), controller.state.enemy_hp_max]
+	# C4-1：右栏图标化——HP / 护甲 / 充能各一组图标 + 数值；顺序 name → HP → armor → 弱/抗 → 意图 → 充能 → 状态 → 机制
+	enemy_hp_label.text = "%d/%d" % [max(controller.state.enemy_hp, 0), controller.state.enemy_hp_max]
+	enemy_hp_label.tooltip_text = "生命 %d/%d" % [max(controller.state.enemy_hp, 0), controller.state.enemy_hp_max]
+	# HP 只在右栏显示，中央不再重复
+	var ehp_now: int = max(controller.state.enemy_hp, 0)
+	var ehp_max: int = max(1, controller.state.enemy_hp_max)
+	var ehp_color: Color = Palette.POP_DAMAGE if float(ehp_now) / float(ehp_max) <= 0.35 else Palette.POP_HEAL
+	enemy_hp_label.add_theme_color_override("font_color", ehp_color)
 	# 护甲（扁平池）：有护甲才显示；破甲后剩 0 也显示（提示已破甲窗口），仅无护甲敌人隐藏
-	enemy_armor_label.visible = controller.state.enemy_armor_max > 0
-	enemy_armor_label.text = "护甲 %d/%d" % [max(controller.state.enemy_armor, 0), controller.state.enemy_armor_max]
+	enemy_armor_row.visible = controller.state.enemy_armor_max > 0
+	enemy_armor_label.text = "%d/%d" % [max(controller.state.enemy_armor, 0), controller.state.enemy_armor_max]
+	enemy_armor_label.tooltip_text = "护甲 %d/%d" % [max(controller.state.enemy_armor, 0), controller.state.enemy_armor_max]
 	enemy_status_label.text = "状态: " + ("无" if controller.state.enemy_status.is_empty() else controller.status_system.status_summary(controller.state.enemy_status))
+	# C4-3：BOSS 机制摘要（纯展示字段；空值不占位）；完整机制仍在 tooltip
+	var room_list: Array = controller.state.ROOMS
+	var cur_room: RoomData = room_list[controller.state.room_index] if controller.state.room_index >= 0 and controller.state.room_index < room_list.size() else null
+	var mech_txt: String = String(cur_room.mechanic_summary) if cur_room != null else ""
+	enemy_mechanic_label.text = mech_txt
+	enemy_mechanic_label.visible = mech_txt != ""
+	enemy_mechanic_label.tooltip_text = mech_txt
 	# T21 元素充能条：克制命中进度（满额释放元素爆发）+ 主导元素（2026-08-14：本回合命中最多的元素）
 	if controller.state.charge_points > 0:
 		var lead_txt := ""
@@ -921,10 +1046,17 @@ func _refresh_meta() -> void:
 				lead_elem = e
 		if lead_elem != "":
 			lead_txt = " · 主导%s" % ElementCounter.label(lead_elem)
-		enemy_charge_label.text = "⚡充能 %d/%d%s" % [controller.state.charge_points, controller.BALANCE.charge_max, lead_txt]
-		enemy_charge_label.visible = true
+		enemy_charge_label.text = "%d/%d%s" % [controller.state.charge_points, controller.BALANCE.charge_max, lead_txt]
+		# Step 5 层级：充能是进度信息，平时弱化；差 1 点即可爆发时转金色提示
+		enemy_charge_label.add_theme_color_override("font_color",
+			Palette.ACCENT_GOLD if controller.state.charge_points >= controller.BALANCE.charge_max - 1 else Palette.MUTED)
+		enemy_charge_label.tooltip_text = "元素充能 %d/%d" % [controller.state.charge_points, controller.BALANCE.charge_max]
+		enemy_charge_row.visible = true
 	else:
-		enemy_charge_label.visible = false
+		enemy_charge_label.text = "0/%d" % controller.BALANCE.charge_max
+		enemy_charge_label.add_theme_color_override("font_color", Palette.MUTED)
+		enemy_charge_label.tooltip_text = "元素充能 0/%d" % controller.BALANCE.charge_max
+		enemy_charge_row.visible = true
 	# M4+M6 本局加成概览
 	var parts := []
 	if controller.state.run_power_bonus + controller.state.charm_power_bonus > 0:
@@ -945,12 +1077,17 @@ func _refresh_meta() -> void:
 		parts.append("符号:" + "/".join(sp))
 	if controller.state.run_shield_next > 0:
 		parts.append("下房盾+%d" % controller.state.run_shield_next)
-	run_label.text = "本局加成: " + ("无" if parts.is_empty() else " / ".join(parts))
+	# C3：旧 RunLabel 从顶栏移除；本局加成/共鸣信息改挂左栏弱信息行 tooltip，不丢数据也不占主信息位
+	var run_txt: String = "无" if parts.is_empty() else " / ".join(parts)
+	player_buff_label.tooltip_text = "%s\n本局加成: %s" % [player_buff_label.text, run_txt]
+	player_title.tooltip_text = "%s\n%s" % [growth_progress, player_buff_label.tooltip_text]
+	enemy_intent_icon.visible = false
+	var stage_intent_txt := ""
 	if controller.state.enemy_intent.is_empty():
-		enemy_intent_label.text = "意图: —"
+		enemy_intent_label.text = "—"
 		enemy_intent_label.tooltip_text = ""
 	else:
-		# T20：图标/名字读 IntentData（enemy_intent.data）；match 仅剩攻击/重击的数值格式分支
+		# T20：图标/名字读 IntentData（enemy_intent.data）；攻击/重击同时显示在中央 BOSS 头顶
 		var t = controller.state.enemy_intent["type"]
 		var data: IntentData = controller.state.enemy_intent.get("data")
 		var icon: String = data.icon if data != null and data.icon != "" else ""
@@ -958,18 +1095,27 @@ func _refresh_meta() -> void:
 		if data != null and data.display_name != "":
 			name_txt = data.display_name
 		match t:
-			"attack": enemy_intent_label.text = "意图:%s%s%d" % [icon if icon != "" else "🗡️", name_txt, controller.state.enemy_intent["value"]]
-			"heavy":  enemy_intent_label.text = "意图:%s%s%d" % [icon if icon != "" else "💥", name_txt, controller.state.enemy_intent["value"]]
+			"attack", "heavy":
+				enemy_intent_label.text = "%s %d" % [name_txt, controller.state.enemy_intent["value"]]
+				enemy_intent_icon.visible = true
+				stage_intent_txt = enemy_intent_label.text
 			"jam", "lock", "chaos", "auto_stop":
-				enemy_intent_label.text = "意图:%s%s" % [icon if icon != "" else "☣", name_txt]
-			"none":   enemy_intent_label.text = "意图: —"
-			_:        enemy_intent_label.text = "意图: %s%s" % [icon if icon != "" else "", name_txt]
-		# 面板收窄后「（用净化药剂）」不再塞进正文，改挂 tooltip 保留这条指引
+				enemy_intent_label.text = "%s%s" % [icon if icon != "" else "☣", name_txt]
+			"none":   enemy_intent_label.text = "—"
+			_:        enemy_intent_label.text = "%s%s" % [icon if icon != "" else "", name_txt]
 		enemy_intent_label.tooltip_text = "可用净化药剂解除" if String(t) in ["jam", "lock", "chaos", "auto_stop"] else ""
-	# M3-04：下一意图是视觉重点——有效意图用金色强调；2026-10-30 面板收窄后字号统一 META，避免换行
+	# Step 5 层级：下一意图是右栏第一重点——伤害类意图用危险红，干扰类（可用净化解除）用交互金，
+	# 无意图回落弱信息；字号升到正文档，避免与状态/充能同等亮度。
 	var has_intent: bool = not controller.state.enemy_intent.is_empty() and String(controller.state.enemy_intent.get("type", "none")) != "none"
-	enemy_intent_label.add_theme_color_override("font_color", Palette.ACCENT_GOLD if has_intent else Palette.MUTED)
-	enemy_intent_label.add_theme_font_size_override("font_size", TypeScale.META)
+	var intent_color: Color = Palette.MUTED
+	if has_intent:
+		match String(controller.state.enemy_intent.get("type", "none")):
+			"attack", "heavy": intent_color = Palette.POP_DAMAGE
+			_:                  intent_color = Palette.ACCENT_GOLD
+	enemy_intent_label.add_theme_color_override("font_color", intent_color)
+	enemy_intent_label.add_theme_font_size_override("font_size", TypeScale.BODY)
+	enemy_stage_intent.visible = is_boss and stage_intent_txt != ""
+	enemy_stage_intent_label.text = stage_intent_txt
 
 
 func _intent_display_name(t: String) -> String:

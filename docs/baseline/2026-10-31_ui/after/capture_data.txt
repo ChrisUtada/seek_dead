@@ -1,0 +1,36 @@
+# Seek Dead · 战斗 UI 重构 Step 0 基线
+# 采集时间：2026-10-31T17:04:16
+# 颜色基准：palette.gd / theme/battle_theme.tres 当前值
+
+## 整备（启动时软默认）
+视口逻辑尺寸 = 480×270；窗口 = 960×540
+
+截图：01_loadout_960.png  960x540  err=0
+## 普通房 · 刚入场
+左栏宽 = 87；右栏宽 = 84
+转轮格最小尺寸 = (48.0, 48.0)；实际 = (48.0, 48.0)
+玩家立绘 = res://assets/characters/viking/idle_02.png（尺寸 (96.0, 96.0)）
+敌人立绘 = res://assets/enemy.png（尺寸 (64.0, 64.0)）
+中央舞台可用宽 = 291；高度 = 234
+转轮状态：spinning=false stopped=[]
+
+截图：02_battle_960.png  960x540  err=0
+## BOSS 房（样板冰封铁瓮，直跳 idx=7）
+左栏宽 = 87；右栏宽 = 84
+转轮格最小尺寸 = (48.0, 48.0)；实际 = (48.0, 48.0)
+玩家立绘 = res://assets/characters/viking/idle_04.png（尺寸 (96.0, 96.0)）
+敌人立绘 = res://assets/bossbf.png（尺寸 (128.0, 128.0)）
+中央舞台可用宽 = 291；高度 = 234
+转轮状态：spinning=false stopped=[]
+
+截图：03_boss_960.png  960x540  err=0
+截图：04_shop_960.png  960x540  err=0
+截图：05_reward_960.png  960x540  err=0
+截图：06_anvil_960.png  960x540  err=0
+截图：07_meta_960.png  960x540  err=0
+截图：09_battle_1440.png  1440x810  err=0
+截图：10_boss_1440.png  1440x810  err=0
+截图：11_battle_1920.png  1920x1080  err=0
+截图：08_spin_960.png  960x540  err=0
+旋转中：spinning=true stopped=[false, false, false]
+截图：08b_spin_960.png  960x540  err=0

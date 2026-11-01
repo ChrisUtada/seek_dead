@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://scripts/battle/room_data.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/battle/gimmicks/rust_armor_gimmick.gd" id="2"]
 [ext_resource type="Script" path="res://scripts/battle/intent_data.gd" id="3"]
-[ext_resource type="Texture2D" uid="uid://i4q4dcgqs7ur" path="res://assets/bossbf.png" id="4_art"]
+[ext_resource type="Texture2D" path="res://assets/bossbf_ember.png" id="4_art"]
 
 [sub_resource type="Resource" script_class="IntentData" id="intent_attack"]
 script = ExtResource("3")
@@ -40,3 +40,4 @@ boss_reward_weapons = Array[String](["res://resources/weapon_templates/fire_swor
 boss_relic_path = "res://resources/charms/frost_core_relic.tres"
 art = ExtResource("4_art")
 art_scale = 2.0
+mechanic_summary = "每3回合\n叠甲+8 · 上限3层\n火系可破"

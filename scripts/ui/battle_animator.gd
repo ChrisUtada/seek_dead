@@ -7,24 +7,26 @@ extends Node
 # idle 4 帧循环 + attack 5 帧序列；旧 knight 素材保留不回退、不删除。
 # 注意：这偏离 M0-02「灰白流亡者」的样板范围——viking 是当前唯一完整的 48×48 角色帧组，
 # 样板范围待用户确认后回写文档。
+# 2026-10-31（战斗 UI 重构 Step 3）：改读灰白风格化副本 viking_ash/（同 48×48、同帧序、
+# 同帧时长），原始 viking/ 保留不动；副本由 tools/art_pipeline/stylize_sample.py 生成。
 
 # 站立循环帧（4 帧，0.18s/帧）。
 const PLAYER_IDLE_FRAMES := [
-	preload("res://assets/characters/viking/idle_01.png"),
-	preload("res://assets/characters/viking/idle_02.png"),
-	preload("res://assets/characters/viking/idle_03.png"),
-	preload("res://assets/characters/viking/idle_04.png"),
+	preload("res://assets/characters/viking_ash/idle_01.png"),
+	preload("res://assets/characters/viking_ash/idle_02.png"),
+	preload("res://assets/characters/viking_ash/idle_03.png"),
+	preload("res://assets/characters/viking_ash/idle_04.png"),
 ]
 const PLAYER_IDLE_FRAME_TIME := 0.18
 # 玩家攻击帧序列（attack_01-05：蓄力→挥击→命中→收势）。
 # 帧长 0.06s × 5 ≈ 0.30s，必须 ≤ combat_system 在 play_attack 之后的 0.35s 等待窗口，
 # 否则动画会被敌人回合打断（若改帧长/帧数，须同步核对那一处等待值）。
 const PLAYER_ATTACK_FRAMES := [
-	preload("res://assets/characters/viking/attack_01.png"),
-	preload("res://assets/characters/viking/attack_02.png"),
-	preload("res://assets/characters/viking/attack_03.png"),
-	preload("res://assets/characters/viking/attack_04.png"),
-	preload("res://assets/characters/viking/attack_05.png"),
+	preload("res://assets/characters/viking_ash/attack_01.png"),
+	preload("res://assets/characters/viking_ash/attack_02.png"),
+	preload("res://assets/characters/viking_ash/attack_03.png"),
+	preload("res://assets/characters/viking_ash/attack_04.png"),
+	preload("res://assets/characters/viking_ash/attack_05.png"),
 ]
 const PLAYER_ATTACK_FRAME_TIME := 0.06
 const PLAYER_IMPACT_FRAME := 3        # 索引 3 = attack_04（命中斩击帧）→ 触发轻微屏震
