@@ -61,9 +61,10 @@ func _ready() -> void:
 	visible = false
 
 
-# sections: [{"key": String, "title": String, "sub": String, "choices": [{id, family, name, desc}]}]
+# sections: [{"key": String, "title": String, "sub": String, "choices": [{id, family, hint, name, desc}]}]
+# summary: 可选页头摘要（本局已有成长），让玩家在每次选择前看到累积方向。
 # on_confirm: Callable(picked: Dictionary)  —— 每个 key 都选定后才可确认。
-func show_sections(title: String, sections: Array, on_confirm: Callable) -> void:
+func show_sections(title: String, sections: Array, on_confirm: Callable, summary: String = "") -> void:
 	for c in _vbox.get_children():
 		_vbox.remove_child(c)
 		c.queue_free()
@@ -71,6 +72,8 @@ func show_sections(title: String, sections: Array, on_confirm: Callable) -> void
 	_section_keys = []
 	_on_confirm = on_confirm
 	_vbox.add_child(_text_label(title, TypeScale.OVERLAY, Palette.ACCENT_GOLD))
+	if summary != "":
+		_vbox.add_child(_text_label(summary, TypeScale.TINY, Palette.MUTED))
 	for sec in sections:
 		var key: String = sec["key"]
 		_section_keys.append(key)
@@ -79,7 +82,12 @@ func show_sections(title: String, sections: Array, on_confirm: Callable) -> void
 		var group := ButtonGroup.new()
 		for opt in sec["choices"]:
 			var btn = UI_BUTTON.instantiate()
-			btn.text = "[%s] %s\n%s" % [opt["family"], opt["name"], opt["desc"]]
+			# P0-2：家族标签后追加方向提示（生存·更耐打 / 锋铸·更高攻），选择依据先看得懂再看数值。
+			var fam_txt: String = String(opt.get("family", ""))
+			var hint_txt: String = String(opt.get("hint", ""))
+			if hint_txt != "":
+				fam_txt = "%s·%s" % [fam_txt, hint_txt] if fam_txt != "" else hint_txt
+			btn.text = "[%s] %s\n%s" % [fam_txt, opt["name"], opt["desc"]]
 			btn.toggle_mode = true
 			btn.button_group = group
 			# 2026-10-30 UI 反馈：限制宽度并允许换行，避免长描述把弹窗撑满屏幕

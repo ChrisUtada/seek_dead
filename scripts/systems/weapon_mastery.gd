@@ -87,12 +87,13 @@ func imprint_choices(path: String) -> Array:
 	var im: Dictionary = _imprint_of(path)
 	if int(im["forge"]) < IMPRINT_MAX:
 		var base: int = int(wd.base_power) + forge_bonus(path)
-		out.append({"id": "forge", "family": wd.weapon_name, "name": "锋铸",
-			"desc": "基础攻击 %d → %d" % [base, base + FORGE_STEP]})
+		var pct: int = int(round(100.0 * float(FORGE_STEP) / maxf(1.0, float(base))))
+		out.append({"id": "forge", "family": wd.weapon_name, "name": "锋铸", "hint": "更高攻",
+			"desc": "基础攻击 %d → %d（+%d%%）" % [base, base + FORGE_STEP, pct]})
 	if _tune_count(path) < IMPRINT_MAX:
 		var tgt: Dictionary = tune_target(path)
 		if not tgt.is_empty():
-			out.append({"id": "tune", "family": wd.weapon_name, "name": "调律",
+			out.append({"id": "tune", "family": wd.weapon_name, "name": "调律", "hint": "更多格",
 				"desc": "「%s」权重 +1：%s" % [_sym_name(tgt["sym"]), "；".join(tgt["lines"])]})
 	return out
 
@@ -187,6 +188,31 @@ func imprint_text(path: String) -> String:
 	if _tune_count(path) > 0:
 		parts.append("调律×%d" % _tune_count(path))
 	return " · ".join(parts)
+
+
+# P0-2：本局铭印总数（HUD 摘要行用）。
+func imprint_total() -> int:
+	var n := 0
+	for path in imprints:
+		n += int(imprints[path]["forge"]) + _tune_count(path)
+	return n
+
+
+# P0-2：本局铭印方向摘要（HUD tooltip / 成长结算页头用）。
+func summary_line() -> String:
+	var forge := 0
+	var tune := 0
+	for path in imprints:
+		forge += int(imprints[path]["forge"])
+		tune += _tune_count(path)
+	if forge == 0 and tune == 0:
+		return "铭印：无"
+	var parts: Array[String] = []
+	if forge > 0:
+		parts.append("锋铸×%d" % forge)
+	if tune > 0:
+		parts.append("调律×%d" % tune)
+	return "铭印 " + "·".join(parts)
 
 
 func display_name(path: String) -> String:

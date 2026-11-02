@@ -989,12 +989,24 @@ func _refresh_meta() -> void:
 	player_hp_icon.modulate = hp_color
 	player_shield_row.visible = controller.state.player_shield > 0
 	player_shield_label.text = "盾 %d" % controller.state.player_shield
-	# 等级并入玩家标题，空增益不占独立行，给护盾和动态状态预留固定空间
+	# 等级并入玩家标题；P0-2：常驻一行「历练进度 · 艺N 铭N」，让本局成长随时可见（明细进 tooltip）
 	var growth_progress: String = controller.growth.progress_text()
-	player_title.text = "玩家 · %s" % growth_progress.get_slice("·", 0).strip_edges()
-	player_title.tooltip_text = growth_progress
-	player_level_label.text = growth_progress
-	player_level_label.tooltip_text = growth_progress
+	player_title.text = "玩家 · Lv.%d" % controller.growth.level
+	var growth_tags: Array[String] = []
+	if not controller.growth.perk_ids.is_empty():
+		growth_tags.append("艺%d" % controller.growth.perk_ids.size())
+	var imp_total: int = controller.mastery.imprint_total()
+	if imp_total > 0:
+		growth_tags.append("铭%d" % imp_total)
+	var growth_short: String = controller.growth.progress_short()
+	if not growth_tags.is_empty():
+		growth_short += " · " + " ".join(growth_tags)
+	var growth_tip: String = "%s\n%s\n%s" % [growth_progress,
+		controller.growth.detail_text(), controller.mastery.summary_line()]
+	player_level_label.text = growth_short
+	player_level_label.visible = true
+	player_level_label.tooltip_text = growth_tip
+	player_title.tooltip_text = growth_tip
 	player_buff_label.text = "技能: " + controller._buff_summary()
 	# T30 玩家 frost 状态（冻结转轮列数）
 	if controller.state.player_frost > 0:
@@ -1080,7 +1092,7 @@ func _refresh_meta() -> void:
 	# C3：旧 RunLabel 从顶栏移除；本局加成/共鸣信息改挂左栏弱信息行 tooltip，不丢数据也不占主信息位
 	var run_txt: String = "无" if parts.is_empty() else " / ".join(parts)
 	player_buff_label.tooltip_text = "%s\n本局加成: %s" % [player_buff_label.text, run_txt]
-	player_title.tooltip_text = "%s\n%s" % [growth_progress, player_buff_label.tooltip_text]
+	player_title.tooltip_text = "%s\n%s" % [growth_tip, player_buff_label.tooltip_text]
 	enemy_intent_icon.visible = false
 	var stage_intent_txt := ""
 	if controller.state.enemy_intent.is_empty():
@@ -1137,11 +1149,11 @@ var _replace_cb: Callable = Callable()
 var _growth_picker = null   # M2-01 技艺三选一覆盖层（懒构建）
 
 # M2-03 成长结算（技艺 + 铭印合并为一屏）：懒构建覆盖层；全部选定并确认后回调 on_confirm({key: id})
-func show_growth_settlement(title: String, sections: Array, on_confirm: Callable) -> void:
+func show_growth_settlement(title: String, sections: Array, on_confirm: Callable, summary: String = "") -> void:
 	if _growth_picker == null:
 		_growth_picker = GROWTH_PICKER.new()
 		add_child(_growth_picker)
-	_growth_picker.show_sections(title, sections, on_confirm)
+	_growth_picker.show_sections(title, sections, on_confirm, summary)
 
 
 func hide_growth_picker() -> void:

@@ -154,7 +154,8 @@ func _test_imprint_candidates(duel: DuelController) -> void:
 	_check(ids.has("forge"), "锋铸恒在候选中（未达上限）")
 	for c in m.imprint_choices(FIRE):
 		if c["id"] == "forge":
-			_check(c["desc"] == "基础攻击 18 → 20", "锋铸描述给出当前 → 升级后基础攻击")
+			_check(c["desc"].begins_with("基础攻击 18 → 20") and c["desc"].find("%") >= 0,
+				"锋铸描述给出当前 → 升级后基础攻击与提升幅度")
 	_check(m.tune_target(FIRE).get("sym", "") == FIRE_SLASH, "调律目标 = 权重最高且 +1 真实改变格数者（燃烧 5→6 不改格；火斩 3→4 改格）")
 	_check(ids.has("tune"), "调律在真实改变格数时出现（火焰剑）")
 	for c in m.imprint_choices(FIRE):
@@ -242,7 +243,11 @@ func _test_merged_settlement(duel: DuelController) -> void:
 	_check(fire_card != null and fire_card.tooltip_text.find("熟练") >= 0, "武器 tooltip 含熟练进度")
 	_check(skill_card != null and perk_name != "" and skill_card.tooltip_text.find(perk_name) >= 0,
 		"技能卡 tooltip 含已习得技艺")
-	_check(duel.hud.player_level_label.text.find("Lv.2") >= 0, "玩家区：等级行显示 Lv.2")
+	# P0-2：等级进玩家标题；常驻行显示历练进度与成长计数（艺/铭），不再重复 Lv.
+	_check(duel.hud.player_title.text.find("Lv.2") >= 0, "玩家区：标题显示 Lv.2")
+	_check(duel.hud.player_level_label.visible and duel.hud.player_level_label.text.find("/7") >= 0,
+		"玩家区：常驻成长行显示历练进度")
+	_check(duel.hud.player_level_label.text.find("艺1") >= 0, "玩家区：常驻成长行显示技艺计数")
 	duel.growth.reset_run()
 	m.reset_run()
 	duel.hud.set_interroom_enabled(false)

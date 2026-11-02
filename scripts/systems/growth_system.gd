@@ -13,6 +13,9 @@ const LEVEL_MAX := 4                                     # ACT1 样板上限
 const HP_PER_LEVEL := 5                                  # 每级最大 HP +5 并恢复同量
 const PERK_LEVELS := [2, 4]                              # 升到这些等级时获得一次技艺选择
 const FAMILIES := {"survive": "生存", "plan": "运筹", "aim": "目押"}
+# P0-2（2026-11-03）：给每个家族一句「打法方向」，选择前能预判自己走哪条线。
+const FAMILY_HINT := {"survive": "更耐打", "plan": "更多资源", "aim": "更易停中"}
+const FAMILY_ORDER := ["survive", "plan", "aim"]
 const PERKS := [
 	{"id": "tough", "family": "survive", "name": "坚韧", "desc": "最大 HP +10，并立即恢复 10 HP"},
 	{"id": "guard", "family": "survive", "name": "守势", "desc": "每房开局获得 8 护盾"},
@@ -55,6 +58,40 @@ func progress_text() -> String:
 	return "Lv.%d · %d/%d" % [level, xp, int(LEVEL_XP[level + 1])]
 
 
+# 左栏常驻小字：只有历练进度（等级已在玩家标题），满级后显示累计。
+func progress_short() -> String:
+	if level >= LEVEL_MAX:
+		return "%d 满" % xp
+	return "%d/%d" % [xp, int(LEVEL_XP[level + 1])]
+
+
+# P0-2：本局技艺的方向摘要（按固定顺序聚合家族），供 HUD tooltip / 成长结算页头展示。
+func summary_line() -> String:
+	if perk_ids.is_empty():
+		return "技艺：无"
+	var counts := {}
+	for pid in perk_ids:
+		var fam := _family_of(pid)
+		if fam != "":
+			counts[fam] = int(counts.get(fam, 0)) + 1
+	var parts: Array[String] = []
+	for fid in FAMILY_ORDER:
+		var n: int = int(counts.get(fid, 0))
+		if n > 0:
+			parts.append("%s×%d" % [FAMILIES[fid], n])
+	return "技艺 " + "·".join(parts)
+
+
+# P0-2：完整明细（tooltip 用）：每项技艺带家族与效果。
+func detail_text() -> String:
+	if perk_ids.is_empty():
+		return "技艺：无"
+	var lines: Array[String] = ["技艺："]
+	for pid in perk_ids:
+		lines.append("· %s（%s）%s" % [perk_name(pid), perk_family(pid), perk_desc(pid)])
+	return "\n".join(lines)
+
+
 # 房间胜利：累计经验并逐级升级。返回待选技艺次数（>0 时 RoomFlow 先弹三选一再进间歇）。
 func grant_room_xp(kind: String) -> int:
 	if not enabled:
@@ -62,11 +99,15 @@ func grant_room_xp(kind: String) -> int:
 	xp += int(ROOM_XP.get(kind, 0))
 	while level < LEVEL_MAX and xp >= int(LEVEL_XP[level + 1]):
 		level += 1
+		var hp_before: int = _ctrl.player_hp_max
 		_ctrl.player_hp_max += HP_PER_LEVEL
 		_ctrl.player_hp = mini(_ctrl.player_hp_max, _ctrl.player_hp + HP_PER_LEVEL)
-		_ctrl.hud._log("🎓 历练 Lv.%d：最大 HP +%d 并恢复 %d" % [level, HP_PER_LEVEL, HP_PER_LEVEL])
+		# P0-2：升级必须有可见结果（前 → 后数值 + 飘字），否则只有日志里的 +5 无法形成变强感。
+		_ctrl.hud._log("🎓 历练 Lv.%d：最大 HP %d → %d（立即恢复 %d）" % [level, hp_before, _ctrl.player_hp_max, HP_PER_LEVEL])
+		_ctrl.hud._popup("Lv.%d" % level, Palette.ACCENT_GOLD, _ctrl.hud.player_hp_label)
 		if PERK_LEVELS.has(level):
 			pending_picks += 1
+			_ctrl.hud._log("  ◆ 获得 1 次技艺选择")
 	return pending_picks
 
 
@@ -96,12 +137,38 @@ func roll_choices() -> Array:
 
 
 # 候选展示口径：描述 + 展示时的当前→升级后数值（确认前预览）。
+# P0-2：每张卡都带「方向」与可量化前后值，玩家不必靠猜测判断强弱。
 func _choice_view(p: Dictionary) -> Dictionary:
 	var desc: String = p["desc"]
-	if p["id"] == "tough":
-		var hp: int = _ctrl.player_hp_max
-		desc += "（最大 HP %d → %d）" % [hp, hp + 10]
-	return {"id": p["id"], "family": FAMILIES[p["family"]], "name": p["name"], "desc": desc}
+	match String(p["id"]):
+		"tough":
+			var hp: int = _ctrl.player_hp_max
+			desc += "（最大 HP %d → %d，立即回 10）" % [hp, hp + 10]
+		"guard":
+			var shield_now: int = int(_ctrl.charm_room_shield) + int(_ctrl._reward_system.run_shield_next)
+			desc += "（每房开局护盾 %d → %d）" % [shield_now, shield_now + GUARD_SHIELD]
+		"frugal":
+			var free_now: int = _ctrl._shop_system.free_reroll_count()
+			desc += "（每房间歇免费刷新 %d → %d 次）" % [free_now, free_now + 1]
+		"reserve":
+			var charges_now := 0
+			for slot in _ctrl.consumable_slots:
+				charges_now += int(slot["charges"])
+			var slot_n: int = _ctrl.consumable_slots.size()
+			desc += "（腰带 %d 格合计次数 %d → %d）" % [slot_n, charges_now, charges_now + slot_n]
+		"steady":
+			desc += "（前 2 回合间隔 0.15 → 0.17s）"
+		"insight":
+			desc += "（提前 1 格可见）"
+	return {"id": p["id"], "family": FAMILIES[p["family"]],
+		"hint": String(FAMILY_HINT.get(p["family"], "")), "name": p["name"], "desc": desc}
+
+
+func _family_of(id: String) -> String:
+	for p in PERKS:
+		if p["id"] == id:
+			return String(p["family"])
+	return ""
 
 
 func _unowned_in(family: String) -> Array:

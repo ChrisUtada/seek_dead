@@ -118,6 +118,9 @@ func _test_perk_choices(duel: DuelController) -> void:
 	_check(fams.size() == 3, "三选一候选覆盖 3 个不同家族（生存/运筹/目押）")
 	for c in choices:
 		_check(not g.has_perk(c["id"]), "候选 %s 未拥有" % c["name"])
+		_check(String(c.get("hint", "")) != "", "候选 %s 带方向提示（%s）" % [c["name"], String(c.get("hint", ""))])
+		_check(String(c["desc"]).find("→") >= 0 or String(c["desc"]).find("提前") >= 0,
+			"候选 %s 给出可量化前后效果" % c["name"])
 
 
 func _test_pick_rules(duel: DuelController) -> void:
@@ -129,6 +132,8 @@ func _test_pick_rules(duel: DuelController) -> void:
 	_check(g.pick("tough"), "坚韧可选")
 	_check(duel.player_hp_max == 110, "坚韧：最大 HP +10")
 	_check(duel.player_hp == 60, "坚韧：立即恢复 10 HP")
+	_check(g.summary_line().find("生存×1") >= 0, "成长摘要按家族聚合（生存×1）")
+	_check(g.detail_text().find("坚韧") >= 0, "成长明细包含已选技艺名")
 	_check(g.pending_picks == 1, "选定后待选次数 -1")
 	_check(not g.pick("tough"), "同一技艺不可重复")
 	_check(not g.pick("no_such_perk"), "未知技艺拒绝")

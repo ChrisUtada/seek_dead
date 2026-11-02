@@ -42,7 +42,8 @@ func _offer_next_growth_pick() -> void:
 	var sections: Array = []
 	if g.pending_picks > 0:
 		sections.append({"key": "perk", "title": "★ 历练 Lv.%d · 选择一项技艺" % g.level,
-			"sub": "同一技艺本局只能拥有 1 次；效果以下方描述为准。", "choices": g.roll_choices()})
+			"sub": "方向：生存=更耐打 · 运筹=更多资源 · 目押=更易停中；同一技艺本局限 1 次。",
+			"choices": g.roll_choices()})
 	var shown: Array[String] = []
 	for path in m.owed:   # 欠选去重；已卸下 / 无有效候选的武器直接移出欠选，不展示死升级
 		if shown.has(path) or not _ctrl.selected_loadout.has(path):
@@ -52,7 +53,7 @@ func _offer_next_growth_pick() -> void:
 			continue
 		shown.append(path)
 		sections.append({"key": path, "title": "★ 武器铭印 · %s（R%d）" % [m.display_name(path), m.r_level(path)],
-			"sub": "同一铭印每把最多 2 次；调律仅在真实改变格数时出现。", "choices": choices})
+			"sub": "方向：锋铸=更高攻 · 调律=更多格；同一铭印每把最多 2 次。", "choices": choices})
 	for path in m.owed.duplicate():
 		if not shown.has(path):
 			m.owed.erase(path)
@@ -60,12 +61,22 @@ func _offer_next_growth_pick() -> void:
 		enter_interroom()        # opt-in 商店：进入房间歇态（🛒 可选，▶ 下一房继续）
 		return
 	_offer_sections = sections
-	_ctrl.hud.show_growth_settlement("★ 成长结算", sections, _on_settlement_picked)
+	_ctrl.hud.show_growth_settlement("★ 成长结算", sections, _on_settlement_picked, _growth_summary_text())
 
 
 func _on_settlement_picked(picked: Dictionary) -> void:
 	_offer_sections = []
 	_apply_settlement(picked)
+
+
+# P0-2：成长摘要（结算页头 + 确认后日志），让「本局成长方向」可复述。
+func _growth_summary_text() -> String:
+	var bits: Array[String] = [_ctrl.growth.progress_text()]
+	if not _ctrl.growth.perk_ids.is_empty():
+		bits.append(_ctrl.growth.summary_line())
+	if _ctrl.mastery.imprint_total() > 0:
+		bits.append(_ctrl.mastery.summary_line())
+	return "本局成长：" + " ｜ ".join(bits)
 
 
 func _apply_settlement(picked: Dictionary) -> void:
@@ -75,6 +86,7 @@ func _apply_settlement(picked: Dictionary) -> void:
 		else:
 			_ctrl.mastery.choose(key, picked[key])
 	_ctrl.hud._refresh_meta()   # 坚韧 / 升级改最大 HP；铭印改基础攻击 / 带子，刷新玩家与武器区
+	_ctrl.hud._log("📈 %s" % _growth_summary_text())
 	_ctrl.invalidate_state()
 	enter_interroom()
 
