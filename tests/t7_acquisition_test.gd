@@ -104,10 +104,16 @@ func _part_a_shop_distribution(duel: DuelController) -> void:
 				has_epic = true
 		if has_epic:
 			epic_rolls += 1
+	var offers := float(SHOP_ROLLS * 6)
 	for k in tally.keys():
-		var tol: float = maxf(30.0, float(expect[k]) * 0.10)
+		# 固定种子下，新增内容会重排候选与抽样顺序，单次 10% 带宽约等于 2σ，
+		# 内容批次一多就容易假阳性。改用多项分布 4σ 带（下限 30），
+		# 仍能抓住权重表写错这类大偏差，又不受固定种子的正常波动影响。
+		var p: float = expect[k] / offers
+		var sd: float = sqrt(offers * p * (1.0 - p))
+		var tol: float = maxf(30.0, 4.0 * sd)
 		_check(absf(float(tally[k]) - expect[k]) <= tol,
-			"商店 %s 频数符合期望（obs %d / exp %.0f）" % [k, tally[k], expect[k]])
+			"商店 %s 频数符合期望（obs %d / exp %.0f，4σ=%.0f）" % [k, tally[k], expect[k], tol])
 	_check(epic_rolls > 0, "加权后货架可见 epic（%d/%d 局）" % [epic_rolls, SHOP_ROLLS])
 
 
