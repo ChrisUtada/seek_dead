@@ -13,6 +13,7 @@ var _checks := 0
 func _initialize() -> void:
 	seed(1)
 	_check_dirs()
+	_check_weapon_content()
 	_check_elements()
 	_check_intents()
 	_check_balance()
@@ -58,6 +59,31 @@ func _check_dirs() -> void:
 			if r.archetype != null:
 				_check(r.archetype.id != "", "行为族引用有效 %s" % fp)
 	_check(rooms >= 61, "RoomData 总数 ≥61，实测 %d" % rooms)
+
+
+# 武器三层模型的内容约束（M6-01 B01 起逐批守护）：
+# 火/冰/毒武器必须带本系状态；光/暗/无武器零状态（2026-08-14 已结案的平衡决策）。
+func _check_weapon_content() -> void:
+	for fp in _all_tres("res://resources/weapon_templates"):
+		var wd: WeaponData = load(fp)
+		if wd == null:
+			continue
+		var statuses := {}
+		var has_symbol := false
+		for sw in wd.symbols:
+			_check(sw != null and sw.symbol != null, "武器符号引用有效 %s" % fp)
+			if sw == null or sw.symbol == null:
+				continue
+			has_symbol = true
+			_check(sw.weight > 0.0, "符号权重 >0 %s" % fp)
+			if sw.symbol.kind == "status":
+				statuses[sw.symbol.status_type] = true
+		_check(has_symbol, "武器至少 1 个符号 %s" % fp)
+		const STATUS_OF := {"fire": "burn", "ice": "frost", "poison": "poison"}
+		if STATUS_OF.has(wd.element):
+			_check(statuses.has(STATUS_OF[wd.element]), "元素武器带本系状态 %s (%s)" % [fp, wd.element])
+		elif wd.element in ["light", "dark", "none"]:
+			_check(statuses.is_empty(), "光/暗/无武器零状态 %s" % fp)
 
 
 func _count_tres(dir_path: String) -> int:
