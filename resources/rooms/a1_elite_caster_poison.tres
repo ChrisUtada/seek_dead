@@ -8,7 +8,7 @@
 script = ExtResource("1")
 name = "毒疫术士"
 hp = 0
-atk = 0
+atk = 17
 archetype = ExtResource("2")
 element = "poison"
 kind = "elite"

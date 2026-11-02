@@ -7,7 +7,7 @@
 script = ExtResource("1")
 name = "暗影诡匠"
 hp = 0
-atk = 0
+atk = 14
 archetype = ExtResource("2")
 element = "dark"
 kind = "normal"

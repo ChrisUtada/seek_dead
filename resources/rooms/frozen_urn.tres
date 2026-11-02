@@ -26,8 +26,8 @@ value_mult = 2.0
 [resource]
 script = ExtResource("1")
 name = "冰封铁瓮"
-hp = 200
-atk = 15
+hp = 240
+atk = 17
 element = "ice"
 kind = "boss"
 act = 1

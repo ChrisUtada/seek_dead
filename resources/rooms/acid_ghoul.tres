@@ -25,8 +25,8 @@ value_mult = 2.0
 [resource]
 script = ExtResource("1")
 name = "酸蚀恶鬼"
-hp = 170
-atk = 12
+hp = 204
+atk = 14
 element = "poison"
 kind = "boss"
 act = 1

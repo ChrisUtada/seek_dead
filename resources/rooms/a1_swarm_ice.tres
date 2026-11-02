@@ -7,7 +7,7 @@
 script = ExtResource("1")
 name = "冰锋群蝠"
 hp = 0
-atk = 0
+atk = 10
 archetype = ExtResource("2")
 element = "ice"
 kind = "normal"

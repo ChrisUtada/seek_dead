@@ -6,7 +6,7 @@
 script = ExtResource("1")
 name = "腐化史莱姆"
 hp = 90
-atk = 11
+atk = 13
 element = "poison"
 kind = "normal"
 act = 1

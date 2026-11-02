@@ -8,7 +8,7 @@
 script = ExtResource("1")
 name = "寒铁精英"
 hp = 0
-atk = 0
+atk = 20
 archetype = ExtResource("2")
 element = "ice"
 kind = "elite"

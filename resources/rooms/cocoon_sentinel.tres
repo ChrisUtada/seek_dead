@@ -34,8 +34,8 @@ value_mult = 2.0
 [resource]
 script = ExtResource("1")
 name = "茧居石雕"
-hp = 200
-atk = 13
+hp = 240
+atk = 15
 element = "ice"
 kind = "boss"
 act = 1

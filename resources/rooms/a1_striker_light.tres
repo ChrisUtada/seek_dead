@@ -7,7 +7,7 @@
 script = ExtResource("1")
 name = "辉光游侠"
 hp = 0
-atk = 0
+atk = 13
 archetype = ExtResource("2")
 element = "light"
 kind = "normal"

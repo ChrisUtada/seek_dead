@@ -7,7 +7,7 @@
 script = ExtResource("1")
 name = "重锤蛮兵"
 hp = 0
-atk = 0
+atk = 16
 archetype = ExtResource("2")
 element = "none"
 kind = "normal"
