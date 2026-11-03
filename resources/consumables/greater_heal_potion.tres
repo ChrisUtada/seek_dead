@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rarity = "uncommon"
+category = "active"
+item_id = "greater_heal_potion"
+item_name = "强效治疗药剂"
+description = "立即恢复 45 点生命值——介于治疗药剂（30）与圣光圣杯（60）之间的中档恢复。"
+icon = "❤️"
+effect = "heal"
+value = 45
+charges = 1

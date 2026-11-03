@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rarity = "common"
+category = "passive"
+item_id = "bone_splinter"
+item_name = "骨刺护符"
+description = "每符号伤害 15% 概率直击 HP——破甲系列入门档（破甲符 25% / 碎甲之印 40%）。"
+icon = "🪶"
+effect = "armor_pierce"
+mult_value = 0.15

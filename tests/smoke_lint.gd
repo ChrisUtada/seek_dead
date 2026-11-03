@@ -14,6 +14,7 @@ func _initialize() -> void:
 	seed(1)
 	_check_dirs()
 	_check_weapon_content()
+	_check_items()
 	_check_elements()
 	_check_intents()
 	_check_balance()
@@ -26,9 +27,9 @@ func _initialize() -> void:
 func _check_dirs() -> void:
 	var minimums := {
 		"res://resources/weapon_templates": 24,
-		"res://resources/charms": 34,
+		"res://resources/charms": 45,
 		"res://resources/skills": 17,
-		"res://resources/consumables": 21,
+		"res://resources/consumables": 25,
 		"res://resources/rooms": 61,
 		"res://resources/archetypes": 15,
 		"res://resources/intents": 6,
@@ -84,6 +85,47 @@ func _check_weapon_content() -> void:
 			_check(statuses.has(STATUS_OF[wd.element]), "元素武器带本系状态 %s (%s)" % [fp, wd.element])
 		elif wd.element in ["light", "dark", "none"]:
 			_check(statuses.is_empty(), "光/暗/无武器零状态 %s" % fp)
+
+
+# M6-C4：护符/消耗品内容约束（混合护符首次启用 downside_effect）。
+func _check_items() -> void:
+	const PASSIVE_EFFECTS := ["damage_bonus", "room_shield", "shield", "interference_resist", "damage_mult",
+		"armor_pierce", "element_boost", "status_boost", "dot_reduce", "thorns", "dot_amp", "free_reroll",
+		"charge_start", "first_hit", "heal"]
+	const ACTIVE_EFFECTS := ["purify", "cleanse", "heal", "assault", "reroll", "element", "attack", "armor_shred"]
+	const DOWNSIDE_MULT_EFFECTS := ["damage_mult", "element_boost", "status_boost", "thorns", "first_hit"]
+	var seen_ids := {}
+	for fp in _all_tres("res://resources/charms") + _all_tres("res://resources/consumables"):
+		var it: ItemData = load(fp)
+		if it == null:
+			_fail("装备加载失败 %s" % fp)
+			continue
+		_check(it.item_id != "" and it.item_name != "", "装备 id/名称非空 %s" % fp)
+		_check(not seen_ids.has(it.item_id), "装备 item_id 唯一 %s (%s)" % [fp, it.item_id])
+		seen_ids[it.item_id] = true
+		if it.category == "passive":
+			_check(PASSIVE_EFFECTS.has(it.effect), "护符 effect 合法 %s (%s)" % [fp, it.effect])
+			if it.downside_effect != "":
+				_check(PASSIVE_EFFECTS.has(it.downside_effect), "护符负面 effect 合法 %s (%s)" % [fp, it.downside_effect])
+				if it.downside_effect in DOWNSIDE_MULT_EFFECTS:
+					_check(it.downside_mult > 0.0 and it.downside_mult < 1.0, "负面乘区 ∈(0,1) %s (=%s)" % [fp, it.downside_mult])
+				else:
+					_check(it.downside_value > 0, "负面数值 >0 %s (=%d)" % [fp, it.downside_value])
+			else:
+				_check(it.downside_value == 0 and it.downside_mult == 1.0, "无负面时不残留数值 %s" % fp)
+		elif it.category == "active":
+			_check(ACTIVE_EFFECTS.has(it.effect), "消耗品 effect 合法 %s (%s)" % [fp, it.effect])
+			_check(it.charges >= 1, "消耗品 charges ≥1 %s" % fp)
+			if it.effect in ["heal", "attack", "assault", "armor_shred", "reroll"]:
+				_check(it.value > 0, "消耗品数值 >0 %s (%s=%d)" % [fp, it.effect, it.value])
+			if it.effect == "attack":
+				_check(ElementCounter.is_valid_element(it.element) and it.element != "none", "攻击消耗品元素合法 %s" % fp)
+				if it.status_type != "":
+					_check(it.status_value > 0, "攻击消耗品挂层 >0 %s" % fp)
+			if it.effect == "element":
+				_check(ElementCounter.is_valid_element(it.element) and it.element != "none", "精华元素合法 %s" % fp)
+		else:
+			_fail("装备 category 非法 %s (%s)" % [fp, it.category])
 
 
 func _count_tres(dir_path: String) -> int:

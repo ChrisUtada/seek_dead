@@ -14,13 +14,13 @@ extends Resource
 @export var icon_tex: Texture2D = null   # M3-03：通用图标绑定；为空时回落 emoji
 @export var rarity: String = "common"    # 强度档位 common|uncommon|rare|epic（T6：护符/消耗品分档，铁砧加权/商店定价用，不动结算）
 @export var category: String = "active"  # active / passive
-@export var effect: String = ""          # 主动: purify/cleanse/heal/assault/reroll/element；被动: damage_bonus/room_shield/shield/interference_resist/damage_mult/armor_pierce/element_boost/status_boost/dot_reduce（T2 三项缺口；2026-08-09 cleanse 清净药剂/dot_reduce 蚀毒壁垒）
+@export var effect: String = ""          # 主动: purify/cleanse/heal/assault/reroll/element/attack/armor_shred；被动: damage_bonus/room_shield/shield/interference_resist/damage_mult/armor_pierce/element_boost/status_boost/dot_reduce/thorns/dot_amp/free_reroll/charge_start/first_hit（M6-C4 起混合护符实际启用 downside_effect）
 @export var element: String = ""         # 元素类效果指定元素（如 effect="element" 的精华消耗品 / effect="attack" 的攻击元素）
 @export var value: int = 0               # 效果数值（加成型；attack = 立即伤害，armor_shred = 清除护甲量）
 @export var mult_value: float = 1.0      # 乘区类效果数值（被动 damage_mult：如 1.5 = 全局 ×1.5）
 @export var status_type: String = ""     # 攻击型消耗品（effect="attack"）：对敌挂的状态（burn/frost/poison）
 @export var status_value: int = 0        # 攻击型消耗品（effect="attack"）：挂层数
-@export var downside_effect: String = "" # 混合护符负面效果（与 effect 同枚举）；空 = 无负面
+@export var downside_effect: String = "" # 混合护符负面效果（与 effect 同枚举，M6-C4 首次启用）；空 = 无负面
 @export var downside_value: int = 0      # 负面加成型数值，结算时取反（如 -3 攻击）
 @export var downside_mult: float = 1.0   # 负面乘区（如 0.85 = 全局 ×0.85），仅 downside_effect="damage_mult" 时生效
 @export var charges: int = 1             # 主动物品每房可用次数（开局回满）；被动物品忽略

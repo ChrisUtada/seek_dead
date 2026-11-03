@@ -102,8 +102,29 @@ static func _item(it: ItemData) -> String:
 	if it.category == "active" and it.charges > 1:
 		lines.append("可用 %d 次" % it.charges)
 	if it.downside_effect != "":
-		lines.append("[color=%s]负面：%s[/color]" % [_c(Palette.ENEMY), _cap(it.downside_effect)])
+		lines.append("[color=%s]负面：%s[/color]" % [_c(Palette.ENEMY), _downside_text(it)])
 	return "\n".join(lines)
+
+
+# 混合护符负面说明（M6-C4）：把 effect 枚举翻译成玩家可读的数值，而不是显示英文键名。
+static func _downside_text(it: ItemData) -> String:
+	match it.downside_effect:
+		"damage_bonus":        return "伤害符号 -%d" % it.downside_value
+		"damage_mult":         return "所有伤害 ×%s" % ElementCounter.fmt_mult(it.downside_mult)
+		"shield":              return "每回合护盾 -%d" % it.downside_value
+		"heal":                return "每回合回血 -%d" % it.downside_value
+		"room_shield":         return "每房开局护盾 -%d" % it.downside_value
+		"interference_resist": return "抗扰 -%d" % it.downside_value
+		"armor_pierce":        return "破甲穿透 -%d%%" % int(it.downside_value)
+		"element_boost":       return "元素优势 -%s" % ElementCounter.fmt_mult(it.downside_mult)
+		"status_boost":        return "状态加成 -%s" % ElementCounter.fmt_mult(1.0 - it.downside_mult)
+		"dot_reduce":          return "受挂毒量减少 -%d/回合" % it.downside_value
+		"thorns":              return "荆棘反弹 -%s" % ElementCounter.fmt_mult(it.downside_mult)
+		"dot_amp":             return "挂状态层数 -%d" % it.downside_value
+		"free_reroll":         return "免费刷新 -%d" % it.downside_value
+		"charge_start":        return "每回合充能 -%d" % it.downside_value
+		"first_hit":           return "首击倍率 -%s" % ElementCounter.fmt_mult(1.0 - it.downside_mult)
+		_:                     return it.downside_effect
 
 
 static func _skill(sd: SkillData) -> String:

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rarity = "rare"
+category = "passive"
+item_id = "ossuary_charm"
+item_name = "骸骨护符"
+description = "本局每回合护盾 +14；代价：所有伤害 ×0.85——以输出换最高档常驻盾。"
+icon = "🦴"
+effect = "shield"
+value = 14
+downside_effect = "damage_mult"
+downside_mult = 0.85

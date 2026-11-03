@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rarity = "uncommon"
+category = "passive"
+item_id = "berserker_nail"
+item_name = "狂战钉"
+description = "本局伤害符号 +10；代价：所有伤害 ×0.85——重攻轻守的狂战路线。"
+icon = "📌"
+effect = "damage_bonus"
+value = 10
+downside_effect = "damage_mult"
+downside_mult = 0.85

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rarity = "rare"
+category = "active"
+item_id = "silencing_draught"
+item_name = "止语药剂"
+description = "清除敌人当前干扰意图，可用 2 次——净化药剂的稀有双次版，覆盖两回合的注废/锁轮。"
+icon = "🤫"
+effect = "purify"
+value = 0
+charges = 2

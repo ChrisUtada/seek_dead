@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rarity = "common"
+category = "passive"
+item_id = "gambler_mark"
+item_name = "赌徒烙记"
+description = "本局每回合护盾 +8；代价：所有伤害 ×0.9——用输出换一层不挨打就累积的盾。"
+icon = "🎲"
+effect = "shield"
+value = 8
+downside_effect = "damage_mult"
+downside_mult = 0.9

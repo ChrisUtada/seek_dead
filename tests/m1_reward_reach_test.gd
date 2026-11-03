@@ -50,6 +50,7 @@ func _run() -> void:
 	_test_symbol_prepick(duel)
 	_test_consumable_prepick(duel)
 	_test_starter_seed(duel)
+	_test_m6_c4_mixed_charms(duel)
 	_test_meta_single_result(duel)
 	_test_preview_matches_reels(duel)
 	_test_telemetry(duel)
@@ -302,11 +303,27 @@ func _test_starter_seed(duel: DuelController) -> void:
 		and starters.has("res://resources/weapon_templates/ice_staff.tres"), "初始武器子集 = 匕首/火焰剑/战斧/霜晶法杖")
 	var charms: Array = ms._starter_charms()
 	_check(charms.size() == 4, "初始护符子集 4 件")
+	# M6-C4：只给纯增益的防御向 common（混合/诅咒护符不得成为新档默认）。
+	var expected := {
+		"res://resources/charms/guard_charm.tres": true,
+		"res://resources/charms/pilgrim_ward.tres": true,
+		"res://resources/charms/regen_charm.tres": true,
+		"res://resources/charms/resist_charm.tres": true,
+	}
+	var all_expected := true
+	for p in charms:
+		if not expected.has(String(p)):
+			all_expected = false
+	_check(all_expected, "初始护符 = 守备 / 旅人护壁 / 回春 / 抗扰（纯增益防御向）")
 	var relic_leak := false
+	var downside_leak := false
 	for p in charms:
 		if ms._is_boss_relic(load(p), p):
 			relic_leak = true
+		if String(load(p).get("downside_effect")) != "":
+			downside_leak = true
 	_check(not relic_leak, "初始护符不含 BOSS 信物")
+	_check(not downside_leak, "初始护符不含负面效果")
 	# 迁移：老档已有收藏保留 + 补足基础子集 + 新档图鉴仍留未解锁内容
 	var backup := {}
 	for k in ["owned_weapons", "owned_charms", "owned_consumables"]:
@@ -323,6 +340,31 @@ func _test_starter_seed(duel: DuelController) -> void:
 	for k in backup:
 		duel.meta[k] = backup[k]
 	ms.save_meta()
+
+
+# ⑩b M6-C4：混合护符（首次启用 downside_effect）与纯增益护符的结算
+func _test_m6_c4_mixed_charms(duel: DuelController) -> void:
+	var backup: Array[String] = duel.selected_charms.duplicate()
+	var mixed: Array[String] = [
+		"res://resources/charms/blood_pact.tres",      # damage_bonus +6 / damage_mult ×0.9
+		"res://resources/charms/ossuary_charm.tres",   # shield +14 / damage_mult ×0.85
+	]
+	duel.selected_charms.assign(mixed)
+	duel._apply_charms()
+	_check(duel.charm_power_bonus == 6, "混合护符正面：伤害符号 +6")
+	_check(duel.charm_shield_trickle == 14, "混合护符正面：每回合护盾 +14")
+	_check(absf(duel.charm_damage_mult - 0.9 * 0.85) < 0.001, "混合护符负面乘区连乘 ×0.9×0.85")
+	var pure: Array[String] = [
+		"res://resources/charms/pilgrim_ward.tres",    # room_shield +6
+		"res://resources/charms/bone_splinter.tres",   # armor_pierce 15%
+	]
+	duel.selected_charms.assign(pure)
+	duel._apply_charms()
+	_check(duel.charm_room_shield == 6, "纯增益护符：每房开局护盾 +6")
+	_check(absf(duel.charm_pierce_chance - 0.15) < 0.001, "纯增益护符：破甲穿透 15%")
+	_check(absf(duel.charm_damage_mult - 1.0) < 0.001, "纯增益护符无负面乘区")
+	duel.selected_charms.assign(backup)
+	duel._apply_charms()
 
 
 # ⑪ M1-05 局末元进度：只有铁砧点一个真实结果，文案不再承诺线性成长

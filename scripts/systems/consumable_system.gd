@@ -66,9 +66,9 @@ func use_purify(data: Resource) -> void:
 	if purifiable:
 		var t = _ctrl.enemy_intent.get("type")
 		_ctrl.enemy_intent = {"data": null, "type": "none", "value": 0}
-		_ctrl.hud._log("净化药剂：抵消了敌人的%s" % _ctrl._intent_name(t))
+		_ctrl.hud._log("%s：抵消了敌人的%s" % [data.item_name, _ctrl._intent_name(t)])
 	else:
-		_ctrl.hud._log("净化药剂：当前无干扰意图可清除")
+		_ctrl.hud._log("%s：当前无干扰意图可清除" % data.item_name)
 
 
 # 清净药剂（2026-08-09 新增）：解除玩家自身负面状态——frost 冻结解冻 + DoT 毒层清零。
@@ -93,18 +93,18 @@ func use_cleanse(data: Resource) -> void:
 
 func use_heal(data: Resource) -> void:
 	_ctrl.player_hp = mini(_ctrl.player_hp_max, _ctrl.player_hp + data.value)
-	_ctrl.hud._log("治疗药剂：回复 %d HP（现 %d）" % [data.value, _ctrl.player_hp])
+	_ctrl.hud._log("%s：回复 %d HP（现 %d）" % [data.item_name, data.value, _ctrl.player_hp])
 
 
 func use_assault(data: Resource) -> void:
 	_ctrl.assault_next_spin = data.value
-	_ctrl.hud._log("强袭药剂：下一次转轮伤害 ×%d" % data.value)
+	_ctrl.hud._log("%s：下一次转轮伤害 ×%d" % [data.item_name, data.value])
 
 
 func use_reroll(data: Resource) -> void:
 	# value = 重转次数（重转卷轴 1；赦免令 2——连转洗盘，天平审判官律法解）
 	var times: int = maxi(1, int(data.value))
-	_ctrl.hud._log("重转卷轴：免费重转 %d 次！" % times)
+	_ctrl.hud._log("%s：免费重转 %d 次！" % [data.item_name, times])
 	for i in times:
 		await _ctrl._free_spin()
 

@@ -52,6 +52,8 @@ const STARTER_WEAPONS: Array[String] = [
 	"res://resources/weapon_templates/ice_staff.tres",
 ]
 const STARTER_CHARM_COUNT := 4
+# M6-C4：新档护符只给「纯增益的防御向 common」——混合/诅咒护符带 downside，不能作为开局默认。
+const STARTER_CHARM_DEFENSE_EFFECTS: Array[String] = ["shield", "room_shield", "heal", "interference_resist"]
 
 func seed_default_owned() -> void:
 	# 迁移口径：只「补足」基础子集，从不删除已有收藏——老存档的全池收藏原样保留（不回收已获得内容）。
@@ -77,7 +79,9 @@ func _starter_weapons() -> Array:
 	return out
 
 
-# 初始护符：非 BOSS 信物的 passive 中优先 common（保证新档有基础防御向构筑），按路径稳定排序取前 N。
+# 初始护符（M6-C4 修订）：非 BOSS 信物、无负面、common 且属于防御向家族，按路径稳定排序取前 N。
+# 目的：新档拿到一套「纯增益基础防御」，而不是排序靠前的混合/诅咒护符。
+# 不足 N 时依次回退：无负面 common → 全池（仍排除信物）。
 func _starter_charms() -> Array:
 	var pool := []
 	for p in _ctrl.ITEM_POOL:
@@ -85,8 +89,18 @@ func _starter_charms() -> Array:
 		if d is ItemData and d.category == "passive" and not _is_boss_relic(d, p):
 			pool.append(p)
 	pool.sort()
-	var common := pool.filter(func(p): return String(load(p).get("rarity")) == "common")
-	var out: Array = common.slice(0, STARTER_CHARM_COUNT)
+	var defense := pool.filter(func(p):
+		var d = load(p)
+		var pure_common: bool = String(d.get("rarity")) == "common" and String(d.get("downside_effect")) == ""
+		return pure_common and STARTER_CHARM_DEFENSE_EFFECTS.has(String(d.get("effect"))))
+	var out: Array = defense.slice(0, STARTER_CHARM_COUNT)
+	if out.size() < STARTER_CHARM_COUNT:
+		for p in pool:
+			if out.size() >= STARTER_CHARM_COUNT:
+				break
+			var d = load(p)
+			if not out.has(p) and String(d.get("rarity")) == "common" and String(d.get("downside_effect")) == "":
+				out.append(p)
 	if out.size() < STARTER_CHARM_COUNT:
 		for p in pool:
 			if out.size() >= STARTER_CHARM_COUNT:

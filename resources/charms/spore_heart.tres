@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rarity = "uncommon"
+category = "passive"
+item_id = "spore_heart"
+item_name = "孢心"
+description = "灼烧/霜冻/毒伤害 ×1.8；代价：所有伤害 ×0.9——DoT 流专属交易。"
+icon = "🦠"
+effect = "status_boost"
+mult_value = 1.8
+downside_effect = "damage_mult"
+downside_mult = 0.9

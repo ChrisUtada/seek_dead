@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rarity = "rare"
+category = "active"
+item_id = "holy_flask"
+item_name = "圣光瓶"
+description = "立即造成 18 光属性伤害（参与克制：打暗 ×1.5 并充能 +1）；无附加状态，纯即时伤害。"
+icon = "✨"
+effect = "attack"
+element = "light"
+value = 18
+charges = 1
