@@ -37,6 +37,7 @@ var _locked_prev_sym: Array = []       # [reel] -> 锁轮保留的上一轮符�
 var _locked_prev_elem: Array[String] = []   # [reel] -> 锁轮保留的上一轮有效元素
 var _spinning := false                 # 旋转进行中（供输入分支判断）
 var _spin_ticks := 0                   # 已跳次数（用于加速上限）
+var _pending_stops: Dictionary = {}    # P1 输入缓冲：reel -> true（最多等到下一逻辑拍锁定）
 
 var spinning: bool:
 	get:
@@ -46,8 +47,31 @@ var spinning: bool:
 # 当前旋转节拍（秒/格）：供转轮滚动视觉按同一速度推进（UI 只读）。
 func current_spin_wait() -> float:
 	if _timer == null:
-		return _SPIN_BASE_WAIT
+		return _base_wait()
 	return _timer.wait_time
+
+
+# P1 预设接管速度；未接入时回落到原常量，保证旧探针/单元测试口径不变。
+func _base_wait() -> float:
+	if _ctrl.readability != null:
+		return float(_ctrl.readability.base_wait)
+	return _SPIN_BASE_WAIT
+
+
+func _min_wait() -> float:
+	if _ctrl.readability != null:
+		return float(_ctrl.readability.min_wait)
+	return _SPIN_MIN_WAIT
+
+
+func _accel() -> float:
+	if _ctrl.readability != null:
+		return float(_ctrl.readability.accel)
+	return 0.0010
+
+
+func has_pending_stop(r: int) -> bool:
+	return bool(_pending_stops.get(r, false))
 
 
 func _init(ctrl) -> void:
@@ -63,6 +87,7 @@ func _init(ctrl) -> void:
 func begin_spin() -> void:
 	reel_cursor = []
 	reel_stopped = []
+	_pending_stops.clear()
 	_locked_prev_sym = []
 	_locked_prev_elem = []
 	for r in DuelController.REELS:
@@ -96,8 +121,11 @@ func begin_spin() -> void:
 		_ctrl.hud.set_reel_enabled(r, true)
 	_spinning = true
 	_spin_ticks = 0
-	_timer.wait_time = _ctrl.growth.spin_wait_base(_SPIN_BASE_WAIT)   # M2-01：稳定节奏前 2 回合放慢
+	_timer.wait_time = _ctrl.growth.spin_wait_base(_base_wait())   # M2-01：稳定节奏前 2 回合放慢
 	_timer.start()
+	if _ctrl.readability != null:
+		_ctrl.readability.begin_spin()
+	_ctrl.hud._refresh_p1_previews()
 	if _ctrl._telemetry != null:
 		_ctrl._telemetry.spin_start()   # M1-06：旋转耗时
 	_ctrl.hud._log("转轮旋转中——按【空格】逐列停止，或点击某一列单独停下（不停就一直转）")
@@ -218,10 +246,21 @@ func on_spin_tick() -> void:
 	if not any_moving:
 		finish_spin()
 		return
+	# P1 输入缓冲：上一拍按停时视觉中心还在「下一格」，本拍已到达——现在锁定。
+	for r in _pending_stops.keys():
+		if reel_stopped[r]:
+			_pending_stops.erase(r)
+			continue
+		_pending_stops.erase(r)
+		var strip_len2: int = reel_strips[r].size() if reel_strips.size() > r and not reel_strips[r].is_empty() else 1
+		_lock_at(r, int(reel_cursor[r]) % strip_len2, "player")
+	if not _spinning:
+		return   # 缓冲落子可能刚好停完最后一列，finish_spin 已接管
+	_ctrl.hud._refresh_p1_previews()
 	# 敌人夺轮（auto_stop）：每跳自动停一列（落点随机，玩家无法目押停轮时机；与手动按停共存）
 	if _ctrl.pending_auto_stop:
-		stop_next_reel()
-	var w = max(_SPIN_MIN_WAIT, _ctrl.growth.spin_wait_base(_SPIN_BASE_WAIT) - _spin_ticks * 0.0010)
+		stop_next_reel(false, "forced")
+	var w = max(_min_wait(), _ctrl.growth.spin_wait_base(_base_wait()) - _spin_ticks * _accel())
 	_timer.wait_time = w
 
 
@@ -240,34 +279,94 @@ func write_reel_cell(r: int) -> void:
 
 # M2-01 洞察：某列当前带子位置的下一格符号（只读，供 HUD 旋转中预览）。无带子返回 null。
 func next_symbol(r: int) -> SymbolData:
+	var arr := next_symbols(r, 1)
+	return arr[0] if not arr.is_empty() else null
+
+
+# P1 预览：从 base_index 之后取 count 个符号（不含 base_index 本身）。
+# base_index < 0 时用逻辑游标；旋转中 HUD 传视觉中心索引，保证「看到的下一格」就是真的下一格。
+func next_symbols(r: int, count: int, base_index: int = -1) -> Array:
 	var strip = reel_strips[r] if reel_strips.size() > r else null
-	if strip == null or strip.is_empty():
-		return null
-	return strip[(reel_cursor[r] + 1) % strip.size()][0]
+	if strip == null or strip.is_empty() or count <= 0:
+		return []
+	var n: int = strip.size()
+	var base: int = base_index if base_index >= 0 else int(reel_cursor[r])
+	var out: Array = []
+	for i in range(1, count + 1):
+		out.append(strip[(base + i) % n][0])
+	return out
 
 
-# 锁定某列：pos<0 表示锁定在当前带子位置（按停时机）。注废/锁轮列覆盖结果。
-func lock_reel(r: int) -> void:
+# 锁定某列：默认取视觉中心（P1），并在需要时进入最多一拍的输入缓冲。
+# use_visual=false 用于敌人自动停等非玩家目押路径；reason 只影响遥测与 HUD 反馈。
+func lock_reel(r: int, use_visual: bool = true, reason: String = "player") -> void:
 	if r < 0 or r >= DuelController.REELS or reel_stopped[r]:
 		return
+	# 注废/锁轮列的结果是机制决定的，不进入视觉解析或输入缓冲。
+	if r == _ctrl.pending_jam_reel or r == _ctrl.pending_lock_reel:
+		_lock_at(r, 0, reason)
+		return
+	var strip = reel_strips[r] if reel_strips.size() > r else null
+	var idx := 0
+	if strip != null and not strip.is_empty():
+		var n: int = strip.size()
+		var cur: int = int(reel_cursor[r]) % n
+		idx = cur
+		if reason == "player" and use_visual and _ctrl.readability != null:
+			var vi: int = _ctrl.hud.visual_center_index(r)
+			if vi >= 0:
+				vi %= n
+				if vi == cur:
+					idx = vi
+				elif vi == (cur + 1) % n and _ctrl.readability.buffer_enabled:
+					# 视觉中心已经到下一格、逻辑尚未推进：等到下一拍（最多一拍）。
+					if not has_pending_stop(r):
+						_pending_stops[r] = true
+						_ctrl.readability.on_buffer_queued()
+						_ctrl.hud._log("⏳ 第 %d 列进入输入缓冲：下一拍锁定视觉中心符号" % (r + 1))
+					return
+				elif _ctrl.readability.visual_stop and (vi == (cur + 1) % n or vi == (cur - 1 + n) % n):
+					# 视觉对齐但不开缓冲：立即锁定玩家看到的那一格（最多前后一格，不跨多格）。
+					idx = vi
+	_lock_at(r, idx, reason)
+
+
+# 真正落子并收尾（不经过视觉解析；缓冲到点也走这里）。
+func _lock_at(r: int, idx: int, reason: String) -> void:
+	if r < 0 or r >= DuelController.REELS or reel_stopped[r]:
+		return
+	_pending_stops.erase(r)
+	var sym = DuelController.TRASH_SYMBOL
 	if r == _ctrl.pending_jam_reel:
 		_ctrl.grid[r][0] = DuelController.TRASH_SYMBOL
 		_ctrl.grid_elem[r][0] = "none"
 		_ctrl.pending_jam_reel = -1
+		sym = DuelController.TRASH_SYMBOL
+		reason = "jam"
 		_ctrl.hud._log("⚠ 干扰列作废：第 %d 列被废铁占据（红框列，按停即废）" % (r + 1))   # 2026-08-14 UX：替换即时提示
 	elif r == _ctrl.pending_lock_reel:
 		_ctrl.grid[r][0] = _locked_prev_sym[r]
 		_ctrl.grid_elem[r][0] = _locked_prev_elem[r]
 		_ctrl.pending_lock_reel = -1
+		sym = _locked_prev_sym[r]
+		reason = "lock"
 		_ctrl.hud._log("🔒 锁轮列：第 %d 列保留旋转前符号（金框列）" % (r + 1))
 	else:
 		var strip = reel_strips[r]
-		var idx = reel_cursor[r] % strip.size()
-		_ctrl.grid[r][0] = strip[idx][0]
-		_ctrl.grid_elem[r][0] = strip[idx][1]
+		if strip != null and not strip.is_empty():
+			idx = int(idx) % strip.size()
+			_ctrl.grid[r][0] = strip[idx][0]
+			_ctrl.grid_elem[r][0] = strip[idx][1]
+			sym = strip[idx][0]
+		else:
+			_ctrl.grid[r][0] = DuelController.TRASH_SYMBOL
+			_ctrl.grid_elem[r][0] = "none"
 	reel_stopped[r] = true
 	_ctrl.hud._refresh_cell(r, 0)
 	_ctrl.hud.set_reel_enabled(r, false)
+	if _ctrl.readability != null:
+		_ctrl.readability.on_stop(r, sym, reason)
+	_ctrl.hud._refresh_p1_previews()
 	var all := true
 	for rr in DuelController.REELS:
 		if not reel_stopped[rr]:
@@ -278,10 +377,11 @@ func lock_reel(r: int) -> void:
 
 
 # 停止下一列（空格）：依次锁定尚未停下的列，时机由玩家掌握。
-func stop_next_reel() -> void:
+# 输入缓冲中的列不会重复入队；敌人 auto_stop 传 use_visual=false / reason="forced"。
+func stop_next_reel(use_visual: bool = true, reason: String = "player") -> void:
 	for r in DuelController.REELS:
-		if not reel_stopped[r]:
-			lock_reel(r)
+		if not reel_stopped[r] and not has_pending_stop(r):
+			lock_reel(r, use_visual, reason)
 			return
 
 
@@ -291,6 +391,7 @@ func finish_spin() -> void:
 		return
 	_spinning = false
 	_timer.stop()
+	_pending_stops.clear()
 	if _ctrl._telemetry != null:
 		_ctrl._telemetry.spin_end()
 	for r in DuelController.REELS:
@@ -299,12 +400,16 @@ func finish_spin() -> void:
 	_ctrl.pending_lock_reel = -1
 	_ctrl.pending_chaos = false
 	_ctrl.pending_auto_stop = false
+	if _ctrl.readability != null:
+		_ctrl.readability.finish_spin()
+	_ctrl.hud._refresh_p1_previews()
 	spin_finished.emit()
 
 
 # 房间开局 / 精华注入后重建落子：清空角标，逐格从新带子随机落子（先于旋转的初始画面）。
 func reset_grid() -> void:
 	_ctrl.hud._clear_badges()
+	_ctrl.hud._clear_stop_feedback()   # 新房间/精华注入：上一回合的停轮结果不再适用
 	_ctrl.grid_elem = []
 	for reel in DuelController.REELS:
 		_ctrl.grid_elem.append([])

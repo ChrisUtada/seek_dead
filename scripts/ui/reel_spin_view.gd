@@ -105,6 +105,36 @@ func _activate(rs) -> void:
 		cell.icon = null
 
 
+# P1 视觉落点：当前最靠近窗口中心的带子索引。
+# 布局把槽位 i 放在 (i - mid - _frac)·SPACING，故中心 = _index + round(_frac)。
+# 未激活时回落到逻辑游标，避免首帧按停取到上一局的陈旧视觉索引。
+func center_index() -> int:
+	if controller == null:
+		return -1
+	var rs = controller.reel_system
+	if rs == null:
+		return -1
+	var strip: Array = _strip(rs)
+	if strip.is_empty():
+		return -1
+	var n: int = strip.size()
+	if not _active:
+		if rs.reel_cursor.size() <= reel:
+			return -1
+		return int(rs.reel_cursor[reel]) % n
+	return (_index + (1 if _frac >= 0.5 else 0)) % n
+
+
+# P1 预览：从视觉中心之后取 count 个符号（不含中心本身）。
+func next_symbols(count: int) -> Array:
+	if controller == null:
+		return []
+	var rs = controller.reel_system
+	if rs == null:
+		return []
+	return rs.next_symbols(reel, count, center_index())
+
+
 func _fill(rs) -> void:
 	var strip: Array = _strip(rs)
 	var n: int = strip.size()
@@ -135,6 +165,11 @@ func _layout_entries() -> void:
 
 # M2-01 洞察：旋转中格子文字被滚动视觉清空，下一格预览改由本层贴在格底显示。
 func _sync_preview(rs) -> void:
+	# P1 预览行开启时，下一格由 ReelDock 右侧独立行显示（洞察会在该行 +1 格），
+	# 避免格底小字与预览行重复；control（预览 0）保持原洞察行为。
+	if controller.readability != null and int(controller.readability.preview_slots) > 0:
+		_preview.visible = false
+		return
 	if controller.growth == null or not controller.growth.has_perk("insight"):
 		_preview.visible = false
 		return

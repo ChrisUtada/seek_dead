@@ -228,7 +228,7 @@ func apply_charms() -> void:
 
 # 整局重置：新局状态清零 + 抽房 + 建池 + 开首房（_confirm_loadout 入口）。
 func full_reset() -> void:
-	reset_run_state()
+	_ctrl._reset_run_state()   # 包含遥测/P1 统计清零；避免只重置局内状态而漏掉每局计数器
 	_ctrl.ROOMS = _ctrl._build_run()
 	_ctrl._build_pool(_ctrl.selected_loadout)
 	_ctrl._start_room(0)

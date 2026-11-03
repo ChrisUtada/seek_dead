@@ -15,6 +15,13 @@ var weapon_swaps := 0           # 武器替换次数（奖励/BOSS/商店）
 var rewards_shown := 0          # 展示过的奖励卡总数（算「奖励选择率」分母）
 var reward_picks: Dictionary = {}   # reward id -> 选择次数
 var room_times: Array = []      # 每房通关耗时（秒）= TTK 观测
+# P1 目押：目标停中率与输入缓冲（只读统计，不参与结算）
+var target_symbol := ""         # 本局声明的目标符号 resource_path
+var stop_total := 0             # 玩家主动按停列数（不含敌人夺轮）
+var target_hits := 0            # 其中落在目标符号的列数
+var forced_stops := 0           # 敌人夺轮/机制替玩家停的列数
+var buffer_queues := 0          # 进入一拍输入缓冲的次数
+var stop_outcomes: Dictionary = {}   # target/normal/miss/jam/lock/forced -> 次数
 
 var _spin_started := -1
 var _room_started := -1
@@ -32,6 +39,12 @@ func reset() -> void:
 	rewards_shown = 0
 	reward_picks = {}
 	room_times = []
+	target_symbol = ""
+	stop_total = 0
+	target_hits = 0
+	forced_stops = 0
+	buffer_queues = 0
+	stop_outcomes = {}
 	_spin_started = -1
 	_room_started = -1
 
@@ -51,6 +64,21 @@ func on_turn(triple: bool) -> void:
 	turns += 1
 	if triple:
 		triples += 1
+
+
+# P1：一次落子（玩家/机制）。forced=true 仅用于敌人夺轮等非玩家目押。
+func on_stop(path: String, target: String, outcome: String, forced: bool) -> void:
+	stop_outcomes[outcome] = int(stop_outcomes.get(outcome, 0)) + 1
+	if forced:
+		forced_stops += 1
+		return
+	stop_total += 1
+	if target != "" and path == target:
+		target_hits += 1
+
+
+func on_buffer_queued() -> void:
+	buffer_queues += 1
 
 
 func on_player_hit(eff: int, blocked: int, dealt: int) -> void:
@@ -103,6 +131,10 @@ func reward_pick_rate() -> float:
 	return float(picked) / float(rewards_shown) if rewards_shown > 0 else 0.0
 
 
+func target_hit_rate() -> float:
+	return float(target_hits) / float(stop_total) if stop_total > 0 else 0.0
+
+
 func summary() -> Dictionary:
 	return {
 		"turns": turns, "triples": triples, "triple_rate": triple_rate(),
@@ -111,6 +143,9 @@ func summary() -> Dictionary:
 		"rooms_cleared": room_times.size(), "avg_ttk": avg_ttk(),
 		"weapon_swaps": weapon_swaps, "rewards_shown": rewards_shown,
 		"reward_pick_rate": reward_pick_rate(), "reward_picks": reward_picks.duplicate(),
+		"target_symbol": target_symbol, "stop_total": stop_total, "target_hits": target_hits,
+		"target_hit_rate": target_hit_rate(), "forced_stops": forced_stops,
+		"buffer_queues": buffer_queues, "stop_outcomes": stop_outcomes.duplicate(),
 	}
 
 
@@ -118,8 +153,9 @@ func summary_text() -> String:
 	var picks := []
 	for k in reward_picks:
 		picks.append("%s×%d" % [k, int(reward_picks[k])])
-	return "回合%d · 三连%d(%.0f%%) · 旋转%d次均%.2fs · 敌攻%d 承伤%d 格挡%d · 清房%d 均TTK%.1fs · 换武器%d · 奖励卡%d 选择率%.0f%% [%s]" % [
+	return "回合%d · 三连%d(%.0f%%) · 旋转%d次均%.2fs · 敌攻%d 承伤%d 格挡%d · 清房%d 均TTK%.1fs · 换武器%d · 奖励卡%d 选择率%.0f%% · 目标停中%d/%d(%.0f%%) 缓冲%d [%s]" % [
 		turns, triples, triple_rate() * 100.0, spins, avg_spin_seconds(),
 		enemy_attacks, damage_taken, damage_blocked,
 		room_times.size(), avg_ttk(), weapon_swaps, rewards_shown, reward_pick_rate() * 100.0,
+		target_hits, stop_total, target_hit_rate() * 100.0, buffer_queues,
 		",".join(picks)]

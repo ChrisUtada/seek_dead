@@ -122,6 +122,7 @@ func hide_anvil_screen() -> void: anvil_screen.hide_screen()
 
 # ---- UI 节点引用 ----
 var cells = []   # 展示用 Button 引用 [reel][row]
+var cell_spin_views = []   # P1：每格 ReelSpinView 引用 [reel][row]（视觉中心/预览查询）
 var cell_badges = []   # 每格右上角匹配角标 Label 引用 [reel][row]
 var cell_elem_strips = []   # 每格底部元素色条（Step 4：图标模式下替代文字染色）[reel][row]
 var loadout_screen                     # 整备场景（scenes/ui/loadout_scene.tscn 实例，hud 兄弟节点）
@@ -182,6 +183,12 @@ var anvil_screen                        # 铁砧锻造覆盖层（anvil_screen.t
 @onready var enemy_stage_intent_label = $Margin/Content/MainRow/CenterStage/StageRow/EnemyCenter/EnemySprite/EnemyStageIntent/Row/Label
 @onready var enemy_stage_name = $Margin/Content/MainRow/CenterStage/StageRow/EnemyCenter/EnemySprite/EnemyStageName
 @onready var feedback_label = $Margin/Content/MainRow/CenterStage/ReelDock/FeedbackLabel
+# P1 可读性原型：目标声明 + 换拍预览 + 每列停轮结果（纯展示，不参与结算）
+var p1_preview_row: VBoxContainer = null
+var p1_preview_labels: Array = []       # [reel][slot] -> Label
+var p1_status_row: HBoxContainer = null
+var p1_target_label: Label = null
+var p1_stop_labels: Array = []          # [reel] -> Label（每列停轮结果，颜色区分目标/普通/MISS）
 @onready var player_panel = $Margin/Content/MainRow/PlayerPanel
 @onready var enemy_panel = $Margin/Content/MainRow/EnemyPanel
 @onready var room_label = $Margin/Content/InfoBar/RoomLabel
@@ -270,6 +277,7 @@ func _build_ui() -> void:
 	for reel in controller.state.REELS:
 		cells.append([])
 		controller.grid.append([])
+		cell_spin_views.append([])
 		cell_badges.append([])
 		cell_elem_strips.append([])
 		for row in controller.state.ROWS:
@@ -309,6 +317,10 @@ func _build_ui() -> void:
 			var spin_view = REEL_SPIN_VIEW.new()
 			cell.add_child(spin_view)
 			spin_view.configure(controller, reel)
+			cell_spin_views[reel].append(spin_view)
+
+	# P1：在转轮与 SPIN 之间插入「下一格预览 / 目标与停轮结果」两行（纯展示）。
+	_build_p1_ui()
 
 	# 底部操作栏按钮（SpinBar 在转轮下方居中）：由 .tscn 提供，这里连信号与快捷键。
 	# 注：原"重置"按钮（Ctrl+R → _full_reset 放弃整局重开）已删除——其为无确认的一键自毁本局陷阱，
@@ -337,6 +349,145 @@ func _build_ui() -> void:
 	animator = BattleAnimator.new()
 	add_child(animator)
 	animator.setup(self)
+
+func _build_p1_ui() -> void:
+	var dock = $Margin/Content/MainRow/CenterStage/ReelDock
+	# 下一格预览：放在转轮右侧，复用 TopRow 的高度，避免 480×270 下把底部顶出画面。
+	# 每列一行「列号 + 最多 3 个符号」，3 行合计 33px，仍小于 38px 的转轮高度。
+	p1_preview_row = VBoxContainer.new()
+	p1_preview_row.name = "P1PreviewRow"
+	p1_preview_row.add_theme_constant_override("separation", 0)
+	p1_preview_row.custom_minimum_size = Vector2(96, 0)
+	var top_row = $Margin/Content/MainRow/CenterStage/ReelDock/TopRow
+	top_row.add_child(p1_preview_row)
+	top_row.move_child(p1_preview_row, 1)
+	for reel in controller.state.REELS:
+		var group := HBoxContainer.new()
+		group.add_theme_constant_override("separation", 2)
+		p1_preview_row.add_child(group)
+		var idx_label := _label("%d" % (reel + 1), TypeScale.REEL)
+		idx_label.add_theme_color_override("font_color", Palette.MUTED_DIM)
+		group.add_child(idx_label)
+		var arr := []
+		for slot in 3:
+			var l := _label("", TypeScale.REEL)
+			l.visible = false
+			group.add_child(l)
+			arr.append(l)
+		p1_preview_labels.append(arr)
+	p1_preview_row.visible = false
+
+	# 目标 + 每列停轮结果行：放在 SPIN 上方，和结算反馈（FeedbackLabel）分开。
+	p1_status_row = HBoxContainer.new()
+	p1_status_row.name = "P1StatusRow"
+	p1_status_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	p1_status_row.add_theme_constant_override("separation", 8)
+	dock.add_child(p1_status_row)
+	dock.move_child(p1_status_row, 1)
+	p1_target_label = _label("", TypeScale.REEL)
+	p1_target_label.add_theme_color_override("font_color", Palette.ACCENT_GOLD)
+	p1_status_row.add_child(p1_target_label)
+	for reel in controller.state.REELS:
+		var l := _label("", TypeScale.REEL)
+		l.add_theme_color_override("font_color", Palette.MUTED)
+		p1_status_row.add_child(l)
+		p1_stop_labels.append(l)
+	_refresh_p1_ui()
+	_refresh_p1_previews()
+
+
+# P1：刷新目标声明与预设标签（预设切换 / 新局时调用）。
+func _refresh_p1_ui() -> void:
+	if p1_target_label == null:
+		return
+	var rd = controller.readability
+	if rd == null:
+		p1_target_label.text = ""
+		return
+	p1_target_label.text = "🎯 %s · %s" % [rd.target_label(), String(rd.preset)]
+
+
+# P1：刷新每列“下一格”预览。只在旋转中、预览槽位 > 0 时显示。
+func _refresh_p1_previews() -> void:
+	if p1_preview_row == null:
+		return
+	var rd = controller.readability
+	var rs = controller.reel_system
+	if rd == null or int(rd.preview_slots) <= 0 or rs == null or not rs.spinning:
+		p1_preview_row.visible = false
+		return
+	# 洞察在 P1 预览行里额外 +1 格；control（预览 0）仍走原来的格内预览，不改变对照。
+	var slots: int = int(rd.preview_slots)
+	if controller.growth != null and controller.growth.has_perk("insight"):
+		slots += 1
+	slots = mini(slots, 3)
+	p1_preview_row.visible = true
+	for reel in controller.state.REELS:
+		if p1_preview_labels.size() <= reel:
+			continue
+		var syms: Array = []
+		if cell_spin_views.size() > reel and cell_spin_views[reel].size() > 0:
+			syms = cell_spin_views[reel][0].next_symbols(slots)
+		for slot in p1_preview_labels[reel].size():
+			var l: Label = p1_preview_labels[reel][slot]
+			var shown: bool = slot < syms.size() and slot < slots
+			l.visible = shown
+			if not shown:
+				continue
+			var s: SymbolData = syms[slot]
+			l.text = "▸" + (String(s.name) if String(s.name) != "" else String(s.label))
+			var is_target: bool = s.resource_path == rd.target_symbol_path and rd.target_symbol_path != ""
+			l.add_theme_color_override("font_color", Palette.ACCENT_GOLD if is_target else Palette.MUTED)
+
+
+# P1：视觉中心索引（旋转视图未激活时回落逻辑游标）。
+func visual_center_index(reel: int) -> int:
+	if cell_spin_views.size() > reel and cell_spin_views[reel].size() > 0:
+		return int(cell_spin_views[reel][0].center_index())
+	return -1
+
+
+func _clear_stop_feedback() -> void:
+	for l in p1_stop_labels:
+		l.text = ""
+		l.add_theme_color_override("font_color", Palette.MUTED)
+
+
+func _show_stop_feedback(reel: int, nm: String, outcome: String) -> void:
+	if reel < 0 or reel >= p1_stop_labels.size():
+		return
+	var l: Label = p1_stop_labels[reel]
+	var text := ""
+	var col: Color = Palette.MUTED
+	match outcome:
+		"target":
+			text = "%d %s✓" % [reel + 1, nm]
+			col = Palette.ACCENT_GOLD
+		"normal":
+			text = "%d %s" % [reel + 1, nm]
+		"miss":
+			text = "%d MISS" % (reel + 1)
+			col = Palette.POP_DAMAGE
+		"jam":
+			text = "%d 注废" % (reel + 1)
+			col = Palette.POP_DAMAGE
+		"lock":
+			text = "%d 锁轮" % (reel + 1)
+			col = Palette.ACCENT_GOLD
+		"forced":
+			text = "%d 夺轮" % (reel + 1)
+			col = Palette.MUTED_DIM
+		_:
+			text = "%d %s" % [reel + 1, nm]
+	l.text = text
+	l.add_theme_color_override("font_color", col)
+
+
+# 回合级停轮摘要写到底部反馈行（随后会被战斗结算反馈覆盖，属于预期）。
+func _show_spin_summary(text: String) -> void:
+	if feedback_label != null and text != "":
+		feedback_label.text = text
+
 
 func _build_loadout_screen() -> void:
 	# 纯 2D 整备场景（scenes/ui/loadout_scene.tscn）：作为 hud 的兄弟节点挂到 Duel 根，
@@ -754,7 +905,7 @@ func _update_match_badges(counts: Dictionary) -> void:
 # Step 5：底部单行短反馈（最高连击符号 / 克制或抵抗倍率 / 本回合总伤害）。
 # 纯展示：结算数据由 CombatSystem 在 evaluate() 末尾原样传入，不参与任何数值计算。
 # 不恢复大段伤害分解——完整分解仍只进 Debug.log（见 combat_system.push_dmg_line）。
-func _show_turn_feedback(counts: Dictionary, total: int) -> void:
+func _show_turn_feedback(counts: Dictionary, total: int, triple: bool = false, elem_triple: bool = false) -> void:
 	if feedback_label == null:
 		return
 	var best_label := ""
@@ -771,6 +922,10 @@ func _show_turn_feedback(counts: Dictionary, total: int) -> void:
 	var parts: Array[String] = []
 	if best_n >= 2:
 		parts.append("%s×%d" % [best_label, best_n])
+	if elem_triple:
+		parts.append("同元素三连")
+	elif triple:
+		parts.append("三连")
 	if controller._eval_adv:
 		parts.append("克制×%s" % ElementCounter.fmt_mult(ElementCounter.MULT_ADVANTAGE))
 	elif controller._eval_dis:

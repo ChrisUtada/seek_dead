@@ -237,6 +237,7 @@ var _loadout_system                    # 整备子系统 LoadoutSystem（步骤5
 var _synergy_system                    # 装备共鸣系统 SynergySystem（方案 B 配套；_ready 实例化并注入 self）
 var growth                             # M2-01 角色历练与技艺（经验/等级/三选一技艺；每局清零）
 var mastery                            # M2-02 武器熟练 R1–R4 与铭印（锋铸/调律；每局清零）
+var readability                        # P1 目押可读性原型（速度/预览/视觉落点/缓冲/反馈；不改数值）
 var _telemetry                         # M1-06 局内遥测（内存计数，不落盘/不吃随机；每局清零）
 
 # 仅 1 行 3 格。特殊符号需 3 同才触发；普通符号单颗即结算，出现 n 次 ×n。
@@ -309,6 +310,8 @@ func _ready() -> void:
 	_synergy_system = preload("res://scripts/systems/synergy_system.gd").new(self)
 	growth = preload("res://scripts/systems/growth_system.gd").new(self)
 	mastery = preload("res://scripts/systems/weapon_mastery.gd").new(self)
+	# P1：可读性预设须先于 ReelSystem（速度由它提供）
+	readability = preload("res://scripts/systems/readability_system.gd").new(self)
 	# 2026-08-09 拆分：转轮系统独立（ReelSystem）
 	reel_system = ReelSystem.new(self)
 	combat = CombatSystem.new(self)
@@ -542,6 +545,10 @@ func _reset_run_state() -> void:
 	_loadout_system.reset_run_state()
 	if _telemetry != null:
 		_telemetry.reset()   # M1-06：新一局遥测清零
+	if readability != null:
+		readability.reset_run()   # P1：目标声明与停轮统计随新局重置
+	if hud != null:
+		hud._refresh_p1_ui()
 
 
 # 房间是否为 BOSS 房：以 RoomData.kind == "boss" 判定（不再依赖「最后一间」的位置约定，
@@ -749,6 +756,10 @@ func _status_summary(stacks: Dictionary) -> String:
 # ---------------------------------------------------------------------------
 func _input(event) -> void:
 	if in_loadout:
+		return
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F8:
+		if readability != null:
+			readability.cycle_preset()   # P1：战斗内快速切换 control / readable 做 A/B
 		return
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_SPACE:
 		if reel_system.spinning:
