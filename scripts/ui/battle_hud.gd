@@ -42,6 +42,7 @@ signal shop_requested                          # 🛒 打开商店（房间歇�
 signal next_room_requested                     # ▶ 下一房（房间歇态）
 signal card_toggled(card: Dictionary)         # 整备卡片勾选
 signal meta_choice_chosen(opt: Dictionary)    # 局末元进度结算（当前仅铁砧点单结果，GAME+ 后恢复多选）
+signal career_unlock_chosen(path: String)     # G6-02：生涯定向解锁三选一
 signal overlay_button_pressed                 # 失败弹层按钮（回整备）
 signal consumable_used(uid: String)           # 使用腰带消耗品
 @warning_ignore("unused_signal")
@@ -733,6 +734,19 @@ func _make_meta_card(opt: Dictionary) -> Button:
 	card.custom_minimum_size = Vector2(130, 60)   # 仅 3 张、覆盖层空间充足，放大提升可读性
 	card.configure("%s %s" % [opt.get("icon", ""), opt.get("label", "")], opt.get("desc", ""), TypeScale.META, 110.0)
 	card.pressed.connect(meta_choice_chosen.emit.bind(opt))
+	return card
+
+
+# G6-02：生涯定向解锁卡（未拥有装备三选一；点击立即写入图鉴/拥有池）。
+func _make_unlock_card(cand: Dictionary) -> Button:
+	var card: ItemCard = ITEM_CARD.instantiate()
+	card.custom_minimum_size = Vector2(130, 84)
+	card.configure("%s %s" % [cand.get("icon", ""), cand.get("name", "")],
+		String(cand.get("desc", "")), TypeScale.META, 110.0)
+	card.set_art(cand.get("art", null), Vector2(24, 24))
+	card.tooltip_text = String(cand.get("tip", cand.get("desc", "")))
+	card.pressed.connect(func() -> void:
+		career_unlock_chosen.emit(String(cand.get("path", ""))))
 	return card
 
 

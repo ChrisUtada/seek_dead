@@ -22,9 +22,31 @@ func configure(ctrl, h: BattleHud) -> void:
 	sub_label.text = "铁砧点数用于铁砧抽取装备（跨局保留）；更多元进度候选待 GAME+ 上线后恢复。"
 
 func show_choice() -> void:
+	_clear_grid()
+	# G6-02：有定向解锁机会时先展示「未拥有装备三选一」，选完再进入原有元进度结算。
+	if controller._career != null and controller._career.has_unlock_charge():
+		var cands: Array = controller._career.roll_unlock_candidates(3)
+		if not cands.is_empty():
+			_show_unlock(cands)
+			visible = true
+			return
+	_show_meta()
+
+
+func _clear_grid() -> void:
 	for c in meta_grid.get_children():
 		meta_grid.remove_child(c)
 		c.queue_free()
+
+
+func _show_unlock(cands: Array) -> void:
+	title_label.text = "★ 生涯解锁 · 未拥有装备三选一"
+	sub_label.text = "选择一件，直接写入图鉴与开局拥有池。\n本次机会来自生涯成就，不是额外货币。"
+	for cand in cands:
+		meta_grid.add_child(hud._make_unlock_card(cand))
+
+
+func _show_meta() -> void:
 	var choices = controller._reward_system.roll_meta_choices()
 	# M1-05：单结果直接以「本局获得」呈现；未来 GAME+ 多候选上线时自动回到选择语义。
 	# 2026-10-31（P0.5）：ACT1 试玩包把「一局结束」写成试玩收束口径——本局结算后回整备，

@@ -45,6 +45,7 @@ var _ctrl: DuelController
 var _unlocked: Array[String] = []
 var _bosses: Array[String] = []
 var _new_unlocks: Array[String] = []
+var _unlock_charges := 0
 
 # 每局临时状态（不落盘）
 var _elite_route_seen := false
@@ -77,11 +78,16 @@ func _load() -> void:
 			var sb := String(b)
 			if sb != "" and not _bosses.has(sb):
 				_bosses.append(sb)
+	_unlock_charges = maxi(0, int(raw.get("unlock_charges", 0)))
 	_write()
 
 
 func _write() -> void:
-	_ctrl.meta[META_KEY] = {"unlocked": _unlocked.duplicate(), "bosses": _bosses.duplicate()}
+	_ctrl.meta[META_KEY] = {
+		"unlocked": _unlocked.duplicate(),
+		"bosses": _bosses.duplicate(),
+		"unlock_charges": _unlock_charges,
+	}
 
 
 func _save() -> void:
@@ -151,6 +157,150 @@ func take_new_unlocks() -> Array[String]:
 
 
 # ---------------------------------------------------------------------------
+# 定向解锁：成就积攒「未拥有装备三选一」机会，不新增货币。
+# ---------------------------------------------------------------------------
+
+func unlock_charges() -> int:
+	return _unlock_charges
+
+
+func has_unlock_charge() -> bool:
+	return _unlock_charges > 0
+
+
+# 3 个合法未拥有候选：优先武器/护符/消耗品各一，再补齐；排除 BOSS 信物。
+func roll_unlock_candidates(n: int = 3) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	if _unlock_charges <= 0:
+		return out
+	var pool := _unlock_pool()
+	if pool.is_empty():
+		return out
+	var rng := RandomNumberGenerator.new()
+	rng.randomize()
+	for kind in ["weapon", "passive", "active"]:
+		if out.size() >= n:
+			break
+		var sub: Array[String] = []
+		for p in pool:
+			if _kind_of(p) == kind:
+				sub.append(p)
+		if sub.is_empty():
+			continue
+		var pick: String = sub[rng.randi_range(0, sub.size() - 1)]
+		out.append(_candidate_entry(pick))
+		pool.erase(pick)
+	while out.size() < n and not pool.is_empty():
+		var pick: String = pool[rng.randi_range(0, pool.size() - 1)]
+		out.append(_candidate_entry(pick))
+		pool.erase(pick)
+	return out
+
+
+# 选中后立即写入图鉴与开局拥有池；一次机会只结算一次。
+func grant_unlock(path: String) -> bool:
+	if _unlock_charges <= 0 or path == "":
+		return false
+	var res = load(path)
+	if res == null:
+		return false
+	var key := ""
+	if res is WeaponData:
+		key = "owned_weapons"
+	elif res is ItemData:
+		if _ctrl._meta_store._is_boss_relic(res, path):
+			return false
+		if res.category == "passive":
+			key = "owned_charms"
+		elif res.category == "active":
+			key = "owned_consumables"
+	if key == "":
+		return false
+	var arr: Array = _ctrl.meta.get(key, [])
+	if arr.has(path):
+		return false
+	arr.append(path)
+	_ctrl.meta[key] = arr
+	_unlock_charges -= 1
+	if _ctrl._anvil_system != null:
+		_ctrl._anvil_system.check_collection_milestones()
+	_save()
+	return true
+
+
+func _unlock_pool() -> Array[String]:
+	var out: Array[String] = []
+	var owned_w: Array = _ctrl.meta.get("owned_weapons", [])
+	var owned_c: Array = _ctrl.meta.get("owned_charms", [])
+	var owned_a: Array = _ctrl.meta.get("owned_consumables", [])
+	for p in _ctrl.WEAPON_POOL:
+		if not owned_w.has(p):
+			out.append(String(p))
+	for p in _ctrl.ITEM_POOL:
+		var d = load(String(p))
+		if not d is ItemData:
+			continue
+		if _ctrl._meta_store._is_boss_relic(d, String(p)):
+			continue
+		if d.category == "passive" and owned_c.has(p):
+			continue
+		if d.category == "active" and owned_a.has(p):
+			continue
+		out.append(String(p))
+	return out
+
+
+func _kind_of(path: String) -> String:
+	var d = load(path)
+	if d is WeaponData:
+		return "weapon"
+	if d is ItemData:
+		return String(d.category)
+	return ""
+
+
+func _candidate_entry(path: String) -> Dictionary:
+	var res = load(path)
+	if res == null:
+		return {}
+	var kind := _kind_of(path)
+	var name := ""
+	var icon := "◆"
+	var desc := ""
+	var art = res.get("art")
+	if art == null:
+		art = res.get("icon_tex")
+	if res is WeaponData:
+		name = String(res.weapon_name)
+		if res.symbols != null and res.symbols.size() > 0:
+			var sw = res.symbols[0]
+			if sw != null and sw.symbol != null and String(sw.symbol.label) != "":
+				icon = String(sw.symbol.label)
+		var elem := ElementCounter.label(String(res.element))
+		var elem_txt := "" if elem == "" or elem == "无" else " · " + elem
+		desc = "武器%s · 攻%d · 命中%d%%" % [elem_txt, int(res.base_power), int(round(res.hit_rate * 100.0))]
+	else:
+		name = String(res.item_name)
+		icon = String(res.icon) if String(res.icon) != "" else "◆"
+		var kind_label := "护符" if kind == "passive" else "消耗品"
+		desc = kind_label
+		var elem := ElementCounter.label(String(res.element))
+		if elem != "" and elem != "无":
+			desc += " · " + elem
+		var short := String(res.description)
+		if short.length() > 28:
+			short = short.left(28) + "…"
+		if short != "":
+			desc += " · " + short
+	if name == "":
+		name = path.get_file().get_basename()
+	return {
+		"path": path, "kind": kind, "name": name, "icon": icon,
+		"desc": desc, "tip": ItemTooltip.for_resource(res), "art": art,
+	}
+
+
+# ---------------------------------------------------------------------------
 # 局内事件
 # ---------------------------------------------------------------------------
 
@@ -215,7 +365,10 @@ func on_boss_cleared() -> void:
 		_unlock("peaceful")
 
 	for i in range(before, _unlocked.size()):
-		_announce(_unlocked[i])
+		var id := _unlocked[i]
+		_announce(id)
+		if id == "first_clear" or id == "four_hunters":
+			_unlock_charges += 1   # 每个里程碑一次「未拥有装备三选一」；不新增货币
 
 	# 每场 BOSS 的临时标记只对本场有效；精英路线是本局标记，留给 reset_run。
 	_boss_armor_break = false
@@ -229,7 +382,8 @@ func record_boss(boss_id: String) -> bool:
 		return false
 	_bosses.append(boss_id)
 	if _bosses.size() >= 4:
-		_unlock("four_hunters")
+		if _unlock("four_hunters"):
+			_unlock_charges += 1
 	_save()
 	return true
 

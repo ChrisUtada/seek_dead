@@ -82,6 +82,9 @@ func _run() -> void:
 func _test_run_end_returns_to_loadout(duel: DuelController) -> void:
 	# 2026-10-31（P0）：一局结束（元进度结算）后回整备，而不是静默开新一局——
 	# 试玩者要能花铁砧点、看图鉴、换配装；同时 demo 标题写成试玩收束口径。
+	# G6-02：存档若残留生涯解锁机会，局末会先弹三选一；本项只测试玩收束文案，先归零。
+	if duel._career != null:
+		duel._career._unlock_charges = 0
 	duel.hud._show_meta_choice()
 	_check(duel.hud.meta_screen.visible, "局末弹出元进度结算屏")
 	_check(String(duel.hud.meta_screen.title_label.text).find("试玩结束") >= 0, "demo 局末标题为「ACT1 试玩结束」")

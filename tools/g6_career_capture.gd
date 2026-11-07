@@ -84,14 +84,32 @@ func _run() -> void:
 	await _wait_frames(4)
 	await _shot("04_loadout_480")
 
-	# 局末生涯反馈（新解锁 + 下一目标）
+	# 局末生涯反馈：先展示定向解锁三选一，选完再回铁砧点结算。
 	get_window().size = Vector2i(960, 540)
 	ls._career_panel.visible = false
 	ls.hide_screen()   # 还原 HUD，否则 meta_screen 的父级仍隐藏
 	await _wait(0.2)
 	_duel.hud.meta_screen.show_choice()
 	await _wait(0.3)
-	await _shot("05_meta_career_feedback")
+	await _shot("05_career_unlock")
+
+	var cands: Array = _duel._career.roll_unlock_candidates(3)
+	if not cands.is_empty():
+		var pick := String(cands[0].get("path", ""))
+		_duel._on_career_unlock_chosen(pick)
+		_lines.append("")
+		_lines.append("## 本次定向解锁选择")
+		_lines.append("%s（%s）" % [String(cands[0].get("name", "")), pick])
+		await _wait(0.2)
+	# 生涯里程碑可能积攒多次机会：全部选完，再截原铁砧点结算。
+	while _duel._career.has_unlock_charge():
+		var more: Array = _duel._career.roll_unlock_candidates(3)
+		if more.is_empty():
+			break
+		_duel._on_career_unlock_chosen(String(more[0].get("path", "")))
+		await _wait(0.2)
+	await _wait(0.3)
+	await _shot("06_meta_after_unlock")
 
 	_write_log()
 	print("G6_CAREER|DONE shots=%d unlocked=%d" % [_shots.size(), career.unlocked_count()])
@@ -103,6 +121,7 @@ func _dump() -> void:
 	_lines.append("解锁 %d / %d · 已击败 BOSS %d" % [
 		_duel._career.unlocked_count(), _duel._career.total_count(), _duel._career.boss_count()])
 	_lines.append("下一目标：%s" % _duel._career.next_goal_hint())
+	_lines.append("定向解锁机会：%d" % _duel._career.unlock_charges())
 	_lines.append("")
 	for e in _duel._career.entries():
 		_lines.append("[%s] %s — %s" % [

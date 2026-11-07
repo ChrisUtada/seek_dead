@@ -364,6 +364,7 @@ func _ready() -> void:
 	hud.next_room_requested.connect(_on_next_room_pressed)
 	hud.card_toggled.connect(_loadout_system.on_card_toggled)
 	hud.meta_choice_chosen.connect(_on_meta_choice_chosen)
+	hud.career_unlock_chosen.connect(_on_career_unlock_chosen)
 	hud.overlay_button_pressed.connect(_on_overlay_button_pressed)
 	hud.consumable_used.connect(_on_consumable_pressed)
 	hud.shop_leave_requested.connect(_on_shop_leave_pressed)
@@ -547,6 +548,22 @@ func _finish_room(apply_fn: Callable, is_boss: bool) -> void:
 
 func _on_meta_choice_chosen(opt: Dictionary) -> void:
 	room_flow.on_meta_choice_chosen(opt)
+
+
+# G6-02：生涯定向解锁 → 写入拥有池/图鉴 → 继续原有局末元进度结算。
+func _on_career_unlock_chosen(path: String) -> void:
+	if _career == null or not _career.grant_unlock(path):
+		hud._log("生涯解锁：选择失败（候选已失效）")
+		return
+	var res = load(path)
+	var nm := path.get_file().get_basename()
+	if res is WeaponData:
+		nm = String(res.weapon_name)
+	elif res is ItemData:
+		nm = String(res.item_name)
+	hud._log("生涯解锁：获得 %s（已写入图鉴与开局拥有池）" % nm)
+	hud._refresh_meta()
+	hud._show_meta_choice()   # 解锁机会已消耗 → 回到铁砧点结算
 
 
 func _confirm_loadout() -> void:

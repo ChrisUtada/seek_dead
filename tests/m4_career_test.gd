@@ -38,6 +38,7 @@ func _run() -> void:
 	_test_combat_marks(duel)
 	_test_board_marks(duel)
 	_test_peaceful(duel)
+	_test_directed_unlock(duel)
 	_test_persistence(duel)
 	_test_panel(duel)
 
@@ -116,6 +117,7 @@ func _test_defaults(duel: DuelController) -> void:
 	_check(c.total_count() == 10, "首批成就共 10 个")
 	_check(c.next_goal_hint() != "", "老档也有下一目标")
 	_check(c.take_new_unlocks().is_empty(), "初始新解锁队列为空")
+	_check(c.unlock_charges() == 0, "老档默认定向解锁机会为 0")
 
 	# 未知 ID / 空 BOSS ID 应被过滤，合法 ID 保留。
 	duel.meta["career"] = {"unlocked": ["bogus", "first_clear"], "bosses": ["", "res://test/x.tres", "res://test/x.tres"]}
@@ -221,6 +223,62 @@ func _test_peaceful(duel: DuelController) -> void:
 	duel._career.on_boss_cleared()
 	_check(duel._career.has("peaceful"), "和解通关解锁特殊结局")
 	duel.peaceful_win = false
+
+
+func _owned_has(duel: DuelController, path: String) -> bool:
+	for key in ["owned_weapons", "owned_charms", "owned_consumables"]:
+		var arr: Array = duel.meta.get(key, [])
+		if arr.has(path):
+			return true
+	return false
+
+
+func _test_directed_unlock(duel: DuelController) -> void:
+	_reset_career(duel)
+	_enter_boss(duel)
+	_equip(duel, ["fire", "ice"])
+	duel._career.on_boss_cleared()
+	_check(duel._career.unlock_charges() == 1, "首次通关获得 1 次定向解锁")
+
+	var cands: Array = duel._career.roll_unlock_candidates(3)
+	_check(cands.size() == 3, "定向解锁给出 3 个候选")
+	var seen := {}
+	for c in cands:
+		var p := String(c.get("path", ""))
+		_check(p != "" and not seen.has(p), "候选路径非空且不重复")
+		seen[p] = true
+		_check(not _owned_has(duel, p), "候选均为未拥有：%s" % p.get_file())
+		var res = load(p)
+		_check(not (res is ItemData and duel._meta_store._is_boss_relic(res, p)), "候选不含 BOSS 信物")
+		_check(String(c.get("name", "")) != "" and String(c.get("desc", "")) != "", "候选带名称与类别说明")
+
+	var pick := String(cands[0].get("path", ""))
+	_check(duel._career.grant_unlock(pick), "选中后写入拥有池")
+	_check(duel._career.unlock_charges() == 0, "解锁机会消耗一次")
+	_check(_owned_has(duel, pick), "选中物品进入对应拥有池")
+	_check(duel._career.roll_unlock_candidates(3).is_empty(), "无机会时不再给出候选")
+
+	# 四席猎手里程碑同样给一次机会。
+	_reset_career(duel)
+	for i in range(4):
+		duel._career.record_boss("res://test/boss_%d.tres" % i)
+	_check(duel._career.has("four_hunters") and duel._career.unlock_charges() == 1, "四席猎手给 1 次定向解锁")
+
+	# 局末界面先展示解锁三选一，选完回到铁砧点结算。
+	_reset_career(duel)
+	_enter_boss(duel)
+	duel._career.on_boss_cleared()
+	var ms = duel.hud.meta_screen
+	ms.show_choice()
+	_check(ms.visible, "局末解锁屏可见")
+	_check(ms.title_label.text.contains("生涯解锁"), "局末先显示生涯解锁标题")
+	_check(ms.meta_grid.get_child_count() == 3, "局末解锁屏显示 3 张卡")
+	var ui_pick := String(duel._career.roll_unlock_candidates(3)[0].get("path", ""))
+	duel._on_career_unlock_chosen(ui_pick)
+	_check(duel._career.unlock_charges() == 0, "界面选择后机会清零")
+	_check(_owned_has(duel, ui_pick), "界面选择写入拥有池")
+	_check(not ms.title_label.text.contains("生涯解锁"), "解锁后回到原元进度结算")
+	_check(ms.meta_grid.get_child_count() == 1, "原元进度仍显示铁砧点卡")
 
 
 func _test_persistence(duel: DuelController) -> void:

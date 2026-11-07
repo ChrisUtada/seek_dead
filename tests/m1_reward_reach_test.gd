@@ -369,6 +369,9 @@ func _test_m6_c4_mixed_charms(duel: DuelController) -> void:
 
 # ⑪ M1-05 局末元进度：只有铁砧点一个真实结果，文案不再承诺线性成长
 func _test_meta_single_result(duel: DuelController) -> void:
+	# G6-02：若存档里残留生涯解锁机会，show_choice 会先弹三选一；本项只测元进度文案，先归零。
+	if duel._career != null:
+		duel._career._unlock_charges = 0
 	var choices: Array = duel._reward_system.roll_meta_choices()
 	_check(choices.size() == 1 and String(choices[0].get("kind", "")) == "anvil", "局末元进度只有铁砧点一个结果")
 	duel.hud.meta_screen.configure(duel, duel.hud)
