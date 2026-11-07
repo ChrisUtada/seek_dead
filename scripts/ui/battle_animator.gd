@@ -3,14 +3,10 @@ extends Node
 # P4 战斗动画骨架：tween 驱动玩家/敌人立绘的攻击 / 受击 / 暴击 / 核爆演出。
 # 只读结算结果演出，绝不修改 BattleMath / duel_controller 的结算逻辑（解耦原则）。
 # 浮空伤害数字由 BattleHud._popup 负责，本脚本专注立绘 sprite 动效。
-# 2026-10-30（M3-02）：玩家立绘换 48×48 维京战士（assets/characters/viking/），
-# idle 4 帧循环 + attack 5 帧序列；旧 knight 素材保留不回退、不删除。
-# 注意：这偏离 M0-02「灰白流亡者」的样板范围——viking 是当前唯一完整的 48×48 角色帧组，
-# 样板范围待用户确认后回写文档。
-# 2026-10-31（战斗 UI 重构 Step 3）：改读灰白风格化副本 viking_ash/（同 48×48、同帧序、
-# 同帧时长），原始 viking/ 保留不动；副本由 tools/art_pipeline/stylize_sample.py 生成。
+# 玩家使用 48×48 举剑持盾骑士：idle 4 帧仅表现上下呼吸，不播放挥剑动画。
+# 当前形象由 tools/art_pipeline/redraw_player.py 生成；原始 viking/ 保留不动。
 
-# 站立循环帧（4 帧，0.18s/帧）。
+# 站立呼吸帧（4 帧，0.18s/帧）。
 const PLAYER_IDLE_FRAMES := [
 	preload("res://assets/characters/viking_ash/idle_01.png"),
 	preload("res://assets/characters/viking_ash/idle_02.png"),
@@ -18,28 +14,13 @@ const PLAYER_IDLE_FRAMES := [
 	preload("res://assets/characters/viking_ash/idle_04.png"),
 ]
 const PLAYER_IDLE_FRAME_TIME := 0.18
-# 玩家攻击帧序列（attack_01-05：蓄力→挥击→命中→收势）。
-# 帧长 0.06s × 5 ≈ 0.30s，必须 ≤ combat_system 在 play_attack 之后的 0.35s 等待窗口，
-# 否则动画会被敌人回合打断（若改帧长/帧数，须同步核对那一处等待值）。
-const PLAYER_ATTACK_FRAMES := [
-	preload("res://assets/characters/viking_ash/attack_01.png"),
-	preload("res://assets/characters/viking_ash/attack_02.png"),
-	preload("res://assets/characters/viking_ash/attack_03.png"),
-	preload("res://assets/characters/viking_ash/attack_04.png"),
-	preload("res://assets/characters/viking_ash/attack_05.png"),
-]
-const PLAYER_ATTACK_FRAME_TIME := 0.06
-const PLAYER_IMPACT_FRAME := 3        # 索引 3 = attack_04（命中斩击帧）→ 触发轻微屏震
-const PLAYER_IMPACT_SHAKE := 4.0
 
 var hud = null
 var player_sprite: Control = null
 var enemy_sprite: Control = null
 var _shake_base := Transform2D()   # 屏震基准变换，供 _apply_shake 读取
-var _player_anim_tween: Tween = null   # 玩家帧序列 tween（重入先 kill，避免半帧残留）
-var _idle_timer: Timer = null          # 站立循环节拍器（攻击演出期间暂停换帧）
+var _idle_timer: Timer = null          # 站立呼吸节拍器
 var _idle_index := 0                   # 站立当前帧
-var _attacking := false                # 攻击帧序列进行中（站立循环不抢帧）
 var _rng := RandomNumberGenerator.new()   # 动画专用随机源（见 _shake 的 use_local_rng 说明）
 
 func setup(p_hud) -> void:
@@ -54,9 +35,8 @@ func setup(p_hud) -> void:
 	_idle_timer.start()
 
 
-# 站立循环：仅在空闲时换帧（攻击序列与命中闪回由各自 tween 管理）。
 func _on_idle_tick() -> void:
-	if _attacking or player_sprite == null:
+	if player_sprite == null:
 		return
 	_idle_index = (_idle_index + 1) % PLAYER_IDLE_FRAMES.size()
 	player_sprite.texture = PLAYER_IDLE_FRAMES[_idle_index]
@@ -66,50 +46,25 @@ func _sprite(which: String) -> Control:
 	return player_sprite if which == "player" else enemy_sprite
 
 
-# P0：攻击者前冲（scale 脉冲 + 轻微旋转）+ 目标受击红闪
+# 攻击者轻微缩放 + 目标受击暖白闪；玩家不旋转、不切换挥剑帧。
 func play_attack(attacker: String, target: String) -> void:
 	var atk = _sprite(attacker)
 	var tgt = _sprite(target)
 	if atk == null or tgt == null:
 		return
-	# 仅玩家攻击播骑士帧序列（敌人攻击走 play_enemy_attack → 此处 attacker=="enemy"，跳过）
-	if attacker == "player":
-		_play_player_attack_frames()
 	_center_pivot(atk)
-	var dir := 1.0 if attacker == "player" else -1.0
 	var home_scale = atk.scale
 	var tw = create_tween()
 	tw.tween_property(atk, "scale", home_scale * 1.16, 0.09)
 	tw.tween_property(atk, "scale", home_scale, 0.15)
-	var twr = create_tween()
-	twr.tween_property(atk, "rotation", 0.10 * dir, 0.09)
-	twr.tween_property(atk, "rotation", 0.0, 0.15)
+	if attacker == "enemy":
+		var twr = create_tween()
+		twr.tween_property(atk, "rotation", -0.10, 0.09)
+		twr.tween_property(atk, "rotation", 0.0, 0.15)
 	var base = tgt.modulate
 	var tw2 = create_tween()
-	# M3-02：受击反馈改暖白闪（红色敌人用红闪会糊成一片）；亮而不偏色 = 明暗反相观感。
 	tw2.tween_property(tgt, "modulate", Color(1.75, 1.70, 1.55), 0.07)
 	tw2.tween_property(tgt, "modulate", base, 0.24)
-
-
-# 玩家攻击帧序列：逐帧换 player_sprite.texture（非阻塞；播完回站立帧）。
-# 与 play_attack 的 scale/rotation tween 并行，互不冲突（操作的是不同属性）。
-func _play_player_attack_frames() -> void:
-	if player_sprite == null:
-		return
-	if _player_anim_tween != null and _player_anim_tween.is_valid():
-		_player_anim_tween.kill()   # 连击/重转重入：先掐掉上一轮，避免停在半帧
-	_attacking = true
-	_player_anim_tween = create_tween()
-	for i in PLAYER_ATTACK_FRAMES.size():
-		var idx: int = i
-		_player_anim_tween.tween_callback(func() -> void:
-			player_sprite.texture = PLAYER_ATTACK_FRAMES[idx]
-			if idx == PLAYER_IMPACT_FRAME:
-				_shake(PLAYER_IMPACT_SHAKE, true))   # 命中帧打击感；true=用动画专用随机源，不扰动种子局
-		_player_anim_tween.tween_interval(PLAYER_ATTACK_FRAME_TIME)
-	_player_anim_tween.tween_callback(func() -> void:
-		_attacking = false
-		player_sprite.texture = PLAYER_IDLE_FRAMES[_idle_index])
 
 
 # P1：敌人反击（前冲 + 玩家红闪 + 屏震）

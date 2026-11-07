@@ -1,0 +1,11 @@
+[gd_resource type="Resource" format=3]
+
+[ext_resource type="Script" path="res://scripts/board/board_config.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+enabled = false
+act = 1
+dice_sides = 3
+boss_ria = 7
+battle_node_count = 8

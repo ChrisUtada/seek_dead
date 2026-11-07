@@ -124,17 +124,16 @@ func _drive(duel: DuelController, sid: String, seed_v: int) -> Dictionary:
 					res["ttk_n"] += 1
 					res["dmg_sum"] += dmg_room
 				_log_room(sid, seed_v, duel, room_turns, dmg_room, "won")
+				var growth_offered: bool = duel.room_flow.post_battle_active and duel.room_flow.post_battle_has_growth()
+				if is_act1 and growth_offered:
+					res["offers"] += 1
+					if res["first_offer"] < 0:
+						res["first_offer"] = idx + 1
+				var before: int = _growth_count(duel)
 				_take_reward(duel)
 				await get_tree().process_frame
-				if duel.room_flow.growth_pick_pending():
-					if is_act1:
-						res["offers"] += 1
-						if res["first_offer"] < 0:
-							res["first_offer"] = idx + 1
-					var before: int = _growth_count(duel)
-					_choose_growth(duel)
-					if is_act1:
-						res["picks"] += _growth_count(duel) - before
+				if is_act1 and growth_offered:
+					res["picks"] += _growth_count(duel) - before
 				if idx + 1 >= ACT1_ROOMS:
 					res["act1_clear"] = true
 					break
@@ -229,9 +228,9 @@ func _print_summary() -> void:
 
 
 # bot 策略（非真人，仅为让对照不被「瞬停」扭曲）：
-# - 奖励：取首个非武器项（武器需替换弹层，bot 不处理）；全为武器则跳过。
+# - 战后成长：优先成长位（技艺/铭印），否则补给位；不选武器（替换弹层 bot 不处理）。
+# - BOSS：取首个非武器战利品；全为武器则跳过。
 # - 停轮：落在攻击 / 状态 / 回复 / 特殊符号上即停，或转满 40 跳强制停。
-# - 成长：技艺优先坚韧（生存），铭印优先锋铸（攻击）；否则取首项。
 # - 商店：不逛（未建模）。
 func _take_reward(duel: DuelController) -> void:
 	if duel.reward_is_boss:
@@ -239,28 +238,10 @@ func _take_reward(duel: DuelController) -> void:
 			if String(c.get("kind", "")) != "boss_weapon":
 				duel._on_boss_reward_chosen(c)
 				return
-	else:
-		for i in range(duel.reward_choices.size()):
-			var rw = duel.reward_choices[i]
-			if String(rw.id) != "weapon":
-				duel._on_reward_chosen(String(rw.id), i)
-				return
+	elif duel.room_flow.post_battle_active:
+		duel.room_flow.auto_pick_post_battle(["growth", "supply", "build"])
+		return
 	duel._on_reward_skip_pressed()
-
-
-func _choose_growth(duel: DuelController) -> void:
-	var picked := {}
-	for sec in duel.room_flow._offer_sections:
-		var ch: Array = sec["choices"]
-		var pick: String = String(ch[0]["id"])
-		var want: String = "tough" if sec["key"] == "perk" else "forge"
-		for c in ch:
-			if String(c["id"]) == want:
-				pick = want
-		picked[sec["key"]] = pick
-	duel.hud.hide_growth_picker()
-	duel.room_flow._offer_sections = []
-	duel.room_flow._apply_settlement(picked)
 
 
 func _should_stop(duel: DuelController) -> bool:

@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 """Step 3 样板角色风格化（2026-10-31）
 
-把现有 48×48 像素立绘按「少量色阶」重新映射，产出灰白玩家与红色 BOSS 的样板。
+把现有像素立绘按「少量色阶」重新映射，产出红色 BOSS 与普通敌人样板。
 只改颜色，不改尺寸、不改像素位置、不写透明通道；**不覆盖任何原始素材**。
+玩家已改为 redraw_player.py 的定制骑士，本脚本保留而不覆盖 viking_ash/。
 
 用法（仓库根目录）：
     python tools/art_pipeline/stylize_sample.py
 
 输出：
-    assets/characters/viking_ash/idle_01..04.png
-    assets/characters/viking_ash/attack_01..05.png
     assets/bossbf_ember.png
+    assets/enemy_ember.png
 
 映射原则：
     1. 按感知亮度分档，每档一个颜色 → 保留原图的明暗结构，丢掉原始色相；
@@ -24,33 +24,15 @@ from PIL import Image
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-PLAYER_SRC = os.path.join(ROOT, "assets", "characters", "viking")
-PLAYER_DST = os.path.join(ROOT, "assets", "characters", "viking_ash")
-PLAYER_FRAMES = [
-    "idle_01", "idle_02", "idle_03", "idle_04",
-    "attack_01", "attack_02", "attack_03", "attack_04", "attack_05",
-]
-
 BOSS_SRC = os.path.join(ROOT, "assets", "bossbf.png")
 BOSS_DST = os.path.join(ROOT, "assets", "bossbf_ember.png")
 
-# 纠偏 C5：普通敌人红色少色副本。原始 assets/enemy.png 为 16×16，
+# 普通敌人红色少色副本。原始 assets/enemy.png 为 16×16，
 # 保持原尺寸与透明通道，只做亮度分档重映射；不覆盖原始文件。
 ENEMY_SRC = os.path.join(ROOT, "assets", "enemy.png")
 ENEMY_DST = os.path.join(ROOT, "assets", "enemy_ember.png")
 
-# (亮度上限, 颜色) —— 按顺序取第一个满足 L <= 上限的档位
-# 掩码按源图亮度分布校准（viking idle_01：暗部 28%、皮肤 0.70、头盔 0.96；
-# bossbf：暗部 0.13–0.18、主体 0.24、亮部 0.46），保证暗部不糊、亮部接近概念图的灰白/亮红。
-ASH_RAMP = [
-    (0.10, (0x24, 0x22, 0x21)),
-    (0.22, (0x45, 0x42, 0x40)),
-    (0.36, (0x6D, 0x69, 0x65)),
-    (0.52, (0x9A, 0x96, 0x90)),
-    (0.70, (0xC8, 0xC4, 0xBD)),
-    (1.01, (0xEF, 0xEB, 0xE2)),
-]
-
+# (亮度上限, 颜色) —— 按顺序取第一个满足 L <= 上限的档位。
 EMBER_RAMP = [
     (0.08, (0x3A, 0x12, 0x16)),
     (0.20, (0x5E, 0x1A, 0x1F)),
@@ -83,15 +65,7 @@ def remap(img, ramp):
 
 
 def main():
-    os.makedirs(PLAYER_DST, exist_ok=True)
-    for name in PLAYER_FRAMES:
-        src = os.path.join(PLAYER_SRC, name + ".png")
-        dst = os.path.join(PLAYER_DST, name + ".png")
-        img = Image.open(src).convert("RGBA")
-        if img.size != (48, 48):
-            raise SystemExit("unexpected size %s %s" % (src, img.size))
-        remap(img, ASH_RAMP).save(dst)
-        print("player:", os.path.relpath(dst, ROOT))
+    print("player: preserved custom knight; use redraw_player.py instead")
 
     img = Image.open(BOSS_SRC).convert("RGBA")
     if img.size != (48, 48):

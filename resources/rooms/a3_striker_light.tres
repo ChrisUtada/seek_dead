@@ -1,7 +1,8 @@
-[gd_resource type="Resource" script_class="RoomData" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="RoomData" load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/battle/room_data.gd" id="1"]
 [ext_resource type="Resource" path="res://resources/archetypes/striker.tres" id="2"]
+[ext_resource type="Texture2D" path="res://assets/characters/a3_striker_light/idle_01.png" id="art_room"]
 
 [resource]
 script = ExtResource("1")
@@ -12,3 +13,5 @@ archetype = ExtResource("2")
 element = "light"
 kind = "normal"
 act = 3
+art = ExtResource("art_room")
+art_scale = 1.0

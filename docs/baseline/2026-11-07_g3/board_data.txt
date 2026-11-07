@@ -1,0 +1,42 @@
+# Seek Dead · G1 棋盘改版预览（2026-11-06）
+# 采集时间：2026-11-07T12:09:56
+
+## 棋盘拓扑
+节点数=25  路线长度=13  战斗房=15  BOSS=n14,n16,n18,n20
+  n0   start   depth=0  ria=-1 next=["n1"] room=—
+  n1   normal  depth=1  ria=0  next=["n2"] room=毒孢菌(normal)
+  n2   weapon  depth=2  ria=-1 next=["n3"] room=—
+  n3   normal  depth=3  ria=1  next=["n4"] room=腐化史莱姆(normal)
+  n4   elite   depth=4  ria=2  next=["n5"] room=酸蚀傀儡(elite)
+  n5   charm   depth=5  ria=-1 next=["n6"] room=—
+  n6   normal  depth=6  ria=3  next=["n7", "n10"] room=锈盲蝠(normal)
+  n7   normal  depth=7  ria=4  next=["n8"] room=冰锋群蝠(normal)
+  n8   elite   depth=8  ria=5  next=["n9"] room=寒铁精英(elite)
+  n9   shop    depth=9  ria=-1 next=["n13", "n15"] room=—
+  n10  normal  depth=7  ria=4  next=["n11"] room=辉光游侠(normal)
+  n11  elite   depth=8  ria=5  next=["n12"] room=腐殖巨蠕(elite)
+  n12  rest    depth=9  ria=-1 next=["n17", "n19"] room=—
+  n13  normal  depth=10 ria=6  next=["n21"] room=暗影诡匠(normal)
+  n21  rest    depth=11 ria=-1 next=["n14"] room=—
+  n14  boss    depth=12 ria=7  next=[] room=碎裂石像鬼(boss)
+  n15  normal  depth=10 ria=6  next=["n22"] room=毒壳壁垒(normal)
+  n22  rest    depth=11 ria=-1 next=["n16"] room=—
+  n16  boss    depth=12 ria=7  next=[] room=冰封铁瓮(boss)
+  n17  treasure depth=10 ria=-1 next=["n23"] room=—
+  n23  rest    depth=11 ria=-1 next=["n18"] room=—
+  n18  boss    depth=12 ria=7  next=[] room=酸蚀恶鬼(boss)
+  n19  normal  depth=10 ria=6  next=["n24"] room=窃语咒师(normal)
+  n24  rest    depth=11 ria=-1 next=["n20"] room=—
+  n20  boss    depth=12 ria=7  next=[] room=茧居石雕(boss)
+
+## 本局四人 BOSS 分配
+  n14 → 碎裂石像鬼（冰）
+  n16 → 冰封铁瓮（冰）
+  n18 → 酸蚀恶鬼（毒）
+  n20 → 茧居石雕（冰）
+
+## 岔路提示
+  n6: 普通战斗 · 胜利后进入战后成长 / 上路：碎裂石像鬼（冰） / 冰封铁瓮（冰） / 下路：酸蚀恶鬼（毒） / 茧居石雕（冰） · 宝箱
+  n9: 现有商店 · 离开后节点消耗 / 上方：碎裂石像鬼（冰） / 下方：冰封铁瓮（冰）
+  n12: 恢复 25% 最大 HP · 满血显示无需休整 / 上方：酸蚀恶鬼（毒） · 宝箱 / 下方：茧居石雕（冰）
+

@@ -1,0 +1,39 @@
+# Seek Dead · G4-04 武器藏库特殊格预览（2026-11-07）
+# 采集时间：2026-11-07T14:10:40
+
+## 骨架
+骨架=standard  模板=mirror  特殊格=armory  节点数=25  路线长度=13  战斗房=15
+
+## 全部节点
+  n0   start    depth=0  row=2 next=["n1"] title=起点
+  n1   normal   depth=1  row=2 next=["n2"] title=暗影诡匠
+  n2   charm    depth=2  row=2 next=["n3"] title=护符 · 蚀毒壁垒
+  n3   normal   depth=3  row=2 next=["n4"] title=锈盲蝠
+  n4   elite    depth=4  row=2 next=["n5"] title=寒铁精英
+  n5   weapon   depth=5  row=2 next=["n6"] title=武器 · 毒匕首
+  n6   normal   depth=6  row=2 next=["n7", "n10"] title=重锤蛮兵
+  n7   normal   depth=7  row=1 next=["n8"] title=腐化史莱姆
+  n8   elite    depth=8  row=1 next=["n9"] title=毒疫术士
+  n9   rest     depth=9  row=1 next=["n13", "n15"] title=休整
+  n10  normal   depth=7  row=3 next=["n11"] title=毒壳壁垒
+  n11  elite    depth=8  row=3 next=["n12"] title=酸蚀傀儡
+  n12  shop     depth=9  row=3 next=["n17", "n19"] title=商店
+  n13  normal   depth=10 row=0 next=["n21"] title=寒鳞蝠
+  n21  rest     depth=11 row=0 next=["n14"] title=营地
+  n14  boss     depth=12 row=0 next=[] title=茧居石雕
+  n15  normal   depth=10 row=1 next=["n22"] title=裂石像
+  n22  rest     depth=11 row=1 next=["n16"] title=营地
+  n16  boss     depth=12 row=1 next=[] title=酸蚀恶鬼
+  n17  armory   depth=10 row=3 next=["n23"] title=武器藏库
+  n23  rest     depth=11 row=3 next=["n18"] title=营地
+  n18  boss     depth=12 row=3 next=[] title=冰封铁瓮
+  n19  normal   depth=10 row=4 next=["n24"] title=冰锋群蝠
+  n24  rest     depth=11 row=4 next=["n20"] title=营地
+  n20  boss     depth=12 row=4 next=[] title=碎裂石像鬼
+
+## 武器藏库
+  节点=n17  深度=10
+  候选=手枪（攻9 · 无）
+  候选=暗影匕首（攻10 · 暗）
+  描述=武器藏库 · 二选一：手枪 / 暗影匕首（落地自选一把）
+

@@ -82,14 +82,17 @@ func sort_rooms(rms: Array) -> Array:
 
 # Ante 难度曲线纯函数：RoomData.hp/atk 视为基础值，按「幕间台阶 × 幕内爬升」缩放。
 # act = RoomData.act（1/2/3）；幕内位置 = 本房之前与本房同幕房数 - 1。
-func ante_scale(r: RoomData, idx: int) -> Dictionary:
+# M2：棋盘入口可显式传 ria_override（棋盘节点分配时已确定幕内位置），线性路径传 -1 保持原扫描口径。
+func ante_scale(r: RoomData, idx: int, ria_override: int = -1) -> Dictionary:
 	var rooms: Array[RoomData] = _ctrl.ROOMS
 	var a = r.act
-	var ria = 0   # room-in-act：同幕内序号（0 起）
-	for i in range(idx + 1):
-		if rooms[i].act == a:
-			ria += 1
-	ria -= 1
+	var ria = ria_override   # room-in-act：同幕内序号（0 起）
+	if ria < 0:
+		ria = 0
+		for i in range(idx + 1):
+			if rooms[i].act == a:
+				ria += 1
+		ria -= 1
 	return {
 		"hp_scale": pow(_ctrl.BALANCE.ante_act_step_hp, a - 1) * pow(_ctrl.BALANCE.ante_room_step_hp, ria),
 		"atk_scale": pow(_ctrl.BALANCE.ante_act_step_atk, a - 1) * pow(_ctrl.BALANCE.ante_room_step_atk, ria),

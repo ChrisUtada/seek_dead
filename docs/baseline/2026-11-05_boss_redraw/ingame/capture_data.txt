@@ -1,0 +1,10 @@
+acid_ghoul | png=(48.0, 48.0) | scale=(1.0, 1.0) | art_scale=2.0 | shot=960x540 err=0
+brittle_gargoyle | png=(48.0, 48.0) | scale=(1.0, 1.0) | art_scale=2.0 | shot=960x540 err=0
+abyss_watcher | png=(48.0, 48.0) | scale=(1.0, 1.0) | art_scale=2.0 | shot=960x540 err=0
+hero_shadow | png=(48.0, 48.0) | scale=(1.0, 1.0) | art_scale=2.0 | shot=960x540 err=0
+manic_elementalist | png=(48.0, 48.0) | scale=(1.0, 1.0) | art_scale=2.0 | shot=960x540 err=0
+maze_whisperer | png=(48.0, 48.0) | scale=(1.0, 1.0) | art_scale=2.0 | shot=960x540 err=0
+nameless_void | png=(48.0, 48.0) | scale=(1.0, 1.0) | art_scale=2.0 | shot=960x540 err=0
+scale_inquisitor | png=(48.0, 48.0) | scale=(1.0, 1.0) | art_scale=2.0 | shot=960x540 err=0
+shattered_king | png=(48.0, 48.0) | scale=(1.0, 1.0) | art_scale=2.0 | shot=960x540 err=0
+whispering_cultist | png=(48.0, 48.0) | scale=(1.0, 1.0) | art_scale=2.0 | shot=960x540 err=0

@@ -47,7 +47,7 @@
 
 色数：玩家 `idle_01` 13 色 → **5 色**（其它帧相近）；BOSS 435 色 → **6 色**。
 透明度核对：9 张玩家帧 + BOSS 的 alpha 通道与原图**逐像素一致**（脚本比对 `alpha_same=True`），尺寸均为 48×48。
-重生成：`python tools/art_pipeline/stylize_sample.py`（确定性输出，无随机）。
+历史重生成：`python tools/art_pipeline/stylize_sample.py`（当时为确定性输出，无随机）。**2026-11-06 起玩家已改为定制举剑骑士，使用 `python tools/art_pipeline/redraw_player.py`；旧调色脚本保留玩家文件，不再覆盖。**
 
 ## 4. 实测数据
 

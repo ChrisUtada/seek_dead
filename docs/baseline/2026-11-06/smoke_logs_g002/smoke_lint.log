@@ -1,0 +1,1195 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+PASS  res://resources/weapon_templates ≥24，实测 90
+PASS  res://resources/charms ≥45，实测 45
+PASS  res://resources/skills ≥17，实测 17
+PASS  res://resources/consumables ≥25，实测 25
+PASS  res://resources/rooms ≥61，实测 61
+PASS  res://resources/archetypes ≥15，实测 15
+PASS  res://resources/intents ≥6，实测 6
+PASS  res://resources/statuses ≥4，实测 4
+PASS  res://resources/symbols ≥40，实测 53
+PASS  res://resources/rewards ≥1，实测 9
+PASS  res://resources/synergies ≥3，实测 3
+PASS  kind 合法 res://resources/rooms/a1_brute_none.tres
+PASS  act 合法 res://resources/rooms/a1_brute_none.tres
+PASS  element 合法 res://resources/rooms/a1_brute_none.tres
+PASS  name 非空 res://resources/rooms/a1_brute_none.tres
+PASS  行为族引用有效 res://resources/rooms/a1_brute_none.tres
+PASS  kind 合法 res://resources/rooms/a1_bulwark_poison.tres
+PASS  act 合法 res://resources/rooms/a1_bulwark_poison.tres
+PASS  element 合法 res://resources/rooms/a1_bulwark_poison.tres
+PASS  name 非空 res://resources/rooms/a1_bulwark_poison.tres
+PASS  行为族引用有效 res://resources/rooms/a1_bulwark_poison.tres
+PASS  kind 合法 res://resources/rooms/a1_elite_brute_ice.tres
+PASS  act 合法 res://resources/rooms/a1_elite_brute_ice.tres
+PASS  element 合法 res://resources/rooms/a1_elite_brute_ice.tres
+PASS  name 非空 res://resources/rooms/a1_elite_brute_ice.tres
+PASS  行为族引用有效 res://resources/rooms/a1_elite_brute_ice.tres
+PASS  kind 合法 res://resources/rooms/a1_elite_caster_poison.tres
+PASS  act 合法 res://resources/rooms/a1_elite_caster_poison.tres
+PASS  element 合法 res://resources/rooms/a1_elite_caster_poison.tres
+PASS  name 非空 res://resources/rooms/a1_elite_caster_poison.tres
+PASS  行为族引用有效 res://resources/rooms/a1_elite_caster_poison.tres
+PASS  kind 合法 res://resources/rooms/a1_hexer_none.tres
+PASS  act 合法 res://resources/rooms/a1_hexer_none.tres
+PASS  element 合法 res://resources/rooms/a1_hexer_none.tres
+PASS  name 非空 res://resources/rooms/a1_hexer_none.tres
+PASS  行为族引用有效 res://resources/rooms/a1_hexer_none.tres
+PASS  kind 合法 res://resources/rooms/a1_striker_light.tres
+PASS  act 合法 res://resources/rooms/a1_striker_light.tres
+PASS  element 合法 res://resources/rooms/a1_striker_light.tres
+PASS  name 非空 res://resources/rooms/a1_striker_light.tres
+PASS  行为族引用有效 res://resources/rooms/a1_striker_light.tres
+PASS  kind 合法 res://resources/rooms/a1_swarm_ice.tres
+PASS  act 合法 res://resources/rooms/a1_swarm_ice.tres
+PASS  element 合法 res://resources/rooms/a1_swarm_ice.tres
+PASS  name 非空 res://resources/rooms/a1_swarm_ice.tres
+PASS  行为族引用有效 res://resources/rooms/a1_swarm_ice.tres
+PASS  kind 合法 res://resources/rooms/a1_trickster_dark.tres
+PASS  act 合法 res://resources/rooms/a1_trickster_dark.tres
+PASS  element 合法 res://resources/rooms/a1_trickster_dark.tres
+PASS  name 非空 res://resources/rooms/a1_trickster_dark.tres
+PASS  行为族引用有效 res://resources/rooms/a1_trickster_dark.tres
+PASS  kind 合法 res://resources/rooms/a2_brute_dark.tres
+PASS  act 合法 res://resources/rooms/a2_brute_dark.tres
+PASS  element 合法 res://resources/rooms/a2_brute_dark.tres
+PASS  name 非空 res://resources/rooms/a2_brute_dark.tres
+PASS  行为族引用有效 res://resources/rooms/a2_brute_dark.tres
+PASS  kind 合法 res://resources/rooms/a2_brute_none.tres
+PASS  act 合法 res://resources/rooms/a2_brute_none.tres
+PASS  element 合法 res://resources/rooms/a2_brute_none.tres
+PASS  name 非空 res://resources/rooms/a2_brute_none.tres
+PASS  行为族引用有效 res://resources/rooms/a2_brute_none.tres
+PASS  kind 合法 res://resources/rooms/a2_bulwark_light.tres
+PASS  act 合法 res://resources/rooms/a2_bulwark_light.tres
+PASS  element 合法 res://resources/rooms/a2_bulwark_light.tres
+PASS  name 非空 res://resources/rooms/a2_bulwark_light.tres
+PASS  行为族引用有效 res://resources/rooms/a2_bulwark_light.tres
+PASS  kind 合法 res://resources/rooms/a2_bulwark_none.tres
+PASS  act 合法 res://resources/rooms/a2_bulwark_none.tres
+PASS  element 合法 res://resources/rooms/a2_bulwark_none.tres
+PASS  name 非空 res://resources/rooms/a2_bulwark_none.tres
+PASS  行为族引用有效 res://resources/rooms/a2_bulwark_none.tres
+PASS  kind 合法 res://resources/rooms/a2_caster_poison.tres
+PASS  act 合法 res://resources/rooms/a2_caster_poison.tres
+PASS  element 合法 res://resources/rooms/a2_caster_poison.tres
+PASS  name 非空 res://resources/rooms/a2_caster_poison.tres
+PASS  行为族引用有效 res://resources/rooms/a2_caster_poison.tres
+PASS  kind 合法 res://resources/rooms/a2_elite_hexer_dark.tres
+PASS  act 合法 res://resources/rooms/a2_elite_hexer_dark.tres
+PASS  element 合法 res://resources/rooms/a2_elite_hexer_dark.tres
+PASS  name 非空 res://resources/rooms/a2_elite_hexer_dark.tres
+PASS  行为族引用有效 res://resources/rooms/a2_elite_hexer_dark.tres
+PASS  kind 合法 res://resources/rooms/a2_elite_swarmking_fire.tres
+PASS  act 合法 res://resources/rooms/a2_elite_swarmking_fire.tres
+PASS  element 合法 res://resources/rooms/a2_elite_swarmking_fire.tres
+PASS  name 非空 res://resources/rooms/a2_elite_swarmking_fire.tres
+PASS  行为族引用有效 res://resources/rooms/a2_elite_swarmking_fire.tres
+PASS  kind 合法 res://resources/rooms/a2_striker_dark.tres
+PASS  act 合法 res://resources/rooms/a2_striker_dark.tres
+PASS  element 合法 res://resources/rooms/a2_striker_dark.tres
+PASS  name 非空 res://resources/rooms/a2_striker_dark.tres
+PASS  行为族引用有效 res://resources/rooms/a2_striker_dark.tres
+PASS  kind 合法 res://resources/rooms/a2_swarm_fire.tres
+PASS  act 合法 res://resources/rooms/a2_swarm_fire.tres
+PASS  element 合法 res://resources/rooms/a2_swarm_fire.tres
+PASS  name 非空 res://resources/rooms/a2_swarm_fire.tres
+PASS  行为族引用有效 res://resources/rooms/a2_swarm_fire.tres
+PASS  kind 合法 res://resources/rooms/a2_trickster_none.tres
+PASS  act 合法 res://resources/rooms/a2_trickster_none.tres
+PASS  element 合法 res://resources/rooms/a2_trickster_none.tres
+PASS  name 非空 res://resources/rooms/a2_trickster_none.tres
+PASS  行为族引用有效 res://resources/rooms/a2_trickster_none.tres
+PASS  kind 合法 res://resources/rooms/a3_brute_light.tres
+PASS  act 合法 res://resources/rooms/a3_brute_light.tres
+PASS  element 合法 res://resources/rooms/a3_brute_light.tres
+PASS  name 非空 res://resources/rooms/a3_brute_light.tres
+PASS  行为族引用有效 res://resources/rooms/a3_brute_light.tres
+PASS  kind 合法 res://resources/rooms/a3_brute_none.tres
+PASS  act 合法 res://resources/rooms/a3_brute_none.tres
+PASS  element 合法 res://resources/rooms/a3_brute_none.tres
+PASS  name 非空 res://resources/rooms/a3_brute_none.tres
+PASS  行为族引用有效 res://resources/rooms/a3_brute_none.tres
+PASS  kind 合法 res://resources/rooms/a3_bulwark_fire.tres
+PASS  act 合法 res://resources/rooms/a3_bulwark_fire.tres
+PASS  element 合法 res://resources/rooms/a3_bulwark_fire.tres
+PASS  name 非空 res://resources/rooms/a3_bulwark_fire.tres
+PASS  行为族引用有效 res://resources/rooms/a3_bulwark_fire.tres
+PASS  kind 合法 res://resources/rooms/a3_bulwark_none.tres
+PASS  act 合法 res://resources/rooms/a3_bulwark_none.tres
+PASS  element 合法 res://resources/rooms/a3_bulwark_none.tres
+PASS  name 非空 res://resources/rooms/a3_bulwark_none.tres
+PASS  行为族引用有效 res://resources/rooms/a3_bulwark_none.tres
+PASS  kind 合法 res://resources/rooms/a3_caster_ice.tres
+PASS  act 合法 res://resources/rooms/a3_caster_ice.tres
+PASS  element 合法 res://resources/rooms/a3_caster_ice.tres
+PASS  name 非空 res://resources/rooms/a3_caster_ice.tres
+PASS  行为族引用有效 res://resources/rooms/a3_caster_ice.tres
+PASS  kind 合法 res://resources/rooms/a3_elite_trickster_dark.tres
+PASS  act 合法 res://resources/rooms/a3_elite_trickster_dark.tres
+PASS  element 合法 res://resources/rooms/a3_elite_trickster_dark.tres
+PASS  name 非空 res://resources/rooms/a3_elite_trickster_dark.tres
+PASS  行为族引用有效 res://resources/rooms/a3_elite_trickster_dark.tres
+PASS  kind 合法 res://resources/rooms/a3_elite_warden_light.tres
+PASS  act 合法 res://resources/rooms/a3_elite_warden_light.tres
+PASS  element 合法 res://resources/rooms/a3_elite_warden_light.tres
+PASS  name 非空 res://resources/rooms/a3_elite_warden_light.tres
+PASS  行为族引用有效 res://resources/rooms/a3_elite_warden_light.tres
+PASS  kind 合法 res://resources/rooms/a3_striker_light.tres
+PASS  act 合法 res://resources/rooms/a3_striker_light.tres
+PASS  element 合法 res://resources/rooms/a3_striker_light.tres
+PASS  name 非空 res://resources/rooms/a3_striker_light.tres
+PASS  行为族引用有效 res://resources/rooms/a3_striker_light.tres
+PASS  kind 合法 res://resources/rooms/a3_swarm_poison.tres
+PASS  act 合法 res://resources/rooms/a3_swarm_poison.tres
+PASS  element 合法 res://resources/rooms/a3_swarm_poison.tres
+PASS  name 非空 res://resources/rooms/a3_swarm_poison.tres
+PASS  行为族引用有效 res://resources/rooms/a3_swarm_poison.tres
+PASS  kind 合法 res://resources/rooms/a3_trickster_dark.tres
+PASS  act 合法 res://resources/rooms/a3_trickster_dark.tres
+PASS  element 合法 res://resources/rooms/a3_trickster_dark.tres
+PASS  name 非空 res://resources/rooms/a3_trickster_dark.tres
+PASS  行为族引用有效 res://resources/rooms/a3_trickster_dark.tres
+PASS  kind 合法 res://resources/rooms/abyss_watcher.tres
+PASS  act 合法 res://resources/rooms/abyss_watcher.tres
+PASS  element 合法 res://resources/rooms/abyss_watcher.tres
+PASS  name 非空 res://resources/rooms/abyss_watcher.tres
+PASS  房间意图 id 已定义 res://resources/rooms/abyss_watcher.tres (attack)
+PASS  房间意图 id 已定义 res://resources/rooms/abyss_watcher.tres (heavy)
+PASS  kind 合法 res://resources/rooms/abyssal_cantor.tres
+PASS  act 合法 res://resources/rooms/abyssal_cantor.tres
+PASS  element 合法 res://resources/rooms/abyssal_cantor.tres
+PASS  name 非空 res://resources/rooms/abyssal_cantor.tres
+PASS  kind 合法 res://resources/rooms/acid_ghoul.tres
+PASS  act 合法 res://resources/rooms/acid_ghoul.tres
+PASS  element 合法 res://resources/rooms/acid_ghoul.tres
+PASS  name 非空 res://resources/rooms/acid_ghoul.tres
+PASS  房间意图 id 已定义 res://resources/rooms/acid_ghoul.tres (attack)
+PASS  房间意图 id 已定义 res://resources/rooms/acid_ghoul.tres (heavy)
+PASS  kind 合法 res://resources/rooms/acid_golem.tres
+PASS  act 合法 res://resources/rooms/acid_golem.tres
+PASS  element 合法 res://resources/rooms/acid_golem.tres
+PASS  name 非空 res://resources/rooms/acid_golem.tres
+PASS  kind 合法 res://resources/rooms/annihilation_apostle.tres
+PASS  act 合法 res://resources/rooms/annihilation_apostle.tres
+PASS  element 合法 res://resources/rooms/annihilation_apostle.tres
+PASS  name 非空 res://resources/rooms/annihilation_apostle.tres
+PASS  kind 合法 res://resources/rooms/annihilation_lord.tres
+PASS  act 合法 res://resources/rooms/annihilation_lord.tres
+PASS  element 合法 res://resources/rooms/annihilation_lord.tres
+PASS  name 非空 res://resources/rooms/annihilation_lord.tres
+PASS  kind 合法 res://resources/rooms/beguiling_lantern.tres
+PASS  act 合法 res://resources/rooms/beguiling_lantern.tres
+PASS  element 合法 res://resources/rooms/beguiling_lantern.tres
+PASS  name 非空 res://resources/rooms/beguiling_lantern.tres
+PASS  kind 合法 res://resources/rooms/blasphemy_priest.tres
+PASS  act 合法 res://resources/rooms/blasphemy_priest.tres
+PASS  element 合法 res://resources/rooms/blasphemy_priest.tres
+PASS  name 非空 res://resources/rooms/blasphemy_priest.tres
+PASS  kind 合法 res://resources/rooms/brittle_gargoyle.tres
+PASS  act 合法 res://resources/rooms/brittle_gargoyle.tres
+PASS  element 合法 res://resources/rooms/brittle_gargoyle.tres
+PASS  name 非空 res://resources/rooms/brittle_gargoyle.tres
+PASS  房间意图 id 已定义 res://resources/rooms/brittle_gargoyle.tres (attack)
+PASS  房间意图 id 已定义 res://resources/rooms/brittle_gargoyle.tres (heavy)
+PASS  kind 合法 res://resources/rooms/cocoon_sentinel.tres
+PASS  act 合法 res://resources/rooms/cocoon_sentinel.tres
+PASS  element 合法 res://resources/rooms/cocoon_sentinel.tres
+PASS  name 非空 res://resources/rooms/cocoon_sentinel.tres
+PASS  房间意图 id 已定义 res://resources/rooms/cocoon_sentinel.tres (attack)
+PASS  房间意图 id 已定义 res://resources/rooms/cocoon_sentinel.tres (jam)
+PASS  房间意图 id 已定义 res://resources/rooms/cocoon_sentinel.tres (heavy)
+PASS  kind 合法 res://resources/rooms/collapsing_core.tres
+PASS  act 合法 res://resources/rooms/collapsing_core.tres
+PASS  element 合法 res://resources/rooms/collapsing_core.tres
+PASS  name 非空 res://resources/rooms/collapsing_core.tres
+PASS  kind 合法 res://resources/rooms/corrupted_slime.tres
+PASS  act 合法 res://resources/rooms/corrupted_slime.tres
+PASS  element 合法 res://resources/rooms/corrupted_slime.tres
+PASS  name 非空 res://resources/rooms/corrupted_slime.tres
+PASS  kind 合法 res://resources/rooms/cracked_statue.tres
+PASS  act 合法 res://resources/rooms/cracked_statue.tres
+PASS  element 合法 res://resources/rooms/cracked_statue.tres
+PASS  name 非空 res://resources/rooms/cracked_statue.tres
+PASS  kind 合法 res://resources/rooms/defiled_scribe.tres
+PASS  act 合法 res://resources/rooms/defiled_scribe.tres
+PASS  element 合法 res://resources/rooms/defiled_scribe.tres
+PASS  name 非空 res://resources/rooms/defiled_scribe.tres
+PASS  kind 合法 res://resources/rooms/ember_golem.tres
+PASS  act 合法 res://resources/rooms/ember_golem.tres
+PASS  element 合法 res://resources/rooms/ember_golem.tres
+PASS  name 非空 res://resources/rooms/ember_golem.tres
+PASS  kind 合法 res://resources/rooms/final_watcher.tres
+PASS  act 合法 res://resources/rooms/final_watcher.tres
+PASS  element 合法 res://resources/rooms/final_watcher.tres
+PASS  name 非空 res://resources/rooms/final_watcher.tres
+PASS  kind 合法 res://resources/rooms/frost_bat.tres
+PASS  act 合法 res://resources/rooms/frost_bat.tres
+PASS  element 合法 res://resources/rooms/frost_bat.tres
+PASS  name 非空 res://resources/rooms/frost_bat.tres
+PASS  kind 合法 res://resources/rooms/frozen_urn.tres
+PASS  act 合法 res://resources/rooms/frozen_urn.tres
+PASS  element 合法 res://resources/rooms/frozen_urn.tres
+PASS  name 非空 res://resources/rooms/frozen_urn.tres
+PASS  房间意图 id 已定义 res://resources/rooms/frozen_urn.tres (attack)
+PASS  房间意图 id 已定义 res://resources/rooms/frozen_urn.tres (heavy)
+PASS  kind 合法 res://resources/rooms/grand_inquisitor.tres
+PASS  act 合法 res://resources/rooms/grand_inquisitor.tres
+PASS  element 合法 res://resources/rooms/grand_inquisitor.tres
+PASS  name 非空 res://resources/rooms/grand_inquisitor.tres
+PASS  房间意图 id 已定义 res://resources/rooms/grand_inquisitor.tres (attack)
+PASS  房间意图 id 已定义 res://resources/rooms/grand_inquisitor.tres (heavy)
+PASS  房间意图 id 已定义 res://resources/rooms/grand_inquisitor.tres (jam)
+PASS  kind 合法 res://resources/rooms/hero_shadow.tres
+PASS  act 合法 res://resources/rooms/hero_shadow.tres
+PASS  element 合法 res://resources/rooms/hero_shadow.tres
+PASS  name 非空 res://resources/rooms/hero_shadow.tres
+PASS  房间意图 id 已定义 res://resources/rooms/hero_shadow.tres (attack)
+PASS  房间意图 id 已定义 res://resources/rooms/hero_shadow.tres (heavy)
+PASS  房间意图 id 已定义 res://resources/rooms/hero_shadow.tres (jam)
+PASS  kind 合法 res://resources/rooms/humus_worm.tres
+PASS  act 合法 res://resources/rooms/humus_worm.tres
+PASS  element 合法 res://resources/rooms/humus_worm.tres
+PASS  name 非空 res://resources/rooms/humus_worm.tres
+PASS  行为族引用有效 res://resources/rooms/humus_worm.tres
+PASS  kind 合法 res://resources/rooms/manic_elementalist.tres
+PASS  act 合法 res://resources/rooms/manic_elementalist.tres
+PASS  element 合法 res://resources/rooms/manic_elementalist.tres
+PASS  name 非空 res://resources/rooms/manic_elementalist.tres
+PASS  房间意图 id 已定义 res://resources/rooms/manic_elementalist.tres (attack)
+PASS  房间意图 id 已定义 res://resources/rooms/manic_elementalist.tres (heavy)
+PASS  kind 合法 res://resources/rooms/maze_whisperer.tres
+PASS  act 合法 res://resources/rooms/maze_whisperer.tres
+PASS  element 合法 res://resources/rooms/maze_whisperer.tres
+PASS  name 非空 res://resources/rooms/maze_whisperer.tres
+PASS  房间意图 id 已定义 res://resources/rooms/maze_whisperer.tres (attack)
+PASS  房间意图 id 已定义 res://resources/rooms/maze_whisperer.tres (jam)
+PASS  房间意图 id 已定义 res://resources/rooms/maze_whisperer.tres (lock)
+PASS  kind 合法 res://resources/rooms/nameless_void.tres
+PASS  act 合法 res://resources/rooms/nameless_void.tres
+PASS  element 合法 res://resources/rooms/nameless_void.tres
+PASS  name 非空 res://resources/rooms/nameless_void.tres
+PASS  房间意图 id 已定义 res://resources/rooms/nameless_void.tres (attack)
+PASS  房间意图 id 已定义 res://resources/rooms/nameless_void.tres (heavy)
+PASS  kind 合法 res://resources/rooms/riftsoul_wanderer.tres
+PASS  act 合法 res://resources/rooms/riftsoul_wanderer.tres
+PASS  element 合法 res://resources/rooms/riftsoul_wanderer.tres
+PASS  name 非空 res://resources/rooms/riftsoul_wanderer.tres
+PASS  kind 合法 res://resources/rooms/rust_blind_bat.tres
+PASS  act 合法 res://resources/rooms/rust_blind_bat.tres
+PASS  element 合法 res://resources/rooms/rust_blind_bat.tres
+PASS  name 非空 res://resources/rooms/rust_blind_bat.tres
+PASS  kind 合法 res://resources/rooms/scale_inquisitor.tres
+PASS  act 合法 res://resources/rooms/scale_inquisitor.tres
+PASS  element 合法 res://resources/rooms/scale_inquisitor.tres
+PASS  name 非空 res://resources/rooms/scale_inquisitor.tres
+PASS  房间意图 id 已定义 res://resources/rooms/scale_inquisitor.tres (attack)
+PASS  房间意图 id 已定义 res://resources/rooms/scale_inquisitor.tres (heavy)
+PASS  kind 合法 res://resources/rooms/shadow_acolyte.tres
+PASS  act 合法 res://resources/rooms/shadow_acolyte.tres
+PASS  element 合法 res://resources/rooms/shadow_acolyte.tres
+PASS  name 非空 res://resources/rooms/shadow_acolyte.tres
+PASS  kind 合法 res://resources/rooms/shattered_king.tres
+PASS  act 合法 res://resources/rooms/shattered_king.tres
+PASS  element 合法 res://resources/rooms/shattered_king.tres
+PASS  name 非空 res://resources/rooms/shattered_king.tres
+PASS  房间意图 id 已定义 res://resources/rooms/shattered_king.tres (attack)
+PASS  房间意图 id 已定义 res://resources/rooms/shattered_king.tres (heavy)
+PASS  kind 合法 res://resources/rooms/toxin_spore.tres
+PASS  act 合法 res://resources/rooms/toxin_spore.tres
+PASS  element 合法 res://resources/rooms/toxin_spore.tres
+PASS  name 非空 res://resources/rooms/toxin_spore.tres
+PASS  kind 合法 res://resources/rooms/void_echo.tres
+PASS  act 合法 res://resources/rooms/void_echo.tres
+PASS  element 合法 res://resources/rooms/void_echo.tres
+PASS  name 非空 res://resources/rooms/void_echo.tres
+PASS  kind 合法 res://resources/rooms/void_whisperer.tres
+PASS  act 合法 res://resources/rooms/void_whisperer.tres
+PASS  element 合法 res://resources/rooms/void_whisperer.tres
+PASS  name 非空 res://resources/rooms/void_whisperer.tres
+PASS  kind 合法 res://resources/rooms/whispering_cultist.tres
+PASS  act 合法 res://resources/rooms/whispering_cultist.tres
+PASS  element 合法 res://resources/rooms/whispering_cultist.tres
+PASS  name 非空 res://resources/rooms/whispering_cultist.tres
+PASS  RoomData 总数 ≥61，实测 61
+PASS  武器符号引用有效 res://resources/weapon_templates/absolute_zero.tres
+PASS  符号权重 >0 res://resources/weapon_templates/absolute_zero.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/absolute_zero.tres
+PASS  符号权重 >0 res://resources/weapon_templates/absolute_zero.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/absolute_zero.tres
+PASS  元素武器带本系状态 res://resources/weapon_templates/absolute_zero.tres (ice)
+PASS  武器符号引用有效 res://resources/weapon_templates/abyss_scythe.tres
+PASS  符号权重 >0 res://resources/weapon_templates/abyss_scythe.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/abyss_scythe.tres
+PASS  符号权重 >0 res://resources/weapon_templates/abyss_scythe.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/abyss_scythe.tres
+PASS  光/暗/无武器零状态 res://resources/weapon_templates/abyss_scythe.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/abyss_staff.tres
+PASS  符号权重 >0 res://resources/weapon_templates/abyss_staff.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/abyss_staff.tres
+PASS  符号权重 >0 res://resources/weapon_templates/abyss_staff.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/abyss_staff.tres
+PASS  光/暗/无武器零状态 res://resources/weapon_templates/abyss_staff.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/acid_flask.tres
+PASS  符号权重 >0 res://resources/weapon_templates/acid_flask.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/acid_flask.tres
+PASS  符号权重 >0 res://resources/weapon_templates/acid_flask.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/acid_flask.tres
+PASS  元素武器带本系状态 res://resources/weapon_templates/acid_flask.tres (poison)
+PASS  武器符号引用有效 res://resources/weapon_templates/acolyte_blade.tres
+PASS  符号权重 >0 res://resources/weapon_templates/acolyte_blade.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/acolyte_blade.tres
+PASS  光/暗/无武器零状态 res://resources/weapon_templates/acolyte_blade.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/armor_pierce_crossbow.tres
+PASS  符号权重 >0 res://resources/weapon_templates/armor_pierce_crossbow.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/armor_pierce_crossbow.tres
+PASS  光/暗/无武器零状态 res://resources/weapon_templates/armor_pierce_crossbow.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/battle_axe.tres
+PASS  符号权重 >0 res://resources/weapon_templates/battle_axe.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/battle_axe.tres
+PASS  光/暗/无武器零状态 res://resources/weapon_templates/battle_axe.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/blight_spear.tres
+PASS  符号权重 >0 res://resources/weapon_templates/blight_spear.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/blight_spear.tres
+PASS  符号权重 >0 res://resources/weapon_templates/blight_spear.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/blight_spear.tres
+PASS  元素武器带本系状态 res://resources/weapon_templates/blight_spear.tres (poison)
+PASS  武器符号引用有效 res://resources/weapon_templates/blizzard_staff.tres
+PASS  符号权重 >0 res://resources/weapon_templates/blizzard_staff.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/blizzard_staff.tres
+PASS  符号权重 >0 res://resources/weapon_templates/blizzard_staff.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/blizzard_staff.tres
+PASS  元素武器带本系状态 res://resources/weapon_templates/blizzard_staff.tres (ice)
+PASS  武器符号引用有效 res://resources/weapon_templates/cinder_cleaver.tres
+PASS  符号权重 >0 res://resources/weapon_templates/cinder_cleaver.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/cinder_cleaver.tres
+PASS  符号权重 >0 res://resources/weapon_templates/cinder_cleaver.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/cinder_cleaver.tres
+PASS  元素武器带本系状态 res://resources/weapon_templates/cinder_cleaver.tres (fire)
+PASS  武器符号引用有效 res://resources/weapon_templates/cinder_hatchet.tres
+PASS  符号权重 >0 res://resources/weapon_templates/cinder_hatchet.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/cinder_hatchet.tres
+PASS  符号权重 >0 res://resources/weapon_templates/cinder_hatchet.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/cinder_hatchet.tres
+PASS  元素武器带本系状态 res://resources/weapon_templates/cinder_hatchet.tres (fire)
+PASS  武器符号引用有效 res://resources/weapon_templates/cinder_saber.tres
+PASS  符号权重 >0 res://resources/weapon_templates/cinder_saber.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/cinder_saber.tres
+PASS  符号权重 >0 res://resources/weapon_templates/cinder_saber.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/cinder_saber.tres
+PASS  元素武器带本系状态 res://resources/weapon_templates/cinder_saber.tres (fire)
+PASS  武器符号引用有效 res://resources/weapon_templates/corrosive_bow.tres
+PASS  符号权重 >0 res://resources/weapon_templates/corrosive_bow.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/corrosive_bow.tres
+PASS  符号权重 >0 res://resources/weapon_templates/corrosive_bow.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/corrosive_bow.tres
+PASS  元素武器带本系状态 res://resources/weapon_templates/corrosive_bow.tres (poison)
+PASS  武器符号引用有效 res://resources/weapon_templates/crusader_greatsword.tres
+PASS  符号权重 >0 res://resources/weapon_templates/crusader_greatsword.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/crusader_greatsword.tres
+PASS  光/暗/无武器零状态 res://resources/weapon_templates/crusader_greatsword.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/dagger.tres
+PASS  符号权重 >0 res://resources/weapon_templates/dagger.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/dagger.tres
+PASS  光/暗/无武器零状态 res://resources/weapon_templates/dagger.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/dawn_blade.tres
+PASS  符号权重 >0 res://resources/weapon_templates/dawn_blade.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/dawn_blade.tres
+PASS  符号权重 >0 res://resources/weapon_templates/dawn_blade.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/dawn_blade.tres
+PASS  光/暗/无武器零状态 res://resources/weapon_templates/dawn_blade.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/dawn_bow.tres
+PASS  符号权重 >0 res://resources/weapon_templates/dawn_bow.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/dawn_bow.tres
+PASS  光/暗/无武器零状态 res://resources/weapon_templates/dawn_bow.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/dawn_staff.tres
+PASS  符号权重 >0 res://resources/weapon_templates/dawn_staff.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/dawn_staff.tres
+PASS  符号权重 >0 res://resources/weapon_templates/dawn_staff.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/dawn_staff.tres
+PASS  光/暗/无武器零状态 res://resources/weapon_templates/dawn_staff.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/dread_greatsword.tres
+PASS  符号权重 >0 res://resources/weapon_templates/dread_greatsword.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/dread_greatsword.tres
+PASS  光/暗/无武器零状态 res://resources/weapon_templates/dread_greatsword.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/dueling_saber.tres
+PASS  符号权重 >0 res://resources/weapon_templates/dueling_saber.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/dueling_saber.tres
+PASS  光/暗/无武器零状态 res://resources/weapon_templates/dueling_saber.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/dusk_hatchet.tres
+PASS  符号权重 >0 res://resources/weapon_templates/dusk_hatchet.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/dusk_hatchet.tres
+PASS  光/暗/无武器零状态 res://resources/weapon_templates/dusk_hatchet.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/eclipse_blade.tres
+PASS  符号权重 >0 res://resources/weapon_templates/eclipse_blade.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/eclipse_blade.tres
+PASS  光/暗/无武器零状态 res://resources/weapon_templates/eclipse_blade.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/ember_dagger.tres
+PASS  符号权重 >0 res://resources/weapon_templates/ember_dagger.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/ember_dagger.tres
+PASS  符号权重 >0 res://resources/weapon_templates/ember_dagger.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/ember_dagger.tres
+PASS  元素武器带本系状态 res://resources/weapon_templates/ember_dagger.tres (fire)
+PASS  武器符号引用有效 res://resources/weapon_templates/ember_staff.tres
+PASS  符号权重 >0 res://resources/weapon_templates/ember_staff.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/ember_staff.tres
+PASS  符号权重 >0 res://resources/weapon_templates/ember_staff.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/ember_staff.tres
+PASS  元素武器带本系状态 res://resources/weapon_templates/ember_staff.tres (fire)
+PASS  武器符号引用有效 res://resources/weapon_templates/ember_sword.tres
+PASS  符号权重 >0 res://resources/weapon_templates/ember_sword.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/ember_sword.tres
+PASS  符号权重 >0 res://resources/weapon_templates/ember_sword.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/ember_sword.tres
+PASS  元素武器带本系状态 res://resources/weapon_templates/ember_sword.tres (fire)
+PASS  武器符号引用有效 res://resources/weapon_templates/executioner_axe.tres
+PASS  符号权重 >0 res://resources/weapon_templates/executioner_axe.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/executioner_axe.tres
+PASS  光/暗/无武器零状态 res://resources/weapon_templates/executioner_axe.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/fire_sword.tres
+PASS  符号权重 >0 res://resources/weapon_templates/fire_sword.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/fire_sword.tres
+PASS  符号权重 >0 res://resources/weapon_templates/fire_sword.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/fire_sword.tres
+PASS  元素武器带本系状态 res://resources/weapon_templates/fire_sword.tres (fire)
+PASS  武器符号引用有效 res://resources/weapon_templates/fire_wand.tres
+PASS  符号权重 >0 res://resources/weapon_templates/fire_wand.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/fire_wand.tres
+PASS  符号权重 >0 res://resources/weapon_templates/fire_wand.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/fire_wand.tres
+PASS  元素武器带本系状态 res://resources/weapon_templates/fire_wand.tres (fire)
+PASS  武器符号引用有效 res://resources/weapon_templates/flame_scimitar.tres
+PASS  符号权重 >0 res://resources/weapon_templates/flame_scimitar.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/flame_scimitar.tres
+PASS  符号权重 >0 res://resources/weapon_templates/flame_scimitar.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/flame_scimitar.tres
+PASS  元素武器带本系状态 res://resources/weapon_templates/flame_scimitar.tres (fire)
+PASS  武器符号引用有效 res://resources/weapon_templates/flame_staff.tres
+PASS  符号权重 >0 res://resources/weapon_templates/flame_staff.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/flame_staff.tres
+PASS  符号权重 >0 res://resources/weapon_templates/flame_staff.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/flame_staff.tres
+PASS  元素武器带本系状态 res://resources/weapon_templates/flame_staff.tres (fire)
+PASS  武器符号引用有效 res://resources/weapon_templates/flare_dagger.tres
+PASS  符号权重 >0 res://resources/weapon_templates/flare_dagger.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/flare_dagger.tres
+PASS  符号权重 >0 res://resources/weapon_templates/flare_dagger.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/flare_dagger.tres
+PASS  元素武器带本系状态 res://resources/weapon_templates/flare_dagger.tres (fire)
+PASS  武器符号引用有效 res://resources/weapon_templates/flintlock.tres
+PASS  符号权重 >0 res://resources/weapon_templates/flintlock.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/flintlock.tres
+PASS  光/暗/无武器零状态 res://resources/weapon_templates/flintlock.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/forge_greatsword.tres
+PASS  符号权重 >0 res://resources/weapon_templates/forge_greatsword.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/forge_greatsword.tres
+PASS  符号权重 >0 res://resources/weapon_templates/forge_greatsword.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/forge_greatsword.tres
+PASS  元素武器带本系状态 res://resources/weapon_templates/forge_greatsword.tres (fire)
+PASS  武器符号引用有效 res://resources/weapon_templates/frost_blade.tres
+PASS  符号权重 >0 res://resources/weapon_templates/frost_blade.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/frost_blade.tres
+PASS  符号权重 >0 res://resources/weapon_templates/frost_blade.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/frost_blade.tres
+PASS  元素武器带本系状态 res://resources/weapon_templates/frost_blade.tres (ice)
+PASS  武器符号引用有效 res://resources/weapon_templates/frost_dagger.tres
+PASS  符号权重 >0 res://resources/weapon_templates/frost_dagger.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/frost_dagger.tres
+PASS  符号权重 >0 res://resources/weapon_templates/frost_dagger.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/frost_dagger.tres
+PASS  元素武器带本系状态 res://resources/weapon_templates/frost_dagger.tres (ice)
+PASS  武器符号引用有效 res://resources/weapon_templates/frost_lance.tres
+PASS  符号权重 >0 res://resources/weapon_templates/frost_lance.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/frost_lance.tres
+PASS  符号权重 >0 res://resources/weapon_templates/frost_lance.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/frost_lance.tres
+PASS  元素武器带本系状态 res://resources/weapon_templates/frost_lance.tres (ice)
+PASS  武器符号引用有效 res://resources/weapon_templates/frost_wand.tres
+PASS  符号权重 >0 res://resources/weapon_templates/frost_wand.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/frost_wand.tres
+PASS  符号权重 >0 res://resources/weapon_templates/frost_wand.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/frost_wand.tres
+PASS  元素武器带本系状态 res://resources/weapon_templates/frost_wand.tres (ice)
+PASS  武器符号引用有效 res://resources/weapon_templates/frozen_spear.tres
+PASS  符号权重 >0 res://resources/weapon_templates/frozen_spear.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/frozen_spear.tres
+PASS  符号权重 >0 res://resources/weapon_templates/frozen_spear.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/frozen_spear.tres
+PASS  元素武器带本系状态 res://resources/weapon_templates/frozen_spear.tres (ice)
+PASS  武器符号引用有效 res://resources/weapon_templates/glacier_greatsword.tres
+PASS  符号权重 >0 res://resources/weapon_templates/glacier_greatsword.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/glacier_greatsword.tres
+PASS  符号权重 >0 res://resources/weapon_templates/glacier_greatsword.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/glacier_greatsword.tres
+PASS  元素武器带本系状态 res://resources/weapon_templates/glacier_greatsword.tres (ice)
+PASS  武器符号引用有效 res://resources/weapon_templates/glacier_maul.tres
+PASS  符号权重 >0 res://resources/weapon_templates/glacier_maul.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/glacier_maul.tres
+PASS  符号权重 >0 res://resources/weapon_templates/glacier_maul.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/glacier_maul.tres
+PASS  元素武器带本系状态 res://resources/weapon_templates/glacier_maul.tres (ice)
+PASS  武器符号引用有效 res://resources/weapon_templates/gloom_saber.tres
+PASS  符号权重 >0 res://resources/weapon_templates/gloom_saber.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/gloom_saber.tres
+PASS  光/暗/无武器零状态 res://resources/weapon_templates/gloom_saber.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/grave_hammer.tres
+PASS  符号权重 >0 res://resources/weapon_templates/grave_hammer.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/grave_hammer.tres
+PASS  光/暗/无武器零状态 res://resources/weapon_templates/grave_hammer.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/holy_lance.tres
+PASS  符号权重 >0 res://resources/weapon_templates/holy_lance.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/holy_lance.tres
+PASS  符号权重 >0 res://resources/weapon_templates/holy_lance.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/holy_lance.tres
+PASS  光/暗/无武器零状态 res://resources/weapon_templates/holy_lance.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/holy_mace.tres
+PASS  符号权重 >0 res://resources/weapon_templates/holy_mace.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/holy_mace.tres
+PASS  符号权重 >0 res://resources/weapon_templates/holy_mace.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/holy_mace.tres
+PASS  光/暗/无武器零状态 res://resources/weapon_templates/holy_mace.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/holy_sword.tres
+PASS  符号权重 >0 res://resources/weapon_templates/holy_sword.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/holy_sword.tres
+PASS  光/暗/无武器零状态 res://resources/weapon_templates/holy_sword.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/hunting_bow.tres
+PASS  符号权重 >0 res://resources/weapon_templates/hunting_bow.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/hunting_bow.tres
+PASS  光/暗/无武器零状态 res://resources/weapon_templates/hunting_bow.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/ice_cleaver.tres
+PASS  符号权重 >0 res://resources/weapon_templates/ice_cleaver.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/ice_cleaver.tres
+PASS  符号权重 >0 res://resources/weapon_templates/ice_cleaver.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/ice_cleaver.tres
+PASS  元素武器带本系状态 res://resources/weapon_templates/ice_cleaver.tres (ice)
+PASS  武器符号引用有效 res://resources/weapon_templates/ice_gun.tres
+PASS  符号权重 >0 res://resources/weapon_templates/ice_gun.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/ice_gun.tres
+PASS  符号权重 >0 res://resources/weapon_templates/ice_gun.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/ice_gun.tres
+PASS  元素武器带本系状态 res://resources/weapon_templates/ice_gun.tres (ice)
+PASS  武器符号引用有效 res://resources/weapon_templates/ice_staff.tres
+PASS  符号权重 >0 res://resources/weapon_templates/ice_staff.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/ice_staff.tres
+PASS  符号权重 >0 res://resources/weapon_templates/ice_staff.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/ice_staff.tres
+PASS  元素武器带本系状态 res://resources/weapon_templates/ice_staff.tres (ice)
+PASS  武器符号引用有效 res://resources/weapon_templates/icicle_dart.tres
+PASS  符号权重 >0 res://resources/weapon_templates/icicle_dart.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/icicle_dart.tres
+PASS  符号权重 >0 res://resources/weapon_templates/icicle_dart.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/icicle_dart.tres
+PASS  元素武器带本系状态 res://resources/weapon_templates/icicle_dart.tres (ice)
+PASS  武器符号引用有效 res://resources/weapon_templates/inferno_axe.tres
+PASS  符号权重 >0 res://resources/weapon_templates/inferno_axe.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/inferno_axe.tres
+PASS  符号权重 >0 res://resources/weapon_templates/inferno_axe.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/inferno_axe.tres
+PASS  元素武器带本系状态 res://resources/weapon_templates/inferno_axe.tres (fire)
+PASS  武器符号引用有效 res://resources/weapon_templates/iron_spear.tres
+PASS  符号权重 >0 res://resources/weapon_templates/iron_spear.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/iron_spear.tres
+PASS  光/暗/无武器零状态 res://resources/weapon_templates/iron_spear.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/iron_sword.tres
+PASS  符号权重 >0 res://resources/weapon_templates/iron_sword.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/iron_sword.tres
+PASS  光/暗/无武器零状态 res://resources/weapon_templates/iron_sword.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/judgment_greatsword.tres
+PASS  符号权重 >0 res://resources/weapon_templates/judgment_greatsword.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/judgment_greatsword.tres
+PASS  光/暗/无武器零状态 res://resources/weapon_templates/judgment_greatsword.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/mace.tres
+PASS  符号权重 >0 res://resources/weapon_templates/mace.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/mace.tres
+PASS  光/暗/无武器零状态 res://resources/weapon_templates/mace.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/magma_maul.tres
+PASS  符号权重 >0 res://resources/weapon_templates/magma_maul.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/magma_maul.tres
+PASS  符号权重 >0 res://resources/weapon_templates/magma_maul.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/magma_maul.tres
+PASS  元素武器带本系状态 res://resources/weapon_templates/magma_maul.tres (fire)
+PASS  武器符号引用有效 res://resources/weapon_templates/miasma_staff.tres
+PASS  符号权重 >0 res://resources/weapon_templates/miasma_staff.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/miasma_staff.tres
+PASS  符号权重 >0 res://resources/weapon_templates/miasma_staff.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/miasma_staff.tres
+PASS  元素武器带本系状态 res://resources/weapon_templates/miasma_staff.tres (poison)
+PASS  武器符号引用有效 res://resources/weapon_templates/night_scythe.tres
+PASS  符号权重 >0 res://resources/weapon_templates/night_scythe.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/night_scythe.tres
+PASS  光/暗/无武器零状态 res://resources/weapon_templates/night_scythe.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/pistol.tres
+PASS  符号权重 >0 res://resources/weapon_templates/pistol.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/pistol.tres
+PASS  光/暗/无武器零状态 res://resources/weapon_templates/pistol.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/plague_hatchet.tres
+PASS  符号权重 >0 res://resources/weapon_templates/plague_hatchet.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/plague_hatchet.tres
+PASS  符号权重 >0 res://resources/weapon_templates/plague_hatchet.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/plague_hatchet.tres
+PASS  元素武器带本系状态 res://resources/weapon_templates/plague_hatchet.tres (poison)
+PASS  武器符号引用有效 res://resources/weapon_templates/plague_reaper.tres
+PASS  符号权重 >0 res://resources/weapon_templates/plague_reaper.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/plague_reaper.tres
+PASS  符号权重 >0 res://resources/weapon_templates/plague_reaper.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/plague_reaper.tres
+PASS  元素武器带本系状态 res://resources/weapon_templates/plague_reaper.tres (poison)
+PASS  武器符号引用有效 res://resources/weapon_templates/poison_dagger.tres
+PASS  符号权重 >0 res://resources/weapon_templates/poison_dagger.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/poison_dagger.tres
+PASS  元素武器带本系状态 res://resources/weapon_templates/poison_dagger.tres (poison)
+PASS  武器符号引用有效 res://resources/weapon_templates/prayer_staff.tres
+PASS  符号权重 >0 res://resources/weapon_templates/prayer_staff.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/prayer_staff.tres
+PASS  符号权重 >0 res://resources/weapon_templates/prayer_staff.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/prayer_staff.tres
+PASS  光/暗/无武器零状态 res://resources/weapon_templates/prayer_staff.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/pyre_staff.tres
+PASS  符号权重 >0 res://resources/weapon_templates/pyre_staff.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/pyre_staff.tres
+PASS  符号权重 >0 res://resources/weapon_templates/pyre_staff.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/pyre_staff.tres
+PASS  元素武器带本系状态 res://resources/weapon_templates/pyre_staff.tres (fire)
+PASS  武器符号引用有效 res://resources/weapon_templates/radiant_saber.tres
+PASS  符号权重 >0 res://resources/weapon_templates/radiant_saber.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/radiant_saber.tres
+PASS  光/暗/无武器零状态 res://resources/weapon_templates/radiant_saber.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/rime_saber.tres
+PASS  符号权重 >0 res://resources/weapon_templates/rime_saber.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/rime_saber.tres
+PASS  符号权重 >0 res://resources/weapon_templates/rime_saber.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/rime_saber.tres
+PASS  元素武器带本系状态 res://resources/weapon_templates/rime_saber.tres (ice)
+PASS  武器符号引用有效 res://resources/weapon_templates/rune_repeater.tres
+PASS  符号权重 >0 res://resources/weapon_templates/rune_repeater.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/rune_repeater.tres
+PASS  符号权重 >0 res://resources/weapon_templates/rune_repeater.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/rune_repeater.tres
+PASS  光/暗/无武器零状态 res://resources/weapon_templates/rune_repeater.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/rusty_cleaver.tres
+PASS  符号权重 >0 res://resources/weapon_templates/rusty_cleaver.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/rusty_cleaver.tres
+PASS  符号权重 >0 res://resources/weapon_templates/rusty_cleaver.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/rusty_cleaver.tres
+PASS  元素武器带本系状态 res://resources/weapon_templates/rusty_cleaver.tres (poison)
+PASS  武器符号引用有效 res://resources/weapon_templates/seraph_codex.tres
+PASS  符号权重 >0 res://resources/weapon_templates/seraph_codex.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/seraph_codex.tres
+PASS  符号权重 >0 res://resources/weapon_templates/seraph_codex.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/seraph_codex.tres
+PASS  光/暗/无武器零状态 res://resources/weapon_templates/seraph_codex.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/shade_dagger.tres
+PASS  符号权重 >0 res://resources/weapon_templates/shade_dagger.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/shade_dagger.tres
+PASS  光/暗/无武器零状态 res://resources/weapon_templates/shade_dagger.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/shadow_dagger.tres
+PASS  符号权重 >0 res://resources/weapon_templates/shadow_dagger.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/shadow_dagger.tres
+PASS  光/暗/无武器零状态 res://resources/weapon_templates/shadow_dagger.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/shadow_guillotine.tres
+PASS  符号权重 >0 res://resources/weapon_templates/shadow_guillotine.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/shadow_guillotine.tres
+PASS  符号权重 >0 res://resources/weapon_templates/shadow_guillotine.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/shadow_guillotine.tres
+PASS  光/暗/无武器零状态 res://resources/weapon_templates/shadow_guillotine.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/short_sword.tres
+PASS  符号权重 >0 res://resources/weapon_templates/short_sword.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/short_sword.tres
+PASS  光/暗/无武器零状态 res://resources/weapon_templates/short_sword.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/sin_blade.tres
+PASS  符号权重 >0 res://resources/weapon_templates/sin_blade.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/sin_blade.tres
+PASS  符号权重 >0 res://resources/weapon_templates/sin_blade.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/sin_blade.tres
+PASS  光/暗/无武器零状态 res://resources/weapon_templates/sin_blade.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/snow_hatchet.tres
+PASS  符号权重 >0 res://resources/weapon_templates/snow_hatchet.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/snow_hatchet.tres
+PASS  符号权重 >0 res://resources/weapon_templates/snow_hatchet.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/snow_hatchet.tres
+PASS  元素武器带本系状态 res://resources/weapon_templates/snow_hatchet.tres (ice)
+PASS  武器符号引用有效 res://resources/weapon_templates/spore_wand.tres
+PASS  符号权重 >0 res://resources/weapon_templates/spore_wand.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/spore_wand.tres
+PASS  符号权重 >0 res://resources/weapon_templates/spore_wand.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/spore_wand.tres
+PASS  元素武器带本系状态 res://resources/weapon_templates/spore_wand.tres (poison)
+PASS  武器符号引用有效 res://resources/weapon_templates/sun_hatchet.tres
+PASS  符号权重 >0 res://resources/weapon_templates/sun_hatchet.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/sun_hatchet.tres
+PASS  符号权重 >0 res://resources/weapon_templates/sun_hatchet.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/sun_hatchet.tres
+PASS  光/暗/无武器零状态 res://resources/weapon_templates/sun_hatchet.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/sunforged_blade.tres
+PASS  符号权重 >0 res://resources/weapon_templates/sunforged_blade.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/sunforged_blade.tres
+PASS  符号权重 >0 res://resources/weapon_templates/sunforged_blade.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/sunforged_blade.tres
+PASS  光/暗/无武器零状态 res://resources/weapon_templates/sunforged_blade.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/sunlance.tres
+PASS  符号权重 >0 res://resources/weapon_templates/sunlance.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/sunlance.tres
+PASS  符号权重 >0 res://resources/weapon_templates/sunlance.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/sunlance.tres
+PASS  光/暗/无武器零状态 res://resources/weapon_templates/sunlance.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/temple_hammer.tres
+PASS  符号权重 >0 res://resources/weapon_templates/temple_hammer.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/temple_hammer.tres
+PASS  光/暗/无武器零状态 res://resources/weapon_templates/temple_hammer.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/toxic_dart.tres
+PASS  符号权重 >0 res://resources/weapon_templates/toxic_dart.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/toxic_dart.tres
+PASS  符号权重 >0 res://resources/weapon_templates/toxic_dart.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/toxic_dart.tres
+PASS  元素武器带本系状态 res://resources/weapon_templates/toxic_dart.tres (poison)
+PASS  武器符号引用有效 res://resources/weapon_templates/toxin_greatsword.tres
+PASS  符号权重 >0 res://resources/weapon_templates/toxin_greatsword.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/toxin_greatsword.tres
+PASS  符号权重 >0 res://resources/weapon_templates/toxin_greatsword.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/toxin_greatsword.tres
+PASS  元素武器带本系状态 res://resources/weapon_templates/toxin_greatsword.tres (poison)
+PASS  武器符号引用有效 res://resources/weapon_templates/umbral_spear.tres
+PASS  符号权重 >0 res://resources/weapon_templates/umbral_spear.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/umbral_spear.tres
+PASS  符号权重 >0 res://resources/weapon_templates/umbral_spear.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/umbral_spear.tres
+PASS  光/暗/无武器零状态 res://resources/weapon_templates/umbral_spear.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/venom_dagger.tres
+PASS  符号权重 >0 res://resources/weapon_templates/venom_dagger.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/venom_dagger.tres
+PASS  符号权重 >0 res://resources/weapon_templates/venom_dagger.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/venom_dagger.tres
+PASS  元素武器带本系状态 res://resources/weapon_templates/venom_dagger.tres (poison)
+PASS  武器符号引用有效 res://resources/weapon_templates/venom_queen.tres
+PASS  符号权重 >0 res://resources/weapon_templates/venom_queen.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/venom_queen.tres
+PASS  符号权重 >0 res://resources/weapon_templates/venom_queen.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/venom_queen.tres
+PASS  元素武器带本系状态 res://resources/weapon_templates/venom_queen.tres (poison)
+PASS  武器符号引用有效 res://resources/weapon_templates/venom_sickle.tres
+PASS  符号权重 >0 res://resources/weapon_templates/venom_sickle.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/venom_sickle.tres
+PASS  符号权重 >0 res://resources/weapon_templates/venom_sickle.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/venom_sickle.tres
+PASS  元素武器带本系状态 res://resources/weapon_templates/venom_sickle.tres (poison)
+PASS  武器符号引用有效 res://resources/weapon_templates/viper_whip.tres
+PASS  符号权重 >0 res://resources/weapon_templates/viper_whip.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/viper_whip.tres
+PASS  符号权重 >0 res://resources/weapon_templates/viper_whip.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/viper_whip.tres
+PASS  元素武器带本系状态 res://resources/weapon_templates/viper_whip.tres (poison)
+PASS  武器符号引用有效 res://resources/weapon_templates/void_wand.tres
+PASS  符号权重 >0 res://resources/weapon_templates/void_wand.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/void_wand.tres
+PASS  符号权重 >0 res://resources/weapon_templates/void_wand.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/void_wand.tres
+PASS  光/暗/无武器零状态 res://resources/weapon_templates/void_wand.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/war_hammer.tres
+PASS  符号权重 >0 res://resources/weapon_templates/war_hammer.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/war_hammer.tres
+PASS  光/暗/无武器零状态 res://resources/weapon_templates/war_hammer.tres
+PASS  武器符号引用有效 res://resources/weapon_templates/woodcutter_axe.tres
+PASS  符号权重 >0 res://resources/weapon_templates/woodcutter_axe.tres
+PASS  武器至少 1 个符号 res://resources/weapon_templates/woodcutter_axe.tres
+PASS  光/暗/无武器零状态 res://resources/weapon_templates/woodcutter_axe.tres
+PASS  装备 id/名称非空 res://resources/charms/abyss_bulwark.tres
+PASS  装备 item_id 唯一 res://resources/charms/abyss_bulwark.tres (abyss_bulwark)
+PASS  护符 effect 合法 res://resources/charms/abyss_bulwark.tres (shield)
+PASS  无负面时不残留数值 res://resources/charms/abyss_bulwark.tres
+PASS  装备 id/名称非空 res://resources/charms/abyss_gaze_relic.tres
+PASS  装备 item_id 唯一 res://resources/charms/abyss_gaze_relic.tres (abyss_gaze_relic)
+PASS  护符 effect 合法 res://resources/charms/abyss_gaze_relic.tres (charge_start)
+PASS  无负面时不残留数值 res://resources/charms/abyss_gaze_relic.tres
+PASS  装备 id/名称非空 res://resources/charms/abyss_relic.tres
+PASS  装备 item_id 唯一 res://resources/charms/abyss_relic.tres (abyss_relic)
+PASS  护符 effect 合法 res://resources/charms/abyss_relic.tres (damage_mult)
+PASS  无负面时不残留数值 res://resources/charms/abyss_relic.tres
+PASS  装备 id/名称非空 res://resources/charms/berserker_nail.tres
+PASS  装备 item_id 唯一 res://resources/charms/berserker_nail.tres (berserker_nail)
+PASS  护符 effect 合法 res://resources/charms/berserker_nail.tres (damage_bonus)
+PASS  护符负面 effect 合法 res://resources/charms/berserker_nail.tres (damage_mult)
+PASS  负面乘区 ∈(0,1) res://resources/charms/berserker_nail.tres (=0.85)
+PASS  装备 id/名称非空 res://resources/charms/blood_pact.tres
+PASS  装备 item_id 唯一 res://resources/charms/blood_pact.tres (blood_pact)
+PASS  护符 effect 合法 res://resources/charms/blood_pact.tres (damage_bonus)
+PASS  护符负面 effect 合法 res://resources/charms/blood_pact.tres (damage_mult)
+PASS  负面乘区 ∈(0,1) res://resources/charms/blood_pact.tres (=0.9)
+PASS  装备 id/名称非空 res://resources/charms/bone_splinter.tres
+PASS  装备 item_id 唯一 res://resources/charms/bone_splinter.tres (bone_splinter)
+PASS  护符 effect 合法 res://resources/charms/bone_splinter.tres (armor_pierce)
+PASS  无负面时不残留数值 res://resources/charms/bone_splinter.tres
+PASS  装备 id/名称非空 res://resources/charms/bulwark_charm.tres
+PASS  装备 item_id 唯一 res://resources/charms/bulwark_charm.tres (bulwark_charm)
+PASS  护符 effect 合法 res://resources/charms/bulwark_charm.tres (shield)
+PASS  无负面时不残留数值 res://resources/charms/bulwark_charm.tres
+PASS  装备 id/名称非空 res://resources/charms/cinder_heart.tres
+PASS  装备 item_id 唯一 res://resources/charms/cinder_heart.tres (cinder_heart)
+PASS  护符 effect 合法 res://resources/charms/cinder_heart.tres (status_boost)
+PASS  护符负面 effect 合法 res://resources/charms/cinder_heart.tres (damage_mult)
+PASS  负面乘区 ∈(0,1) res://resources/charms/cinder_heart.tres (=0.85)
+PASS  装备 id/名称非空 res://resources/charms/counter_shield.tres
+PASS  装备 item_id 唯一 res://resources/charms/counter_shield.tres (counter_shield)
+PASS  护符 effect 合法 res://resources/charms/counter_shield.tres (shield)
+PASS  无负面时不残留数值 res://resources/charms/counter_shield.tres
+PASS  装备 id/名称非空 res://resources/charms/crown_fragment_relic.tres
+PASS  装备 item_id 唯一 res://resources/charms/crown_fragment_relic.tres (crown_fragment_relic)
+PASS  护符 effect 合法 res://resources/charms/crown_fragment_relic.tres (first_hit)
+PASS  无负面时不残留数值 res://resources/charms/crown_fragment_relic.tres
+PASS  装备 id/名称非空 res://resources/charms/crush_seal.tres
+PASS  装备 item_id 唯一 res://resources/charms/crush_seal.tres (crush_seal)
+PASS  护符 effect 合法 res://resources/charms/crush_seal.tres (armor_pierce)
+PASS  无负面时不残留数值 res://resources/charms/crush_seal.tres
+PASS  装备 id/名称非空 res://resources/charms/dual_core_relic.tres
+PASS  装备 item_id 唯一 res://resources/charms/dual_core_relic.tres (dual_core_relic)
+PASS  护符 effect 合法 res://resources/charms/dual_core_relic.tres (element_boost)
+PASS  无负面时不残留数值 res://resources/charms/dual_core_relic.tres
+PASS  装备 id/名称非空 res://resources/charms/element_charm.tres
+PASS  装备 item_id 唯一 res://resources/charms/element_charm.tres (element_charm)
+PASS  护符 effect 合法 res://resources/charms/element_charm.tres (element_boost)
+PASS  无负面时不残留数值 res://resources/charms/element_charm.tres
+PASS  装备 id/名称非空 res://resources/charms/frost_bulwark.tres
+PASS  装备 item_id 唯一 res://resources/charms/frost_bulwark.tres (frost_bulwark)
+PASS  护符 effect 合法 res://resources/charms/frost_bulwark.tres (shield)
+PASS  无负面时不残留数值 res://resources/charms/frost_bulwark.tres
+PASS  装备 id/名称非空 res://resources/charms/frost_core_relic.tres
+PASS  装备 item_id 唯一 res://resources/charms/frost_core_relic.tres (frost_core_relic)
+PASS  护符 effect 合法 res://resources/charms/frost_core_relic.tres (damage_bonus)
+PASS  无负面时不残留数值 res://resources/charms/frost_core_relic.tres
+PASS  装备 id/名称非空 res://resources/charms/gambler_mark.tres
+PASS  装备 item_id 唯一 res://resources/charms/gambler_mark.tres (gambler_mark)
+PASS  护符 effect 合法 res://resources/charms/gambler_mark.tres (shield)
+PASS  护符负面 effect 合法 res://resources/charms/gambler_mark.tres (damage_mult)
+PASS  负面乘区 ∈(0,1) res://resources/charms/gambler_mark.tres (=0.9)
+PASS  装备 id/名称非空 res://resources/charms/glass_edge.tres
+PASS  装备 item_id 唯一 res://resources/charms/glass_edge.tres (glass_edge)
+PASS  护符 effect 合法 res://resources/charms/glass_edge.tres (armor_pierce)
+PASS  护符负面 effect 合法 res://resources/charms/glass_edge.tres (damage_mult)
+PASS  负面乘区 ∈(0,1) res://resources/charms/glass_edge.tres (=0.9)
+PASS  装备 id/名称非空 res://resources/charms/guard_charm.tres
+PASS  装备 item_id 唯一 res://resources/charms/guard_charm.tres (guard_charm)
+PASS  护符 effect 合法 res://resources/charms/guard_charm.tres (shield)
+PASS  无负面时不残留数值 res://resources/charms/guard_charm.tres
+PASS  装备 id/名称非空 res://resources/charms/innocence_seal_relic.tres
+PASS  装备 item_id 唯一 res://resources/charms/innocence_seal_relic.tres (innocence_seal_relic)
+PASS  护符 effect 合法 res://resources/charms/innocence_seal_relic.tres (heal)
+PASS  无负面时不残留数值 res://resources/charms/innocence_seal_relic.tres
+PASS  装备 id/名称非空 res://resources/charms/law_brand_relic.tres
+PASS  装备 item_id 唯一 res://resources/charms/law_brand_relic.tres (law_brand_relic)
+PASS  护符 effect 合法 res://resources/charms/law_brand_relic.tres (damage_mult)
+PASS  无负面时不残留数值 res://resources/charms/law_brand_relic.tres
+PASS  装备 id/名称非空 res://resources/charms/maze_echo_relic.tres
+PASS  装备 item_id 唯一 res://resources/charms/maze_echo_relic.tres (maze_echo_relic)
+PASS  护符 effect 合法 res://resources/charms/maze_echo_relic.tres (free_reroll)
+PASS  无负面时不残留数值 res://resources/charms/maze_echo_relic.tres
+PASS  装备 id/名称非空 res://resources/charms/mirror_charm.tres
+PASS  装备 item_id 唯一 res://resources/charms/mirror_charm.tres (mirror_charm)
+PASS  护符 effect 合法 res://resources/charms/mirror_charm.tres (interference_resist)
+PASS  无负面时不残留数值 res://resources/charms/mirror_charm.tres
+PASS  装备 id/名称非空 res://resources/charms/ossuary_charm.tres
+PASS  装备 item_id 唯一 res://resources/charms/ossuary_charm.tres (ossuary_charm)
+PASS  护符 effect 合法 res://resources/charms/ossuary_charm.tres (shield)
+PASS  护符负面 effect 合法 res://resources/charms/ossuary_charm.tres (damage_mult)
+PASS  负面乘区 ∈(0,1) res://resources/charms/ossuary_charm.tres (=0.85)
+PASS  装备 id/名称非空 res://resources/charms/pierce_charm.tres
+PASS  装备 item_id 唯一 res://resources/charms/pierce_charm.tres (pierce_charm)
+PASS  护符 effect 合法 res://resources/charms/pierce_charm.tres (armor_pierce)
+PASS  无负面时不残留数值 res://resources/charms/pierce_charm.tres
+PASS  装备 id/名称非空 res://resources/charms/pilgrim_ward.tres
+PASS  装备 item_id 唯一 res://resources/charms/pilgrim_ward.tres (pilgrim_ward)
+PASS  护符 effect 合法 res://resources/charms/pilgrim_ward.tres (room_shield)
+PASS  无负面时不残留数值 res://resources/charms/pilgrim_ward.tres
+PASS  装备 id/名称非空 res://resources/charms/poison_ward.tres
+PASS  装备 item_id 唯一 res://resources/charms/poison_ward.tres (poison_ward)
+PASS  护符 effect 合法 res://resources/charms/poison_ward.tres (dot_reduce)
+PASS  无负面时不残留数值 res://resources/charms/poison_ward.tres
+PASS  装备 id/名称非空 res://resources/charms/pyre_sigil.tres
+PASS  装备 item_id 唯一 res://resources/charms/pyre_sigil.tres (pyre_sigil)
+PASS  护符 effect 合法 res://resources/charms/pyre_sigil.tres (first_hit)
+PASS  护符负面 effect 合法 res://resources/charms/pyre_sigil.tres (damage_mult)
+PASS  负面乘区 ∈(0,1) res://resources/charms/pyre_sigil.tres (=0.9)
+PASS  装备 id/名称非空 res://resources/charms/rage_charm.tres
+PASS  装备 item_id 唯一 res://resources/charms/rage_charm.tres (rage_charm)
+PASS  护符 effect 合法 res://resources/charms/rage_charm.tres (damage_mult)
+PASS  无负面时不残留数值 res://resources/charms/rage_charm.tres
+PASS  装备 id/名称非空 res://resources/charms/redemption_heart.tres
+PASS  装备 item_id 唯一 res://resources/charms/redemption_heart.tres (redemption_heart)
+PASS  护符 effect 合法 res://resources/charms/redemption_heart.tres (heal)
+PASS  无负面时不残留数值 res://resources/charms/redemption_heart.tres
+PASS  装备 id/名称非空 res://resources/charms/regen_charm.tres
+PASS  装备 item_id 唯一 res://resources/charms/regen_charm.tres (regen_charm)
+PASS  护符 effect 合法 res://resources/charms/regen_charm.tres (heal)
+PASS  无负面时不残留数值 res://resources/charms/regen_charm.tres
+PASS  装备 id/名称非空 res://resources/charms/resist_charm.tres
+PASS  装备 item_id 唯一 res://resources/charms/resist_charm.tres (resist_charm)
+PASS  护符 effect 合法 res://resources/charms/resist_charm.tres (interference_resist)
+PASS  无负面时不残留数值 res://resources/charms/resist_charm.tres
+PASS  装备 id/名称非空 res://resources/charms/rhythm_shell_relic.tres
+PASS  装备 item_id 唯一 res://resources/charms/rhythm_shell_relic.tres (rhythm_shell_relic)
+PASS  护符 effect 合法 res://resources/charms/rhythm_shell_relic.tres (room_shield)
+PASS  无负面时不残留数值 res://resources/charms/rhythm_shell_relic.tres
+PASS  装备 id/名称非空 res://resources/charms/rust_relic.tres
+PASS  装备 item_id 唯一 res://resources/charms/rust_relic.tres (rust_relic)
+PASS  护符 effect 合法 res://resources/charms/rust_relic.tres (damage_bonus)
+PASS  无负面时不残留数值 res://resources/charms/rust_relic.tres
+PASS  装备 id/名称非空 res://resources/charms/scales_of_judgment.tres
+PASS  装备 item_id 唯一 res://resources/charms/scales_of_judgment.tres (scales_of_judgment)
+PASS  护符 effect 合法 res://resources/charms/scales_of_judgment.tres (damage_mult)
+PASS  无负面时不残留数值 res://resources/charms/scales_of_judgment.tres
+PASS  装备 id/名称非空 res://resources/charms/sharp_charm.tres
+PASS  装备 item_id 唯一 res://resources/charms/sharp_charm.tres (sharp_charm)
+PASS  护符 effect 合法 res://resources/charms/sharp_charm.tres (damage_mult)
+PASS  无负面时不残留数值 res://resources/charms/sharp_charm.tres
+PASS  装备 id/名称非空 res://resources/charms/shattered_mirror.tres
+PASS  装备 item_id 唯一 res://resources/charms/shattered_mirror.tres (shattered_mirror)
+PASS  护符 effect 合法 res://resources/charms/shattered_mirror.tres (element_boost)
+PASS  护符负面 effect 合法 res://resources/charms/shattered_mirror.tres (damage_mult)
+PASS  负面乘区 ∈(0,1) res://resources/charms/shattered_mirror.tres (=0.9)
+PASS  装备 id/名称非空 res://resources/charms/silence_seal_relic.tres
+PASS  装备 item_id 唯一 res://resources/charms/silence_seal_relic.tres (silence_seal_relic)
+PASS  护符 effect 合法 res://resources/charms/silence_seal_relic.tres (interference_resist)
+PASS  无负面时不残留数值 res://resources/charms/silence_seal_relic.tres
+PASS  装备 id/名称非空 res://resources/charms/soul_soothe.tres
+PASS  装备 item_id 唯一 res://resources/charms/soul_soothe.tres (soul_soothe)
+PASS  护符 effect 合法 res://resources/charms/soul_soothe.tres (heal)
+PASS  无负面时不残留数值 res://resources/charms/soul_soothe.tres
+PASS  装备 id/名称非空 res://resources/charms/spore_heart.tres
+PASS  装备 item_id 唯一 res://resources/charms/spore_heart.tres (spore_heart)
+PASS  护符 effect 合法 res://resources/charms/spore_heart.tres (status_boost)
+PASS  护符负面 effect 合法 res://resources/charms/spore_heart.tres (damage_mult)
+PASS  负面乘区 ∈(0,1) res://resources/charms/spore_heart.tres (=0.9)
+PASS  装备 id/名称非空 res://resources/charms/status_charm.tres
+PASS  装备 item_id 唯一 res://resources/charms/status_charm.tres (status_charm)
+PASS  护符 effect 合法 res://resources/charms/status_charm.tres (status_boost)
+PASS  无负面时不残留数值 res://resources/charms/status_charm.tres
+PASS  装备 id/名称非空 res://resources/charms/stone_shard_relic.tres
+PASS  装备 item_id 唯一 res://resources/charms/stone_shard_relic.tres (stone_shard_relic)
+PASS  护符 effect 合法 res://resources/charms/stone_shard_relic.tres (thorns)
+PASS  无负面时不残留数值 res://resources/charms/stone_shard_relic.tres
+PASS  装备 id/名称非空 res://resources/charms/venom_gland_relic.tres
+PASS  装备 item_id 唯一 res://resources/charms/venom_gland_relic.tres (venom_gland_relic)
+PASS  护符 effect 合法 res://resources/charms/venom_gland_relic.tres (dot_amp)
+PASS  无负面时不残留数值 res://resources/charms/venom_gland_relic.tres
+PASS  装备 id/名称非空 res://resources/charms/void_echo_relic.tres
+PASS  装备 item_id 唯一 res://resources/charms/void_echo_relic.tres (void_echo_relic)
+PASS  护符 effect 合法 res://resources/charms/void_echo_relic.tres (status_boost)
+PASS  无负面时不残留数值 res://resources/charms/void_echo_relic.tres
+PASS  装备 id/名称非空 res://resources/charms/ward_charm.tres
+PASS  装备 item_id 唯一 res://resources/charms/ward_charm.tres (ward_charm)
+PASS  护符 effect 合法 res://resources/charms/ward_charm.tres (room_shield)
+PASS  无负面时不残留数值 res://resources/charms/ward_charm.tres
+PASS  装备 id/名称非空 res://resources/charms/whisper_relic.tres
+PASS  装备 item_id 唯一 res://resources/charms/whisper_relic.tres (whisper_relic)
+PASS  护符 effect 合法 res://resources/charms/whisper_relic.tres (interference_resist)
+PASS  无负面时不残留数值 res://resources/charms/whisper_relic.tres
+PASS  装备 id/名称非空 res://resources/consumables/absolution_decree.tres
+PASS  装备 item_id 唯一 res://resources/consumables/absolution_decree.tres (absolution_decree)
+PASS  消耗品 effect 合法 res://resources/consumables/absolution_decree.tres (reroll)
+PASS  消耗品 charges ≥1 res://resources/consumables/absolution_decree.tres
+PASS  消耗品数值 >0 res://resources/consumables/absolution_decree.tres (reroll=2)
+PASS  装备 id/名称非空 res://resources/consumables/acid_solvent.tres
+PASS  装备 item_id 唯一 res://resources/consumables/acid_solvent.tres (acid_solvent)
+PASS  消耗品 effect 合法 res://resources/consumables/acid_solvent.tres (armor_shred)
+PASS  消耗品 charges ≥1 res://resources/consumables/acid_solvent.tres
+PASS  消耗品数值 >0 res://resources/consumables/acid_solvent.tres (armor_shred=12)
+PASS  装备 id/名称非空 res://resources/consumables/assault_potion.tres
+PASS  装备 item_id 唯一 res://resources/consumables/assault_potion.tres (assault_potion)
+PASS  消耗品 effect 合法 res://resources/consumables/assault_potion.tres (assault)
+PASS  消耗品 charges ≥1 res://resources/consumables/assault_potion.tres
+PASS  消耗品数值 >0 res://resources/consumables/assault_potion.tres (assault=2)
+PASS  装备 id/名称非空 res://resources/consumables/atonement_water.tres
+PASS  装备 item_id 唯一 res://resources/consumables/atonement_water.tres (atonement_water)
+PASS  消耗品 effect 合法 res://resources/consumables/atonement_water.tres (heal)
+PASS  消耗品 charges ≥1 res://resources/consumables/atonement_water.tres
+PASS  消耗品数值 >0 res://resources/consumables/atonement_water.tres (heal=80)
+PASS  装备 id/名称非空 res://resources/consumables/cleanse_potion.tres
+PASS  装备 item_id 唯一 res://resources/consumables/cleanse_potion.tres (cleanse_potion)
+PASS  消耗品 effect 合法 res://resources/consumables/cleanse_potion.tres (cleanse)
+PASS  消耗品 charges ≥1 res://resources/consumables/cleanse_potion.tres
+PASS  装备 id/名称非空 res://resources/consumables/dark_essence.tres
+PASS  装备 item_id 唯一 res://resources/consumables/dark_essence.tres (dark_essence)
+PASS  消耗品 effect 合法 res://resources/consumables/dark_essence.tres (element)
+PASS  消耗品 charges ≥1 res://resources/consumables/dark_essence.tres
+PASS  精华元素合法 res://resources/consumables/dark_essence.tres
+PASS  装备 id/名称非空 res://resources/consumables/fire_essence.tres
+PASS  装备 item_id 唯一 res://resources/consumables/fire_essence.tres (fire_essence)
+PASS  消耗品 effect 合法 res://resources/consumables/fire_essence.tres (element)
+PASS  消耗品 charges ≥1 res://resources/consumables/fire_essence.tres
+PASS  精华元素合法 res://resources/consumables/fire_essence.tres
+PASS  装备 id/名称非空 res://resources/consumables/flame_flask.tres
+PASS  装备 item_id 唯一 res://resources/consumables/flame_flask.tres (flame_flask)
+PASS  消耗品 effect 合法 res://resources/consumables/flame_flask.tres (attack)
+PASS  消耗品 charges ≥1 res://resources/consumables/flame_flask.tres
+PASS  消耗品数值 >0 res://resources/consumables/flame_flask.tres (attack=20)
+PASS  攻击消耗品元素合法 res://resources/consumables/flame_flask.tres
+PASS  攻击消耗品挂层 >0 res://resources/consumables/flame_flask.tres
+PASS  装备 id/名称非空 res://resources/consumables/frost_flask.tres
+PASS  装备 item_id 唯一 res://resources/consumables/frost_flask.tres (frost_flask)
+PASS  消耗品 effect 合法 res://resources/consumables/frost_flask.tres (attack)
+PASS  消耗品 charges ≥1 res://resources/consumables/frost_flask.tres
+PASS  消耗品数值 >0 res://resources/consumables/frost_flask.tres (attack=10)
+PASS  攻击消耗品元素合法 res://resources/consumables/frost_flask.tres
+PASS  攻击消耗品挂层 >0 res://resources/consumables/frost_flask.tres
+PASS  装备 id/名称非空 res://resources/consumables/greater_heal_potion.tres
+PASS  装备 item_id 唯一 res://resources/consumables/greater_heal_potion.tres (greater_heal_potion)
+PASS  消耗品 effect 合法 res://resources/consumables/greater_heal_potion.tres (heal)
+PASS  消耗品 charges ≥1 res://resources/consumables/greater_heal_potion.tres
+PASS  消耗品数值 >0 res://resources/consumables/greater_heal_potion.tres (heal=45)
+PASS  装备 id/名称非空 res://resources/consumables/heal_potion.tres
+PASS  装备 item_id 唯一 res://resources/consumables/heal_potion.tres (heal_potion)
+PASS  消耗品 effect 合法 res://resources/consumables/heal_potion.tres (heal)
+PASS  消耗品 charges ≥1 res://resources/consumables/heal_potion.tres
+PASS  消耗品数值 >0 res://resources/consumables/heal_potion.tres (heal=30)
+PASS  装备 id/名称非空 res://resources/consumables/holy_burst.tres
+PASS  装备 item_id 唯一 res://resources/consumables/holy_burst.tres (holy_burst)
+PASS  消耗品 effect 合法 res://resources/consumables/holy_burst.tres (assault)
+PASS  消耗品 charges ≥1 res://resources/consumables/holy_burst.tres
+PASS  消耗品数值 >0 res://resources/consumables/holy_burst.tres (assault=2)
+PASS  装备 id/名称非空 res://resources/consumables/holy_flask.tres
+PASS  装备 item_id 唯一 res://resources/consumables/holy_flask.tres (holy_flask)
+PASS  消耗品 effect 合法 res://resources/consumables/holy_flask.tres (attack)
+PASS  消耗品 charges ≥1 res://resources/consumables/holy_flask.tres
+PASS  消耗品数值 >0 res://resources/consumables/holy_flask.tres (attack=18)
+PASS  攻击消耗品元素合法 res://resources/consumables/holy_flask.tres
+PASS  装备 id/名称非空 res://resources/consumables/holy_grail.tres
+PASS  装备 item_id 唯一 res://resources/consumables/holy_grail.tres (holy_grail)
+PASS  消耗品 effect 合法 res://resources/consumables/holy_grail.tres (heal)
+PASS  消耗品 charges ≥1 res://resources/consumables/holy_grail.tres
+PASS  消耗品数值 >0 res://resources/consumables/holy_grail.tres (heal=60)
+PASS  装备 id/名称非空 res://resources/consumables/ice_essence.tres
+PASS  装备 item_id 唯一 res://resources/consumables/ice_essence.tres (ice_essence)
+PASS  消耗品 effect 合法 res://resources/consumables/ice_essence.tres (element)
+PASS  消耗品 charges ≥1 res://resources/consumables/ice_essence.tres
+PASS  精华元素合法 res://resources/consumables/ice_essence.tres
+PASS  装备 id/名称非空 res://resources/consumables/lava_burst_potion.tres
+PASS  装备 item_id 唯一 res://resources/consumables/lava_burst_potion.tres (lava_burst_potion)
+PASS  消耗品 effect 合法 res://resources/consumables/lava_burst_potion.tres (assault)
+PASS  消耗品 charges ≥1 res://resources/consumables/lava_burst_potion.tres
+PASS  消耗品数值 >0 res://resources/consumables/lava_burst_potion.tres (assault=3)
+PASS  装备 id/名称非空 res://resources/consumables/light_essence.tres
+PASS  装备 item_id 唯一 res://resources/consumables/light_essence.tres (light_essence)
+PASS  消耗品 effect 合法 res://resources/consumables/light_essence.tres (element)
+PASS  消耗品 charges ≥1 res://resources/consumables/light_essence.tres
+PASS  精华元素合法 res://resources/consumables/light_essence.tres
+PASS  装备 id/名称非空 res://resources/consumables/poison_essence.tres
+PASS  装备 item_id 唯一 res://resources/consumables/poison_essence.tres (poison_essence)
+PASS  消耗品 effect 合法 res://resources/consumables/poison_essence.tres (element)
+PASS  消耗品 charges ≥1 res://resources/consumables/poison_essence.tres
+PASS  精华元素合法 res://resources/consumables/poison_essence.tres
+PASS  装备 id/名称非空 res://resources/consumables/purge_water.tres
+PASS  装备 item_id 唯一 res://resources/consumables/purge_water.tres (purge_water)
+PASS  消耗品 effect 合法 res://resources/consumables/purge_water.tres (cleanse)
+PASS  消耗品 charges ≥1 res://resources/consumables/purge_water.tres
+PASS  装备 id/名称非空 res://resources/consumables/purify_potion.tres
+PASS  装备 item_id 唯一 res://resources/consumables/purify_potion.tres (purify_potion)
+PASS  消耗品 effect 合法 res://resources/consumables/purify_potion.tres (purify)
+PASS  消耗品 charges ≥1 res://resources/consumables/purify_potion.tres
+PASS  装备 id/名称非空 res://resources/consumables/recaster_storm.tres
+PASS  装备 item_id 唯一 res://resources/consumables/recaster_storm.tres (recaster_storm)
+PASS  消耗品 effect 合法 res://resources/consumables/recaster_storm.tres (reroll)
+PASS  消耗品 charges ≥1 res://resources/consumables/recaster_storm.tres
+PASS  消耗品数值 >0 res://resources/consumables/recaster_storm.tres (reroll=3)
+PASS  装备 id/名称非空 res://resources/consumables/reroll_scroll.tres
+PASS  装备 item_id 唯一 res://resources/consumables/reroll_scroll.tres (reroll_scroll)
+PASS  消耗品 effect 合法 res://resources/consumables/reroll_scroll.tres (reroll)
+PASS  消耗品 charges ≥1 res://resources/consumables/reroll_scroll.tres
+PASS  消耗品数值 >0 res://resources/consumables/reroll_scroll.tres (reroll=1)
+PASS  装备 id/名称非空 res://resources/consumables/silencing_draught.tres
+PASS  装备 item_id 唯一 res://resources/consumables/silencing_draught.tres (silencing_draught)
+PASS  消耗品 effect 合法 res://resources/consumables/silencing_draught.tres (purify)
+PASS  消耗品 charges ≥1 res://resources/consumables/silencing_draught.tres
+PASS  装备 id/名称非空 res://resources/consumables/venom_dagger.tres
+PASS  装备 item_id 唯一 res://resources/consumables/venom_dagger.tres (venom_dagger)
+PASS  消耗品 effect 合法 res://resources/consumables/venom_dagger.tres (attack)
+PASS  消耗品 charges ≥1 res://resources/consumables/venom_dagger.tres
+PASS  消耗品数值 >0 res://resources/consumables/venom_dagger.tres (attack=15)
+PASS  攻击消耗品元素合法 res://resources/consumables/venom_dagger.tres
+PASS  攻击消耗品挂层 >0 res://resources/consumables/venom_dagger.tres
+PASS  装备 id/名称非空 res://resources/consumables/void_flask.tres
+PASS  装备 item_id 唯一 res://resources/consumables/void_flask.tres (void_flask)
+PASS  消耗品 effect 合法 res://resources/consumables/void_flask.tres (attack)
+PASS  消耗品 charges ≥1 res://resources/consumables/void_flask.tres
+PASS  消耗品数值 >0 res://resources/consumables/void_flask.tres (attack=18)
+PASS  攻击消耗品元素合法 res://resources/consumables/void_flask.tres
+PASS  克制 fire→ice = 1.5
+PASS  克制 ice→fire = 1.5
+PASS  克制 light→dark = 1.5
+PASS  克制 dark→light = 1.5
+PASS  克制 fire→poison = 1.5
+PASS  克制 poison→dark = 1.5
+PASS  克制 ice→poison = 1.0
+PASS  克制 poison→fire = 0.85
+PASS  克制 poison→light = 0.85
+PASS  克制 dark→poison = 0.85
+PASS  克制 fire→fire = 0.85
+PASS  克制 none→fire = 1.0
+PASS  克制 fire→none = 1.0
+PASS  暗系弱点数（光+毒）
+PASS  无属性无弱点
+PASS  意图已定义 attack
+PASS  意图已定义 heavy
+PASS  意图已定义 jam
+PASS  意图已定义 lock
+PASS  意图已定义 chaos
+PASS  意图已定义 auto_stop
+PASS  解锁表键均已定义 jam
+PASS  解锁表键均已定义 lock
+PASS  解锁表键均已定义 chaos
+PASS  解锁表键均已定义 auto_stop
+PASS  分档表正权重 act1/normal
+PASS  分档表意图已定义 act1/normal/attack
+PASS  分档表意图已定义 act1/normal/heavy
+PASS  分档表正权重 act1/elite
+PASS  分档表意图已定义 act1/elite/attack
+PASS  分档表意图已定义 act1/elite/heavy
+PASS  分档表正权重 act2/normal
+PASS  分档表意图已定义 act2/normal/attack
+PASS  分档表意图已定义 act2/normal/heavy
+PASS  分档表意图已定义 act2/normal/jam
+PASS  分档表意图已定义 act2/normal/lock
+PASS  分档表意图已定义 act2/normal/chaos
+PASS  分档表正权重 act2/elite
+PASS  分档表意图已定义 act2/elite/attack
+PASS  分档表意图已定义 act2/elite/heavy
+PASS  分档表意图已定义 act2/elite/jam
+PASS  分档表意图已定义 act2/elite/lock
+PASS  分档表意图已定义 act2/elite/chaos
+PASS  分档表正权重 act3/normal
+PASS  分档表意图已定义 act3/normal/attack
+PASS  分档表意图已定义 act3/normal/heavy
+PASS  分档表意图已定义 act3/normal/jam
+PASS  分档表意图已定义 act3/normal/lock
+PASS  分档表意图已定义 act3/normal/chaos
+PASS  分档表意图已定义 act3/normal/auto_stop
+PASS  分档表正权重 act3/elite
+PASS  分档表意图已定义 act3/elite/attack
+PASS  分档表意图已定义 act3/elite/heavy
+PASS  分档表意图已定义 act3/elite/jam
+PASS  分档表意图已定义 act3/elite/lock
+PASS  分档表意图已定义 act3/elite/chaos
+PASS  分档表意图已定义 act3/elite/auto_stop
+PASS  Act1 分档仅含解锁幕≤1 的意图（实测含 attack）
+PASS  Act1 分档仅含解锁幕≤1 的意图（实测含 heavy）
+PASS  Act1 分档仅含解锁幕≤1 的意图（实测含 attack）
+PASS  Act1 分档仅含解锁幕≤1 的意图（实测含 heavy）
+PASS  BalanceConfig.player_hp_base > 0（=100）
+PASS  BalanceConfig.crit_chance > 0（=0.2）
+PASS  BalanceConfig.charge_max > 0（=6）
+PASS  BalanceConfig.ante_act_step_hp > 0（=1.75）
+PASS  BalanceConfig.ante_act_step_atk > 0（=1.3）
+PASS  BalanceConfig.ante_room_step_hp > 0（=1.15）
+PASS  BalanceConfig.ante_room_step_atk > 0（=1.06）
+PASS  BalanceConfig.player_dmg_mult > 0（=1.5）
+PASS  BalanceConfig.gold_per_coin > 0（=1）
+PASS  crit_chance < 1
+PASS  ante 幕间台阶 ≥1（递增曲线）
+PASS  BalanceConfig.anvil_award_normal == 0
+PASS  BalanceConfig.anvil_award_elite == 3
+PASS  BalanceConfig.anvil_award_boss == 5
+PASS  BalanceConfig.anvil_award_final == 8
+PASS  heal_overflow_shield_cap_pct ∈ (0,1]（=0.2）
+PASS  空增益乘区 = 1.0
+PASS  加法聚合 2+3=5
+PASS  乘法聚合空增益透传
+---
+PASSED 1191 / FAILED 0

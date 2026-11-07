@@ -28,6 +28,14 @@ var _preview_btn: Button = null
 var _preview_panel: PanelContainer = null
 var _preview_box: VBoxContainer = null
 
+# ---- M2 棋盘试玩开关（灰盒期免命令行；只改本进程的 board_config，不写存档）----
+var _board_btn: Button = null
+
+# ---- G6-01 生涯成就面板（只读 meta，不改配装/存档）----
+var _career_btn: Button = null
+var _career_panel: PanelContainer = null
+var _career_box: VBoxContainer = null
+
 # ---- 静态节点（来自 scenes/ui/loadout_scene.tscn，可在编辑器调整）----
 @onready var chars_root: Node2D = $CharsRoot
 @onready var ring: Line2D = $CharsRoot/Ring
@@ -103,6 +111,8 @@ func configure(ctrl, h: BattleHud) -> void:
 	confirm_btn.text = "确认开战 ▶"
 	confirm_btn.pressed.connect(controller._confirm_loadout)
 	_build_preview_ui()
+	_build_board_toggle()
+	_build_career_ui()
 	_update_loadout_anvil()
 
 
@@ -118,6 +128,8 @@ func show_screen() -> void:
 		_ui_layer.visible = true
 	if _preview_panel != null:
 		_preview_panel.visible = false
+	if _career_panel != null:
+		_career_panel.visible = false
 	process_mode = Node.PROCESS_MODE_INHERIT
 	_update_loadout_anvil()
 	_fill_sub(selected_char)
@@ -329,6 +341,128 @@ func _toggle_preview() -> void:
 	_preview_panel.visible = not _preview_panel.visible
 	if _preview_panel.visible:
 		_refresh_preview()
+
+
+# ---------------------------------------------------------------------------
+# M2 棋盘试玩开关：整备底栏小按钮，等价于启动参数 --board（免命令行试玩）。
+# 只改 board_config.enabled 的本进程值，不写存档；确认开战后由 full_reset 读取。
+# ---------------------------------------------------------------------------
+func _build_board_toggle() -> void:
+	if _board_btn != null:
+		return
+	_board_btn = Button.new()
+	_board_btn.add_theme_font_size_override("font_size", 9)
+	_board_btn.tooltip_text = "切换棋盘模式：开启后确认开战进入 ACT1 棋盘（12 节点 / 1D3）"
+	_board_btn.pressed.connect(_toggle_board_mode)
+	var bar: Node = confirm_btn.get_parent()
+	bar.add_child(_board_btn)
+	var idx: int = _preview_btn.get_index() if _preview_btn != null else confirm_btn.get_index()
+	bar.move_child(_board_btn, idx)
+	_refresh_board_toggle()
+
+
+func _toggle_board_mode() -> void:
+	controller.board_config.enabled = not controller.board_config.enabled
+	_refresh_board_toggle()
+	hud._log("棋盘模式：%s（确认开战后生效）" % ("开" if controller.board_config.is_active() else "关"))
+
+
+func _refresh_board_toggle() -> void:
+	if _board_btn == null:
+		return
+	var on: bool = controller.board_config.is_active()
+	_board_btn.text = "🗺 棋盘✓" if on else "🗺 棋盘"
+	_board_btn.modulate = Color(1, 1, 1, 1.0) if on else Color(1, 1, 1, 0.65)
+
+
+# ---------------------------------------------------------------------------
+# G6-01 生涯成就：底栏入口 + 只读列表（一次性解锁来自 meta，跨局保留）。
+# ---------------------------------------------------------------------------
+func _build_career_ui() -> void:
+	if _career_panel != null:
+		return
+	_career_btn = Button.new()
+	_career_btn.text = "🏅"
+	_career_btn.add_theme_font_size_override("font_size", 9)
+	_career_btn.tooltip_text = "生涯成就与下一目标（只发一次，跨局保留）"
+	_career_btn.pressed.connect(_toggle_career)
+	var bar: Node = confirm_btn.get_parent()
+	bar.add_child(_career_btn)
+	bar.move_child(_career_btn, 0)
+
+	_career_panel = PanelContainer.new()
+	_career_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_career_panel.z_index = 30
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Palette.BG_OVERLAY
+	_career_panel.add_theme_stylebox_override("panel", sb)
+	_career_panel.gui_input.connect(func(ev: InputEvent) -> void:
+		if ev is InputEventMouseButton and ev.pressed:
+			_career_panel.visible = false)
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var dlg := PanelContainer.new()
+	var sb2 := StyleBoxFlat.new()
+	sb2.bg_color = Palette.PANEL_BG
+	sb2.border_color = Palette.ACCENT_GOLD
+	sb2.set_border_width_all(2)
+	dlg.add_theme_stylebox_override("panel", sb2)
+	dlg.custom_minimum_size = Vector2(430, 250)
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(410, 230)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_career_box = VBoxContainer.new()
+	_career_box.add_theme_constant_override("separation", 3)
+	_career_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(_career_box)
+	dlg.add_child(scroll)
+	center.add_child(dlg)
+	_career_panel.add_child(center)
+	ui_root.add_child(_career_panel)
+	_career_panel.visible = false
+
+
+func _toggle_career() -> void:
+	if _career_panel == null:
+		return
+	_career_panel.visible = not _career_panel.visible
+	if _career_panel.visible:
+		_refresh_career()
+
+
+func _refresh_career() -> void:
+	if _career_box == null or controller._career == null:
+		return
+	for c in _career_box.get_children():
+		_career_box.remove_child(c)
+		c.queue_free()
+	var career = controller._career
+	var head := Label.new()
+	head.text = "生涯成就 %d/%d · 已击败 BOSS %d" % [
+		career.unlocked_count(), career.total_count(), career.boss_count()]
+	head.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	head.add_theme_font_size_override("font_size", 11)
+	head.add_theme_color_override("font_color", Palette.ACCENT_GOLD)
+	_career_box.add_child(head)
+	for e in career.entries():
+		var row := Label.new()
+		var mark: String = "✓" if bool(e.get("unlocked", false)) else "○"
+		row.text = "%s %s — %s" % [mark, String(e.get("title", "")), String(e.get("desc", ""))]
+		row.add_theme_font_size_override("font_size", 9)
+		row.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		row.custom_minimum_size = Vector2(390, 0)
+		row.add_theme_color_override("font_color",
+			Palette.ACCENT_GOLD if bool(e.get("unlocked", false)) else Color(0.66, 0.66, 0.66))
+		_career_box.add_child(row)
+	var goal := Label.new()
+	var hint: String = career.next_goal_hint()
+	goal.text = ("下一目标：" + hint) if hint != "" else "首批成就已全部完成，等下一批。"
+	goal.add_theme_font_size_override("font_size", 9)
+	goal.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	goal.custom_minimum_size = Vector2(390, 0)
+	goal.add_theme_color_override("font_color", Color(0.85, 0.85, 0.85))
+	_career_box.add_child(goal)
 
 
 func _refresh_preview() -> void:

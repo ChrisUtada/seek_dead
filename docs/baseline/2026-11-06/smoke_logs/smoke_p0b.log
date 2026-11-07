@@ -1,0 +1,238 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+PASS  name 非空 a1_brute_none.tres
+PASS  name 无乱码信号 a1_brute_none.tres (重锤蛮兵)
+PASS  name 非空 a1_bulwark_poison.tres
+PASS  name 无乱码信号 a1_bulwark_poison.tres (毒壳壁垒)
+PASS  name 非空 a1_elite_brute_ice.tres
+PASS  name 无乱码信号 a1_elite_brute_ice.tres (寒铁精英)
+PASS  name 非空 a1_elite_caster_poison.tres
+PASS  name 无乱码信号 a1_elite_caster_poison.tres (毒疫术士)
+PASS  name 非空 a1_hexer_none.tres
+PASS  name 无乱码信号 a1_hexer_none.tres (窃语咒师)
+PASS  name 非空 a1_striker_light.tres
+PASS  name 无乱码信号 a1_striker_light.tres (辉光游侠)
+PASS  name 非空 a1_swarm_ice.tres
+PASS  name 无乱码信号 a1_swarm_ice.tres (冰锋群蝠)
+PASS  name 非空 a1_trickster_dark.tres
+PASS  name 无乱码信号 a1_trickster_dark.tres (暗影诡匠)
+PASS  name 非空 a2_brute_dark.tres
+PASS  name 无乱码信号 a2_brute_dark.tres (暮色蛮兵)
+PASS  name 非空 a2_brute_none.tres
+PASS  name 无乱码信号 a2_brute_none.tres (铁臂蛮兵)
+PASS  name 非空 a2_bulwark_light.tres
+PASS  name 无乱码信号 a2_bulwark_light.tres (圣壳壁垒)
+PASS  name 非空 a2_bulwark_none.tres
+PASS  name 无乱码信号 a2_bulwark_none.tres (石壳壁垒)
+PASS  name 非空 a2_caster_poison.tres
+PASS  name 无乱码信号 a2_caster_poison.tres (毒雾术士)
+PASS  name 非空 a2_elite_hexer_dark.tres
+PASS  name 无乱码信号 a2_elite_hexer_dark.tres (深渊咒师)
+PASS  name 非空 a2_elite_swarmking_fire.tres
+PASS  name 无乱码信号 a2_elite_swarmking_fire.tres (炎爆群王)
+PASS  name 非空 a2_striker_dark.tres
+PASS  name 无乱码信号 a2_striker_dark.tres (暗行游侠)
+PASS  name 非空 a2_swarm_fire.tres
+PASS  name 无乱码信号 a2_swarm_fire.tres (炎锋群蝠)
+PASS  name 非空 a2_trickster_none.tres
+PASS  name 无乱码信号 a2_trickster_none.tres (迷面诡匠)
+PASS  name 非空 a3_brute_light.tres
+PASS  name 无乱码信号 a3_brute_light.tres (辉铁蛮兵)
+PASS  name 非空 a3_brute_none.tres
+PASS  name 无乱码信号 a3_brute_none.tres (深渊蛮兵)
+PASS  name 非空 a3_bulwark_fire.tres
+PASS  name 无乱码信号 a3_bulwark_fire.tres (熔壳壁垒)
+PASS  name 非空 a3_bulwark_none.tres
+PASS  name 无乱码信号 a3_bulwark_none.tres (黑曜壁垒)
+PASS  name 非空 a3_caster_ice.tres
+PASS  name 无乱码信号 a3_caster_ice.tres (霜语术士)
+PASS  name 非空 a3_elite_trickster_dark.tres
+PASS  name 无乱码信号 a3_elite_trickster_dark.tres (终焉诡匠)
+PASS  name 非空 a3_elite_warden_light.tres
+PASS  name 无乱码信号 a3_elite_warden_light.tres (圣盾守关)
+PASS  name 非空 a3_striker_light.tres
+PASS  name 无乱码信号 a3_striker_light.tres (圣辉游侠)
+PASS  name 非空 a3_swarm_poison.tres
+PASS  name 无乱码信号 a3_swarm_poison.tres (毒针群蝠)
+PASS  name 非空 a3_trickster_dark.tres
+PASS  name 无乱码信号 a3_trickster_dark.tres (深渊诡匠)
+PASS  name 非空 abyss_watcher.tres
+PASS  name 无乱码信号 abyss_watcher.tres (深渊监视者)
+PASS  name 非空 abyssal_cantor.tres
+PASS  name 无乱码信号 abyssal_cantor.tres (深渊咏者)
+PASS  name 非空 acid_ghoul.tres
+PASS  name 无乱码信号 acid_ghoul.tres (酸蚀恶鬼)
+PASS  name 非空 acid_golem.tres
+PASS  name 无乱码信号 acid_golem.tres (酸蚀傀儡)
+PASS  name 非空 annihilation_apostle.tres
+PASS  name 无乱码信号 annihilation_apostle.tres (湮灭使徒)
+PASS  name 非空 annihilation_lord.tres
+PASS  name 无乱码信号 annihilation_lord.tres (湮灭领主)
+PASS  name 非空 beguiling_lantern.tres
+PASS  name 无乱码信号 beguiling_lantern.tres (迷魂灯笼)
+PASS  name 非空 blasphemy_priest.tres
+PASS  name 无乱码信号 blasphemy_priest.tres (邪颂祭司)
+PASS  name 非空 brittle_gargoyle.tres
+PASS  name 无乱码信号 brittle_gargoyle.tres (碎裂石像鬼)
+PASS  name 非空 cocoon_sentinel.tres
+PASS  name 无乱码信号 cocoon_sentinel.tres (茧居石雕)
+PASS  name 非空 collapsing_core.tres
+PASS  name 无乱码信号 collapsing_core.tres (坍缩星核)
+PASS  name 非空 corrupted_slime.tres
+PASS  name 无乱码信号 corrupted_slime.tres (腐化史莱姆)
+PASS  name 非空 cracked_statue.tres
+PASS  name 无乱码信号 cracked_statue.tres (裂石像)
+PASS  name 非空 defiled_scribe.tres
+PASS  name 无乱码信号 defiled_scribe.tres (亵渎书吏)
+PASS  name 非空 ember_golem.tres
+PASS  name 无乱码信号 ember_golem.tres (余烬傀儡)
+PASS  name 非空 final_watcher.tres
+PASS  name 无乱码信号 final_watcher.tres (终焉守望)
+PASS  name 非空 frost_bat.tres
+PASS  name 无乱码信号 frost_bat.tres (寒鳞蝠)
+PASS  name 非空 frozen_urn.tres
+PASS  name 无乱码信号 frozen_urn.tres (冰封铁瓮)
+PASS  name 非空 grand_inquisitor.tres
+PASS  name 无乱码信号 grand_inquisitor.tres (耻辱审判官)
+PASS  name 非空 hero_shadow.tres
+PASS  name 无乱码信号 hero_shadow.tres (勇者的阴影)
+PASS  name 非空 humus_worm.tres
+PASS  name 无乱码信号 humus_worm.tres (腐殖巨蠕)
+PASS  name 非空 manic_elementalist.tres
+PASS  name 无乱码信号 manic_elementalist.tres (躁怒元素使)
+PASS  name 非空 maze_whisperer.tres
+PASS  name 无乱码信号 maze_whisperer.tres (迷宫低语者)
+PASS  name 非空 nameless_void.tres
+PASS  name 无乱码信号 nameless_void.tres (无名虚空)
+PASS  name 非空 riftsoul_wanderer.tres
+PASS  name 无乱码信号 riftsoul_wanderer.tres (裂界游魂)
+PASS  name 非空 rust_blind_bat.tres
+PASS  name 无乱码信号 rust_blind_bat.tres (锈盲蝠)
+PASS  name 非空 scale_inquisitor.tres
+PASS  name 无乱码信号 scale_inquisitor.tres (天平审判官)
+PASS  name 非空 shadow_acolyte.tres
+PASS  name 无乱码信号 shadow_acolyte.tres (暗影信徒)
+PASS  name 非空 shattered_king.tres
+PASS  name 无乱码信号 shattered_king.tres (碎裂魔王)
+PASS  name 非空 toxin_spore.tres
+PASS  name 无乱码信号 toxin_spore.tres (毒孢菌)
+PASS  name 非空 void_echo.tres
+PASS  name 无乱码信号 void_echo.tres (虚空回响)
+PASS  name 非空 void_whisperer.tres
+PASS  name 无乱码信号 void_whisperer.tres (虚空低语者)
+PASS  name 非空 whispering_cultist.tres
+PASS  name 无乱码信号 whispering_cultist.tres (呓语教徒)
+PASS  BOSS 房数量 13，实测 13
+PASS  abyss_watcher.tres 掉落池 ≥2 把，实测 3
+PASS  abyss_watcher.tres 引用存在 res://resources/weapon_templates/night_scythe.tres
+PASS  abyss_watcher.tres 加载为 WeaponData：night_scythe.tres
+PASS  abyss_watcher.tres 引用存在 res://resources/weapon_templates/abyss_scythe.tres
+PASS  abyss_watcher.tres 加载为 WeaponData：abyss_scythe.tres
+PASS  abyss_watcher.tres 引用存在 res://resources/weapon_templates/iron_sword.tres
+PASS  abyss_watcher.tres 加载为 WeaponData：iron_sword.tres
+PASS  abyss_watcher.tres [light] 克制武器 ≥2，实测 ["dark", "dark", "none"]
+PASS  abyss_watcher.tres 信物存在 res://resources/charms/abyss_gaze_relic.tres
+PASS  acid_ghoul.tres 掉落池 ≥2 把，实测 3
+PASS  acid_ghoul.tres 引用存在 res://resources/weapon_templates/holy_sword.tres
+PASS  acid_ghoul.tres 加载为 WeaponData：holy_sword.tres
+PASS  acid_ghoul.tres 引用存在 res://resources/weapon_templates/dawn_bow.tres
+PASS  acid_ghoul.tres 加载为 WeaponData：dawn_bow.tres
+PASS  acid_ghoul.tres 引用存在 res://resources/weapon_templates/iron_sword.tres
+PASS  acid_ghoul.tres 加载为 WeaponData：iron_sword.tres
+PASS  acid_ghoul.tres [poison] 克制武器 ≥2，实测 ["light", "light", "none"]
+PASS  acid_ghoul.tres 信物存在 res://resources/charms/venom_gland_relic.tres
+PASS  brittle_gargoyle.tres 掉落池 ≥2 把，实测 3
+PASS  brittle_gargoyle.tres 引用存在 res://resources/weapon_templates/fire_sword.tres
+PASS  brittle_gargoyle.tres 加载为 WeaponData：fire_sword.tres
+PASS  brittle_gargoyle.tres 引用存在 res://resources/weapon_templates/flame_staff.tres
+PASS  brittle_gargoyle.tres 加载为 WeaponData：flame_staff.tres
+PASS  brittle_gargoyle.tres 引用存在 res://resources/weapon_templates/iron_sword.tres
+PASS  brittle_gargoyle.tres 加载为 WeaponData：iron_sword.tres
+PASS  brittle_gargoyle.tres [ice] 克制武器 ≥2，实测 ["fire", "fire", "none"]
+PASS  brittle_gargoyle.tres 信物存在 res://resources/charms/stone_shard_relic.tres
+PASS  cocoon_sentinel.tres 掉落池 ≥2 把，实测 3
+PASS  cocoon_sentinel.tres 引用存在 res://resources/weapon_templates/fire_sword.tres
+PASS  cocoon_sentinel.tres 加载为 WeaponData：fire_sword.tres
+PASS  cocoon_sentinel.tres 引用存在 res://resources/weapon_templates/flame_staff.tres
+PASS  cocoon_sentinel.tres 加载为 WeaponData：flame_staff.tres
+PASS  cocoon_sentinel.tres 引用存在 res://resources/weapon_templates/iron_sword.tres
+PASS  cocoon_sentinel.tres 加载为 WeaponData：iron_sword.tres
+PASS  cocoon_sentinel.tres [ice] 克制武器 ≥2，实测 ["fire", "fire", "none"]
+PASS  cocoon_sentinel.tres 信物存在 res://resources/charms/rhythm_shell_relic.tres
+PASS  frozen_urn.tres 掉落池 ≥2 把，实测 3
+PASS  frozen_urn.tres 引用存在 res://resources/weapon_templates/fire_sword.tres
+PASS  frozen_urn.tres 加载为 WeaponData：fire_sword.tres
+PASS  frozen_urn.tres 引用存在 res://resources/weapon_templates/flame_staff.tres
+PASS  frozen_urn.tres 加载为 WeaponData：flame_staff.tres
+PASS  frozen_urn.tres 引用存在 res://resources/weapon_templates/iron_sword.tres
+PASS  frozen_urn.tres 加载为 WeaponData：iron_sword.tres
+PASS  frozen_urn.tres [ice] 克制武器 ≥2，实测 ["fire", "fire", "none"]
+PASS  frozen_urn.tres 信物存在 res://resources/charms/frost_core_relic.tres
+PASS  grand_inquisitor.tres 掉落池 ≥2 把，实测 3
+PASS  grand_inquisitor.tres 引用存在 res://resources/weapon_templates/night_scythe.tres
+PASS  grand_inquisitor.tres 加载为 WeaponData：night_scythe.tres
+PASS  grand_inquisitor.tres 引用存在 res://resources/weapon_templates/sin_blade.tres
+PASS  grand_inquisitor.tres 加载为 WeaponData：sin_blade.tres
+PASS  grand_inquisitor.tres 引用存在 res://resources/weapon_templates/iron_sword.tres
+PASS  grand_inquisitor.tres 加载为 WeaponData：iron_sword.tres
+PASS  grand_inquisitor.tres [light] 克制武器 ≥2，实测 ["dark", "dark", "none"]
+PASS  grand_inquisitor.tres 信物存在 res://resources/charms/innocence_seal_relic.tres
+PASS  真·最终无掉落池 hero_shadow.tres
+PASS  manic_elementalist.tres 掉落池 ≥2 把，实测 3
+PASS  manic_elementalist.tres 引用存在 res://resources/weapon_templates/ice_gun.tres
+PASS  manic_elementalist.tres 加载为 WeaponData：ice_gun.tres
+PASS  manic_elementalist.tres 引用存在 res://resources/weapon_templates/ice_staff.tres
+PASS  manic_elementalist.tres 加载为 WeaponData：ice_staff.tres
+PASS  manic_elementalist.tres 引用存在 res://resources/weapon_templates/iron_sword.tres
+PASS  manic_elementalist.tres 加载为 WeaponData：iron_sword.tres
+PASS  manic_elementalist.tres [fire] 克制武器 ≥2，实测 ["ice", "ice", "none"]
+PASS  manic_elementalist.tres 信物存在 res://resources/charms/dual_core_relic.tres
+PASS  maze_whisperer.tres 掉落池 ≥2 把，实测 3
+PASS  maze_whisperer.tres 引用存在 res://resources/weapon_templates/holy_sword.tres
+PASS  maze_whisperer.tres 加载为 WeaponData：holy_sword.tres
+PASS  maze_whisperer.tres 引用存在 res://resources/weapon_templates/dawn_bow.tres
+PASS  maze_whisperer.tres 加载为 WeaponData：dawn_bow.tres
+PASS  maze_whisperer.tres 引用存在 res://resources/weapon_templates/iron_sword.tres
+PASS  maze_whisperer.tres 加载为 WeaponData：iron_sword.tres
+PASS  maze_whisperer.tres [dark] 克制武器 ≥2，实测 ["light", "light", "none"]
+PASS  maze_whisperer.tres 信物存在 res://resources/charms/maze_echo_relic.tres
+PASS  nameless_void.tres 掉落池 ≥2 把，实测 3
+PASS  nameless_void.tres 引用存在 res://resources/weapon_templates/holy_sword.tres
+PASS  nameless_void.tres 加载为 WeaponData：holy_sword.tres
+PASS  nameless_void.tres 引用存在 res://resources/weapon_templates/dawn_blade.tres
+PASS  nameless_void.tres 加载为 WeaponData：dawn_blade.tres
+PASS  nameless_void.tres 引用存在 res://resources/weapon_templates/iron_sword.tres
+PASS  nameless_void.tres 加载为 WeaponData：iron_sword.tres
+PASS  nameless_void.tres [dark] 克制武器 ≥2，实测 ["light", "light", "none"]
+PASS  nameless_void.tres 信物存在 res://resources/charms/void_echo_relic.tres
+PASS  scale_inquisitor.tres 掉落池 ≥2 把，实测 3
+PASS  scale_inquisitor.tres 引用存在 res://resources/weapon_templates/night_scythe.tres
+PASS  scale_inquisitor.tres 加载为 WeaponData：night_scythe.tres
+PASS  scale_inquisitor.tres 引用存在 res://resources/weapon_templates/shadow_guillotine.tres
+PASS  scale_inquisitor.tres 加载为 WeaponData：shadow_guillotine.tres
+PASS  scale_inquisitor.tres 引用存在 res://resources/weapon_templates/iron_sword.tres
+PASS  scale_inquisitor.tres 加载为 WeaponData：iron_sword.tres
+PASS  scale_inquisitor.tres [light] 克制武器 ≥2，实测 ["dark", "dark", "none"]
+PASS  scale_inquisitor.tres 信物存在 res://resources/charms/law_brand_relic.tres
+PASS  shattered_king.tres 掉落池 ≥2 把，实测 3
+PASS  shattered_king.tres 引用存在 res://resources/weapon_templates/ice_gun.tres
+PASS  shattered_king.tres 加载为 WeaponData：ice_gun.tres
+PASS  shattered_king.tres 引用存在 res://resources/weapon_templates/fire_sword.tres
+PASS  shattered_king.tres 加载为 WeaponData：fire_sword.tres
+PASS  shattered_king.tres 引用存在 res://resources/weapon_templates/iron_sword.tres
+PASS  shattered_king.tres 加载为 WeaponData：iron_sword.tres
+PASS  shattered_king.tres [fire] 克制武器 ≥2，实测 ["ice", "fire", "none"]
+PASS  shattered_king.tres 信物存在 res://resources/charms/crown_fragment_relic.tres
+PASS  whispering_cultist.tres 掉落池 ≥2 把，实测 3
+PASS  whispering_cultist.tres 引用存在 res://resources/weapon_templates/holy_sword.tres
+PASS  whispering_cultist.tres 加载为 WeaponData：holy_sword.tres
+PASS  whispering_cultist.tres 引用存在 res://resources/weapon_templates/dawn_bow.tres
+PASS  whispering_cultist.tres 加载为 WeaponData：dawn_bow.tres
+PASS  whispering_cultist.tres 引用存在 res://resources/weapon_templates/iron_sword.tres
+PASS  whispering_cultist.tres 加载为 WeaponData：iron_sword.tres
+PASS  whispering_cultist.tres [dark] 克制武器 ≥2，实测 ["light", "light", "none"]
+PASS  whispering_cultist.tres 信物存在 res://resources/charms/silence_seal_relic.tres
+PASS  呓语教徒 name 已修复，实测「呓语教徒」
+PASS  呓语教徒池前两把光系（dark 弱光），实测 ["light", "light", "none"]
+---
+PASSED 234 / FAILED 0

@@ -1,0 +1,186 @@
+{
+  "board": {
+    "boss_map": [],
+    "confirmations": [],
+    "continue_seen": false,
+    "fork_a": "",
+    "fork_b": "",
+    "fork_descs": [],
+    "items": [],
+    "path": [],
+    "rolls": []
+  },
+  "boss": "",
+  "end_time": "2026-11-06T17:13:51",
+  "errors": [],
+  "growth": {
+    "level": 2,
+    "mastery": "铭印：无",
+    "perks": [
+      "reserve"
+    ],
+    "summary": "技艺 运筹×1"
+  },
+  "label": "C3",
+  "m1": {
+    "deferred_id": "",
+    "deferred_kept": true,
+    "deferred_seen_next": true,
+    "offers": [
+      {
+        "room": 1,
+        "slots": [
+          "supply",
+          "build",
+          "growth"
+        ],
+        "titles": [
+          "强韧之心 · +20",
+          "锋锐打磨 · +1",
+          "下一房对策 · 护盾 +15"
+        ]
+      },
+      {
+        "room": 2,
+        "slots": [
+          "supply",
+          "build",
+          "growth"
+        ],
+        "titles": [
+          "守望结界 · +15",
+          "符号 · 🔥 权重+3",
+          "下一房对策 · 金币 +15"
+        ]
+      },
+      {
+        "room": 3,
+        "slots": [
+          "supply",
+          "build",
+          "growth"
+        ],
+        "titles": [
+          "金币袋 · +15",
+          "锋锐打磨 · +1",
+          "技艺 · 备用药剂"
+        ]
+      },
+      {
+        "room": 4,
+        "slots": [
+          "supply",
+          "build",
+          "growth"
+        ],
+        "titles": [
+          "金币袋 · +15",
+          "武器 · 破晓之弓",
+          "技艺 · 备用药剂"
+        ]
+      }
+    ],
+    "single_screen": true
+  },
+  "mode": "linear",
+  "preset": "control",
+  "rooms": [
+    {
+      "finished": true,
+      "hp_end": 60,
+      "hp_max": 100,
+      "hp_start": 100,
+      "key": "linear:0:暗影诡匠",
+      "kind": "normal",
+      "name": "暗影诡匠",
+      "near_death": false,
+      "turns": 5
+    },
+    {
+      "finished": true,
+      "hp_end": 64,
+      "hp_max": 100,
+      "hp_start": 60,
+      "key": "linear:1:寒鳞蝠",
+      "kind": "normal",
+      "name": "寒鳞蝠",
+      "near_death": false,
+      "turns": 3
+    },
+    {
+      "finished": true,
+      "hp_end": 61,
+      "hp_max": 100,
+      "hp_start": 64,
+      "key": "linear:2:毒孢菌",
+      "kind": "normal",
+      "name": "毒孢菌",
+      "near_death": false,
+      "turns": 3
+    },
+    {
+      "finished": true,
+      "hp_end": -31,
+      "hp_max": 105,
+      "hp_start": 61,
+      "key": "linear:3:寒铁精英",
+      "kind": "elite",
+      "name": "寒铁精英",
+      "near_death": true,
+      "turns": 4
+    },
+    {
+      "finished": true,
+      "hp_end": -9,
+      "hp_max": 105,
+      "hp_start": -31,
+      "key": "linear:4:锈盲蝠",
+      "kind": "normal",
+      "name": "锈盲蝠",
+      "near_death": true,
+      "turns": 1
+    }
+  ],
+  "seconds": 38.59,
+  "seed": 3303,
+  "selections": [
+    "成长:技艺 · 备用药剂",
+    "成长:技艺 · 备用药剂"
+  ],
+  "shots": [],
+  "start_time": "2026-11-06T17:13:13",
+  "telemetry": {
+    "avg_spin": 1.2361875,
+    "avg_ttk": 8.39875,
+    "buffer_queues": 0,
+    "damage_blocked": 52,
+    "damage_taken": 255,
+    "enemy_attacks": 13,
+    "forced_stops": 0,
+    "reward_pick_rate": 0.0,
+    "reward_picks": {
+      "gold": 1,
+      "growth_perk": 1,
+      "power": 1,
+      "symbol": 1
+    },
+    "rewards_shown": 0,
+    "rooms_cleared": 4,
+    "spin_seconds": 19.779,
+    "spins": 16,
+    "stop_outcomes": {
+      "miss": 5,
+      "normal": 36,
+      "target": 6
+    },
+    "stop_total": 47,
+    "target_hit_rate": 0.127659574468085,
+    "target_hits": 6,
+    "target_symbol": "res://resources/symbols/fire_slash.tres",
+    "triple_rate": 0.0,
+    "triples": 0,
+    "turns": 16,
+    "weapon_swaps": 0
+  },
+  "terminal": "LOST"
+}

@@ -1,0 +1,9 @@
+{
+  "label": "V4",
+  "log": "V4_stall.log",
+  "preset": "readable",
+  "rooms": [],
+  "seconds": 0.0,
+  "telemetry": {},
+  "terminal": "POST_BATTLE_STALL"
+}

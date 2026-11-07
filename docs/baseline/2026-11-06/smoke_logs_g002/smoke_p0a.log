@@ -1,0 +1,46 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+PASS  Act1 普通/精英房样本量 (16)
+PASS  Act1 纯教学 a1_brute_none.tres：仅 attack/heavy，实测 ["heavy", "attack"]
+PASS  Act1 纯教学 a1_bulwark_poison.tres：仅 attack/heavy，实测 ["attack", "heavy"]
+PASS  Act1 纯教学 a1_elite_brute_ice.tres：仅 attack/heavy，实测 ["heavy", "attack"]
+PASS  Act1 纯教学 a1_elite_caster_poison.tres：仅 attack/heavy，实测 ["attack", "heavy"]
+PASS  Act1 纯教学 a1_hexer_none.tres：仅 attack/heavy，实测 ["attack"]
+PASS  Act1 纯教学 a1_striker_light.tres：仅 attack/heavy，实测 ["attack", "heavy"]
+PASS  Act1 纯教学 a1_swarm_ice.tres：仅 attack/heavy，实测 ["attack"]
+PASS  Act1 纯教学 a1_trickster_dark.tres：仅 attack/heavy，实测 ["attack"]
+PASS  Act1 纯教学 acid_golem.tres：仅 attack/heavy，实测 ["attack", "heavy"]
+PASS  Act1 纯教学 corrupted_slime.tres：仅 attack/heavy，实测 ["attack", "heavy"]
+PASS  Act1 纯教学 cracked_statue.tres：仅 attack/heavy，实测 ["heavy", "attack"]
+PASS  Act1 纯教学 ember_golem.tres：仅 attack/heavy，实测 ["attack", "heavy"]
+PASS  Act1 纯教学 frost_bat.tres：仅 attack/heavy，实测 ["heavy", "attack"]
+PASS  Act1 纯教学 humus_worm.tres：仅 attack/heavy，实测 ["attack", "heavy"]
+PASS  Act1 纯教学 rust_blind_bat.tres：仅 attack/heavy，实测 ["attack", "heavy"]
+PASS  Act1 纯教学 toxin_spore.tres：仅 attack/heavy，实测 ["attack", "heavy"]
+PASS  Act2 无夺轮 a2_brute_dark.tres
+PASS  Act2 无夺轮 a2_brute_none.tres
+PASS  Act2 无夺轮 a2_bulwark_light.tres
+PASS  Act2 无夺轮 a2_bulwark_none.tres
+PASS  Act2 无夺轮 a2_caster_poison.tres
+PASS  Act2 无夺轮 a2_striker_dark.tres
+PASS  Act2 无夺轮 a2_swarm_fire.tres
+PASS  Act2 无夺轮 a2_trickster_none.tres
+PASS  Act2 无夺轮 beguiling_lantern.tres
+PASS  Act2 无夺轮 defiled_scribe.tres
+PASS  Act2 无夺轮 shadow_acolyte.tres
+PASS  Act2 无夺轮 void_whisperer.tres
+PASS  Act2 干扰意图已入池：["chaos", "jam", "lock"]
+PASS  Act3 诡匠出夺轮，实测 ["lock", "attack", "jam", "auto_stop", "chaos"]
+PASS  Act3 精英诡匠出夺轮
+PASS  重击者样本 (5)
+PASS  重击者零干扰 a1_brute_none.tres：实测 ["heavy", "attack"]
+PASS  重击者零干扰 a2_brute_dark.tres：实测 ["attack", "heavy"]
+PASS  重击者零干扰 a2_brute_none.tres：实测 ["attack", "heavy"]
+PASS  重击者零干扰 a3_brute_light.tres：实测 ["attack", "heavy"]
+PASS  重击者零干扰 a3_brute_none.tres：实测 ["heavy", "attack"]
+PASS  BOSS 显式表不受限：茧居 Act1 仍出注废，实测 ["heavy", "jam", "attack"]
+PASS  BOSS 默认表（呓语教徒空房间表）仍走 boss 表：实测 ["attack", "heavy"]
+PASS  抗护 rf=0 时干扰权重归零：实测 ["attack", "heavy"]
+PASS  过滤空表回落默认表：实测 ["heavy", "attack"]
+---
+PASSED 42 / FAILED 0

@@ -1,0 +1,16 @@
+# G0-02 多分辨率布局截图 2026-11-06T13:45:06
+480x270_01_loadout  480x270  err=0
+480x270_02_battle_long  480x270  err=0
+480x270_03_spin_preview  480x270  err=0
+480x270_04_post_battle  480x270  err=0
+480x270_05_replace_dialog  480x270  err=0
+960x540_01_loadout  960x540  err=0
+960x540_02_battle_long  960x540  err=0
+960x540_03_spin_preview  960x540  err=0
+960x540_04_post_battle  960x540  err=0
+960x540_05_replace_dialog  960x540  err=0
+1440x810_01_loadout  1440x810  err=0
+1440x810_02_battle_long  1440x810  err=0
+1440x810_03_spin_preview  1440x810  err=0
+1440x810_04_post_battle  1440x810  err=0
+1440x810_05_replace_dialog  1440x810  err=0

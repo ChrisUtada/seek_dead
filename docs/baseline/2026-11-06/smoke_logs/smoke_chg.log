@@ -1,0 +1,17 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+铁砧元进度已载入：点数 8832
+已为你预选默认配装（可自由调整后再开战）
+护符已装配：伤害+0 / 开局护盾+0 / 每回合护盾+4 / 每回合回血+0 / 抗扰+0
+▶ 回合 1 开始
+▶ 进入房间 1/25：重锤蛮兵（HP 140，攻击 16）
+PASS  找到火系伤害符号
+PASS  ① 单格擦边克制不充能（实测 +0）
+PASS  ① 不计核爆标记
+PASS  ② 双连克制充能 +1
+PASS  ② 计核爆标记
+PASS  ③ 元素三连下单格克制也充能 +1
+PASS  ④ 抵抗对不充能
+PASS  ⑤ charge_max=6（A+B 拍板）
+---
+PASSED 8 / FAILED 0

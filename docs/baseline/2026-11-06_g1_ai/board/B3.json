@@ -1,0 +1,247 @@
+{
+  "board": {
+    "boss_map": [
+      "n14=冰封铁瓮(冰)",
+      "n16=碎裂石像鬼(冰)",
+      "n18=茧居石雕(冰)",
+      "n20=酸蚀恶鬼(毒)"
+    ],
+    "confirmations": [
+      "毒壳壁垒|HP 170 · 攻 12 · 毒|进入战斗",
+      "重锤蛮兵|HP 161 · 攻 17 · 无|进入战斗",
+      "酸蚀傀儡|HP 205 · 攻 18 · 冰\n特殊机制\n战后剩余 2 步|进入战斗",
+      "窃语咒师|HP 137 · 攻 14 · 无|进入战斗",
+      "余烬傀儡|HP 149 · 攻 15 · 火\n战后剩余 2 步|进入战斗",
+      "毒疫术士|HP 322 · 攻 23 · 毒\n特殊机制\n战后剩余 1 步|进入战斗"
+    ],
+    "continue_seen": true,
+    "fork_a": "上路",
+    "fork_b": "",
+    "fork_descs": [
+      "普通战斗 · 胜利后进入战后成长\n上路：冰封铁瓮（冰） / 碎裂石像鬼（冰）\n下路：茧居石雕（冰） / 酸蚀恶鬼（毒）",
+      "现有商店 · 离开后节点消耗\n上方：冰封铁瓮（冰）\n下方：碎裂石像鬼（冰）",
+      "恢复 25% 最大 HP · 满血显示无需休整\n上方：茧居石雕（冰）\n下方：酸蚀恶鬼（毒）"
+    ],
+    "items": [
+      "武器 · 破晓之弓",
+      "护符 · 抗扰护符"
+    ],
+    "path": [
+      "n0:起点",
+      "n1:毒壳壁垒",
+      "n2:武器 · 破晓之弓",
+      "n3:重锤蛮兵",
+      "n4:酸蚀傀儡",
+      "n5:护符 · 抗扰护符",
+      "n6:窃语咒师",
+      "n7:余烬傀儡",
+      "n8:毒疫术士"
+    ],
+    "rolls": [
+      1,
+      1,
+      1,
+      3,
+      3
+    ]
+  },
+  "boss": "",
+  "end_time": "2026-11-06T16:42:47",
+  "errors": [],
+  "growth": {
+    "level": 2,
+    "mastery": "铭印 锋铸×1",
+    "perks": [
+      "tough"
+    ],
+    "summary": "技艺 生存×1"
+  },
+  "label": "B3",
+  "m1": {
+    "deferred_id": "",
+    "deferred_kept": true,
+    "deferred_seen_next": true,
+    "offers": [
+      {
+        "room": 1,
+        "slots": [
+          "supply",
+          "build",
+          "growth"
+        ],
+        "titles": [
+          "守望结界 · +15",
+          "符号 · 🔥 权重+3",
+          "下一房对策 · 金币 +15"
+        ]
+      },
+      {
+        "room": 2,
+        "slots": [
+          "supply",
+          "build",
+          "growth"
+        ],
+        "titles": [
+          "强韧之心 · +20",
+          "锋锐打磨 · +1",
+          "下一房对策 · 护盾 +15"
+        ]
+      },
+      {
+        "room": 3,
+        "slots": [
+          "supply",
+          "build",
+          "growth"
+        ],
+        "titles": [
+          "战利金库 · +18",
+          "锋锐打磨 · +1",
+          "技艺 · 坚韧"
+        ]
+      },
+      {
+        "room": 4,
+        "slots": [
+          "supply",
+          "build",
+          "growth"
+        ],
+        "titles": [
+          "治疗药剂 · +36 HP",
+          "锋锐打磨 · +1",
+          "技艺 · 坚韧"
+        ]
+      },
+      {
+        "room": 5,
+        "slots": [
+          "supply",
+          "build",
+          "growth"
+        ],
+        "titles": [
+          "强韧之心 · +20",
+          "锋锐打磨 · +1",
+          "铭印 · 锋铸 ×火焰剑"
+        ]
+      }
+    ],
+    "single_screen": true
+  },
+  "mode": "board",
+  "preset": "control",
+  "rooms": [
+    {
+      "finished": true,
+      "hp_end": 85,
+      "hp_max": 100,
+      "hp_start": 100,
+      "key": "n1:0:毒壳壁垒",
+      "kind": "normal",
+      "name": "毒壳壁垒",
+      "near_death": false,
+      "turns": 4
+    },
+    {
+      "finished": true,
+      "hp_end": 69,
+      "hp_max": 100,
+      "hp_start": 85,
+      "key": "n3:1:重锤蛮兵",
+      "kind": "normal",
+      "name": "重锤蛮兵",
+      "near_death": false,
+      "turns": 4
+    },
+    {
+      "finished": true,
+      "hp_end": 38,
+      "hp_max": 100,
+      "hp_start": 69,
+      "key": "n4:2:酸蚀傀儡",
+      "kind": "elite",
+      "name": "酸蚀傀儡",
+      "near_death": false,
+      "turns": 4
+    },
+    {
+      "finished": true,
+      "hp_end": 38,
+      "hp_max": 105,
+      "hp_start": 38,
+      "key": "n6:3:窃语咒师",
+      "kind": "normal",
+      "name": "窃语咒师",
+      "near_death": true,
+      "turns": 5
+    },
+    {
+      "finished": true,
+      "hp_end": 74,
+      "hp_max": 115,
+      "hp_start": 48,
+      "key": "n7:4:余烬傀儡",
+      "kind": "normal",
+      "name": "余烬傀儡",
+      "near_death": false,
+      "turns": 4
+    },
+    {
+      "finished": true,
+      "hp_end": -2,
+      "hp_max": 115,
+      "hp_start": 74,
+      "key": "n8:5:毒疫术士",
+      "kind": "elite",
+      "name": "毒疫术士",
+      "near_death": true,
+      "turns": 6
+    }
+  ],
+  "seconds": 5.258,
+  "seed": 2203,
+  "selections": [
+    "成长:技艺 · 坚韧",
+    "成长:技艺 · 坚韧",
+    "成长:铭印 · 锋铸 ×火焰剑"
+  ],
+  "shots": [],
+  "start_time": "2026-11-06T16:42:41",
+  "telemetry": {
+    "avg_spin": 0.0406296296296296,
+    "avg_ttk": 0.429,
+    "buffer_queues": 0,
+    "damage_blocked": 92,
+    "damage_taken": 397,
+    "enemy_attacks": 28,
+    "forced_stops": 0,
+    "reward_pick_rate": 0.0,
+    "reward_picks": {
+      "elite_gold": 1,
+      "growth_imprint": 1,
+      "growth_perk": 1,
+      "power": 1,
+      "symbol": 1
+    },
+    "rewards_shown": 0,
+    "rooms_cleared": 5,
+    "spin_seconds": 1.097,
+    "spins": 27,
+    "stop_outcomes": {
+      "miss": 11,
+      "normal": 57,
+      "target": 12
+    },
+    "stop_total": 80,
+    "target_hit_rate": 0.15,
+    "target_hits": 12,
+    "target_symbol": "res://resources/symbols/fire_slash.tres",
+    "triple_rate": 0.037037037037037,
+    "triples": 1,
+    "turns": 27,
+    "weapon_swaps": 0
+  },
+  "terminal": "LOST"
+}

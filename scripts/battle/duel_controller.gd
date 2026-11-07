@@ -29,6 +29,10 @@ const BALANCE = preload("res://resources/config/balance_config.tres")
 # M4-01：ACT1 Demo 开关 + 内容白名单（resources/config/demo_config.tres，enabled 或导出 custom_features 启用）
 const DEMO_CONFIG = preload("res://resources/config/demo_config.tres")
 var demo_config = DEMO_CONFIG   # 无 class_name：避免 headless 首次加载的全局类缓存依赖
+# M2：ACT1 棋盘灰盒开关（resources/config/board_config.tres，enabled 或命令行 --board 启用）
+const BOARD_CONFIG = preload("res://resources/config/board_config.tres")
+var board_config = BOARD_CONFIG
+const NODE_START_FEEDBACK := "起点：掷骰前进"
 
 # Phase 1 组件化：UI 复用场景与脚手架（按钮/面板/卡片构建均在 battle_hud 与各 screen，本控制器不再持有）
 
@@ -96,6 +100,17 @@ func _intent_def(id: String) -> IntentData:
 # Phase D 资源化：改为扫描 resources/rooms/*.tres（RoomData），见 _ready 内填充。
 var ALL_ROOMS: Array[RoomData] = []          # 全量房间池（扫描收集；_build_run 从中按幕抽 24 房 + 真·最终槽）
 var ROOMS: Array[RoomData] = []             # 当前一局的房序列（每局 _full_reset 时由 _build_run 重建：24 房 + 真·最终）
+
+# M2 棋盘模式状态。棋盘模式下 ROOMS = 本局全部战斗房（按路径顺序），room_index 仍是其在 ROOMS 中的下标，
+# 因此既有 ROOMS[room_index] 消费者（奖励 / 铁砧 / gimmick / HUD）保持不变。
+# current_room / current_act / current_room_ria / run_final 是线性强索引之外的第二状态源，
+# 供棋盘入口显式传入当前 RoomData 与幕内难度位置，不再用 ROOMS.size() 混合表达进度。
+var node_mode := false                      # 本局是否棋盘模式（BoardConfig 开关）
+var board                                   # M2 棋盘运行状态（board_system.gd，preload 实例化）
+var current_room: RoomData = null
+var current_act: int = 1
+var current_room_ria: int = -1              # -1 = 线性模式按 ROOMS 扫描计算
+var run_final := false                      # 棋盘模式：当前是否本局最终战
 
 # grid[reel][row] = SymbolData 引用
 var grid = []
@@ -227,12 +242,15 @@ var reward_is_boss: bool = false       # 当前奖励是否来自 Boss 房（选
 
 # M5 元进度（铁砧锻造 + 存档持久化，跨局保留）
 # 已退役键（元进度三选一退化为仅 anvil）：weapon_upgrades / weapon_base_bonus / weapon_hit_bonus / charm_upgrades / interference_resist / first_clears
-var meta: Dictionary = {"anvil_points": 0, "owned_weapons": [], "owned_charms": [], "owned_consumables": [], "anvil_pity": 0, "collection_milestones": []}
+var meta: Dictionary = {"anvil_points": 0, "owned_weapons": [], "owned_charms": [], "owned_consumables": [], "anvil_pity": 0, "collection_milestones": [], "item_sources": {}, "career": {"unlocked": [], "bosses": []}}
 var _anvil_system                     # 铁砧锻造子系统 AnvilSystem（步骤2抽出；_ready 实例化并注入 self）
 const ANVIL_SAVE_KEY := "anvil_meta"   # 铁砧元进度存于 SaveSystem.lobby_data
 var _meta_store                        # 存档子系统 MetaStore（步骤1抽出；_ready 实例化并注入 self + meta）
+var _career                            # G6-01：生涯成就子系统 CareerSystem（只读局内事件，跨局记录）
 var _shop_system                       # 商店子系统 ShopSystem（步骤3抽出；_ready 实例化并注入 self）
+var _camp_offers: Array = []           # G2-01：营地补给货架（休整后一次性购买）
 var _reward_system                     # 奖励子系统 RewardSystem（步骤4抽出；_ready 实例化并注入 self）
+var _post_battle                       # M1 战后成长三槽 PostBattleSystem（补给/构筑/成长队列）
 var _loadout_system                    # 整备子系统 LoadoutSystem（步骤5抽出；_ready 实例化并注入 self）
 var _synergy_system                    # 装备共鸣系统 SynergySystem（方案 B 配套；_ready 实例化并注入 self）
 var growth                             # M2-01 角色历练与技艺（经验/等级/三选一技艺；每局清零）
@@ -306,10 +324,15 @@ func _ready() -> void:
 	_anvil_system = preload("res://scripts/systems/anvil_system.gd").new(self)
 	_shop_system = preload("res://scripts/systems/shop_system.gd").new(self)
 	_reward_system = preload("res://scripts/systems/reward_system.gd").new(self)
+	_post_battle = preload("res://scripts/systems/post_battle_system.gd").new(self)
+	board = preload("res://scripts/board/board_system.gd").new(self)   # M2：棋盘状态（默认关闭，线性模式不使用）
 	_loadout_system = preload("res://scripts/systems/loadout_system.gd").new(self)
 	_synergy_system = preload("res://scripts/systems/synergy_system.gd").new(self)
 	growth = preload("res://scripts/systems/growth_system.gd").new(self)
 	mastery = preload("res://scripts/systems/weapon_mastery.gd").new(self)
+	# G0-02：物品 tooltip 读取运行时武器状态（锋铸后的真实攻击 / R 等级 / 铭印），
+	# 静态生成器不持有 controller，由这里注入；共享 .tres 不被修改。
+	ItemTooltip.weapon_state_provider = _weapon_tooltip_state
 	# P1：可读性预设须先于 ReelSystem（速度由它提供）
 	readability = preload("res://scripts/systems/readability_system.gd").new(self)
 	# 2026-08-09 拆分：转轮系统独立（ReelSystem）
@@ -324,6 +347,7 @@ func _ready() -> void:
 	_meta_store.load_meta()
 	_meta_store.sanitize_owned()   # 自愈：清洗历史上误写入 owned_* 的非本类路径（如技能）
 	_meta_store.seed_default_owned()
+	_career = preload("res://scripts/systems/career_system.gd").new(self)   # G6-01：生涯成就（只读事件，不改数值）
 	hud.build_all()   # P2：HUD 自构建全部界面（build_all 内部调各 _build_* + _show_loadout_screen），controller 不再戳私有构建方法
 	# P2：HUD 意图信号 → controller 处理器（HUD 不再调用 controller 私有方法）
 	hud.spin_requested.connect(_on_spin_button_pressed)
@@ -333,6 +357,7 @@ func _ready() -> void:
 	hud.sell_requested.connect(_on_shop_sell_pressed)
 	hud.shop_reroll_requested.connect(_on_shop_reroll_pressed)
 	hud.reward_chosen.connect(_on_reward_chosen)
+	hud.post_battle_growth_chosen.connect(_on_post_battle_growth_chosen)
 	hud.boss_reward_chosen.connect(_on_boss_reward_chosen)
 	hud.reward_skip_requested.connect(_on_reward_skip_pressed)
 	hud.shop_requested.connect(_on_shop_requested)
@@ -408,16 +433,84 @@ func _apply_reward_weapon_replace(p: String, old_path: String) -> void:
 
 
 # 新武器摘要（商店替换 / 奖励替换 / BOSS 战利品共用）
+# G0-02：攻击显示锋铸后的真实值；R 等级 / 熟练 / 铭印与转轮带使用同一份运行时状态。
 func _weapon_info(p: String) -> String:
 	var res: WeaponData = load(p)
 	if res == null:
 		return "新武器：%s" % _shop_name(p, "weapon")
-	return "新武器：%s · %s · 攻%d · 命中%d%% · %s" % [
-		res.weapon_name, res.rarity, int(res.base_power), int(res.hit_rate * 100), ElementCounter.label(res.element)]
+	var forge: int = mastery.forge_bonus(p) if mastery != null else 0
+	var atk_txt := "攻%d" % (int(res.base_power) + forge)
+	if forge > 0:
+		atk_txt += "（锋铸+%d）" % forge
+	var out := "新武器：%s · %s · %s · 命中%d%% · %s" % [
+		res.weapon_name, res.rarity, atk_txt, int(res.hit_rate * 100), ElementCounter.label(res.element)]
+	if mastery != null:
+		for extra in [mastery.progress_text(p), mastery.imprint_text(p)]:
+			if String(extra) != "":
+				out += "\n" + String(extra)
+		var target: int = mastery.catchup_target(p)
+		if target > int(mastery.mastery.get(p, 0)):
+			out += "\n追赶：熟练 %d → %d（有效清房每房 +1）" % [int(mastery.mastery.get(p, 0)), target]
+	return out
+
+
+# G2-01：当前获取上下文（来源记录用）。只读，不触发状态变化。
+func _item_source() -> Dictionary:
+	var d := {"act": current_act, "mode": "board" if node_mode else "linear"}
+	if node_mode and board != null:
+		var node: Dictionary = board.current_node()
+		d["node_id"] = String(board.current_id)
+		d["node_type"] = String(node.get("type", ""))
+		if current_room == null:
+			d["item"] = String(node.get("title", ""))
+	if current_room != null:
+		d["room"] = String(current_room.name)
+		d["room_kind"] = String(current_room.kind)
+	return d
+
+
+# G2-01：替换预览的「旧武器卸下」行——只描述本局当前贡献；熟练/铭印按规则保留。
+func _weapon_off_info(p: String) -> String:
+	var res: WeaponData = load(p)
+	if res == null:
+		return "卸下：%s（熟练/铭印保留）" % _shop_name(p, "weapon")
+	var atk: int = int(res.base_power) + (mastery.forge_bonus(p) if mastery != null else 0)
+	var out := "卸下：%s · 攻%d · %s" % [res.weapon_name, atk, ElementCounter.label(res.element)]
+	if mastery != null:
+		for extra in [mastery.progress_text(p), mastery.imprint_text(p)]:
+			if String(extra) != "":
+				out += " · " + String(extra)
+	out += "（熟练/铭印保留，重装恢复）"
+	return out
+
+
+# ItemTooltip 的运行时状态回调（只读；不改共享资源）。
+func _weapon_tooltip_state(path: String) -> Dictionary:
+	if mastery == null or path == "":
+		return {}
+	return {
+		"forge": mastery.forge_bonus(path),
+		"progress": mastery.progress_text(path),
+		"imprint": mastery.imprint_text(path),
+	}
 
 
 func _on_reward_skip_pressed() -> void:
 	room_flow.finish_room(Callable(), reward_is_boss)
+
+
+# M1：战后成长屏的成长位（技艺 / 铭印 / 下一房对策）。与奖励卡走同一条收尾路径：
+# 应用 → finish_room（三槽屏激活时自动路由到 finish_post_battle）。
+func _on_post_battle_growth_chosen(cand: Dictionary) -> void:
+	if _telemetry != null:
+		_telemetry.on_reward_pick("growth_" + String(cand.get("kind", "")))
+	var ok: bool = _post_battle.apply_choice(cand)
+	if not ok:
+		_post_battle.drop(cand)   # 失效候选不阻塞界面；对应待选仍留在下一房成长位
+		hud._log("成长候选已失效，本次未结算")
+	else:
+		hud._log("📈 %s" % room_flow._growth_summary_text())
+	room_flow.finish_room(Callable(), false)
 
 
 func _on_boss_reward_chosen(cand: Dictionary) -> void:
@@ -543,6 +636,8 @@ func _full_reset() -> void:
 # 新一局公共状态重置（不含开战）：已迁至 LoadoutSystem.reset_run_state（P2 架构还债，2026-08-24）——单行转发。
 func _reset_run_state() -> void:
 	_loadout_system.reset_run_state()
+	if _career != null:
+		_career.reset_run()   # G6-01：每局临时成就标记清零（跨局解锁仍在 meta）
 	if _telemetry != null:
 		_telemetry.reset()   # M1-06：新一局遥测清零
 	if readability != null:
@@ -559,8 +654,18 @@ func _is_boss_room(idx: int) -> bool:
 
 # 是否为本局最后一间房（=通关整局）。S10 起一局有 3 个幕 BOSS，只有最后一个才结束 run：
 # 幕一/幕二 BOSS 通关后照常进商店并推进下一房，否则幕二幕三永远进不去。
+# M2：棋盘模式由节点 final 标记显式传入（不再用 ROOMS.size() 表达棋盘总进度）。
 func _is_run_final(idx: int) -> bool:
+	if node_mode:
+		return run_final
 	return idx >= ROOMS.size() - 1
+
+
+# 是否还有下一场战斗（M1 成长位「下一房对策」判定）。棋盘模式看是否已到 BOSS 终局。
+func has_next_battle() -> bool:
+	if node_mode:
+		return not run_final
+	return room_index + 1 < ROOMS.size()
 
 
 # T25 对局构建 / BOSS 加权抽取 / 房间语义排序：已迁至 RunSetup（P2 架构还债，2026-08-24）——单行转发。
@@ -580,17 +685,29 @@ func _start_room(idx: int) -> void:
 	if idx >= ROOMS.size():                 # 兜底：越界视为通关整局，走元进度三选一而非崩溃
 		_reward_system.show_meta_choice()
 		return
+	start_room_data(ROOMS[idx], idx, -1, false)
+
+
+# M2：统一战斗入口——显式接收当前 RoomData 与幕内难度位置（棋盘不再依赖线性强索引推断最终 BOSS）。
+# ria_override >= 0 时跳过「按 ROOMS 位置扫描同幕房数」的旧口径；线性路径传 -1 保持零行为变化。
+func start_room_data(r: RoomData, idx: int, ria_override: int = -1, is_final: bool = false) -> void:
+	if r == null:
+		return
 	room_element_mult = {}                # 元素精华：新房间失效（须在 _build_pool 之前清，否则旧房精华注入新房池）
 	peaceful_win = false                  # 勇者的阴影：和解标志每房复位
 	_apply_charms()                         # S7：每次开房重算护符被动（含商店购入的护符）
 	_build_pool(selected_loadout)           # S7：重建符号池（含商店购入的武器）
 	room_index = idx
+	current_room = r
+	current_act = int(r.act)
+	current_room_ria = ria_override
+	if node_mode:
+		run_final = is_final
 	if _telemetry != null:
 		_telemetry.on_room_start()   # M1-06：TTK 观测起点
-	var r: RoomData = ROOMS[idx]
 	enemy_name = r.name
 	# ante 难度曲线：RoomData.hp/atk 视为基础值（T5：为 0 时取行为族基准），按「幕间台阶 × 幕内爬升」缩放。
-	var s = _ante_scale(r, room_index)
+	var s = _ante_scale(r, room_index, ria_override)
 	var base_hp: int = r.hp if r.hp > 0 else (r.archetype.hp_base if r.archetype != null else 0)
 	var base_atk: int = r.atk if r.atk > 0 else (r.archetype.atk_base if r.archetype != null else 0)
 	enemy_hp_max = int(round(float(base_hp) * s["hp_scale"]))
@@ -645,13 +762,382 @@ func _start_room(idx: int) -> void:
 	_refresh_consumable_panel()           # 双重保险：同步按钮禁用状态与当前战斗状态
 	hud._refresh_meta()
 	hud._update_enemy_element()
-	hud._log("▶ 进入房间 %d/%d：%s（HP %d，攻击 %d）" % [idx + 1, ROOMS.size(), enemy_name, enemy_hp_max, enemy_atk])
+	if node_mode and board != null:
+		hud._log("▶ 进入节点 %d/%d：%s（HP %d，攻击 %d）" % [
+			board.visited_count(), board.route_length(), enemy_name, enemy_hp_max, enemy_atk])
+	else:
+		hud._log("▶ 进入房间 %d/%d：%s（HP %d，攻击 %d）" % [idx + 1, ROOMS.size(), enemy_name, enemy_hp_max, enemy_atk])
 	invalidate_state()
 
 
 # Ante 难度曲线纯函数：已迁至 RunSetup.ante_scale（P2 架构还债，2026-08-24）——单行转发。
-func _ante_scale(r: RoomData, idx: int) -> Dictionary:
-	return run_setup.ante_scale(r, idx)
+func _ante_scale(r: RoomData, idx: int, ria_override: int = -1) -> Dictionary:
+	return run_setup.ante_scale(r, idx, ria_override)
+
+
+# ---------------------------------------------------------------------------
+# M2 棋盘节点效果（由 BoardScreen 在移动动画结束后调用一次）
+# ---------------------------------------------------------------------------
+
+func _on_board_node_entered(node: Dictionary) -> void:
+	if node.is_empty():
+		return
+	match String(node.get("type", "")):
+		"normal", "elite", "boss":
+			if String(node.get("type", "")) == "elite" and _career != null:
+				_career.note_elite_route()   # G6-01：高危路线标记（击败 BOSS 时结算）
+			_start_board_battle(node)
+		"shop":
+			_board_shop()
+		"rest":
+			_board_rest()
+		"treasure":
+			_board_treasure(node)
+		"shrine":
+			_board_shrine(node)
+		"armory":
+			_board_armory(node)
+		"weapon":
+			_board_weapon(node)
+		"charm":
+			_board_charm(node)
+		_:
+			board.set_feedback(NODE_START_FEEDBACK)
+			board.return_to_board()
+
+
+func _start_board_battle(node: Dictionary) -> void:
+	var r: RoomData = node.get("room")
+	if r == null:
+		board.set_feedback("战斗节点缺少 RoomData，已返回棋盘")
+		board.return_to_board()
+		return
+	hud.hide_camp_supply()   # 防御：任何残留营地弹层都不得盖在战斗上
+	hud.hide_board_screen(true)
+	hud.set_interroom_enabled(false)
+	start_room_data(r, int(node.get("battle_index", -1)), int(node.get("ria", -1)),
+		bool(node.get("final", false)))
+
+
+# 商店格：复用现有货架 / 刷新 / 价格；离开后回棋盘，节点已在进入时消耗。
+func _board_shop() -> void:
+	in_interroom = true
+	hud.hide_board_screen(true)
+	hud.set_interroom_enabled(false)
+	_roll_shop()
+	hud._show_shop_screen()
+	hud._log("🛒 棋盘商店：离开后节点消耗")
+
+
+func _board_rest() -> void:
+	var heal := int(ceil(float(player_hp_max) * 0.25))
+	var before := player_hp
+	player_hp = mini(player_hp_max, player_hp + heal)
+	var msg := ""
+	if player_hp == before:
+		msg = "休整：HP 已满，无需休整"
+	else:
+		msg = "休整：HP %d/%d → %d/%d（+%d）" % [before, player_hp_max, player_hp, player_hp_max, player_hp - before]
+	hud._log(msg)
+	invalidate_state()
+	hud._refresh_meta()
+	# G2-01：休整后开营地补给（最多买 1 件，离开不扣费）。
+	_camp_offers = _roll_camp_offers()
+	if _camp_offers.is_empty():
+		board.set_feedback(msg)
+		board.return_to_board()
+		return
+	hud.request_camp_supply(_camp_offers, _camp_buy, _camp_leave)
+
+
+# 营地货架：武器 / 护符 / 消耗品各 1（护符排除信物与本局已带）。
+func _roll_camp_offers() -> Array:
+	var out: Array = []
+	var weapons: Array = []
+	for p in WEAPON_POOL:
+		weapons.append(String(p))
+	if not weapons.is_empty():
+		out.append(_camp_offer(String(_reward_system.acq_weighted_pick(weapons)), "weapon"))
+	var charms: Array = []
+	for p in ITEM_POOL:
+		var d = load(p)
+		if d is ItemData and String(d.category) == "passive" and not selected_charms.has(String(p)) \
+			and not _meta_store._is_boss_relic(d, String(p)):
+			charms.append(String(p))
+	if not charms.is_empty():
+		out.append(_camp_offer(String(_reward_system.acq_weighted_pick(charms)), "passive"))
+	var items: Array = []
+	for p in ITEM_POOL:
+		var d = load(p)
+		if d is ItemData and String(d.category) == "active":
+			items.append(String(p))
+	if not items.is_empty():
+		out.append(_camp_offer(String(_reward_system.acq_weighted_pick(items)), "active"))
+	return out
+
+
+func _camp_offer(path: String, kind: String) -> Dictionary:
+	return {"path": path, "kind": kind, "name": _shop_name(path, kind),
+		"price": _shop_price(kind, -1, path), "sold": false}
+
+
+func _camp_buy(offer: Dictionary) -> void:
+	if offer.is_empty() or bool(offer.get("sold", false)):
+		return
+	var price := int(offer.get("price", 0))
+	if gold < price:
+		hud._log("金币不足（需 %d）" % price)
+		return
+	var p := String(offer.get("path", ""))
+	var kind := String(offer.get("kind", ""))
+	if kind == "weapon" and selected_loadout.size() >= _loadout_system.cat_cap("weapon") and not selected_loadout.has(p):
+		hud.hide_camp_supply()
+		# 替换弹层挂在战斗 HUD 下：棋盘视图正把 HUD 藏着，先切回 HUD 再弹，取消时回棋盘营地。
+		hud.hide_board_screen(true)
+		hud.request_weapon_replace("营地补给：替换武器", _weapon_info(p),
+			func(old_path: String) -> void: _camp_buy_replace(offer, old_path), p,
+			func() -> void: _camp_reopen())
+		return
+	_shop_system.on_shop_buy_pressed(offer)
+	_after_shop_change()
+	_camp_finish()
+
+
+func _camp_buy_replace(offer: Dictionary, old_path: String) -> void:
+	_shop_system.on_shop_buy_replace_pressed(offer, old_path)
+	_after_shop_change()
+	_camp_finish()
+
+
+func _camp_reopen() -> void:
+	# 替换取消：回棋盘视图再弹营地（营地面板与 board_screen 同级，不依赖 HUD 可见）。
+	board.return_to_board()
+	hud.request_camp_supply(_camp_offers, _camp_buy, _camp_leave)
+
+
+func _camp_leave() -> void:
+	_camp_finish("营地：未购买，继续前进")
+
+
+func _camp_finish(msg: String = "营地：补给结束") -> void:
+	hud.hide_camp_supply()
+	board.set_feedback(msg)
+	hud._log(msg)
+	invalidate_state()
+	hud._refresh_meta()
+	board.return_to_board()
+
+
+# 神龛（G4-04）：效果生成时冻结并公开；数值沿用既有奖励效果
+# （恢复 35% 最大 HP / 最大 HP +12 并回 20% / 下一场 +15 护盾）。
+func _board_shrine(node: Dictionary) -> void:
+	var kind := String(node.get("shrine_kind", ""))
+	var before_hp := player_hp
+	var before_max := player_hp_max
+	var msg := ""
+	match kind:
+		"heal":
+			var heal := int(ceil(float(player_hp_max) * 0.35))
+			player_hp = mini(player_hp_max, player_hp + heal)
+			if player_hp == before_hp:
+				msg = "神龛：HP 已满（%d/%d），无需恢复" % [before_hp, before_max]
+			else:
+				msg = "神龛：恢复 %d HP（%d/%d → %d/%d）" % [
+					player_hp - before_hp, before_hp, before_max, player_hp, player_hp_max]
+		"maxhp":
+			player_hp_max += 12
+			var heal2 := int(ceil(float(player_hp_max) * 0.2))
+			player_hp = mini(player_hp_max, player_hp + heal2)
+			msg = "神龛：最大 HP +12（%d → %d）并恢复 %d" % [
+				before_max, player_hp_max, player_hp - before_hp]
+		"ward":
+			_reward_system.run_shield_next += 15
+			msg = "神龛：下一场战斗开局 +15 护盾（累计 %d）" % _reward_system.run_shield_next
+		_:
+			_board_node_gold(15, "神龛：金币")
+			return
+	board.set_feedback(msg)
+	hud._log(msg)
+	invalidate_state()
+	hud._refresh_meta()
+	board.return_to_board()
+
+
+# 武器藏库（G4-04）：两把可见武器二选一；满槽沿用替换流程，跳过则节点消耗。
+func _board_armory(node: Dictionary) -> void:
+	var paths: Array = node.get("armory_paths", [])
+	if paths.is_empty():
+		_board_node_gold(15, "武器藏库：已空，折算金币")
+		return
+	# 弹层挂在 duel 根节点，棋盘保持可见作为背景（不切到战斗 HUD）。
+	hud.request_armory(paths,
+		func(p: String) -> void: _board_armory_pick(p),
+		func() -> void: _board_armory_skip())
+
+
+func _board_armory_pick(p: String) -> void:
+	if p == "" or selected_loadout.has(p):
+		_board_node_gold(15, "武器藏库：已持有，折算金币")
+		return
+	if selected_loadout.size() >= _loadout_system.cat_cap("weapon"):
+		# 替换弹层挂在 HUD 上：先切到战斗 HUD 视图，否则面板不可见。
+		hud.hide_board_screen(true)
+		hud.request_weapon_replace("武器藏库：替换武器", _weapon_info(p),
+			func(old_path: String) -> void: _board_weapon_replace(p, old_path, "武器藏库"), p,
+			func() -> void: _board_weapon_cancel(p, "武器藏库"))
+		return
+	selected_loadout.append(p)
+	_reward_system.remember_weapon(p)
+	_build_pool(selected_loadout)
+	var msg := "武器藏库：获得 %s（已加入转轮带）" % _shop_name(p, "weapon")
+	board.set_feedback(msg)
+	hud._log(msg)
+	invalidate_state()
+	hud._refresh_meta()
+	board.return_to_board()
+
+
+func _board_armory_skip() -> void:
+	var msg := "武器藏库：放弃选择（节点已消耗）"
+	board.set_feedback(msg)
+	hud._log(msg)
+	board.return_to_board()
+
+
+# 宝箱（G4-04）：类别与具体物品在生成时冻结；武器/护符复用节点授予与替换流程。
+func _board_treasure(node: Dictionary) -> void:
+	var kind := String(node.get("treasure_kind", ""))
+	var p := String(node.get("item_path", ""))
+	if p == "" or kind == "gold":
+		_board_node_gold(15, "宝箱：金币")
+		return
+	match kind:
+		"weapon":
+			_board_weapon(node, "宝箱")
+		"charm":
+			_board_charm(node, "宝箱")
+		"active":
+			_board_treasure_active(p)
+		_:
+			_board_node_gold(15, "宝箱：金币")
+
+
+func _board_treasure_active(p: String) -> void:
+	var cd = load(p)
+	if cd == null:
+		_board_node_gold(15, "宝箱：物品缺失，折算金币")
+		return
+	var nm := String(cd.item_name)
+	var msg := ""
+	if consumable_slots.size() >= CONSUMABLE_CAP:
+		var refund := _sell_price("active", p)
+		gold += refund
+		msg = "宝箱：%s 但腰带已满 → 折算金币 +%d" % [nm, refund]
+	else:
+		_consumable_uid += 1
+		consumable_slots.append({"path": p, "item_id": cd.item_id, "charges": cd.charges,
+			"uid": "c%d" % _consumable_uid})
+		msg = "宝箱：获得 %s（入腰带）" % nm
+	board.set_feedback(msg)
+	hud._log(msg)
+	invalidate_state()
+	hud._refresh_meta()
+	_refresh_consumable_panel()
+	board.return_to_board()
+
+
+func _board_weapon(node: Dictionary, label: String = "武器格") -> void:
+	var p := String(node.get("item_path", ""))
+	if p == "" or selected_loadout.has(p):
+		_board_node_gold(15, "%s：无可用候选，折算金币" % label)
+		return
+	if selected_loadout.size() >= _loadout_system.cat_cap("weapon"):
+		hud.hide_board_screen(true)
+		hud.request_weapon_replace("棋盘武器：替换", _weapon_info(p),
+			func(old_path: String) -> void: _board_weapon_replace(p, old_path, label), p,
+			func() -> void: _board_weapon_cancel(p, label))
+		return
+	selected_loadout.append(p)
+	_reward_system.remember_weapon(p)
+	if _career != null:
+		_career.note_board_weapon()   # G6-01：棋盘寻宝（主动获得武器格）
+	_build_pool(selected_loadout)
+	var msg := "%s：获得 %s（已加入转轮带）" % [label, _shop_name(p, "weapon")]
+	board.set_feedback(msg)
+	hud._log(msg)
+	invalidate_state()
+	hud._refresh_meta()
+	board.return_to_board()
+
+
+func _board_weapon_replace(p: String, old_path: String, label: String = "武器格") -> void:
+	if p == "" or not selected_loadout.has(old_path) or selected_loadout.has(p):
+		_board_weapon_cancel(p, label)
+		return
+	var old_name := _shop_name(old_path, "weapon")
+	selected_loadout.erase(old_path)
+	selected_loadout.append(p)
+	_reward_system.remember_weapon(p)
+	if _career != null:
+		_career.note_board_weapon()   # G6-01：替换获得同样算主动获得武器格
+	if _telemetry != null:
+		_telemetry.on_weapon_swap()
+	_build_pool(selected_loadout)
+	var msg := "%s：%s → %s" % [label, old_name, _shop_name(p, "weapon")]
+	board.set_feedback(msg)
+	hud._log(msg)
+	invalidate_state()
+	hud._refresh_meta()
+	board.return_to_board()
+
+
+func _board_weapon_cancel(p: String, label: String = "武器格") -> void:
+	var msg := "%s：跳过 %s（节点已消耗）" % [label, _shop_name(p, "weapon")]
+	board.set_feedback(msg)
+	hud._log(msg)
+	board.return_to_board()
+
+
+func _board_charm(node: Dictionary, label: String = "护符格") -> void:
+	var p := String(node.get("item_path", ""))
+	if p == "" or selected_charms.has(p):
+		_board_node_gold(15, "%s：无可用候选，折算金币" % label)
+		return
+	var cap: int = int(_loadout_system.cat_cap("passive"))
+	if selected_charms.size() >= _loadout_system.cat_max("passive"):
+		# 未到硬天花板才开槽；已到天花板（或已越界）则折算金币，绝不突破 CHARM_CAP。
+		if selected_charms.size() < cap and _loadout_system.can_grow_slot("passive"):
+			_loadout_system.grow_slot("passive")
+		else:
+			var refund := _sell_price("passive", p)
+			gold += refund
+			var full_msg := "%s：%s 但护符槽已满 → 折算金币 +%d" % [
+				label, _shop_name(p, "passive"), refund]
+			board.set_feedback(full_msg)
+			hud._log(full_msg)
+			invalidate_state()
+			hud._refresh_meta()
+			board.return_to_board()
+			return
+	selected_charms.append(p)
+	_reward_system.remember_charm(p)   # G2-01：棋盘护符格也写入图鉴/来源
+	_apply_charms()
+	var msg := "%s：获得 %s（已生效）" % [label, _shop_name(p, "passive")]
+	board.set_feedback(msg)
+	hud._log(msg)
+	invalidate_state()
+	hud._refresh_meta()
+	board.return_to_board()
+
+
+func _board_node_gold(n: int, reason: String) -> void:
+	gold += n
+	var msg := "%s +%d" % [reason, n]
+	board.set_feedback(msg)
+	hud._log(msg)
+	invalidate_state()
+	hud._refresh_meta()
+	board.return_to_board()
 
 
 func _begin_player_turn() -> void:

@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://tests/m1_post_battle_test.gd" id="1"]
+
+[node name="M1PostBattleTest" type="Node"]
+script = ExtResource("1")

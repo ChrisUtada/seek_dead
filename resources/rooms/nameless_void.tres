@@ -1,8 +1,9 @@
-[gd_resource type="Resource" script_class="RoomData" load_steps=6 format=3]
+[gd_resource type="Resource" script_class="RoomData" load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/battle/room_data.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/battle/gimmicks/emotional_vacuum_gimmick.gd" id="2"]
 [ext_resource type="Script" path="res://scripts/battle/intent_data.gd" id="3"]
+[ext_resource type="Texture2D" path="res://assets/characters/nameless_void/idle_01.png" id="art_room"]
 
 [sub_resource type="Resource" script_class="IntentData" id="intent_attack"]
 script = ExtResource("3")
@@ -37,3 +38,5 @@ gimmick_script = ExtResource("2")
 gimmick_params = {"phase2_hp_ratio": 0.5, "deprive_charms": true, "deprive_skills": true, "p2_atk_mult": 0.85, "p2_armor": 32}
 boss_reward_weapons = Array[String](["res://resources/weapon_templates/holy_sword.tres", "res://resources/weapon_templates/dawn_blade.tres", "res://resources/weapon_templates/iron_sword.tres"])
 boss_relic_path = "res://resources/charms/void_echo_relic.tres"
+art = ExtResource("art_room")
+art_scale = 2.0

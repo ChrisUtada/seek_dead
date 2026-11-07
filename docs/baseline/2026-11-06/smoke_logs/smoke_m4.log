@@ -1,0 +1,70 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+PASS  武器白名单 14 条
+PASS  技能白名单 10 条
+PASS  护符白名单 17 条（13 普通 + 4 信物）
+PASS  消耗品白名单 10 条
+PASS  武器白名单路径存在且为 WeaponData
+PASS  技能白名单路径存在且为 SkillData
+PASS  护符白名单路径存在且为 passive
+PASS  消耗品白名单路径存在且为 active
+PASS  新档 starter 武器在白名单内：dagger.tres
+PASS  新档 starter 武器在白名单内：fire_sword.tres
+PASS  新档 starter 武器在白名单内：battle_axe.tres
+PASS  新档 starter 武器在白名单内：ice_staff.tres
+PASS  白名单至少 4 个 common 护符（starter 护符来源）
+铁砧元进度已载入：点数 8832
+已为你预选默认配装（可自由调整后再开战）
+护符已装配：伤害+0 / 开局护盾+0 / 每回合护盾+4 / 每回合回血+0 / 抗扰+0
+▶ 回合 1 开始
+▶ 进入房间 1/25：冰锋群蝠（HP 55，攻击 10）
+PASS  关闭开关：武器池全量 90
+PASS  关闭开关：技能池全量 17
+PASS  关闭开关：装备池全量 70
+PASS  关闭开关：ROOMS = 3 幕 × 8 + 真·最终（25）
+PASS  关闭开关：含真·最终战
+⚒ 熟练 毒匕首 +1（R1 · 1/3）
+PASS  正式版全武器熟练：毒匕首获得 +1 熟练
+PASS  正式版全武器熟练：毒匕首显示 R 进度
+PASS  正式版全武器熟练：毒匕首可选择铭印
+⚒ 熟练 毒匕首 +1（R2 · 3/7）
+✦ 毒匕首 达 R2：可选择一项铭印
+PASS  正式版全武器熟练：累计 3 → R2 并欠一次铭印
+◆ ACT1 DEMO 模式：武器 14 / 技能 10 / 道具 27 / 房间 20（仅 ACT1，不含真·最终）
+铁砧元进度已载入：点数 8832
+已为你预选默认配装（可自由调整后再开战）
+护符已装配：伤害+0 / 开局护盾+0 / 每回合护盾+4 / 每回合回血+0 / 抗扰+0
+▶ 回合 1 开始
+▶ 进入房间 1/8：寒鳞蝠（HP 80，攻击 10）
+PASS  测试与 controller 共用同一 DemoConfig 实例
+PASS  demo：武器池收窄为 14
+PASS  demo：技能池收窄为 10
+PASS  demo：装备池收窄为 27
+PASS  demo：池内无白名单外内容
+PASS  demo：ROOMS = ACT1 8 房
+PASS  demo：全部房间 act == 1
+PASS  demo：不含真·最终战
+PASS  demo：ALL_ROOMS 收窄为 ACT1 20 房（12 普通 + 4 精英 + 4 BOSS）
+PASS  demo：整备可选白名单内已拥有武器
+PASS  demo：整备隐藏池外已拥有武器
+PASS  demo：池外已拥有内容未被删除（关闭开关即恢复）
+PASS  demo：商店 6 次刷新全部在白名单内
+PASS  demo：铁砧池全部在白名单内
+PASS  demo：能找到 ACT1 BOSS 房
+PASS  demo：BOSS 候选不含白名单外的 flame_staff
+PASS  demo：BOSS 武器候选全部在白名单内
+⚒ 熟练 毒匕首 +1（R1 · 1/3）
+PASS  demo 白名单内非样板武器熟练：毒匕首获得 +1 熟练
+PASS  demo 白名单内非样板武器熟练：毒匕首显示 R 进度
+PASS  demo 白名单内非样板武器熟练：毒匕首可选择铭印
+⚒ 熟练 毒匕首 +1（R2 · 3/7）
+✦ 毒匕首 达 R2：可选择一项铭印
+PASS  demo 白名单内非样板武器熟练：累计 3 → R2 并欠一次铭印
+PASS  局末弹出元进度结算屏
+PASS  demo 局末标题为「ACT1 试玩结束」
+元进度：铁砧点数 +2（共 8834）
+PASS  元进度结算：铁砧点数入账
+PASS  结算后关闭元进度屏
+PASS  一局结束回整备（可换配装 / 花铁砧点 / 看图鉴）
+---
+PASSED 48 / FAILED 0

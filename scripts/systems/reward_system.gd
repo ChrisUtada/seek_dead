@@ -249,9 +249,21 @@ func pick_active_item_path() -> String:
 
 # 新武器写入局外收藏（图鉴/开局池）；落盘时机与商店一致（局末统一保存）
 func remember_weapon(path: String) -> void:
-	if path != "" and not _ctrl.meta["owned_weapons"].has(path):
+	if path == "":
+		return
+	if not _ctrl.meta["owned_weapons"].has(path):
 		_ctrl.meta["owned_weapons"].append(path)
 		_ctrl._anvil_system.check_collection_milestones()   # M1-03：按真实收集进度结算图鉴里程碑
+	_ctrl._meta_store.record_source(path, _ctrl._item_source())   # G2-01：来源记录
+
+
+# G2-01：护符获得后写入图鉴/开局池；来源记录与武器同一口径。
+func remember_charm(path: String) -> void:
+	if path == "":
+		return
+	if not _ctrl.meta["owned_charms"].has(path):
+		_ctrl.meta["owned_charms"].append(path)
+	_ctrl._meta_store.record_source(path, _ctrl._item_source())
 
 
 # 稀有度权重档（胜利奖励方案：common 50 / uncommon 30 / rare 20；幕三 rare 升至 30、common 降至 40）
@@ -346,6 +358,123 @@ func roll_boss_rewards(room) -> Array:
 	for i in min(3, cands.size()):
 		out.append(cands[i])
 	return out
+
+
+# ---------------------------------------------------------------------------
+# M1 战后成长槽位（补给 / 构筑）
+# ---------------------------------------------------------------------------
+# 与旧「三张同池随机」不同：按槽位分别抽一张，且补给位永不与构筑位同 ID。
+# 候选在展示前定死具体物品与真实变化（payload），确认后不再随机。
+
+func reward_by_id(id: String) -> RewardData:
+	return _find_reward(id)
+
+
+func _current_act() -> int:
+	if _ctrl.room_index >= 0 and _ctrl.room_index < _ctrl.ROOMS.size():
+		return int(_ctrl.ROOMS[_ctrl.room_index].act)
+	return 1
+
+
+# 返回 [补给, 构筑] 两张 RewardData，并填充与索引对齐的 payload。
+func roll_slot_rewards(kind: String) -> Array:
+	var act: int = _current_act()
+	var supply: Array = _slot_supply_pool(kind)
+	var build: Array = _slot_build_pool(kind, act)
+	var out: Array = []
+	var s: RewardData = _weighted_pick(supply, act)
+	var b: RewardData = _weighted_pick(build, act)
+	out.append(s if s != null else _find_reward("maxhp"))
+	out.append(b if b != null else _find_reward("power"))
+	_fill_slot_payloads(out)
+	# 消耗品无有效候选时退回最大 HP，避免出现没有具体物品的空卡。
+	for i in range(out.size()):
+		if String(out[i].id) == "consumable" and choice_payloads[i].is_empty():
+			out[i] = _find_reward("maxhp")
+			choice_payloads[i] = _slot_payload(out[i])
+	return out
+
+
+# 补给位：生存与资源下限。满血时不提供纯治疗（§4.4）。
+func _slot_supply_pool(kind: String) -> Array:
+	var ids: Array[String] = ["maxhp", "maxhp_heal", "shield", "gold", "consumable"]
+	if _ctrl.player_hp < _ctrl.player_hp_max:
+		ids.push_front("heal")
+	if kind == "elite":
+		ids.append_array(["elite_gold", "elite_anvil", "elite_ward"])
+	return _rewards_by_ids(ids)
+
+
+# 构筑位：武器 / 真实增格符号 / 本局伤害。power 保证槽位永不为空。
+func _slot_build_pool(kind: String, act: int) -> Array:
+	var ids: Array[String] = ["power"]
+	if (act >= 2 or kind == "elite") and has_weapon_candidate():
+		ids.push_front("weapon")
+	if not symbol_infusions().is_empty():
+		ids.push_front("symbol")
+	return _rewards_by_ids(ids)
+
+
+# 是否还有未装备武器可给（避免「新武器」卡没有具体对象）。
+func has_weapon_candidate() -> bool:
+	for p in _ctrl.WEAPON_POOL:
+		if not _ctrl.selected_loadout.has(p):
+			return true
+	return false
+
+
+func _rewards_by_ids(ids: Array) -> Array:
+	var out: Array = []
+	for id in ids:
+		var rw: RewardData = _find_reward(String(id))
+		if rw != null:
+			out.append(rw)
+	return out
+
+
+func _fill_slot_payloads(choices: Array) -> void:
+	choice_payloads = []
+	for rw in choices:
+		choice_payloads.append(_slot_payload(rw))
+
+
+# 槽位卡的展示口径：具体对象 + 当前值 → 选择后值。apply_reward 只对 weapon/symbol/consumable
+# 读取 payload 中的 path；其余项的 payload 只负责展示。
+func _slot_payload(rw: RewardData) -> Dictionary:
+	if rw == null:
+		return {}
+	match String(rw.id):
+		"weapon":
+			return _weapon_payload()
+		"symbol":
+			return _symbol_payload()
+		"consumable":
+			return _consumable_payload()
+		"heal":
+			var h := int(_ctrl.player_hp_max * float(rw.value) / 100.0)
+			var after := mini(_ctrl.player_hp_max, _ctrl.player_hp + h)
+			return {"title": "%s · +%d HP" % [rw.label, after - _ctrl.player_hp],
+				"desc": "HP %d/%d → %d/%d" % [_ctrl.player_hp, _ctrl.player_hp_max, after, _ctrl.player_hp_max]}
+		"maxhp":
+			return {"title": "%s · +%d" % [rw.label, rw.value],
+				"desc": "最大 HP %d → %d 并回满" % [_ctrl.player_hp_max, _ctrl.player_hp_max + rw.value]}
+		"maxhp_heal":
+			return {"title": "%s · +%d" % [rw.label, rw.value],
+				"desc": "最大 HP %d → %d，并恢复 20%%" % [_ctrl.player_hp_max, _ctrl.player_hp_max + rw.value]}
+		"shield", "elite_ward":
+			return {"title": "%s · +%d" % [rw.label, rw.value],
+				"desc": "下一房开局护盾 %d → %d" % [run_shield_next, run_shield_next + rw.value]}
+		"power":
+			return {"title": "%s · +%d" % [rw.label, rw.value],
+				"desc": "本局符号伤害 +%d → +%d" % [run_power_bonus, run_power_bonus + rw.value]}
+		"gold", "elite_gold":
+			return {"title": "%s · +%d" % [rw.label, rw.value],
+				"desc": "金币 %d → %d" % [_ctrl.gold, _ctrl.gold + rw.value]}
+		"elite_anvil":
+			var ap := int(_ctrl.meta.get("anvil_points", 0))
+			return {"title": "%s · +%d" % [rw.label, rw.value],
+				"desc": "铁砧点数 %d → %d（跨局）" % [ap, ap + rw.value]}
+	return {"title": rw.label, "desc": rw.desc}
 
 
 # 按 id 在普通/精英奖励池中查找 RewardData（数值资源化：value 字段，文案同文件防漂移）
@@ -547,6 +676,7 @@ func apply_boss_reward(cand: Dictionary) -> void:
 					_ctrl.meta["owned_charms"].append(p)
 					_ctrl._anvil_system.check_collection_milestones()   # M1-03
 					_ctrl._meta_store.save_meta()
+				_ctrl._meta_store.record_source(p, _ctrl._item_source())   # G2-01：来源记录
 				_ctrl._apply_charms()                     # 重算护符被动（伤害乘区等随持有变化）
 				_ctrl.hud._log("BOSS 战利品：获得专属信物 %s（占护符槽，已入图鉴）" % cand.get("label", p))
 				_ctrl.hud._popup("🏆 获得信物 %s" % cand.get("label", p), Palette.ACCENT_GOLD, _ctrl.hud._player_sprite_anchor())
@@ -627,6 +757,7 @@ func _drop_elite_charm() -> void:
 			_ctrl.hud._popup("💰+%d" % refund, Palette.POP_GOLD, _ctrl.hud._player_sprite_anchor())
 			return
 	_ctrl.selected_charms.append(path)
+	remember_charm(path)   # G2-01：精英掉落护符写入图鉴/来源
 	_ctrl._apply_charms()
 	var cd: Resource = load(path)
 	_ctrl.hud._log("精英掉落：获得护符 %s（按获取权重加权，占护符槽）" % (cd.item_name if cd != null else path))

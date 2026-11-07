@@ -1,0 +1,238 @@
+{
+  "board": {
+    "confirmations": [],
+    "fork_a": "",
+    "fork_b": "",
+    "items": [],
+    "path": [],
+    "rolls": []
+  },
+  "boss": "",
+  "end_time": "2026-11-06T15:38:00",
+  "errors": [],
+  "growth": {
+    "level": 3,
+    "mastery": "铭印 锋铸×2",
+    "perks": [
+      "reserve"
+    ],
+    "summary": "技艺 运筹×1"
+  },
+  "label": "R1",
+  "m1": {
+    "deferred_id": "",
+    "deferred_kept": true,
+    "deferred_seen_next": true,
+    "offers": [
+      {
+        "room": 1,
+        "slots": [
+          "supply",
+          "build",
+          "growth"
+        ],
+        "titles": [
+          "治疗药剂 · +6 HP",
+          "符号 · 🔥 权重+3",
+          "下一房对策 · 护盾 +15"
+        ]
+      },
+      {
+        "room": 2,
+        "slots": [
+          "supply",
+          "build",
+          "growth"
+        ],
+        "titles": [
+          "治疗药剂 · +11 HP",
+          "锋锐打磨 · +1",
+          "下一房对策 · 护盾 +15"
+        ]
+      },
+      {
+        "room": 3,
+        "slots": [
+          "supply",
+          "build",
+          "growth"
+        ],
+        "titles": [
+          "守望结界 · +15",
+          "锋锐打磨 · +1",
+          "技艺 · 备用药剂"
+        ]
+      },
+      {
+        "room": 4,
+        "slots": [
+          "supply",
+          "build",
+          "growth"
+        ],
+        "titles": [
+          "守望结界 · +15",
+          "武器 · 赤焰弯刀",
+          "技艺 · 备用药剂"
+        ]
+      },
+      {
+        "room": 5,
+        "slots": [
+          "supply",
+          "build",
+          "growth"
+        ],
+        "titles": [
+          "守望结界 · +15",
+          "锋锐打磨 · +1",
+          "铭印 · 锋铸 ×火焰剑"
+        ]
+      },
+      {
+        "room": 6,
+        "slots": [
+          "supply",
+          "build",
+          "growth"
+        ],
+        "titles": [
+          "治疗药剂 · +38 HP",
+          "锋锐打磨 · +1",
+          "铭印 · 锋铸 ×匕首"
+        ]
+      }
+    ],
+    "single_screen": true
+  },
+  "mode": "linear",
+  "preset": "control",
+  "rooms": [
+    {
+      "finished": true,
+      "hp_end": 94,
+      "hp_max": 100,
+      "hp_start": 100,
+      "key": "linear:0:冰锋群蝠",
+      "kind": "normal",
+      "name": "冰锋群蝠",
+      "near_death": false,
+      "turns": 1
+    },
+    {
+      "finished": true,
+      "hp_end": 89,
+      "hp_max": 100,
+      "hp_start": 94,
+      "key": "linear:1:寒鳞蝠",
+      "kind": "normal",
+      "name": "寒鳞蝠",
+      "near_death": false,
+      "turns": 3
+    },
+    {
+      "finished": true,
+      "hp_end": 76,
+      "hp_max": 100,
+      "hp_start": 89,
+      "key": "linear:2:余烬傀儡",
+      "kind": "normal",
+      "name": "余烬傀儡",
+      "near_death": false,
+      "turns": 3
+    },
+    {
+      "finished": true,
+      "hp_end": 67,
+      "hp_max": 105,
+      "hp_start": 76,
+      "key": "linear:3:寒铁精英",
+      "kind": "elite",
+      "name": "寒铁精英",
+      "near_death": false,
+      "turns": 3
+    },
+    {
+      "finished": true,
+      "hp_end": 49,
+      "hp_max": 105,
+      "hp_start": 67,
+      "key": "linear:4:暗影诡匠",
+      "kind": "normal",
+      "name": "暗影诡匠",
+      "near_death": false,
+      "turns": 2
+    },
+    {
+      "finished": true,
+      "hp_end": 72,
+      "hp_max": 105,
+      "hp_start": 49,
+      "key": "linear:5:锈盲蝠",
+      "kind": "normal",
+      "name": "锈盲蝠",
+      "near_death": false,
+      "turns": 2
+    },
+    {
+      "finished": true,
+      "hp_end": -24,
+      "hp_max": 110,
+      "hp_start": 72,
+      "key": "linear:6:酸蚀傀儡",
+      "kind": "elite",
+      "name": "酸蚀傀儡",
+      "near_death": true,
+      "turns": 3
+    }
+  ],
+  "seconds": 44.089,
+  "seed": 1101,
+  "selections": [
+    "成长:技艺 · 备用药剂",
+    "成长:技艺 · 备用药剂",
+    "成长:铭印 · 锋铸 ×火焰剑",
+    "成长:铭印 · 锋铸 ×匕首"
+  ],
+  "shots": [
+    "res://docs/baseline/2026-11-06_g1_ai/linear/R1_start.png err=0",
+    "res://docs/baseline/2026-11-06_g1_ai/linear/R1_growth.png err=0",
+    "res://docs/baseline/2026-11-06_g1_ai/linear/R1_end.png err=0"
+  ],
+  "start_time": "2026-11-06T15:37:16",
+  "telemetry": {
+    "avg_spin": 1.35117647058824,
+    "avg_ttk": 6.184,
+    "buffer_queues": 0,
+    "damage_blocked": 67,
+    "damage_taken": 274,
+    "enemy_attacks": 13,
+    "forced_stops": 0,
+    "reward_pick_rate": 0.0,
+    "reward_picks": {
+      "growth_imprint": 2,
+      "growth_perk": 1,
+      "power": 1,
+      "shield": 1,
+      "symbol": 1
+    },
+    "rewards_shown": 0,
+    "rooms_cleared": 6,
+    "spin_seconds": 22.97,
+    "spins": 17,
+    "stop_outcomes": {
+      "miss": 4,
+      "normal": 37,
+      "target": 8
+    },
+    "stop_total": 49,
+    "target_hit_rate": 0.163265306122449,
+    "target_hits": 8,
+    "target_symbol": "res://resources/symbols/fire_slash.tres",
+    "triple_rate": 0.0588235294117647,
+    "triples": 1,
+    "turns": 17,
+    "weapon_swaps": 0
+  },
+  "terminal": "LOST"
+}

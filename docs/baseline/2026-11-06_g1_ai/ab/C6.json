@@ -1,0 +1,212 @@
+{
+  "board": {
+    "boss_map": [],
+    "confirmations": [],
+    "continue_seen": false,
+    "fork_a": "",
+    "fork_b": "",
+    "fork_descs": [],
+    "items": [],
+    "path": [],
+    "rolls": []
+  },
+  "boss": "",
+  "end_time": "2026-11-06T16:30:55",
+  "errors": [],
+  "growth": {
+    "level": 2,
+    "mastery": "铭印 锋铸×1",
+    "perks": [
+      "steady"
+    ],
+    "summary": "技艺 目押×1"
+  },
+  "label": "C6",
+  "m1": {
+    "deferred_id": "",
+    "deferred_kept": true,
+    "deferred_seen_next": true,
+    "offers": [
+      {
+        "room": 1,
+        "slots": [
+          "supply",
+          "build",
+          "growth"
+        ],
+        "titles": [
+          "守望结界 · +15",
+          "锋锐打磨 · +1",
+          "下一房对策 · 金币 +15"
+        ]
+      },
+      {
+        "room": 2,
+        "slots": [
+          "supply",
+          "build",
+          "growth"
+        ],
+        "titles": [
+          "消耗品 · 治疗药剂",
+          "符号 · 🔥 权重+3",
+          "下一房对策 · 护盾 +15"
+        ]
+      },
+      {
+        "room": 3,
+        "slots": [
+          "supply",
+          "build",
+          "growth"
+        ],
+        "titles": [
+          "守望结界 · +15",
+          "锋锐打磨 · +1",
+          "技艺 · 稳定节奏"
+        ]
+      },
+      {
+        "room": 4,
+        "slots": [
+          "supply",
+          "build",
+          "growth"
+        ],
+        "titles": [
+          "战利金库 · +18",
+          "武器 · 寒冰刃",
+          "技艺 · 稳定节奏"
+        ]
+      },
+      {
+        "room": 5,
+        "slots": [
+          "supply",
+          "build",
+          "growth"
+        ],
+        "titles": [
+          "守望结界 · +15",
+          "锋锐打磨 · +1",
+          "铭印 · 锋铸 ×匕首"
+        ]
+      }
+    ],
+    "single_screen": true
+  },
+  "mode": "linear",
+  "preset": "control",
+  "rooms": [
+    {
+      "finished": true,
+      "hp_end": 78,
+      "hp_max": 100,
+      "hp_start": 100,
+      "key": "linear:0:腐化史莱姆",
+      "kind": "normal",
+      "name": "腐化史莱姆",
+      "near_death": false,
+      "turns": 2
+    },
+    {
+      "finished": true,
+      "hp_end": 71,
+      "hp_max": 100,
+      "hp_start": 78,
+      "key": "linear:1:寒鳞蝠",
+      "kind": "normal",
+      "name": "寒鳞蝠",
+      "near_death": false,
+      "turns": 2
+    },
+    {
+      "finished": true,
+      "hp_end": 80,
+      "hp_max": 100,
+      "hp_start": 71,
+      "key": "linear:2:余烬傀儡",
+      "kind": "normal",
+      "name": "余烬傀儡",
+      "near_death": false,
+      "turns": 5
+    },
+    {
+      "finished": true,
+      "hp_end": 68,
+      "hp_max": 105,
+      "hp_start": 80,
+      "key": "linear:3:腐殖巨蠕",
+      "kind": "elite",
+      "name": "腐殖巨蠕",
+      "near_death": false,
+      "turns": 2
+    },
+    {
+      "finished": true,
+      "hp_end": 8,
+      "hp_max": 105,
+      "hp_start": 68,
+      "key": "linear:4:重锤蛮兵",
+      "kind": "normal",
+      "name": "重锤蛮兵",
+      "near_death": true,
+      "turns": 6
+    },
+    {
+      "finished": true,
+      "hp_end": -6,
+      "hp_max": 105,
+      "hp_start": 8,
+      "key": "linear:5:暗影诡匠",
+      "kind": "normal",
+      "name": "暗影诡匠",
+      "near_death": true,
+      "turns": 2
+    }
+  ],
+  "seconds": 3.422,
+  "seed": 3306,
+  "selections": [
+    "成长:技艺 · 稳定节奏",
+    "成长:技艺 · 稳定节奏",
+    "成长:铭印 · 锋铸 ×匕首"
+  ],
+  "shots": [],
+  "start_time": "2026-11-06T16:30:52",
+  "telemetry": {
+    "avg_spin": 0.0303684210526316,
+    "avg_ttk": 0.3316,
+    "buffer_queues": 0,
+    "damage_blocked": 127,
+    "damage_taken": 211,
+    "enemy_attacks": 15,
+    "forced_stops": 0,
+    "reward_pick_rate": 0.0,
+    "reward_picks": {
+      "growth_imprint": 1,
+      "growth_perk": 1,
+      "power": 1,
+      "shield": 1,
+      "symbol": 1
+    },
+    "rewards_shown": 0,
+    "rooms_cleared": 5,
+    "spin_seconds": 0.577,
+    "spins": 19,
+    "stop_outcomes": {
+      "miss": 4,
+      "normal": 43,
+      "target": 10
+    },
+    "stop_total": 57,
+    "target_hit_rate": 0.175438596491228,
+    "target_hits": 10,
+    "target_symbol": "res://resources/symbols/fire_slash.tres",
+    "triple_rate": 0.0,
+    "triples": 0,
+    "turns": 19,
+    "weapon_swaps": 0
+  },
+  "terminal": "LOST"
+}

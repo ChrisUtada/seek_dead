@@ -1,9 +1,10 @@
 extends Control
 class_name RewardScreen
 
-# reward_screen — 房奖励三选一 / BOSS 战利品三选一覆盖层（P3b-2 抽独立场景）
+# reward_screen — 战后成长三槽 / BOSS 战利品 / 旧奖励屏覆盖层（P3b-2 抽独立场景）
 # 静态骨架由 reward_screen.tscn 提供；本脚本负责显隐 / 填数据 / 跳过信号。
-# 卡片构造复用 HUD 的 _make_reward_card / _make_boss_reward_card。
+# 卡片构造复用 HUD 的 _make_reward_card / _make_post_growth_card / _make_boss_reward_card。
+# M1：普通 / 精英胜利走 show_post_battle（补给 / 构筑 / 成长三槽）；BOSS 走 show_screen(true)。
 
 var controller
 var hud: BattleHud
@@ -15,29 +16,34 @@ const UI_BUTTON = preload("res://scenes/ui/ui_button.tscn")
 @onready var reward_grid = $Center/Dialog/Margin/Content/Scroll/RewardGrid
 @onready var bot = $Center/Dialog/Margin/Content/Bot
 
+var _skip_btn: Button = null
+
 func configure(ctrl, h: BattleHud) -> void:
 	controller = ctrl
 	hud = h
 	dimmer.color = Palette.BG_OVERLAY
 	sub_label.text = "选择一项（跳过则不取）"
+	sub_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	var sp = Control.new()
 	sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bot.add_child(sp)
-	var skip_btn = UI_BUTTON.instantiate()
-	skip_btn.text = "跳过 ▶"
-	skip_btn.custom_minimum_size = Vector2(96, 30)
-	skip_btn.pressed.connect(hud.reward_skip_requested.emit)
-	bot.add_child(skip_btn)
+	_skip_btn = UI_BUTTON.instantiate()
+	_skip_btn.text = "跳过 ▶"
+	_skip_btn.custom_minimum_size = Vector2(96, 30)
+	_skip_btn.pressed.connect(hud.reward_skip_requested.emit)
+	bot.add_child(_skip_btn)
 
+# BOSS 战利品 / 旧奖励屏（直接调用路径）。普通 / 精英胜利由 show_post_battle 接管。
 func show_screen(is_boss: bool) -> void:
 	# 奖励候选与 reward_is_boss 由 controller._open_reward_screen 填充（UI 不再直写 controller 字段），
 	# 本屏只从只读快照 state 读取渲染数据。
 	controller._reward_system.open_reward_screen(is_boss)
-	for c in reward_grid.get_children():
-		reward_grid.remove_child(c)
-		c.queue_free()
+	_clear_grid()
 	var choices = controller.state.reward_choices
 	var kind = controller.state.ROOMS[controller.state.room_index].kind
+	sub_label.text = "选择一项（跳过则不取）"
+	if _skip_btn != null:
+		_skip_btn.text = "跳过 ▶"
 	if is_boss:
 		title_label.text = "★ BOSS 战利品"
 		for rw in choices:
@@ -52,5 +58,28 @@ func show_screen(is_boss: bool) -> void:
 			reward_grid.add_child(hud._make_reward_card(choices[i], i))
 	visible = true
 
+
+# M1 战后成长三槽：标题固定，页头保留历练 / 技艺 / 铭印摘要，三张卡带槽位标签。
+func show_post_battle(offer: Array, summary: String) -> void:
+	_clear_grid()
+	title_label.text = "战后成长 · 选择一项"
+	sub_label.text = summary
+	if _skip_btn != null:
+		_skip_btn.text = "放弃本次成长"
+	for cand in offer:
+		if String(cand.get("kind", "")) == "reward":
+			reward_grid.add_child(hud._make_reward_card(cand["reward"], int(cand["index"]),
+				String(cand.get("slot_label", ""))))
+		else:
+			reward_grid.add_child(hud._make_post_growth_card(cand))
+	visible = true
+
+
 func hide_screen() -> void:
 	visible = false
+
+
+func _clear_grid() -> void:
+	for c in reward_grid.get_children():
+		reward_grid.remove_child(c)
+		c.queue_free()

@@ -1,0 +1,30 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+铁砧元进度已载入：点数 8851
+已为你预选默认配装（可自由调整后再开战）
+护符已装配：伤害+0 / 开局护盾+0 / 每回合护盾+4 / 每回合回血+0 / 抗扰+0
+▶ 回合 1 开始
+▶ 进入房间 1/25：寒鳞蝠（HP 80，攻击 10）
+PASS  WeaponData 暴露 icon_tex
+PASS  SkillData 继承 icon_tex
+PASS  SymbolData 暴露 icon_tex
+PASS  ItemData 暴露 icon_tex
+PASS  图标缺省为空（回落旧呈现）
+PASS  符号不绑定 character / anim_class
+PASS  无图标：转轮格回落 label
+PASS  有图标：转轮格显示图标并清空文字
+PASS  整备列表：装备图标绑定到按钮
+PASS  整备列表：无图标不设置图标
+PASS  卡片：有图显示主图
+PASS  卡片：无图隐藏主图
+---
+PASSED 12 / FAILED 0
+ERROR: 14 RID allocations of type 'PN13RendererDummy14TextureStorage12DummyTextureE' were leaked at exit.
+ERROR: 4 RID allocations of type 'PN18TextServerAdvanced22ShapedTextDataAdvancedE' were leaked at exit.
+ERROR: 3 RID allocations of type 'PN18TextServerAdvanced12FontAdvancedE' were leaked at exit.
+WARNING: 2 RIDs of type "CanvasItem" were leaked.
+   at: _free_rids (servers/rendering/renderer_canvas_cull.cpp:2735)
+WARNING: 74 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2535)
+ERROR: 11 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:822)

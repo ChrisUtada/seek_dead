@@ -40,3 +40,9 @@ kenney_tiny-dungeon*
 
 # AI 原始候选图（不入库）
 raw/
+
+# Local build output
+/build/
+
+# Python cache
+__pycache__/

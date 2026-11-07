@@ -1,0 +1,19 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+铁砧元进度已载入：点数 8801
+已为你预选默认配装（可自由调整后再开战）
+护符已装配：伤害+0 / 开局护盾+0 / 每回合护盾+4 / 每回合回血+0 / 抗扰+0
+▶ 回合 1 开始
+▶ 进入房间 1/1：重锤蛮兵（HP 140，攻击 16）
+PASS  商店 common 频数符合期望（obs 906 / exp 914，4σ=85）
+PASS  商店 uncommon 频数符合期望（obs 580 / exp 588，4σ=80）
+PASS  商店 rare 频数符合期望（obs 282 / exp 272，4σ=61）
+PASS  商店 epic 频数符合期望（obs 32 / exp 26，4σ=30）
+PASS  加权后货架可见 epic（32/300 局）
+PASS  act1 有武器候选产出
+PASS  act3 有武器候选产出
+PASS  深度偏置方向性：act3 高稀占比 0.54 > act1 0.37
+PASS  act1 高稀占比符合精确枚举期望（0.371 vs 0.373）
+PASS  act3 高稀占比符合精确枚举期望（0.541 vs 0.543）
+---
+PASSED 10 / FAILED 0

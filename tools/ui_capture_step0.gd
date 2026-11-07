@@ -13,11 +13,11 @@ extends Node
 #      结算 / 转轮滚动中，并覆盖 960×540、1440×810、1920×1080（2×/3×/4× 整数放大）。
 # ============================================================================
 
-const OUT_DIR := "res://docs/baseline/2026-10-31_ui/correct2"
+const OUT_DIR := "res://docs/baseline/2026-11-05_rust_blind_bat"
 const DUEL_SCENE := "res://scenes/duel/duel.tscn"
-const SAMPLE_BOSS := "res://resources/rooms/frozen_urn.tres"   # 任务书指定样板 BOSS
-# 纠偏 C0/C6：普通房固定为同一只怪，保证纠偏前后截图是同一房间、同一数值
-const SAMPLE_NORMAL := "res://resources/rooms/a1_striker_light.tres"
+const SAMPLE_BOSS := "res://resources/rooms/frozen_urn.tres"
+# 本次采集目标：锈盲蝠
+const SAMPLE_NORMAL := "res://resources/rooms/rust_blind_bat.tres"
 
 var _duel: DuelController
 var _lines: Array[String] = []
@@ -82,13 +82,24 @@ func _run() -> void:
 			_duel.ROOMS[_boss_idx] = sample
 		_duel._start_room(_boss_idx)
 		await _wait(1.1)
-		_dump_battle("BOSS 房（样板冰封铁瓮，直跳 idx=%d）" % _boss_idx)
+		_dump_battle("样板房（%s，直跳 idx=%d）" % [SAMPLE_BOSS.get_file(), _boss_idx])
 		await _shot("03_boss_960")
 		_set_window(Vector2i(480, 270))
 		await _wait(0.4)
 		await _shot("03b_boss_480")
 		_set_window(Vector2i(960, 540))
 		await _wait(0.4)
+
+		# 茧居石雕：额外采集开壳窗口立绘。只推进展示用相位钩子取图，随后重开该房恢复闭合相。
+		if SAMPLE_BOSS.ends_with("cocoon_sentinel.tres") and _duel.current_gimmick != null:
+			for i in 3:
+				_duel.current_gimmick.on_turn_begin(_duel)
+			await _wait(0.35)
+			_lines.append("茧居石雕开壳立绘：enemy=%s scale=%s" % [
+				str(_duel.hud.enemy_sprite.texture.resource_path), str(_duel.hud.enemy_sprite.scale)])
+			await _shot("03c_boss_open_960")
+			_duel._start_room(_boss_idx)
+			await _wait(0.9)
 
 		# Step 3 演出验证：真实调用 BattleAnimator（攻击帧序列 + 暖白受击闪），非摆拍。
 		# t≈0.08s：受击闪接近峰值；t≈0.21s：玩家第 4 帧（命中帧）。

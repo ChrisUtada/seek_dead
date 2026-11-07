@@ -38,9 +38,12 @@ func _run() -> void:
 	var meta_backup: Dictionary = duel.meta.duplicate(true)
 
 	_test_mastery_gain(duel)
+	_test_catchup(duel)
 	_test_r_levels_and_owed(duel)
 	_test_imprint_candidates(duel)
 	_test_forge_applies(duel)
+	_test_display_state(duel)
+	_test_sources(duel)
 	_test_tune_applies(duel)
 	_test_offer_queue(duel)
 	_test_merged_settlement(duel)
@@ -118,6 +121,63 @@ func _test_mastery_gain(duel: DuelController) -> void:
 	duel.selected_loadout.append(DAGGER)
 
 
+# G2-01：局中新换上的武器追赶；开局配装不追赶；不复制铭印；卸下再装保留。
+func _test_catchup(duel: DuelController) -> void:
+	var m = duel.mastery
+	# 开局只有火焰剑，匕首为本局中途换上的新武器
+	duel.selected_loadout.clear()
+	duel.selected_loadout.append(FIRE)
+	m.reset_run()
+	duel.selected_loadout.append(DAGGER)
+	m.mastery[FIRE] = 5
+	m.reset_room()
+	m.note_settle(DAGGER_SLASH)
+	m.settle_room("normal")
+	_check(int(m.mastery.get(DAGGER, 0)) == 2, "新武器普通房：基础 +1 + 追赶 +1")
+	_check(m.catchup_target(DAGGER) == 5, "追赶目标 = 本局其它武器最高熟练")
+	_check(duel._weapon_info(DAGGER).find("追赶") >= 0, "替换/获得预览展示追赶目标")
+
+	m.reset_room()
+	m.note_settle(DAGGER_SLASH)
+	m.settle_room("elite")
+	_check(int(m.mastery.get(DAGGER, 0)) == 5, "精英房 +3（2 基础 +1 追赶），受每房上限 3")
+
+	m.reset_room()
+	m.note_settle(DAGGER_SLASH)
+	m.settle_room("normal")
+	_check(int(m.mastery.get(DAGGER, 0)) == 6, "追平后按正常 +1，不再追赶")
+
+	# 开局配装不追赶
+	_equip(duel)
+	m.mastery[FIRE] = 5
+	m.reset_room()
+	m.note_settle(DAGGER_SLASH)
+	m.settle_room("normal")
+	_check(int(m.mastery.get(DAGGER, 0)) == 1, "开局配装武器不触发追赶")
+
+	# 追赶只补基础熟练，跨过 R2 仍进入现有铭印队列
+	duel.selected_loadout.clear()
+	duel.selected_loadout.append(FIRE)
+	m.reset_run()
+	duel.selected_loadout.append(DAGGER)
+	m.mastery[FIRE] = 5
+	m.mastery[DAGGER] = 2
+	m.reset_room()
+	m.note_settle(DAGGER_SLASH)
+	m.settle_room("normal")
+	_check(int(m.mastery.get(DAGGER, 0)) == 4, "追赶可跨过 R2 门槛")
+	_check(m.owed.has(DAGGER), "追赶跨过 R2 时进入现有铭印队列（不自动补发铭印）")
+
+	# 卸下再装：熟练与铭印保留
+	m.mastery[FIRE] = 4
+	m.imprints[FIRE] = {"forge": 1, "tune": {}}
+	duel.selected_loadout.erase(FIRE)
+	duel.selected_loadout.append(FIRE)
+	_check(int(m.mastery.get(FIRE, 0)) == 4 and m.forge_bonus(FIRE) == 2, "卸下再装保留熟练与铭印")
+	duel.mastery.reset_run()
+	duel.mastery.reset_room()
+
+
 func _test_r_levels_and_owed(duel: DuelController) -> void:
 	_equip(duel)
 	var m = duel.mastery
@@ -184,6 +244,65 @@ func _test_forge_applies(duel: DuelController) -> void:
 	duel.reel_system.build_pool(duel.selected_loadout)
 
 
+# G2-01：来源记录（ACT / 模式 / 房间 / 节点）与去重、封顶；护符获得写入图鉴。
+func _test_sources(duel: DuelController) -> void:
+	var act_before: int = duel.current_act
+	var node_before: bool = duel.node_mode
+	duel.meta["item_sources"] = {}
+	duel.current_act = 2
+	duel.node_mode = false
+	duel._reward_system.remember_weapon(FIRE)
+	var arr: Array = duel.meta["item_sources"].get(FIRE, [])
+	_check(arr.size() == 1, "武器获得写入来源记录")
+	_check(int(arr[0].get("act", 0)) == 2 and String(arr[0].get("mode", "")) == "linear", "来源记录含 ACT 与模式")
+	duel._reward_system.remember_weapon(FIRE)
+	_check((duel.meta["item_sources"][FIRE] as Array).size() == 1, "同一来源不重复记录")
+	for i in 7:
+		duel._meta_store.record_source(FIRE, {"act": i, "node_id": "n%d" % i})
+	_check((duel.meta["item_sources"][FIRE] as Array).size() == 5, "来源记录按件封顶 5 条")
+	var charm := "res://resources/charms/berserker_nail.tres"
+	duel.meta["owned_charms"].erase(charm)
+	duel._reward_system.remember_charm(charm)
+	_check(duel.meta["owned_charms"].has(charm), "护符获得写入图鉴")
+	_check(duel.meta["item_sources"].has(charm), "护符获得写入来源记录")
+	duel.current_act = act_before
+	duel.node_mode = node_before
+
+
+# G0-02：UI 显示的真实攻击 / 成长状态与结算同一口径，且不写回共享 .tres。
+func _test_display_state(duel: DuelController) -> void:
+	_equip(duel)
+	var m = duel.mastery
+	m.owed.append(FIRE)
+	_check(m.choose(FIRE, "forge"), "显示测试：选择锋铸成功")
+	var info: String = duel._weapon_info(FIRE)
+	_check(info.find("攻20") >= 0, "替换摘要显示锋铸后的真实攻击（18→20）")
+	_check(info.find("锋铸+2") >= 0, "替换摘要标注锋铸加成")
+	_check(info.find("R1") >= 0 and info.find("熟练") >= 0, "替换摘要包含 R 等级与熟练进度")
+	var off: String = duel._weapon_off_info(FIRE)
+	_check(off.find("卸下") >= 0 and off.find("攻20") >= 0 and off.find("保留") >= 0, "替换预览显示旧武器卸下与熟练保留说明")
+	var tip: String = ItemTooltip.for_resource(load(FIRE))
+	_check(tip.find("攻20") >= 0 and tip.find("锋铸+2") >= 0, "物品 tooltip 显示真实攻击与锋铸")
+	var fire_res: WeaponData = load(FIRE)
+	_check(fire_res.base_power == 18, "显示层不写回共享 .tres 的 base_power")
+	# 调律目标展示的格数变化 = 真实 build_strips 口径
+	var tgt: Dictionary = m.tune_target(FIRE)
+	if not tgt.is_empty():
+		var before: Dictionary = m.tune_map()
+		var after: Dictionary = before.duplicate(true)
+		after[FIRE] = after.get(FIRE, {}).duplicate()
+		after[FIRE][String(tgt["sym"])] = int(after[FIRE].get(String(tgt["sym"]), 0)) + 1
+		var lines: Array = ReelPreview.diff_lines(duel.selected_loadout, duel.selected_loadout,
+			duel.selected_skills, duel.selected_charms, duel.room_element_mult,
+			duel._reward_system.run_symbol_bonus, duel.deprived_level, duel.pending_chaos,
+			int(duel.boss_trash), before, after)
+		_check(lines == tgt["lines"], "调律目标展示的格数变化与真实带子口径一致")
+	else:
+		_check(false, "调律目标候选存在（火焰剑应能真实改变格数）")
+	m.imprints.clear()
+	duel.reel_system.build_pool(duel.selected_loadout)
+
+
 func _test_tune_applies(duel: DuelController) -> void:
 	_equip(duel)
 	var m = duel.mastery
@@ -202,10 +321,11 @@ func _test_tune_applies(duel: DuelController) -> void:
 	duel.reel_system.build_pool(duel.selected_loadout)
 
 
-# M2-03：同一房间既升技艺又欠铭印 → 只弹一屏（两组），一次确认同时应用。
+# M1：同一房间既升技艺又欠铭印 → 三槽屏只给一张成长卡；本次选技艺，铭印排队到下一战斗房。
 func _test_merged_settlement(duel: DuelController) -> void:
 	_equip(duel)
 	duel.growth.reset_run()
+	duel._post_battle.reset_run()
 	var m = duel.mastery
 	var idx := 0
 	for i in range(duel.ROOMS.size()):
@@ -218,13 +338,26 @@ func _test_merged_settlement(duel: DuelController) -> void:
 	m.mastery[FIRE] = 2
 	m.reset_room()
 	_settle_fire(duel)
-	duel.room_flow.finish_room(Callable(), false)
-	var picker = duel.hud._growth_picker
-	_check(picker.visible and picker._section_keys.size() == 2, "技艺 + 铭印合并为一屏（两组）")
+	duel.room_flow.begin_post_battle()
+	_check(duel.room_flow.post_battle_active, "战后成长三槽待选择")
+	_check(duel.room_flow.post_battle_has_growth(), "同房触发技艺 + 铭印时成长位有真实成长")
+	var first: Array = duel.room_flow.post_offer()
+	_check(String(first[2].get("kind", "")) == "perk", "成长队列先给技艺（触发顺序）")
 	_check(not duel.in_interroom, "确认前不进入间歇（只打断一次）")
-	duel.room_flow.auto_pick_growth()
-	_check(duel.growth.perk_ids.size() == 1 and int(m.imprints[FIRE]["forge"]) + m._tune_count(FIRE) == 1, "一次确认同时应用技艺与铭印")
-	_check(duel.in_interroom and not duel.room_flow.growth_pick_pending(), "确认后进入间歇且无残留")
+	duel.room_flow.auto_pick_post_battle(["growth"])
+	_check(duel.growth.perk_ids.size() == 1 and m.owed.has(FIRE), "本次只应用技艺；铭印留在队列")
+	_check(duel.in_interroom and not duel.room_flow.post_battle_active, "确认后进入间歇且无残留")
+
+	# 下一战斗房：未选的铭印进入成长位（同一候选冻结，不重新随机类型）。
+	duel.in_interroom = false
+	duel.hud.set_interroom_enabled(false)
+	duel.room_flow.begin_post_battle()
+	var second: Array = duel.room_flow.post_offer()
+	_check(String(second[2].get("kind", "")) == "imprint", "下一战斗房成长位轮到铭印")
+	duel.room_flow.auto_pick_post_battle(["growth"])
+	_check(int(m.imprints[FIRE]["forge"]) + m._tune_count(FIRE) == 1, "第二次成长位应用一次铭印")
+	_check(m.owed.is_empty(), "铭印队列清空")
+	_check(duel.in_interroom and not duel.room_flow.post_battle_active, "铭印选完进入间歇")
 	duel.hud._refresh_meta()
 	# 2026-10-31 纠偏 C2：武器区改为大图标卡片，R 等级/熟练/铭印按任务书放进 tooltip；
 	# 技艺不再单独占图标行，按任务书并入技能卡 tooltip。断言改为校验新结构的可见信息。
@@ -250,12 +383,15 @@ func _test_merged_settlement(duel: DuelController) -> void:
 	_check(duel.hud.player_level_label.text.find("艺1") >= 0, "玩家区：常驻成长行显示技艺计数")
 	duel.growth.reset_run()
 	m.reset_run()
+	duel._post_battle.reset_run()
 	duel.hud.set_interroom_enabled(false)
 	duel.in_interroom = false
 
 
 func _test_offer_queue(duel: DuelController) -> void:
 	_equip(duel)
+	duel.growth.reset_run()
+	duel._post_battle.reset_run()
 	var m = duel.mastery
 	# 选一间普通房（避免升级带入技艺三选一，单独验证铭印队列）
 	var idx := 0
@@ -264,21 +400,22 @@ func _test_offer_queue(duel: DuelController) -> void:
 			idx = i
 			break
 	duel.room_index = idx
-	duel.growth.reset_run()
 	duel.in_interroom = false
 	m.mastery[FIRE] = 2
 	m.reset_room()
 	_settle_fire(duel)
-	duel.room_flow.finish_room(Callable(), false)
+	duel.room_flow.begin_post_battle()
 	_check(m.owed.has(FIRE), "房间胜利后火焰剑 R2 欠铭印")
-	_check(duel.hud._growth_picker != null and duel.hud._growth_picker.visible, "欠铭印时弹出三选一")
-	_check(duel.room_flow.growth_pick_pending(), "三选一队列待处理")
+	var cands: Array = duel.room_flow.post_offer()
+	_check(String(cands[2].get("kind", "")) == "imprint", "欠铭印时成长位为铭印")
+	_check(duel.room_flow.post_battle_active, "战后成长三槽待处理")
 	_check(not duel.in_interroom, "铭印未选完前不进入房间间歇")
-	duel.room_flow.auto_pick_growth()
+	duel.room_flow.auto_pick_post_battle(["growth"])
 	_check(int(m.imprints[FIRE]["forge"]) + m._tune_count(FIRE) == 1, "选定后写入一次铭印")
 	_check(m.owed.is_empty(), "欠选队列清空")
 	_check(duel.in_interroom, "选完铭印后进入房间间歇")
-	_check(not duel.room_flow.growth_pick_pending(), "队列结束后无待选")
+	_check(not duel.room_flow.post_battle_active, "队列结束后无待选")
 	m.reset_run()
+	duel._post_battle.reset_run()
 	duel.hud.set_interroom_enabled(false)
 	duel.in_interroom = false

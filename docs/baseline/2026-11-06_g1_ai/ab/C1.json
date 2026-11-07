@@ -1,0 +1,158 @@
+{
+  "board": {
+    "boss_map": [],
+    "confirmations": [],
+    "continue_seen": false,
+    "fork_a": "",
+    "fork_b": "",
+    "fork_descs": [],
+    "items": [],
+    "path": [],
+    "rolls": []
+  },
+  "boss": "",
+  "end_time": "2026-11-06T16:38:11",
+  "errors": [],
+  "growth": {
+    "level": 2,
+    "mastery": "铭印：无",
+    "perks": [],
+    "summary": "技艺：无"
+  },
+  "label": "C1",
+  "m1": {
+    "deferred_id": "",
+    "deferred_kept": true,
+    "deferred_seen_next": false,
+    "offers": [
+      {
+        "room": 1,
+        "slots": [
+          "supply",
+          "build",
+          "growth"
+        ],
+        "titles": [
+          "守望结界 · +15",
+          "符号 · 🔥 权重+3",
+          "下一房对策 · 金币 +15"
+        ]
+      },
+      {
+        "room": 2,
+        "slots": [
+          "supply",
+          "build",
+          "growth"
+        ],
+        "titles": [
+          "金币袋 · +15",
+          "锋锐打磨 · +1",
+          "下一房对策 · 护盾 +15"
+        ]
+      },
+      {
+        "room": 3,
+        "slots": [
+          "supply",
+          "build",
+          "growth"
+        ],
+        "titles": [
+          "治疗药剂 · +36 HP",
+          "锋锐打磨 · +1",
+          "技艺 · 坚韧"
+        ]
+      }
+    ],
+    "single_screen": true
+  },
+  "mode": "linear",
+  "preset": "control",
+  "rooms": [
+    {
+      "finished": true,
+      "hp_end": 100,
+      "hp_max": 100,
+      "hp_start": 100,
+      "key": "linear:0:锈盲蝠",
+      "kind": "normal",
+      "name": "锈盲蝠",
+      "near_death": false,
+      "turns": 2
+    },
+    {
+      "finished": true,
+      "hp_end": 31,
+      "hp_max": 100,
+      "hp_start": 100,
+      "key": "linear:1:重锤蛮兵",
+      "kind": "normal",
+      "name": "重锤蛮兵",
+      "near_death": false,
+      "turns": 6
+    },
+    {
+      "finished": true,
+      "hp_end": -8,
+      "hp_max": 100,
+      "hp_start": 31,
+      "key": "linear:2:毒孢菌",
+      "kind": "normal",
+      "name": "毒孢菌",
+      "near_death": true,
+      "turns": 2
+    },
+    {
+      "finished": true,
+      "hp_end": -11,
+      "hp_max": 105,
+      "hp_start": 28,
+      "key": "linear:3:酸蚀傀儡",
+      "kind": "elite",
+      "name": "酸蚀傀儡",
+      "near_death": true,
+      "turns": 2
+    }
+  ],
+  "seconds": 2.251,
+  "seed": 3301,
+  "selections": [
+    "成长:技艺 · 坚韧"
+  ],
+  "shots": [],
+  "start_time": "2026-11-06T16:38:09",
+  "telemetry": {
+    "avg_spin": 0.0485833333333333,
+    "avg_ttk": 0.380333333333333,
+    "buffer_queues": 0,
+    "damage_blocked": 40,
+    "damage_taken": 198,
+    "enemy_attacks": 10,
+    "forced_stops": 0,
+    "reward_pick_rate": 0.0,
+    "reward_picks": {
+      "gold": 1,
+      "heal": 1,
+      "symbol": 1
+    },
+    "rewards_shown": 0,
+    "rooms_cleared": 3,
+    "spin_seconds": 0.583,
+    "spins": 12,
+    "stop_outcomes": {
+      "miss": 5,
+      "normal": 25,
+      "target": 6
+    },
+    "stop_total": 36,
+    "target_hit_rate": 0.166666666666667,
+    "target_hits": 6,
+    "target_symbol": "res://resources/symbols/fire_slash.tres",
+    "triple_rate": 0.0,
+    "triples": 0,
+    "turns": 12,
+    "weapon_swaps": 0
+  },
+  "terminal": "LOST"
+}

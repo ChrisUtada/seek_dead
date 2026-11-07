@@ -1,0 +1,69 @@
+# Seek Dead · G0-01 当前可交付基线
+# 采集时间：2026-11-06T11:29:04
+# 运行方式：编辑器/源码窗口模式，demo_config 运行时启用（对应 ACT1 Demo 导出包）
+
+## 资源全量（源码，未过滤 demo 白名单）
+房间合计=61  其中 BOSS=13  非 BOSS=48
+  房间 act1=20
+  房间 act2=21
+  房间 act3=20
+武器=90  护符=45  消耗品=25  技能=17
+装备合计（武器+护符+消耗品+技能）=177/200
+
+## ACT1 Demo 白名单（运行时启用后）
+demo_active=true  act_only=true  房间=20  武器=14  技能=10  道具=27
+
+## 线性 ACT1 房间序列（demo 过滤后，_build_run 产物）
+R01 normal 毒孢菌                elem=poison hp=80   atk=12  armor=10 role=fixed    final=false
+R02 normal 寒鳞蝠                elem=ice    hp=80   atk=10  armor=0  role=fixed    final=false
+R03 normal 毒壳壁垒               elem=poison hp=0    atk=12  armor=0  role=fixed    final=false
+R04 elite  毒疫术士               elem=poison hp=0    atk=17  armor=0  role=fixed    final=false
+R05 normal 辉光游侠               elem=light  hp=0    atk=13  armor=0  role=fixed    final=false
+R06 normal 锈盲蝠                elem=ice    hp=75   atk=10  armor=0  role=fixed    final=false
+R07 elite  腐殖巨蠕               elem=poison hp=0    atk=0   armor=0  role=fixed    final=false
+R08 boss   茧居石雕               elem=ice    hp=240  atk=15  armor=45 role=hidden   final=false
+
+## 本局（线性模式）
+node_mode=false  房间数=8  room_index=0
+武器：火焰剑 [fire_sword.tres]，匕首 [dagger.tres]
+技能：res://resources/skills/recovery.tres [recovery.tres]
+护符：守备护符 [guard_charm.tres]
+消耗品：治疗药剂 [heal_potion.tres]
+金币=4  HP=100/100
+
+## 棋盘（--board / 整备开关）
+generated=true  节点数=12  当前=n0  BOSS=n11  战斗房=7
+  n0   start   depth=0  ria=-1 next=["n1"] room=—
+  n1   normal  depth=1  ria=0  next=["n2"] room=重锤蛮兵(normal)
+  n2   weapon  depth=2  ria=-1 next=["n3"] room=—
+  n3   normal  depth=3  ria=1  next=["n4", "n5"] room=窃语咒师(normal)
+  n4   shop    depth=4  ria=-1 next=["n6"] room=—
+  n5   rest    depth=4  ria=-1 next=["n6"] room=—
+  n6   normal  depth=5  ria=2  next=["n7"] room=毒孢菌(normal)
+  n7   elite   depth=6  ria=3  next=["n8"] room=腐殖巨蠕(elite)
+  n8   charm   depth=7  ria=-1 next=["n9"] room=—
+  n9   normal  depth=8  ria=4  next=["n10"] room=余烬傀儡(normal)
+  n10  elite   depth=9  ria=5  next=["n11"] room=毒疫术士(elite)
+  n11  boss    depth=10 ria=7  next=[] room=碎裂石像鬼(boss)
+
+## 关键平衡值（balance_config 实值）
+player_dmg_mult = 1.5
+player_hp_base = 100
+ante_act_step_atk = 1.3
+ante_room_step_atk = 1.06
+ante_act_step_hp = 1.75
+ante_room_step_hp = 1.15
+charge_max = 6
+loadout_min = 2
+anvil_roll_cost = 10
+
+## 截图
+  01_loadout.png  960x540  err=0
+  02_linear_battle.png  960x540  err=0
+  03_post_battle_growth.png  960x540  err=0
+  04_board_start.png  960x540  err=0
+  05_board_legal_targets.png  960x540  err=0
+  06_board_after_move.png  960x540  err=0
+  07_board_battle.png  960x540  err=0
+  08_board_shop.png  960x540  err=0
+

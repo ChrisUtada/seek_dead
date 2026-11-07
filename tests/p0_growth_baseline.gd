@@ -151,19 +151,21 @@ func _drive(duel: DuelController, sid: String, seed_v: int, imprint: String) -> 
 					res["ttk_n"] += 1
 					res["dmg_sum"] += dmg_room
 				_log_room(sid, seed_v, duel, room_turns, dmg_room, "won")
-				_take_reward(duel)
+				var g_cand: Dictionary = duel.room_flow.post_battle_growth_candidate()
+				var growth_match: bool = duel.room_flow.post_battle_active \
+					and String(g_cand.get("kind", "")) == "imprint" \
+					and String(g_cand.get("growth_id", "")) == imprint
+				if is_act1 and growth_match:
+					res["offers"] += 1
+					if res["first_offer"] < 0:
+						res["first_offer"] = idx + 1
+				var before: Dictionary = _imprint_counts(duel)
+				_take_reward(duel, imprint)
 				await get_tree().process_frame
-				if duel.room_flow.growth_pick_pending():
-					if is_act1:
-						res["offers"] += 1
-						if res["first_offer"] < 0:
-							res["first_offer"] = idx + 1
-					var before: Dictionary = _imprint_counts(duel)
-					_choose_growth(duel, imprint)
-					var after: Dictionary = _imprint_counts(duel)
-					res["forge"] += int(after["forge"]) - int(before["forge"])
-					res["tune"] += int(after["tune"]) - int(before["tune"])
-					res["picks"] += int(after["forge"]) - int(before["forge"]) + int(after["tune"]) - int(before["tune"])
+				var after: Dictionary = _imprint_counts(duel)
+				res["forge"] += int(after["forge"]) - int(before["forge"])
+				res["tune"] += int(after["tune"]) - int(before["tune"])
+				res["picks"] += int(after["forge"]) - int(before["forge"]) + int(after["tune"]) - int(before["tune"])
 				if idx + 1 >= ACT1_ROOMS:
 					res["act1_clear"] = true
 					break
@@ -261,34 +263,18 @@ func _print_summary() -> void:
 	print("P0GROW|SUMMARY|note=bot 固定任何有效符号即停；仅用于成长类型对照，不代表真人停中率")
 
 
-# 成长选择：按对照组只取指定铭印；拿不到就跳过该组（不混入另一类成长）。
-# 技艺（growth）在本探针全部关闭，不处理 perk。
-func _choose_growth(duel: DuelController, imprint: String) -> void:
-	var picked := {}
-	for sec in duel.room_flow._offer_sections:
-		if String(sec["key"]) == "perk":
-			continue
-		for c in sec["choices"]:
-			if String(c["id"]) == imprint:
-				picked[sec["key"]] = imprint
-				break
-	duel.hud.hide_growth_picker()
-	duel.room_flow._offer_sections = []
-	duel.room_flow._apply_settlement(picked)
-
-
-func _take_reward(duel: DuelController) -> void:
+# M1：普通 / 精英胜利走三槽屏。本探针只取指定铭印；没有匹配项时放弃本次成长（不混入其他成长）。
+func _take_reward(duel: DuelController, imprint: String) -> void:
 	if duel.reward_is_boss:
 		for c in duel.reward_choices:
 			if String(c.get("kind", "")) != "boss_weapon":
 				duel._on_boss_reward_chosen(c)
 				return
-	else:
-		for i in range(duel.reward_choices.size()):
-			var rw = duel.reward_choices[i]
-			if String(rw.id) != "weapon":
-				duel._on_reward_chosen(String(rw.id), i)
-				return
+	elif duel.room_flow.post_battle_active:
+		var cand: Dictionary = duel.room_flow.post_battle_growth_candidate()
+		if String(cand.get("kind", "")) == "imprint" and String(cand.get("growth_id", "")) == imprint:
+			duel.room_flow.auto_pick_post_battle(["growth"], imprint)
+			return
 	duel._on_reward_skip_pressed()
 
 

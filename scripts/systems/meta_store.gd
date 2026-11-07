@@ -23,7 +23,7 @@ func _init(ctrl: DuelController, m: Dictionary) -> void:
 # ---------------------------------------------------------------------------
 
 func load_meta() -> void:
-	var defaults := {"anvil_points": 0, "owned_weapons": [], "owned_charms": [], "owned_consumables": [], "anvil_pity": 0, "collection_milestones": []}
+	var defaults := {"anvil_points": 0, "owned_weapons": [], "owned_charms": [], "owned_consumables": [], "anvil_pity": 0, "collection_milestones": [], "item_sources": {}, "career": {"unlocked": [], "bosses": []}}
 	var lb = SaveSystem.load_lobby_data()
 	if lb.has(_ctrl.ANVIL_SAVE_KEY) and lb[_ctrl.ANVIL_SAVE_KEY] is Dictionary:
 		var parsed: Dictionary = lb[_ctrl.ANVIL_SAVE_KEY]
@@ -146,6 +146,26 @@ func sanitize_owned() -> void:
 				cleaned.append(p)
 		meta[key] = cleaned
 	self.save_meta()
+
+
+# G2-01：装备来源记录。只记最少可核对的信息，同一来源只留一条，按件数封顶防止存档膨胀。
+const SOURCE_MAX := 5
+
+
+func record_source(path: String, entry: Dictionary) -> void:
+	if path == "" or entry.is_empty():
+		return
+	if not meta.has("item_sources") or not (meta["item_sources"] is Dictionary):
+		meta["item_sources"] = {}
+	var all: Dictionary = meta["item_sources"]
+	var arr: Array = all.get(path, [])
+	if arr.has(entry):
+		return
+	arr.append(entry.duplicate(true))
+	while arr.size() > SOURCE_MAX:
+		arr.pop_front()
+	all[path] = arr
+	meta["item_sources"] = all
 
 
 func award_gold(is_boss: bool) -> void:

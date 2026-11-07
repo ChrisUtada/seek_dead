@@ -1,7 +1,8 @@
-﻿[gd_resource type="Resource" script_class="RoomData" load_steps=3 format=3]
+﻿[gd_resource type="Resource" script_class="RoomData" load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/battle/room_data.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/battle/gimmicks/whisper_lock_gimmick.gd" id="2"]
+[ext_resource type="Texture2D" path="res://assets/characters/whispering_cultist/idle_01.png" id="art_room"]
 
 [resource]
 script = ExtResource("1")
@@ -15,3 +16,5 @@ armor = 25
 gimmick_script = ExtResource("2")
 boss_reward_weapons = Array[String](["res://resources/weapon_templates/holy_sword.tres", "res://resources/weapon_templates/dawn_bow.tres", "res://resources/weapon_templates/iron_sword.tres"])
 boss_relic_path = "res://resources/charms/silence_seal_relic.tres"
+art = ExtResource("art_room")
+art_scale = 2.0

@@ -1,6 +1,7 @@
-[gd_resource type="Resource" script_class="RoomData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="RoomData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/battle/room_data.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/characters/collapsing_core/idle_01.png" id="art_room"]
 
 [resource]
 script = ExtResource("1")
@@ -10,3 +11,5 @@ atk = 17
 element = "light"
 kind = "normal"
 act = 3
+art = ExtResource("art_room")
+art_scale = 1.0

@@ -19,6 +19,7 @@ const REWARD_SCENE = preload("res://scenes/ui/reward_screen.tscn")
 const ANVIL_SCENE = preload("res://scenes/ui/anvil_screen.tscn")
 const SHOP_SCENE = preload("res://scenes/ui/shop_screen.tscn")
 const LOADOUT_SCENE = preload("res://scenes/ui/loadout_scene.tscn")
+const BOARD_SCREEN = preload("res://scripts/board/board_screen.gd")
 
 var controller   # DuelController 引用（运行时由 _ready 设置）
 
@@ -33,6 +34,7 @@ signal buy_requested(offer: Dictionary)      # 商店购入
 @warning_ignore("unused_signal")
 signal sell_requested(uid_or_path: String, kind: String)  # 卖出（消耗品按 uid，其余按 path）
 signal reward_chosen(id: String, index: int)  # 房奖励三选一（index 对齐 reward_payloads，M1-01）
+signal post_battle_growth_chosen(cand: Dictionary)  # M1 战后成长屏的成长位（技艺 / 铭印 / 下一房对策）
 signal boss_reward_chosen(cand: Dictionary)  # BOSS 战利品三选一
 @warning_ignore("unused_signal")
 signal reward_skip_requested                 # 跳过房奖励
@@ -58,6 +60,7 @@ func build_all() -> void:
 	panel_view.configure(self, weapons_row, charms_row, skills_row, consumable_cells)   # P2：左栏刷新逻辑外迁（须先于 _build_ui——其内会首次刷腰带）
 	_build_ui()
 	_build_loadout_screen()
+	_build_board_screen()      # M2：棋盘主视图（hud 兄弟节点，显示时 hud.hide()）
 	_build_reward_screen()
 	_build_anvil_screen()
 	_build_shop_screen()
@@ -88,6 +91,9 @@ func set_interroom_enabled(on: bool) -> void:
 # 隐秘 BOSS（boss_role=hidden）幕内全清前不剧透 → ？？？；最后一房（通关整局）无下一房 → 隐藏。
 func _refresh_next_room_bar() -> void:
 	if next_room_bar == null or controller == null:
+		return
+	if controller.node_mode:
+		next_room_bar.visible = false   # M2：棋盘模式由可见棋盘替代下一房预告
 		return
 	var rooms: Array = controller.state.ROOMS
 	var idx: int = controller.state.room_index
@@ -126,6 +132,7 @@ var cell_spin_views = []   # P1：每格 ReelSpinView 引用 [reel][row]（视�
 var cell_badges = []   # 每格右上角匹配角标 Label 引用 [reel][row]
 var cell_elem_strips = []   # 每格底部元素色条（Step 4：图标模式下替代文字染色）[reel][row]
 var loadout_screen                     # 整备场景（scenes/ui/loadout_scene.tscn 实例，hud 兄弟节点）
+var board_screen                       # M2 棋盘主视图（scripts/board/board_screen.gd，hud 兄弟节点）
 # 消耗品腰带 4 个固定格子（2x2），由 hud._refresh_consumable_panel 同步状态；
 # consumable_panel 字段（controller 持有）已废弃，HUD 内聚管理 cell。
 # 位置：左栏 PlayerPanel/VBox（GearBox 之后、PlayerBuffLabel 之前），保持 4 格子 2x2 形态
@@ -498,6 +505,26 @@ func _build_loadout_screen() -> void:
 	loadout_screen.hide_screen()
 
 
+# M2：棋盘主视图与整备场景同级（hud 兄弟节点），显示时隐藏战斗 HUD，避免挤进战斗中央区域。
+func _build_board_screen() -> void:
+	board_screen = BOARD_SCREEN.new()
+	get_parent().add_child(board_screen)
+	board_screen.configure(controller, self)
+	board_screen.hide_board(false)
+
+
+func show_board_screen(board_sys) -> void:
+	if board_screen == null:
+		return
+	board_screen.show_board(board_sys)
+
+
+func hide_board_screen(show_hud: bool = false) -> void:
+	if board_screen == null:
+		return
+	board_screen.hide_board(show_hud)
+
+
 func _item_pool_of(category: String) -> Array:
 	var out := []
 	for p in controller.state.ITEM_POOL:
@@ -547,7 +574,12 @@ func _make_item_card(data: Resource, path: String, kind: String) -> Dictionary:
 					if sw.symbol.kind == "special" or sw.symbol.kind == "status":
 						mech_name = sw.symbol.name
 						break
-			line2 = "攻%d · %s · 命中%d%% · 暴%d%% · %s" % [int(wd.base_power), elem_txt, hit_pct, crit_total, mech_name]
+			# G0-02：攻击显示锋铸后的真实基础攻击（与 _build_pool 结算同一份加成）
+			var forge_n: int = controller.mastery.forge_bonus(path) if controller.mastery != null else 0
+			var atk_txt := "攻%d" % (int(wd.base_power) + forge_n)
+			if forge_n > 0:
+				atk_txt += "（+%d）" % forge_n
+			line2 = "%s · %s · 命中%d%% · 暴%d%% · %s" % [atk_txt, elem_txt, hit_pct, crit_total, mech_name]
 	elif kind == "skill":
 		title = data.buff_name if (data != null) else path.get_file().get_basename()
 		if data != null:
@@ -612,13 +644,22 @@ func _build_reward_screen() -> void:
 
 
 func _show_reward_screen(is_boss: bool) -> void:
-	reward_screen.show_screen(is_boss)
+	# M1：普通 / 精英胜利改由三槽「战后成长」接管；BOSS 保留专属战利品屏。
+	if not is_boss:
+		controller.room_flow.begin_post_battle()
+		return
+	reward_screen.show_screen(true)
 
 
-func _make_reward_card(rw: RewardData, index: int = -1) -> Button:
+# M1 战后成长三槽屏（补给 / 构筑 / 成长）。
+func show_post_battle(offer: Array, summary: String) -> void:
+	reward_screen.show_post_battle(offer, summary)
+
+
+func _make_reward_card(rw: RewardData, index: int = -1, slot_label: String = "") -> Button:
 	var card: ItemCard = ITEM_CARD.instantiate()
 	# Step 4：有 24px 主图时卡片需要更高，否则「图 24 + 标题 + 描述」会顶出卡片（原 60 高）
-	card.custom_minimum_size = Vector2(84, 84)
+	card.custom_minimum_size = Vector2(84, 96)
 	# M1-01：候选在展示前已确定具体物品（payload），卡片直接显示真实结果
 	var payload: Dictionary = controller._reward_system.payload_at(index) if index >= 0 else {}
 	# Step 4：卡片主图优先用「候选物品自身的美术」（payload.path → art/icon_tex），
@@ -637,9 +678,28 @@ func _make_reward_card(rw: RewardData, index: int = -1) -> Button:
 	var prefix: String = "" if art != null else rw.icon + " "
 	var title_text: String = String(payload.get("title", rw.label)) if not payload.is_empty() else rw.label
 	var desc_text: String = String(payload.get("desc", rw.desc)) if not payload.is_empty() else rw.desc
+	if slot_label != "":
+		title_text = "[%s] %s" % [slot_label, title_text]
 	card.configure(prefix + title_text, desc_text)
 	card.set_art(art, Vector2(24, 24))
+	# 槽位标签 + 具体物品名可能超出 84px 卡宽：标题允许换行，避免撑破三列布局。
+	(card.get_node("Center/VBox/TitleLabel") as Label).autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	card.tooltip_text = desc_text   # 卡片只放短文案，完整前后变化走 tooltip
 	card.pressed.connect(func() -> void: reward_chosen.emit(rw.id, index))
+	return card
+
+
+# M1：战后成长屏的成长位卡（技艺 / 铭印 / 下一房对策）。
+func _make_post_growth_card(cand: Dictionary) -> Button:
+	var card: ItemCard = ITEM_CARD.instantiate()
+	card.custom_minimum_size = Vector2(84, 96)
+	var icon := String(cand.get("icon", ""))
+	var prefix := (icon + " ") if icon != "" else ""
+	card.configure("%s[%s] %s" % [prefix, cand.get("slot_label", "成长"), cand.get("title", "")],
+		String(cand.get("desc", "")))
+	(card.get_node("Center/VBox/TitleLabel") as Label).autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	card.tooltip_text = String(cand.get("tooltip", cand.get("desc", "")))
+	card.pressed.connect(post_battle_growth_chosen.emit.bind(cand))
 	return card
 
 
@@ -1125,11 +1185,18 @@ func _refresh_meta() -> void:
 	if rooms.size() > 0 and controller.state.room_index >= 0 and controller.state.room_index < rooms.size():
 		var a: int = int(rooms[controller.state.room_index].act)
 		act_txt = "ACT %s" % act_names.get(a, str(a))
-	room_label.text = "%s · 房 %d/%d" % [act_txt, controller.state.room_index + 1, rooms.size()]
-	room_label.tooltip_text = "房间 %d/%d%s\n精华: %s" % [
-		controller.state.room_index + 1, rooms.size(),
-		" · ★BOSS" if is_boss else "",
-		"、".join(essence_names) if not essence_names.is_empty() else "无"]
+	if controller.node_mode and controller.board != null:
+		# M2：棋盘进度用「第 x/路线长度 格」表达，不再显示线性「房 x/25」。
+		room_label.text = controller.board.progress_text()
+		var cur: Dictionary = controller.board.current_node()
+		room_label.tooltip_text = "%s\n%s" % [
+			String(cur.get("title", "")), String(cur.get("desc", ""))]
+	else:
+		room_label.text = "%s · 房 %d/%d" % [act_txt, controller.state.room_index + 1, rooms.size()]
+		room_label.tooltip_text = "房间 %d/%d%s\n精华: %s" % [
+			controller.state.room_index + 1, rooms.size(),
+			" · ★BOSS" if is_boss else "",
+			"、".join(essence_names) if not essence_names.is_empty() else "无"]
 	turn_label.text = "回合 %d" % controller.state.turn_count
 	gold_label.text = "%d" % controller.state.gold
 	gold_label.tooltip_text = "金币"
@@ -1301,7 +1368,12 @@ func _intent_display_name(t: String) -> String:
 var _replace_dialog: PanelContainer = null
 var _replace_vbox: VBoxContainer = null
 var _replace_cb: Callable = Callable()
-var _growth_picker = null   # M2-01 技艺三选一覆盖层（懒构建）
+var _replace_cancel_cb: Callable = Callable()   # M2：棋盘武器格取消时回到棋盘（默认空 = 旧行为）
+var _camp_dialog: PanelContainer = null
+var _camp_vbox: VBoxContainer = null
+var _camp_buy_cb: Callable = Callable()
+var _camp_close_cb: Callable = Callable()
+var _growth_picker = null   # 旧 M2 独立成长结算覆盖层；M1 起真实流程不再调用（保留供回滚 / 对照）
 
 # M2-03 成长结算（技艺 + 铭印合并为一屏）：懒构建覆盖层；全部选定并确认后回调 on_confirm({key: id})
 func show_growth_settlement(title: String, sections: Array, on_confirm: Callable, summary: String = "") -> void:
@@ -1316,8 +1388,9 @@ func hide_growth_picker() -> void:
 		_growth_picker.hide_picker()
 
 
-func request_weapon_replace(title: String, new_weapon_info: String, on_chosen: Callable, new_path: String = "") -> void:
+func request_weapon_replace(title: String, new_weapon_info: String, on_chosen: Callable, new_path: String = "", on_cancel: Callable = Callable()) -> void:
 	_replace_cb = on_chosen
+	_replace_cancel_cb = on_cancel
 	if _replace_dialog == null:
 		_replace_dialog = PanelContainer.new()
 		_replace_dialog.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -1358,6 +1431,14 @@ func request_weapon_replace(title: String, new_weapon_info: String, on_chosen: C
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_replace_vbox.add_child(hint)
 	for path in controller.selected_loadout:
+		# G2-01：先给「旧武器卸下」行（当前贡献 + 熟练/铭印保留说明），再给带子/共鸣增减。
+		var off = _label("", TypeScale.TINY)
+		off.text = controller._weapon_off_info(path)
+		off.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		off.custom_minimum_size = Vector2(300, 0)
+		off.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		off.add_theme_color_override("font_color", Palette.MUTED)
+		_replace_vbox.add_child(off)
 		# M1-04：替换预览——真实格数增减 + 共鸣得失（口径同 build_strips，纯计算不写入局内状态）
 		if new_path != "":
 			var hypo: Array = controller.selected_loadout.duplicate()
@@ -1384,17 +1465,179 @@ func request_weapon_replace(title: String, new_weapon_info: String, on_chosen: C
 	var cancel = UI_BUTTON.instantiate()
 	cancel.text = "取消"
 	cancel.custom_minimum_size = Vector2(120, 30)
-	cancel.pressed.connect(func(): _replace_dialog.visible = false)
+	cancel.pressed.connect(_on_replace_cancelled)
 	_replace_vbox.add_child(cancel)
 	_replace_dialog.visible = true
+
+
+func _on_replace_cancelled() -> void:
+	_replace_dialog.visible = false
+	var cb = _replace_cancel_cb
+	_replace_cb = Callable()
+	_replace_cancel_cb = Callable()
+	if cb.is_valid():
+		cb.call()
 
 
 func _on_replace_chosen(old_path: String) -> void:
 	_replace_dialog.visible = false
 	var cb = _replace_cb
 	_replace_cb = Callable()
+	_replace_cancel_cb = Callable()
 	if cb.is_valid():
 		cb.call(old_path)
+
+
+# G2-01 补给：休整后的一次性营地商店（最多买 1 件，离开不扣费）。
+func request_camp_supply(offers: Array, on_buy: Callable, on_close: Callable) -> void:
+	_camp_buy_cb = on_buy
+	_camp_close_cb = on_close
+	if _camp_dialog == null:
+		_camp_dialog = PanelContainer.new()
+		_camp_dialog.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		_camp_dialog.z_index = 95
+		var sb = StyleBoxFlat.new()
+		sb.bg_color = Palette.BG_OVERLAY
+		_camp_dialog.add_theme_stylebox_override("panel", sb)
+		var center = CenterContainer.new()
+		center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		var dlg = PanelContainer.new()
+		var sb2 = StyleBoxFlat.new()
+		sb2.bg_color = Palette.PANEL_BG
+		sb2.border_color = Palette.ACCENT_GOLD
+		sb2.set_border_width_all(2)
+		dlg.add_theme_stylebox_override("panel", sb2)
+		_camp_vbox = VBoxContainer.new()
+		_camp_vbox.add_theme_constant_override("separation", 6)
+		dlg.add_child(_camp_vbox)
+		center.add_child(dlg)
+		_camp_dialog.add_child(center)
+		# 与 board_screen 同级（都挂在 duel 根节点）：棋盘视图会 hud.hide()，
+		# 营地面板若挂在 HUD 下会被一起隐藏，导致「看不见营地 / 到 BOSS 才突然弹出」。
+		get_parent().add_child(_camp_dialog)
+	for c in _camp_vbox.get_children():
+		_camp_vbox.remove_child(c)
+		c.queue_free()
+	var title_lbl = _label("营地补给", TypeScale.OVERLAY)
+	title_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_camp_vbox.add_child(title_lbl)
+	var hint = _label("休整完成。可花金币购买 1 件；离开不扣费。", TypeScale.TINY)
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_camp_vbox.add_child(hint)
+	for offer in offers:
+		var price := int(offer.get("price", 0))
+		var btn = UI_BUTTON.instantiate()
+		btn.text = "%s · %d 金" % [String(offer.get("name", "")), price]
+		btn.custom_minimum_size = Vector2(260, 32)
+		btn.disabled = bool(offer.get("sold", false)) or controller.gold < price
+		btn.pressed.connect(_on_camp_offer_pressed.bind(offer))
+		_camp_vbox.add_child(btn)
+	var close = UI_BUTTON.instantiate()
+	close.text = "离开营地"
+	close.custom_minimum_size = Vector2(140, 30)
+	close.pressed.connect(_on_camp_close_pressed)
+	_camp_vbox.add_child(close)
+	_camp_dialog.visible = true
+
+
+func _on_camp_offer_pressed(offer: Dictionary) -> void:
+	if _camp_buy_cb.is_valid():
+		_camp_buy_cb.call(offer)
+
+
+func _on_camp_close_pressed() -> void:
+	hide_camp_supply()
+	if _camp_close_cb.is_valid():
+		_camp_close_cb.call()
+
+
+func hide_camp_supply() -> void:
+	if _camp_dialog != null:
+		_camp_dialog.visible = false
+
+
+# G4-04 武器藏库：两把公开武器二选一（或跳过）；满槽的替换弹层由 controller 接续。
+var _armory_dialog: PanelContainer = null
+var _armory_vbox: VBoxContainer = null
+var _armory_pick_cb: Callable = Callable()
+var _armory_skip_cb: Callable = Callable()
+
+
+func request_armory(paths: Array, on_pick: Callable, on_skip: Callable) -> void:
+	_armory_pick_cb = on_pick
+	_armory_skip_cb = on_skip
+	if _armory_dialog == null:
+		_armory_dialog = PanelContainer.new()
+		_armory_dialog.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		_armory_dialog.z_index = 95
+		var sb = StyleBoxFlat.new()
+		sb.bg_color = Palette.BG_OVERLAY
+		_armory_dialog.add_theme_stylebox_override("panel", sb)
+		var center = CenterContainer.new()
+		center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		var dlg = PanelContainer.new()
+		var sb2 = StyleBoxFlat.new()
+		sb2.bg_color = Palette.PANEL_BG
+		sb2.border_color = Palette.ACCENT_GOLD
+		sb2.set_border_width_all(2)
+		dlg.add_theme_stylebox_override("panel", sb2)
+		_armory_vbox = VBoxContainer.new()
+		_armory_vbox.add_theme_constant_override("separation", 6)
+		dlg.add_child(_armory_vbox)
+		center.add_child(dlg)
+		_armory_dialog.add_child(center)
+		# 与营地面板同挂 duel 根节点：棋盘隐藏 HUD 时弹层仍需可见。
+		get_parent().add_child(_armory_dialog)
+	for c in _armory_vbox.get_children():
+		_armory_vbox.remove_child(c)
+		c.queue_free()
+	var title_lbl = _label("武器藏库", TypeScale.OVERLAY)
+	title_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_armory_vbox.add_child(title_lbl)
+	var hint = _label("二选一：选中立即入槽；武器槽已满则先替换。", TypeScale.TINY)
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_armory_vbox.add_child(hint)
+	for p in paths:
+		var btn = UI_BUTTON.instantiate()
+		btn.text = _armory_weapon_line(String(p))
+		btn.custom_minimum_size = Vector2(320, 36)
+		btn.tooltip_text = controller._weapon_info(String(p))
+		btn.pressed.connect(_on_armory_pick_pressed.bind(String(p)))
+		_armory_vbox.add_child(btn)
+	var skip = UI_BUTTON.instantiate()
+	skip.text = "跳过（节点已消耗）"
+	skip.custom_minimum_size = Vector2(180, 30)
+	skip.pressed.connect(_on_armory_skip_pressed)
+	_armory_vbox.add_child(skip)
+	_armory_dialog.visible = true
+
+
+func _armory_weapon_line(p: String) -> String:
+	var wd: WeaponData = load(p)
+	if wd == null:
+		return controller._shop_name(p, "weapon")
+	var forge: int = controller.mastery.forge_bonus(p) if controller.mastery != null else 0
+	var atk := int(wd.base_power) + forge
+	var owned := "（已持有 · 折算金币）" if controller.selected_loadout.has(p) else ""
+	return "%s · 攻%d · %s%s" % [wd.weapon_name, atk, ElementCounter.label(wd.element), owned]
+
+
+func _on_armory_pick_pressed(p: String) -> void:
+	_armory_dialog.visible = false
+	var cb = _armory_pick_cb
+	_armory_pick_cb = Callable()
+	_armory_skip_cb = Callable()
+	if cb.is_valid():
+		cb.call(p)
+
+
+func _on_armory_skip_pressed() -> void:
+	_armory_dialog.visible = false
+	var cb = _armory_skip_cb
+	_armory_pick_cb = Callable()
+	_armory_skip_cb = Callable()
+	if cb.is_valid():
+		cb.call()
 
 
 func _show_overlay(title: String, btn_text: String) -> void:

@@ -1,8 +1,9 @@
-[gd_resource type="Resource" script_class="RoomData" load_steps=6 format=3]
+[gd_resource type="Resource" script_class="RoomData" load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/battle/room_data.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/battle/gimmicks/shame_counter_gimmick.gd" id="2"]
 [ext_resource type="Script" path="res://scripts/battle/intent_data.gd" id="3"]
+[ext_resource type="Texture2D" path="res://assets/characters/grand_inquisitor/idle_01.png" id="art_room"]
 
 [sub_resource type="Resource" script_class="IntentData" id="intent_attack"]
 script = ExtResource("3")
@@ -46,3 +47,5 @@ gimmick_script = ExtResource("2")
 gimmick_params = {"sin_atk_per": 0.08, "phase2_hp_ratio": 0.66, "phase2_atk_mult": 0.9, "phase3_hp_ratio": 0.33, "phase3_atk_mult": 1.0, "low_hp_ratio": 0.5, "low_hp_mult": 2.0}
 boss_reward_weapons = Array[String](["res://resources/weapon_templates/night_scythe.tres", "res://resources/weapon_templates/sin_blade.tres", "res://resources/weapon_templates/iron_sword.tres"])
 boss_relic_path = "res://resources/charms/innocence_seal_relic.tres"
+art = ExtResource("art_room")
+art_scale = 2.0

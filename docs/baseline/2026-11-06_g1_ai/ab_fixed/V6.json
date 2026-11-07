@@ -1,0 +1,262 @@
+{
+  "board": {
+    "boss_map": [],
+    "confirmations": [],
+    "continue_seen": false,
+    "fork_a": "",
+    "fork_b": "",
+    "fork_descs": [],
+    "items": [],
+    "path": [],
+    "rolls": []
+  },
+  "boss": "冰封铁瓮",
+  "end_time": "2026-11-06T17:11:58",
+  "errors": [],
+  "growth": {
+    "level": 4,
+    "mastery": "铭印 锋铸×2",
+    "perks": [
+      "steady"
+    ],
+    "summary": "技艺 目押×1"
+  },
+  "label": "V6",
+  "m1": {
+    "deferred_id": "",
+    "deferred_kept": true,
+    "deferred_seen_next": true,
+    "offers": [
+      {
+        "room": 1,
+        "slots": [
+          "supply",
+          "build",
+          "growth"
+        ],
+        "titles": [
+          "金币袋 · +15",
+          "符号 · 🔥 权重+3",
+          "下一房对策 · 护盾 +15"
+        ]
+      },
+      {
+        "room": 2,
+        "slots": [
+          "supply",
+          "build",
+          "growth"
+        ],
+        "titles": [
+          "金币袋 · +15",
+          "锋锐打磨 · +1",
+          "下一房对策 · 护盾 +15"
+        ]
+      },
+      {
+        "room": 3,
+        "slots": [
+          "supply",
+          "build",
+          "growth"
+        ],
+        "titles": [
+          "金币袋 · +15",
+          "锋锐打磨 · +1",
+          "技艺 · 稳定节奏"
+        ]
+      },
+      {
+        "room": 4,
+        "slots": [
+          "supply",
+          "build",
+          "growth"
+        ],
+        "titles": [
+          "守望结界 · +15",
+          "锋锐打磨 · +1",
+          "技艺 · 稳定节奏"
+        ]
+      },
+      {
+        "room": 5,
+        "slots": [
+          "supply",
+          "build",
+          "growth"
+        ],
+        "titles": [
+          "活力祝福 · +12",
+          "锋锐打磨 · +1",
+          "铭印 · 锋铸 ×火焰剑"
+        ]
+      },
+      {
+        "room": 6,
+        "slots": [
+          "supply",
+          "build",
+          "growth"
+        ],
+        "titles": [
+          "消耗品 · 强袭药剂",
+          "锋锐打磨 · +1",
+          "铭印 · 锋铸 ×火焰剑"
+        ]
+      },
+      {
+        "room": 7,
+        "slots": [
+          "supply",
+          "build",
+          "growth"
+        ],
+        "titles": [
+          "结界备战 · +30",
+          "武器 · 手枪",
+          "下一房对策 · 金币 +15"
+        ]
+      }
+    ],
+    "replace_cancelled": 1,
+    "single_screen": true
+  },
+  "mode": "linear",
+  "preset": "readable",
+  "rooms": [
+    {
+      "finished": true,
+      "hp_end": 100,
+      "hp_max": 100,
+      "hp_start": 100,
+      "key": "linear:0:毒壳壁垒",
+      "kind": "normal",
+      "name": "毒壳壁垒",
+      "near_death": false,
+      "turns": 1
+    },
+    {
+      "finished": true,
+      "hp_end": 100,
+      "hp_max": 100,
+      "hp_start": 100,
+      "key": "linear:1:锈盲蝠",
+      "kind": "normal",
+      "name": "锈盲蝠",
+      "near_death": false,
+      "turns": 1
+    },
+    {
+      "finished": true,
+      "hp_end": 105,
+      "hp_max": 100,
+      "hp_start": 100,
+      "key": "linear:2:余烬傀儡",
+      "kind": "normal",
+      "name": "余烬傀儡",
+      "near_death": false,
+      "turns": 1
+    },
+    {
+      "finished": true,
+      "hp_end": 105,
+      "hp_max": 105,
+      "hp_start": 105,
+      "key": "linear:3:腐殖巨蠕",
+      "kind": "elite",
+      "name": "腐殖巨蠕",
+      "near_death": false,
+      "turns": 1
+    },
+    {
+      "finished": true,
+      "hp_end": 69,
+      "hp_max": 105,
+      "hp_start": 105,
+      "key": "linear:4:重锤蛮兵",
+      "kind": "normal",
+      "name": "重锤蛮兵",
+      "near_death": false,
+      "turns": 2
+    },
+    {
+      "finished": true,
+      "hp_end": 74,
+      "hp_max": 105,
+      "hp_start": 69,
+      "key": "linear:5:腐化史莱姆",
+      "kind": "normal",
+      "name": "腐化史莱姆",
+      "near_death": false,
+      "turns": 1
+    },
+    {
+      "finished": true,
+      "hp_end": 74,
+      "hp_max": 110,
+      "hp_start": 74,
+      "key": "linear:6:酸蚀傀儡",
+      "kind": "elite",
+      "name": "酸蚀傀儡",
+      "near_death": false,
+      "turns": 1
+    },
+    {
+      "finished": true,
+      "hp_end": 74,
+      "hp_max": 110,
+      "hp_start": 74,
+      "key": "linear:7:冰封铁瓮",
+      "kind": "boss",
+      "name": "冰封铁瓮",
+      "near_death": false,
+      "turns": 2
+    }
+  ],
+  "seconds": 31.012,
+  "seed": 4406,
+  "selections": [
+    "成长:技艺 · 稳定节奏",
+    "成长:技艺 · 稳定节奏",
+    "成长:铭印 · 锋铸 ×火焰剑",
+    "成长:铭印 · 锋铸 ×火焰剑"
+  ],
+  "shots": [],
+  "start_time": "2026-11-06T17:11:27",
+  "telemetry": {
+    "avg_spin": 1.988,
+    "avg_ttk": 3.581875,
+    "buffer_queues": 26,
+    "damage_blocked": 30,
+    "damage_taken": 36,
+    "enemy_attacks": 2,
+    "forced_stops": 0,
+    "reward_pick_rate": 8.0,
+    "reward_picks": {
+      "elite_ward": 1,
+      "gold": 1,
+      "growth_imprint": 2,
+      "growth_perk": 1,
+      "power": 1,
+      "symbol": 1,
+      "weapon": 1
+    },
+    "rewards_shown": 1,
+    "rooms_cleared": 8,
+    "spin_seconds": 19.88,
+    "spins": 10,
+    "stop_outcomes": {
+      "target": 30
+    },
+    "stop_total": 30,
+    "target_hit_rate": 1.0,
+    "target_hits": 30,
+    "target_symbol": "res://resources/symbols/fire_slash.tres",
+    "triple_rate": 1.0,
+    "triples": 10,
+    "turns": 10,
+    "weapon_swaps": 0
+  },
+  "terminal": "WON_GAME"
+}

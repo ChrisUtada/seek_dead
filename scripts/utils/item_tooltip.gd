@@ -12,6 +12,16 @@ extends RefCounted
 
 const VON_FONT := preload("res://assets/fonts/VonwaonBitmap-12px.tres")
 
+# 运行时武器状态（锋铸加成 / R 等级 / 铭印次数），由 DuelController 注入。
+# 静态工具类不持有 controller：未注入（测试 / 整备外）时回落到共享 .tres 原值。
+static var weapon_state_provider: Callable = Callable()
+
+static func _weapon_state(path: String) -> Dictionary:
+	if path == "" or not weapon_state_provider.is_valid():
+		return {}
+	var st = weapon_state_provider.call(path)
+	return st if st is Dictionary else {}
+
 # 内置 tooltip 用普通 Label.set_text() 渲染、BBCode 不生效（Godot 4.7 viewport.cpp 实证），
 # 富文本必须走各卡片 _make_custom_tooltip → 本构建器。
 # 字体/字号/字色显式覆盖（像素字），不依赖主题链——任何挂载环境都保持复古像素观感。
@@ -78,7 +88,19 @@ static func _weapon(w: WeaponData) -> String:
 		icon = w.symbols[0].symbol.label   # 武器暂无 icon 字段，首符号 label 占位（图标位预留）
 	var name := w.weapon_name if w.weapon_name != "" else w.resource_path.get_file().get_basename()
 	var lines: Array[String] = ["%s [color=%s]%s[/color] · [color=%s]%s[/color]" % [icon, _c(Palette.TITLE), name, _c(_rarity_color(w.rarity)), w.rarity]]
-	lines.append("%s · 攻%d · 命中%d%%" % [ElementCounter.label(w.element), int(w.base_power), int(w.hit_rate * 100.0)])
+	# G0-02：显示锋铸后的真实基础攻击（共享 .tres 只在运行时状态里加，不写回资源）
+	var st := _weapon_state(w.resource_path)
+	var forge := int(st.get("forge", 0))
+	var atk_txt := "攻%d" % (int(w.base_power) + forge)
+	if forge > 0:
+		atk_txt += "（锋铸+%d）" % forge
+	lines.append("%s · %s · 命中%d%%" % [ElementCounter.label(w.element), atk_txt, int(w.hit_rate * 100.0)])
+	var prog := String(st.get("progress", ""))
+	if prog != "":
+		lines.append(prog)
+	var imp := String(st.get("imprint", ""))
+	if imp != "":
+		lines.append(imp)
 	if w.symbols != null and not w.symbols.is_empty():
 		var arr := w.symbols.duplicate()
 		arr.sort_custom(func(a, b): return a.weight > b.weight)

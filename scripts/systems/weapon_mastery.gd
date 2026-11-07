@@ -13,6 +13,7 @@ const R_THRESHOLDS := {2: 3, 3: 7, 4: 12}                 # R 等级累计熟练
 const IMPRINT_LEVELS := [2, 3]                            # 升到这些 R 等级时欠一次铭印选择
 const IMPRINT_MAX := 2                                    # 同一铭印每把最多次数
 const FORGE_STEP := 2                                     # 锋铸：每次 +基础攻击
+const CATCHUP_STEP := 1                                   # G2-01：换装后每房追赶 +1 基础熟练
 
 var mastery: Dictionary = {}          # 武器路径 -> 熟练累计
 var imprints: Dictionary = {}         # 武器路径 -> {"forge": n, "tune": {符号路径: n}}
@@ -20,17 +21,21 @@ var owed: Array[String] = []          # 欠铭印选择的武器路径（每项 
 var enabled: bool = true              # 探针开关（M2-04 对照组）：false 时不累计熟练、不欠铭印
 var _room_gain: Dictionary = {}       # 本房各武器已获熟练（每房上限用）
 var _settled: Dictionary = {}         # 本房产生过有效结算的符号路径
+var _start_paths: Dictionary = {}     # 开局已装备的武器（G2-01：只有局中新换上的武器才追赶）
 
 
 func _init(ctrl) -> void:
 	_ctrl = ctrl
 
 
-# 新一局 / 战败回整备：熟练、铭印、欠选全部清零。
+# 新一局 / 战败回整备：熟练、铭印、欠选全部清零；同时记下开局配装。
 func reset_run() -> void:
 	mastery.clear()
 	imprints.clear()
 	owed.clear()
+	_start_paths.clear()
+	for p in _ctrl.selected_loadout:
+		_start_paths[String(p)] = true
 	reset_room()
 
 
@@ -56,6 +61,8 @@ func r_level(path: String) -> int:
 
 
 # 房间胜利：已装备且本房有有效结算的武器获得熟练；跨过 R2 / R3 则欠一次铭印。
+# G2-01 追赶：本局换上的武器落后于其它已装备过的武器时，每房额外 +1 基础熟练，
+# 直到追平「本局其他武器达到过的最高熟练」；仍受每房上限约束，不补发已错过的铭印。
 func settle_room(kind: String) -> void:
 	if not enabled:
 		return
@@ -67,15 +74,34 @@ func settle_room(kind: String) -> void:
 		var gain := mini(gain_base, ROOM_GAIN_CAP - room_so_far)
 		if gain <= 0:
 			continue
-		_room_gain[path] = room_so_far + gain
+		var peak := catchup_target(path)
+		var catchup := 0
+		if int(mastery.get(path, 0)) + gain < peak:
+			catchup = mini(CATCHUP_STEP, ROOM_GAIN_CAP - room_so_far - gain)
+		_room_gain[path] = room_so_far + gain + catchup
 		var before: int = r_level(path)
-		mastery[path] = int(mastery.get(path, 0)) + gain
+		mastery[path] = int(mastery.get(path, 0)) + gain + catchup
 		var after: int = r_level(path)
-		_ctrl.hud._log("⚒ 熟练 %s +%d（R%d · %d/%d）" % [display_name(path), gain, after, int(mastery[path]), _next_threshold(after)])
+		_ctrl.hud._log("⚒ 熟练 %s +%d（R%d · %d/%d）" % [display_name(path), gain + catchup, after, int(mastery[path]), _next_threshold(after)])
+		if catchup > 0:
+			_ctrl.hud._log("⚒ 追赶 %s +%d：对齐本局最高熟练 %d" % [display_name(path), catchup, peak])
 		for lv in IMPRINT_LEVELS:
 			if lv > before and lv <= after:
 				owed.append(path)
 				_ctrl.hud._log("✦ %s 达 R%d：可选择一项铭印" % [display_name(path), lv])
+
+
+# G2-01：追赶目标 = 本局其他武器达到过的最高基础熟练；开局配装或没有其它武器时为 0。
+# 只读，用于结算与替换预览共用同一口径。
+func catchup_target(path: String) -> int:
+	if _start_paths.has(path):
+		return 0
+	var peak := 0
+	for p in mastery:
+		if String(p) == path:
+			continue
+		peak = maxi(peak, int(mastery[p]))
+	return peak
 
 
 # 欠铭印的候选（展示即定；调律仅在真实改变格数时出现，死升级不展示）。
@@ -124,8 +150,9 @@ func tune_target(path: String) -> Dictionary:
 	return {}
 
 
-# 选定铭印：写入运行时状态并消耗一次欠选。调律在选定时固定目标符号（之后不随其他变化漂移）。
-func choose(path: String, id: String) -> bool:
+# 选定铭印：写入运行时状态并消耗一次欠选。调律可在选定时传入展示时冻结的目标符号；
+# 未传则重新计算（旧调用路径 / 直接 choose 的测试）。
+func choose(path: String, id: String, sym_path: String = "") -> bool:
 	var im: Dictionary = _imprint_of(path)
 	if id == "forge":
 		if int(im["forge"]) >= IMPRINT_MAX:
@@ -134,11 +161,13 @@ func choose(path: String, id: String) -> bool:
 	elif id == "tune":
 		if _tune_count(path) >= IMPRINT_MAX:
 			return false
-		var tgt: Dictionary = tune_target(path)
-		if tgt.is_empty():
+		var target := sym_path
+		if target == "":
+			target = String(tune_target(path).get("sym", ""))
+		if target == "":
 			return false
 		var tune: Dictionary = im["tune"]
-		tune[tgt["sym"]] = int(tune.get(tgt["sym"], 0)) + 1
+		tune[target] = int(tune.get(target, 0)) + 1
 	else:
 		return false
 	imprints[path] = im

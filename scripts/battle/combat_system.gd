@@ -446,6 +446,8 @@ func on_counter(kind: String) -> void:
 	if _ctrl.enemy_armor > 0:
 		_ctrl.hud._log("💥 %s破甲！护甲清零（%d）" % ["special 三连" if kind == "special" else "克制元素三连", int(_ctrl.enemy_armor)])
 		_ctrl.enemy_armor = 0
+		if _ctrl._career != null:
+			_ctrl._career.note_armor_break()   # G6-01：仅记录 BOSS 房破甲（不改结算）
 	if kind == "element":
 		var burst = int(_ctrl.enemy_hp_max * 0.20)
 		if burst > 0:
@@ -472,6 +474,8 @@ func tick_status() -> void:
 			_ctrl.enemy_status.erase(st)
 	if dot > 0:
 		_ctrl.enemy_hp -= dot
+		if _ctrl._career != null:
+			_ctrl._career.note_status_damage(dot)   # G6-01：仅记录 BOSS 房状态伤害（不改结算）
 		_ctrl.hud._log("状态结算 %d 伤害（灼烧/毒·含克制）" % dot)
 
 

@@ -1,0 +1,42 @@
+# Seek Dead · G4-02 长尾骨架预览（2026-11-07）
+# 采集时间：2026-11-07T11:29:37
+
+## 骨架
+骨架=long_tail  模板=standard  节点数=29  路线长度=14  战斗房=16  BOSS=n14,n16,n18,n20
+
+  n0   start   depth=0  row=2 ria=-1 next=["n1"] room=—
+  n1   normal  depth=1  row=2 ria=0  next=["n2"] room=腐化史莱姆(normal)
+  n2   weapon  depth=2  row=2 ria=-1 next=["n3"] room=—
+  n3   normal  depth=3  row=2 ria=1  next=["n4"] room=锈盲蝠(normal)
+  n4   elite   depth=4  row=2 ria=2  next=["n5"] room=寒铁精英(elite)
+  n5   charm   depth=5  row=2 ria=-1 next=["n6"] room=—
+  n6   normal  depth=6  row=2 ria=3  next=["n7", "n10"] room=暗影诡匠(normal)
+  n7   normal  depth=7  row=1 ria=4  next=["n8"] room=毒壳壁垒(normal)
+  n8   elite   depth=8  row=1 ria=5  next=["n9"] room=酸蚀傀儡(elite)
+  n9   shop    depth=9  row=1 ria=-1 next=["n13", "n15"] room=—
+  n10  normal  depth=7  row=3 ria=4  next=["n11"] room=重锤蛮兵(normal)
+  n11  elite   depth=8  row=3 ria=5  next=["n12"] room=毒疫术士(elite)
+  n12  rest    depth=9  row=3 ria=-1 next=["n17", "n19"] room=—
+  n13  normal  depth=10 row=0 ria=6  next=["n21"] room=窃语咒师(normal)
+  n21  rest    depth=11 row=0 ria=-1 next=["n25"] room=—
+  n25  shop    depth=12 row=0 ria=-1 next=["n14"] room=—
+  n14  boss    depth=13 row=0 ria=7  next=[] room=茧居石雕(boss)
+  n15  normal  depth=10 row=1 ria=6  next=["n22"] room=辉光游侠(normal)
+  n22  rest    depth=11 row=1 ria=-1 next=["n26"] room=—
+  n26  shop    depth=12 row=1 ria=-1 next=["n16"] room=—
+  n16  boss    depth=13 row=1 ria=7  next=[] room=冰封铁瓮(boss)
+  n17  normal  depth=10 row=3 ria=6  next=["n23"] room=余烬傀儡(normal)
+  n23  rest    depth=11 row=3 ria=-1 next=["n27"] room=—
+  n27  shop    depth=12 row=3 ria=-1 next=["n18"] room=—
+  n18  boss    depth=13 row=3 ria=7  next=[] room=酸蚀恶鬼(boss)
+  n19  normal  depth=10 row=4 ria=6  next=["n24"] room=裂石像(normal)
+  n24  rest    depth=11 row=4 ria=-1 next=["n28"] room=—
+  n28  shop    depth=12 row=4 ria=-1 next=["n20"] room=—
+  n20  boss    depth=13 row=4 ria=7  next=[] room=碎裂石像鬼(boss)
+
+## 四条尾路
+  n13:normal → n21:rest → n25:shop → n14:boss
+  n15:normal → n22:rest → n26:shop → n16:boss
+  n17:normal → n23:rest → n27:shop → n18:boss
+  n19:normal → n24:rest → n28:shop → n20:boss
+

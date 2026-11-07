@@ -189,8 +189,7 @@ func _anvil_grant_owned(p: String) -> void:
 			_ctrl.meta["owned_weapons"].append(p)
 	elif res is ItemData:
 		if res.category == "passive":
-			if not _ctrl.meta["owned_charms"].has(p):
-				_ctrl.meta["owned_charms"].append(p)
+			_ctrl._reward_system.remember_charm(p)   # G2-01：图鉴 + 来源记录
 		else:
 			if not _ctrl.meta["owned_consumables"].has(p):
 				_ctrl.meta["owned_consumables"].append(p)

@@ -42,16 +42,18 @@ func configure(ctrl, h: BattleHud) -> void:
 
 # 商店卡片点击：武器且已带满 2 把 → 弹替换面板（换装，battle_hud 通用弹层）；否则正常购买
 func _on_shop_card_pressed(offer: Dictionary) -> void:
+	if bool(offer.get("sold", false)):
+		hud._log("%s 已售出" % String(offer.get("name", "")))
+		return
 	if offer.get("kind", "") == "weapon" and controller._loadout_system.sel_arr("weapon").size() >= 2:
+		# G2-01：买不起就不弹替换层，避免“选完旧武器才被告知金币不足”。
+		var price: int = int(offer.get("price", 0))
+		if controller.gold < price:
+			hud._log("金币不足（需 %d）" % price)
+			return
 		_pending_offer = offer
-		var info := ""
-		var res: Resource = load(offer.get("path", ""))
-		if res != null and "rarity" in res and "base_power" in res:
-			var elem_txt := ElementCounter.label(String(res.get("element") if "element" in res else "none"))
-			var hit_pct: int = int(float(res.get("hit_rate") if "hit_rate" in res else 1.0) * 100)
-			info = "新武器：%s · %s · 攻%d · 命中%d%% · %s" % [offer.get("name", "?"), String(res.get("rarity")), int(res.get("base_power")), hit_pct, elem_txt]
-		else:
-			info = "新武器：%s" % offer.get("name", "?")
+		# G0-02：统一走 _weapon_info（含锋铸后的真实攻击 / R 等级 / 铭印）
+		var info: String = controller._weapon_info(String(offer.get("path", "")))
 		hud.request_weapon_replace("替换武器", info, func(old_path: String):
 			hud.buy_replace_requested.emit(_pending_offer, old_path), String(offer.get("path", "")))
 	else:

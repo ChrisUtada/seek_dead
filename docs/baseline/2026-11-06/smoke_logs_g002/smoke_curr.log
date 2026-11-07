@@ -1,0 +1,105 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+铁砧元进度已载入：点数 8851
+已为你预选默认配装（可自由调整后再开战）
+PASS  普通房无机制 a1_brute_none.tres
+PASS  普通房无机制 a1_bulwark_poison.tres
+PASS  精英挂 mini 机制 a1_elite_brute_ice.tres
+PASS  精英 params 非空 a1_elite_brute_ice.tres
+PASS  精英机制 ∈ 幕1 家族 a1_elite_brute_ice.tres（实测 rust_armor_gimmick）
+PASS  rust mini 弱于默认（interval≥3, stacks≤2）寒铁精英
+PASS  精英挂 mini 机制 a1_elite_caster_poison.tres
+PASS  精英 params 非空 a1_elite_caster_poison.tres
+PASS  精英机制 ∈ 幕1 家族 a1_elite_caster_poison.tres（实测 acid_bomb_gimmick）
+PASS  acid mini 弱于默认（阈值更高/伤害更低）毒疫术士
+PASS  普通房无机制 a1_hexer_none.tres
+PASS  普通房无机制 a1_striker_light.tres
+PASS  普通房无机制 a1_swarm_ice.tres
+PASS  普通房无机制 a1_trickster_dark.tres
+PASS  普通房无机制 a2_brute_dark.tres
+PASS  普通房无机制 a2_brute_none.tres
+PASS  普通房无机制 a2_bulwark_light.tres
+PASS  普通房无机制 a2_bulwark_none.tres
+PASS  普通房无机制 a2_caster_poison.tres
+PASS  精英挂 mini 机制 a2_elite_hexer_dark.tres
+PASS  精英 params 非空 a2_elite_hexer_dark.tres
+PASS  精英机制 ∈ 幕2 家族 a2_elite_hexer_dark.tres（实测 whisper_lock_gimmick）
+PASS  whisper mini 单阶段且低频 深渊咒师
+PASS  精英挂 mini 机制 a2_elite_swarmking_fire.tres
+PASS  精英 params 非空 a2_elite_swarmking_fire.tres
+PASS  精英机制 ∈ 幕2 家族 a2_elite_swarmking_fire.tres（实测 bipolar_phase_gimmick）
+PASS  bipolar mini 弱于默认 炎爆群王
+PASS  普通房无机制 a2_striker_dark.tres
+PASS  普通房无机制 a2_swarm_fire.tres
+PASS  普通房无机制 a2_trickster_none.tres
+PASS  普通房无机制 a3_brute_light.tres
+PASS  普通房无机制 a3_brute_none.tres
+PASS  普通房无机制 a3_bulwark_fire.tres
+PASS  普通房无机制 a3_bulwark_none.tres
+PASS  普通房无机制 a3_caster_ice.tres
+PASS  精英挂 mini 机制 a3_elite_trickster_dark.tres
+PASS  精英 params 非空 a3_elite_trickster_dark.tres
+PASS  精英机制 ∈ 幕3 家族 a3_elite_trickster_dark.tres（实测 abyss_erosion_gimmick）
+PASS  abyss mini 稀释减半且单阶段 终焉诡匠
+PASS  精英挂 mini 机制 a3_elite_warden_light.tres
+PASS  精英 params 非空 a3_elite_warden_light.tres
+PASS  精英机制 ∈ 幕3 家族 a3_elite_warden_light.tres（实测 abyss_erosion_gimmick）
+PASS  abyss mini 稀释减半且单阶段 圣盾守关
+PASS  普通房无机制 a3_striker_light.tres
+PASS  普通房无机制 a3_swarm_poison.tres
+PASS  普通房无机制 a3_trickster_dark.tres
+PASS  精英挂 mini 机制 abyssal_cantor.tres
+PASS  精英 params 非空 abyssal_cantor.tres
+PASS  精英机制 ∈ 幕2 家族 abyssal_cantor.tres（实测 whisper_lock_gimmick）
+PASS  whisper mini 单阶段且低频 深渊咏者
+PASS  精英挂 mini 机制 acid_golem.tres
+PASS  精英 params 非空 acid_golem.tres
+PASS  精英机制 ∈ 幕1 家族 acid_golem.tres（实测 rust_armor_gimmick）
+PASS  rust mini 弱于默认（interval≥3, stacks≤2）酸蚀傀儡
+PASS  普通房无机制 annihilation_apostle.tres
+PASS  精英挂 mini 机制 annihilation_lord.tres
+PASS  精英 params 非空 annihilation_lord.tres
+PASS  精英机制 ∈ 幕3 家族 annihilation_lord.tres（实测 abyss_erosion_gimmick）
+PASS  abyss mini 稀释减半且单阶段 湮灭领主
+PASS  普通房无机制 beguiling_lantern.tres
+PASS  精英挂 mini 机制 blasphemy_priest.tres
+PASS  精英 params 非空 blasphemy_priest.tres
+PASS  精英机制 ∈ 幕2 家族 blasphemy_priest.tres（实测 acid_bomb_gimmick）
+PASS  acid mini 弱于默认（阈值更高/伤害更低）邪颂祭司
+PASS  普通房无机制 collapsing_core.tres
+PASS  普通房无机制 corrupted_slime.tres
+PASS  普通房无机制 cracked_statue.tres
+PASS  普通房无机制 defiled_scribe.tres
+PASS  普通房无机制 ember_golem.tres
+PASS  精英挂 mini 机制 final_watcher.tres
+PASS  精英 params 非空 final_watcher.tres
+PASS  精英机制 ∈ 幕3 家族 final_watcher.tres（实测 abyss_erosion_gimmick）
+PASS  abyss mini 稀释减半且单阶段 终焉守望
+PASS  普通房无机制 frost_bat.tres
+PASS  精英挂 mini 机制 humus_worm.tres
+PASS  精英 params 非空 humus_worm.tres
+PASS  精英机制 ∈ 幕1 家族 humus_worm.tres（实测 acid_bomb_gimmick）
+PASS  acid mini 弱于默认（阈值更高/伤害更低）腐殖巨蠕
+PASS  普通房无机制 riftsoul_wanderer.tres
+PASS  普通房无机制 rust_blind_bat.tres
+PASS  普通房无机制 shadow_acolyte.tres
+PASS  普通房无机制 toxin_spore.tres
+PASS  普通房无机制 void_echo.tres
+PASS  普通房无机制 void_whisperer.tres
+PASS  BOSS 挂机制 abyss_watcher.tres
+PASS  BOSS 挂机制 acid_ghoul.tres
+PASS  BOSS 挂机制 brittle_gargoyle.tres
+PASS  BOSS 挂机制 cocoon_sentinel.tres
+PASS  BOSS 挂机制 frozen_urn.tres
+PASS  BOSS 挂机制 grand_inquisitor.tres
+PASS  BOSS 挂机制 hero_shadow.tres
+PASS  BOSS 挂机制 manic_elementalist.tres
+PASS  BOSS 挂机制 maze_whisperer.tres
+PASS  BOSS 挂机制 nameless_void.tres
+PASS  BOSS 挂机制 scale_inquisitor.tres
+PASS  BOSS 挂机制 shattered_king.tres
+PASS  BOSS 挂机制 whispering_cultist.tres
+PASS  精英总数 12（12）
+PASS  BOSS 总数 13（13）
+---
+PASSED 99 / FAILED 0

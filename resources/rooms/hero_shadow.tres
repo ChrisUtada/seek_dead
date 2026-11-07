@@ -1,8 +1,9 @@
-[gd_resource type="Resource" script_class="RoomData" load_steps=6 format=3]
+[gd_resource type="Resource" script_class="RoomData" load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/battle/room_data.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/battle/gimmicks/shadow_projection_gimmick.gd" id="2"]
 [ext_resource type="Script" path="res://scripts/battle/intent_data.gd" id="3"]
+[ext_resource type="Texture2D" path="res://assets/characters/hero_shadow/idle_01.png" id="art_room"]
 
 [sub_resource type="Resource" script_class="IntentData" id="intent_attack"]
 script = ExtResource("3")
@@ -45,3 +46,5 @@ armor = 40
 intents = Array[IntentData]([SubResource("intent_attack"), SubResource("intent_heavy"), SubResource("intent_jam")])
 gimmick_script = ExtResource("2")
 gimmick_params = {"projection_every": 2, "mirror_base_per": 0.05, "phase2_hp_ratio": 0.66, "phase3_hp_ratio": 0.2}
+art = ExtResource("art_room")
+art_scale = 2.0

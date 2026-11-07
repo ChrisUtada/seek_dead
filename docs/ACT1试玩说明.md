@@ -1,6 +1,7 @@
 # Seek Dead · ACT1 试玩说明
 
 > 面向测试者的一页纸。版本以实际交付包为准（导出 preset「ACT1 Demo」）。
+> 当前交付包：`build/ACT1_Demo_2026-11-06_board/`（2026-11-06 棋盘改版导出，含 M1 战后成长与 M2 棋盘）。
 > 玩法细节与反馈模板见文末，可直接复制填写。
 
 ## 这是什么
@@ -14,7 +15,8 @@
 - **破甲三连**：带破甲标记的武器（战斧 / 铁剑）三连可清空护甲。
 - **状态**：燃 / 霜 / 毒挂上即生效，可被「清净 / 净化」类消耗品解除。
 - **局内成长**：
-  - 角色历练：清房获得经验（普通 1 / 精英 2 / BOSS 3），升级时三选一技艺。
+  - 清房后进入一次**战后成长三槽选择**（补给 / 构筑 / 成长），不再连续弹多次。
+  - 角色历练：清房获得经验（普通 1 / 精英 2 / BOSS 3），升级时三槽中的成长位提供技艺。
   - 武器熟练：本房真正打出有效结算的武器获得熟练，到 R2 / R3 时选择铭印（锋铸加攻 / 调律加符号权重）。
 - **构筑信息**：整备页底部「🎰带」可查看当前真实转轮带与共鸣；商店、奖励、BOSS 替换弹层会显示替换后的格数与共鸣得失。
 
@@ -52,11 +54,15 @@
 
 两种方式任选：
 
-1. **导出构建（发给试玩者用这个）**：已打包为单文件 `build/ACT1_Demo/Seek Dead ACT1 Demo.exe`，双击即玩（PCK 已内嵌，无需配套文件）。重新打包：
+1. **导出构建（发给试玩者用这个）**：已打包为单文件 `build/ACT1_Demo_2026-11-06_board/Seek Dead ACT1 Demo.exe`，双击即玩（PCK 已内嵌，无需配套文件）。同目录有 `启动_线性模式.bat` / `启动_棋盘模式.bat` / `BUILD_INFO.txt`。重新打包：
    ```
-   Godot_v4.7-stable_win64_console.exe --headless --path . --export-release "ACT1 Demo" "build/ACT1_Demo/Seek Dead ACT1 Demo.exe"
+   Godot_v4.7-stable_win64_console.exe --headless --path . --export-release "ACT1 Demo" "build/ACT1_Demo_2026-11-06_board/Seek Dead ACT1 Demo.exe"
    ```
    preset 的 `custom_features = "act1_demo"` 会自动启用 demo 模式，无需改资源；`tests/` 与 `tools/` 已从包内排除。
+   - **线性模式（默认）**：直接双击，8 房线性流程。
+   - **棋盘模式**：`启动_棋盘模式.bat`（等价 `exe -- --board`），或在整备底栏点「🗺 棋盘」再确认开战。
+     棋盘为 25 节点 / 两段岔路 / 4 个 BOSS 结局；掷 1D3 得到 1–3 步，逐格结算（不再跳过中间节点）。单局走 13 格、8 场战斗；每条尾路 BOSS 前都有休整营地，可回 25% HP 并花金币买 1 件补给。
+     落到战斗节点会先弹确认层（敌人 / HP / 攻 / 属性 / 剩余步数），点「进入战斗」才开打。
 2. **编辑器 / F6**：把 `resources/config/demo_config.tres` 的 `enabled` 勾上（`act_only` 保持 true）。
 
 关闭方式：取消 `enabled` 或使用正式版 preset。

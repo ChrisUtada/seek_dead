@@ -17,6 +17,7 @@ grow_vertical = 2
 
 [node name="VBox" type="VBoxContainer" parent="Center"]
 layout_mode = 2
+custom_minimum_size = Vector2(76, 0)
 theme_override_constants/separation = 1
 
 [node name="IconRect" type="TextureRect" parent="Center/VBox"]

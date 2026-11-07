@@ -1,8 +1,9 @@
-[gd_resource type="Resource" script_class="RoomData" load_steps=6 format=3]
+[gd_resource type="Resource" script_class="RoomData" load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/battle/room_data.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/battle/gimmicks/glass_cannon_gimmick.gd" id="2"]
 [ext_resource type="Script" path="res://scripts/battle/intent_data.gd" id="3"]
+[ext_resource type="Texture2D" path="res://assets/characters/brittle_gargoyle/idle_01.png" id="art_room"]
 
 [sub_resource type="Resource" script_class="IntentData" id="intent_attack"]
 script = ExtResource("3")
@@ -37,3 +38,5 @@ gimmick_script = ExtResource("2")
 gimmick_params = {"reflect_ratio": 0.15, "reflect_cap": 5}
 boss_reward_weapons = Array[String](["res://resources/weapon_templates/fire_sword.tres", "res://resources/weapon_templates/flame_staff.tres", "res://resources/weapon_templates/iron_sword.tres"])
 boss_relic_path = "res://resources/charms/stone_shard_relic.tres"
+art = ExtResource("art_room")
+art_scale = 2.0

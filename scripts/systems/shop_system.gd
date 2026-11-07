@@ -60,6 +60,7 @@ func on_shop_buy_replace_pressed(offer: Dictionary, old_path: String) -> void:
 	if not _ctrl.meta["owned_weapons"].has(offer["path"]):
 		_ctrl.meta["owned_weapons"].append(offer["path"])
 		_ctrl._anvil_system.check_collection_milestones()
+	_ctrl._meta_store.record_source(offer["path"], _ctrl._item_source())   # G2-01：替换购买也记来源
 	paid_price[offer["path"]] = buy_price
 	offer["sold"] = true
 	if _ctrl._telemetry != null:
@@ -219,10 +220,12 @@ func on_shop_buy_pressed(offer: Dictionary) -> void:
 		owned_key = "owned_weapons"
 	elif kind == "passive":
 		owned_key = "owned_charms"
-	if owned_key != "" and not _ctrl.meta[owned_key].has(offer["path"]):
-		_ctrl.meta[owned_key].append(offer["path"])
-		# M1-03：图鉴里程碑按真实收集进度结算（商店新件也计入，不再只在铁砧处触发）
-		_ctrl._anvil_system.check_collection_milestones()
+	if owned_key != "":
+		if not _ctrl.meta[owned_key].has(offer["path"]):
+			_ctrl.meta[owned_key].append(offer["path"])
+			# M1-03：图鉴里程碑按真实收集进度结算（商店新件也计入，不再只在铁砧处触发）
+			_ctrl._anvil_system.check_collection_milestones()
+		_ctrl._meta_store.record_source(offer["path"], _ctrl._item_source())   # G2-01：来源记录
 	paid_price[offer["path"]] = buy_price   # 记录实际购入价，卖出时返还约50%
 	offer["sold"] = true
 	if w >= cap:                        # 本次是扩槽购买 → 该类槽 +1

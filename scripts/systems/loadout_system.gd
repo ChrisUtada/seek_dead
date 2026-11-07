@@ -227,8 +227,26 @@ func apply_charms() -> void:
 
 
 # 整局重置：新局状态清零 + 抽房 + 建池 + 开首房（_confirm_loadout 入口）。
+# M2：BoardConfig 开启时改走棋盘——ROOMS = 本局战斗房（按路径顺序），首屏为棋盘而非首房。
 func full_reset() -> void:
 	_ctrl._reset_run_state()   # 包含遥测/P1 统计清零；避免只重置局内状态而漏掉每局计数器
+	_ctrl.node_mode = bool(_ctrl.board_config.is_active())
+	if _ctrl.node_mode and _ctrl.board != null and _ctrl.board.generate(_ctrl.board_config):
+		_ctrl.ROOMS.clear()
+		for r in _ctrl.board.battle_rooms:
+			_ctrl.ROOMS.append(r)
+		_ctrl._build_pool(_ctrl.selected_loadout)
+		_ctrl.invalidate_state()
+		_ctrl.hud.show_board_screen(_ctrl.board)
+		Debug.log("◆ 棋盘模式：ACT%d / %d 节点 / %d 场战斗（单局路径 %d 格 / 骨架 %s / 模板 %s）" % [
+			int(_ctrl.board_config.act), _ctrl.board.node_count(), _ctrl.ROOMS.size(),
+			_ctrl.board.route_length(), _ctrl.board.shape_id, _ctrl.board.template_id])
+		return
+	if _ctrl.node_mode:
+		Debug.log("◆ 棋盘生成不合法，回退线性房间")
+		_ctrl.node_mode = false
+	if _ctrl.hud != null:
+		_ctrl.hud.hide_board_screen(false)   # 上局若在棋盘，开线性局前收起棋盘视图
 	_ctrl.ROOMS = _ctrl._build_run()
 	_ctrl._build_pool(_ctrl.selected_loadout)
 	_ctrl._start_room(0)
@@ -254,4 +272,13 @@ func reset_run_state() -> void:
 	_ctrl._reward_system.reset_run()   # 本局加成层清零（符号灌注 / 伤害加成 / 下一房护盾）
 	_ctrl.growth.reset_run()           # M2-01：历练经验 / 等级 / 技艺清零
 	_ctrl.mastery.reset_run()          # M2-02：武器熟练 / 铭印 / 欠选清零
+	_ctrl._post_battle.reset_run()     # M1：战后成长队列清零
+	# M2：棋盘状态清零（node_mode 由 full_reset 按开关重新决定）
+	_ctrl.node_mode = false
+	_ctrl.current_room = null
+	_ctrl.current_act = 1
+	_ctrl.current_room_ria = -1
+	_ctrl.run_final = false
+	if _ctrl.board != null:
+		_ctrl.board.reset()
 	_ctrl.invalidate_state()

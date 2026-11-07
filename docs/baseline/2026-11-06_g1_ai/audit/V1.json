@@ -1,0 +1,259 @@
+{
+  "board": {
+    "boss_map": [],
+    "confirmations": [],
+    "continue_seen": false,
+    "fork_a": "",
+    "fork_b": "",
+    "fork_descs": [],
+    "items": [],
+    "path": [],
+    "rolls": []
+  },
+  "boss": "碎裂石像鬼",
+  "end_time": "2026-11-06T16:42:09",
+  "errors": [],
+  "growth": {
+    "level": 4,
+    "mastery": "铭印 锋铸×2",
+    "perks": [
+      "reserve"
+    ],
+    "summary": "技艺 运筹×1"
+  },
+  "label": "V1",
+  "m1": {
+    "deferred_id": "",
+    "deferred_kept": true,
+    "deferred_seen_next": true,
+    "offers": [
+      {
+        "room": 1,
+        "slots": [
+          "supply",
+          "build",
+          "growth"
+        ],
+        "titles": [
+          "金币袋 · +15",
+          "符号 · 🔥 权重+3",
+          "下一房对策 · 护盾 +15"
+        ]
+      },
+      {
+        "room": 2,
+        "slots": [
+          "supply",
+          "build",
+          "growth"
+        ],
+        "titles": [
+          "守望结界 · +15",
+          "锋锐打磨 · +1",
+          "下一房对策 · 金币 +15"
+        ]
+      },
+      {
+        "room": 3,
+        "slots": [
+          "supply",
+          "build",
+          "growth"
+        ],
+        "titles": [
+          "消耗品 · 重转卷轴",
+          "锋锐打磨 · +1",
+          "技艺 · 备用药剂"
+        ]
+      },
+      {
+        "room": 4,
+        "slots": [
+          "supply",
+          "build",
+          "growth"
+        ],
+        "titles": [
+          "铁砧结晶 · +2",
+          "武器 · 寒冰刃",
+          "技艺 · 备用药剂"
+        ]
+      },
+      {
+        "room": 5,
+        "slots": [
+          "supply",
+          "build",
+          "growth"
+        ],
+        "titles": [
+          "消耗品 · 净化药剂",
+          "锋锐打磨 · +1",
+          "铭印 · 锋铸 ×火焰剑"
+        ]
+      },
+      {
+        "room": 6,
+        "slots": [
+          "supply",
+          "build",
+          "growth"
+        ],
+        "titles": [
+          "强韧之心 · +20",
+          "锋锐打磨 · +1",
+          "铭印 · 锋铸 ×火焰剑"
+        ]
+      },
+      {
+        "room": 7,
+        "slots": [
+          "supply",
+          "build",
+          "growth"
+        ],
+        "titles": [
+          "活力祝福 · +12",
+          "锋锐打磨 · +1",
+          "下一房对策 · 护盾 +15"
+        ]
+      }
+    ],
+    "single_screen": true
+  },
+  "mode": "linear",
+  "preset": "readable",
+  "rooms": [
+    {
+      "finished": true,
+      "hp_end": 100,
+      "hp_max": 100,
+      "hp_start": 100,
+      "key": "linear:0:窃语咒师",
+      "kind": "normal",
+      "name": "窃语咒师",
+      "near_death": false,
+      "turns": 1
+    },
+    {
+      "finished": true,
+      "hp_end": 100,
+      "hp_max": 100,
+      "hp_start": 100,
+      "key": "linear:1:寒鳞蝠",
+      "kind": "normal",
+      "name": "寒鳞蝠",
+      "near_death": false,
+      "turns": 1
+    },
+    {
+      "finished": true,
+      "hp_end": 105,
+      "hp_max": 100,
+      "hp_start": 100,
+      "key": "linear:2:辉光游侠",
+      "kind": "normal",
+      "name": "辉光游侠",
+      "near_death": false,
+      "turns": 1
+    },
+    {
+      "finished": true,
+      "hp_end": 105,
+      "hp_max": 105,
+      "hp_start": 105,
+      "key": "linear:3:腐殖巨蠕",
+      "kind": "elite",
+      "name": "腐殖巨蠕",
+      "near_death": false,
+      "turns": 1
+    },
+    {
+      "finished": true,
+      "hp_end": 105,
+      "hp_max": 105,
+      "hp_start": 105,
+      "key": "linear:4:锈盲蝠",
+      "kind": "normal",
+      "name": "锈盲蝠",
+      "near_death": false,
+      "turns": 1
+    },
+    {
+      "finished": true,
+      "hp_end": 110,
+      "hp_max": 105,
+      "hp_start": 105,
+      "key": "linear:5:毒壳壁垒",
+      "kind": "normal",
+      "name": "毒壳壁垒",
+      "near_death": false,
+      "turns": 1
+    },
+    {
+      "finished": true,
+      "hp_end": 110,
+      "hp_max": 110,
+      "hp_start": 110,
+      "key": "linear:6:毒疫术士",
+      "kind": "elite",
+      "name": "毒疫术士",
+      "near_death": false,
+      "turns": 1
+    },
+    {
+      "finished": true,
+      "hp_end": 69,
+      "hp_max": 110,
+      "hp_start": 110,
+      "key": "linear:7:碎裂石像鬼",
+      "kind": "boss",
+      "name": "碎裂石像鬼",
+      "near_death": false,
+      "turns": 2
+    }
+  ],
+  "seconds": 3.674,
+  "seed": 4401,
+  "selections": [
+    "成长:技艺 · 备用药剂",
+    "成长:技艺 · 备用药剂",
+    "成长:铭印 · 锋铸 ×火焰剑",
+    "成长:铭印 · 锋铸 ×火焰剑"
+  ],
+  "shots": [],
+  "start_time": "2026-11-06T16:42:05",
+  "telemetry": {
+    "avg_spin": 0.0764444444444445,
+    "avg_ttk": 0.1775,
+    "buffer_queues": 24,
+    "damage_blocked": 4,
+    "damage_taken": 77,
+    "enemy_attacks": 2,
+    "forced_stops": 0,
+    "reward_pick_rate": 7.0,
+    "reward_picks": {
+      "consumable": 1,
+      "growth_imprint": 2,
+      "growth_perk": 1,
+      "power": 2,
+      "symbol": 1
+    },
+    "rewards_shown": 1,
+    "rooms_cleared": 8,
+    "spin_seconds": 0.688,
+    "spins": 9,
+    "stop_outcomes": {
+      "target": 27
+    },
+    "stop_total": 27,
+    "target_hit_rate": 1.0,
+    "target_hits": 27,
+    "target_symbol": "res://resources/symbols/fire_slash.tres",
+    "triple_rate": 1.0,
+    "triples": 9,
+    "turns": 9,
+    "weapon_swaps": 0
+  },
+  "terminal": "WON_GAME"
+}

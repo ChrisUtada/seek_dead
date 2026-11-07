@@ -1,8 +1,9 @@
-[gd_resource type="Resource" script_class="RoomData" load_steps=6 format=3]
+[gd_resource type="Resource" script_class="RoomData" load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/battle/room_data.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/battle/gimmicks/compulsion_rule_gimmick.gd" id="2"]
 [ext_resource type="Script" path="res://scripts/battle/intent_data.gd" id="3"]
+[ext_resource type="Texture2D" path="res://assets/characters/scale_inquisitor/idle_01.png" id="art_room"]
 
 [sub_resource type="Resource" script_class="IntentData" id="intent_attack"]
 script = ExtResource("3")
@@ -37,3 +38,5 @@ gimmick_script = ExtResource("2")
 gimmick_params = {"rule_pool": ["same_element", "all_distinct", "all_damage"], "rule_every": 2, "rule_reward_atk_mult": 0.5, "rule_punish_mult": 2.0, "phase2_hp_ratio": 0.5, "p2_atk_mult": 0.9, "p2_armor": 35, "p2_lock_consumable": true}
 boss_reward_weapons = Array[String](["res://resources/weapon_templates/night_scythe.tres", "res://resources/weapon_templates/shadow_guillotine.tres", "res://resources/weapon_templates/iron_sword.tres"])
 boss_relic_path = "res://resources/charms/law_brand_relic.tres"
+art = ExtResource("art_room")
+art_scale = 2.0

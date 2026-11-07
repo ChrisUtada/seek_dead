@@ -1,0 +1,156 @@
+{
+  "board": {
+    "boss_map": [
+      "n14=茧居石雕(冰)",
+      "n16=冰封铁瓮(冰)",
+      "n18=碎裂石像鬼(冰)",
+      "n20=酸蚀恶鬼(毒)"
+    ],
+    "confirmations": [
+      "余烬傀儡|HP 85 · 攻 12 · 火\n战后剩余 1 步|进入战斗",
+      "毒孢菌|HP 92 · 攻 13 · 毒|进入战斗",
+      "寒铁精英|HP 264 · 攻 22 · 冰\n特殊机制|进入战斗"
+    ],
+    "continue_seen": true,
+    "fork_a": "",
+    "fork_b": "",
+    "fork_descs": [
+      "普通战斗 · 胜利后进入战后成长\n上路：茧居石雕（冰） / 冰封铁瓮（冰）\n下路：碎裂石像鬼（冰） / 酸蚀恶鬼（毒）",
+      "现有商店 · 离开后节点消耗\n上方：茧居石雕（冰）\n下方：冰封铁瓮（冰）",
+      "恢复 25% 最大 HP · 满血显示无需休整\n上方：碎裂石像鬼（冰）\n下方：酸蚀恶鬼（毒）"
+    ],
+    "items": [
+      "武器 · 破晓之弓"
+    ],
+    "path": [
+      "n0:起点",
+      "n1:余烬傀儡",
+      "n2:武器 · 破晓之弓",
+      "n3:毒孢菌",
+      "n4:寒铁精英"
+    ],
+    "rolls": [
+      2,
+      1,
+      1
+    ]
+  },
+  "boss": "",
+  "end_time": "2026-11-06T16:42:41",
+  "errors": [],
+  "growth": {
+    "level": 1,
+    "mastery": "铭印：无",
+    "perks": [],
+    "summary": "技艺：无"
+  },
+  "label": "B2",
+  "m1": {
+    "deferred_id": "",
+    "deferred_kept": false,
+    "deferred_seen_next": false,
+    "offers": [
+      {
+        "room": 1,
+        "slots": [
+          "supply",
+          "build",
+          "growth"
+        ],
+        "titles": [
+          "金币袋 · +15",
+          "符号 · 🔥 权重+3",
+          "下一房对策 · 护盾 +15"
+        ]
+      },
+      {
+        "room": 2,
+        "slots": [
+          "supply",
+          "build",
+          "growth"
+        ],
+        "titles": [
+          "治疗药剂 · +35 HP",
+          "锋锐打磨 · +1",
+          "下一房对策 · 护盾 +15"
+        ]
+      }
+    ],
+    "single_screen": true
+  },
+  "mode": "board",
+  "preset": "control",
+  "rooms": [
+    {
+      "finished": true,
+      "hp_end": 64,
+      "hp_max": 100,
+      "hp_start": 100,
+      "key": "n1:0:余烬傀儡",
+      "kind": "normal",
+      "name": "余烬傀儡",
+      "near_death": false,
+      "turns": 5
+    },
+    {
+      "finished": true,
+      "hp_end": 53,
+      "hp_max": 100,
+      "hp_start": 64,
+      "key": "n3:1:毒孢菌",
+      "kind": "normal",
+      "name": "毒孢菌",
+      "near_death": false,
+      "turns": 3
+    },
+    {
+      "finished": true,
+      "hp_end": -5,
+      "hp_max": 100,
+      "hp_start": 53,
+      "key": "n4:2:寒铁精英",
+      "kind": "elite",
+      "name": "寒铁精英",
+      "near_death": true,
+      "turns": 3
+    }
+  ],
+  "seconds": 1.741,
+  "seed": 2202,
+  "selections": [],
+  "shots": [],
+  "start_time": "2026-11-06T16:42:39",
+  "telemetry": {
+    "avg_spin": 0.03,
+    "avg_ttk": 0.355,
+    "buffer_queues": 0,
+    "damage_blocked": 36,
+    "damage_taken": 173,
+    "enemy_attacks": 9,
+    "forced_stops": 0,
+    "reward_pick_rate": 0.0,
+    "reward_picks": {
+      "power": 1,
+      "symbol": 1
+    },
+    "rewards_shown": 0,
+    "rooms_cleared": 2,
+    "spin_seconds": 0.33,
+    "spins": 11,
+    "stop_outcomes": {
+      "miss": 3,
+      "normal": 24,
+      "target": 5
+    },
+    "stop_total": 32,
+    "target_hit_rate": 0.15625,
+    "target_hits": 5,
+    "target_symbol": "res://resources/symbols/fire_slash.tres",
+    "triple_rate": 0.0,
+    "triples": 0,
+    "turns": 11,
+    "weapon_swaps": 0
+  },
+  "terminal": "LOST"
+}
