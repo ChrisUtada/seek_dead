@@ -17,11 +17,14 @@ extends Resource
 @export var dice_sides: int = 3             # 1D3
 @export var boss_ria: int = 7               # BOSS 的幕内难度位置（与线性 ACT1 8 房一致）
 @export var battle_node_count: int = 8      # 单局路径 5 普通 + 2 精英 + 1 BOSS
-# G4-02 骨架：空 = 每局随机（standard 25 节点 / long_tail 29 节点）；
-# 测试与调试可填 "standard" / "long_tail" 固定形状。
+# G4-02 骨架：空 = 每局随机（standard 25 / long_tail 29 / long_share 26 节点）；
+# 测试与调试可填 "standard" / "long_tail" / "long_share" 固定形状。
 @export var shape_id: String = ""
 # G4-04 特殊格：空 = 每局随机（宝箱 / 神龛 / 武器藏库）；测试与调试可填对应 id。
 @export var special_id: String = ""
+# G4-01 分支价值模板：空 = 每局随机（standard / mirror / elite_first / elite_upper / elite_lower）；
+# 测试与调试可填模板 id 固定类型分配（不影响骨架、深度与边）。
+@export var template_id: String = ""
 
 
 func is_active() -> bool:

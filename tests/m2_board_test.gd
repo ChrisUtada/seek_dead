@@ -36,6 +36,7 @@ func _run() -> void:
 	var cfg_was: bool = bool(duel.board_config.enabled)
 	var shape_was := String(duel.board_config.shape_id)
 	var special_was := String(duel.board_config.special_id)
+	var template_was := String(duel.board_config.template_id)
 
 	_test_linear_preserved(duel)
 	_test_topology(duel)
@@ -43,6 +44,7 @@ func _run() -> void:
 	_test_templates(duel)
 	_test_content_guarantees(duel)
 	_test_shape_variants(duel)
+	_test_shape_template_matrix(duel)
 	_test_generation_seeds(duel)
 	_test_dice_and_legality(duel)
 	_test_one_shot(duel)
@@ -65,6 +67,7 @@ func _run() -> void:
 	duel.board_config.enabled = cfg_was
 	duel.board_config.shape_id = shape_was
 	duel.board_config.special_id = special_was
+	duel.board_config.template_id = template_was
 	duel.meta.clear()
 	for k in meta_backup:
 		duel.meta[k] = meta_backup[k]
@@ -275,24 +278,46 @@ func _test_templates(duel: DuelController) -> void:
 	var ids := {}
 	for t in GENERATOR.TEMPLATES:
 		ids[String(t["id"])] = true
-	_check(ids.size() >= 2, "至少 2 套分支价值模板（%s）" % str(ids.keys()))
+	_check(ids.size() >= 4 and ids.size() <= 6, "计划要求 4–6 套分支价值模板（%s）" % str(ids.keys()))
 
 	var all_ok := true
+	var battle_ok := true
 	var detail: Array[String] = []
 	for t in GENERATOR.TEMPLATES:
 		var counts := {}
+		var types := {}
 		for spec in GENERATOR.TOPOLOGY:
 			var id := String(spec[0])
 			var type := String(spec[1])
 			var ov: Dictionary = t.get("overrides", {})
 			if ov.has(id):
 				type = String(ov[id])
+			types[id] = type
 			counts[type] = int(counts.get(type, 0)) + 1
 		var ok := int(counts.get("start", 0)) == 1 and int(counts.get("boss", 0)) == 4 			and int(counts.get("shop", 0)) == 1 and int(counts.get("rest", 0)) == 5 			and int(counts.get("weapon", 0)) == 1 and int(counts.get("charm", 0)) == 1 			and int(counts.get("normal", 0)) == 9 and int(counts.get("elite", 0)) == 3
 		if not ok:
 			all_ok = false
+		# 模板只在战斗节点之间换精英/普通：BATTLE_ORDER 内必须仍是战斗，非战斗节点不得变战斗。
+		for id in GENERATOR.BATTLE_ORDER:
+			if not String(types.get(String(id), "")) in ["normal", "elite", "boss"]:
+				battle_ok = false
+		for id in types:
+			if not String(id) in GENERATOR.BATTLE_ORDER and String(types[id]) in ["normal", "elite", "boss"]:
+				battle_ok = false
 		detail.append("%s 普%d/精%d" % [t["id"], int(counts.get("normal", 0)), int(counts.get("elite", 0))])
 	_check(all_ok, "每套模板节点构成一致：%s" % ", ".join(detail))
+	_check(battle_ok, "每套模板保持单局战斗节点集合不变（战斗数 8 / battle_index 不漂移）")
+
+	# 非对称模板只前置一侧精英，另一侧保持「普通 → 精英」。
+	var asym := {}
+	for t in GENERATOR.TEMPLATES:
+		asym[String(t["id"])] = t.get("overrides", {})
+	var up: Dictionary = asym.get("elite_upper", {})
+	var lo: Dictionary = asym.get("elite_lower", {})
+	_check(String(up.get("n7", "")) == "elite" and String(up.get("n8", "")) == "normal" and not up.has("n10"),
+		"elite_upper：上路精英前置、下路保持普通 → 精英")
+	_check(String(lo.get("n10", "")) == "elite" and String(lo.get("n11", "")) == "normal" and not lo.has("n7"),
+		"elite_lower：下路精英前置、上路保持普通 → 精英")
 
 	var cfg = duel.board_config
 	seed(9182)
@@ -303,12 +328,33 @@ func _test_templates(duel: DuelController) -> void:
 	var b := String(duel.board.template_id)
 	_check(a == b and ids.has(a), "同种子模板可复现（%s）" % a)
 
+	# 固定模板（BoardConfig.template_id）：测试 / 采集按 id 生成，精英位置与定义一致。
+	var fixed_ok := true
+	var fixed_detail: Array[String] = []
+	var expect := {
+		"standard": ["n8", "n11"], "mirror": ["n8", "n11"],
+		"elite_first": ["n7", "n10"], "elite_upper": ["n7", "n11"], "elite_lower": ["n8", "n10"],
+	}
+	for tid in ids.keys():
+		cfg.template_id = String(tid)
+		seed(31)
+		duel.board.generate(cfg)
+		var got := String(duel.board.template_id)
+		var ue := _b_elite(duel.board, ["n7", "n8"])
+		var le := _b_elite(duel.board, ["n10", "n11"])
+		var want: Array = expect.get(String(tid), [])
+		if got != String(tid) or (not want.is_empty() and (ue != String(want[0]) or le != String(want[1]))):
+			fixed_ok = false
+			fixed_detail.append("%s→%s(%s/%s)" % [tid, got, ue, le])
+	_check(fixed_ok, "固定模板 id 生效且精英位置正确%s" % ("" if fixed_ok else "：" + ", ".join(fixed_detail)))
+	cfg.template_id = ""
+
 	var seen := {}
-	for i in range(60):
+	for i in range(120):
 		seed(1000 + i)
 		duel.board.generate(cfg)
 		seen[String(duel.board.template_id)] = true
-	_check(seen.size() >= 2, "不同种子能抽到不同模板（%s）" % str(seen.keys()))
+	_check(seen.size() == ids.size(), "不同种子能抽到全部 %d 套模板（%s）" % [ids.size(), str(seen.keys())])
 	_build_board(duel)
 
 
@@ -356,15 +402,15 @@ func _test_content_guarantees(duel: DuelController) -> void:
 func _test_shape_variants(duel: DuelController) -> void:
 	var cfg = duel.board_config
 
-	# 随机骨架：同一 RNG 通道下两套都能出现
+	# 随机骨架：同一 RNG 通道下三套都能出现
 	cfg.shape_id = ""
 	var seen := {}
-	for i in range(40):
+	for i in range(60):
 		seed(7200 + i)
 		duel.board.generate(cfg)
 		seen[String(duel.board.shape_id)] = true
-	_check(seen.has("standard") and seen.has("long_tail"),
-		"随机骨架能抽到 standard / long_tail（%s）" % str(seen.keys()))
+	_check(seen.has("standard") and seen.has("long_tail") and seen.has("long_share"),
+		"随机骨架能抽到 standard / long_tail / long_share（%s）" % str(seen.keys()))
 
 	# 长尾骨架：结构、构成与路径
 	cfg.shape_id = "long_tail"
@@ -460,7 +506,146 @@ func _test_shape_variants(duel: DuelController) -> void:
 	_check(in_bounds, "长尾节点按钮全部在 480×270 内%s" % ("" if bad.is_empty() else "（%s）" % ", ".join(bad)))
 	_check(scr._node_w == 30.0 and scr._pos.size() == 29, "长尾布局使用 30px 节点宽 / 29 个坐标")
 
+	# 延展共享段骨架：26 节点 / 14 格 / 共享段多一间商店，岔路与尾路后移 1 格
+	cfg.shape_id = "long_share"
+	seed(5252)
+	duel._loadout_system.full_reset()
+	var sb = duel.board
+	_check(String(sb.shape_id) == "long_share", "延展共享段骨架已生成（%s）" % sb.shape_id)
+	_check(sb.node_count() == 26, "延展共享段 26 节点")
+	_check(sb.route_length() == 14, "延展共享段单局路径 14 格（%s）" % sb.progress_text())
+	_check(duel.ROOMS.size() == 15, "延展共享段仍是 15 场候选战斗（宝箱替换 1 场）")
+	_check(_nodes_of(duel, "boss").size() == 4, "延展共享段 4 个 BOSS")
+	_check(_nodes_of(duel, "shop").size() == 2, "延展共享段 2 个商店（共享段 n29 + 中段其一）")
+	_check(_nodes_of(duel, "rest").size() == 5, "延展共享段 5 个休整（中段 1 + 尾路营地 4）")
+	_check(_nodes_of(duel, "treasure").size() == 1, "延展共享段同样 1 个宝箱")
+	var n29: Dictionary = _node(duel, "n29")
+	_check(String(n29.get("type", "")) == "shop" and int(n29.get("depth", -1)) == 6,
+		"n29 是共享段第 6 列商店")
+	var mid_rest_ok := true
+	for id in ["n9", "n12"]:
+		var mid: Dictionary = _node(duel, id)
+		if String(mid.get("type", "")) == "rest" and String(mid.get("title", "")) != "休整":
+			mid_rest_ok = false
+	_check(mid_rest_ok, "中段休整在深度 10 仍显示「休整」而不是尾路营地")
+	var share_tails := [
+		["n13", "n21", "n14"], ["n15", "n22", "n16"],
+		["n17", "n23", "n18"], ["n19", "n24", "n20"],
+	]
+	var share_tails_ok := true
+	for t in share_tails:
+		var head := String(_node(duel, t[0]).get("type", ""))
+		if head != "normal" and head != "treasure":
+			share_tails_ok = false
+		if String(_node(duel, t[1]).get("type", "")) != "rest":
+			share_tails_ok = false
+		if String(_node(duel, t[2]).get("type", "")) != "boss":
+			share_tails_ok = false
+		if int(_node(duel, t[2]).get("depth", -1)) != 13:
+			share_tails_ok = false
+	_check(share_tails_ok, "四条尾路同为 普通/宝箱 → 营地 → BOSS，BOSS 在第 13 列")
+
+	# 实地走一条延展共享段路线：13 格 / 14 节点 / 8 场战斗 / 共享段商店经过
+	_rewind(duel, "n0")
+	steps = 0
+	battles = 0
+	treasure_seen = false
+	var shared_shop := false
+	stuck = false
+	while not sb.current_is_boss() and steps < 30:
+		sb.dice = 3
+		var legal_s: Array = sb.legal_targets()
+		if legal_s.is_empty():
+			stuck = true
+			break
+		var node_s: Dictionary = sb.advance_to(String(legal_s[0]["id"]))
+		if node_s.is_empty():
+			stuck = true
+			break
+		if String(node_s["type"]) in ["normal", "elite", "boss"]:
+			battles += 1
+		if String(node_s["type"]) == "treasure":
+			treasure_seen = true
+		if String(node_s["id"]) == "n29":
+			shared_shop = true
+		steps += 1
+	_check(not stuck and sb.current_is_boss(), "延展共享段路径全程有合法落点并抵达 BOSS")
+	_check(steps == 13 and sb.visited_count() == 14,
+		"延展共享段走满 13 格 / 14 节点（%d / %d）" % [steps, sb.visited_count()])
+	_check(battles + (1 if treasure_seen else 0) == 8,
+		"延展共享段单局战斗位共 8 个（实际战斗 %d + 宝箱 %d）" % [battles, 1 if treasure_seen else 0])
+	_check(shared_shop, "共享段商店 n29 实际经过")
+
+	duel.hud.show_board_screen(sb)
+	scr = duel.hud.board_screen
+	_check(scr._buttons.size() == 26, "延展共享段棋盘有 26 个节点按钮")
+	var share_bounds := true
+	var share_bad: Array[String] = []
+	for id in scr._buttons:
+		var btn_s: Button = scr._buttons[id]
+		var rs := Rect2(btn_s.position, btn_s.size)
+		if rs.position.x < 0 or rs.position.y < 0 or rs.end.x > 480.0 or rs.end.y > 270.0:
+			share_bounds = false
+			share_bad.append("%s=%s" % [id, str(rs)])
+	_check(share_bounds, "延展共享段节点按钮全部在 480×270 内%s"
+		% ("" if share_bad.is_empty() else "（%s）" % ", ".join(share_bad)))
+
 	# 回到标准骨架，后续测试沿用 25 节点断言
+	_build_board(duel)
+
+
+# ---------------------------------------------------------------------------
+# ②f G4 收口：每套骨架 × 每套模板都能走完整路线（3 × 5 = 15 条）
+# ---------------------------------------------------------------------------
+
+func _test_shape_template_matrix(duel: DuelController) -> void:
+	var cfg = duel.board_config
+	var shapes := {"standard": 25, "long_tail": 29, "long_share": 26}
+	var tpl_ids: Array[String] = []
+	for t in GENERATOR.TEMPLATES:
+		tpl_ids.append(String(t["id"]))
+	var walks_ok := true
+	var bad: Array[String] = []
+	for sid in shapes:
+		for tid in tpl_ids:
+			cfg.shape_id = String(sid)
+			cfg.template_id = String(tid)
+			seed(8800)
+			duel._loadout_system.full_reset()
+			var b = duel.board
+			var steps := 0
+			var battles := 0
+			var special := 0
+			var stuck := false
+			while not b.current_is_boss() and steps < 30:
+				b.dice = 3
+				var legal: Array = b.legal_targets()
+				if legal.is_empty():
+					stuck = true
+					break
+				var node: Dictionary = b.advance_to(String(legal[0]["id"]))
+				if node.is_empty():
+					stuck = true
+					break
+				var t := String(node["type"])
+				if t in ["normal", "elite", "boss"]:
+					battles += 1
+				elif t in ["treasure", "shrine", "armory"]:
+					special += 1
+				steps += 1
+			var ok: bool = not stuck and b.current_is_boss()
+			ok = ok and b.node_count() == int(shapes[sid])
+			ok = ok and steps == b.route_length() - 1 and b.visited_count() == b.route_length()
+			ok = ok and battles + special == 8
+			ok = ok and String(b.shape_id) == String(sid) and String(b.template_id) == String(tid)
+			if not ok:
+				walks_ok = false
+				bad.append("%s/%s 步%d 战%d 特%d 形%s 模%s" % [
+					sid, tid, steps, battles, special, b.shape_id, b.template_id])
+	_check(walks_ok, "3 套骨架 × 5 套模板全部走到 BOSS（15 条路线 · 每条 8 个战斗位）%s"
+		% ("" if bad.is_empty() else "：" + ", ".join(bad)))
+	cfg.shape_id = ""
+	cfg.template_id = ""
 	_build_board(duel)
 
 
@@ -475,6 +660,7 @@ func _test_generation_seeds(duel: DuelController) -> void:
 	var ok := true
 	var shapes := {}
 	var specials := {}
+	var templates := {}
 	var theme_ok := true
 	var adjacent_ok := true
 	var elite_ok := true
@@ -488,6 +674,7 @@ func _test_generation_seeds(duel: DuelController) -> void:
 		var b = duel.board
 		var sid := String(b.shape_id)
 		shapes[sid] = true
+		templates[String(b.template_id)] = true
 		var bosses := 0
 		var special := 0
 		for n in b.nodes:
@@ -497,7 +684,7 @@ func _test_generation_seeds(duel: DuelController) -> void:
 			elif t in ["treasure", "shrine", "armory"]:
 				specials[t] = true
 				special += 1
-		var want := 29 if sid == "long_tail" else 25
+		var want := int({"standard": 25, "long_tail": 29, "long_share": 26}.get(sid, -1))
 		if bosses != 4 or special != 1 or b.node_count() != want:
 			ok = false
 			bad_seed = i
@@ -525,8 +712,10 @@ func _test_generation_seeds(duel: DuelController) -> void:
 	_check(theme_ok, "500 个种子：四条尾路首战主题均与 BOSS 同元素")
 	_check(adjacent_ok, "500 个种子：共享段 / 中段相邻战斗不同元素")
 	_check(elite_ok, "500 个种子：同一路径两个精英不同元素")
-	_check(shapes.has("standard") and shapes.has("long_tail"),
-		"500 个种子两套骨架都出现（%s）" % str(shapes.keys()))
+	_check(shapes.has("standard") and shapes.has("long_tail") and shapes.has("long_share"),
+		"500 个种子三套骨架都出现（%s）" % str(shapes.keys()))
+	_check(templates.size() == GENERATOR.TEMPLATES.size(),
+		"500 个种子全部模板都出现（%s）" % str(templates.keys()))
 	_check(specials.has("treasure") and specials.has("shrine") and specials.has("armory"),
 		"500 个种子宝箱 / 神龛 / 武器藏库都出现（%s）" % str(specials.keys()))
 	_build_board(duel)
@@ -1222,6 +1411,20 @@ func _test_board_screen_ui(duel: DuelController) -> void:
 	_check(not scr._confirm_layer.visible and duel.hud.visible, "点击确认后进入战斗")
 	duel.game_state = DuelController.FlowState.PLAYING
 	duel.board.current_id = "n0"
+
+	# G4-03：武器格 tooltip 公开「替换影响」（攻击 / 命中差值，含熟练与铸式修正）
+	var other := ""
+	for p in duel.WEAPON_POOL:
+		if not duel.selected_loadout.has(String(p)):
+			other = String(p)
+			break
+	if other != "":
+		var imp: String = scr._equip_impact({"type": "weapon", "item_path": other})
+		_check(imp.find("替换") >= 0 and imp.find("攻") >= 0 and imp.find("命中") >= 0,
+			"武器格 tooltip 显示替换影响（%s）" % imp.replace("\n", " / "))
+	# 精英节点公开奖励方向（保底护符），不只说「进入战后成长」
+	var e_desc := String(_node(duel, "n4").get("desc", ""))
+	_check(e_desc.find("保底护符") >= 0, "精英节点公开奖励方向（保底护符）")
 
 
 # ---------------------------------------------------------------------------

@@ -1,0 +1,23 @@
+# Seek Dead · G4-01 分支价值模板预览（2026-11-08）
+# 采集时间：2026-11-08T09:14:19
+
+## standard（骨架 standard）
+  n1:normal  n2:weapon  n3:normal  n4:elite  n5:charm  n6:normal  n7:normal  n8:elite  n9:shop  n10:normal  n11:elite  n12:rest
+  战斗节点=15（含 4 BOSS）  商店=n9  休整=n12,n21,n22,n23,n24  武器格=n2  护符格=n5
+
+## mirror（骨架 standard）
+  n1:normal  n2:charm  n3:normal  n4:elite  n5:weapon  n6:normal  n7:normal  n8:elite  n9:rest  n10:normal  n11:elite  n12:shop
+  战斗节点=15（含 4 BOSS）  商店=n12  休整=n9,n21,n22,n23,n24  武器格=n5  护符格=n2
+
+## elite_first（骨架 standard）
+  n1:normal  n2:weapon  n3:normal  n4:elite  n5:charm  n6:normal  n7:elite  n8:normal  n9:shop  n10:elite  n11:normal  n12:rest
+  战斗节点=15（含 4 BOSS）  商店=n9  休整=n12,n21,n22,n23,n24  武器格=n2  护符格=n5
+
+## elite_upper（骨架 standard）
+  n1:normal  n2:weapon  n3:normal  n4:elite  n5:charm  n6:normal  n7:elite  n8:normal  n9:shop  n10:normal  n11:elite  n12:rest
+  战斗节点=15（含 4 BOSS）  商店=n9  休整=n12,n21,n22,n23,n24  武器格=n2  护符格=n5
+
+## elite_lower（骨架 standard）
+  n1:normal  n2:weapon  n3:normal  n4:elite  n5:charm  n6:normal  n7:normal  n8:elite  n9:shop  n10:elite  n11:normal  n12:rest
+  战斗节点=15（含 4 BOSS）  商店=n9  休整=n12,n21,n22,n23,n24  武器格=n2  护符格=n5
+

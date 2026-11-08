@@ -7,8 +7,9 @@ extends RefCounted
 # - 收藏基线在每局 _reset_run_state 时快照，只存在内存。
 # - 任一行返回空串表示该项没有可展示内容；展示顺序固定。
 
-const SHAPE_LABEL := {"standard": "标准", "long_tail": "长尾"}
-const TEMPLATE_LABEL := {"standard": "常规", "mirror": "镜像", "elite_first": "精英前置"}
+const SHAPE_LABEL := {"standard": "标准", "long_tail": "长尾", "long_share": "延展"}
+const TEMPLATE_LABEL := {"standard": "常规", "mirror": "镜像", "elite_first": "精英前置",
+	"elite_upper": "上路精英前置", "elite_lower": "下路精英前置"}
 const MAX_NAMES := 3
 
 var _ctrl

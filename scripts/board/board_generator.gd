@@ -4,21 +4,23 @@ extends RefCounted
 # BoardGenerator — ACT1 固定拓扑 + 房间/物品分配（M2 灰盒）
 # 规格：docs/棋盘探索_战后成长与局外生涯_制作执行方案.md §6、§7.1、§10.1
 #
-# 两套固定骨架（共享骨架 + 两段岔路 + 四个 BOSS 结局），每局随机抽一套：
-#   standard  25 节点 / 13 格 / 尾路 3 格（普通 → 休整 → BOSS）
-#   long_tail 29 节点 / 14 格 / 尾路 4 格（普通 → 休整 → 商店 → BOSS，BOSS 前花钱）
+# 三套固定骨架（共享骨架 + 两段岔路 + 四个 BOSS 结局），每局随机抽一套：
+#   standard   25 节点 / 13 格 / 尾路 3 格（普通 → 休整 → BOSS）
+#   long_tail  29 节点 / 14 格 / 尾路 4 格（普通 → 休整 → 商店 → BOSS，BOSS 前花钱）
+#   long_share 26 节点 / 14 格 / 共享段 8 格（额外商店）→ 中段/尾路整体后移 1 格
 #
-# 两条骨架的单局路径都是 8 场战斗（7 战 + BOSS），尾路第一格战斗、第二格保底营地：
+# 三套骨架的单局路径都是 8 场战斗（7 战 + BOSS），尾路第一格战斗、第二格保底营地：
 #   standard  ：起点 → 普通 → 武器 → 普通 → 精英 → 护符 → 普通 → 岔路 A
 #      上路：普通 → 精英 → 商店 ─ 岔路 B ─┬─ 普通 → 营地 → BOSS（结局 1）
 #                                         └─ 普通 → 营地 → BOSS（结局 2）
 #      下路：普通 → 精英 → 休整 ─ 岔路 B ─┬─ 普通 → 营地 → BOSS（结局 3）
 #                                         └─ 普通 → 营地 → BOSS（结局 4）
 #   long_tail ：骨架与中段同上；四条尾路统一为 普通 → 营地 → 商店 → BOSS。
+#   long_share：共享段在护符后多一格商店（n29），岔路 A / B 各后移 1 格，尾路仍 3 格。
 #
 # 一局只走一条尾路、只打一个 BOSS；另外三个 BOSS 留在图上未结算。
 # 4 个 ACT1 BOSS 每局随机分配到四条尾路，岔路提示里如实展示，保证选择有信息。
-# 两种骨架都保持「BOSS 前营地」；长尾多出的第四格是商店（只提供消费机会，不发奖励/不加战斗）。
+# 三套骨架都保持「BOSS 前营地」；多出的格只给商店（只提供消费机会，不发奖励/不加战斗）。
 #
 # G4 主题分布：尾路主题 = 该尾路 BOSS 元素，首战优先同元素；
 # 共享段/中段相邻战斗不同元素，同一条路径的两个精英不同元素（只选房，不改数值）。
@@ -95,12 +97,47 @@ const LONG_TOPOLOGY := [
 	["n20", "boss", 13, 4],
 ]
 
+# 延展共享段骨架（26 节点 / 14 格）：n29 是护符后的第二间商店，岔路 A/B 与尾路整体后移 1 格。
+# 尾路仍 3 格（普通 → 营地 → BOSS），单局仍是 8 战 / 4 BOSS / 1 武器 / 1 护符。
+const SHARE_TOPOLOGY := [
+	["n0", "start", 0, 2],
+	["n1", "normal", 1, 2],
+	["n2", "weapon", 2, 2],
+	["n3", "normal", 3, 2],
+	["n4", "elite", 4, 2],
+	["n5", "charm", 5, 2],
+	["n29", "shop", 6, 2],
+	["n6", "normal", 7, 2],
+	["n7", "normal", 8, 1],
+	["n8", "elite", 9, 1],
+	["n9", "shop", 10, 1],
+	["n10", "normal", 8, 3],
+	["n11", "elite", 9, 3],
+	["n12", "rest", 10, 3],
+	["n13", "normal", 11, 0],
+	["n21", "rest", 12, 0],
+	["n14", "boss", 13, 0],
+	["n15", "normal", 11, 1],
+	["n22", "rest", 12, 1],
+	["n16", "boss", 13, 1],
+	["n17", "normal", 11, 3],
+	["n23", "rest", 12, 3],
+	["n18", "boss", 13, 3],
+	["n19", "normal", 11, 4],
+	["n24", "rest", 12, 4],
+	["n20", "boss", 13, 4],
+]
+
 # G4-01 分支价值模板：不改变骨架 / 深度 / 边，只换节点类型分配。
 # 标准骨架满足：25 节点 / 13 格 / 8 战 / 4 BOSS / 商店与休整同深度互斥。
+# 5 套（计划要求 4–6）：精英可两侧都前置，也可只前置一侧，形成非对称风险取舍。
+# 只允许在「本就在 BATTLE_ORDER 里的战斗节点」之间换精英/普通，避免单局战斗数变化。
 const TEMPLATES := [
 	{"id": "standard", "overrides": {}},
 	{"id": "mirror", "overrides": {"n2": "charm", "n5": "weapon", "n9": "rest", "n12": "shop"}},
 	{"id": "elite_first", "overrides": {"n7": "elite", "n8": "normal", "n10": "elite", "n11": "normal"}},
+	{"id": "elite_upper", "overrides": {"n7": "elite", "n8": "normal"}},
+	{"id": "elite_lower", "overrides": {"n10": "elite", "n11": "normal"}},
 ]
 
 # 五条横向车道：尾路 0 / 尾路 1（与上路同排）/ 共享骨架 / 尾路 2（与下路同排）/ 尾路 3。
@@ -166,15 +203,46 @@ const LONG_EDGES := {
 	"n20": [],
 }
 
+const SHARE_EDGES := {
+	"n0": ["n1"],
+	"n1": ["n2"],
+	"n2": ["n3"],
+	"n3": ["n4"],
+	"n4": ["n5"],
+	"n5": ["n29"],
+	"n29": ["n6"],
+	"n6": ["n7", "n10"],
+	"n7": ["n8"],
+	"n8": ["n9"],
+	"n9": ["n13", "n15"],
+	"n10": ["n11"],
+	"n11": ["n12"],
+	"n12": ["n17", "n19"],
+	"n13": ["n21"],
+	"n21": ["n14"],
+	"n14": [],
+	"n15": ["n22"],
+	"n22": ["n16"],
+	"n16": [],
+	"n17": ["n23"],
+	"n23": ["n18"],
+	"n18": [],
+	"n19": ["n24"],
+	"n24": ["n20"],
+	"n20": [],
+}
+
 # G4-02 骨架随机：列宽按 480px 内排布（x = x0 + depth·dx，节点宽 node_w）。
 const SHAPES := [
 	{"id": "standard", "topology": TOPOLOGY, "edges": EDGES,
-		"x0": 6.0, "dx": 36.0, "node_w": 34.0, "boss_depth": 12},
+		"x0": 6.0, "dx": 36.0, "node_w": 34.0, "boss_depth": 12, "tail_battle_depth": 10},
 	{"id": "long_tail", "topology": LONG_TOPOLOGY, "edges": LONG_EDGES,
-		"x0": 4.0, "dx": 34.0, "node_w": 30.0, "boss_depth": 13},
+		"x0": 4.0, "dx": 34.0, "node_w": 30.0, "boss_depth": 13, "tail_battle_depth": 10},
+	{"id": "long_share", "topology": SHARE_TOPOLOGY, "edges": SHARE_EDGES,
+		"x0": 4.0, "dx": 34.0, "node_w": 30.0, "boss_depth": 13, "tail_battle_depth": 11},
 ]
 
-# 战斗节点按固定路径推进顺序（决定 battle_rooms 顺序）；ria 按深度查表。
+# 战斗节点按固定路径推进顺序（决定 battle_rooms 顺序）；ria 按本骨架的战斗深度顺序查表。
 const BATTLE_ORDER := [
 	"n1", "n3", "n4", "n6",
 	"n7", "n8", "n10", "n11",
@@ -182,9 +250,9 @@ const BATTLE_ORDER := [
 	"n14", "n16", "n18", "n20",
 ]
 
-# 战斗深度 → 幕内位置（ria）。所有路线同构，因此可统一按深度映射：
-# 1,3,4,6 共享段；7,8 中段；10 尾段（长尾骨架的尾路商店/ BOSS 不参与此表）。
-const COMBAT_DEPTHS := [1, 3, 4, 6, 7, 8, 10]
+# 战斗深度 → 幕内位置（ria）。每套骨架按自己的战斗深度排序编码 0..6，
+# 因此标准 / 长尾共享段不变，延展共享段骨架整体后移仍得到同一组 ria（不改难度曲线）。
+# 1,3,4,6 共享段；7,8 中段；10 尾段（长尾的尾路商店 / BOSS 不参与此表）。
 
 var _ctrl
 
@@ -195,7 +263,7 @@ func _init(ctrl) -> void:
 
 func generate(act: int, cfg) -> Dictionary:
 	var shape: Dictionary = _pick_shape(cfg)
-	var tpl: Dictionary = TEMPLATES[randi() % TEMPLATES.size()]
+	var tpl: Dictionary = _pick_template(cfg)
 	var overrides: Dictionary = tpl.get("overrides", {})
 	var topology: Array = shape["topology"]
 	var edges: Dictionary = shape["edges"]
@@ -214,7 +282,8 @@ func generate(act: int, cfg) -> Dictionary:
 		by_id[id] = n
 
 	# G4-04：每张棋盘 1 个特殊格（宝箱 / 神龛 / 武器藏库），替换一条尾路的普通战斗（节点总数不变）。
-	_assign_special(cfg, nodes)
+	_assign_special(cfg, nodes, shape)
+	var combat_depths: Array = _combat_depths(topology, overrides)
 
 	var pools := _room_pools(act)
 	var used_rooms := {}   # G4-02：同一张棋盘内战斗房不重复（含 BOSS）
@@ -237,7 +306,7 @@ func generate(act: int, cfg) -> Dictionary:
 			n["ria"] = int(cfg.boss_ria)
 			n["final"] = true
 		else:
-			n["ria"] = maxi(0, COMBAT_DEPTHS.find(depth))
+			n["ria"] = maxi(0, combat_depths.find(depth))
 		n["title"] = room.name
 		n["desc"] = _room_desc(room, type)
 		battle_rooms.append(room)
@@ -249,20 +318,21 @@ func generate(act: int, cfg) -> Dictionary:
 	_assign_charm(_node_of_type(by_id, "charm"))
 	by_id["n0"]["title"] = "起点"
 	by_id["n0"]["desc"] = NODE.hint("start")
-	# 所有商店 / 休整节点都写标题：长尾骨架一局有 5 个商店、5 个休整，
-	# 不能只给第一个写，否则尾路节点会回退成类型名。
+	# 所有商店 / 休整节点都写标题：长尾 / 延展共享段一局有多个商店与休整，
+	# 不能只给第一个写，否则后段节点会回退成类型名。
+	# 尾路营地按固定 id 判定（n21–n24），不能按深度阈值——延展共享段的中段休整会落到深度 10。
 	for n in nodes:
 		var t := String(n["type"])
 		if t == "shop":
 			n["title"] = "商店"
 			n["desc"] = NODE.hint("shop")
 		elif t == "rest":
-			if int(n["depth"]) < 10:
-				n["title"] = "休整"
-				n["desc"] = NODE.hint("rest")
-			else:
+			if String(n["id"]) in ["n21", "n22", "n23", "n24"]:
 				n["title"] = "营地"
 				n["desc"] = "恢复 25% 最大 HP · 可购买 1 件补给"
+			else:
+				n["title"] = "休整"
+				n["desc"] = NODE.hint("rest")
 	# 岔路提示：把下游两条尾路的 BOSS 写在岔路节点上（选择前可见）。
 	_set_fork_desc(by_id, "n6")
 	_set_fork_desc(by_id, "n9")
@@ -303,12 +373,40 @@ func _pick_shape(cfg) -> Dictionary:
 	return SHAPES[randi() % SHAPES.size()]
 
 
+# G4-01：模板随机（默认）；BoardConfig.template_id 非空时用于测试 / 调试 / 采集固定模板。
+func _pick_template(cfg) -> Dictionary:
+	var want := ""
+	if cfg != null and "template_id" in cfg:
+		want = String(cfg.template_id)
+	if want != "":
+		for t in TEMPLATES:
+			if String(t["id"]) == want:
+				return t
+	return TEMPLATES[randi() % TEMPLATES.size()]
+
+
 # 按类型找唯一节点（模板换位后不再依赖固定 id）
 func _node_of_type(by_id: Dictionary, type: String) -> Dictionary:
 	for id in by_id:
 		if String(by_id[id].get("type", "")) == type:
 			return by_id[id]
 	return {}
+
+
+# 本骨架的战斗深度（去重升序）：模板只在战斗节点之间换精英/普通，不改变这个集合。
+func _combat_depths(topology: Array, overrides: Dictionary) -> Array:
+	var depths: Array = []
+	for spec in topology:
+		var id := String(spec[0])
+		var type := String(spec[1])
+		if overrides.has(id):
+			type = String(overrides[id])
+		if type == "normal" or type == "elite":
+			var d := int(spec[2])
+			if not d in depths:
+				depths.append(d)
+	depths.sort()
+	return depths
 
 
 # ---------------------------------------------------------------------------
@@ -320,10 +418,11 @@ func _node_of_type(by_id: Dictionary, type: String) -> Dictionary:
 const SPECIALS := ["treasure", "shrine", "armory"]
 
 
-func _assign_special(cfg, nodes: Array) -> void:
+func _assign_special(cfg, nodes: Array, shape: Dictionary = {}) -> void:
+	var tail_depth: int = int(shape.get("tail_battle_depth", 10))
 	var tails: Array = []
 	for n in nodes:
-		if String(n["type"]) == "normal" and int(n["depth"]) == 10:
+		if String(n["type"]) == "normal" and int(n["depth"]) == tail_depth:
 			tails.append(n)
 	if tails.is_empty():
 		return
@@ -699,7 +798,13 @@ func _room_desc(r: RoomData, type: String) -> String:
 		var icon := String(r.gimmick_script.get_script_constant_map().get("ICON", ""))
 		if icon != "":
 			bits.append("机制 %s" % icon)
-	bits.append("胜利后进入战后成长" if type != "boss" else "专属战利品")
+	# G4-03：精英公开奖励方向（保底护符），BOSS 公开专属战利品；普通房只说明进入成长。
+	if type == "elite":
+		bits.append("胜利后进入战后成长 · 保底护符")
+	elif type == "boss":
+		bits.append("专属战利品")
+	else:
+		bits.append("胜利后进入战后成长")
 	return " · ".join(bits)
 
 

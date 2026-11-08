@@ -527,8 +527,36 @@ func _tooltip(n: Dictionary) -> String:
 	if n.is_empty():
 		return ""
 	var status := _node_status(n)
-	return "%s\n%s\n%s%s" % [NODE.display_title(n), NODE.display_desc(n),
-		NODE.hint(String(n["type"])), "\n" + status if status != "" else ""]
+	var impact := _equip_impact(n)
+	return "%s\n%s\n%s%s%s" % [NODE.display_title(n), NODE.display_desc(n),
+		NODE.hint(String(n["type"])), impact, "\n" + status if status != "" else ""]
+
+
+# G4-03：武器格公开「替换影响」——与当前已带武器逐把比较攻击 / 命中（含熟练与铸式修正）。
+# 只读计算，不改变任何状态；护符是效果型，不在节点层伪造量化差异。
+func _equip_impact(n: Dictionary) -> String:
+	if String(n.get("type", "")) != "weapon":
+		return ""
+	var path := String(n.get("item_path", ""))
+	if path == "" or controller == null:
+		return ""
+	var wd: WeaponData = load(path)
+	if wd == null:
+		return ""
+	var lines: Array[String] = []
+	for old in controller.selected_loadout:
+		var op := String(old)
+		if op == path:
+			continue
+		var owd: WeaponData = load(op)
+		var oname: String = String(owd.weapon_name) if owd != null else op.get_file().get_basename()
+		var dmg: int = int(controller.weapon_power(path)) - int(controller.weapon_power(op))
+		var hit: int = int(round((float(controller.weapon_hit(path)) - float(controller.weapon_hit(op))) * 100.0))
+		lines.append("替换 %s：攻%s / 命中%s%%" % [oname,
+			("+" if dmg >= 0 else "") + str(dmg), ("+" if hit >= 0 else "") + str(hit)])
+	if lines.is_empty():
+		return ""
+	return "\n" + "\n".join(lines)
 
 
 func _node_status(n: Dictionary) -> String:
