@@ -10,7 +10,8 @@ extends Node
 # ③ 四席猎手按不同 BOSS 数累计；同 ID 不重复计数；
 # ④ 同素/异素配装判定；破甲、状态伤害、格挡、精英路线、棋盘武器格、和解；
 # ⑤ 解锁跨局落盘（新 CareerSystem 从同一 meta 载入）；新解锁队列只取一次；
-# ⑥ 整备页生涯面板可构建并列出全部条目。
+# ⑥ 整备页生涯面板可构建并列出全部条目；
+# ⑦ G6-03 局末路线总结：路线 / 成长 / 新收藏 / 下一局建议与元进度屏集成。
 # 测试结束还原 meta（不污染玩家真实存档）。
 # ============================================================================
 
@@ -39,6 +40,7 @@ func _run() -> void:
 	_test_board_marks(duel)
 	_test_peaceful(duel)
 	_test_directed_unlock(duel)
+	_test_run_summary(duel)
 	_test_persistence(duel)
 	_test_panel(duel)
 
@@ -279,6 +281,68 @@ func _test_directed_unlock(duel: DuelController) -> void:
 	_check(_owned_has(duel, ui_pick), "界面选择写入拥有池")
 	_check(not ms.title_label.text.contains("生涯解锁"), "解锁后回到原元进度结算")
 	_check(ms.meta_grid.get_child_count() == 1, "原元进度仍显示铁砧点卡")
+
+
+func _test_run_summary(duel: DuelController) -> void:
+	_reset_career(duel)
+	_enter_boss(duel)
+	var rs = preload("res://scripts/systems/run_summary.gd").new(duel)
+
+	# 收藏快照：基线只有匕首，本局新增火焰剑。
+	duel.meta["owned_weapons"] = ["res://resources/weapon_templates/dagger.tres"]
+	duel.meta["owned_charms"] = []
+	duel.meta["owned_consumables"] = []
+	rs.snapshot()
+	duel.meta["owned_weapons"].append("res://resources/weapon_templates/fire_sword.tres")
+	_check(rs.collection_line().contains("火焰剑"), "局末总结列出本局新增武器")
+	_check(rs.collection_line().contains("新收藏："), "局末总结带新收藏前缀")
+
+	# 成长：等级 + 熟练 + R 等级。
+	duel.growth.level = 3
+	duel.mastery.mastery.clear()
+	duel.mastery.mastery["res://resources/weapon_templates/dagger.tres"] = 4
+	var gl: String = rs.growth_line()
+	_check(gl.contains("Lv.3"), "局末总结显示本局等级")
+	_check(gl.contains("匕首") and gl.contains("R2"), "局末总结显示熟练与 R 等级")
+
+	# 棋盘路线：骨架/模板 + 已走节点分类计数。
+	var old_mode: bool = duel.node_mode
+	var old_shape = duel.board_config.shape_id
+	duel.node_mode = true
+	duel.board_config.shape_id = "standard"
+	_check(duel.board.generate(duel.board_config), "测试棋盘可生成")
+	var marked := {"normal": false, "elite": false, "shop": false, "rest": false, "special": false}
+	for n in duel.board.nodes:
+		var t := String(n.get("type", ""))
+		if marked.has(t) and not bool(marked[t]):
+			duel.board.consumed[String(n["id"])] = true
+			marked[t] = true
+		elif t in ["weapon", "charm", "treasure", "shrine", "armory"] and not bool(marked["special"]):
+			duel.board.consumed[String(n["id"])] = true
+			marked["special"] = true
+	var rl: String = rs.route_line()
+	_check(rl.contains("棋盘") and rl.contains("标准"), "局末总结显示棋盘骨架")
+	_check(rl.contains("战斗1") and rl.contains("精英1") and rl.contains("特殊1"), "局末总结按节点类型计数")
+	duel.board.reset()
+	duel.node_mode = old_mode
+	duel.board_config.shape_id = old_shape
+
+	# 线性路线：房型计数 + 终局 BOSS。
+	var ll: String = rs.route_line()
+	_check(ll.contains("线性") and ll.contains("BOSS"), "线性模式给房型计数")
+
+	# 下一局建议：生涯目标 + 剩余解锁机会。
+	duel._career._unlock_charges = 1
+	_check(rs.next_line().contains("定向解锁"), "下一局建议提示剩余解锁机会")
+	duel._career._unlock_charges = 0
+
+	# 元进度屏集成：四行摘要都进入副标题。
+	duel.hud.meta_screen.show_choice()
+	var sub: String = duel.hud.meta_screen.sub_label.text
+	_check(sub.contains("路线：") and sub.contains("成长："), "局末屏展示路线与成长")
+	_check(sub.contains("新收藏：") and sub.contains("下一局建议："), "局末屏展示新收藏与建议")
+	_check(rs.lines().size() == 4, "局末总结固定四行")
+	duel.hud.meta_screen.hide_screen()
 
 
 func _test_persistence(duel: DuelController) -> void:

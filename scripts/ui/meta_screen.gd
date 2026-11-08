@@ -60,7 +60,7 @@ func _show_meta() -> void:
 	else:
 		title_label.text = "★ 一局结束 · 选择一项元进度"
 		sub_label.text = "以下选项持久生效，下一局起可用。"
-	# G6-01：局末给出生涯反馈与下一目标（不新增奖励，只做目标指引）。
+	# G6-01：局末给出生涯反馈；G6-03：路线 / 成长 / 新收藏 / 下一局建议（均为只读摘要）。
 	if controller._career != null:
 		var new_ids: Array = controller._career.take_new_unlocks()
 		if not new_ids.is_empty():
@@ -68,9 +68,9 @@ func _show_meta() -> void:
 			for id in new_ids:
 				names.append(controller._career.title_of(String(id)))
 			sub_label.text += "\n🏅 本局生涯：" + "、".join(names)
-		var goal: String = controller._career.next_goal_hint()
-		if goal != "":
-			sub_label.text += "\n下一目标：" + goal
+	if controller._run_summary != null:
+		for line in controller._run_summary.lines():
+			sub_label.text += "\n" + String(line)
 	for opt in choices:
 		meta_grid.add_child(hud._make_meta_card(opt))
 	visible = true

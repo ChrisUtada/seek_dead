@@ -13,7 +13,8 @@ static var _syn_defs: Array = []
 # 敌方注入（乱权废铁 / 深渊侵蚀）来自房间状态，默认 0/false；传入后按 build_strips 同式计入带长。
 static func compose(weapons: Array, skills: Array, charms: Array, elements = [],
 		run_bonus: Dictionary = {}, deprived_level: int = 0,
-		chaos: bool = false, boss_trash: int = 0, tune: Dictionary = {}) -> Dictionary:
+		chaos: bool = false, boss_trash: int = 0, tune: Dictionary = {},
+		styles: Dictionary = {}) -> Dictionary:
 	var agg := {}
 	var miss_w := 0.0
 	var wsum := 0.0
@@ -22,6 +23,8 @@ static func compose(weapons: Array, skills: Array, charms: Array, elements = [],
 		var wd: WeaponData = load(wpath)
 		if wd == null or wd.symbols == null:
 			continue
+		var st: Dictionary = styles.get(wpath, {})
+		var st_weights: Dictionary = st.get("weights", {})
 		var rank: int = ReelSystem.RARITY_RANK.get(String(_rarity(wd)), 0)
 		var it_total := 0.0
 		for sw in wd.symbols:
@@ -30,12 +33,13 @@ static func compose(weapons: Array, skills: Array, charms: Array, elements = [],
 			var sym: SymbolData = sw.symbol
 			var elem: String = ReelSystem.effective_element(sym, wd.element, wd.reel_element)
 			var tune_w: float = float(tune.get(wpath, {}).get(sym.resource_path, 0))   # M2-02 调律：按武器+主符号加权（与 build_pool 同口径）
-			var w: float = _add(agg, sym, elem, float(sw.weight) + tune_w, float(run_bonus.get(sym.resource_path, 0.0)) + float(syn_w.get(sym.resource_path, 0.0)), rank, wd.weapon_name)
+			var style_w: float = float(st_weights.get(sym.resource_path, 0.0))          # G6-05 铸式符号权重
+			var w: float = _add(agg, sym, elem, float(sw.weight) + tune_w + style_w, float(run_bonus.get(sym.resource_path, 0.0)) + float(syn_w.get(sym.resource_path, 0.0)), rank, wd.weapon_name)
 			if w > 0.0:
 				it_total += w
 		if it_total > 0.0:
 			wsum += it_total
-			var hit: float = clamp(wd.hit_rate, 0.0, 1.0)
+			var hit: float = clampf(float(wd.hit_rate) + float(st.get("hit", 0.0)), 0.0, 1.0)
 			if hit < 1.0:
 				miss_w += it_total * (1.0 - hit)
 	if deprived_level < 2:
@@ -111,9 +115,10 @@ static func active_synergies(weapons: Array, charms: Array) -> Array:
 # 两套配装的差异文案（替换弹层用）：格数增减 + 共鸣得失；无变化返回空数组。
 static func diff_lines(weapons_a: Array, weapons_b: Array, skills: Array, charms: Array,
 		elements = [], run_bonus: Dictionary = {}, deprived_level: int = 0,
-		chaos: bool = false, boss_trash: int = 0, tune_a: Dictionary = {}, tune_b: Dictionary = {}) -> Array:
-	var a := compose(weapons_a, skills, charms, elements, run_bonus, deprived_level, chaos, boss_trash, tune_a)
-	var b := compose(weapons_b, skills, charms, elements, run_bonus, deprived_level, chaos, boss_trash, tune_b)
+		chaos: bool = false, boss_trash: int = 0, tune_a: Dictionary = {}, tune_b: Dictionary = {},
+		styles_a: Dictionary = {}, styles_b: Dictionary = {}) -> Array:
+	var a := compose(weapons_a, skills, charms, elements, run_bonus, deprived_level, chaos, boss_trash, tune_a, styles_a)
+	var b := compose(weapons_b, skills, charms, elements, run_bonus, deprived_level, chaos, boss_trash, tune_b, styles_b)
 	var out := []
 	var ca := _cells_by_key(a["rows"])
 	var cb := _cells_by_key(b["rows"])
@@ -123,6 +128,11 @@ static func diff_lines(weapons_a: Array, weapons_b: Array, skills: Array, charms
 		var d: int = int(cb.get(key, 0)) - int(ca.get(key, 0))
 		if d != 0:
 			out.append("%s %s%d格（%d→%d）" % [names[key], "+" if d > 0 else "", d, int(ca.get(key, 0)), int(cb.get(key, 0))])
+	# MISS 格不在符号 rows 里：命中率变化（铸式 / 调律权重）同样属于真实带子变化。
+	var ma: int = int(a["miss_cells"])
+	var mb: int = int(b["miss_cells"])
+	if ma != mb:
+		out.append("MISS %s%d格（%d→%d）" % ["+" if mb > ma else "", mb - ma, ma, mb])
 	var sa := _syn_names(a["synergies"])
 	var sb := _syn_names(b["synergies"])
 	for s in sb:

@@ -119,6 +119,10 @@ func refresh_gear_icons() -> void:
 			var imp: String = mastery.imprint_text(path)
 			if imp != "":
 				tip += "\n" + imp
+		if controller()._forge_styles != null:
+			var style_txt: String = controller()._forge_styles.describe(path)
+			if style_txt != "":
+				tip += "\n" + style_txt
 		var art: Texture2D = wd.get("art") if wd != null else null
 		var icon_tex: Texture2D = wd.get("icon_tex") if wd != null else null
 		var card: Control

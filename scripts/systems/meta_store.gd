@@ -23,7 +23,7 @@ func _init(ctrl: DuelController, m: Dictionary) -> void:
 # ---------------------------------------------------------------------------
 
 func load_meta() -> void:
-	var defaults := {"anvil_points": 0, "owned_weapons": [], "owned_charms": [], "owned_consumables": [], "anvil_pity": 0, "collection_milestones": [], "item_sources": {}, "career": {"unlocked": [], "bosses": []}}
+	var defaults := {"anvil_points": 0, "owned_weapons": [], "owned_charms": [], "owned_consumables": [], "anvil_pity": 0, "collection_milestones": [], "item_sources": {}, "career": {"unlocked": [], "bosses": []}, "codex": {}, "forge_styles": {}}
 	var lb = SaveSystem.load_lobby_data()
 	if lb.has(_ctrl.ANVIL_SAVE_KEY) and lb[_ctrl.ANVIL_SAVE_KEY] is Dictionary:
 		var parsed: Dictionary = lb[_ctrl.ANVIL_SAVE_KEY]

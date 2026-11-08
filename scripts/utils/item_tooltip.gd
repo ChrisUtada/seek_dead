@@ -88,13 +88,18 @@ static func _weapon(w: WeaponData) -> String:
 		icon = w.symbols[0].symbol.label   # 武器暂无 icon 字段，首符号 label 占位（图标位预留）
 	var name := w.weapon_name if w.weapon_name != "" else w.resource_path.get_file().get_basename()
 	var lines: Array[String] = ["%s [color=%s]%s[/color] · [color=%s]%s[/color]" % [icon, _c(Palette.TITLE), name, _c(_rarity_color(w.rarity)), w.rarity]]
-	# G0-02：显示锋铸后的真实基础攻击（共享 .tres 只在运行时状态里加，不写回资源）
+	# G0-02：显示锋铸后的真实基础攻击；G6-05：铸式后的攻击/命中同样取运行时状态。
 	var st := _weapon_state(w.resource_path)
 	var forge := int(st.get("forge", 0))
-	var atk_txt := "攻%d" % (int(w.base_power) + forge)
+	var atk_val: int = int(st.get("power", int(w.base_power) + forge))
+	var hit_val: float = float(st.get("hit", w.hit_rate))
+	var atk_txt := "攻%d" % atk_val
 	if forge > 0:
 		atk_txt += "（锋铸+%d）" % forge
-	lines.append("%s · %s · 命中%d%%" % [ElementCounter.label(w.element), atk_txt, int(w.hit_rate * 100.0)])
+	lines.append("%s · %s · 命中%d%%" % [ElementCounter.label(w.element), atk_txt, int(round(hit_val * 100.0))])
+	var style := String(st.get("style", ""))
+	if style != "":
+		lines.append("[color=%s]%s[/color]" % [_c(Palette.ACCENT_GOLD), style])
 	var prog := String(st.get("progress", ""))
 	if prog != "":
 		lines.append(prog)

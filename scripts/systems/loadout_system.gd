@@ -130,6 +130,9 @@ func owned_arr(kind: String) -> Array:
 func confirm_loadout() -> void:
 	if _ctrl.selected_loadout.size() < _ctrl.LOADOUT_MIN:
 		return
+	# G6-04：整备确认时把武器/护符按「带进一局」计一次图鉴使用。
+	if _ctrl._codex != null:
+		_ctrl._codex.note_equipped(_ctrl.selected_loadout, _ctrl.selected_charms)
 	# 消耗品：整备确认时把去重勾选清单实例化为腰带格（每格独立 charges；允许后续商店重复购买同类）
 	# 泛型数组属性跨对象只能 clear()/assign()，不能整体赋 []（运行时类型检查会拒绝）
 	_ctrl.consumable_slots.clear()

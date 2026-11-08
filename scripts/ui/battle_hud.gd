@@ -566,7 +566,7 @@ func _make_item_card(data: Resource, path: String, kind: String) -> Dictionary:
 			if wd != null and wd.element != "":
 				elem_txt = ElementCounter.label(wd.element)
 			var crit_total: int = int((controller.BALANCE.crit_chance + (wd.crit_chance if wd != null else 0.0)) * 100)
-			var hit_pct: int = int((wd.hit_rate if wd != null else 1.0) * 100)
+			var hit_pct: int = int(controller.weapon_hit(path) * 100)
 			var mech_name := "—"
 			if wd != null and wd.symbols != null:
 				for sw in wd.symbols:
@@ -575,9 +575,9 @@ func _make_item_card(data: Resource, path: String, kind: String) -> Dictionary:
 					if sw.symbol.kind == "special" or sw.symbol.kind == "status":
 						mech_name = sw.symbol.name
 						break
-			# G0-02：攻击显示锋铸后的真实基础攻击（与 _build_pool 结算同一份加成）
+			# G0-02：攻击显示锋铸后的真实基础攻击；G6-05：再显示铸式后的命中/攻击。
 			var forge_n: int = controller.mastery.forge_bonus(path) if controller.mastery != null else 0
-			var atk_txt := "攻%d" % (int(wd.base_power) + forge_n)
+			var atk_txt := "攻%d" % controller.weapon_power(path)
 			if forge_n > 0:
 				atk_txt += "（+%d）" % forge_n
 			line2 = "%s · %s · 命中%d%% · 暴%d%% · %s" % [atk_txt, elem_txt, hit_pct, crit_total, mech_name]
@@ -1458,12 +1458,13 @@ func request_weapon_replace(title: String, new_weapon_info: String, on_chosen: C
 			var hypo: Array = controller.selected_loadout.duplicate()
 			hypo.erase(path)
 			hypo.append(new_path)
+			var styles: Dictionary = controller._forge_styles.preview_map() if controller._forge_styles != null else {}
 			var lines := ReelPreview.diff_lines(
 				controller.selected_loadout, hypo,
 				controller.selected_skills, controller.selected_charms,
 				controller.room_element_mult, controller._reward_system.run_symbol_bonus,
 				controller.deprived_level, controller.pending_chaos, int(controller.boss_trash),
-				controller.mastery.tune_map(), controller.mastery.tune_map())
+				controller.mastery.tune_map(), controller.mastery.tune_map(), styles, styles)
 			var dl = _label("", TypeScale.TINY)
 			dl.text = "替换后：无变化" if lines.is_empty() else "替换后：" + "；".join(lines)
 			dl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -1630,8 +1631,7 @@ func _armory_weapon_line(p: String) -> String:
 	var wd: WeaponData = load(p)
 	if wd == null:
 		return controller._shop_name(p, "weapon")
-	var forge: int = controller.mastery.forge_bonus(p) if controller.mastery != null else 0
-	var atk := int(wd.base_power) + forge
+	var atk: int = int(controller.weapon_power(p))
 	var owned := "（已持有 · 折算金币）" if controller.selected_loadout.has(p) else ""
 	return "%s · 攻%d · %s%s" % [wd.weapon_name, atk, ElementCounter.label(wd.element), owned]
 

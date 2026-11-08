@@ -12,6 +12,14 @@ var _spinning := false
 var _stop_all := false
 const _SPIN_AUTO_STOP := 4.0   # 手动按停超时兜底（防软锁：不点也会停）
 
+# G6-04 图鉴详情覆盖层（运行时构建，不改 anvil_screen.tscn）
+var _codex_btn: Button = null
+var _codex_panel: PanelContainer = null
+var _codex_list: VBoxContainer = null
+var _codex_detail: VBoxContainer = null
+var _codex_kind := "weapon"
+var _codex_sel := ""
+
 @onready var bg = $Bg
 @onready var title_label = $Margin/Content/TitleLabel
 @onready var points_label = $Margin/Content/PointsLabel
@@ -31,6 +39,7 @@ func configure(ctrl, h: BattleHud) -> void:
 	roll_btn.text = "🔨 摇动 (%d点)" % controller.BALANCE.anvil_roll_cost
 	roll_btn.connect("pressed", _on_roll_pressed)
 	back_btn.connect("pressed", hud.anvil_back_requested.emit)
+	_build_codex_ui()
 
 func show_screen() -> void:
 	refresh()
@@ -145,6 +154,188 @@ func _make_cell(d: Dictionary) -> Control:
 		if p != "":
 			cell.tooltip_text = ItemTooltip.for_resource(load(p))   # 物品悬停信息窗（ItemTooltip 生成器）
 	return cell
+
+# ---------------------------------------------------------------------------
+# G6-04 图鉴详情：分类列表 + 详情（路线 / 机制 / 来源 / 使用 / 熟练 / 铭印）。
+# 数据全部来自 CodexSystem（只读资源 + meta.codex / item_sources），本屏不改存档。
+# ---------------------------------------------------------------------------
+func _build_codex_ui() -> void:
+	if _codex_panel != null:
+		return
+	_codex_btn = Button.new()
+	_codex_btn.text = "📖 图鉴"
+	_codex_btn.custom_minimum_size = Vector2(78, 40)
+	_codex_btn.add_theme_font_size_override("font_size", 9)
+	_codex_btn.tooltip_text = "查看装备路线 / 机制 / 真实来源 / 使用次数 / 最高熟练 / 铭印"
+	_codex_btn.pressed.connect(_toggle_codex)
+	var bot: Node = roll_btn.get_parent()
+	bot.add_child(_codex_btn)
+	bot.move_child(_codex_btn, 0)
+
+	_codex_panel = PanelContainer.new()
+	_codex_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_codex_panel.z_index = 60
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Palette.PANEL_BG
+	sb.border_color = Palette.ACCENT_GOLD
+	sb.set_border_width_all(1)
+	_codex_panel.add_theme_stylebox_override("panel", sb)
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 8)
+	margin.add_theme_constant_override("margin_top", 6)
+	margin.add_theme_constant_override("margin_right", 8)
+	margin.add_theme_constant_override("margin_bottom", 6)
+	var root := VBoxContainer.new()
+	root.add_theme_constant_override("separation", 4)
+	var head := HBoxContainer.new()
+	var title := Label.new()
+	title.text = "📖 图鉴"
+	title.add_theme_font_size_override("font_size", 11)
+	title.add_theme_color_override("font_color", Palette.ACCENT_GOLD)
+	head.add_child(title)
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(spacer)
+	var close := Button.new()
+	close.text = "✕ 关闭"
+	close.add_theme_font_size_override("font_size", 9)
+	close.pressed.connect(func() -> void: _codex_panel.visible = false)
+	head.add_child(close)
+	root.add_child(head)
+
+	var tabs := HBoxContainer.new()
+	tabs.add_theme_constant_override("separation", 4)
+	var tab_labels := {"weapon": "武器", "passive": "护符", "active": "消耗品"}
+	for k in ["weapon", "passive", "active"]:
+		var b := Button.new()
+		b.text = String(tab_labels[k])
+		b.add_theme_font_size_override("font_size", 9)
+		b.pressed.connect(_set_codex_kind.bind(String(k)))
+		tabs.add_child(b)
+	root.add_child(tabs)
+
+	var body := HBoxContainer.new()
+	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	body.add_theme_constant_override("separation", 6)
+	var left_scroll := ScrollContainer.new()
+	left_scroll.custom_minimum_size = Vector2(168, 0)
+	left_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_codex_list = VBoxContainer.new()
+	_codex_list.add_theme_constant_override("separation", 1)
+	_codex_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	left_scroll.add_child(_codex_list)
+	body.add_child(left_scroll)
+	var right_scroll := ScrollContainer.new()
+	right_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	right_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_codex_detail = VBoxContainer.new()
+	_codex_detail.add_theme_constant_override("separation", 2)
+	_codex_detail.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	right_scroll.add_child(_codex_detail)
+	body.add_child(right_scroll)
+	root.add_child(body)
+
+	margin.add_child(root)
+	_codex_panel.add_child(margin)
+	add_child(_codex_panel)
+	_codex_panel.visible = false
+
+
+func _toggle_codex() -> void:
+	if _codex_panel == null:
+		return
+	_codex_panel.visible = not _codex_panel.visible
+	if _codex_panel.visible:
+		_refresh_codex()
+
+
+func _set_codex_kind(kind: String) -> void:
+	_codex_kind = kind
+	_codex_sel = ""
+	_refresh_codex()
+
+
+func _refresh_codex() -> void:
+	if _codex_list == null or controller._codex == null:
+		return
+	for c in _codex_list.get_children():
+		_codex_list.remove_child(c)
+		c.queue_free()
+	var entries: Array = controller._codex.list_entries(_codex_kind)
+	var owned := 0
+	for e in entries:
+		if bool(e.get("owned", false)):
+			owned += 1
+	var head := Label.new()
+	head.text = "已拥有 %d / %d" % [owned, entries.size()]
+	head.add_theme_font_size_override("font_size", 9)
+	head.add_theme_color_override("font_color", Palette.ACCENT_GOLD)
+	_codex_list.add_child(head)
+	for e in entries:
+		var row := Button.new()
+		var mark := "✓" if bool(e.get("owned", false)) else "·"
+		var txt := "%s %s" % [mark, String(e.get("name", ""))]
+		if int(e.get("rank", 0)) > 0:
+			txt += " R%d" % int(e["rank"])
+		row.text = txt
+		row.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		row.add_theme_font_size_override("font_size", 9)
+		row.custom_minimum_size = Vector2(158, 0)
+		row.disabled = not bool(e.get("owned", false))
+		row.tooltip_text = "使用 %d 次" % int(e.get("uses", 0))
+		row.pressed.connect(_select_codex.bind(String(e.get("path", ""))))
+		_codex_list.add_child(row)
+	# 默认选中第一件已拥有，打开即有内容。
+	if _codex_sel == "":
+		for e in entries:
+			if bool(e.get("owned", false)):
+				_codex_sel = String(e.get("path", ""))
+				break
+	_refresh_codex_detail()
+
+
+func _select_codex(path: String) -> void:
+	if path == "":
+		return
+	_codex_sel = path
+	_refresh_codex_detail()
+
+
+func _refresh_codex_detail() -> void:
+	if _codex_detail == null:
+		return
+	for c in _codex_detail.get_children():
+		_codex_detail.remove_child(c)
+		c.queue_free()
+	if _codex_sel == "":
+		var empty := Label.new()
+		empty.text = "选择左侧装备查看详情"
+		empty.add_theme_font_size_override("font_size", 9)
+		empty.add_theme_color_override("font_color", Palette.MUTED)
+		_codex_detail.add_child(empty)
+		return
+	var title := Label.new()
+	title.text = _codex_name(_codex_sel)
+	title.add_theme_font_size_override("font_size", 10)
+	title.add_theme_color_override("font_color", Palette.ACCENT_GOLD)
+	_codex_detail.add_child(title)
+	for line in controller._codex.detail_lines(_codex_sel):
+		var l := Label.new()
+		l.text = String(line)
+		l.add_theme_font_size_override("font_size", 9)
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		l.custom_minimum_size = Vector2(258, 0)
+		_codex_detail.add_child(l)
+
+
+func _codex_name(path: String) -> String:
+	var res = load(path)
+	if res is WeaponData:
+		return String(res.weapon_name)
+	if res is ItemData:
+		return String(res.item_name)
+	return path.get_file().get_basename()
+
 
 func hide_screen() -> void:
 	visible = false

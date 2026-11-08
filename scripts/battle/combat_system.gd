@@ -82,7 +82,7 @@ func contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> voi
 			acc["heal"] += sym.base * [1.0, 2.5, 5.0][mini(raw - 1, 2)]
 			if raw >= 3:
 				acc["heal_triple"] = true
-		"status":  acc["status_stacks"][sym.status_type] = acc["status_stacks"].get(sym.status_type, 0) + mult * crit_mult_val + (int(_ctrl.charm_dot_amp) if _ctrl.deprived_level < 1 else 0)   # 毒腺囊（信物）：挂 DoT 层数 +N
+		"status":  acc["status_stacks"][sym.status_type] = acc["status_stacks"].get(sym.status_type, 0) + mult * crit_mult_val + (int(_ctrl.charm_dot_amp) if _ctrl.deprived_level < 1 else 0) + int(_ctrl._item_status_bonus.get(sym.resource_path, 0))   # 毒腺囊（信物）挂 DoT 层数 +N；G6-05 霜鸣每次多 +1 层（只作用于该符号）
 		"special":
 			# special（火焰法杖等专属高伤符号，2026-08-07 起与 damage 同源；三连同样必暴/连锁/破甲机制）
 			var sv = flat * mult * em
@@ -235,16 +235,21 @@ func evaluate() -> void:
 		if _ctrl.current_gimmick != null:
 			_ctrl.current_gimmick.on_special_triple(_ctrl)   # BOSS 自定义钩子（三连感知，语义泛化）
 
-	# 破甲：带破甲机制（triple_pierce）的三连 → 清甲；克制三连 → 核爆（清甲 + 20% max HP）
+	# 破甲：带破甲机制（triple_pierce）的连携 → 清甲；克制三连 → 核爆（清甲 + 20% max HP）
+	# G6-05 破城铸式把该武器的破甲所需连数降到 2（其它来源仍为 3）。
 	var triple_pierce: bool = false
+	var pierce_need := 3
 	for key in counts:
-		if _ctrl._item_pierce_map.has(counts[key][0].resource_path) and counts[key][2] >= 3:
+		var sp: String = counts[key][0].resource_path
+		var need := int(_ctrl._item_pierce_at.get(sp, 3))
+		if _ctrl._item_pierce_map.has(sp) and counts[key][2] >= need:
 			triple_pierce = true
+			pierce_need = mini(pierce_need, need)
 			break
 	if acc.get("counter_triple", false):
 		on_counter("element")
 	elif triple_pierce:
-		on_counter("special")
+		on_counter("special", pierce_need)
 
 	# —— 阶段 2：攻击结算（先破甲后掉血；穿透符号直接扣 HP）——
 	# Phase C：迅捷(damage_mult) 对本回合总伤害做乘算（F-0 聚合层，含护符乘区）
@@ -442,9 +447,10 @@ func apply_enemy_damage(amount: float, pierce: bool) -> float:
 # 反制即爆发（Plan C）：
 # · "special" = 通用破甲：清空敌人护甲，开启「伤害直击 HP」的爆发窗口（所有敌人通用破绽）。
 # · "element" = 进阶核爆：克制元素三连，除破甲外再追加一次直接打血（穿透）的核爆伤害。
-func on_counter(kind: String) -> void:
+func on_counter(kind: String, pierce_need: int = 3) -> void:
 	if _ctrl.enemy_armor > 0:
-		_ctrl.hud._log("💥 %s破甲！护甲清零（%d）" % ["special 三连" if kind == "special" else "克制元素三连", int(_ctrl.enemy_armor)])
+		var tag := "special %s破甲" % ("三连" if pierce_need >= 3 else "二连")
+		_ctrl.hud._log("💥 %s！护甲清零（%d）" % [tag if kind == "special" else "克制元素三连", int(_ctrl.enemy_armor)])
 		_ctrl.enemy_armor = 0
 		if _ctrl._career != null:
 			_ctrl._career.note_armor_break()   # G6-01：仅记录 BOSS 房破甲（不改结算）

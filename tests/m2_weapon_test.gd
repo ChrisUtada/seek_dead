@@ -36,6 +36,9 @@ func _run() -> void:
 		get_tree().quit(2)
 		return
 	var meta_backup: Dictionary = duel.meta.duplicate(true)
+	# G6-05：铸式是跨局选择；本套断言标准形态的数值/文案，先在本进程内清空（结束还原 meta）。
+	duel.meta["forge_styles"] = {}
+	duel._forge_styles = preload("res://scripts/systems/forge_style_system.gd").new(duel)
 
 	_test_mastery_gain(duel)
 	_test_catchup(duel)

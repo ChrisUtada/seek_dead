@@ -112,7 +112,7 @@ func imprint_choices(path: String) -> Array:
 		return out
 	var im: Dictionary = _imprint_of(path)
 	if int(im["forge"]) < IMPRINT_MAX:
-		var base: int = int(wd.base_power) + forge_bonus(path)
+		var base: int = _ctrl.weapon_power(path) if _ctrl._forge_styles != null else int(wd.base_power) + forge_bonus(path)
 		var pct: int = int(round(100.0 * float(FORGE_STEP) / maxf(1.0, float(base))))
 		out.append({"id": "forge", "family": wd.weapon_name, "name": "锋铸", "hint": "更高攻",
 			"desc": "基础攻击 %d → %d（+%d%%）" % [base, base + FORGE_STEP, pct]})
@@ -144,7 +144,9 @@ func tune_target(path: String) -> Dictionary:
 		var lines: Array = ReelPreview.diff_lines(_ctrl.selected_loadout, _ctrl.selected_loadout,
 			_ctrl.selected_skills, _ctrl.selected_charms, _ctrl.room_element_mult,
 			_ctrl._reward_system.run_symbol_bonus, _ctrl.deprived_level, _ctrl.pending_chaos,
-			int(_ctrl.boss_trash), before_tune, after_tune)
+			int(_ctrl.boss_trash), before_tune, after_tune,
+			_ctrl._forge_styles.preview_map() if _ctrl._forge_styles != null else {},
+			_ctrl._forge_styles.preview_map() if _ctrl._forge_styles != null else {})
 		if not lines.is_empty():
 			return {"sym": s[1], "lines": lines}
 	return {}

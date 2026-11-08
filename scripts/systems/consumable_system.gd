@@ -37,6 +37,8 @@ func use(uid: String) -> void:
 	if data == null:
 		return
 	slot["charges"] -= 1
+	if _ctrl._codex != null:
+		_ctrl._codex.note_used(String(slot["path"]))   # G6-04：图鉴使用次数
 	match data.effect:
 		"purify":  use_purify(data)
 		"cleanse": use_cleanse(data)

@@ -37,6 +37,10 @@ func _run() -> void:
 	add_child(_duel)
 	await _wait_frames(8)
 	await _wait(0.4)
+	# G6-03：用固定棋盘骨架与特殊格，让局末总结展示真实棋盘路线（只影响本进程）。
+	_duel.board_config.enabled = true
+	_duel.board_config.shape_id = "standard"
+	_duel.board_config.special_id = "treasure"
 	# 先确认开战以构建本局 ROOMS（否则 room_index 无 BOSS 可指），再回整备截图。
 	_duel._confirm_loadout()
 	await _wait(0.4)
@@ -122,6 +126,11 @@ func _dump() -> void:
 		_duel._career.unlocked_count(), _duel._career.total_count(), _duel._career.boss_count()])
 	_lines.append("下一目标：%s" % _duel._career.next_goal_hint())
 	_lines.append("定向解锁机会：%d" % _duel._career.unlock_charges())
+	_lines.append("")
+	_lines.append("## 局末路线总结（G6-03）")
+	if _duel._run_summary != null:
+		for line in _duel._run_summary.lines():
+			_lines.append(String(line))
 	_lines.append("")
 	for e in _duel._career.entries():
 		_lines.append("[%s] %s — %s" % [

@@ -36,6 +36,11 @@ var _career_btn: Button = null
 var _career_panel: PanelContainer = null
 var _career_box: VBoxContainer = null
 
+# ---- G6-05 横向铸式面板（整备选择，写入 anvil_meta.forge_styles）----
+var _forge_btn: Button = null
+var _forge_panel: PanelContainer = null
+var _forge_box: VBoxContainer = null
+
 # ---- 静态节点（来自 scenes/ui/loadout_scene.tscn，可在编辑器调整）----
 @onready var chars_root: Node2D = $CharsRoot
 @onready var ring: Line2D = $CharsRoot/Ring
@@ -113,6 +118,7 @@ func configure(ctrl, h: BattleHud) -> void:
 	_build_preview_ui()
 	_build_board_toggle()
 	_build_career_ui()
+	_build_forge_ui()
 	_update_loadout_anvil()
 
 
@@ -130,6 +136,8 @@ func show_screen() -> void:
 		_preview_panel.visible = false
 	if _career_panel != null:
 		_career_panel.visible = false
+	if _forge_panel != null:
+		_forge_panel.visible = false
 	process_mode = Node.PROCESS_MODE_INHERIT
 	_update_loadout_anvil()
 	_fill_sub(selected_char)
@@ -465,13 +473,174 @@ func _refresh_career() -> void:
 	_career_box.add_child(goal)
 
 
+# ---------------------------------------------------------------------------
+# G6-05 横向铸式：底栏入口 + 4 把代表武器（标准 / 变体二选一）。
+# 选择写入 anvil_meta.forge_styles；变体需该武器历史熟练 R2。
+# 每行展示优势、代价、属性差异与真实转轮带格数差异（ReelPreview，同 build_strips 口径）。
+# ---------------------------------------------------------------------------
+func _build_forge_ui() -> void:
+	if _forge_panel != null:
+		return
+	_forge_btn = Button.new()
+	_forge_btn.text = "🔨"
+	_forge_btn.add_theme_font_size_override("font_size", 9)
+	_forge_btn.tooltip_text = "横向铸式：4 把代表武器，有得有失（历史熟练 R2 解锁变体）"
+	_forge_btn.pressed.connect(_toggle_forge)
+	var bar: Node = confirm_btn.get_parent()
+	bar.add_child(_forge_btn)
+	bar.move_child(_forge_btn, 1)
+
+	_forge_panel = PanelContainer.new()
+	_forge_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_forge_panel.z_index = 31
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Palette.PANEL_BG
+	sb.border_color = Palette.ACCENT_GOLD
+	sb.set_border_width_all(1)
+	_forge_panel.add_theme_stylebox_override("panel", sb)
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 8)
+	margin.add_theme_constant_override("margin_top", 6)
+	margin.add_theme_constant_override("margin_right", 8)
+	margin.add_theme_constant_override("margin_bottom", 6)
+	var root := VBoxContainer.new()
+	root.add_theme_constant_override("separation", 4)
+	var head := HBoxContainer.new()
+	var title := Label.new()
+	title.text = "🔨 铸式 · 横向变体"
+	title.add_theme_font_size_override("font_size", 11)
+	title.add_theme_color_override("font_color", Palette.ACCENT_GOLD)
+	head.add_child(title)
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(spacer)
+	var close := Button.new()
+	close.text = "✕ 关闭"
+	close.add_theme_font_size_override("font_size", 9)
+	close.pressed.connect(func() -> void: _forge_panel.visible = false)
+	head.add_child(close)
+	root.add_child(head)
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_forge_box = VBoxContainer.new()
+	_forge_box.add_theme_constant_override("separation", 3)
+	_forge_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(_forge_box)
+	root.add_child(scroll)
+	margin.add_child(root)
+	_forge_panel.add_child(margin)
+	ui_root.add_child(_forge_panel)
+	_forge_panel.visible = false
+
+
+func _toggle_forge() -> void:
+	if _forge_panel == null:
+		return
+	_forge_panel.visible = not _forge_panel.visible
+	if _forge_panel.visible:
+		_refresh_forge()
+
+
+func _refresh_forge() -> void:
+	if _forge_box == null or controller == null or controller._forge_styles == null:
+		return
+	for c in _forge_box.get_children():
+		_forge_box.remove_child(c)
+		c.queue_free()
+	_forge_box.add_child(_forge_label("变体在整备时选择，最多一个；历史熟练达 R2 解锁。标准形态始终可选，铸式有得有失。", 9, Palette.MUTED))
+	var fs = controller._forge_styles
+	for path in fs.supported_paths():
+		_add_forge_section(fs, String(path))
+
+
+func _add_forge_section(fs, path: String) -> void:
+	var wd: WeaponData = load(path)
+	var wname: String = wd.weapon_name if wd != null else path.get_file().get_basename()
+	var d: Dictionary = fs.style_def(path)
+	if d.is_empty():
+		return
+	var sid: String = String(fs.selected_id(path))
+	var cur := "标准" if sid == "" else String(d["name"])
+	var owned: bool = controller.meta.get("owned_weapons", []).has(path)
+	var head_txt := "%s · 当前：%s" % [wname, cur]
+	if not owned:
+		head_txt += "（未拥有）"
+	_forge_box.add_child(_forge_label(head_txt, 10, Palette.ACCENT_GOLD, false))
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
+	var std_btn := Button.new()
+	std_btn.text = "标准形态"
+	std_btn.add_theme_font_size_override("font_size", 9)
+	std_btn.disabled = (sid == "" or not owned)
+	std_btn.pressed.connect(_on_forge_choose.bind(path, ""))
+	row.add_child(std_btn)
+	var style_btn := Button.new()
+	var unlock_suffix := "" if fs.unlocked(path) else "（R2）"
+	style_btn.text = String(d["name"]) + unlock_suffix
+	style_btn.add_theme_font_size_override("font_size", 9)
+	style_btn.disabled = not owned
+	style_btn.pressed.connect(_on_forge_choose.bind(path, String(d["id"])))
+	row.add_child(style_btn)
+	var lock: Label = _forge_label(String(fs.unlock_text(path)) if owned else "未拥有：装备后可选择", 9,
+		Palette.MUTED if fs.unlocked(path) else Palette.ENEMY, false)
+	row.add_child(lock)
+	_forge_box.add_child(row)
+
+	_forge_box.add_child(_forge_label("优势：" + String(d["adv"]), 9, Palette.ACCENT_GOLD))
+	_forge_box.add_child(_forge_label("代价：" + String(d["cost"]), 9, Palette.ENEMY))
+	_forge_box.add_child(_forge_label(fs.stat_line(path), 9, Color(0.9, 0.9, 0.86)))
+	var strip_txt := ""
+	if not controller.selected_loadout.has(path):
+		strip_txt = "带子：装备该武器后显示真实格数差异"
+	else:
+		var diff: Array = fs.strip_diff(path)
+		strip_txt = "带子：格数无变化（变化已计入命中与权重）" if diff.is_empty() else "带子：" + "；".join(diff)
+	_forge_box.add_child(_forge_label(strip_txt, 9, Palette.MUTED_DIM))
+	var sep := HSeparator.new()
+	_forge_box.add_child(sep)
+
+
+func _on_forge_choose(path: String, id: String) -> void:
+	if controller == null or controller._forge_styles == null:
+		return
+	var fs = controller._forge_styles
+	if id != "" and not fs.unlocked(path):
+		hud._log("🔨 %s：%s" % [String(fs.style_def(path).get("name", "")), fs.unlock_text(path)])
+		_refresh_forge()
+		return
+	if not fs.set_style(path, id):
+		return
+	var wd: WeaponData = load(path)
+	var wname: String = wd.weapon_name if wd != null else path.get_file().get_basename()
+	var label := "标准形态" if id == "" else String(fs.style_def(path).get("name", ""))
+	hud._log("🔨 铸式：%s → %s" % [wname, label])
+	_fill_sub(selected_char)
+	_refresh_forge()
+	if _preview_panel != null and _preview_panel.visible:
+		_refresh_preview()
+
+
+func _forge_label(text: String, size: int, color: Color, wrap := true) -> Label:
+	var l := Label.new()
+	l.text = text
+	l.add_theme_font_size_override("font_size", size)
+	l.add_theme_color_override("font_color", color)
+	if wrap:
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		l.custom_minimum_size = Vector2(418, 0)
+	return l
+
+
 func _refresh_preview() -> void:
 	for c in _preview_box.get_children():
 		_preview_box.remove_child(c)
 		c.queue_free()
 	var comp: Dictionary = ReelPreview.compose(
 		controller.selected_loadout, controller.selected_skills, controller.selected_charms,
-		[], controller._reward_system.run_symbol_bonus, controller.deprived_level, false, 0, controller.mastery.tune_map())
+		[], controller._reward_system.run_symbol_bonus, controller.deprived_level, false, 0, controller.mastery.tune_map(),
+		controller._forge_styles.preview_map() if controller._forge_styles != null else {})
 	var head = hud._label("🎰 转轮带预览", TypeScale.MEDIUM)
 	head.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_preview_box.add_child(head)

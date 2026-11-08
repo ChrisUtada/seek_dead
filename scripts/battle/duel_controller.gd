@@ -124,6 +124,8 @@ var _weapon_power_map: Dictionary = {}   # 符号 resource_path -> 该物品有�
 var _item_crit_map: Dictionary = {}   # 符号 resource_path -> 该物品三连暴击倍率(crit_mult)，由 _build_pool 构建（方案 A）。普通/special 三连均按此倍率结算，共享符号取最高 crit_mult。
 var _item_crit_chance_map: Dictionary = {}   # 符号 resource_path -> 该物品非三连暴击率加成(crit_chance)，_build_pool 构建（2026-08-07：高 base 低暴击代价轴）
 var _item_pierce_map: Dictionary = {}   # 符号 resource_path -> 该物品是否带破甲机制(triple_pierce)，_build_pool 构建（2026-08-07：破甲=武器/技能机制，非三连通用）
+var _item_pierce_at: Dictionary = {}    # G6-05：符号 resource_path -> 破甲所需连数（默认 3；破城铸式为 2）
+var _item_status_bonus: Dictionary = {} # G6-05：符号 resource_path -> 每次结算额外状态层数（霜鸣铸式；默认 0）
 var pool_items: Array[Dictionary] = []              # 装备自洽：每件装备一段 [ {name, hit, syms:[[SymbolData, weight, element]]} ]，_build_strips 据此生成各自的转轮子带
 
 var _busy: bool = false                 # 旋转序列进行中，防重入
@@ -242,11 +244,14 @@ var reward_is_boss: bool = false       # 当前奖励是否来自 Boss 房（选
 
 # M5 元进度（铁砧锻造 + 存档持久化，跨局保留）
 # 已退役键（元进度三选一退化为仅 anvil）：weapon_upgrades / weapon_base_bonus / weapon_hit_bonus / charm_upgrades / interference_resist / first_clears
-var meta: Dictionary = {"anvil_points": 0, "owned_weapons": [], "owned_charms": [], "owned_consumables": [], "anvil_pity": 0, "collection_milestones": [], "item_sources": {}, "career": {"unlocked": [], "bosses": []}}
+var meta: Dictionary = {"anvil_points": 0, "owned_weapons": [], "owned_charms": [], "owned_consumables": [], "anvil_pity": 0, "collection_milestones": [], "item_sources": {}, "career": {"unlocked": [], "bosses": []}, "codex": {}, "forge_styles": {}}
 var _anvil_system                     # 铁砧锻造子系统 AnvilSystem（步骤2抽出；_ready 实例化并注入 self）
 const ANVIL_SAVE_KEY := "anvil_meta"   # 铁砧元进度存于 SaveSystem.lobby_data
 var _meta_store                        # 存档子系统 MetaStore（步骤1抽出；_ready 实例化并注入 self + meta）
 var _career                            # G6-01：生涯成就子系统 CareerSystem（只读局内事件，跨局记录）
+var _run_summary                      # G6-03：局末路线总结（只读本局状态，不写存档）
+var _codex                            # G6-04：图鉴详情与跨局使用统计
+var _forge_styles                     # G6-05：4 把武器的横向铸式（整备选择，有得有失）
 var _shop_system                       # 商店子系统 ShopSystem（步骤3抽出；_ready 实例化并注入 self）
 var _camp_offers: Array = []           # G2-01：营地补给货架（休整后一次性购买）
 var _reward_system                     # 奖励子系统 RewardSystem（步骤4抽出；_ready 实例化并注入 self）
@@ -348,6 +353,9 @@ func _ready() -> void:
 	_meta_store.sanitize_owned()   # 自愈：清洗历史上误写入 owned_* 的非本类路径（如技能）
 	_meta_store.seed_default_owned()
 	_career = preload("res://scripts/systems/career_system.gd").new(self)   # G6-01：生涯成就（只读事件，不改数值）
+	_run_summary = preload("res://scripts/systems/run_summary.gd").new(self)   # G6-03：局末路线总结
+	_codex = preload("res://scripts/systems/codex_system.gd").new(self)   # G6-04：图鉴详情（只读资源 + meta 统计）
+	_forge_styles = preload("res://scripts/systems/forge_style_system.gd").new(self)   # G6-05：铸式（整备选择，运行时修正）
 	hud.build_all()   # P2：HUD 自构建全部界面（build_all 内部调各 _build_* + _show_loadout_screen），controller 不再戳私有构建方法
 	# P2：HUD 意图信号 → controller 处理器（HUD 不再调用 controller 私有方法）
 	hud.spin_requested.connect(_on_spin_button_pressed)
@@ -434,17 +442,38 @@ func _apply_reward_weapon_replace(p: String, old_path: String) -> void:
 
 
 # 新武器摘要（商店替换 / 奖励替换 / BOSS 战利品共用）
-# G0-02：攻击显示锋铸后的真实值；R 等级 / 熟练 / 铭印与转轮带使用同一份运行时状态。
+# G0-02：攻击显示锋铸后的真实值；G6-05：再叠加铸式修正。R 等级 / 熟练 / 铭印与转轮带使用同一份运行时状态。
+func weapon_power(path: String) -> int:
+	var res: WeaponData = load(path)
+	if res == null:
+		return 0
+	var forge: int = mastery.forge_bonus(path) if mastery != null else 0
+	var style: int = _forge_styles.power_bonus(path) if _forge_styles != null else 0
+	return int(res.base_power) + forge + style
+
+
+func weapon_hit(path: String) -> float:
+	var res: WeaponData = load(path)
+	if res == null:
+		return 1.0
+	var delta: float = _forge_styles.hit_delta(path) if _forge_styles != null else 0.0
+	return clampf(float(res.hit_rate) + delta, 0.0, 1.0)
+
+
 func _weapon_info(p: String) -> String:
 	var res: WeaponData = load(p)
 	if res == null:
 		return "新武器：%s" % _shop_name(p, "weapon")
 	var forge: int = mastery.forge_bonus(p) if mastery != null else 0
-	var atk_txt := "攻%d" % (int(res.base_power) + forge)
+	var atk_txt := "攻%d" % weapon_power(p)
 	if forge > 0:
 		atk_txt += "（锋铸+%d）" % forge
 	var out := "新武器：%s · %s · %s · 命中%d%% · %s" % [
-		res.weapon_name, res.rarity, atk_txt, int(res.hit_rate * 100), ElementCounter.label(res.element)]
+		res.weapon_name, res.rarity, atk_txt, int(weapon_hit(p) * 100), ElementCounter.label(res.element)]
+	if _forge_styles != null:
+		var style_txt: String = String(_forge_styles.describe(p))
+		if style_txt != "":
+			out += "\n" + style_txt
 	if mastery != null:
 		for extra in [mastery.progress_text(p), mastery.imprint_text(p)]:
 			if String(extra) != "":
@@ -475,7 +504,7 @@ func _weapon_off_info(p: String) -> String:
 	var res: WeaponData = load(p)
 	if res == null:
 		return "卸下：%s（熟练/铭印保留）" % _shop_name(p, "weapon")
-	var atk: int = int(res.base_power) + (mastery.forge_bonus(p) if mastery != null else 0)
+	var atk: int = weapon_power(p)
 	var out := "卸下：%s · 攻%d · %s" % [res.weapon_name, atk, ElementCounter.label(res.element)]
 	if mastery != null:
 		for extra in [mastery.progress_text(p), mastery.imprint_text(p)]:
@@ -493,6 +522,9 @@ func _weapon_tooltip_state(path: String) -> Dictionary:
 		"forge": mastery.forge_bonus(path),
 		"progress": mastery.progress_text(path),
 		"imprint": mastery.imprint_text(path),
+		"power": weapon_power(path),
+		"hit": weapon_hit(path),
+		"style": _forge_styles.describe(path) if _forge_styles != null else "",
 	}
 
 
@@ -655,6 +687,8 @@ func _reset_run_state() -> void:
 	_loadout_system.reset_run_state()
 	if _career != null:
 		_career.reset_run()   # G6-01：每局临时成就标记清零（跨局解锁仍在 meta）
+	if _run_summary != null:
+		_run_summary.snapshot()   # G6-03：记录本局拥有池基线（局末算新收藏）
 	if _telemetry != null:
 		_telemetry.reset()   # M1-06：新一局遥测清零
 	if readability != null:

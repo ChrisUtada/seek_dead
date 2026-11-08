@@ -66,6 +66,8 @@ func _award_victory(is_boss: bool) -> void:
 	_ctrl._reward_system.apply_room_drops()   # T8：普通房 12% 掉消耗品 / 精英房保底护符（BOSS 走自身战利品）
 	if is_boss and _ctrl._career != null:
 		_ctrl._career.on_boss_cleared()        # G6-01：BOSS 通关 → 一次性生涯成就（只记录，不发属性）
+	if is_boss and _ctrl._codex != null:
+		_ctrl._codex.record_run(_ctrl.mastery)   # G6-04：记录本局武器最高熟练与铭印组合
 
 
 func _after_victory() -> void:

@@ -437,13 +437,20 @@ func build_pool(loadout: Array) -> void:
 	_ctrl.loadout_names.clear()
 	_ctrl._weapon_power_map = {}
 	_ctrl._item_crit_map = {}
+	_ctrl._item_crit_chance_map = {}
+	_ctrl._item_pierce_map = {}
+	_ctrl._item_pierce_at = {}
+	_ctrl._item_status_bonus = {}
 	# 强度轴映射：符号 resource_path -> 该物品有效攻击力(base_power)；共享符号取最高者（最强来源）。
 	for path in loadout:
 		var wd: WeaponData = load(path)
 		if wd == null or wd.symbols == null:
 			_ctrl.hud._log("⚠ 武器加载失败（符号未入池）: %s" % path)
 			continue
-		var eff: float = wd.base_power + _ctrl.mastery.forge_bonus(path)   # M2-02：锋铸加基础攻击
+		var style_power: int = _ctrl._forge_styles.power_bonus(path) if _ctrl._forge_styles != null else 0
+		var style_pierce: int = _ctrl._forge_styles.pierce_at(path) if _ctrl._forge_styles != null else 3
+		var style_status: int = _ctrl._forge_styles.status_bonus(path) if _ctrl._forge_styles != null else 0
+		var eff: float = wd.base_power + _ctrl.mastery.forge_bonus(path) + style_power   # M2-02 锋铸 + G6-05 铸式
 		for sw in wd.symbols:
 			if sw == null or sw.symbol == null:
 				continue
@@ -453,6 +460,9 @@ func build_pool(loadout: Array) -> void:
 			_ctrl._item_crit_chance_map[sp] = max(_ctrl._item_crit_chance_map.get(sp, 0.0), wd.crit_chance)
 			if wd.triple_pierce:
 				_ctrl._item_pierce_map[sp] = true
+				_ctrl._item_pierce_at[sp] = mini(int(_ctrl._item_pierce_at.get(sp, 3)), style_pierce)
+			if style_status > 0:
+				_ctrl._item_status_bonus[sp] = maxi(int(_ctrl._item_status_bonus.get(sp, 0)), style_status)
 	# 无名虚空（deprived_level≥2）：技能符号也不进强度聚合
 	if _ctrl.deprived_level < 2:
 		for path in _ctrl.selected_skills:
@@ -477,8 +487,9 @@ func build_pool(loadout: Array) -> void:
 		for sw in wd.symbols:
 			if sw == null or sw.symbol == null:
 				continue
-			syms.append([sw.symbol, float(sw.weight) + _ctrl.mastery.tune_bonus(path, sw.symbol.resource_path), eff_element(sw.symbol, wd)])   # M2-02：调律加主符号权重
-		var hit: float = clamp(wd.hit_rate, 0.0, 1.0)
+			var style_w: float = _ctrl._forge_styles.weight_delta(path, sw.symbol.resource_path) if _ctrl._forge_styles != null else 0.0
+			syms.append([sw.symbol, float(sw.weight) + _ctrl.mastery.tune_bonus(path, sw.symbol.resource_path) + style_w, eff_element(sw.symbol, wd)])   # M2-02 调律 + G6-05 铸式权重
+		var hit: float = clampf(wd.hit_rate + (_ctrl._forge_styles.hit_delta(path) if _ctrl._forge_styles != null else 0.0), 0.0, 1.0)
 		var wd_rar: Variant = wd.get("rarity")
 		_ctrl.pool_items.append({"name": wd.weapon_name, "hit": hit, "syms": syms, "rarity": String(wd_rar if wd_rar != null else "common")})
 	# 技能段（deprived_level≥2 剥离不入池）
