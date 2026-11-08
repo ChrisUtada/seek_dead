@@ -240,9 +240,12 @@ func full_reset() -> void:
 			_ctrl.ROOMS.append(r)
 		_ctrl._build_pool(_ctrl.selected_loadout)
 		_ctrl.invalidate_state()
+		if _ctrl._journal != null:
+			_ctrl._journal.start_run()   # G5 工具：本局自动记录开始（棋盘信息此时已生成）
 		_ctrl.hud.show_board_screen(_ctrl.board)
-		Debug.log("◆ 棋盘模式：ACT%d / %d 节点 / %d 场战斗（单局路径 %d 格 / 骨架 %s / 模板 %s）" % [
-			int(_ctrl.board_config.act), _ctrl.board.node_count(), _ctrl.ROOMS.size(),
+		var plan: String = "ACT1" if _ctrl.run_act_count() <= 1 else "ACT1-%d" % _ctrl.run_act_count()
+		Debug.log("◆ 棋盘模式：%s / %d 节点 / %d 场战斗（单局路径 %d 格 / 骨架 %s / 模板 %s）" % [
+			plan, _ctrl.board.node_count(), _ctrl.ROOMS.size(),
 			_ctrl.board.route_length(), _ctrl.board.shape_id, _ctrl.board.template_id])
 		return
 	if _ctrl.node_mode:
@@ -252,6 +255,8 @@ func full_reset() -> void:
 		_ctrl.hud.hide_board_screen(false)   # 上局若在棋盘，开线性局前收起棋盘视图
 	_ctrl.ROOMS = _ctrl._build_run()
 	_ctrl._build_pool(_ctrl.selected_loadout)
+	if _ctrl._journal != null:
+		_ctrl._journal.start_run()   # G5 工具：本局自动记录开始（线性模式）
 	_ctrl._start_room(0)
 	_ctrl.invalidate_state()
 
@@ -275,6 +280,8 @@ func reset_run_state() -> void:
 	_ctrl._reward_system.reset_run()   # 本局加成层清零（符号灌注 / 伤害加成 / 下一房护盾）
 	_ctrl.growth.reset_run()           # M2-01：历练经验 / 等级 / 技艺清零
 	_ctrl.mastery.reset_run()          # M2-02：武器熟练 / 铭印 / 欠选清零
+	if _ctrl._trim != null:
+		_ctrl._trim.reset_run()        # G7-B B1：本局精简状态与每幕次数清零
 	_ctrl._post_battle.reset_run()     # M1：战后成长队列清零
 	# M2：棋盘状态清零（node_mode 由 full_reset 按开关重新决定）
 	_ctrl.node_mode = false
@@ -284,4 +291,5 @@ func reset_run_state() -> void:
 	_ctrl.run_final = false
 	if _ctrl.board != null:
 		_ctrl.board.reset()
+		_ctrl.board.clear_summaries()   # G7-A S4：幕快照属于本局，新局清空
 	_ctrl.invalidate_state()

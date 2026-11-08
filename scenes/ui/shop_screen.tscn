@@ -93,50 +93,56 @@ horizontal_alignment = 1
 text = "卖出"
 theme_override_font_sizes/font_size = 10
 
-[node name="SellBox" type="HBoxContainer" parent="Margin/Content/SellPanel"]
+[node name="SellScroll" type="ScrollContainer" parent="Margin/Content/SellPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="SellBox" type="HBoxContainer" parent="Margin/Content/SellPanel/SellScroll"]
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_vertical = 0
 theme_override_constants/separation = 4
 
-[node name="WeaponList" type="VBoxContainer" parent="Margin/Content/SellPanel/SellBox"]
+[node name="WeaponList" type="VBoxContainer" parent="Margin/Content/SellPanel/SellScroll/SellBox"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 2
 
-[node name="WeaponTitle" type="Label" parent="Margin/Content/SellPanel/SellBox/WeaponList"]
+[node name="WeaponTitle" type="Label" parent="Margin/Content/SellPanel/SellScroll/SellBox/WeaponList"]
 layout_mode = 2
 horizontal_alignment = 1
 text = "武器"
 theme_override_font_sizes/font_size = 9
 
-[node name="SkillList" type="VBoxContainer" parent="Margin/Content/SellPanel/SellBox"]
+[node name="SkillList" type="VBoxContainer" parent="Margin/Content/SellPanel/SellScroll/SellBox"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 2
 
-[node name="SkillTitle" type="Label" parent="Margin/Content/SellPanel/SellBox/SkillList"]
+[node name="SkillTitle" type="Label" parent="Margin/Content/SellPanel/SellScroll/SellBox/SkillList"]
 layout_mode = 2
 horizontal_alignment = 1
 text = "技能"
 theme_override_font_sizes/font_size = 9
 
-[node name="CharmList" type="VBoxContainer" parent="Margin/Content/SellPanel/SellBox"]
+[node name="CharmList" type="VBoxContainer" parent="Margin/Content/SellPanel/SellScroll/SellBox"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 2
 
-[node name="CharmTitle" type="Label" parent="Margin/Content/SellPanel/SellBox/CharmList"]
+[node name="CharmTitle" type="Label" parent="Margin/Content/SellPanel/SellScroll/SellBox/CharmList"]
 layout_mode = 2
 horizontal_alignment = 1
 text = "护符"
 theme_override_font_sizes/font_size = 9
 
-[node name="ConsumList" type="VBoxContainer" parent="Margin/Content/SellPanel/SellBox"]
+[node name="ConsumList" type="VBoxContainer" parent="Margin/Content/SellPanel/SellScroll/SellBox"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 2
 
-[node name="ConsumTitle" type="Label" parent="Margin/Content/SellPanel/SellBox/ConsumList"]
+[node name="ConsumTitle" type="Label" parent="Margin/Content/SellPanel/SellScroll/SellBox/ConsumList"]
 layout_mode = 2
 horizontal_alignment = 1
 text = "消耗品"

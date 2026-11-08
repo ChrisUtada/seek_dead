@@ -6,7 +6,7 @@ extends Node
 #
 # 覆盖（不依赖真人操作）：
 #   1. 预设表数值 / 切换 / F8 循环顺序
-#   2. 默认目标 = 主武器权重最高的 damage 符号（fire_slash）
+#   2. 默认目标 + 重击防御/低血恢复/熔铸间隙的动态目标与理由
 #   3. 视觉中心索引 center_index（_frac < 0.5 / >= 0.5）
 #   4. next_symbols 预览序列
 #   5. 视觉落点无缓冲：立即落到视觉中心
@@ -96,6 +96,36 @@ func _run() -> void:
 	# 2. 默认目标
 	_check(rd.target_symbol_path == TARGET_PATH, "默认目标为 fire_slash（实际 %s）" % rd.target_symbol_path)
 	_check(rd.target_label() == "火斩", "目标显示名（实际 %s）" % rd.target_label())
+
+	# 2b. 动态回合目标：重击防御 / 低血恢复 / 熔铸间隙输出，均只改建议与展示。
+	rs.reel_strips[0].append([load("res://resources/symbols/block.tres"), "none"])
+	duel.enemy_intent = {"data": null, "type": "heavy", "value": 46}
+	rd.update_turn_target()
+	_check(rd.target_symbol_path == "res://resources/symbols/block.tres", "重击回合优先推荐护盾")
+	_check(hud.p1_target_label.text.contains("重击·先护盾"), "目标行显示重击防御理由")
+	_check(hud.p1_target_label.tooltip_text.contains("46"), "悬浮说明包含真实重击数值")
+	rs.reel_strips[1].append([load("res://resources/symbols/heal.tres"), "none"])
+	duel.enemy_intent = {}
+	duel.player_hp = 30
+	rd.update_turn_target()
+	_check(rd.target_symbol_path == "res://resources/symbols/heal.tres", "低血且非重击回合推荐恢复")
+	duel.player_hp = duel.player_hp_max
+	var rust = load("res://scripts/battle/gimmicks/rust_armor_gimmick.gd").new()
+	rust.on_room_start(duel)
+	rust._interval = 3   # 冰封铁瓮实际参数；不依赖当前普通房的默认回落值
+	for i in 3:
+		rust.on_turn_begin(duel)
+	_check(not rust.recovery_window(duel), "叠甲/冻结回合不是恢复窗口")
+	rust.on_turn_begin(duel)
+	_check(rust.recovery_window(duel), "叠甲后的下一回合进入熔铸间隙")
+	duel.current_gimmick = rust
+	rd.update_turn_target()
+	_check(rd.target_reason == "间隙·输出", "熔铸间隙推荐集中输出")
+	_check(hud.p1_target_label.text.contains("间隙·输出"), "目标行显示输出窗口")
+	duel.current_gimmick = null
+	duel.enemy_intent = {}
+	duel.player_frost = 0
+	rd.update_turn_target()
 
 	# 3. 视觉中心索引
 	var sv = hud.cell_spin_views[0][0]

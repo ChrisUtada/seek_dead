@@ -94,9 +94,6 @@ var ELITE_REWARD_POOL: Array[RewardData] = []
 
 # 房间序列（肉鸽逐房推进）。
 # 2026-08-09 拆分：意图/状态定义与查询（INTENT_DEFS / STATUS_DEFS / _roll_intent / _status_*）迁至 StatusSystem。
-
-func _intent_def(id: String) -> IntentData:
-	return status_system.intent_def(id)
 # Phase D 资源化：改为扫描 resources/rooms/*.tres（RoomData），见 _ready 内填充。
 var ALL_ROOMS: Array[RoomData] = []          # 全量房间池（扫描收集；_build_run 从中按幕抽 24 房 + 真·最终槽）
 var ROOMS: Array[RoomData] = []             # 当前一局的房序列（每局 _full_reset 时由 _build_run 重建：24 房 + 真·最终）
@@ -252,6 +249,7 @@ var _career                            # G6-01：生涯成就子系统 CareerSys
 var _run_summary                      # G6-03：局末路线总结（只读本局状态，不写存档）
 var _codex                            # G6-04：图鉴详情与跨局使用统计
 var _forge_styles                     # G6-05：4 把武器的横向铸式（整备选择，有得有失）
+var _trim                             # G7-B B1：主动减带（符号精简 / 技能卸除，每幕 1 次，只改本局状态）
 var _shop_system                       # 商店子系统 ShopSystem（步骤3抽出；_ready 实例化并注入 self）
 var _camp_offers: Array = []           # G2-01：营地补给货架（休整后一次性购买）
 var _reward_system                     # 奖励子系统 RewardSystem（步骤4抽出；_ready 实例化并注入 self）
@@ -262,6 +260,7 @@ var growth                             # M2-01 角色历练与技艺（经验/�
 var mastery                            # M2-02 武器熟练 R1–R4 与铭印（锋铸/调律；每局清零）
 var readability                        # P1 目押可读性原型（速度/预览/视觉落点/缓冲/反馈；不改数值）
 var _telemetry                         # M1-06 局内遥测（内存计数，不落盘/不吃随机；每局清零）
+var _journal                           # G5 工具：自动记录客观项（只读；导出包/--runlog 才落盘）
 
 # 仅 1 行 3 格。特殊符号需 3 同才触发；普通符号单颗即结算，出现 n 次 ×n。
 var PAYLINES = [
@@ -349,6 +348,7 @@ func _ready() -> void:
 	room_flow = preload("res://scripts/battle/room_flow.gd").new(self)
 	turn_flow = preload("res://scripts/battle/turn_flow.gd").new(self)
 	_telemetry = preload("res://scripts/systems/run_telemetry.gd").new()
+	_journal = preload("res://scripts/systems/run_journal.gd").new(self)   # G5 工具：局内自动记录
 	_meta_store.load_meta()
 	_meta_store.sanitize_owned()   # 自愈：清洗历史上误写入 owned_* 的非本类路径（如技能）
 	_meta_store.seed_default_owned()
@@ -356,6 +356,7 @@ func _ready() -> void:
 	_run_summary = preload("res://scripts/systems/run_summary.gd").new(self)   # G6-03：局末路线总结
 	_codex = preload("res://scripts/systems/codex_system.gd").new(self)   # G6-04：图鉴详情（只读资源 + meta 统计）
 	_forge_styles = preload("res://scripts/systems/forge_style_system.gd").new(self)   # G6-05：铸式（整备选择，运行时修正）
+	_trim = preload("res://scripts/systems/strip_trim_system.gd").new(self)   # G7-B B1：主动减带（每幕 1 次）
 	hud.build_all()   # P2：HUD 自构建全部界面（build_all 内部调各 _build_* + _show_loadout_screen），controller 不再戳私有构建方法
 	# P2：HUD 意图信号 → controller 处理器（HUD 不再调用 controller 私有方法）
 	hud.spin_requested.connect(_on_spin_button_pressed)
@@ -436,6 +437,8 @@ func _apply_reward_weapon_replace(p: String, old_path: String) -> void:
 	_reward_system.remember_weapon(p)
 	if _telemetry != null:
 		_telemetry.on_weapon_swap()
+	if _journal != null:
+		_journal.note_weapon_change(String(old_name), _shop_name(p, "weapon"), "奖励")
 	_build_pool(selected_loadout)
 	hud._log("奖励替换：%s → %s" % [old_name, _shop_name(p, "weapon")])
 	room_flow.finish_room(Callable(), reward_is_boss)
@@ -457,6 +460,8 @@ func weapon_hit(path: String) -> float:
 	if res == null:
 		return 1.0
 	var delta: float = _forge_styles.hit_delta(path) if _forge_styles != null else 0.0
+	if mastery != null:
+		delta += mastery.hit_bonus(path)   # G7-A S2 校准：并入同一命中通道，不加新乘区
 	return clampf(float(res.hit_rate) + delta, 0.0, 1.0)
 
 
@@ -569,6 +574,8 @@ func _apply_boss_weapon_replace(p: String, old_path: String) -> void:
 	_reward_system.remember_weapon(p)
 	if _telemetry != null:
 		_telemetry.on_weapon_swap()
+	if _journal != null:
+		_journal.note_weapon_change(String(old_name), _shop_name(p, "weapon"), "BOSS 战利品")
 	_build_pool(selected_loadout)
 	hud._log("BOSS 武器替换：%s → %s" % [old_name, _shop_name(p, "weapon")])
 	_finish_room(Callable(), true)
@@ -691,6 +698,8 @@ func _reset_run_state() -> void:
 		_run_summary.snapshot()   # G6-03：记录本局拥有池基线（局末算新收藏）
 	if _telemetry != null:
 		_telemetry.reset()   # M1-06：新一局遥测清零
+	if _journal != null:
+		_journal.reset()   # G5 工具：新一局记录清空（start_run 在 full_reset 末尾启动）
 	if readability != null:
 		readability.reset_run()   # P1：目标声明与停轮统计随新局重置
 	if hud != null:
@@ -717,6 +726,48 @@ func has_next_battle() -> bool:
 	if node_mode:
 		return not run_final
 	return room_index + 1 < ROOMS.size()
+
+
+# G7-A S4：本局幕数（试玩包 act_only 时强制 1 幕——ALL_ROOMS 已收窄成 ACT1，第二幕会无房可分）。
+func run_act_count() -> int:
+	var n: int = maxi(1, int(board_config.acts))
+	if demo_active() and demo_config.act_only:
+		n = 1
+	return n
+
+
+# G7-A S4：幕间推进——只换棋盘与幕号，本局状态（HP/上限/金币/装备/成长/技艺/铭印/消耗品）全部保留，
+# 不走 reset_run。返回 false 表示无法进入下一幕（非棋盘 / 已是最后一幕 / 生成失败），调用方负责收口。
+func advance_act() -> bool:
+	if not node_mode or board == null or not board.generated:
+		return false
+	var next_act: int = int(board.act) + 1
+	var total: int = run_act_count()
+	if next_act > total:
+		return false
+	var prev: Dictionary = board.summary()
+	# 按幕生成：不动共享 BoardConfig（否则本局结束后 act 会残留成 2/3）。
+	if not board.generate(board_config, next_act):
+		push_error("G7-A：ACT%d 棋盘生成失败，本局按通关收口" % next_act)
+		hud._log("⚠ ACT%d 棋盘生成失败，本局按通关收口" % next_act)
+		return false
+	board.act_summaries.append(prev)
+	# ROOMS 仍是「本幕全部战斗房、room_index 为其下标」的口径：换幕后同步重建。
+	ROOMS.clear()
+	for r in board.battle_rooms:
+		ROOMS.append(r)
+	run_final = false                 # 只有进入最后一幕的 BOSS 节点时才会再置真
+	current_act = next_act
+	if _journal != null:
+		_journal.note_act_start(next_act, board.summary(), prev)
+	board.set_feedback("%s 完成 → 进入 %s（第 %d/%d 幕）" % [
+		Palette.act_name(next_act - 1), board.act_label(), next_act, total])
+	hud._log("◆ 幕间：%s 完成 → 进入 %s（HP %d/%d · 金 %d · 装备 %d）" % [
+		Palette.act_name(next_act - 1), board.act_label(), player_hp, player_hp_max, gold,
+		selected_loadout.size()])
+	board.return_to_board()   # 收起战斗态（WON → PLAYING）并展示新一幕棋盘
+	invalidate_state()
+	return true
 
 
 # T25 对局构建 / BOSS 加权抽取 / 房间语义排序：已迁至 RunSetup（P2 架构还债，2026-08-24）——单行转发。
@@ -765,6 +816,8 @@ func start_room_data(r: RoomData, idx: int, ria_override: int = -1, is_final: bo
 	enemy_hp = enemy_hp_max
 	enemy_atk = int(round(float(base_atk) * s["atk_scale"]))
 	enemy_element = r.element if r.element != "" else "none"   # 单向克制：敌人属性（仅供玩家符号克制判定）
+	if _journal != null:
+		_journal.note_battle_start(r)   # G5 工具：战斗开打（HP/攻已按 ante 缩放，记录真实值）
 	# 护甲（扁平池）：随 ante 缩放；为 0 时取行为族护甲倾向；BOSS 机制可在此基础上成长
 	var base_armor: int = r.armor if r.armor > 0 else (r.archetype.armor_base if r.archetype != null else 0)
 	enemy_armor_max = int(round(float(base_armor) * s["hp_scale"])) if base_armor > 0 else 0
@@ -949,13 +1002,13 @@ func _camp_buy(offer: Dictionary) -> void:
 			func(old_path: String) -> void: _camp_buy_replace(offer, old_path), p,
 			func() -> void: _camp_reopen())
 		return
-	_shop_system.on_shop_buy_pressed(offer)
+	_shop_system.on_shop_buy_pressed(offer, "camp")
 	_after_shop_change()
 	_camp_finish()
 
 
 func _camp_buy_replace(offer: Dictionary, old_path: String) -> void:
-	_shop_system.on_shop_buy_replace_pressed(offer, old_path)
+	_shop_system.on_shop_buy_replace_pressed(offer, old_path, "camp")
 	_after_shop_change()
 	_camp_finish()
 
@@ -1005,8 +1058,12 @@ func _board_shrine(node: Dictionary) -> void:
 			_reward_system.run_shield_next += 15
 			msg = "神龛：下一场战斗开局 +15 护盾（累计 %d）" % _reward_system.run_shield_next
 		_:
+			if _journal != null:
+				_journal.note_special("shrine", "金币 +15")
 			_board_node_gold(15, "神龛：金币")
 			return
+	if _journal != null:
+		_journal.note_special("shrine", msg.trim_prefix("神龛："))
 	board.set_feedback(msg)
 	hud._log(msg)
 	invalidate_state()
@@ -1028,6 +1085,8 @@ func _board_armory(node: Dictionary) -> void:
 
 func _board_armory_pick(p: String) -> void:
 	if p == "" or selected_loadout.has(p):
+		if _journal != null:
+			_journal.note_special("armory", "已持有，折算金币")
 		_board_node_gold(15, "武器藏库：已持有，折算金币")
 		return
 	if selected_loadout.size() >= _loadout_system.cat_cap("weapon"):
@@ -1039,6 +1098,9 @@ func _board_armory_pick(p: String) -> void:
 		return
 	selected_loadout.append(p)
 	_reward_system.remember_weapon(p)
+	if _journal != null:
+		_journal.note_weapon_change("", _shop_name(p, "weapon"), "武器藏库")
+		_journal.note_special("armory", "选择：" + _shop_name(p, "weapon"))
 	_build_pool(selected_loadout)
 	var msg := "武器藏库：获得 %s（已加入转轮带）" % _shop_name(p, "weapon")
 	board.set_feedback(msg)
@@ -1049,6 +1111,8 @@ func _board_armory_pick(p: String) -> void:
 
 
 func _board_armory_skip() -> void:
+	if _journal != null:
+		_journal.note_special("armory", "跳过")
 	var msg := "武器藏库：放弃选择（节点已消耗）"
 	board.set_feedback(msg)
 	hud._log(msg)
@@ -1089,6 +1153,8 @@ func _board_treasure_active(p: String) -> void:
 		consumable_slots.append({"path": p, "item_id": cd.item_id, "charges": cd.charges,
 			"uid": "c%d" % _consumable_uid})
 		msg = "宝箱：获得 %s（入腰带）" % nm
+	if _journal != null:
+		_journal.note_special("treasure", msg.trim_prefix("宝箱："))
 	board.set_feedback(msg)
 	hud._log(msg)
 	invalidate_state()
@@ -1112,6 +1178,10 @@ func _board_weapon(node: Dictionary, label: String = "武器格") -> void:
 	_reward_system.remember_weapon(p)
 	if _career != null:
 		_career.note_board_weapon()   # G6-01：棋盘寻宝（主动获得武器格）
+	if _journal != null:
+		_journal.note_weapon_change("", _shop_name(p, "weapon"), label)
+		if label == "宝箱":
+			_journal.note_special("treasure", "武器：" + _shop_name(p, "weapon"))
 	_build_pool(selected_loadout)
 	var msg := "%s：获得 %s（已加入转轮带）" % [label, _shop_name(p, "weapon")]
 	board.set_feedback(msg)
@@ -1133,6 +1203,12 @@ func _board_weapon_replace(p: String, old_path: String, label: String = "武器�
 		_career.note_board_weapon()   # G6-01：替换获得同样算主动获得武器格
 	if _telemetry != null:
 		_telemetry.on_weapon_swap()
+	if _journal != null:
+		_journal.note_weapon_change(String(old_name), _shop_name(p, "weapon"), label)
+		if label == "宝箱":
+			_journal.note_special("treasure", "武器替换：" + _shop_name(p, "weapon"))
+		elif label == "武器藏库":
+			_journal.note_special("armory", "替换：" + _shop_name(p, "weapon"))
 	_build_pool(selected_loadout)
 	var msg := "%s：%s → %s" % [label, old_name, _shop_name(p, "weapon")]
 	board.set_feedback(msg)
@@ -1143,6 +1219,11 @@ func _board_weapon_replace(p: String, old_path: String, label: String = "武器�
 
 
 func _board_weapon_cancel(p: String, label: String = "武器格") -> void:
+	if _journal != null:
+		if label == "宝箱":
+			_journal.note_special("treasure", "跳过")
+		elif label == "武器藏库":
+			_journal.note_special("armory", "取消替换：" + _shop_name(p, "weapon"))
 	var msg := "%s：跳过 %s（节点已消耗）" % [label, _shop_name(p, "weapon")]
 	board.set_feedback(msg)
 	hud._log(msg)
@@ -1164,6 +1245,8 @@ func _board_charm(node: Dictionary, label: String = "护符格") -> void:
 			gold += refund
 			var full_msg := "%s：%s 但护符槽已满 → 折算金币 +%d" % [
 				label, _shop_name(p, "passive"), refund]
+			if _journal != null and label == "宝箱":
+				_journal.note_special("treasure", "护符槽满，折算金币 +%d" % refund)
 			board.set_feedback(full_msg)
 			hud._log(full_msg)
 			invalidate_state()
@@ -1174,6 +1257,8 @@ func _board_charm(node: Dictionary, label: String = "护符格") -> void:
 	_reward_system.remember_charm(p)   # G2-01：棋盘护符格也写入图鉴/来源
 	_apply_charms()
 	var msg := "%s：获得 %s（已生效）" % [label, _shop_name(p, "passive")]
+	if _journal != null and label == "宝箱":
+		_journal.note_special("treasure", "护符：" + _shop_name(p, "passive"))
 	board.set_feedback(msg)
 	hud._log(msg)
 	invalidate_state()
@@ -1249,10 +1334,6 @@ func _on_overlay_button_pressed() -> void:
 	room_flow.on_overlay_button_pressed()
 
 
-func _return_to_loadout() -> void:
-	room_flow.return_to_loadout()
-
-
 # ---------------------------------------------------------------------------
 # 结算与属性聚合已拆分至 CombatSystem（scripts/battle/combat_system.gd，2026-08-09）：
 #   contribute / push_dmg_line / evaluate / agg_* / grant_buff / tick_buffs /
@@ -1267,25 +1348,8 @@ func _buff_summary() -> String:
 	return BattleMath.buff_summary(player_buffs)
 
 
-func _buff_effect_name(effect: String) -> String:
-	return status_system.buff_effect_name(effect)
-
-
 func _status_def(st: String) -> StatusDef:
 	return status_system.status_def(st)
-
-
-func _status_base(type_str: String) -> float:
-	return status_system.status_base(type_str)
-
-
-# 状态类型对应的属性元素（用于 DoT 单向克制）
-func _status_element(st: String) -> String:
-	return status_system.status_element(st)
-
-
-func _status_summary(stacks: Dictionary) -> String:
-	return status_system.status_summary(stacks)
 
 
 # ---------------------------------------------------------------------------

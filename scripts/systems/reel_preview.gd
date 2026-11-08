@@ -11,10 +11,11 @@ extends RefCounted
 static var _syn_defs: Array = []
 
 # 敌方注入（乱权废铁 / 深渊侵蚀）来自房间状态，默认 0/false；传入后按 build_strips 同式计入带长。
+# G7-B B1：trim = {"符号路径|有效元素": 已精简次数}，按键扣格（保底 1 格），与 build_strips 同口径。
 static func compose(weapons: Array, skills: Array, charms: Array, elements = [],
 		run_bonus: Dictionary = {}, deprived_level: int = 0,
 		chaos: bool = false, boss_trash: int = 0, tune: Dictionary = {},
-		styles: Dictionary = {}) -> Dictionary:
+		styles: Dictionary = {}, trim: Dictionary = {}) -> Dictionary:
 	var agg := {}
 	var miss_w := 0.0
 	var wsum := 0.0
@@ -69,6 +70,9 @@ static func compose(weapons: Array, skills: Array, charms: Array, elements = [],
 	for key in agg:
 		var g: Dictionary = agg[key]
 		var cells: int = ReelSystem.cells_for(float(g["w"]), g["sym"].kind, int(g["rank"]), int(g["sources"]))
+		var cut: int = int(trim.get(String(key), 0))
+		if cut > 0:
+			cells = maxi(1, cells - cut)
 		total_cells += cells
 		var disp: String = g["sym"].label if g["sym"].label != "" else g["sym"].name
 		rows.append({

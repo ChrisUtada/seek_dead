@@ -1,17 +1,19 @@
-# GrowthSystem — 角色历练与技艺（M2-01，ACT1 样板）
+# GrowthSystem — 角色历练与技艺（M2-01 建立，G7-A S1 扩至三幕）
 # 运行时经 duel_controller preload 实例化（不注册全局 class_name——headless 测试环境不刷新类缓存）。
-# 职责：房间胜利发放历练经验 → 升级（最大 HP +5 并恢复）→ 在 Lv.2 / Lv.4 各给一次技艺三选一。
-# 技艺效果在各自落点读取本系统的查询接口（守势 / 精打细算 / 稳定节奏 / 洞察），
-# 只有「坚韧」「备用药剂」两项在获得瞬间结算。整局状态经 reset_run 清零（新一局 / 战败回整备）。
-# 规格见 docs/M0-02_样板范围.md §1；ACT1 样板上限 Lv.4 / 2 个技艺，Lv.5+ 归 M5。
+# 职责：房间胜利发放历练经验 → 升级（最大 HP +5 并恢复）→ 在 Lv.2 / Lv.4 / Lv.6 各给一次技艺三选一。
+# 技艺效果在各自落点读取本系统的查询接口（守势 / 精打细算 / 稳定节奏 / 洞察 / 稳手），
+# 只有「坚韧」「备用药剂」「回春」「积蓄」在落点即时结算。整局状态经 reset_run 清零（新一局 / 战败回整备）。
+# 规格见 docs/M0-02_样板范围.md §1（ACT1 样板：Lv.4 / 2 技艺）；
+# 2026-11-08 按 `docs/G7-A_切片拆分与验收清单_2026-11-08.md` S1 拍板扩至 Lv.6 / 3 技艺 / 池 9。
 
 var _ctrl  # DuelController
 
 const ROOM_XP := {"normal": 1, "elite": 2, "boss": 3}   # 历练经验：只在房间胜利时发放
-const LEVEL_XP := {2: 3, 3: 7, 4: 12}                    # 累计经验门槛
-const LEVEL_MAX := 4                                     # ACT1 样板上限
+const LEVEL_XP := {2: 3, 3: 7, 4: 12, 5: 20, 6: 30}     # 累计经验门槛（G7-A S1：扩至 Lv.6；
+                                                        # 5/6 按三幕 36 经验推算，Lv.5 落在第二幕中段、Lv.6 落在第三幕）
+const LEVEL_MAX := 6                                     # G7-A S1：ACT1 样板 4 → 三幕 6
 const HP_PER_LEVEL := 5                                  # 每级最大 HP +5 并恢复同量
-const PERK_LEVELS := [2, 4]                              # 升到这些等级时获得一次技艺选择
+const PERK_LEVELS := [2, 4, 6]                           # 升到这些等级时获得一次技艺选择（G7-A S1：+Lv.6）
 const FAMILIES := {"survive": "生存", "plan": "运筹", "aim": "目押"}
 # P0-2（2026-11-03）：给每个家族一句「打法方向」，选择前能预判自己走哪条线。
 const FAMILY_HINT := {"survive": "更耐打", "plan": "更多资源", "aim": "更易停中"}
@@ -23,7 +25,16 @@ const PERKS := [
 	{"id": "reserve", "family": "plan", "name": "备用药剂", "desc": "获得时，腰带上所有消耗品各 +1 次使用次数"},
 	{"id": "steady", "family": "aim", "name": "稳定节奏", "desc": "每房前 2 回合转轮基础间隔 0.15→0.17s，加速曲线不变"},
 	{"id": "insight", "family": "aim", "name": "洞察", "desc": "旋转时，每列显示下一格符号"},
+	# G7-A S1（2026-11-08 拍板）：每家族 +1，池 6→9，支撑 Lv.6 的第三次选择。
+	{"id": "regen", "family": "survive", "name": "回春", "desc": "每次房间胜利恢复 4 HP（BOSS 房 8 HP）"},
+	{"id": "hoard", "family": "plan", "name": "积蓄", "desc": "每次房间胜利获得 2 金（BOSS 房 5 金）"},
+	{"id": "steady_hand", "family": "aim", "name": "稳手", "desc": "每回合首次按停可多缓冲一拍，等视觉中心到下一格"},
 ]
+# 回春 / 积蓄的数值（只在这里改，测试与文档都引用这两组常量）。
+const REGEN_HP := 4
+const REGEN_HP_BOSS := 8
+const HOARD_GOLD := 2
+const HOARD_GOLD_BOSS := 5
 const STEADY_WAIT := 0.17        # 稳定节奏：每房前 2 回合的基础每跳间隔
 const STEADY_TURNS := 2
 const GUARD_SHIELD := 8
@@ -111,6 +122,33 @@ func grant_room_xp(kind: String) -> int:
 	return pending_picks
 
 
+# G7-A S1（2026-11-08 拍板）：房间胜利后的技艺结算（回春 / 积蓄）。
+# 与 grant_room_xp 同一处调用（room_flow._settle_victory），只读本局状态；
+# 不发经验、不改房间数值、不碰掉落与 RNG。
+func apply_victory_perks(kind: String) -> void:
+	if not enabled:
+		return
+	var is_boss: bool = kind == "boss"
+	if has_perk("regen"):
+		var amount: int = REGEN_HP_BOSS if is_boss else REGEN_HP
+		var before: int = _ctrl.player_hp
+		_ctrl.player_hp = mini(_ctrl.player_hp_max, before + amount)
+		var healed: int = _ctrl.player_hp - before
+		if healed > 0 and _ctrl.hud != null:
+			_ctrl.hud._log("🌿 回春：HP %d/%d → %d/%d（+%d）" % [
+				before, _ctrl.player_hp_max, _ctrl.player_hp, _ctrl.player_hp_max, healed])
+			_ctrl.hud._popup("❤+%d" % healed, Palette.POP_HEAL, _ctrl.hud._player_sprite_anchor())
+		_ctrl.invalidate_state()
+	if has_perk("hoard"):
+		var gold: int = HOARD_GOLD_BOSS if is_boss else HOARD_GOLD
+		_ctrl.gold += gold
+		if _ctrl.hud != null:
+			_ctrl.hud._log("📦 积蓄：金币 +%d（共 %d）" % [gold, _ctrl.gold])
+			_ctrl.hud._popup("💰+%d" % gold, Palette.POP_GOLD, _ctrl.hud._player_sprite_anchor())
+			_ctrl.hud._refresh_meta()
+		_ctrl.invalidate_state()
+
+
 # 三选一候选：按家族打乱后各取一个未拥有技艺（候选覆盖不同家族，不出现同义卡）。
 # 展示即定完整效果——效果为常量，选择后不再随机。
 func roll_choices() -> Array:
@@ -160,6 +198,12 @@ func _choice_view(p: Dictionary) -> Dictionary:
 			desc += "（前 2 回合间隔 0.15 → 0.17s）"
 		"insight":
 			desc += "（提前 1 格可见）"
+		"regen":
+			desc += "（房胜利 HP +%d → BOSS 房 +%d）" % [REGEN_HP, REGEN_HP_BOSS]
+		"hoard":
+			desc += "（房胜利 金 +%d → BOSS 房 +%d）" % [HOARD_GOLD, HOARD_GOLD_BOSS]
+		"steady_hand":
+			desc += "（每回合 1 次，提前 1 拍锁定）"
 	return {"id": p["id"], "family": FAMILIES[p["family"]],
 		"hint": String(FAMILY_HINT.get(p["family"], "")), "name": p["name"], "desc": desc}
 
@@ -195,6 +239,8 @@ func pick(id: String) -> bool:
 		"reserve":
 			for slot in _ctrl.consumable_slots:
 				slot["charges"] += 1
+	if _ctrl._journal != null:
+		_ctrl._journal.note_growth(id, perk_name(id))   # G5 工具：自动记录成长选择
 	_ctrl.hud._log("✦ 习得技艺「%s」：%s" % [perk_name(id), perk_desc(id)])
 	return true
 

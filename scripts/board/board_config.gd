@@ -13,7 +13,10 @@ extends Resource
 # ============================================================================
 
 @export var enabled: bool = false
-@export var act: int = 1                    # M2 只做 ACT1 棋盘
+@export var act: int = 1                    # 起始幕（三幕局固定从 ACT1 开始）
+# G7-A S4：一局包含几幕。1 = 单幕（ACT1 行为不变，可回退）；3 = 三幕串联。
+# 2026-11-08 作者拍板：默认 3（真人单幕一局约 4 分钟，判定「太短、太简单」）。回退 = 改回 1。
+@export var acts: int = 3
 @export var dice_sides: int = 3             # 1D3
 @export var boss_ria: int = 7               # BOSS 的幕内难度位置（与线性 ACT1 8 房一致）
 @export var battle_node_count: int = 8      # 单局路径 5 普通 + 2 精英 + 1 BOSS

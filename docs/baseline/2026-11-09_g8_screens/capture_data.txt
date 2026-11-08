@@ -1,0 +1,9 @@
+# G8-05 四屏实机截图 2026-11-09T02:53:04
+01_shop_buy  960x540  err=0
+02_shop_sell  960x540  err=0
+03_reward_post_battle  960x540  err=0
+04_reward_boss  960x540  err=0
+05_anvil  960x540  err=0
+06_anvil_codex_weapon  960x540  err=0
+07_anvil_codex_passive  960x540  err=0
+08_meta  960x540  err=0

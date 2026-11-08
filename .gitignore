@@ -46,3 +46,6 @@ raw/
 
 # Python cache
 __pycache__/
+
+# Temp APPDATA used by export/probe runs
+.tmp_export_appdata/

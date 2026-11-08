@@ -6,6 +6,7 @@
 script = ExtResource("1")
 enabled = false
 act = 1
+acts = 3
 dice_sides = 3
 boss_ria = 7
 battle_node_count = 8

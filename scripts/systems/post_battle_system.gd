@@ -49,28 +49,41 @@ func apply_choice(cand: Dictionary) -> bool:
 		"perk":
 			var e: Dictionary = cand.get("entry", {})
 			ok = _ctrl.growth.pick(String(e.get("id", "")))
+			# 技艺由 GrowthSystem.pick 自己写记录，这里不重复
 		"imprint":
 			var e: Dictionary = cand.get("entry", {})
-			# sym 为首次展示时冻结的调律目标；锋铸忽略该参数。
+			# sym 为首次展示时冻结的调律目标；其余铭印忽略该参数。
 			ok = _ctrl.mastery.choose(String(e.get("path", "")), String(e.get("id", "")), String(e.get("sym", "")))
+			if ok:
+				# 2026-11-08：成长位的铭印选择此前不进自动记录（只有技艺会记），补上
+				var im_id := String(e.get("id", ""))
+				var im_label := String(_ctrl.mastery.IMPRINT_NAMES.get(im_id, im_id))
+				_ctrl._journal.note_growth("imprint", "铭印：%s ×%s" % [
+					im_label, _ctrl.mastery.display_name(String(e.get("path", "")))])
 		"fallback_shield":
 			var n := int(cand.get("shield", 0))
 			_ctrl._reward_system.run_shield_next += n
 			_ctrl.hud._log("成长：进入下一房 +%d 护盾" % n)
 			_ctrl.hud._popup("🛡下一房+%d" % n, Palette.POP_SHIELD, _ctrl.hud._player_sprite_anchor())
 			ok = n > 0
+			if ok:
+				_ctrl._journal.note_growth("fallback_shield", "成长位：下一房护盾 +%d" % n)
 		"fallback_gold":
 			var g := int(cand.get("gold", 0))
 			_ctrl.gold += g
 			_ctrl.hud._log("成长：金币 +%d（共 %d）" % [g, _ctrl.gold])
 			_ctrl.hud._popup("💰+%d" % g, Palette.POP_GOLD, _ctrl.hud._player_sprite_anchor())
 			ok = g > 0
+			if ok:
+				_ctrl._journal.note_growth("fallback_gold", "成长位：金币 +%d" % g)
 		"fallback_power":
 			var p := int(cand.get("power", 0))
 			_ctrl._reward_system.run_power_bonus += p
 			_ctrl.hud._log("成长：本局符号伤害 +%d（当前 +%d）" % [p, _ctrl._reward_system.run_power_bonus])
 			_ctrl.hud._popup("⚔伤害+%d" % p, Palette.POP_BUFF, _ctrl.hud._player_sprite_anchor())
 			ok = p > 0
+			if ok:
+				_ctrl._journal.note_growth("fallback_power", "成长位：符号伤害 +%d" % p)
 	if ok:
 		var idx := int(cand.get("entry_index", -1))
 		if idx >= 0 and idx < queue.size():

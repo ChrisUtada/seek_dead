@@ -51,6 +51,7 @@ var _forge_box: VBoxContainer = null
 @onready var sub_panel: PanelContainer = $UILayer/UIRoot/SubPanel
 @onready var sub_head: Label = $UILayer/UIRoot/SubPanel/SubVBox/SubHead
 @onready var sub_strip: HBoxContainer = $UILayer/UIRoot/SubPanel/SubVBox/SubStrip
+@onready var sub_scroll: ScrollContainer = $UILayer/UIRoot/SubPanel/SubVBox/SubScroll
 @onready var sub_list: VBoxContainer = $UILayer/UIRoot/SubPanel/SubVBox/SubScroll/SubList
 @onready var count_label: Label = $UILayer/UIRoot/BottomBar/CountLabel
 @onready var anvil_label: Label = $UILayer/UIRoot/BottomBar/AnvilLabel
@@ -223,6 +224,9 @@ func _fill_sub(cat: String) -> void:
 	_sync_card_selection()
 	_update_loadout_cards_visual()
 	_refresh_slot_strip()
+	# 2026-11-08 排版验收：换类目时列表回到顶部，避免沿用上一个类目的滚动位置
+	# （技能 10 条滚到底后切到武器，会看到列表停在中间）。
+	sub_scroll.scroll_vertical = 0
 
 
 func _refresh_slot_strip() -> void:
@@ -471,6 +475,13 @@ func _refresh_career() -> void:
 	goal.custom_minimum_size = Vector2(390, 0)
 	goal.add_theme_color_override("font_color", Color(0.85, 0.85, 0.85))
 	_career_box.add_child(goal)
+	# 2026-11-08 排版验收：本面板原本只能「点任意处退出」，没有可见关闭入口（与预览/铸式弹层不一致）。
+	var close := Button.new()
+	close.text = "关闭"
+	close.add_theme_font_size_override("font_size", 9)
+	close.custom_minimum_size = Vector2(120, 26)
+	close.pressed.connect(func() -> void: _career_panel.visible = false)
+	_career_box.add_child(close)
 
 
 # ---------------------------------------------------------------------------
@@ -674,6 +685,8 @@ func _refresh_preview() -> void:
 	_preview_box.add_child(hint)
 	var close := Button.new()
 	close.text = "关闭"
+	# 2026-11-08 排版验收：早先漏设字号，按默认 16px 渲染，在 480x270 下明显大于全屏其它文字。
+	close.add_theme_font_size_override("font_size", 9)
 	close.custom_minimum_size = Vector2(120, 26)
 	close.pressed.connect(func(): _preview_panel.visible = false)
 	_preview_box.add_child(close)

@@ -1,10 +1,12 @@
 # WeaponMastery — 武器熟练 R1–R4 与铭印（M2-02 样板；M4-01 起覆盖全部武器）
 # 运行时经 duel_controller preload 实例化（不注册全局 class_name——headless 测试环境不刷新类缓存）。
 # 职责：房间胜利时按「本房有效符号结算」给已装备武器累计熟练 → R2 / R3 各欠一次铭印选择 →
-# 铭印写入本局运行时状态（锋铸 +基础攻击 / 调律 +符号权重），不改共享 .tres。
+# 铭印写入本局运行时状态（锋铸 +基础攻击 / 调律 +符号权重 / 校准 +命中 / 暴虐 +暴击倍率），
+# 不改共享 .tres。
 # 规格见 docs/M0-02_样板范围.md §2；R4 一期只保留等级与外观。
 # M4-01：不再限定 4 把样板武器——ACT1 白名单内全部武器（正式版即全部武器）走同一规则；
 #         具体可用面由 DemoConfig 白名单收窄，成长规则本身不分叉。
+# G7-A S2（2026-11-08）：候选按武器原型给（见 ARCHETYPE_CHOICES），新增校准 / 暴虐。
 
 var _ctrl  # DuelController
 
@@ -13,7 +15,21 @@ const R_THRESHOLDS := {2: 3, 3: 7, 4: 12}                 # R 等级累计熟练
 const IMPRINT_LEVELS := [2, 3]                            # 升到这些 R 等级时欠一次铭印选择
 const IMPRINT_MAX := 2                                    # 同一铭印每把最多次数
 const FORGE_STEP := 2                                     # 锋铸：每次 +基础攻击
+const HIT_STEP := 0.05                                    # 校准：每次 +命中率
+const CRIT_STEP := 0.25                                   # 暴虐：每次 +三连暴击倍率
+const HIT_NEAR_CAP := 0.95                                # 命中率高于此值时不再提供校准（+5% 会被 100% 上限吞掉）
 const CATCHUP_STEP := 1                                   # G2-01：换装后每房追赶 +1 基础熟练
+
+# 四原型默认候选组合（docs/角色与武器成长_整体方案.md §5.4）：
+# LIGHT 调律/校准 · MEDIUM 锋铸/调律 · HEAVY 锋铸/暴虐 · MAGIC 调律/锋铸。
+# 键为 WeaponData.Archetype 的整数值（0=LIGHT 1=MEDIUM 2=HEAVY 3=MAGIC）。
+const ARCHETYPE_CHOICES := {
+	0: ["tune", "calibrate"],
+	1: ["forge", "tune"],
+	2: ["forge", "tyrant"],
+	3: ["tune", "forge"],
+}
+const IMPRINT_NAMES := {"forge": "锋铸", "tune": "调律", "calibrate": "校准", "tyrant": "暴虐"}
 
 var mastery: Dictionary = {}          # 武器路径 -> 熟练累计
 var imprints: Dictionary = {}         # 武器路径 -> {"forge": n, "tune": {符号路径: n}}
@@ -104,24 +120,60 @@ func catchup_target(path: String) -> int:
 	return peak
 
 
-# 欠铭印的候选（展示即定；调律仅在真实改变格数时出现，死升级不展示）。
+# 欠铭印的候选：按武器原型给出 2 个组合（ARCHETYPE_CHOICES），只保留仍有效的项；
+# 展示即定。调律仅在真实改变格数时出现，校准在接近命中上限时消失，暴虐对无暴击字段的武器不出现。
 func imprint_choices(path: String) -> Array:
 	var out := []
 	var wd: WeaponData = load(path)
 	if wd == null:
 		return out
-	var im: Dictionary = _imprint_of(path)
-	if int(im["forge"]) < IMPRINT_MAX:
-		var base: int = _ctrl.weapon_power(path) if _ctrl._forge_styles != null else int(wd.base_power) + forge_bonus(path)
-		var pct: int = int(round(100.0 * float(FORGE_STEP) / maxf(1.0, float(base))))
-		out.append({"id": "forge", "family": wd.weapon_name, "name": "锋铸", "hint": "更高攻",
-			"desc": "基础攻击 %d → %d（+%d%%）" % [base, base + FORGE_STEP, pct]})
-	if _tune_count(path) < IMPRINT_MAX:
-		var tgt: Dictionary = tune_target(path)
-		if not tgt.is_empty():
-			out.append({"id": "tune", "family": wd.weapon_name, "name": "调律", "hint": "更多格",
-				"desc": "「%s」权重 +1：%s" % [_sym_name(tgt["sym"]), "；".join(tgt["lines"])]})
+	for id in _archetype_choices(wd):
+		var c := _choice_for(path, wd, String(id))
+		if not c.is_empty():
+			out.append(c)
 	return out
+
+
+# 武器原型对应的候选组合；未知/未设置（默认 MEDIUM）回落到锋铸/调律。
+func _archetype_choices(wd: WeaponData) -> Array:
+	return ARCHETYPE_CHOICES.get(int(wd.archetype), ARCHETYPE_CHOICES[1])
+
+
+# 单项候选；不合法或会产生死升级时返回空字典。
+func _choice_for(path: String, wd: WeaponData, id: String) -> Dictionary:
+	match id:
+		"forge":
+			if int(_imprint_of(path)["forge"]) >= IMPRINT_MAX:
+				return {}
+			var base: int = _ctrl.weapon_power(path) if _ctrl._forge_styles != null else int(wd.base_power) + forge_bonus(path)
+			var pct: int = int(round(100.0 * float(FORGE_STEP) / maxf(1.0, float(base))))
+			return {"id": "forge", "family": wd.weapon_name, "name": "锋铸", "hint": "更高攻",
+				"desc": "基础攻击 %d → %d（+%d%%）" % [base, base + FORGE_STEP, pct]}
+		"tune":
+			if _tune_count(path) >= IMPRINT_MAX:
+				return {}
+			var tgt: Dictionary = tune_target(path)
+			if tgt.is_empty():
+				return {}
+			return {"id": "tune", "family": wd.weapon_name, "name": "调律", "hint": "更多格",
+				"desc": "「%s」权重 +1：%s" % [_sym_name(tgt["sym"]), "；".join(tgt["lines"])]}
+		"calibrate":
+			if _imprint_count(path, "calibrate") >= IMPRINT_MAX:
+				return {}
+			var hit: float = _ctrl.weapon_hit(path)
+			if hit > HIT_NEAR_CAP:
+				return {}
+			return {"id": "calibrate", "family": wd.weapon_name, "name": "校准", "hint": "更准",
+				"desc": "命中率 %d%% → %d%%" % [int(round(hit * 100.0)), int(round(minf(1.0, hit + HIT_STEP) * 100.0))]}
+		"tyrant":
+			if _imprint_count(path, "tyrant") >= IMPRINT_MAX:
+				return {}
+			var cm: float = float(wd.crit_mult) + crit_bonus(path)
+			if cm <= 1.0:
+				return {}
+			return {"id": "tyrant", "family": wd.weapon_name, "name": "暴虐", "hint": "更高暴击",
+				"desc": "三连暴击倍率 ×%.2f → ×%.2f" % [cm, cm + CRIT_STEP]}
+	return {}
 
 
 # 调律目标：本武器符号中权重最高、且 +1 能真实改变带子格数者（无则为空字典）。
@@ -170,19 +222,40 @@ func choose(path: String, id: String, sym_path: String = "") -> bool:
 			return false
 		var tune: Dictionary = im["tune"]
 		tune[target] = int(tune.get(target, 0)) + 1
+	elif id == "calibrate":
+		if _imprint_count(path, "calibrate") >= IMPRINT_MAX or _ctrl.weapon_hit(path) > HIT_NEAR_CAP:
+			return false
+		im["calibrate"] = _imprint_count(path, "calibrate") + 1
+	elif id == "tyrant":
+		if _imprint_count(path, "tyrant") >= IMPRINT_MAX:
+			return false
+		var wd2: WeaponData = load(path)
+		if wd2 == null or float(wd2.crit_mult) <= 1.0:
+			return false
+		im["tyrant"] = _imprint_count(path, "tyrant") + 1
 	else:
 		return false
 	imprints[path] = im
 	var idx := owed.find(path)
 	if idx >= 0:
 		owed.remove_at(idx)
-	_ctrl.hud._log("⚒ 铭印「%s」→ %s" % ["锋铸" if id == "forge" else "调律", display_name(path)])
+	_ctrl.hud._log("⚒ 铭印「%s」→ %s" % [String(IMPRINT_NAMES.get(id, id)), display_name(path)])
 	return true
 
 
 # 锋铸累计基础攻击加成（build_pool 读取，覆盖武器 base_power）。
 func forge_bonus(path: String) -> int:
 	return FORGE_STEP * int(_imprint_of(path)["forge"])
+
+
+# G7-A S2 校准：累计命中率加成（duel_controller.weapon_hit 读取，走既有的 delta 通道）。
+func hit_bonus(path: String) -> float:
+	return HIT_STEP * float(_imprint_count(path, "calibrate"))
+
+
+# G7-A S2 暴虐：累计三连暴击倍率加成（reel_system 构建 _item_crit_map 时并入既有字段）。
+func crit_bonus(path: String) -> float:
+	return CRIT_STEP * float(_imprint_count(path, "tyrant"))
 
 
 # 调律：武器路径 -> {符号路径: 额外权重}（build_pool 与 ReelPreview 共用同一份口径）。
@@ -210,14 +283,17 @@ func progress_text(path: String) -> String:
 	return "R%d · 熟练 %d/%d" % [lv, m, _next_threshold(lv)]
 
 
-# 铭印文案：锋铸 / 调律 次数（无则为空串）。
+# 铭印文案：四类铭印次数（无则为空串）。
 func imprint_text(path: String) -> String:
-	var im: Dictionary = imprints.get(path, {"forge": 0, "tune": {}})
 	var parts: Array[String] = []
-	if int(im["forge"]) > 0:
-		parts.append("锋铸×%d（攻 +%d）" % [int(im["forge"]), forge_bonus(path)])
+	if int(_imprint_of(path)["forge"]) > 0:
+		parts.append("锋铸×%d（攻 +%d）" % [int(_imprint_of(path)["forge"]), forge_bonus(path)])
 	if _tune_count(path) > 0:
 		parts.append("调律×%d" % _tune_count(path))
+	if _imprint_count(path, "calibrate") > 0:
+		parts.append("校准×%d（命中 +%d%%）" % [_imprint_count(path, "calibrate"), int(round(hit_bonus(path) * 100.0))])
+	if _imprint_count(path, "tyrant") > 0:
+		parts.append("暴虐×%d（暴击 +%.2f）" % [_imprint_count(path, "tyrant"), crit_bonus(path)])
 	return " · ".join(parts)
 
 
@@ -225,24 +301,25 @@ func imprint_text(path: String) -> String:
 func imprint_total() -> int:
 	var n := 0
 	for path in imprints:
-		n += int(imprints[path]["forge"]) + _tune_count(path)
+		n += int(imprints[path]["forge"]) + _tune_count(path) \
+			+ _imprint_count(path, "calibrate") + _imprint_count(path, "tyrant")
 	return n
 
 
 # P0-2：本局铭印方向摘要（HUD tooltip / 成长结算页头用）。
 func summary_line() -> String:
-	var forge := 0
-	var tune := 0
+	var counts := {"forge": 0, "tune": 0, "calibrate": 0, "tyrant": 0}
 	for path in imprints:
-		forge += int(imprints[path]["forge"])
-		tune += _tune_count(path)
-	if forge == 0 and tune == 0:
+		counts["forge"] += int(imprints[path]["forge"])
+		counts["tune"] += _tune_count(path)
+		counts["calibrate"] += _imprint_count(path, "calibrate")
+		counts["tyrant"] += _imprint_count(path, "tyrant")
+	if counts["forge"] + counts["tune"] + counts["calibrate"] + counts["tyrant"] == 0:
 		return "铭印：无"
 	var parts: Array[String] = []
-	if forge > 0:
-		parts.append("锋铸×%d" % forge)
-	if tune > 0:
-		parts.append("调律×%d" % tune)
+	for id in ["forge", "tune", "calibrate", "tyrant"]:
+		if counts[id] > 0:
+			parts.append("%s×%d" % [String(IMPRINT_NAMES[id]), counts[id]])
 	return "铭印 " + "·".join(parts)
 
 
@@ -258,6 +335,12 @@ func _tune_count(path: String) -> int:
 	return n
 
 
+# 校准 / 暴虐次数（旧记录没有这两个键时按 0 处理）。
+func _imprint_count(path: String, key: String) -> int:
+	var im: Dictionary = imprints.get(path, {})
+	return int(im.get(key, 0))
+
+
 func _weapon_settled(path: String) -> bool:
 	var wd: WeaponData = load(path)
 	if wd == null:
@@ -270,7 +353,7 @@ func _weapon_settled(path: String) -> bool:
 
 func _imprint_of(path: String) -> Dictionary:
 	if not imprints.has(path):
-		imprints[path] = {"forge": 0, "tune": {}}
+		imprints[path] = {"forge": 0, "tune": {}, "calibrate": 0, "tyrant": 0}
 	return imprints[path]
 
 

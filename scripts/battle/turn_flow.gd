@@ -40,6 +40,8 @@ func begin_player_turn() -> void:
 	_ctrl.boss_atk_mult = 1.0
 	if _ctrl.current_gimmick != null:
 		_ctrl.current_gimmick.on_turn_begin(_ctrl)
+	if _ctrl.readability != null:
+		_ctrl.readability.update_turn_target()
 	# T30 寒霜侵蚀：回合一开始敌人即冻结（frost 挂上后立即声明冻结列，spin 前玩家可见蓝框提示）
 	_ctrl.frozen_cols = _ctrl.combat.pick_frozen_cols()
 	# UX：干扰/锁轮列标记（敌人上回合已声明 pending_*，spin 前刷新格子显示红/黄框）

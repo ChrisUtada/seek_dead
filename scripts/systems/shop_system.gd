@@ -40,7 +40,8 @@ func reset_run() -> void:
 # ---------------------------------------------------------------------------
 
 # 2026-08-07 替换购买：武器槽上限 2 后的换装——旧武器回 owned 图鉴（本局卸下），新武器进槽
-func on_shop_buy_replace_pressed(offer: Dictionary, old_path: String) -> void:
+# source: "shop"（默认）/ "camp"（营地补给复用同一购买路径，仅用于自动记录的来源区分）。
+func on_shop_buy_replace_pressed(offer: Dictionary, old_path: String, source: String = "shop") -> void:
 	if offer["sold"]:
 		return
 	var arr = _ctrl._loadout_system.sel_arr("weapon")
@@ -65,9 +66,24 @@ func on_shop_buy_replace_pressed(offer: Dictionary, old_path: String) -> void:
 	offer["sold"] = true
 	if _ctrl._telemetry != null:
 		_ctrl._telemetry.on_weapon_swap()   # M1-06：商店换装计入替换率
+	if _ctrl._journal != null:
+		_journal_shop_note(offer, buy_price, source)
+		_ctrl._journal.note_weapon_change(String(old_name), String(offer["name"]), "营地" if source == "camp" else "商店")
 	_ctrl._build_pool(_ctrl.selected_loadout)   # 换装立即重建符号池
 	_ctrl.hud._log("替换：%s → %s（-%d 金，余 %d）" % [old_name, offer["name"], buy_price, _ctrl.gold])
 	_ctrl.invalidate_state()
+
+
+# G5 工具：自动记录购买（source 只区分商店/营地，不改变购买逻辑）。
+func _journal_shop_note(offer: Dictionary, price: int, source: String) -> void:
+	if _ctrl._journal == null:
+		return
+	var nm := String(offer.get("name", ""))
+	var kind := String(offer.get("kind", ""))
+	if source == "camp":
+		_ctrl._journal.note_camp(nm, kind, price)
+	else:
+		_ctrl._journal.note_shop(nm, kind, price)
 
 
 func shop_price(kind: String, owned: int = -1, item_path: String = "") -> int:
@@ -167,7 +183,7 @@ func on_shop_reroll_pressed() -> void:
 	_ctrl.invalidate_state()
 
 
-func on_shop_buy_pressed(offer: Dictionary) -> void:
+func on_shop_buy_pressed(offer: Dictionary, source: String = "shop") -> void:
 	if offer["sold"]:
 		return
 	var kind = offer["kind"]
@@ -190,6 +206,8 @@ func on_shop_buy_pressed(offer: Dictionary) -> void:
 			if not _ctrl.meta["owned_consumables"].has(offer["path"]):
 				_ctrl.meta["owned_consumables"].append(offer["path"])
 			paid_price[uid] = buy_price
+			if _ctrl._journal != null:
+				_journal_shop_note(offer, buy_price, source)
 			_ctrl._refresh_consumable_panel()
 			_ctrl.hud._log("购买 %s（腰带 %d/%d，-%d 金，余 %d）" % [offer["name"], _ctrl.consumable_slots.size(), _ctrl.CONSUMABLE_CAP, buy_price, _ctrl.gold])
 		else:
@@ -228,6 +246,8 @@ func on_shop_buy_pressed(offer: Dictionary) -> void:
 		_ctrl._meta_store.record_source(offer["path"], _ctrl._item_source())   # G2-01：来源记录
 	paid_price[offer["path"]] = buy_price   # 记录实际购入价，卖出时返还约50%
 	offer["sold"] = true
+	if _ctrl._journal != null:
+		_journal_shop_note(offer, buy_price, source)
 	if w >= cap:                        # 本次是扩槽购买 → 该类槽 +1
 		_ctrl._loadout_system.grow_slot(kind)
 		_ctrl.hud._log("购买 %s（%s槽 +1 → %d/%s，-%d 金，余 %d）" % [offer["name"], _ctrl._loadout_system.cat_name(kind), _ctrl._loadout_system.cat_max(kind), _ctrl._loadout_system.cap_text(kind), buy_price, _ctrl.gold])

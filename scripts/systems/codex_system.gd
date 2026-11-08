@@ -116,6 +116,8 @@ func record_run(mastery) -> void:
 		st["forge"] = int(im.get("forge", 0))
 		var tune: Dictionary = im.get("tune", {})
 		st["tune"] = tune.duplicate(true) if tune is Dictionary else {}
+		st["calibrate"] = int(im.get("calibrate", 0))   # G7-A S2
+		st["tyrant"] = int(im.get("tyrant", 0))
 		changed = true
 	if changed:
 		_save()
@@ -339,6 +341,12 @@ func _imprint_text(path: String) -> String:
 		if n <= 0:
 			continue
 		bits.append("调律 %s×%d" % [_sym_name(String(sym_path)), n])
+	var calibrate := int(st.get("calibrate", 0))
+	if calibrate > 0:
+		bits.append("校准×%d" % calibrate)
+	var tyrant := int(st.get("tyrant", 0))
+	if tyrant > 0:
+		bits.append("暴虐×%d" % tyrant)
 	if bits.is_empty():
 		return "暂无记录"
 	return " · ".join(bits)

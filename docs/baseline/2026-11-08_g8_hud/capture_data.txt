@@ -1,0 +1,5 @@
+# G8-01 HUD 拆分实机截图 2026-11-08T12:13:06
+01_battle  960x540  err=0
+02_symbol_tooltip  960x540  err=0
+03_popup  960x540  err=0
+04_overlay  960x540  err=0

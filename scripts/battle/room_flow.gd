@@ -54,8 +54,11 @@ func _finish_post_battle(apply_fn: Callable) -> void:
 func _settle_victory() -> void:
 	if _ctrl._telemetry != null:
 		_ctrl._telemetry.on_room_clear()   # M1-06：清房耗时
+	if _ctrl._journal != null:
+		_ctrl._journal.note_battle_end("win")   # G5 工具：战斗胜利（战败由局末收口）
 	var kind := _current_kind()
 	_ctrl.growth.grant_room_xp(kind)   # M2-01：房间胜利发放历练经验（升级即时入账）
+	_ctrl.growth.apply_victory_perks(kind)   # G7-A S1：回春 / 积蓄（无对应技艺时为空操作）
 	_ctrl.mastery.settle_room(kind)    # M2-02：样板武器按本房有效结算累计熟练
 
 
@@ -76,7 +79,13 @@ func _after_victory() -> void:
 		_ctrl._reward_system.show_meta_choice()        # 通关整局（最终 BOSS）→元进度结算（持久生效）→回整备
 	elif _ctrl.node_mode:
 		# M2：棋盘模式胜利后回棋盘待机；下一房预告由可见棋盘替代，不进入线性间歇态。
-		_ctrl.board.return_to_board()
+		# G7-A S4：幕 BOSS 通关 → 开下一幕棋盘（状态全部保留）；生成失败按通关收口，不软锁。
+		if _ctrl.board.current_is_boss() and _ctrl.board.act < _ctrl.run_act_count():
+			if not _ctrl.advance_act():
+				log_telemetry()
+				_ctrl._reward_system.show_meta_choice()
+		else:
+			_ctrl.board.return_to_board()
 	else:
 		enter_interroom()   # opt-in 商店：进入房间歇态（🛒 可选，▶ 下一房继续）
 	_ctrl.hud._refresh_meta()   # 幂等兜底：各子系统方法已自包含刷新，防编排层遗漏
@@ -145,6 +154,8 @@ func _growth_summary_text() -> String:
 
 # M1-06：局末遥测输出（真人评测指标；只打印/记日志，不改变结算）
 func log_telemetry() -> void:
+	if _ctrl._journal != null:
+		_ctrl._journal.finish()   # G5 工具：局末写 JSON + 预填记录表（只读，不改结算）
 	if _ctrl._telemetry == null:
 		return
 	var txt: String = _ctrl._telemetry.summary_text()

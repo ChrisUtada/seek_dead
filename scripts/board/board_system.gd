@@ -34,6 +34,8 @@ var generated := false
 var template_id := ""
 var shape_id := ""
 var layout := {}
+# G7-A S4：已经打完的幕（每幕 BOSS 通关时的棋盘快照），供局末总结与记录回看。
+var act_summaries: Array[Dictionary] = []
 
 
 func _init(ctrl) -> void:
@@ -58,12 +60,15 @@ func reset() -> void:
 	template_id = ""
 	shape_id = ""
 	layout = {}
+	# G7-A S4：act_summaries 属于「本局」而不是「本张棋盘」，换盘不清；
+	# 新局由 clear_summaries() 显式清空（reset_run_state 调用）。
 
 
 # 生成一局棋盘。返回 false 表示拓扑/房间分配不合法（调用方应回退线性模式）。
-func generate(cfg) -> bool:
+# act_override >= 0 时按该幕生成（三幕串联逐幕换盘），不修改共享 BoardConfig。
+func generate(cfg, act_override: int = -1) -> bool:
 	reset()
-	act = int(cfg.act)
+	act = int(cfg.act) if act_override < 0 else int(act_override)
 	dice_sides = maxi(1, int(cfg.dice_sides))
 	var data: Dictionary = _gen.generate(act, cfg)
 	nodes = data["nodes"]
@@ -177,7 +182,33 @@ func route_length() -> int:
 
 
 func progress_text() -> String:
-	return "ACT I · 第 %d/%d 格" % [visited_count(), route_length()]
+	return "%s · 第 %d/%d 格" % [act_label(), visited_count(), route_length()]
+
+
+# G7-A S3：棋盘所属幕的名称（ACT I / II / III），文案与配色共用 Palette.ACT_THEME。
+func act_label() -> String:
+	return Palette.act_name(act)
+
+
+# G7-A S4：新局清空幕快照（换盘不清，见 reset 注释）。
+func clear_summaries() -> void:
+	act_summaries.clear()
+
+
+# G7-A S4：当前棋盘的快照（幕间推进前收集，局末总结 / 记录按幕分段用）。只读。
+func summary() -> Dictionary:
+	var boss_name := ""
+	if current_is_boss():
+		var r: RoomData = current_node().get("room")
+		boss_name = String(r.name) if r != null else ""
+	return {
+		"act": act,
+		"shape": shape_id,
+		"template": template_id,
+		"boss": boss_name,
+		"nodes": node_count(),
+		"cells": route_length(),
+	}
 
 
 # ---------------------------------------------------------------------------

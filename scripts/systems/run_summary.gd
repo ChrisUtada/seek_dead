@@ -42,12 +42,20 @@ func route_line() -> String:
 	if _ctrl.node_mode and _ctrl.board != null and _ctrl.board.generated:
 		var b = _ctrl.board
 		var bits: Array[String] = []
-		var shape := String(SHAPE_LABEL.get(String(b.shape_id), String(b.shape_id)))
-		var tpl := String(TEMPLATE_LABEL.get(String(b.template_id), String(b.template_id)))
-		if shape != "":
-			bits.append(shape)
-		if tpl != "":
-			bits.append(tpl)
+		if not b.act_summaries.is_empty():
+			# G7-A S4：三幕局按幕列出骨架（局末总结显示完整三幕路线）。
+			var segs: Array[String] = []
+			for s in b.act_summaries:
+				segs.append(_act_seg(s))
+			segs.append(_act_seg(b.summary()))
+			bits.append(" → ".join(segs))
+		else:
+			var shape := String(SHAPE_LABEL.get(String(b.shape_id), String(b.shape_id)))
+			var tpl := String(TEMPLATE_LABEL.get(String(b.template_id), String(b.template_id)))
+			if shape != "":
+				bits.append(shape)
+			if tpl != "":
+				bits.append(tpl)
 		var theme := _boss_element()
 		if theme != "":
 			bits.append(theme + "尾路")
@@ -152,6 +160,15 @@ func _paths(key: String) -> Array[String]:
 	for p in arr:
 		out.append(String(p))
 	return out
+
+
+# G7-A S4：一幕的短标（ACT II 长尾），用于局末三幕路线。
+func _act_seg(summary: Dictionary) -> String:
+	var act := int(summary.get("act", 1))
+	var shape := String(summary.get("shape", ""))
+	if shape == "":
+		return Palette.act_name(act)
+	return "%s %s" % [Palette.act_name(act), String(SHAPE_LABEL.get(shape, shape))]
 
 
 func _board_count_text(b) -> String:

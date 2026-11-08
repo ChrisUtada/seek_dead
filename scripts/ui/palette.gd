@@ -18,6 +18,25 @@ const BG_REWARD  := Color("#0d0b12")   # 奖励界面
 const BG_ANVIL   := Color("#120e0a")   # 铁砧界面
 const BG_OVERLAY := Color(0, 0, 0, 0.72)  # 结算/覆盖层遮罩
 
+# ---- 每幕环境主题（G7-A S3 / D3：三幕共用骨架，只换配色，不新增美术）----
+# map = 棋盘地图底；grid = 石砖网格；node = 普通节点线框；bg = 顶层/底栏底色。
+const ACT_THEME := {
+	1: {"name": "ACT I", "bg": Color("#160d13"), "map": Color("#1a1016"),
+		"grid": Color("#1e1319"), "node": Color("#3a2b31")},
+	2: {"name": "ACT II", "bg": Color("#0d1315"), "map": Color("#101a1c"),
+		"grid": Color("#142022"), "node": Color("#2b3a3a")},
+	3: {"name": "ACT III", "bg": Color("#160d10"), "map": Color("#1a1013"),
+		"grid": Color("#201317"), "node": Color("#3a2b30")},
+}
+
+
+static func act_theme(act: int) -> Dictionary:
+	return ACT_THEME.get(clampi(act, 1, 3), ACT_THEME[1])
+
+
+static func act_name(act: int) -> String:
+	return String(act_theme(act)["name"])
+
 # ---- 硬边化（复古掌机 P2：圆角归零 + 边框加粗）----
 const PANEL_RADIUS := 0     # 所有面板/卡片圆角 → 0（硬边）
 const BORDER_WIDTH := 1     # 普通线框 1px（2026-10-31 Step 1：2 → 1；选中/SPIN/危险仍用 2~3px）

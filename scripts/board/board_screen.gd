@@ -68,8 +68,12 @@ var _button_sig := ""       # 当前按钮集合对应的节点 id 串（换骨�
 var _pos := {}              # id -> Vector2（由 BoardSystem.layout 计算）
 var _node_w := 34.0         # 当前骨架的节点宽（标准 34 / 长尾 30）
 var _art: Control = null     # 地图绘制层（道路 / 节点 / 状态框 / 图标）
+var _bg: ColorRect = null
+var _title_label: Label = null
+var _act_theme: Dictionary = Palette.ACT_THEME[1]   # G7-A S3：按幕换配色
 var _piece: TextureRect = null
 var _advance_btn: Button = null
+var _trim_btn: Button = null
 var _dice_label: Label = null
 var _node_title: Label = null
 var _node_desc: Label = null
@@ -101,6 +105,7 @@ func _build_ui() -> void:
 	bg.color = Palette.BG_MAIN
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
+	_bg = bg
 
 	# 道路 / 节点 / 状态框全部画在一层 art 上；节点按钮只做透明热区，负责点击与 tooltip。
 	# art 必须在背景之后、按钮之前：按钮不画内容，避免像旧版那样用按钮底框当节点。
@@ -114,6 +119,7 @@ func _build_ui() -> void:
 	title.position = Vector2(8, 2)
 	title.size = Vector2(220, 18)
 	add_child(title)
+	_title_label = title
 
 	_top_right = _label("", 9, Palette.MUTED)
 	_top_right.position = Vector2(240, 3)
@@ -167,8 +173,18 @@ func _build_ui() -> void:
 
 	_dice_label = _label("", 8, Palette.MUTED)
 	_dice_label.position = Vector2(140, 238)
-	_dice_label.size = Vector2(334, 30)
+	_dice_label.size = Vector2(254, 30)
 	add_child(_dice_label)
+
+	# G7-B B3：主动减带入口（每幕 1 次）。弹层在 battle_hud，这里只放按钮与状态。
+	_trim_btn = UI_BUTTON.instantiate()
+	_trim_btn.position = Vector2(400, 238)
+	_trim_btn.size = Vector2(74, 22)
+	_trim_btn.custom_minimum_size = Vector2(74, 22)
+	_trim_btn.add_theme_font_size_override("font_size", 9)
+	_trim_btn.text = "✂ 精简 1/1"
+	_trim_btn.pressed.connect(_on_trim_pressed)
+	add_child(_trim_btn)
 
 	_build_confirm_layer()
 
@@ -304,14 +320,6 @@ func _label(text: String, size: int, color: Color) -> Label:
 	return l
 
 
-func _style(border: Color, width: int) -> StyleBoxFlat:
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Palette.PANEL_BG
-	sb.border_color = border
-	sb.set_border_width_all(width)
-	return sb
-
-
 # ---------------------------------------------------------------------------
 # 显示 / 刷新
 # ---------------------------------------------------------------------------
@@ -327,6 +335,8 @@ func show_board(board_sys) -> void:
 	visible = true
 	if hud != null:
 		hud.hide()
+	if controller._journal != null:
+		controller._journal.note_board_shown()   # G5 工具：10 秒找落点计时起点（每局一次）
 	refresh()
 
 
@@ -337,9 +347,19 @@ func hide_board(show_hud: bool = false) -> void:
 		hud._refresh_meta()
 
 
+# G7-A S3：按当前幕取配色；只改颜色与标题，不新增美术资源。
+func _apply_act_theme() -> void:
+	_act_theme = Palette.act_theme(int(board.act))
+	if _title_label != null:
+		_title_label.text = "棋盘 · %s" % String(_act_theme.get("name", "ACT I"))
+	if _bg != null:
+		_bg.color = _act_theme.get("bg", Palette.BG_MAIN)
+
+
 func refresh() -> void:
 	if board == null:
 		return
+	_apply_act_theme()
 	queue_redraw()
 	if board.feedback != "":
 		_selected_id = String(board.current_id)
@@ -379,12 +399,26 @@ func refresh() -> void:
 	_top_right.text = "HP %d/%d · 💰 %d · 已走 %d/%d" % [
 		controller.player_hp, controller.player_hp_max, controller.gold,
 		board.visited_count(), board.route_length()]
+	_refresh_trim_btn()
 	_refresh_info()
 	_refresh_summary()
 
 
-func _short_label(type: String) -> String:
-	return String(SHORT.get(type, "•"))
+# G7-B B3：精简入口状态（ready 可点 / used 本幕已用 / none 隐藏）。
+func _refresh_trim_btn() -> void:
+	if _trim_btn == null:
+		return
+	var st := "none"
+	if controller != null and controller._trim != null:
+		st = controller._trim.entry_state()
+	_trim_btn.visible = st != "none"
+	_trim_btn.disabled = st != "ready" or _moving or _stepping or not _pending_node.is_empty()
+	_trim_btn.text = "✂ 精简 1/1" if st == "ready" else "✂ 本幕已用"
+
+
+func _on_trim_pressed() -> void:
+	if hud != null:
+		hud.show_trim_dialog()
 
 
 # 信息栏标题：点阵字体缺 emoji 字形，这里只用文字，不再拼图标。
@@ -395,12 +429,6 @@ func _node_heading(n: Dictionary) -> String:
 	if t != "":
 		return t
 	return NODE.label(String(n.get("type", "")))
-
-
-func _button_text(n: Dictionary) -> String:
-	if n.is_empty():
-		return "•"
-	return _node_tag(String(n.get("id", "")), String(n.get("type", "")), n)
 
 
 func _node_tag(id: String, type: String, n: Dictionary = {}) -> String:
@@ -434,12 +462,16 @@ func _draw_art() -> void:
 	if board == null:
 		return
 	var font := get_theme_default_font()
-	# 地图底：比整屏略亮的暗紫褐 + 16px 低对比石砖网格（只作质感，不参与交互）
-	_art.draw_rect(Rect2(0, 22, 480, 170), Color("#1a1016"))
+	# 地图底：比整屏略亮的低对比底 + 16px 石砖网格（只作质感，不参与交互）。
+	# G7-A S3：底色按幕取（ACT1 紫褐 / ACT2 青灰 / ACT3 暗红），不新增美术资源。
+	var map_bg: Color = _act_theme.get("map", Color("#1a1016"))
+	var grid_col: Color = _act_theme.get("grid", Color("#1e1319"))
+	var node_line: Color = _act_theme.get("node", Color("#3a2b31"))
+	_art.draw_rect(Rect2(0, 22, 480, 170), map_bg)
 	for gx in range(0, 481, 16):
-		_art.draw_line(Vector2(gx, 22), Vector2(gx, 192), Color("#1e1319"), 1)
+		_art.draw_line(Vector2(gx, 22), Vector2(gx, 192), grid_col, 1)
 	for gy in range(22, 193, 16):
-		_art.draw_line(Vector2(0, gy), Vector2(480, gy), Color("#1e1319"), 1)
+		_art.draw_line(Vector2(0, gy), Vector2(480, gy), grid_col, 1)
 	for n in board.nodes:
 		var from_id := String(n["id"])
 		for nx in n.get("next", []):
@@ -502,7 +534,7 @@ func _draw_node(id: String, pos: Vector2, font: Font) -> void:
 		_art.draw_rect(box, Palette.ACCENT_GOLD, false, 1.0)
 		_art.draw_rect(Rect2(pos.x + 2, pos.y + 2, _node_w - 4, NODE_H - 4), Color("#8c6a24"), false, 1.0)
 	else:
-		_art.draw_rect(box, Color("#3a2b31"), false, 1.0)
+		_art.draw_rect(box, _act_theme.get("node", Color("#3a2b31")), false, 1.0)
 
 	_draw_icon(type, c + Vector2(0, -4), consumed)
 	var tag := _node_tag(id, type, n)
@@ -664,6 +696,8 @@ func _on_node_pressed(id: String) -> void:
 		return
 	for n in board.legal_targets():
 		if String(n["id"]) == id:
+			if controller._journal != null:
+				controller._journal.note_first_pick(id)   # G5 工具：首次手动落点用时
 			_advance_to(id)
 			return
 
@@ -674,6 +708,8 @@ func _advance_to(id: String) -> void:
 	var node: Dictionary = board.advance_to(id)
 	if node.is_empty():
 		return
+	if controller._journal != null:
+		controller._journal.note_node(node)   # G5 工具：路线记录（自动前进/手动落点都算）
 	_moving = true
 	var from_pos: Vector2 = _piece.position
 	refresh()

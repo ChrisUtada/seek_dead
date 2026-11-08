@@ -34,6 +34,7 @@ func _run() -> void:
 		return
 	var meta_backup: Dictionary = duel.meta.duplicate(true)
 	var cfg_was: bool = bool(duel.board_config.enabled)
+	var acts_was: int = int(duel.board_config.acts)
 	var shape_was := String(duel.board_config.shape_id)
 	var special_was := String(duel.board_config.special_id)
 	var template_was := String(duel.board_config.template_id)
@@ -45,6 +46,7 @@ func _run() -> void:
 	_test_content_guarantees(duel)
 	_test_shape_variants(duel)
 	_test_shape_template_matrix(duel)
+	_test_per_act_board(duel)
 	_test_generation_seeds(duel)
 	_test_dice_and_legality(duel)
 	_test_one_shot(duel)
@@ -65,6 +67,7 @@ func _run() -> void:
 	await _test_full_act1_run(duel)
 
 	duel.board_config.enabled = cfg_was
+	duel.board_config.acts = acts_was
 	duel.board_config.shape_id = shape_was
 	duel.board_config.special_id = special_was
 	duel.board_config.template_id = template_was
@@ -102,6 +105,9 @@ func _check(cond: bool, msg: String) -> void:
 func _build_board(duel: DuelController) -> void:
 	duel.board_config.enabled = true
 	duel.board_config.act = 1
+	# 2026-11-08：三幕成为默认（board_config.tres acts=3）后，本套仍验证「单幕 ACT1」契约，
+	# 必须显式钉住 acts=1；三幕契约由 tests/g7_run3_test.gd 覆盖。
+	duel.board_config.acts = 1
 	duel.board_config.dice_sides = 3
 	duel.board_config.boss_ria = 7
 	duel.board_config.shape_id = "standard"   # 既有断言按标准 25 节点骨架写；长尾由 _test_shape_variants 覆盖
@@ -652,6 +658,96 @@ func _test_shape_template_matrix(duel: DuelController) -> void:
 # ---------------------------------------------------------------------------
 # ②e G4 自动验收：500 个种子全部可生成、4 BOSS 可达、节点数与骨架一致
 # ---------------------------------------------------------------------------
+
+# G7-A S3：三幕棋盘按幕参数化（3 幕 × 3 骨架 × 5 模板）。
+# BOSS 节点必须取本幕 BOSS 房（不再静默回退普通房）；ACT3 的第四条尾路由最终 BOSS 承担；
+# ACT1/ACT2 不得出现最终 BOSS；每张棋盘都能走到 BOSS（无软锁）。
+func _test_per_act_board(duel: DuelController) -> void:
+	var cfg = duel.board_config
+	var shapes := ["standard", "long_tail", "long_share"]
+	var tpl_ids: Array[String] = []
+	for t in GENERATOR.TEMPLATES:
+		tpl_ids.append(String(t["id"]))
+	var acts := [1, 2, 3]
+	var runs := 0
+	var bad: Array[String] = []
+	var finals := {1: 0, 2: 0, 3: 0}
+	var boss_rooms := {1: {}, 2: {}, 3: {}}
+	var labels_ok := true
+	for act in acts:
+		for sid in shapes:
+			for tid in tpl_ids:
+				cfg.act = act
+				cfg.shape_id = String(sid)
+				cfg.template_id = String(tid)
+				cfg.special_id = ""
+				seed(9300 + act * 100 + runs)
+				if not duel.board.generate(cfg):
+					bad.append("ACT%d/%s/%s 生成失败" % [act, sid, tid])
+					runs += 1
+					continue
+				runs += 1
+				var b = duel.board
+				if int(b.act) != act:
+					bad.append("ACT%d act 字段错为 %d" % [act, int(b.act)])
+				if b.act_label() != ["ACT I", "ACT II", "ACT III"][act - 1]:
+					bad.append("ACT%d 幕名错 %s" % [act, b.act_label()])
+					labels_ok = false
+				if String(b.progress_text()).begins_with(b.act_label()) == false:
+					bad.append("ACT%d 进度文本未带幕名" % act)
+				if b.boss_ids.size() != 4:
+					bad.append("ACT%d BOSS 节点数 %d" % [act, b.boss_ids.size()])
+				var final_here := 0
+				for id in b.boss_ids:
+					var node: Dictionary = b.node_by_id(id)
+					var room: RoomData = node.get("room")
+					if room == null:
+						bad.append("ACT%d %s 无房" % [act, id])
+						continue
+					if String(room.kind) != "boss":
+						bad.append("ACT%d %s 是非 BOSS 房(%s)" % [act, id, room.kind])
+					if int(room.act) != act:
+						bad.append("ACT%d 出现他幕房 act=%d" % [act, int(room.act)])
+					if room.final_boss:
+						final_here += 1
+					boss_rooms[act][room.resource_path] = true
+				if final_here > 1:
+					bad.append("ACT%d 出现 %d 个最终 BOSS" % [act, final_here])
+				finals[act] += final_here
+				# 同一张棋盘内战斗房不重复
+				var rooms_seen := {}
+				for n in b.nodes:
+					var rm: RoomData = n.get("room")
+					if rm == null:
+						continue
+					if rooms_seen.has(rm.resource_path):
+						bad.append("ACT%d 房间重复 %s" % [act, rm.resource_path.get_file()])
+					rooms_seen[rm.resource_path] = true
+				# 全路径可走：每次 3 步、取第一个合法格
+				var steps := 0
+				while not b.current_is_boss() and steps < 30:
+					b.dice = 3
+					var legal: Array = b.legal_targets()
+					if legal.is_empty():
+						bad.append("ACT%d 软锁（%s/%s）" % [act, sid, tid])
+						break
+					if b.advance_to(String(legal[0]["id"])).is_empty():
+						bad.append("ACT%d 无法前进" % act)
+						break
+					steps += 1
+				if not b.current_is_boss():
+					bad.append("ACT%d 30 步内未到 BOSS" % act)
+	_check(runs == 45, "三幕矩阵共 45 张棋盘（%d）" % runs)
+	_check(bad.is_empty(), "三幕 × 3 骨架 × 5 模板全部合法（异常 %d：%s）" % [bad.size(), ",".join(bad.slice(0, 4))])
+	_check(labels_ok, "每幕棋盘幕名正确（ACT I / II / III）")
+	_check(finals[1] == 0 and finals[2] == 0, "ACT1/ACT2 不出现最终 BOSS（%d/%d）" % [finals[1], finals[2]])
+	_check(finals[3] == 15, "ACT3 每张棋盘恰好 1 个最终 BOSS（%d/15）" % finals[3])
+	_check(boss_rooms[3].size() == 4, "ACT3 的四条尾路用满 4 个 BOSS（%d）" % boss_rooms[3].size())
+	cfg.act = 1
+	cfg.shape_id = "standard"
+	cfg.template_id = ""
+	cfg.special_id = "treasure"
+
 
 func _test_generation_seeds(duel: DuelController) -> void:
 	var cfg = duel.board_config

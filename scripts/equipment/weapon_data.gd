@@ -15,22 +15,17 @@ enum WeaponType { MELEE, RANGED }
 @export var attack_speed: float = 1.0
 @export var attack_range: float = 40.0
 
-# -- 武器场景 --
-@export var weapon_scene: PackedScene
-@export var grip_point: Vector2 = Vector2.ZERO   # 握把锚点（武器精灵上"手握住的位置"，相对于精灵原点）
-@export var visual_offset: Vector2 = Vector2.ZERO  # 武器视觉偏移（微调武器在角色上的位置）
-@export var visual_scale: Vector2 = Vector2.ONE   # 武器视觉缩放
+# G8 第二切片（2026-11-08）：删除零引用的 ARPG 残留字段 weapon_scene / grip_point /
+# visual_offset / visual_scale / heat_per_attack / bullet_scene（代码 0 引用、.tres 0 写入）。
+# 下面其余"遗留字段"（damage / attack_* / status_effect_* / bullet_speed 等）仍被 .tres 写入，
+# 保留声明以免资源里的属性失去落点。
 
 # -- 状态效果 --
 @export var status_effect_type: int = -1
 @export var status_effect_damage: float = 0.0
 @export var status_effect_duration: float = 3.0
 
-# -- 过热 --
-@export var heat_per_attack: float = -1.0
-
 # -- 远程专属 --
-@export var bullet_scene: PackedScene
 @export var bullet_speed: float = 600.0
 @export var max_ammo: int = 0
 @export var ammo_per_shot: int = 1

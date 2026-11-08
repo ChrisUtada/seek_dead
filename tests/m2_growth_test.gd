@@ -4,15 +4,17 @@ extends Node
 # M2-01 角色历练与技艺 · headless 回归
 # 运行：Godot --headless --fixed-fps 60 --path <项目> res://tests/m2_growth_test.tscn
 #
-# 覆盖（docs/统一落地执行计划.md M2-01 / docs/M0-02_样板范围.md §1）：
-# ① 历练经验：普通 1 / 精英 2 / BOSS 3；Lv.2 @3、Lv.3 @7、Lv.4 @12；每级最大 HP +5 并恢复
-# ② 技艺次数：仅 Lv.2 / Lv.4 各给 1 次待选；Lv.4 封顶，之后经验照常累计但不再升级
+# 覆盖（docs/统一落地执行计划.md M2-01 / docs/M0-02_样板范围.md §1；
+# G7-A S1 起成长扩至 Lv.6 / 3 技艺 / 池 9，见 docs/G7-A_切片拆分与验收清单_2026-11-08.md）：
+# ① 历练经验：普通 1 / 精英 2 / BOSS 3；Lv.2 @3、Lv.3 @7、Lv.4 @12、Lv.5 @20、Lv.6 @30；每级最大 HP +5 并恢复
+# ② 技艺次数：Lv.2 / Lv.4 / Lv.6 各给 1 次待选；Lv.6 封顶，之后经验照常累计但不再升级
 # ③ 三选一候选：3 个、互不相同、均未拥有、覆盖不同家族
 # ④ 选定：非法选择拒绝；同一技艺不可重复；坚韧 +10 HP 并恢复；备用药剂 腰带各 +1
 # ⑤ 落点：守势每房 +8 护盾；精打细算 +1 免费刷新；稳定节奏 前 2 回合间隔 0.17s
 # ⑥ 洞察：转轮 next_symbol 取当前位置的下一格，带子空时为 null
 # ⑦ 流程：房间胜利且有待选 → 弹出三选一，选完才进入房间间歇
 # ⑧ 新一局：reset_run 清零经验 / 等级 / 技艺
+# ⑨ G7-A S1 新技艺：回春房胜利回血（BOSS 房更多、不超上限）；积蓄房胜利给金；稳手每回合一次缓冲
 # 测试结束还原 meta（不污染玩家真实存档）。
 # ============================================================================
 
@@ -37,6 +39,7 @@ func _run() -> void:
 	_test_perk_choices(duel)
 	_test_pick_rules(duel)
 	_test_hooks(duel)
+	_test_new_perks(duel)
 	_test_next_symbol(duel)
 	_test_room_flow_offers_pick(duel)
 	_test_reset(duel)
@@ -96,11 +99,24 @@ func _test_xp_and_levels(duel: DuelController) -> void:
 	g.grant_room_xp("boss")
 	_check(g.xp == 10 and g.level == 3, "BOSS 房 +3，累计 10 仍为 Lv.3")
 	g.grant_room_xp("boss")
-	_check(g.level == 4 and duel.player_hp_max == 115, "累计 12 升 Lv.4，最大 HP 再 +5")
+	_check(g.xp == 13 and g.level == 4 and duel.player_hp_max == 115, "累计 13 升 Lv.4，最大 HP 再 +5")
 	_check(g.pending_picks == 2, "Lv.4 累计 2 次技艺选择")
 	g.grant_room_xp("boss")
-	_check(g.level == 4 and g.pending_picks == 2 and duel.player_hp_max == 115, "Lv.4 封顶：经验累计但不再升级")
-	_check(g.xp == 16, "封顶后经验照常累计（16）")
+	_check(g.xp == 16 and g.level == 4, "累计 16 仍为 Lv.4（G7-A：Lv.5 门槛 20）")
+	g.grant_room_xp("elite")
+	g.grant_room_xp("elite")
+	_check(g.xp == 20 and g.level == 5 and duel.player_hp_max == 120, "累计 20 升 Lv.5，最大 HP +5")
+	_check(g.pending_picks == 2, "Lv.5 不额外给技艺")
+	g.grant_room_xp("boss")
+	g.grant_room_xp("boss")
+	g.grant_room_xp("boss")
+	_check(g.xp == 29 and g.level == 5, "累计 29 仍为 Lv.5（Lv.6 门槛 30）")
+	g.grant_room_xp("boss")
+	_check(g.xp == 32 and g.level == 6 and duel.player_hp_max == 125, "累计 30 升 Lv.6，最大 HP 125")
+	_check(g.pending_picks == 3, "Lv.6 累计 3 次技艺选择（上限）")
+	g.grant_room_xp("boss")
+	_check(g.level == 6 and g.pending_picks == 3 and duel.player_hp_max == 125, "Lv.6 封顶：经验累计但不再升级")
+	_check(g.xp == 35, "封顶后经验照常累计（35）")
 
 
 func _test_perk_choices(duel: DuelController) -> void:
@@ -165,6 +181,90 @@ func _test_hooks(duel: DuelController) -> void:
 	_check(is_equal_approx(g.spin_wait_base(0.15), 0.17), "稳定节奏：第 2 回合间隔 0.17")
 	duel.turn_count = 3
 	_check(is_equal_approx(g.spin_wait_base(0.15), 0.15), "稳定节奏：第 3 回合起回落 0.15")
+	g.perk_ids.clear()
+
+
+func _test_new_perks(duel: DuelController) -> void:
+	# 回春 / 积蓄：房胜利结算（普通房与 BOSS 房两档）
+	_fresh(duel)
+	var g = duel.growth
+	g.perk_ids.append("regen")
+	duel.player_hp_max = 125
+	duel.player_hp = 100
+	g.apply_victory_perks("normal")
+	_check(duel.player_hp == 104, "回春：普通房胜利恢复 4 HP")
+	duel.player_hp = 120
+	g.apply_victory_perks("boss")
+	_check(duel.player_hp == 125, "回春：BOSS 房回血不超上限（120 → 125）")
+	duel.player_hp = 100
+	g.apply_victory_perks("boss")
+	_check(duel.player_hp == 108, "回春：BOSS 房胜利恢复 8 HP")
+
+	g.perk_ids.clear()
+	duel.gold = 0
+	g.apply_victory_perks("normal")
+	_check(duel.gold == 0, "未选积蓄：房胜利不给金")
+	g.perk_ids.append("hoard")
+	g.apply_victory_perks("normal")
+	_check(duel.gold == 2, "积蓄：普通房胜利 +2 金")
+	g.apply_victory_perks("boss")
+	_check(duel.gold == 7, "积蓄：BOSS 房胜利 +5 金")
+	g.enabled = false
+	g.apply_victory_perks("boss")
+	_check(duel.gold == 7, "探针关闭时不结算房胜利技艺")
+	g.enabled = true
+	g.perk_ids.clear()
+
+	# 稳手：视觉中心在下一格时，每回合可用一次一拍缓冲；用掉后本回合不再缓冲
+	var rs = duel.reel_system
+	var rd = duel.readability
+	var a = duel.TRASH_SYMBOL
+	var b = duel.GOLD_SYMBOL
+	var backup_strips = rs.reel_strips.duplicate(true)
+	var backup_cursor = rs.reel_cursor.duplicate()
+	var backup_stopped = rs.reel_stopped.duplicate()
+	g.perk_ids.append("steady_hand")
+	rd.buffer_enabled = false
+	rd.visual_stop = false
+	rd.begin_spin()
+	_check(rd.steady_hand_ready(), "稳手：预设未开缓冲时仍可用（每回合一次）")
+	rs.reel_strips = [[[a, "none"], [b, "none"]]]
+	rs.reel_cursor.clear()
+	for i in DuelController.REELS:
+		rs.reel_cursor.append(0)
+	rs.reel_stopped.clear()
+	for i in DuelController.REELS:
+		rs.reel_stopped.append(false)
+	rs._pending_stops.clear()
+	# 视觉中心由 ReelSpinView 计算：非旋转态直接等于 cursor，测不出「下一格」。
+	# 这里把视图置为旋转态（_index=0、_frac=1.0、带子 2 格），视觉中心固定为索引 1，
+	# 逻辑游标停在 0 → 正好是「视觉中心在下一格」。
+	var view = duel.hud.cell_spin_views[0][0]
+	var backup_active = view._active
+	var backup_frac = view._frac
+	var backup_index = view._index
+	view._index = 0
+	view._frac = 1.0
+	view._active = true
+	var vi: int = duel.hud.visual_center_index(0)
+	_check(vi == 1, "稳手测试前提：视觉中心为索引 1（实测 %d）" % vi)
+	rs.reel_cursor[0] = 0
+	rs.lock_reel(0)
+	_check(rs.has_pending_stop(0) and not rs.reel_stopped[0], "稳手：进入一拍缓冲而不是立即落子")
+	_check(not rd.steady_hand_ready(), "稳手：本回合的缓冲已用掉")
+	rs._pending_stops.clear()
+	rs.reel_stopped[0] = false
+	rs.lock_reel(0)
+	_check(rs.reel_stopped[0], "稳手：本回合第二次按停不再缓冲，直接落子")
+	rd.begin_spin()
+	_check(rd.steady_hand_ready(), "稳手：下一回合重新可用")
+	view._active = backup_active
+	view._frac = backup_frac
+	view._index = backup_index
+	rs.reel_strips = backup_strips
+	rs.reel_cursor = backup_cursor
+	rs.reel_stopped = backup_stopped
+	rs._pending_stops.clear()
 	g.perk_ids.clear()
 
 

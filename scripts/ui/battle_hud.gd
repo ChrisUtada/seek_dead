@@ -9,19 +9,20 @@ const DEFAULT_ENEMY_TEXTURE = preload("res://assets/enemy_ember.png")   # 普通
 const ENEMY_SPRITE_SIZE := Vector2(48, 48)    # 敌人立绘基准尺寸（1× = 48×48，与玩家同规格；art_scale 为整数倍）
 const UI_BUTTON = preload("res://scenes/ui/ui_button.tscn")
 const GROWTH_PICKER = preload("res://scripts/ui/growth_picker.gd")
-const ITEM_CARD = preload("res://scenes/ui/item_card.tscn")
-const UI_PANEL = preload("res://scenes/ui/ui_panel.tscn")
 const SYMBOL_CELL = preload("res://scenes/ui/symbol_cell.tscn")
 const REEL_SPIN_VIEW = preload("res://scripts/ui/reel_spin_view.gd")
-const Screen = preload("res://scripts/ui/screen.gd")
+const POPUP_POOL = preload("res://scripts/ui/popup_pool.gd")
+const SYMBOL_TOOLTIP = preload("res://scripts/ui/symbol_tooltip.gd")
 const META_SCENE = preload("res://scenes/ui/meta_screen.tscn")
 const REWARD_SCENE = preload("res://scenes/ui/reward_screen.tscn")
 const ANVIL_SCENE = preload("res://scenes/ui/anvil_screen.tscn")
 const SHOP_SCENE = preload("res://scenes/ui/shop_screen.tscn")
 const LOADOUT_SCENE = preload("res://scenes/ui/loadout_scene.tscn")
 const BOARD_SCREEN = preload("res://scripts/board/board_screen.gd")
+const CARD_FACTORY = preload("res://scripts/ui/card_factory.gd")   # G8 第二切片：卡片构造外迁
 
 var controller   # DuelController 引用（运行时由 _ready 设置）
+var _cards       # CardFactory（build_all 内实例化；只造控件，不持有状态）
 
 # ---- 意图信号（HUD → controller，单向数据流；P2 解耦）----
 # HUD 只发「用户想做什么」，不调用 controller 私有方法、不读 controller 字段名。
@@ -57,6 +58,7 @@ signal shop_reroll_requested                   # 商店货架刷新（2026-08-09
 
 # ---- 公开语义接口（controller → HUD 单向调用，替代直接戳私有节点/字段；P2 解耦）----
 func build_all() -> void:
+	_cards = CARD_FACTORY.new(self, controller)
 	panel_view = preload("res://scripts/ui/player_panel_view.gd").new()
 	panel_view.configure(self, weapons_row, charms_row, skills_row, consumable_cells)   # P2：左栏刷新逻辑外迁（须先于 _build_ui——其内会首次刷腰带）
 	_build_ui()
@@ -78,6 +80,8 @@ func set_interroom_enabled(on: bool) -> void:
 		interroom_shop_btn.disabled = not on
 	if interroom_next_btn != null:
 		interroom_next_btn.disabled = not on
+	_interroom_on = on
+	_refresh_trim_entry()
 	# 间歇时战斗已结束，隐藏中央 BOSS 名称/意图，避免与下一房浮层重叠
 	if on:
 		enemy_stage_intent.visible = false
@@ -153,6 +157,9 @@ var anvil_screen                        # 铁砧锻造覆盖层（anvil_screen.t
 # 房间歇态按钮（opt-in 商店 + 下一房）：静态节点在 battle_hud.tscn InfoBar，默认禁用，间歇态由 controller 点亮
 @onready var interroom_shop_btn = $Margin/Content/InfoBar/ShopBtn
 @onready var interroom_next_btn = $Margin/Content/InfoBar/NextRoomBtn
+# G7-B B3：主动减带入口（线性间歇态）。代码内建在 InfoBar 上，与棋盘屏按钮共用同一弹层。
+var interroom_trim_btn = null
+var _interroom_on := false
 # 下一房预告为根节点浮层：不参与 Content 高度计算，避免间歇态把 HUD 顶出 480×270
 @onready var next_room_bar = $NextRoomBar
 
@@ -209,12 +216,8 @@ var panel_view                       # P2（2026-08-24）：左栏玩家面板�
 var overlay
 var overlay_label
 var overlay_button
-var symbol_tooltip                  # 转轮格子悬停提示面板
-var symbol_tooltip_label
-var symbol_tooltip_detail
-var popup_layer                    # 飘字专用浮层（满屏，忽略鼠标）
-var _popup_pool := []              # 预建 Label 池
-var _popup_free := []              # 空闲 Label 栈
+var symbol_tooltip                  # 转轮格子悬停提示面板（scripts/ui/symbol_tooltip.gd）
+var popup_layer                    # 飘字专用浮层（scripts/ui/popup_pool.gd）
 
 func _label(text: String, font_size: int = TypeScale.BODY) -> Label:
 	var l = Label.new()
@@ -223,24 +226,6 @@ func _label(text: String, font_size: int = TypeScale.BODY) -> Label:
 	if font_size > 0:
 		l.add_theme_font_size_override("font_size", font_size)
 	return l
-
-
-func _make_side_panel(min_width: int) -> PanelContainer:
-	# 面板外观（bg/border/圆角/边距）已由 duel.tscn 挂载的 battle_theme.tres 统一提供
-	var panel = UI_PANEL.instantiate()
-	panel.custom_minimum_size = Vector2(min_width, 0)
-	return panel
-
-
-# ---- Phase 3 辅助：快捷键 / 焦点链 / 分类名 ----
-func _make_shortcut(keycode: int, ctrl := false, alt := false) -> Shortcut:
-	var ev = InputEventKey.new()
-	ev.keycode = keycode
-	ev.ctrl_pressed = ctrl
-	ev.alt_pressed = alt
-	var s = Shortcut.new()
-	s.events = [ev]
-	return s
 
 
 func _chain_focus(buttons: Array) -> void:
@@ -267,13 +252,7 @@ func _kind_name(kind: String) -> String:
 		_:         return kind
 
 func _source_tag(kind: String) -> String:
-	# 来源标签：让玩家一眼看懂「同一效果为何出现在不同分类（常驻/主动/转轮）」
-	match kind:
-		"weapon":  return "【武器】"
-		"passive": return "【常驻】"
-		"active":  return "【主动】"
-		"skill":   return "【转轮】"
-		_:         return ""
+	return _cards.source_tag(kind)
 
 
 func _build_ui() -> void:
@@ -353,6 +332,18 @@ func _build_ui() -> void:
 	interroom_shop_btn.connect("pressed", shop_requested.emit)
 	interroom_next_btn.connect("pressed", next_room_requested.emit)
 
+	# G7-B B3：主动减带入口（线性间歇态）。插在「商店」左边，棋盘模式的入口在 board_screen。
+	interroom_trim_btn = UI_BUTTON.instantiate()
+	interroom_trim_btn.text = "✂ 精简"
+	interroom_trim_btn.custom_minimum_size = Vector2(58, 18)
+	interroom_trim_btn.add_theme_font_size_override("font_size", 9)
+	interroom_trim_btn.disabled = true
+	interroom_trim_btn.visible = false
+	interroom_trim_btn.pressed.connect(show_trim_dialog)
+	var info_bar = $Margin/Content/InfoBar
+	info_bar.add_child(interroom_trim_btn)
+	info_bar.move_child(interroom_trim_btn, interroom_shop_btn.get_index())
+
 	# P4：战斗动画器挂在 hud 下，setup 时缓存 PlayerSprite/EnemySprite 节点
 	animator = BattleAnimator.new()
 	add_child(animator)
@@ -412,7 +403,8 @@ func _refresh_p1_ui() -> void:
 	if rd == null:
 		p1_target_label.text = ""
 		return
-	p1_target_label.text = "🎯 %s · %s" % [rd.target_label(), String(rd.preset)]
+	p1_target_label.text = "🎯 %s · %s · %s" % [rd.target_label(), String(rd.target_reason), String(rd.preset)]
+	p1_target_label.tooltip_text = String(rd.target_detail)
 
 
 # P1：刷新每列“下一格”预览。只在旋转中、预览槽位 > 0 时显示。
@@ -526,92 +518,10 @@ func hide_board_screen(show_hud: bool = false) -> void:
 	board_screen.hide_board(show_hud)
 
 
-func _item_pool_of(category: String) -> Array:
-	var out := []
-	for p in controller.state.ITEM_POOL:
-		var d = load(p)
-		if d is ItemData and d.category == category:
-			out.append(p)
-	return out
-
-
+# 卡片构造已外迁 scripts/ui/card_factory.gd（G8 第二切片）；这里保留同名薄包装，
+# reward_screen / shop_screen / meta_screen / loadout_scene 与测试的调用点不变。
 func _make_item_card(data: Resource, path: String, kind: String) -> Dictionary:
-	# 重要：根节点是 Button（来自 ui_button.tscn），它只渲染自己 text 字段。
-	# 之前 btn.add_child(VBox) 是被 Button 忽略的——必须用 \n 拼多行 + 紧凑 line_spacing。
-	var btn = UI_BUTTON.instantiate()
-	btn.custom_minimum_size = Vector2(0, 26)
-	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	btn.add_theme_constant_override("line_spacing", 0)
-	btn.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
-	btn.autowrap_mode = TextServer.AUTOWRAP_OFF
-	btn.clip_text = true
-	btn.text = ""
-	var title := ""
-	var line1 := ""   # 图标/核心信息
-	var line2 := ""   # 数值/权重
-	if kind == "weapon":
-		title = data.weapon_name if (data != null) else path.get_file().get_basename()
-		if data != null:
-			var wd := data as WeaponData
-			# line1 = 符号概览（主攻 + 特殊机制符号的 label，不显示权重——2026-08-07 重构后武器只带主攻+机制）
-			if wd != null and wd.symbols != null and not wd.symbols.is_empty():
-				var parts := []
-				for sw in wd.symbols:
-					if sw == null or sw.symbol == null:
-						continue
-					parts.append(sw.symbol.label)
-				line1 = "🗡️ " + " ".join(parts)
-			# line2 = 强度轴（2026-08-09 更新）：攻击力 · 元素 · 命中率 · 非三连暴击率 · 特殊机制（MISS 恢复后命中率复活）
-			var elem_txt := "无"
-			if wd != null and wd.element != "":
-				elem_txt = ElementCounter.label(wd.element)
-			var crit_total: int = int((controller.BALANCE.crit_chance + (wd.crit_chance if wd != null else 0.0)) * 100)
-			var hit_pct: int = int(controller.weapon_hit(path) * 100)
-			var mech_name := "—"
-			if wd != null and wd.symbols != null:
-				for sw in wd.symbols:
-					if sw == null or sw.symbol == null:
-						continue
-					if sw.symbol.kind == "special" or sw.symbol.kind == "status":
-						mech_name = sw.symbol.name
-						break
-			# G0-02：攻击显示锋铸后的真实基础攻击；G6-05：再显示铸式后的命中/攻击。
-			var forge_n: int = controller.mastery.forge_bonus(path) if controller.mastery != null else 0
-			var atk_txt := "攻%d" % controller.weapon_power(path)
-			if forge_n > 0:
-				atk_txt += "（+%d）" % forge_n
-			line2 = "%s · %s · 命中%d%% · 暴%d%% · %s" % [atk_txt, elem_txt, hit_pct, crit_total, mech_name]
-	elif kind == "skill":
-		title = data.buff_name if (data != null) else path.get_file().get_basename()
-		if data != null:
-			line1 = "%s %s" % [data.icon, data.description]
-			# 技能强度轴（2026-08-09 更新）：攻击力 · 命中率 · 非三连暴击率 · 符号回合
-			var sym_txt := "无符号"
-			if data.symbol != null:
-				sym_txt = "×%d·%dT" % [int(data.weight), data.symbol.buff_turns]
-			var s_crit: int = int((controller.BALANCE.crit_chance + data.crit_chance) * 100)
-			var s_hit: int = int(data.hit_rate * 100)
-			line2 = "攻%d · 命中%d%% · 暴%d%% · %s" % [int(data.base_power), s_hit, s_crit, sym_txt]
-	else:
-		title = data.item_name if (data != null) else path.get_file().get_basename()
-		if data != null:
-			line1 = "%s %s" % [data.icon, data.description]
-			line2 = "持有 %d" % data.charges if (kind == "active" and data.get("charges") != null) else "被动"
-
-	title = _source_tag(kind) + title
-	# Button 多行：title(line1)line2。靠 \n 排版；首行用 BBCode 强调名字(可选)
-	var body := title
-	if line1 != "":
-		body += "\n" + line1
-	if line2 != "":
-		body += "\n" + line2
-	btn.text = body
-	# M3-03：通用图标绑定（武器 / 技能 / 消耗品 / 护符）；无图保持 emoji 文本。
-	if data != null and data.get("icon_tex") != null:
-		btn.icon = data.icon_tex
-	var card := {"path": path, "btn": btn, "selected": false, "kind": kind}
-	btn.connect("pressed", card_toggled.emit.bind(card))
-	return card
+	return _cards.item_card(data, path, kind)
 
 
 # 整备屏已抽为纯 2D 场景 loadout_scene.gd（q-0）；以下仅保留薄包装，
@@ -658,61 +568,17 @@ func show_post_battle(offer: Array, summary: String) -> void:
 
 
 func _make_reward_card(rw: RewardData, index: int = -1, slot_label: String = "") -> Button:
-	var card: ItemCard = ITEM_CARD.instantiate()
-	# Step 4：有 24px 主图时卡片需要更高，否则「图 24 + 标题 + 描述」会顶出卡片（原 60 高）
-	card.custom_minimum_size = Vector2(84, 96)
-	# M1-01：候选在展示前已确定具体物品（payload），卡片直接显示真实结果
-	var payload: Dictionary = controller._reward_system.payload_at(index) if index >= 0 else {}
-	# Step 4：卡片主图优先用「候选物品自身的美术」（payload.path → art/icon_tex），
-	# 其次用奖励类型美术（rw.art），都没有则保持 emoji 文本。
-	var art: Texture2D = rw.art
-	if not payload.is_empty():
-		var p := String(payload.get("path", ""))
-		if p != "":
-			var res: Resource = load(p)
-			if res != null:
-				if res.get("art") != null:
-					art = res.get("art")
-				elif art == null and res.get("icon_tex") != null:
-					art = res.get("icon_tex")
-	# 有主图时不再重复显示 emoji 图标前缀（否则图 + emoji 并列重复）
-	var prefix: String = "" if art != null else rw.icon + " "
-	var title_text: String = String(payload.get("title", rw.label)) if not payload.is_empty() else rw.label
-	var desc_text: String = String(payload.get("desc", rw.desc)) if not payload.is_empty() else rw.desc
-	if slot_label != "":
-		title_text = "[%s] %s" % [slot_label, title_text]
-	card.configure(prefix + title_text, desc_text)
-	card.set_art(art, Vector2(24, 24))
-	# 槽位标签 + 具体物品名可能超出 84px 卡宽：标题允许换行，避免撑破三列布局。
-	(card.get_node("Center/VBox/TitleLabel") as Label).autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	card.tooltip_text = desc_text   # 卡片只放短文案，完整前后变化走 tooltip
-	card.pressed.connect(func() -> void: reward_chosen.emit(rw.id, index))
-	return card
+	return _cards.reward_card(rw, index, slot_label)
 
 
 # M1：战后成长屏的成长位卡（技艺 / 铭印 / 下一房对策）。
 func _make_post_growth_card(cand: Dictionary) -> Button:
-	var card: ItemCard = ITEM_CARD.instantiate()
-	card.custom_minimum_size = Vector2(84, 96)
-	var icon := String(cand.get("icon", ""))
-	var prefix := (icon + " ") if icon != "" else ""
-	card.configure("%s[%s] %s" % [prefix, cand.get("slot_label", "成长"), cand.get("title", "")],
-		String(cand.get("desc", "")))
-	(card.get_node("Center/VBox/TitleLabel") as Label).autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	card.tooltip_text = String(cand.get("tooltip", cand.get("desc", "")))
-	card.pressed.connect(post_battle_growth_chosen.emit.bind(cand))
-	return card
+	return _cards.post_growth_card(cand)
 
 
 # BOSS 战利品卡（候选为 dict，点击调 _on_boss_reward_chosen；完整说明进 tooltip，卡片只放短文案）
 func _make_boss_reward_card(cand: Dictionary) -> Button:
-	var card: ItemCard = ITEM_CARD.instantiate()
-	card.custom_minimum_size = Vector2(84, 60)
-	card.configure("%s %s" % [cand.get("icon", ""), cand.get("label", "")], cand.get("desc", ""))
-	card.set_art(cand.get("art", null))
-	card.tooltip_text = String(cand.get("tip", cand.get("desc", "")))
-	card.pressed.connect(boss_reward_chosen.emit.bind(cand))
-	return card
+	return _cards.boss_reward_card(cand)
 
 
 # ---------------------------------------------------------------------------
@@ -730,24 +596,12 @@ func _show_meta_choice() -> void:
 
 
 func _make_meta_card(opt: Dictionary) -> Button:
-	var card: ItemCard = ITEM_CARD.instantiate()
-	card.custom_minimum_size = Vector2(130, 60)   # 仅 3 张、覆盖层空间充足，放大提升可读性
-	card.configure("%s %s" % [opt.get("icon", ""), opt.get("label", "")], opt.get("desc", ""), TypeScale.META, 110.0)
-	card.pressed.connect(meta_choice_chosen.emit.bind(opt))
-	return card
+	return _cards.meta_card(opt)
 
 
 # G6-02：生涯定向解锁卡（未拥有装备三选一；点击立即写入图鉴/拥有池）。
 func _make_unlock_card(cand: Dictionary) -> Button:
-	var card: ItemCard = ITEM_CARD.instantiate()
-	card.custom_minimum_size = Vector2(130, 84)
-	card.configure("%s %s" % [cand.get("icon", ""), cand.get("name", "")],
-		String(cand.get("desc", "")), TypeScale.META, 110.0)
-	card.set_art(cand.get("art", null), Vector2(24, 24))
-	card.tooltip_text = String(cand.get("tip", cand.get("desc", "")))
-	card.pressed.connect(func() -> void:
-		career_unlock_chosen.emit(String(cand.get("path", ""))))
-	return card
+	return _cards.unlock_card(cand)
 
 
 func _build_shop_screen() -> void:
@@ -766,61 +620,12 @@ func _refresh_shop() -> void:
 
 
 func _make_shop_card(offer: Dictionary) -> Button:
-	var card: ItemCard = ITEM_CARD.instantiate()
-	card.custom_minimum_size = Vector2(0, 46)
-	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var kind_name = {"weapon": "武器", "passive": "护符", "active": "物品", "skill": "技能"}.get(offer["kind"], "物品")
-	card.configure("%s%s · %s" % [_source_tag(offer["kind"]), kind_name, offer["name"]], "", TypeScale.TITLE, 0.0, 2)
-	card.set_tooltip(load(offer["path"]), offer["kind"])   # 物品悬停信息窗（ItemTooltip 生成器）
-	var price = offer.get("price", controller._shop_price(offer["kind"], -1, offer["path"]))   # 2026-08-10 fix：显示货架锁定报价（不再每次重算 jitter 随机）
-	var is_active = (offer["kind"] == "active")
-	var cap = controller.state.CONSUMABLE_CAP if is_active else controller._loadout_system.cat_max(offer["kind"])          # 消耗品按腰带总容量 4；其余按整备上限
-	var cur = controller.state.consumable_slots.size() if is_active else controller._loadout_system.sel_arr(offer["kind"]).size()   # 消耗品按腰带实占数
-	var can_grow_slot = (not is_active) and controller._loadout_system.can_grow_slot(offer["kind"])   # 消耗品不「开槽」、仅追加腰带格
-	var slot_full = (cur >= cap) and not can_grow_slot
-	# 2026-08-07 武器替换：武器槽满（上限 2）时可点——触发替换弹层（换装），不禁用
-	var weapon_replace: bool = (offer["kind"] == "weapon" and cur >= cap and not can_grow_slot)
-	if weapon_replace:
-		slot_full = false
-	var can_buy = (not offer["sold"]) and controller.state.gold >= price and not slot_full
-	var status: String
-	if offer["sold"]:
-		status = "已购入"
-	elif controller.state.gold < price:
-		status = "金币不足"
-	elif weapon_replace:
-		status = "替换 %d 金" % price   # 槽满 2：点击弹替换选择（旧武器回收藏库）
-	elif slot_full:
-		var cap_txt = controller.state.CONSUMABLE_CAP if is_active else controller._loadout_system.cap_text(offer["kind"])
-		status = "槽位已满 %d/%s" % [cur, cap_txt]
-	elif cur >= cap:
-		status = "开槽 %d 金" % price   # 本次购买会把该类槽 +1
-	else:
-		status = "%d 金" % price
-	var col: Color = Palette.ACCENT_GOLD
-	if offer["sold"]:
-		col = Palette.MUTED_DIM
-	elif not can_buy:
-		col = Palette.ENEMY
-	card.set_status(status, col)
-	card.disabled = not can_buy
-	card.pressed.connect(shop_card_pressed.emit.bind(offer))
-	return card
+	return _cards.shop_card(offer)
 
 
 # 商店「卖出」区：四列列出已持有物品，点击回收约50%金币并释放槽位
 func _make_sell_card(title_text: String, sub_text: String, disabled: bool, cb: Callable, res: Resource = null) -> Button:
-	var card: ItemCard = ITEM_CARD.instantiate()
-	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	card.custom_minimum_size = Vector2(0, 26)
-	card.configure(title_text, sub_text, TypeScale.TINY)
-	card.set_desc_color(Palette.ACCENT_GOLD if not disabled else Palette.MUTED_DIM)
-	if res != null:
-		card.set_tooltip(res)   # 物品悬停信息窗（ItemTooltip 生成器）
-	card.disabled = disabled
-	if not cb.is_null():
-		card.pressed.connect(cb)
-	return card
+	return _cards.sell_card(title_text, sub_text, disabled, cb, res)
 
 
 func _build_anvil_screen() -> void:
@@ -838,7 +643,17 @@ func _build_overlay() -> void:
 	overlay = Control.new()
 	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	var ov_v = Screen.build_centered(overlay, Palette.BG_OVERLAY, 18)
+	# G8：screen.gd 退役，覆盖层脚手架就地内联（仅此一处使用；布局与原先逐行一致）
+	var ov_bg := ColorRect.new()
+	ov_bg.color = Palette.BG_OVERLAY
+	ov_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.add_child(ov_bg)
+	var ov_center := CenterContainer.new()
+	ov_center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.add_child(ov_center)
+	var ov_v := VBoxContainer.new()
+	ov_v.add_theme_constant_override("separation", 18)
+	ov_center.add_child(ov_v)
 	overlay_label = _label("", TypeScale.REEL)
 	ov_v.add_child(overlay_label)
 	overlay_button = UI_BUTTON.instantiate()
@@ -854,29 +669,7 @@ func _build_overlay() -> void:
 # Phase 3：符号 tooltip（转轮格子悬停提示）
 # ---------------------------------------------------------------------------
 func _build_symbol_tooltip() -> void:
-	symbol_tooltip = PanelContainer.new()
-	symbol_tooltip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	symbol_tooltip.visible = false
-	var sb = StyleBoxFlat.new()
-	sb.bg_color = Palette.TOOLTIP_BG
-	sb.border_color = Palette.PANEL_BORDER
-	sb.set_border_width_all(Palette.BORDER_WIDTH)
-	sb.set_corner_radius_all(Palette.PANEL_RADIUS)
-	sb.content_margin_left = 8
-	sb.content_margin_right = 8
-	sb.content_margin_top = 6
-	sb.content_margin_bottom = 6
-	symbol_tooltip.add_theme_stylebox_override("panel", sb)
-	var vb = VBoxContainer.new()
-	vb.add_theme_constant_override("separation", 2)
-	symbol_tooltip.add_child(vb)
-	symbol_tooltip_label = _label("", TypeScale.META)
-	symbol_tooltip_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	vb.add_child(symbol_tooltip_label)
-	symbol_tooltip_detail = _label("", TypeScale.TINY)
-	symbol_tooltip_detail.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	symbol_tooltip_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	vb.add_child(symbol_tooltip_detail)
+	symbol_tooltip = SYMBOL_TOOLTIP.new()   # 面板外观/两行文本/定位见 scripts/ui/symbol_tooltip.gd
 	add_child(symbol_tooltip)
 
 
@@ -907,22 +700,16 @@ func _on_cell_hover(reel: int, row: int) -> void:
 	var rel = ElementCounter.relation(elem, controller.state.enemy_element)
 	var rel_mult = ElementCounter.multiplier(elem, controller.state.enemy_element)
 	var rel_text = ("" if elem == "none" else " · 对敌%s ×%s" % [rel, ElementCounter.fmt_mult(rel_mult)])
-	symbol_tooltip_label.text = "%s %s" % [s.label, s.name]
+	var title := "%s %s" % [s.label, s.name]
+	var detail := ""
 	if s.kind == "buff":
 		# Phase C：增益符号显示效果与持续回合，而非属性克制
 		var vtxt = ("×%.1f" % s.buff_value) if s.buff_effect == "damage_mult" else ("+%d" % int(s.buff_value))
-		symbol_tooltip_detail.text = "技能 · %s %s · 持续 %d 回合" % [controller.status_system.buff_effect_name(s.buff_effect), vtxt, s.buff_turns]
+		detail = "技能 · %s %s · 持续 %d 回合" % [controller.status_system.buff_effect_name(s.buff_effect), vtxt, s.buff_turns]
 	else:
-		symbol_tooltip_detail.text = "%s · %s%s" % [_kind_name(s.kind), (ElementCounter.label(elem) if elem != "none" else "无属性"), rel_text]
-	# 定位到格子上方并夹紧屏幕边界
-	var gp = cells[reel][row].get_global_rect()
-	var pr = get_global_rect()
-	var tp = symbol_tooltip.get_combined_minimum_size()
-	var x = gp.position.x - pr.position.x
-	x = clamp(x, 4.0, pr.size.x - tp.x - 4.0)
-	var y = gp.position.y - pr.position.y - tp.y - 4.0
-	symbol_tooltip.position = Vector2(x, y)
-	symbol_tooltip.visible = true
+		detail = "%s · %s%s" % [_kind_name(s.kind), (ElementCounter.label(elem) if elem != "none" else "无属性"), rel_text]
+	# 定位到格子上方并夹紧 HUD 边界
+	symbol_tooltip.show_tip(title, detail, cells[reel][row].get_global_rect(), get_global_rect())
 
 
 func _on_cell_unhover() -> void:
@@ -934,18 +721,8 @@ func _on_cell_unhover() -> void:
 # Phase 3：飘字对象池（避免每次 new + queue_free）
 # ---------------------------------------------------------------------------
 func _build_popup_layer() -> void:
-	popup_layer = Control.new()
-	popup_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	popup_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	popup_layer = POPUP_POOL.new()   # 池与飘字动画见 scripts/ui/popup_pool.gd
 	add_child(popup_layer)
-	for i in 16:
-		var l = Label.new()
-		l.visible = false
-		l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		popup_layer.add_child(l)
-		_popup_pool.append(l)
-		_popup_free.append(l)
 
 
 # ---------------------------------------------------------------------------
@@ -994,6 +771,16 @@ func _show_turn_feedback(counts: Dictionary, total: int, triple: bool = false, e
 		best_label = String(s.name) if String(s.name) != "" else String(s.label)
 		best_n = c
 	var parts: Array[String] = []
+	for key in counts:
+		var sym: SymbolData = counts[key][0]
+		if sym != null and String(sym.kind) == "shield":
+			parts.append("护盾准备")
+			break
+	for key in counts:
+		var sym: SymbolData = counts[key][0]
+		if sym != null and String(sym.kind) == "heal":
+			parts.append("恢复")
+			break
 	if best_n >= 2:
 		parts.append("%s×%d" % [best_label, best_n])
 	if elem_triple:
@@ -1006,6 +793,8 @@ func _show_turn_feedback(counts: Dictionary, total: int, triple: bool = false, e
 		parts.append("抵抗×%s" % ElementCounter.fmt_mult(ElementCounter.MULT_RESIST))
 	if total > 0:
 		parts.append("-%d" % total)
+		if controller.enemy_hp > 0 and controller.enemy_hp <= int(controller.enemy_hp_max * 0.25):
+			parts.append("收尾窗口")
 	feedback_label.text = " / ".join(parts)
 
 
@@ -1039,38 +828,11 @@ func _update_enemy_element() -> void:
 		enemy_resist_label.add_theme_color_override("font_color", ElementCounter.color(ers[0]))
 
 
-# 飘字：在 anchor 面板顶部中央弹出并上浮淡出（Phase 3：固定对象池借出/归还）
+# 飘字：在 anchor 面板顶部中央弹出并上浮淡出（对象池实现见 scripts/ui/popup_pool.gd）
 func _popup(text: String, color: Color, anchor: Control) -> void:
-	if anchor == null or popup_layer == null:
+	if popup_layer == null:
 		return
-	var lbl: Label
-	if _popup_free.is_empty():
-		lbl = Label.new()
-		lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		popup_layer.add_child(lbl)
-		_popup_pool.append(lbl)
-	else:
-		lbl = _popup_free.pop_back()
-	lbl.text = text
-	lbl.add_theme_font_size_override("font_size", TypeScale.OVERLAY)
-	lbl.add_theme_color_override("font_color", color)
-	lbl.modulate = Color(1, 1, 1, 1)
-	lbl.visible = true
-	var gp = anchor.get_global_rect()
-	var pr = popup_layer.get_global_rect()
-	var w = lbl.get_minimum_size().x
-	lbl.position = Vector2(gp.position.x - pr.position.x + gp.size.x * 0.5 - w * 0.5, gp.position.y - pr.position.y + 2)
-	var tw = create_tween()
-	tw.tween_property(lbl, "position:y", lbl.position.y - 14, 0.8)
-	tw.parallel().tween_property(lbl, "modulate:a", 0.0, 0.8)
-	tw.tween_callback(_return_popup.bind(lbl))
-
-
-func _return_popup(lbl: Label) -> void:
-	lbl.visible = false
-	if not _popup_free.has(lbl):
-		_popup_free.append(lbl)
+	popup_layer.popup(text, color, anchor)
 
 
 func _player_sprite_anchor() -> Control:
@@ -1381,6 +1143,7 @@ func _intent_display_name(t: String) -> String:
 # 2026-08-07 通用武器替换弹层（商店 / BOSS 战利品共用）：顶部显示新武器详情，下方点旧武器替换
 var _replace_dialog: PanelContainer = null
 var _replace_vbox: VBoxContainer = null
+var _replace_scroll: ScrollContainer = null   # 2026-11-08：内容超过屏幕时可滚动，避免底部按钮被裁掉
 var _replace_cb: Callable = Callable()
 var _replace_cancel_cb: Callable = Callable()   # M2：棋盘武器格取消时回到棋盘（默认空 = 旧行为）
 var _camp_dialog: PanelContainer = null
@@ -1420,9 +1183,17 @@ func request_weapon_replace(title: String, new_weapon_info: String, on_chosen: C
 		sb2.border_color = Palette.ACCENT_GOLD
 		sb2.set_border_width_all(2)
 		dlg.add_theme_stylebox_override("panel", sb2)
+		# 2026-11-08 修复：两把旧武器 + 替换预览 + 新武器详情在 480×270 下最高可到 ~300px，
+		# 居中面板会上下溢出，底部「取消 / 替换」按钮被裁到屏幕外。改为限高滚动：
+		# 内容不超屏时仍按内容高度（外观不变），超屏时出滚动条，所有按钮都能滚到。
+		_replace_scroll = ScrollContainer.new()
+		_replace_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		_replace_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 		_replace_vbox = VBoxContainer.new()
-		_replace_vbox.add_theme_constant_override("separation", 6)
-		dlg.add_child(_replace_vbox)
+		_replace_vbox.add_theme_constant_override("separation", 4)
+		_replace_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_replace_scroll.add_child(_replace_vbox)
+		dlg.add_child(_replace_scroll)
 		center.add_child(dlg)
 		_replace_dialog.add_child(center)
 		add_child(_replace_dialog)
@@ -1483,6 +1254,30 @@ func request_weapon_replace(title: String, new_weapon_info: String, on_chosen: C
 	cancel.pressed.connect(_on_replace_cancelled)
 	_replace_vbox.add_child(cancel)
 	_replace_dialog.visible = true
+	_replace_dialog.modulate.a = 0.0   # 量高度期间先不显示，避免「先塌成一条再撑开」的闪动
+	_fit_replace_dialog()
+
+
+# 2026-11-08：替换弹层限高——内容超过 HUD 高度时压缩到可滚动高度，保证按钮不会被裁掉。
+# 不超屏时保持「按内容大小居中」的旧外观；每次打开都回到顶部。
+func _fit_replace_dialog() -> void:
+	if _replace_scroll == null or _replace_vbox == null:
+		return
+	var max_h: float = size.y - 16.0 if size.y > 0.0 else 254.0
+	max_h = maxf(max_h, 120.0)
+	# 宽度先固定 320（此时高度为 0 也能正确折行），量一次内容自然高度，再夹到可用高度
+	_replace_scroll.custom_minimum_size = Vector2(320.0, 0.0)
+	await get_tree().process_frame
+	if not is_instance_valid(_replace_scroll) or not is_instance_valid(_replace_vbox):
+		return
+	await get_tree().process_frame
+	if not is_instance_valid(_replace_scroll) or not is_instance_valid(_replace_vbox):
+		return
+	var need: float = _replace_vbox.get_combined_minimum_size().y
+	_replace_scroll.custom_minimum_size = Vector2(320.0, minf(need, max_h))
+	_replace_scroll.scroll_vertical = 0
+	if is_instance_valid(_replace_dialog):
+		_replace_dialog.modulate.a = 1.0
 
 
 func _on_replace_cancelled() -> void:
@@ -1569,6 +1364,165 @@ func _on_camp_close_pressed() -> void:
 func hide_camp_supply() -> void:
 	if _camp_dialog != null:
 		_camp_dialog.visible = false
+
+
+# ============================================================================
+# G7-B B3 灰盒入口：主动减带（符号精简 / 技能卸除）
+# 棋盘屏按钮与线性间歇按钮共用这一个弹层；候选 / 预览 / 应用全走 StripTrimSystem，
+# 这里只负责展示与确认——不重算格数、不改数值、不做退款。
+# 与营地弹层同理挂在 duel 根节点：棋盘视图会 hud.hide()，挂在 HUD 下会被一起隐藏。
+# ============================================================================
+var _trim_dialog: PanelContainer = null
+var _trim_vbox: VBoxContainer = null
+var _trim_preview: Label = null
+var _trim_confirm: Button = null
+var _trim_pending: Dictionary = {}
+
+
+func show_trim_dialog() -> void:
+	if controller == null or controller._trim == null:
+		return
+	if _trim_dialog == null:
+		_trim_dialog = PanelContainer.new()
+		_trim_dialog.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		_trim_dialog.z_index = 96   # 高于营地/替换（95），低于掌机外壳（100）
+		var sb = StyleBoxFlat.new()
+		sb.bg_color = Palette.BG_OVERLAY
+		_trim_dialog.add_theme_stylebox_override("panel", sb)
+		var center = CenterContainer.new()
+		center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		var dlg = PanelContainer.new()
+		var sb2 = StyleBoxFlat.new()
+		sb2.bg_color = Palette.PANEL_BG
+		sb2.border_color = Palette.ACCENT_GOLD
+		sb2.set_border_width_all(2)
+		dlg.add_theme_stylebox_override("panel", sb2)
+		_trim_vbox = VBoxContainer.new()
+		_trim_vbox.add_theme_constant_override("separation", 4)
+		dlg.add_child(_trim_vbox)
+		center.add_child(dlg)
+		_trim_dialog.add_child(center)
+		get_parent().add_child(_trim_dialog)
+	for c in _trim_vbox.get_children():
+		_trim_vbox.remove_child(c)
+		c.queue_free()
+	var trim = controller._trim
+	var title_lbl = _label("", TypeScale.OVERLAY)
+	title_lbl.text = "✂ 精简带子 · 本幕 %d/%d" % [trim.trims_left(), trim.TRIMS_PER_ACT]
+	title_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_trim_vbox.add_child(title_lbl)
+	var hint = _label("", TypeScale.TINY)
+	hint.text = "符号减 1 格，或卸除 1 个技能。不可撤销；每幕 1 次（两者共享）。"
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hint.custom_minimum_size = Vector2(320, 0)
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_trim_vbox.add_child(hint)
+	var cands: Array = trim.candidates()
+	if cands.is_empty():
+		var none_lbl = _label("", TypeScale.TINY)
+		none_lbl.text = "本幕没有合法候选（次数已用尽，或没有可减的符号）"
+		none_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		none_lbl.custom_minimum_size = Vector2(320, 0)
+		none_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_trim_vbox.add_child(none_lbl)
+	for cand in cands:
+		var btn = UI_BUTTON.instantiate()
+		btn.text = _trim_cand_text(trim, cand)
+		btn.custom_minimum_size = Vector2(320, 30)
+		btn.add_theme_font_size_override("font_size", 9)
+		btn.pressed.connect(_on_trim_cand_pressed.bind(cand))
+		_trim_vbox.add_child(btn)
+	_trim_pending = {}
+	_trim_preview = _label("", TypeScale.TINY)
+	_trim_preview.text = "选一个候选查看真实前后"
+	_trim_preview.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_trim_preview.custom_minimum_size = Vector2(320, 0)
+	_trim_preview.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_trim_vbox.add_child(_trim_preview)
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	_trim_vbox.add_child(row)
+	_trim_confirm = UI_BUTTON.instantiate()
+	_trim_confirm.text = "确认（不可逆）"
+	_trim_confirm.custom_minimum_size = Vector2(180, 30)
+	_trim_confirm.disabled = true
+	_trim_confirm.pressed.connect(_on_trim_confirm_pressed)
+	row.add_child(_trim_confirm)
+	var close = UI_BUTTON.instantiate()
+	close.text = "取消"
+	close.custom_minimum_size = Vector2(90, 30)
+	close.pressed.connect(hide_trim_dialog)
+	row.add_child(close)
+	_trim_dialog.visible = true
+
+
+func hide_trim_dialog() -> void:
+	if _trim_dialog != null:
+		_trim_dialog.visible = false
+	_trim_pending = {}
+
+
+# 候选行：带真实前后（逻辑格 / 实际带长），与 reel_system.build_strips 同口径。
+func _trim_cand_text(trim, cand: Dictionary) -> String:
+	var pv: Dictionary = trim.preview(cand)
+	if String(cand.get("kind", "")) == "symbol":
+		return "%s %d→%d 格 · 带 %d→%d（实际 %d→%d 格）" % [
+			String(cand.get("name", "")), int(pv["before_target"]), int(pv["after_target"]),
+			int(pv["before_cells"]), int(pv["after_cells"]), int(pv["before_len"]), int(pv["after_len"])]
+	return "%s · 带 %d→%d（实际 %d→%d 格）" % [
+		String(cand.get("name", "")), int(pv["before_cells"]), int(pv["after_cells"]),
+		int(pv["before_len"]), int(pv["after_len"])]
+
+
+func _on_trim_cand_pressed(cand: Dictionary) -> void:
+	_trim_pending = cand
+	var pv: Dictionary = controller._trim.preview(cand)
+	var lines: Array[String] = []
+	if String(cand.get("kind", "")) == "symbol":
+		lines.append("%s：%d → %d 格" % [String(cand.get("name", "")),
+			int(pv["before_target"]), int(pv["after_target"])])
+	else:
+		lines.append("卸除 %s（该技能符号与 MISS 贡献一并消失）" % String(cand.get("name", "")))
+	lines.append("逻辑带：%d → %d 格" % [int(pv["before_cells"]), int(pv["after_cells"])])
+	lines.append("实际带：%d → %d 格（含最小带长平铺）" % [int(pv["before_len"]), int(pv["after_len"])])
+	lines.append("伤害格：%d → %d · MISS：%d → %d" % [
+		int(pv["before_damage"]), int(pv["after_damage"]),
+		int(pv["before_miss"]), int(pv["after_miss"])])
+	_trim_preview.text = "\n".join(lines)
+	if _trim_confirm != null:
+		_trim_confirm.disabled = false
+		_trim_confirm.text = "确认：%s（不可逆）" % String(cand.get("name", ""))
+
+
+func _on_trim_confirm_pressed() -> void:
+	if _trim_pending.is_empty() or controller == null or controller._trim == null:
+		return
+	var msg: String = controller._trim.apply(_trim_pending)
+	_trim_pending = {}
+	if msg == "":
+		hide_trim_dialog()
+		return
+	hide_trim_dialog()
+	if feedback_label != null:
+		feedback_label.text = msg
+	# 棋盘模式：信息栏同步一行；棋盘屏自己再刷新一次（按钮状态 / 顶栏）。
+	if controller.board != null and controller.node_mode:
+		controller.board.feedback = msg
+	if board_screen != null and board_screen.visible:
+		board_screen.refresh()
+	_refresh_trim_entry()
+
+
+# 间歇态入口的状态：ready=可点 / used=本幕已用（显示但禁用）/ none=无合法候选（隐藏）。
+func _refresh_trim_entry() -> void:
+	if interroom_trim_btn == null:
+		return
+	var st := "none"
+	if controller != null and controller._trim != null:
+		st = controller._trim.entry_state()
+	interroom_trim_btn.visible = st != "none" and _interroom_on
+	interroom_trim_btn.disabled = st != "ready" or not _interroom_on
+	interroom_trim_btn.text = "✂ 精简 1/1" if st == "ready" else "✂ 本幕已用"
 
 
 # G4-04 武器藏库：两把公开武器二选一（或跳过）；满槽的替换弹层由 controller 接续。
@@ -1667,15 +1621,6 @@ func _hide_overlay() -> void:
 # 战斗日志统一走编辑器控制台（Debug.log），战斗界面不再显示滚动日志框
 func _log(msg: String) -> void:
 	Debug.log(msg)
-
-
-# 玩家面板装备图标刷新：武器取首个符号 label emoji（无符号回退 🗡️），
-# 护符取 ItemData.icon emoji；技能取 SkillData.icon（回退 ✦）。tooltip = 名字(+ 描述)。
-# 每次清空旧的 WIcon_/CIcon_/SIcon_ 子节点后重建（数量极小，无性能问题）。
-# 临时图标区分（T21 配套，待美术资源替换）：
-# 攻击武器 = 「🗡️ + 元素」；技能/护符保持自身 icon——避免武器取符号 label 与技能共用同一元素符号分不清
-func _element_icon(elem: String) -> String:
-	return panel_view.element_icon(elem)
 
 
 # 2026-08-14 玩家属性行已整体移除——变强可见性由战斗日志（伤害分解）与飘字承担。

@@ -304,7 +304,8 @@ func generate(act: int, cfg) -> Dictionary:
 		var depth: int = int(n["depth"])
 		if type == "boss":
 			n["ria"] = int(cfg.boss_ria)
-			n["final"] = true
+			# G7-A S4：只有最后一幕的 BOSS 结束整局；acts=1（默认）时与旧行为完全一致。
+			n["final"] = act >= maxi(1, int(cfg.acts))
 		else:
 			n["ria"] = maxi(0, combat_depths.find(depth))
 		n["title"] = room.name
@@ -647,8 +648,11 @@ const TAIL_PAIRS := [["n13", "n14"], ["n15", "n16"], ["n17", "n18"], ["n19", "n2
 func _assign_bosses(by_id: Dictionary, pools: Dictionary, act: int, used: Dictionary) -> void:
 	for id in ["n14", "n16", "n18", "n20"]:
 		var n: Dictionary = by_id[id]
-		var room: RoomData = _take_room(pools, "boss", act, used)
+		# G7-A S3：BOSS 节点只从本幕 BOSS 池取，不再回退到普通房——
+		# 池不足时留空，让 _validate 失败并回退线性模式，而不是悄悄塞一个非 BOSS 房。
+		var room: RoomData = _take_room(pools, "boss", act, used, "", [], true)
 		if room == null:
+			push_error("ACT%d 棋盘 BOSS 池不足：节点 %s 没有可用 BOSS 房" % [act, id])
 			continue
 		n["room"] = room
 		used[room.resource_path] = true
@@ -732,8 +736,15 @@ func _room_element(n: Dictionary) -> String:
 
 func _room_pools(act: int) -> Dictionary:
 	var out := {"normal": [], "elite": [], "boss": [], "any": []}
+	# G7-A S3 / D2：第三幕的第四个 BOSS 尾路由最终 BOSS（hero_shadow）承担。
+	# 最终 BOSS 只进 BOSS 池，不进普通/精英/任意池，也不会在第五间追加。
+	var include_final := act >= 3
 	for r in _ctrl.ALL_ROOMS:
-		if r == null or r.final_boss or int(r.act) != act:
+		if r == null or int(r.act) != act:
+			continue
+		if r.final_boss:
+			if include_final:
+				out["boss"].append(r)
 			continue
 		out["any"].append(r)
 		if out.has(String(r.kind)):
@@ -744,7 +755,7 @@ func _room_pools(act: int) -> Dictionary:
 
 
 func _take_room(pools: Dictionary, type: String, act: int, used: Dictionary = {},
-		preferred: String = "", banned: Array = []) -> RoomData:
+		preferred: String = "", banned: Array = [], strict: bool = false) -> RoomData:
 	var arr: Array = pools.get(type, [])
 	# 优先元素（尾路主题）→ 避开禁用元素（相邻战斗/同路径精英）→ 仅保证未用 → 兜底。
 	if preferred != "":
@@ -757,6 +768,9 @@ func _take_room(pools: Dictionary, type: String, act: int, used: Dictionary = {}
 	var k := _room_index(arr, used, "", [])
 	if k >= 0:
 		return _take_at(arr, k)
+	# 严格模式（BOSS 节点）：池空即失败，不降级到普通房。
+	if strict:
+		return null
 	# 池不足兜底：同幕任意非最终房；仍无则全量任意非最终房。绝不让战斗节点空置。
 	var any: Array = pools.get("any", [])
 	if not any.is_empty():

@@ -7,7 +7,9 @@ extends Node
 # 覆盖（docs/M0-02_样板范围.md §2）：
 # ① 熟练：仅本房有效结算的已装备样板武器获得；普通 +1 / 精英 +2 / BOSS +2（基础 1 + 额外 1）；每房上限 3（保险）
 # ② R 等级：R2 @3、R3 @7、R4 @12；跨过 R2 / R3 各欠一次铭印，R4 不欠
-# ③ 铭印候选：锋铸恒在（≤2 次）；调律仅在真实改变格数时出现，且达上限后不再出现
+# ③ 铭印候选：按原型给 2 个组合（LIGHT 调律/校准 · MEDIUM 锋铸/调律 · HEAVY 锋铸/暴虐 · MAGIC 调律/锋铸）；
+#    调律仅在真实改变格数时出现，校准在接近命中上限时消失，暴虐对无暴击字段的武器不出现
+# ③b G7-A S2：校准 +5%/次（≤100%）、暴虐 +0.25 暴击倍率（并入既有字段，不加乘区），均最多 2 次
 # ④ 锋铸：基础攻击 +2（经 build_pool 写入武器攻击力映射），不改共享 .tres
 # ⑤ 调律：主符号（权重最高）池内权重 +1，带子格数由同一口径（build_strips）计算
 # ⑥ 流程：房间胜利后欠选铭印 → 三选一弹层 → 选完才进房间间歇；bot 自动选亦走同一路径
@@ -16,6 +18,8 @@ extends Node
 
 const FIRE := "res://resources/weapon_templates/fire_sword.tres"
 const DAGGER := "res://resources/weapon_templates/dagger.tres"
+const HEAVY_AXE := "res://resources/weapon_templates/battle_axe.tres"
+const AXE_SLASH := "res://resources/symbols/axe_slash.tres"
 const BURN := "res://resources/symbols/burn.tres"
 const DAGGER_SLASH := "res://resources/symbols/dagger_slash.tres"
 const FIRE_SLASH := "res://resources/symbols/fire_slash.tres"
@@ -44,6 +48,7 @@ func _run() -> void:
 	_test_catchup(duel)
 	_test_r_levels_and_owed(duel)
 	_test_imprint_candidates(duel)
+	_test_archetype_candidates(duel)
 	_test_forge_applies(duel)
 	_test_display_state(duel)
 	_test_sources(duel)
@@ -229,6 +234,107 @@ func _test_imprint_candidates(duel: DuelController) -> void:
 	for c in m.imprint_choices(FIRE):
 		ids.append(c["id"])
 	_check(ids.is_empty(), "同一铭印各 2 次达上限后不再出现候选")
+	m.imprints.clear()
+
+
+func _cand_ids(m, path: String) -> Array:
+	var out: Array = []
+	for c in m.imprint_choices(path):
+		out.append(String(c["id"]))
+	return out
+
+
+# G7-A S2：按原型的候选组合 + 校准 / 暴虐的真实效果。
+func _test_archetype_candidates(duel: DuelController) -> void:
+	_equip(duel)
+	var m = duel.mastery
+	m.reset_run()
+	m.imprints.clear()
+
+	# 全池：候选不超 2 个、不重复、都来自该原型的组合，且都带「当前 → 升级后」
+	var n := 0
+	var two := 0
+	var one := 0
+	var heavy_n := 0
+	var heavy_two := 0
+	var bad: Array[String] = []
+	for path in duel.WEAPON_POOL:
+		var wd = load(path)
+		if not (wd is WeaponData):
+			continue
+		n += 1
+		var want: Array = m.ARCHETYPE_CHOICES.get(int(wd.archetype), m.ARCHETYPE_CHOICES[1])
+		var got := _cand_ids(m, String(path))
+		for c in m.imprint_choices(String(path)):
+			if String(c.get("desc", "")).find("→") < 0:
+				bad.append("%s·%s 无前后值" % [wd.weapon_name, String(c.get("name", ""))])
+		if got.size() > 2:
+			bad.append("%s 候选 %d 个" % [wd.weapon_name, got.size()])
+		if got.size() == 2 and got[0] == got[1]:
+			bad.append("%s 候选重复" % wd.weapon_name)
+		for id in got:
+			if not want.has(id):
+				bad.append("%s 原型外候选 %s" % [wd.weapon_name, id])
+		if int(wd.archetype) == 2:
+			heavy_n += 1
+			if got.size() == 2:
+				heavy_two += 1
+		if got.size() == 2:
+			two += 1
+		elif got.size() == 1:
+			one += 1
+		else:
+			bad.append("%s 无合法候选" % wd.weapon_name)
+	_check(n >= 80, "武器池覆盖（%d 把）" % n)
+	_check(bad.is_empty(), "全池候选按原型与有效性给出（异常 %d：%s）" % [bad.size(), ",".join(bad.slice(0, 4))])
+	_check(two + one == n, "每把至少 1 个合法候选（2 个 %d / 1 个 %d）" % [two, one])
+	# 槽位由「调律是否真实改变格数」决定：HEAVY 的前两个候选恒有效，其余武器常只剩 1 个（死升级禁止）。
+	_check(heavy_n > 0 and heavy_two == heavy_n, "HEAVY 全部 2 个候选（%d/%d）" % [heavy_two, heavy_n])
+
+	# 原型实例：LIGHT 不给锋铸、HEAVY 不给调律
+	var light_ids := _cand_ids(m, DAGGER)
+	var heavy_ids := _cand_ids(m, HEAVY_AXE)
+	_check(light_ids.has("calibrate") and not light_ids.has("forge"), "LIGHT 候选给校准、不给锋铸")
+	_check(heavy_ids.has("tyrant") and not heavy_ids.has("tune"), "HEAVY 候选给暴虐、不给调律")
+
+	# 校准：每次 +5%，最多 2 次，上限 100%
+	_check(is_equal_approx(duel.weapon_hit(DAGGER), 0.82), "校准前命中 82%")
+	_check(m.choose(DAGGER, "calibrate"), "选择校准成功")
+	_check(is_equal_approx(duel.weapon_hit(DAGGER), 0.87), "校准：命中 82% → 87%")
+	_check(m.choose(DAGGER, "calibrate"), "第二次校准成功")
+	_check(is_equal_approx(duel.weapon_hit(DAGGER), 0.92), "第二次校准：命中 → 92%")
+	_check(not m.choose(DAGGER, "calibrate"), "校准达 2 次上限后拒绝")
+	_check(is_equal_approx(duel.weapon_hit(DAGGER), 0.92), "超过上限后命中不再增长")
+	# 接近上限时不提供（临时改内存里的 hit_rate，立即还原；不写 .tres）
+	m.imprints.erase(DAGGER)
+	var dagger_res: WeaponData = load(DAGGER)
+	var hit_backup: float = dagger_res.hit_rate
+	dagger_res.hit_rate = 0.97
+	_check(not _cand_ids(m, DAGGER).has("calibrate"), "命中 97% 时不提供校准（+5% 会被 100% 吞掉）")
+	dagger_res.hit_rate = hit_backup
+	_check(is_equal_approx(float((load(DAGGER) as WeaponData).hit_rate), 0.82), "共享 .tres 的 hit_rate 未被修改")
+
+	# 暴虐：+0.25 三连暴击倍率，并入既有 _item_crit_map（不新增乘区）
+	m.imprints.clear()
+	_check(is_equal_approx(m.crit_bonus(HEAVY_AXE), 0.0), "暴虐加成初始 0")
+	_check(m.choose(HEAVY_AXE, "tyrant"), "选择暴虐成功")
+	_check(is_equal_approx(m.crit_bonus(HEAVY_AXE), 0.25), "暴虐：暴击倍率 +0.25")
+	var backup_loadout: Array = duel.selected_loadout.duplicate()
+	duel.selected_loadout.clear()
+	duel.selected_loadout.append(HEAVY_AXE)
+	duel.reel_system.build_pool(duel.selected_loadout)
+	_check(is_equal_approx(float(duel._item_crit_map.get(AXE_SLASH, 0.0)), 2.25), "暴虐写入暴击映射：2.00 → 2.25")
+	_check(is_equal_approx(float((load(HEAVY_AXE) as WeaponData).crit_mult), 2.0), "共享 .tres 的 crit_mult 未被修改")
+	duel.selected_loadout = backup_loadout
+	m.imprints.clear()
+	duel.reel_system.build_pool(duel.selected_loadout)
+	_check(is_equal_approx(float(duel._item_crit_map.get(AXE_SLASH, 0.0)), 0.0), "清空铭印后暴击映射回落（重型斧已卸下）")
+
+	# 文案与摘要覆盖新铭印
+	m.imprints[DAGGER] = {"forge": 0, "tune": {}, "calibrate": 1, "tyrant": 0}
+	_check(m.imprint_text(DAGGER).find("校准×1") >= 0, "铭印文案列出校准")
+	_check(m.summary_line().find("校准×1") >= 0, "铭印摘要列出校准")
+	_check(m.imprint_total() == 1, "铭印总数包含校准")
 	m.imprints.clear()
 
 

@@ -1,0 +1,21 @@
+# 每幕棋盘主题取证 2026-11-08T20:19:34
+
+## act1
+title=棋盘 · ACT I  bg=160d13  map=1a1016  grid=1e1319  node=3a2b31
+board.act=1  act_label=ACT I  progress=ACT I · 第 1/13 格
+bosses=n14:冰封铁瓮/boss，n16:茧居石雕/boss，n18:碎裂石像鬼/boss，n20:酸蚀恶鬼/boss
+shot act1 960x540
+
+## act2
+title=棋盘 · ACT II  bg=0d1315  map=101a1c  grid=142022  node=2b3a3a
+board.act=2  act_label=ACT II  progress=ACT II · 第 1/13 格
+bosses=n14:无名虚空/boss，n16:迷宫低语者/boss，n18:天平审判官/boss，n20:呓语教徒/boss
+shot act2 960x540
+
+## act3
+title=棋盘 · ACT III  bg=160d10  map=1a1013  grid=201317  node=3a2b30
+board.act=3  act_label=ACT III  progress=ACT III · 第 1/13 格
+bosses=n14:勇者的阴影/FINAL，n16:深渊监视者/boss，n18:耻辱审判官/boss，n20:碎裂魔王/boss
+shot act3 960x540
+
+## distinct_map_colors=OK

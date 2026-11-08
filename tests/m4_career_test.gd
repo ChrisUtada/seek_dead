@@ -367,5 +367,7 @@ func _test_panel(duel: DuelController) -> void:
 	_check(ls._career_panel != null, "整备屏构建生涯面板")
 	_check(ls._career_btn != null, "整备屏构建生涯按钮")
 	ls._refresh_career()
-	# 1 行标题 + 10 个成就 + 1 行下一目标
-	_check(ls._career_box.get_child_count() == 12, "生涯面板列出 10 条成就与目标行")
+	# 1 行标题 + 10 个成就 + 1 行下一目标 + 1 个关闭按钮（2026-11-08 排版验收补可见关闭入口）
+	_check(ls._career_box.get_child_count() == 13, "生涯面板列出 10 条成就与目标行")
+	_check(ls._career_box.get_child(ls._career_box.get_child_count() - 1) is Button,
+		"生涯面板末尾有关闭按钮")

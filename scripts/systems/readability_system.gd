@@ -38,8 +38,11 @@ var preview_slots := 0
 var visual_stop := false
 var buffer_enabled := false
 var feedback_enabled := false
+var steady_hand_used := false    # G7-A S1「稳手」：本回合那一次额外缓冲是否已用掉
 
 var target_symbol_path := ""
+var target_reason := "输出窗口"
+var target_detail := "优先停中主武器的高权重攻击符号。"
 var _forced_target := ""
 
 # 本回合 / 本局统计（只读遥测，不参与结算）
@@ -105,6 +108,7 @@ func reset_run() -> void:
 	target_hits = 0
 	forced_stops = 0
 	buffer_queues = 0
+	steady_hand_used = false
 	target_symbol_path = _forced_target if _forced_target != "" else _default_target()
 	if _ctrl._telemetry != null:
 		_ctrl._telemetry.target_symbol = target_symbol_path
@@ -112,8 +116,21 @@ func reset_run() -> void:
 
 func begin_spin() -> void:
 	stop_results.clear()
+	steady_hand_used = false   # 稳手按回合刷新
 	if _ctrl.hud != null and _ctrl.hud.has_method("_clear_stop_feedback"):
 		_ctrl.hud._clear_stop_feedback()
+
+
+# G7-A S1「稳手」：每回合一次额外的一拍缓冲，与 P1 预设的 buffer_enabled 独立。
+# 只影响玩家按停的落点解析，不改速度、预览格数或任何伤害。
+func steady_hand_ready() -> bool:
+	if steady_hand_used or _ctrl == null or _ctrl.growth == null:
+		return false
+	return _ctrl.growth.has_perk("steady_hand")
+
+
+func consume_steady_hand() -> void:
+	steady_hand_used = true
 
 
 func finish_spin() -> void:
@@ -219,3 +236,72 @@ func _default_target() -> String:
 		if best_path != "":
 			break   # 只看主武器
 	return best_path
+
+
+# 每个真实玩家回合更新一次建议目标；只改变信息与遥测目标，不改变停轮或伤害规则。
+func update_turn_target() -> void:
+	if _forced_target != "":
+		_set_target(_forced_target, "指定目标", "命令行指定的固定对照目标。")
+		return
+	var intent: Dictionary = _ctrl.enemy_intent
+	var intent_type := String(intent.get("type", "none"))
+	var intent_value := int(intent.get("value", 0))
+	if intent_type == "heavy":
+		var shield := _first_symbol_of_kind("shield")
+		if shield != "":
+			_set_target(shield, "重击·先护盾", "敌人预告重击 %d；优先停中护盾符号，保留其他列的输出选择。" % intent_value)
+			return
+		var heal := _first_symbol_of_kind("heal")
+		if heal != "" and _ctrl.player_hp < _ctrl.player_hp_max:
+			_set_target(heal, "重击·先恢复", "当前带内没有护盾符号；敌人预告重击 %d，可用治疗或消耗品降低风险。" % intent_value)
+			return
+	if _ctrl.player_hp <= int(_ctrl.player_hp_max * 0.4):
+		var heal := _first_symbol_of_kind("heal")
+		if heal != "":
+			_set_target(heal, "低血·先恢复", "当前 HP %d/%d；优先恢复，也可根据意图继续抢攻。" % [_ctrl.player_hp, _ctrl.player_hp_max])
+			return
+	var recovery: bool = _ctrl.current_gimmick != null and _ctrl.current_gimmick.recovery_window(_ctrl)
+	if recovery:
+		if _ctrl.enemy_armor > 0:
+			var special := _first_symbol_of_kind("special")
+			if special != "":
+				_set_target(special, "间隙·破甲", "本回合不会新增叠甲/冻结；争取三连破甲，随后集中输出。")
+				return
+		_set_target(_default_target(), "间隙·输出", "本回合不会新增叠甲/冻结；集中输出，避免拖入下一次加压。")
+		return
+	if _ctrl.enemy_armor > 0:
+		var special := _first_symbol_of_kind("special")
+		if special != "":
+			_set_target(special, "高甲·破甲", "敌人当前护甲 %d；带内存在特殊符号，可争取三连破甲。" % int(_ctrl.enemy_armor))
+			return
+	var interfered: bool = _ctrl.pending_jam_reel >= 0 or _ctrl.pending_lock_reel >= 0 or _ctrl.pending_chaos or _ctrl.pending_auto_stop
+	var data: IntentData = intent.get("data")
+	interfered = interfered or (data != null and data.purifiable)
+	if interfered:
+		_set_target(_default_target(), "干扰·输出/净化", "转轮将受到干扰；可继续输出，也可按既有规则使用净化/清净消耗品。")
+		return
+	if _ctrl.enemy_hp > 0 and _ctrl.enemy_hp <= int(_ctrl.enemy_hp_max * 0.25):
+		_set_target(_default_target(), "残血·收尾", "敌人 HP 较低；优先集中输出，减少无决策价值的残血回合。")
+		return
+	_set_target(_default_target(), "输出窗口", "当前没有更紧迫的防御或破甲需求；优先主武器高权重攻击符号。")
+
+
+func _first_symbol_of_kind(kind: String) -> String:
+	if _ctrl.reel_system == null:
+		return ""
+	for strip in _ctrl.reel_system.reel_strips:
+		for entry in strip:
+			var sym: SymbolData = entry[0]
+			if sym != null and String(sym.kind) == kind:
+				return String(sym.resource_path)
+	return ""
+
+
+func _set_target(path: String, reason: String, detail: String) -> void:
+	target_symbol_path = path
+	target_reason = reason
+	target_detail = detail
+	if _ctrl._telemetry != null:
+		_ctrl._telemetry.target_symbol = path
+	if _ctrl.hud != null and _ctrl.hud.has_method("_refresh_p1_ui"):
+		_ctrl.hud._refresh_p1_ui()

@@ -41,7 +41,7 @@ mouse_filter = 2
 
 [node name="Dialog" type="PanelContainer" parent="Center"]
 layout_mode = 2
-custom_minimum_size = Vector2(300, 200)
+custom_minimum_size = Vector2(300, 210)
 theme_override_styles/panel = SubResource("sb_dlg")
 
 [node name="Margin" type="MarginContainer" parent="Center/Dialog"]

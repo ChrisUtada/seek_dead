@@ -1,0 +1,26 @@
+# G7-A S5 · ACT2/ACT3 机制房逐个开打 2026-11-08T22:28:56
+
+协议：线性开房（ROOMS=[该房]）· 假人生命 99999 · 每房 6 回合 · 不改 .tres / BALANCE
+
+| 幕 | 房 | 类型 | 机制 | 实例化 | 6 回合无异常 | 状态痕迹 | 结论 |
+|---|---|---|---|---|---|---|---|
+| ACT II | 深渊咒师 | elite | whisper_lock | ✓ | ✓ | _lock_every=4 | PASS |
+| ACT II | 炎爆群王 | elite | bipolar_phase | ✓ | ✓ | _manic_atk_mult=1.5 | PASS |
+| ACT III | 终焉诡匠 | elite | abyss_erosion | ✓ | ✓ | _base_ratio=0.06 | PASS |
+| ACT III | 圣盾守关 | elite | abyss_erosion | ✓ | ✓ | _base_ratio=0.06 | PASS |
+| ACT II | 深渊咏者 | elite | whisper_lock | ✓ | ✓ | _lock_every=4 | PASS |
+| ACT III | 湮灭领主 | elite | abyss_erosion | ✓ | ✓ | _base_ratio=0.06 | PASS |
+| ACT II | 邪颂祭司 | elite | acid_bomb | ✓ | ✓ | _dot_per_turn=1 | PASS |
+| ACT III | 终焉守望 | elite | abyss_erosion | ✓ | ✓ | _base_ratio=0.06 | PASS |
+| ACT III | 深渊监视者 | boss | abyss_erosion | ✓ | ✓ | _base_ratio=0.1 | PASS |
+| ACT III | 耻辱审判官 | boss | shame_counter | ✓ | ✓ | _sin_atk_per=0.08 | PASS |
+| ACT III | 勇者的阴影 | boss | shadow_projection | ✓ | ✓ | _projection_every=2 | PASS |
+| ACT II | 躁怒元素使 | boss | bipolar_phase | ✓ | ✓ | _manic_atk_mult=2.0 | PASS |
+| ACT II | 迷宫低语者 | boss | whisper_lock | ✓ | ✓ | _lock_every=3 | PASS |
+| ACT II | 无名虚空 | boss | emotional_vacuum | ✓ | ✓ | _phase2_hp_ratio=0.5 | PASS |
+| ACT II | 天平审判官 | boss | compulsion_rule | ✓ | ✓ | _rule_pool | PASS |
+| ACT III | 碎裂魔王 | boss | split_ego | ✓ | ✓ | _phase2_hp_ratio=0.66 | PASS |
+| ACT II | 呓语教徒 | boss | whisper_lock | ✓ | ✓ | _lock_every=3 | PASS |
+
+去重机制（act>=2）：whisper_lock, bipolar_phase, abyss_erosion, acid_bomb, shame_counter, shadow_projection, emotional_vacuum, compulsion_rule, split_ego
+结果：ok=17 fail=0

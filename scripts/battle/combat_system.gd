@@ -3,7 +3,7 @@ extends RefCounted
 
 # combat_system — 战斗结算系统（2026-08-09 从 duel_controller 拆分）
 #
-# 职责：单回合结算（_evaluate：符号计数 → 分阶段落地 → 攻击结算）、
+# 职责：单回合结算（evaluate 编排四阶段：_phase_symbols / _phase_defense / _phase_counter / _phase_attack）、
 # 符号贡献（_contribute：伤害/护盾/治疗/状态/特殊）、伤害分解行、敌人攻防、
 # 三连破甲/核爆、元素充能爆发、增益/状态 tick、属性聚合层（_agg_*）。
 #
@@ -130,15 +130,32 @@ func push_dmg_line(acc: Dictionary, sym: SymbolData, elem: String, flat, bonus, 
 	acc["lines"].append(line)
 
 
-# 结算：分两阶段（先防御/增益/状态，后攻击），接单向属性克制与强袭药剂。
+# 结算：分四阶段（符号计数 → 防御/增益/状态 → 反制 → 攻击），接单向属性克制与强袭药剂。
 # 2026-08-07：重转机制移除，单次结算（chain_mult 参数退役）
+# 2026-11-08（G8）：原单函数按阶段拆分；执行顺序、RNG 调用与 await 时序与拆分前逐行一致。
 func evaluate() -> void:
-	_ctrl.hud._clear_badges()
-	var acc = { "dmg": 0, "shield": 0, "heal": 0, "status_stacks": {}, "special": 0, "lines": [], "pierce": 0.0, "counter_triple": false, "triple": false, "heal_triple": false }
+	var acc := _new_acc()
+	_reset_turn_state()
+	var counts := _phase_symbols(acc)
+	await _phase_defense(acc)
+	_phase_counter(counts, acc)
+	await _phase_attack(counts, acc)
+
+
+func _new_acc() -> Dictionary:
+	return { "dmg": 0, "shield": 0, "heal": 0, "status_stacks": {}, "special": 0, "lines": [], "pierce": 0.0, "counter_triple": false, "triple": false, "heal_triple": false }
+
+
+func _reset_turn_state() -> void:
 	_ctrl._eval_adv = false
 	_ctrl._eval_dis = false
 	_ctrl._turn_hit_used = false   # 碎片王冠（信物）：每回合首击标记重置
 	_ctrl._charge_elem_counts = {}   # 主导元素统计每回合重置
+
+
+# —— 阶段 1：符号计数与贡献（含增益/金币符号）——
+func _phase_symbols(acc: Dictionary) -> Dictionary:
+	_ctrl.hud._clear_badges()
 
 	# 按「符号 + 有效元素」计数（解决共享符号跨武器元素冲突；HUD 角标据此展示）
 	# T30：冻结列（失效格）不参与计数——不匹配、不结算、无攻击
@@ -194,8 +211,11 @@ func evaluate() -> void:
 
 	# 匹配角标（×N，N>=2）
 	_ctrl.hud._update_match_badges(counts)
+	return counts
 
-	# —— 阶段 1：防御 / 增益 / 状态先落地 ——
+
+# —— 阶段 2：防御 / 增益 / 状态先落地 ——
+func _phase_defense(acc: Dictionary) -> void:
 	# Phase C：铁壁(shield)/回春(regen) 按回合生效，并入本回合护盾与治疗（F-0 聚合层）
 	acc["shield"] += int(agg_shield())
 	acc["heal"] += int(agg_regen())
@@ -228,6 +248,9 @@ func evaluate() -> void:
 	_ctrl.hud._refresh_meta()
 	await _ctrl.get_tree().create_timer(0.25).timeout
 
+
+# —— 阶段 3：反制（三连钩子 / 破甲 / 核爆）——
+func _phase_counter(counts: Dictionary, acc: Dictionary) -> void:
 	# S10 T5 钩子点 + 破甲/核爆（2026-08-07 通用化：任意同符号三连触发；破甲仅限带破甲机制的武器/技能）。
 	# current_gimmick 仅在 BOSS 房由 T2 的 BossGimmick 子类赋值；非 BOSS 房为 null，显式判空跳过（避免 ?. 在某些 4.x 不兼容）。
 	if acc.get("triple", false):
@@ -251,7 +274,10 @@ func evaluate() -> void:
 	elif triple_pierce:
 		on_counter("special", pierce_need)
 
-	# —— 阶段 2：攻击结算（先破甲后掉血；穿透符号直接扣 HP）——
+
+# —— 阶段 4：攻击结算与回合收口 ——
+func _phase_attack(counts: Dictionary, acc: Dictionary) -> void:
+	# —— 攻击结算（先破甲后掉血；穿透符号直接扣 HP）——
 	# Phase C：迅捷(damage_mult) 对本回合总伤害做乘算（F-0 聚合层，含护符乘区）
 	var buff_mult = agg_damage_mult()
 	var assault = _ctrl.assault_next_spin

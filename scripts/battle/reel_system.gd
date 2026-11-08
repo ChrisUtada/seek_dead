@@ -183,6 +183,7 @@ func build_strips() -> void:
 		# （低攻第二把被 max 攻 + 封顶双重吃掉，收益≈0，蒙特卡洛实测 +1%）。单件仍封顶。
 		for k in agg:
 			var cnt: int = cells_for(agg[k]["w"], agg[k]["sym"].kind, int(agg[k]["rank"]), int(agg[k]["sources"]))
+			cnt = _apply_trim(String(k), cnt)   # G7-B B1：主动减带（保底 1 格）
 			for _c in cnt:
 				base.append([agg[k]["sym"], agg[k]["elem"]])
 			total_cells += cnt
@@ -318,11 +319,14 @@ func lock_reel(r: int, use_visual: bool = true, reason: String = "player") -> vo
 				vi %= n
 				if vi == cur:
 					idx = vi
-				elif vi == (cur + 1) % n and _ctrl.readability.buffer_enabled:
+				elif vi == (cur + 1) % n and (_ctrl.readability.buffer_enabled or _ctrl.readability.steady_hand_ready()):
 					# 视觉中心已经到下一格、逻辑尚未推进：等到下一拍（最多一拍）。
+					# G7-A S1「稳手」：即使预设未开缓冲，每回合也允许这样一次。
 					if not has_pending_stop(r):
 						_pending_stops[r] = true
 						_ctrl.readability.on_buffer_queued()
+						if not _ctrl.readability.buffer_enabled:
+							_ctrl.readability.consume_steady_hand()
 						_ctrl.hud._log("⏳ 第 %d 列进入输入缓冲：下一拍锁定视觉中心符号" % (r + 1))
 					return
 				elif _ctrl.readability.visual_stop and (vi == (cur + 1) % n or vi == (cur - 1 + n) % n):
@@ -430,8 +434,27 @@ func reset_grid() -> void:
 # ----------------------------------------------------------------------------
 
 # 装备自洽建池：强度轴映射 → 武器/技能/精华各生成符号段 → 扁平池 + 金币常驻。
+# 2026-11-08（G8）：按物品段拆分；各段纯函数（make_pool_item / weapon_syms / skill_pool_item /
+# essence_pool_item / flatten_pool）不读写 _ctrl，装配顺序与拆分前逐段一致。
 func build_pool(loadout: Array) -> void:
 	_ctrl._synergy_system.refresh()   # 装备集合变化：重估共鸣激活集（每房/换装时一次）
+	_reset_pool_state()
+	_apply_weapon_strength(loadout)
+	if _ctrl.deprived_level < 2:
+		_apply_skill_strength()   # 无名虚空（deprived_level≥2）：技能符号也不进强度聚合
+	_collect_weapon_items(loadout)
+	if _ctrl.deprived_level < 2:
+		_collect_skill_items()   # 技能段（deprived_level≥2 剥离不入池）
+	_collect_essence_items()
+	# 扁平池（图例/状态查询等 legacy 消费者）+ 金币常驻
+	var flat: Array = flatten_pool(_ctrl.pool_items, DuelController.GOLD_SYMBOL, _ctrl.BALANCE.gold_pool_weight)
+	_ctrl.pool.clear()
+	_ctrl.pool.append_array(flat)
+	_ctrl.hud._update_enemy_element()
+	_ctrl.invalidate_state()
+
+
+func _reset_pool_state() -> void:
 	_ctrl.pool.clear()
 	_ctrl.pool_items.clear()
 	_ctrl.loadout_names.clear()
@@ -441,7 +464,10 @@ func build_pool(loadout: Array) -> void:
 	_ctrl._item_pierce_map = {}
 	_ctrl._item_pierce_at = {}
 	_ctrl._item_status_bonus = {}
-	# 强度轴映射：符号 resource_path -> 该物品有效攻击力(base_power)；共享符号取最高者（最强来源）。
+
+
+# 强度轴映射：符号 resource_path -> 该物品有效攻击力(base_power)；共享符号取最高者（最强来源）。
+func _apply_weapon_strength(loadout: Array) -> void:
 	for path in loadout:
 		var wd: WeaponData = load(path)
 		if wd == null or wd.symbols == null:
@@ -456,26 +482,39 @@ func build_pool(loadout: Array) -> void:
 				continue
 			var sp = sw.symbol.resource_path
 			_ctrl._weapon_power_map[sp] = max(_ctrl._weapon_power_map.get(sp, 0.0), eff)
-			_ctrl._item_crit_map[sp] = max(_ctrl._item_crit_map.get(sp, 1.0), wd.crit_mult)
+			var crit_add: float = _ctrl.mastery.crit_bonus(path) if _ctrl.mastery != null else 0.0
+			_ctrl._item_crit_map[sp] = max(_ctrl._item_crit_map.get(sp, 1.0), wd.crit_mult + crit_add)   # G7-A S2 暴虐
 			_ctrl._item_crit_chance_map[sp] = max(_ctrl._item_crit_chance_map.get(sp, 0.0), wd.crit_chance)
 			if wd.triple_pierce:
 				_ctrl._item_pierce_map[sp] = true
 				_ctrl._item_pierce_at[sp] = mini(int(_ctrl._item_pierce_at.get(sp, 3)), style_pierce)
 			if style_status > 0:
 				_ctrl._item_status_bonus[sp] = maxi(int(_ctrl._item_status_bonus.get(sp, 0)), style_status)
-	# 无名虚空（deprived_level≥2）：技能符号也不进强度聚合
-	if _ctrl.deprived_level < 2:
-		for path in _ctrl.selected_skills:
-			var sd: SkillData = load(path)
-			if sd == null or sd.symbol == null:
-				continue
-			var eff2: float = sd.base_power
-			var sp2 = sd.symbol.resource_path
-			_ctrl._weapon_power_map[sp2] = max(_ctrl._weapon_power_map.get(sp2, 0.0), eff2)
-			_ctrl._item_crit_map[sp2] = max(_ctrl._item_crit_map.get(sp2, 1.0), sd.crit_mult)
-			_ctrl._item_crit_chance_map[sp2] = max(_ctrl._item_crit_chance_map.get(sp2, 0.0), sd.crit_chance)
-			if sd.triple_pierce:
-				_ctrl._item_pierce_map[sp2] = true
+
+
+func _apply_skill_strength() -> void:
+	for path in _ctrl.selected_skills:
+		var sd: SkillData = load(path)
+		if sd == null or sd.symbol == null:
+			continue
+		var eff2: float = sd.base_power
+		var sp2 = sd.symbol.resource_path
+		_ctrl._weapon_power_map[sp2] = max(_ctrl._weapon_power_map.get(sp2, 0.0), eff2)
+		_ctrl._item_crit_map[sp2] = max(_ctrl._item_crit_map.get(sp2, 1.0), sd.crit_mult)
+		_ctrl._item_crit_chance_map[sp2] = max(_ctrl._item_crit_chance_map.get(sp2, 0.0), sd.crit_chance)
+		if sd.triple_pierce:
+			_ctrl._item_pierce_map[sp2] = true
+
+
+# G7-B B1：符号精简——按本局精简状态扣格（每符号保底 1 格）。无精简系统时原样返回。
+func _apply_trim(key: String, cells: int) -> int:
+	if _ctrl._trim == null:
+		return cells
+	var cut: int = int(_ctrl._trim.trimmed.get(key, 0))
+	return maxi(1, cells - cut) if cut > 0 else cells
+
+
+func _collect_weapon_items(loadout: Array) -> void:
 	for path in loadout:
 		var wd: WeaponData = load(path)
 		if wd == null:
@@ -483,37 +522,70 @@ func build_pool(loadout: Array) -> void:
 		_ctrl.loadout_names.append(wd.weapon_name)
 		if wd.symbols == null or wd.symbols.is_empty():
 			continue
-		var syms := []
+		# 权重修正按 symbol path 汇总后交给纯函数（M2-02 调律 + G6-05 铸式权重）
+		var weight_bonus := {}
 		for sw in wd.symbols:
 			if sw == null or sw.symbol == null:
 				continue
-			var style_w: float = _ctrl._forge_styles.weight_delta(path, sw.symbol.resource_path) if _ctrl._forge_styles != null else 0.0
-			syms.append([sw.symbol, float(sw.weight) + _ctrl.mastery.tune_bonus(path, sw.symbol.resource_path) + style_w, eff_element(sw.symbol, wd)])   # M2-02 调律 + G6-05 铸式权重
+			var sp: String = sw.symbol.resource_path
+			var style_w: float = _ctrl._forge_styles.weight_delta(path, sp) if _ctrl._forge_styles != null else 0.0
+			weight_bonus[sp] = _ctrl.mastery.tune_bonus(path, sp) + style_w
 		var hit: float = clampf(wd.hit_rate + (_ctrl._forge_styles.hit_delta(path) if _ctrl._forge_styles != null else 0.0), 0.0, 1.0)
-		var wd_rar: Variant = wd.get("rarity")
-		_ctrl.pool_items.append({"name": wd.weapon_name, "hit": hit, "syms": syms, "rarity": String(wd_rar if wd_rar != null else "common")})
-	# 技能段（deprived_level≥2 剥离不入池）
-	if _ctrl.deprived_level < 2:
-		for path in _ctrl.selected_skills:
-			var sd: SkillData = load(path)
-			if sd == null or sd.symbol == null:
-				continue
-			var ess_elem: String = sd.symbol.element if sd.symbol.element != "none" else "none"
-			var hit: float = clamp(sd.hit_rate, 0.0, 1.0)
-			var sd_rar: Variant = sd.get("rarity")
-			_ctrl.pool_items.append({"name": ("技能" + sd.icon), "hit": hit, "syms": [[sd.symbol, float(sd.weight), ess_elem]], "rarity": String(sd_rar if sd_rar != null else "common")})
-	# 元素精华：使用后本房间内注入对应元素攻击符号
+		_ctrl.pool_items.append(make_pool_item(wd.weapon_name, hit, weapon_syms(wd, weight_bonus), wd.get("rarity")))
+
+
+func _collect_skill_items() -> void:
+	for path in _ctrl.selected_skills:
+		var sd: SkillData = load(path)
+		if sd == null or sd.symbol == null:
+			continue
+		_ctrl.pool_items.append(skill_pool_item(sd))
+
+
+# 元素精华：使用后本房间内注入对应元素攻击符号
+func _collect_essence_items() -> void:
 	for e in _ctrl.room_element_mult:
 		var ess_sym: SymbolData = DuelController.ESSENCE_SYMBOLS.get(e)
 		if ess_sym != null:
-			_ctrl.pool_items.append({"name": ("精华·" + ElementCounter.label(e)), "hit": 1.0, "syms": [[ess_sym, DuelController.ESSENCE_POOL_WEIGHT, e]], "rarity": "common"})
-	# 扁平池（图例/状态查询等 legacy 消费者）+ 金币常驻
-	for it in _ctrl.pool_items:
+			_ctrl.pool_items.append(essence_pool_item(e, ess_sym, DuelController.ESSENCE_POOL_WEIGHT))
+
+
+# —— 纯函数段（不读写 _ctrl，供建池与定向测试共用）——
+
+# 池条目统一格式：name / hit / syms / rarity。hit 与 rarity 在这里做一次兜底归一。
+static func make_pool_item(item_name: String, hit_rate: float, syms: Array, rarity: Variant) -> Dictionary:
+	return {"name": item_name, "hit": clampf(hit_rate, 0.0, 1.0), "syms": syms, "rarity": String(rarity if rarity != null else "common")}
+
+
+# 武器符号段：[符号, 权重, 有效元素]；weight_bonus 按符号 resource_path 给出调律/铸式增量。
+static func weapon_syms(wd: WeaponData, weight_bonus: Dictionary) -> Array:
+	var syms := []
+	for sw in wd.symbols:
+		if sw == null or sw.symbol == null:
+			continue
+		var sp: String = sw.symbol.resource_path
+		syms.append([sw.symbol, float(sw.weight) + float(weight_bonus.get(sp, 0.0)), effective_element(sw.symbol, wd.element, wd.reel_element)])
+	return syms
+
+
+# 技能段：元素取符号自身（none 保持 none，不继承武器元素）；名称带图标。
+static func skill_pool_item(sd: SkillData) -> Dictionary:
+	var elem: String = sd.symbol.element if sd.symbol.element != "none" else "none"
+	return make_pool_item("技能" + sd.icon, sd.hit_rate, [[sd.symbol, float(sd.weight), elem]], sd.get("rarity"))
+
+
+static func essence_pool_item(e: String, sym: SymbolData, weight: float) -> Dictionary:
+	return make_pool_item("精华·" + ElementCounter.label(e), 1.0, [[sym, weight, e]], "common")
+
+
+# 扁平池：[符号, 权重, 元素] 逐条展开，末尾追加金币常驻（不参与强度/元素克制）。
+static func flatten_pool(items: Array, gold_sym: SymbolData, gold_weight: float) -> Array:
+	var flat: Array = []
+	for it in items:
 		for s in it["syms"]:
-			_ctrl.pool.append([s[0], s[1], s[2]])
-	_ctrl.pool.append([DuelController.GOLD_SYMBOL, _ctrl.BALANCE.gold_pool_weight, "none"])
-	_ctrl.hud._update_enemy_element()
-	_ctrl.invalidate_state()
+			flat.append([s[0], s[1], s[2]])
+	flat.append([gold_sym, gold_weight, "none"])
+	return flat
 
 
 # 符号「有效元素」（武器元素化）：special 优先武器 reel_element；其余自身优先、否则继承武器元素。

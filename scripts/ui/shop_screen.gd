@@ -9,6 +9,7 @@ var controller
 var hud: BattleHud
 const DRAWER_W := 420          # 抽屉宽度（右侧 docked）
 var _open := false             # 抽屉是否处于展开态（供外部 toggle 判断）
+var _tween: Tween = null       # 当前滑入/滑出补间（新旧互斥，避免旧 hide 回调关掉刚展开的抽屉）
 var _pending_offer: Dictionary = {}   # 待替换购买的武器货品（2026-08-07）
 
 @onready var bg = $Bg
@@ -17,10 +18,10 @@ var _pending_offer: Dictionary = {}   # 待替换购买的武器货品（2026-08
 @onready var buy_panel = $Margin/Content/BuyPanel
 @onready var sell_panel = $Margin/Content/SellPanel
 @onready var shop_grid = $Margin/Content/BuyPanel/ShopGrid
-@onready var weapon_list = $Margin/Content/SellPanel/SellBox/WeaponList
-@onready var skill_list = $Margin/Content/SellPanel/SellBox/SkillList
-@onready var charm_list = $Margin/Content/SellPanel/SellBox/CharmList
-@onready var consum_list = $Margin/Content/SellPanel/SellBox/ConsumList
+@onready var weapon_list = $Margin/Content/SellPanel/SellScroll/SellBox/WeaponList
+@onready var skill_list = $Margin/Content/SellPanel/SellScroll/SellBox/SkillList
+@onready var charm_list = $Margin/Content/SellPanel/SellScroll/SellBox/CharmList
+@onready var consum_list = $Margin/Content/SellPanel/SellScroll/SellBox/ConsumList
 @onready var shop_tab_buy_btn = $Margin/Content/TabBar/BuyTab
 @onready var shop_tab_sell_btn = $Margin/Content/TabBar/SellTab
 @onready var reroll_btn = $Margin/Content/Bot/RerollBtn
@@ -66,9 +67,11 @@ func show_screen() -> void:
 	visible = true
 	_open = true
 	# 从右缘滑入：收起态 offset_left=0（零宽），展开到 -DRAWER_W
+	if _tween != null and _tween.is_valid():
+		_tween.kill()
 	offset_left = 0.0
-	var tw = create_tween()
-	tw.tween_property(self, "offset_left", -DRAWER_W, 0.22).set_ease(Tween.EASE_OUT)
+	_tween = create_tween()
+	_tween.tween_property(self, "offset_left", -DRAWER_W, 0.22).set_ease(Tween.EASE_OUT)
 
 
 func is_shown() -> bool:
@@ -123,7 +126,8 @@ func _sell_fill(list: VBoxContainer, kind: String) -> void:
 		var last = (kind == "weapon" and owned.size() <= controller.state.LOADOUT_MIN)
 		var sub: String
 		if last:
-			sub = "最后一把 · 不可卖"
+			# 两行写死：宽 97 的四列里「最后一把 · 不可卖」会折成 3 行顶出卡片
+			sub = "最后一把\n不可卖"
 		else:
 			sub = "卖出 +%d 金" % refund
 		list.add_child(hud._make_sell_card(name, sub, last, hud.sell_requested.emit.bind(path, kind), load(path)))
@@ -145,6 +149,8 @@ func hide_screen() -> void:
 		return
 	_open = false
 	# 滑回右缘后隐藏
-	var tw = create_tween()
-	tw.tween_property(self, "offset_left", 0.0, 0.18).set_ease(Tween.EASE_IN)
-	tw.tween_callback(func(): visible = false)
+	if _tween != null and _tween.is_valid():
+		_tween.kill()
+	_tween = create_tween()
+	_tween.tween_property(self, "offset_left", 0.0, 0.18).set_ease(Tween.EASE_IN)
+	_tween.tween_callback(func(): visible = false)

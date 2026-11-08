@@ -17,11 +17,14 @@ var _two_cols_chance := 0.3   # 2026-08-13 用户拍板：冻结随机 1~2 列�
 
 var _stacks := 0
 var _turns := 0
+var _last_pressure_turn := -1
 
 func on_room_start(ctrl) -> void:
 	_stacks = 0
 	_turns = 0
-	var p: Dictionary = ctrl.ROOMS[ctrl.room_index].gimmick_params if (ctrl.room_index >= 0 and ctrl.room_index < ctrl.ROOMS.size()) else {}
+	_last_pressure_turn = -1
+	var room: RoomData = ctrl.current_room
+	var p: Dictionary = room.gimmick_params if room != null else {}
 	_interval = int(p.get("interval", 2))
 	_per_stack = int(p.get("per_stack", 8))
 	_max_stacks = int(p.get("max_stacks", 3))
@@ -31,9 +34,11 @@ func on_room_start(ctrl) -> void:
 func on_turn_begin(ctrl) -> void:
 	_turns += 1
 	if _turns % _interval == 0 and _stacks < _max_stacks:
+		_last_pressure_turn = _turns
 		_stacks += 1
 		ctrl.enemy_armor_max += _per_stack
 		ctrl.enemy_armor += _per_stack
+		ctrl.hud._log("⚠ 熔铸加压：叠甲与冻结；随后一回合进入熔铸间隙")
 		ctrl.hud._log("🛡 熔铸护甲 +%d（%d/%d 层，护甲 %d/%d）" % [_per_stack, _stacks, _max_stacks, int(ctrl.enemy_armor), int(ctrl.enemy_armor_max)])
 		# T30 寒霜侵蚀：与叠甲同频（固定节奏，第 3/6/9 回合；叠甲封顶后 frost 同步停止）
 		# 2026-08-09 单侧性纪律：玩家侧冻结上限读 frozen StatusDef.max_cols（frost 已回归纯敌人侧）
@@ -45,4 +50,9 @@ func on_turn_begin(ctrl) -> void:
 			cols = 2
 		ctrl.player_frost = cols
 		ctrl.hud._log("❄ 寒霜侵蚀：冻结 %d 列（次回合自消，清净药剂可当回合解除）" % cols)
+	elif recovery_window(ctrl):
+		ctrl.hud._log("⚔ 熔铸间隙：本回合不再叠甲/冻结，抓住破甲与输出窗口")
 	# 护甲清空由 DuelController._on_counter("special") 统一处理（special 三连），此处不再重复
+
+func recovery_window(_ctrl) -> bool:
+	return _last_pressure_turn >= 0 and _turns == _last_pressure_turn + 1

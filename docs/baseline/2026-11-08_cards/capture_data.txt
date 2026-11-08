@@ -1,0 +1,8 @@
+# 卡片重构取证 2026-11-08T17:42:25
+01_loadout_items  960x540  err=0
+02_shop_cards  960x540  err=0
+03_reward_cards  960x540  err=0
+04_reward_cards_fixed  960x540  err=0
+05_post_growth_card  960x540  err=0
+06_meta_cards  960x540  err=0
+07_unlock_card  960x540  err=0

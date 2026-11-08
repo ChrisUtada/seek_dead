@@ -1,0 +1,895 @@
+# 整备屏排版取证 2026-11-08T18:07:44
+main_480x270  480x270  err=0
+
+## main_480x270
+window=(480, 270) ui_root=(480.0, 270.0)
+sub_panel rect=[P: (480.0, 26.0), S: (50.0, 184.0)]
+sub_list size=(30.0, 1034.0)  scroll=(38.0, 144.0)
+cards=4 sub_list_children=4
+  card0 size=(30.0, 193.0) min=(4.0, 193.0) font=10 lines=4 avail=32.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=60.0 OVERFLOW | 【武器】匕首
+    L1 w=35.0 OVERFLOW | 🗡️ 🗡️
+    L2 w=107.0 OVERFLOW | 攻10 · 无 · 命中82%
+    L3 w=58.0 OVERFLOW | 暴30% · —
+    wrapped=30.0x139.0 need_h=137.0 card_h=193.0 fits
+    tooltip_ok=true len=93
+  card1 size=(30.0, 339.0) min=(24.0, 339.0) font=10 lines=4 avail=12.0 icon=20.0
+    autowrap=3 clip=false
+    L0 w=70.0 OVERFLOW | 【武器】火焰剑
+    L1 w=70.0 OVERFLOW | 🗡️ ☣🔥 🔥
+    L2 w=107.0 OVERFLOW | 攻18 · 火 · 命中88%
+    L3 w=57.0 OVERFLOW | 暴25% · 燃
+    wrapped=27.0x240.0 need_h=238.0 card_h=339.0 fits
+  card2 size=(30.0, 304.0) min=(22.0, 304.0) font=10 lines=4 avail=12.0 icon=20.0
+    autowrap=3 clip=false
+    L0 w=60.0 OVERFLOW | 【武器】战斧
+    L1 w=35.0 OVERFLOW | 🗡️ 🪓
+    L2 w=107.0 OVERFLOW | 攻20 · 无 · 命中78%
+    L3 w=58.0 OVERFLOW | 暴20% · —
+    wrapped=27.0x205.0 need_h=203.0 card_h=304.0 fits
+  card3 size=(30.0, 192.0) min=(2.0, 192.0) font=10 lines=4 avail=32.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 OVERFLOW | 【武器】霜晶法杖
+    L1 w=83.0 OVERFLOW | 🗡️ ❄️💠 ☣❄️
+    L2 w=107.0 OVERFLOW | 攻15 · 冰 · 命中86%
+    L3 w=57.0 OVERFLOW | 暴25% · 霜
+    wrapped=34.0x152.0 need_h=150.0 card_h=192.0 fits
+bottom_bar rect=[P: (6.0, 216.0), S: (468.0, 54.0)]
+  bar_child @Button@114 rect=[P: (0.0, 0.0), S: (21.0, 54.0)] text=🏅
+  bar_child @Button@122 rect=[P: (26.0, 0.0), S: (21.0, 54.0)] text=🔨
+  bar_child CountLabel rect=[P: (52.0, 20.0), S: (168.0, 13.0)] text=武器 2/2 · 技能 1/1 · 消耗品 1/1 · 护符 1/1
+  bar_child AnvilLabel rect=[P: (225.0, 20.0), S: (26.0, 13.0)] text=点数:0
+  bar_child @Button@113 rect=[P: (256.0, 0.0), S: (41.0, 54.0)] text=🗺 棋盘
+  bar_child @Button@105 rect=[P: (302.0, 0.0), S: (30.0, 54.0)] text=🎰带
+  bar_child ConfirmBtn rect=[P: (337.0, 0.0), S: (131.0, 54.0)] text=确认开战 ▶
+weapon_480x270  480x270  err=0
+
+## weapon_480x270
+window=(480, 270) ui_root=(480.0, 270.0)
+sub_panel rect=[P: (282.0, 26.0), S: (196.0, 184.0)]
+sub_list size=(176.0, 286.0)  scroll=(184.0, 144.0)
+cards=4 sub_list_children=4
+  card0 size=(176.0, 63.0) min=(4.0, 63.0) font=10 lines=4 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=60.0 ok | 【武器】匕首
+    L1 w=35.0 ok | 🗡️ 🗡️
+    L2 w=107.0 ok | 攻10 · 无 · 命中82%
+    L3 w=58.0 ok | 暴30% · —
+    wrapped=107.0x48.0 need_h=46.0 card_h=63.0 fits
+    tooltip_ok=true len=93
+  card1 size=(176.0, 79.0) min=(24.0, 79.0) font=10 lines=4 avail=158.0 icon=20.0
+    autowrap=3 clip=false
+    L0 w=70.0 ok | 【武器】火焰剑
+    L1 w=70.0 ok | 🗡️ ☣🔥 🔥
+    L2 w=107.0 ok | 攻18 · 火 · 命中88%
+    L3 w=57.0 ok | 暴25% · 燃
+    wrapped=107.0x48.0 need_h=46.0 card_h=79.0 fits
+  card2 size=(176.0, 77.0) min=(22.0, 77.0) font=10 lines=4 avail=158.0 icon=20.0
+    autowrap=3 clip=false
+    L0 w=60.0 ok | 【武器】战斧
+    L1 w=35.0 ok | 🗡️ 🪓
+    L2 w=107.0 ok | 攻20 · 无 · 命中78%
+    L3 w=58.0 ok | 暴20% · —
+    wrapped=107.0x48.0 need_h=46.0 card_h=77.0 fits
+  card3 size=(176.0, 61.0) min=(2.0, 61.0) font=10 lines=4 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【武器】霜晶法杖
+    L1 w=83.0 ok | 🗡️ ❄️💠 ☣❄️
+    L2 w=107.0 ok | 攻15 · 冰 · 命中86%
+    L3 w=57.0 ok | 暴25% · 霜
+    wrapped=107.0x48.0 need_h=46.0 card_h=61.0 fits
+bottom_bar rect=[P: (6.0, 216.0), S: (468.0, 54.0)]
+  bar_child @Button@114 rect=[P: (0.0, 0.0), S: (21.0, 54.0)] text=🏅
+  bar_child @Button@122 rect=[P: (26.0, 0.0), S: (21.0, 54.0)] text=🔨
+  bar_child CountLabel rect=[P: (52.0, 20.0), S: (168.0, 13.0)] text=武器 2/2 · 技能 1/1 · 消耗品 1/1 · 护符 1/1
+  bar_child AnvilLabel rect=[P: (225.0, 20.0), S: (26.0, 13.0)] text=点数:0
+  bar_child @Button@113 rect=[P: (256.0, 0.0), S: (41.0, 54.0)] text=🗺 棋盘
+  bar_child @Button@105 rect=[P: (302.0, 0.0), S: (30.0, 54.0)] text=🎰带
+  bar_child ConfirmBtn rect=[P: (337.0, 0.0), S: (131.0, 54.0)] text=确认开战 ▶
+skill_480x270  480x270  err=0
+
+## skill_480x270
+window=(480, 270) ui_root=(480.0, 270.0)
+sub_panel rect=[P: (282.0, 26.0), S: (196.0, 184.0)]
+sub_list size=(176.0, 630.0)  scroll=(184.0, 144.0)
+cards=10 sub_list_children=10
+  card0 size=(176.0, 60.0) min=(2.0, 60.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=60.0 ok | 【转轮】定心
+    L1 w=241.0 OVERFLOW | 🕊 定心符入轮：本回合起护盾 +8（持续 2 回合）
+    L2 w=171.0 ok | 攻8 · 命中90% · 暴20% · ×1·2T
+    wrapped=171.0x47.0 need_h=45.0 card_h=60.0 fits
+    tooltip_ok=true len=107
+  card1 size=(176.0, 49.0) min=(2.0, 49.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=60.0 ok | 【转轮】余烬
+    L1 w=128.0 ok | 🔥 余烬落线：挂灼烧 DoT
+    L2 w=171.0 ok | 攻6 · 命中86% · 暴20% · ×1·2T
+    wrapped=171.0x36.0 need_h=34.0 card_h=49.0 fits
+  card2 size=(176.0, 60.0) min=(2.0, 60.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=60.0 ok | 【转轮】炎息
+    L1 w=191.0 OVERFLOW | 🔥 炎息入轮：总伤害 ×1.3（2 回合）
+    L2 w=171.0 ok | 攻3 · 命中90% · 暴20% · ×1·2T
+    wrapped=171.0x47.0 need_h=45.0 card_h=60.0 fits
+  card3 size=(176.0, 61.0) min=(2.0, 61.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【转轮】烈焰印记
+    L1 w=172.0 ok | 🔥 火印落线：造成 fire 属性伤害
+    L2 w=177.0 ok | 攻28 · 命中88% · 暴20% · ×1·2T
+    wrapped=177.0x36.0 need_h=34.0 card_h=61.0 fits
+  card4 size=(176.0, 60.0) min=(2.0, 60.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=60.0 ok | 【转轮】蓄势
+    L1 w=241.0 OVERFLOW | ⏳ 蓄势符入轮：本回合起伤害 +6（持续 2 回合）
+    L2 w=171.0 ok | 攻6 · 命中90% · 暴20% · ×1·2T
+    wrapped=171.0x47.0 need_h=45.0 card_h=60.0 fits
+  card5 size=(176.0, 73.0) min=(2.0, 73.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【转轮】奥术飞弹
+    L1 w=292.0 OVERFLOW | ✦ 远程奥术弹：落线时造成 light 属性伤害（命中率随技能）
+    L2 w=177.0 ok | 攻28 · 命中88% · 暴20% · ×1·2T
+    wrapped=177.0x48.0 need_h=46.0 card_h=73.0 fits
+  card6 size=(176.0, 49.0) min=(2.0, 49.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【转轮】狂怒印记
+    L1 w=131.0 ok | 💢 怒符入轮：伤害符号 +3
+    L2 w=171.0 ok | 攻3 · 命中90% · 暴20% · ×1·2T
+    wrapped=171.0x36.0 need_h=34.0 card_h=49.0 fits
+  card7 size=(176.0, 79.0) min=(24.0, 79.0) font=10 lines=3 avail=158.0 icon=20.0
+    autowrap=3 clip=false
+    L0 w=70.0 ok | 【转轮】治疗术
+    L1 w=117.0 ok | ✚ 回复术：落线恢复生命
+    L2 w=177.0 OVERFLOW | 攻32 · 命中90% · 暴20% · ×1·2T
+    wrapped=144.0x48.0 need_h=46.0 card_h=79.0 fits
+  card8 size=(176.0, 60.0) min=(2.0, 60.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=70.0 ok | 【转轮】再生术
+    L1 w=341.0 OVERFLOW | 🍃 再生符入轮：每回合回复 6 HP 持续 2 回合（纯恢复，不参与元素…
+    L2 w=171.0 ok | 攻3 · 命中90% · 暴20% · ×1·2T
+    wrapped=171.0x47.0 need_h=45.0 card_h=60.0 fits
+  card9 size=(176.0, 61.0) min=(2.0, 61.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【转轮】不屈战旗
+    L1 w=224.0 OVERFLOW | ⚑ 战旗入轮：本回合起护盾 +6（持续 2 回合）
+    L2 w=171.0 ok | 攻6 · 命中90% · 暴20% · ×1·2T
+    wrapped=171.0x48.0 need_h=46.0 card_h=61.0 fits
+bottom_bar rect=[P: (6.0, 216.0), S: (468.0, 54.0)]
+  bar_child @Button@114 rect=[P: (0.0, 0.0), S: (21.0, 54.0)] text=🏅
+  bar_child @Button@122 rect=[P: (26.0, 0.0), S: (21.0, 54.0)] text=🔨
+  bar_child CountLabel rect=[P: (52.0, 20.0), S: (168.0, 13.0)] text=武器 2/2 · 技能 1/1 · 消耗品 1/1 · 护符 1/1
+  bar_child AnvilLabel rect=[P: (225.0, 20.0), S: (26.0, 13.0)] text=点数:0
+  bar_child @Button@113 rect=[P: (256.0, 0.0), S: (41.0, 54.0)] text=🗺 棋盘
+  bar_child @Button@105 rect=[P: (302.0, 0.0), S: (30.0, 54.0)] text=🎰带
+  bar_child ConfirmBtn rect=[P: (337.0, 0.0), S: (131.0, 54.0)] text=确认开战 ▶
+active_480x270  480x270  err=0
+
+## active_480x270
+window=(480, 270) ui_root=(480.0, 270.0)
+sub_panel rect=[P: (282.0, 26.0), S: (196.0, 184.0)]
+sub_list size=(176.0, 593.0)  scroll=(184.0, 144.0)
+cards=10 sub_list_children=10
+  card0 size=(176.0, 48.0) min=(2.0, 48.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【主动】强袭药剂
+    L1 w=171.0 ok | ⚔️ 下一次转轮的所有伤害符号翻倍。
+    L2 w=33.0 ok | 持有 1
+    wrapped=171.0x35.0 need_h=33.0 card_h=48.0 fits
+    tooltip_ok=true len=46
+  card1 size=(176.0, 59.0) min=(2.0, 59.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【主动】清净药剂
+    L1 w=314.0 OVERFLOW | 🌿 解除自身负面状态：驱散寒霜（冻结转轮恢复）+ 清零酸蚀毒层。
+    L2 w=33.0 ok | 持有 1
+    wrapped=171.0x46.0 need_h=44.0 card_h=59.0 fits
+  card2 size=(176.0, 59.0) min=(2.0, 59.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【主动】火之精华
+    L1 w=295.0 OVERFLOW | 🔥 本房间内转轮注入🔥火系攻击符号（伤害 25），离房失效。
+    L2 w=33.0 ok | 持有 1
+    wrapped=175.0x46.0 need_h=44.0 card_h=59.0 fits
+  card3 size=(176.0, 66.0) min=(24.0, 66.0) font=10 lines=3 avail=158.0 icon=20.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【主动】治疗药剂
+    L1 w=138.0 ok | ❤️ 立即恢复 30 点生命值。
+    L2 w=33.0 ok | 持有 1
+    wrapped=138.0x35.0 need_h=33.0 card_h=66.0 fits
+  card4 size=(176.0, 59.0) min=(2.0, 59.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【主动】圣光圣杯
+    L1 w=258.0 OVERFLOW | 🏆 立即回复 60 HP（覆盖治疗药剂 30 的高档恢复）
+    L2 w=33.0 ok | 持有 1
+    wrapped=178.0x46.0 need_h=44.0 card_h=59.0 fits
+  card5 size=(176.0, 59.0) min=(2.0, 59.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【主动】冰之精华
+    L1 w=295.0 OVERFLOW | ❄️ 本房间内转轮注入❄️冰系攻击符号（伤害 25），离房失效。
+    L2 w=33.0 ok | 持有 1
+    wrapped=175.0x46.0 need_h=44.0 card_h=59.0 fits
+  card6 size=(176.0, 59.0) min=(2.0, 59.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【主动】熔火爆裂
+    L1 w=304.0 OVERFLOW | 💥 下一次转轮的所有伤害符号 ×3：覆盖强袭 ×2 的爆发强化版
+    L2 w=33.0 ok | 持有 1
+    wrapped=174.0x46.0 need_h=44.0 card_h=59.0 fits
+  card7 size=(176.0, 59.0) min=(2.0, 59.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【主动】毒之精华
+    L1 w=295.0 OVERFLOW | ☠️ 本房间内转轮注入☠️毒系攻击符号（伤害 25），离房失效。
+    L2 w=33.0 ok | 持有 1
+    wrapped=175.0x46.0 need_h=44.0 card_h=59.0 fits
+  card8 size=(176.0, 48.0) min=(2.0, 48.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【主动】净化药剂
+    L1 w=121.0 ok | 🧪 清除敌人的干扰意图。
+    L2 w=33.0 ok | 持有 1
+    wrapped=121.0x35.0 need_h=33.0 card_h=48.0 fits
+  card9 size=(176.0, 59.0) min=(2.0, 59.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【主动】重转卷轴
+    L1 w=201.0 OVERFLOW | 🌀 立刻免费重转一次（不触发敌人回合）。
+    L2 w=33.0 ok | 持有 1
+    wrapped=171.0x46.0 need_h=44.0 card_h=59.0 fits
+bottom_bar rect=[P: (6.0, 216.0), S: (468.0, 54.0)]
+  bar_child @Button@114 rect=[P: (0.0, 0.0), S: (21.0, 54.0)] text=🏅
+  bar_child @Button@122 rect=[P: (26.0, 0.0), S: (21.0, 54.0)] text=🔨
+  bar_child CountLabel rect=[P: (52.0, 20.0), S: (168.0, 13.0)] text=武器 2/2 · 技能 1/1 · 消耗品 1/1 · 护符 1/1
+  bar_child AnvilLabel rect=[P: (225.0, 20.0), S: (26.0, 13.0)] text=点数:0
+  bar_child @Button@113 rect=[P: (256.0, 0.0), S: (41.0, 54.0)] text=🗺 棋盘
+  bar_child @Button@105 rect=[P: (302.0, 0.0), S: (30.0, 54.0)] text=🎰带
+  bar_child ConfirmBtn rect=[P: (337.0, 0.0), S: (131.0, 54.0)] text=确认开战 ▶
+passive_480x270  480x270  err=0
+
+## passive_480x270
+window=(480, 270) ui_root=(480.0, 270.0)
+sub_panel rect=[P: (282.0, 26.0), S: (196.0, 184.0)]
+sub_list size=(176.0, 271.0)  scroll=(184.0, 144.0)
+cards=4 sub_list_children=4
+  card0 size=(176.0, 88.0) min=(24.0, 88.0) font=10 lines=3 avail=158.0 icon=20.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【常驻】守备护符
+    L1 w=361.0 OVERFLOW | 🛡️ 本局每回合获得 4 点护盾：挨打才消耗，不挨打则累积，提供稳定常驻减…
+    L2 w=20.0 ok | 被动
+    wrapped=151.0x57.0 need_h=55.0 card_h=88.0 fits
+    tooltip_ok=true len=58
+  card1 size=(176.0, 59.0) min=(2.0, 59.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【常驻】回春护符
+    L1 w=314.0 OVERFLOW | 🌿 本局每回合回复 6 HP，提供稳定常驻续航（与瞬回药剂互补）。
+    L2 w=20.0 ok | 被动
+    wrapped=174.0x46.0 need_h=44.0 card_h=59.0 fits
+  card2 size=(176.0, 59.0) min=(2.0, 59.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【常驻】抗扰护符
+    L1 w=261.0 OVERFLOW | 🚫 本局敌人干扰概率降低（约相当于 1 级铁砧抗扰）。
+    L2 w=20.0 ok | 被动
+    wrapped=178.0x46.0 need_h=44.0 card_h=59.0 fits
+  card3 size=(176.0, 59.0) min=(2.0, 59.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【常驻】锈蚀核心
+    L1 w=211.0 OVERFLOW | 🛡 锈蚀傀儡的核心：本局所有伤害符号 +4。
+    L2 w=20.0 ok | 被动
+    wrapped=171.0x46.0 need_h=44.0 card_h=59.0 fits
+bottom_bar rect=[P: (6.0, 216.0), S: (468.0, 54.0)]
+  bar_child @Button@114 rect=[P: (0.0, 0.0), S: (21.0, 54.0)] text=🏅
+  bar_child @Button@122 rect=[P: (26.0, 0.0), S: (21.0, 54.0)] text=🔨
+  bar_child CountLabel rect=[P: (52.0, 20.0), S: (168.0, 13.0)] text=武器 2/2 · 技能 1/1 · 消耗品 1/1 · 护符 1/1
+  bar_child AnvilLabel rect=[P: (225.0, 20.0), S: (26.0, 13.0)] text=点数:0
+  bar_child @Button@113 rect=[P: (256.0, 0.0), S: (41.0, 54.0)] text=🗺 棋盘
+  bar_child @Button@105 rect=[P: (302.0, 0.0), S: (30.0, 54.0)] text=🎰带
+  bar_child ConfirmBtn rect=[P: (337.0, 0.0), S: (131.0, 54.0)] text=确认开战 ▶
+preview_480x270  480x270  err=0
+
+## preview_480x270
+screen=(480.0, 270.0) panel=[P: (0.0, 0.0), S: (480.0, 270.0)] visible=true
+scroll rect=[P: (27.0, 17.0), S: (426.0, 236.0)]  content_min=(320.0, 131.0)  fits
+career_480x270  480x270  err=0
+
+## career_480x270
+screen=(480.0, 270.0) panel=[P: (0.0, 0.0), S: (480.0, 270.0)] visible=true
+scroll rect=[P: (27.0, 12.0), S: (426.0, 246.0)]  content_min=(390.0, 221.0)  fits
+forge_480x270  480x270  err=0
+
+## forge_480x270
+screen=(480.0, 270.0) panel=[P: (0.0, 0.0), S: (480.0, 270.0)] visible=true
+scroll rect=[P: (9.0, 32.0), S: (462.0, 231.0)]  content_min=(418.0, 461.0)  NEEDS_SCROLL
+
+## scroll_reset_480x270 before=486 after=0 OK
+main_960x540  960x540  err=0
+
+## main_960x540
+window=(960, 540) ui_root=(480.0, 270.0)
+sub_panel rect=[P: (480.0, 26.0), S: (50.0, 184.0)]
+sub_list size=(30.0, 1034.0)  scroll=(38.0, 144.0)
+cards=4 sub_list_children=4
+  card0 size=(30.0, 193.0) min=(4.0, 193.0) font=10 lines=4 avail=32.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=60.0 OVERFLOW | 【武器】匕首
+    L1 w=35.0 OVERFLOW | 🗡️ 🗡️
+    L2 w=107.0 OVERFLOW | 攻10 · 无 · 命中82%
+    L3 w=58.0 OVERFLOW | 暴30% · —
+    wrapped=30.0x139.0 need_h=137.0 card_h=193.0 fits
+    tooltip_ok=true len=93
+  card1 size=(30.0, 339.0) min=(24.0, 339.0) font=10 lines=4 avail=12.0 icon=20.0
+    autowrap=3 clip=false
+    L0 w=70.0 OVERFLOW | 【武器】火焰剑
+    L1 w=70.0 OVERFLOW | 🗡️ ☣🔥 🔥
+    L2 w=107.0 OVERFLOW | 攻18 · 火 · 命中88%
+    L3 w=57.0 OVERFLOW | 暴25% · 燃
+    wrapped=27.0x240.0 need_h=238.0 card_h=339.0 fits
+  card2 size=(30.0, 304.0) min=(22.0, 304.0) font=10 lines=4 avail=12.0 icon=20.0
+    autowrap=3 clip=false
+    L0 w=60.0 OVERFLOW | 【武器】战斧
+    L1 w=35.0 OVERFLOW | 🗡️ 🪓
+    L2 w=107.0 OVERFLOW | 攻20 · 无 · 命中78%
+    L3 w=58.0 OVERFLOW | 暴20% · —
+    wrapped=27.0x205.0 need_h=203.0 card_h=304.0 fits
+  card3 size=(30.0, 192.0) min=(2.0, 192.0) font=10 lines=4 avail=32.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 OVERFLOW | 【武器】霜晶法杖
+    L1 w=83.0 OVERFLOW | 🗡️ ❄️💠 ☣❄️
+    L2 w=107.0 OVERFLOW | 攻15 · 冰 · 命中86%
+    L3 w=57.0 OVERFLOW | 暴25% · 霜
+    wrapped=34.0x152.0 need_h=150.0 card_h=192.0 fits
+bottom_bar rect=[P: (6.0, 216.0), S: (468.0, 54.0)]
+  bar_child @Button@114 rect=[P: (0.0, 0.0), S: (21.0, 54.0)] text=🏅
+  bar_child @Button@122 rect=[P: (26.0, 0.0), S: (21.0, 54.0)] text=🔨
+  bar_child CountLabel rect=[P: (52.0, 20.0), S: (168.0, 13.0)] text=武器 2/2 · 技能 1/1 · 消耗品 1/1 · 护符 1/1
+  bar_child AnvilLabel rect=[P: (225.0, 20.0), S: (26.0, 13.0)] text=点数:0
+  bar_child @Button@113 rect=[P: (256.0, 0.0), S: (41.0, 54.0)] text=🗺 棋盘
+  bar_child @Button@105 rect=[P: (302.0, 0.0), S: (30.0, 54.0)] text=🎰带
+  bar_child ConfirmBtn rect=[P: (337.0, 0.0), S: (131.0, 54.0)] text=确认开战 ▶
+weapon_960x540  960x540  err=0
+
+## weapon_960x540
+window=(960, 540) ui_root=(480.0, 270.0)
+sub_panel rect=[P: (282.0, 26.0), S: (196.0, 184.0)]
+sub_list size=(176.0, 286.0)  scroll=(184.0, 144.0)
+cards=4 sub_list_children=4
+  card0 size=(176.0, 63.0) min=(4.0, 63.0) font=10 lines=4 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=60.0 ok | 【武器】匕首
+    L1 w=35.0 ok | 🗡️ 🗡️
+    L2 w=107.0 ok | 攻10 · 无 · 命中82%
+    L3 w=58.0 ok | 暴30% · —
+    wrapped=107.0x48.0 need_h=46.0 card_h=63.0 fits
+    tooltip_ok=true len=93
+  card1 size=(176.0, 79.0) min=(24.0, 79.0) font=10 lines=4 avail=158.0 icon=20.0
+    autowrap=3 clip=false
+    L0 w=70.0 ok | 【武器】火焰剑
+    L1 w=70.0 ok | 🗡️ ☣🔥 🔥
+    L2 w=107.0 ok | 攻18 · 火 · 命中88%
+    L3 w=57.0 ok | 暴25% · 燃
+    wrapped=107.0x48.0 need_h=46.0 card_h=79.0 fits
+  card2 size=(176.0, 77.0) min=(22.0, 77.0) font=10 lines=4 avail=158.0 icon=20.0
+    autowrap=3 clip=false
+    L0 w=60.0 ok | 【武器】战斧
+    L1 w=35.0 ok | 🗡️ 🪓
+    L2 w=107.0 ok | 攻20 · 无 · 命中78%
+    L3 w=58.0 ok | 暴20% · —
+    wrapped=107.0x48.0 need_h=46.0 card_h=77.0 fits
+  card3 size=(176.0, 61.0) min=(2.0, 61.0) font=10 lines=4 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【武器】霜晶法杖
+    L1 w=83.0 ok | 🗡️ ❄️💠 ☣❄️
+    L2 w=107.0 ok | 攻15 · 冰 · 命中86%
+    L3 w=57.0 ok | 暴25% · 霜
+    wrapped=107.0x48.0 need_h=46.0 card_h=61.0 fits
+bottom_bar rect=[P: (6.0, 216.0), S: (468.0, 54.0)]
+  bar_child @Button@114 rect=[P: (0.0, 0.0), S: (21.0, 54.0)] text=🏅
+  bar_child @Button@122 rect=[P: (26.0, 0.0), S: (21.0, 54.0)] text=🔨
+  bar_child CountLabel rect=[P: (52.0, 20.0), S: (168.0, 13.0)] text=武器 2/2 · 技能 1/1 · 消耗品 1/1 · 护符 1/1
+  bar_child AnvilLabel rect=[P: (225.0, 20.0), S: (26.0, 13.0)] text=点数:0
+  bar_child @Button@113 rect=[P: (256.0, 0.0), S: (41.0, 54.0)] text=🗺 棋盘
+  bar_child @Button@105 rect=[P: (302.0, 0.0), S: (30.0, 54.0)] text=🎰带
+  bar_child ConfirmBtn rect=[P: (337.0, 0.0), S: (131.0, 54.0)] text=确认开战 ▶
+skill_960x540  960x540  err=0
+
+## skill_960x540
+window=(960, 540) ui_root=(480.0, 270.0)
+sub_panel rect=[P: (282.0, 26.0), S: (196.0, 184.0)]
+sub_list size=(176.0, 630.0)  scroll=(184.0, 144.0)
+cards=10 sub_list_children=10
+  card0 size=(176.0, 60.0) min=(2.0, 60.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=60.0 ok | 【转轮】定心
+    L1 w=241.0 OVERFLOW | 🕊 定心符入轮：本回合起护盾 +8（持续 2 回合）
+    L2 w=171.0 ok | 攻8 · 命中90% · 暴20% · ×1·2T
+    wrapped=171.0x47.0 need_h=45.0 card_h=60.0 fits
+    tooltip_ok=true len=107
+  card1 size=(176.0, 49.0) min=(2.0, 49.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=60.0 ok | 【转轮】余烬
+    L1 w=128.0 ok | 🔥 余烬落线：挂灼烧 DoT
+    L2 w=171.0 ok | 攻6 · 命中86% · 暴20% · ×1·2T
+    wrapped=171.0x36.0 need_h=34.0 card_h=49.0 fits
+  card2 size=(176.0, 60.0) min=(2.0, 60.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=60.0 ok | 【转轮】炎息
+    L1 w=191.0 OVERFLOW | 🔥 炎息入轮：总伤害 ×1.3（2 回合）
+    L2 w=171.0 ok | 攻3 · 命中90% · 暴20% · ×1·2T
+    wrapped=171.0x47.0 need_h=45.0 card_h=60.0 fits
+  card3 size=(176.0, 61.0) min=(2.0, 61.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【转轮】烈焰印记
+    L1 w=172.0 ok | 🔥 火印落线：造成 fire 属性伤害
+    L2 w=177.0 ok | 攻28 · 命中88% · 暴20% · ×1·2T
+    wrapped=177.0x36.0 need_h=34.0 card_h=61.0 fits
+  card4 size=(176.0, 60.0) min=(2.0, 60.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=60.0 ok | 【转轮】蓄势
+    L1 w=241.0 OVERFLOW | ⏳ 蓄势符入轮：本回合起伤害 +6（持续 2 回合）
+    L2 w=171.0 ok | 攻6 · 命中90% · 暴20% · ×1·2T
+    wrapped=171.0x47.0 need_h=45.0 card_h=60.0 fits
+  card5 size=(176.0, 73.0) min=(2.0, 73.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【转轮】奥术飞弹
+    L1 w=292.0 OVERFLOW | ✦ 远程奥术弹：落线时造成 light 属性伤害（命中率随技能）
+    L2 w=177.0 ok | 攻28 · 命中88% · 暴20% · ×1·2T
+    wrapped=177.0x48.0 need_h=46.0 card_h=73.0 fits
+  card6 size=(176.0, 49.0) min=(2.0, 49.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【转轮】狂怒印记
+    L1 w=131.0 ok | 💢 怒符入轮：伤害符号 +3
+    L2 w=171.0 ok | 攻3 · 命中90% · 暴20% · ×1·2T
+    wrapped=171.0x36.0 need_h=34.0 card_h=49.0 fits
+  card7 size=(176.0, 79.0) min=(24.0, 79.0) font=10 lines=3 avail=158.0 icon=20.0
+    autowrap=3 clip=false
+    L0 w=70.0 ok | 【转轮】治疗术
+    L1 w=117.0 ok | ✚ 回复术：落线恢复生命
+    L2 w=177.0 OVERFLOW | 攻32 · 命中90% · 暴20% · ×1·2T
+    wrapped=144.0x48.0 need_h=46.0 card_h=79.0 fits
+  card8 size=(176.0, 60.0) min=(2.0, 60.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=70.0 ok | 【转轮】再生术
+    L1 w=341.0 OVERFLOW | 🍃 再生符入轮：每回合回复 6 HP 持续 2 回合（纯恢复，不参与元素…
+    L2 w=171.0 ok | 攻3 · 命中90% · 暴20% · ×1·2T
+    wrapped=171.0x47.0 need_h=45.0 card_h=60.0 fits
+  card9 size=(176.0, 61.0) min=(2.0, 61.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【转轮】不屈战旗
+    L1 w=224.0 OVERFLOW | ⚑ 战旗入轮：本回合起护盾 +6（持续 2 回合）
+    L2 w=171.0 ok | 攻6 · 命中90% · 暴20% · ×1·2T
+    wrapped=171.0x48.0 need_h=46.0 card_h=61.0 fits
+bottom_bar rect=[P: (6.0, 216.0), S: (468.0, 54.0)]
+  bar_child @Button@114 rect=[P: (0.0, 0.0), S: (21.0, 54.0)] text=🏅
+  bar_child @Button@122 rect=[P: (26.0, 0.0), S: (21.0, 54.0)] text=🔨
+  bar_child CountLabel rect=[P: (52.0, 20.0), S: (168.0, 13.0)] text=武器 2/2 · 技能 1/1 · 消耗品 1/1 · 护符 1/1
+  bar_child AnvilLabel rect=[P: (225.0, 20.0), S: (26.0, 13.0)] text=点数:0
+  bar_child @Button@113 rect=[P: (256.0, 0.0), S: (41.0, 54.0)] text=🗺 棋盘
+  bar_child @Button@105 rect=[P: (302.0, 0.0), S: (30.0, 54.0)] text=🎰带
+  bar_child ConfirmBtn rect=[P: (337.0, 0.0), S: (131.0, 54.0)] text=确认开战 ▶
+active_960x540  960x540  err=0
+
+## active_960x540
+window=(960, 540) ui_root=(480.0, 270.0)
+sub_panel rect=[P: (282.0, 26.0), S: (196.0, 184.0)]
+sub_list size=(176.0, 593.0)  scroll=(184.0, 144.0)
+cards=10 sub_list_children=10
+  card0 size=(176.0, 48.0) min=(2.0, 48.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【主动】强袭药剂
+    L1 w=171.0 ok | ⚔️ 下一次转轮的所有伤害符号翻倍。
+    L2 w=33.0 ok | 持有 1
+    wrapped=171.0x35.0 need_h=33.0 card_h=48.0 fits
+    tooltip_ok=true len=46
+  card1 size=(176.0, 59.0) min=(2.0, 59.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【主动】清净药剂
+    L1 w=314.0 OVERFLOW | 🌿 解除自身负面状态：驱散寒霜（冻结转轮恢复）+ 清零酸蚀毒层。
+    L2 w=33.0 ok | 持有 1
+    wrapped=171.0x46.0 need_h=44.0 card_h=59.0 fits
+  card2 size=(176.0, 59.0) min=(2.0, 59.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【主动】火之精华
+    L1 w=295.0 OVERFLOW | 🔥 本房间内转轮注入🔥火系攻击符号（伤害 25），离房失效。
+    L2 w=33.0 ok | 持有 1
+    wrapped=175.0x46.0 need_h=44.0 card_h=59.0 fits
+  card3 size=(176.0, 66.0) min=(24.0, 66.0) font=10 lines=3 avail=158.0 icon=20.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【主动】治疗药剂
+    L1 w=138.0 ok | ❤️ 立即恢复 30 点生命值。
+    L2 w=33.0 ok | 持有 1
+    wrapped=138.0x35.0 need_h=33.0 card_h=66.0 fits
+  card4 size=(176.0, 59.0) min=(2.0, 59.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【主动】圣光圣杯
+    L1 w=258.0 OVERFLOW | 🏆 立即回复 60 HP（覆盖治疗药剂 30 的高档恢复）
+    L2 w=33.0 ok | 持有 1
+    wrapped=178.0x46.0 need_h=44.0 card_h=59.0 fits
+  card5 size=(176.0, 59.0) min=(2.0, 59.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【主动】冰之精华
+    L1 w=295.0 OVERFLOW | ❄️ 本房间内转轮注入❄️冰系攻击符号（伤害 25），离房失效。
+    L2 w=33.0 ok | 持有 1
+    wrapped=175.0x46.0 need_h=44.0 card_h=59.0 fits
+  card6 size=(176.0, 59.0) min=(2.0, 59.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【主动】熔火爆裂
+    L1 w=304.0 OVERFLOW | 💥 下一次转轮的所有伤害符号 ×3：覆盖强袭 ×2 的爆发强化版
+    L2 w=33.0 ok | 持有 1
+    wrapped=174.0x46.0 need_h=44.0 card_h=59.0 fits
+  card7 size=(176.0, 59.0) min=(2.0, 59.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【主动】毒之精华
+    L1 w=295.0 OVERFLOW | ☠️ 本房间内转轮注入☠️毒系攻击符号（伤害 25），离房失效。
+    L2 w=33.0 ok | 持有 1
+    wrapped=175.0x46.0 need_h=44.0 card_h=59.0 fits
+  card8 size=(176.0, 48.0) min=(2.0, 48.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【主动】净化药剂
+    L1 w=121.0 ok | 🧪 清除敌人的干扰意图。
+    L2 w=33.0 ok | 持有 1
+    wrapped=121.0x35.0 need_h=33.0 card_h=48.0 fits
+  card9 size=(176.0, 59.0) min=(2.0, 59.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【主动】重转卷轴
+    L1 w=201.0 OVERFLOW | 🌀 立刻免费重转一次（不触发敌人回合）。
+    L2 w=33.0 ok | 持有 1
+    wrapped=171.0x46.0 need_h=44.0 card_h=59.0 fits
+bottom_bar rect=[P: (6.0, 216.0), S: (468.0, 54.0)]
+  bar_child @Button@114 rect=[P: (0.0, 0.0), S: (21.0, 54.0)] text=🏅
+  bar_child @Button@122 rect=[P: (26.0, 0.0), S: (21.0, 54.0)] text=🔨
+  bar_child CountLabel rect=[P: (52.0, 20.0), S: (168.0, 13.0)] text=武器 2/2 · 技能 1/1 · 消耗品 1/1 · 护符 1/1
+  bar_child AnvilLabel rect=[P: (225.0, 20.0), S: (26.0, 13.0)] text=点数:0
+  bar_child @Button@113 rect=[P: (256.0, 0.0), S: (41.0, 54.0)] text=🗺 棋盘
+  bar_child @Button@105 rect=[P: (302.0, 0.0), S: (30.0, 54.0)] text=🎰带
+  bar_child ConfirmBtn rect=[P: (337.0, 0.0), S: (131.0, 54.0)] text=确认开战 ▶
+passive_960x540  960x540  err=0
+
+## passive_960x540
+window=(960, 540) ui_root=(480.0, 270.0)
+sub_panel rect=[P: (282.0, 26.0), S: (196.0, 184.0)]
+sub_list size=(176.0, 271.0)  scroll=(184.0, 144.0)
+cards=4 sub_list_children=4
+  card0 size=(176.0, 88.0) min=(24.0, 88.0) font=10 lines=3 avail=158.0 icon=20.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【常驻】守备护符
+    L1 w=361.0 OVERFLOW | 🛡️ 本局每回合获得 4 点护盾：挨打才消耗，不挨打则累积，提供稳定常驻减…
+    L2 w=20.0 ok | 被动
+    wrapped=151.0x57.0 need_h=55.0 card_h=88.0 fits
+    tooltip_ok=true len=58
+  card1 size=(176.0, 59.0) min=(2.0, 59.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【常驻】回春护符
+    L1 w=314.0 OVERFLOW | 🌿 本局每回合回复 6 HP，提供稳定常驻续航（与瞬回药剂互补）。
+    L2 w=20.0 ok | 被动
+    wrapped=174.0x46.0 need_h=44.0 card_h=59.0 fits
+  card2 size=(176.0, 59.0) min=(2.0, 59.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【常驻】抗扰护符
+    L1 w=261.0 OVERFLOW | 🚫 本局敌人干扰概率降低（约相当于 1 级铁砧抗扰）。
+    L2 w=20.0 ok | 被动
+    wrapped=178.0x46.0 need_h=44.0 card_h=59.0 fits
+  card3 size=(176.0, 59.0) min=(2.0, 59.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【常驻】锈蚀核心
+    L1 w=211.0 OVERFLOW | 🛡 锈蚀傀儡的核心：本局所有伤害符号 +4。
+    L2 w=20.0 ok | 被动
+    wrapped=171.0x46.0 need_h=44.0 card_h=59.0 fits
+bottom_bar rect=[P: (6.0, 216.0), S: (468.0, 54.0)]
+  bar_child @Button@114 rect=[P: (0.0, 0.0), S: (21.0, 54.0)] text=🏅
+  bar_child @Button@122 rect=[P: (26.0, 0.0), S: (21.0, 54.0)] text=🔨
+  bar_child CountLabel rect=[P: (52.0, 20.0), S: (168.0, 13.0)] text=武器 2/2 · 技能 1/1 · 消耗品 1/1 · 护符 1/1
+  bar_child AnvilLabel rect=[P: (225.0, 20.0), S: (26.0, 13.0)] text=点数:0
+  bar_child @Button@113 rect=[P: (256.0, 0.0), S: (41.0, 54.0)] text=🗺 棋盘
+  bar_child @Button@105 rect=[P: (302.0, 0.0), S: (30.0, 54.0)] text=🎰带
+  bar_child ConfirmBtn rect=[P: (337.0, 0.0), S: (131.0, 54.0)] text=确认开战 ▶
+preview_960x540  960x540  err=0
+
+## preview_960x540
+screen=(480.0, 270.0) panel=[P: (0.0, 0.0), S: (480.0, 270.0)] visible=true
+scroll rect=[P: (27.0, 17.0), S: (426.0, 236.0)]  content_min=(320.0, 131.0)  fits
+career_960x540  960x540  err=0
+
+## career_960x540
+screen=(480.0, 270.0) panel=[P: (0.0, 0.0), S: (480.0, 270.0)] visible=true
+scroll rect=[P: (27.0, 12.0), S: (426.0, 246.0)]  content_min=(390.0, 221.0)  fits
+forge_960x540  960x540  err=0
+
+## forge_960x540
+screen=(480.0, 270.0) panel=[P: (0.0, 0.0), S: (480.0, 270.0)] visible=true
+scroll rect=[P: (9.0, 32.0), S: (462.0, 231.0)]  content_min=(418.0, 461.0)  NEEDS_SCROLL
+
+## scroll_reset_960x540 before=486 after=0 OK
+main_1440x810  1440x810  err=0
+
+## main_1440x810
+window=(1440, 810) ui_root=(480.0, 270.0)
+sub_panel rect=[P: (480.0, 26.0), S: (50.0, 184.0)]
+sub_list size=(30.0, 1034.0)  scroll=(38.0, 144.0)
+cards=4 sub_list_children=4
+  card0 size=(30.0, 193.0) min=(4.0, 193.0) font=10 lines=4 avail=32.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=60.0 OVERFLOW | 【武器】匕首
+    L1 w=35.0 OVERFLOW | 🗡️ 🗡️
+    L2 w=107.0 OVERFLOW | 攻10 · 无 · 命中82%
+    L3 w=58.0 OVERFLOW | 暴30% · —
+    wrapped=30.0x139.0 need_h=137.0 card_h=193.0 fits
+    tooltip_ok=true len=93
+  card1 size=(30.0, 339.0) min=(24.0, 339.0) font=10 lines=4 avail=12.0 icon=20.0
+    autowrap=3 clip=false
+    L0 w=70.0 OVERFLOW | 【武器】火焰剑
+    L1 w=70.0 OVERFLOW | 🗡️ ☣🔥 🔥
+    L2 w=107.0 OVERFLOW | 攻18 · 火 · 命中88%
+    L3 w=57.0 OVERFLOW | 暴25% · 燃
+    wrapped=27.0x240.0 need_h=238.0 card_h=339.0 fits
+  card2 size=(30.0, 304.0) min=(22.0, 304.0) font=10 lines=4 avail=12.0 icon=20.0
+    autowrap=3 clip=false
+    L0 w=60.0 OVERFLOW | 【武器】战斧
+    L1 w=35.0 OVERFLOW | 🗡️ 🪓
+    L2 w=107.0 OVERFLOW | 攻20 · 无 · 命中78%
+    L3 w=58.0 OVERFLOW | 暴20% · —
+    wrapped=27.0x205.0 need_h=203.0 card_h=304.0 fits
+  card3 size=(30.0, 192.0) min=(2.0, 192.0) font=10 lines=4 avail=32.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 OVERFLOW | 【武器】霜晶法杖
+    L1 w=83.0 OVERFLOW | 🗡️ ❄️💠 ☣❄️
+    L2 w=107.0 OVERFLOW | 攻15 · 冰 · 命中86%
+    L3 w=57.0 OVERFLOW | 暴25% · 霜
+    wrapped=34.0x152.0 need_h=150.0 card_h=192.0 fits
+bottom_bar rect=[P: (6.0, 216.0), S: (468.0, 54.0)]
+  bar_child @Button@114 rect=[P: (0.0, 0.0), S: (21.0, 54.0)] text=🏅
+  bar_child @Button@122 rect=[P: (26.0, 0.0), S: (21.0, 54.0)] text=🔨
+  bar_child CountLabel rect=[P: (52.0, 20.0), S: (168.0, 13.0)] text=武器 2/2 · 技能 1/1 · 消耗品 1/1 · 护符 1/1
+  bar_child AnvilLabel rect=[P: (225.0, 20.0), S: (26.0, 13.0)] text=点数:0
+  bar_child @Button@113 rect=[P: (256.0, 0.0), S: (41.0, 54.0)] text=🗺 棋盘
+  bar_child @Button@105 rect=[P: (302.0, 0.0), S: (30.0, 54.0)] text=🎰带
+  bar_child ConfirmBtn rect=[P: (337.0, 0.0), S: (131.0, 54.0)] text=确认开战 ▶
+weapon_1440x810  1440x810  err=0
+
+## weapon_1440x810
+window=(1440, 810) ui_root=(480.0, 270.0)
+sub_panel rect=[P: (282.0, 26.0), S: (196.0, 184.0)]
+sub_list size=(176.0, 286.0)  scroll=(184.0, 144.0)
+cards=4 sub_list_children=4
+  card0 size=(176.0, 63.0) min=(4.0, 63.0) font=10 lines=4 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=60.0 ok | 【武器】匕首
+    L1 w=35.0 ok | 🗡️ 🗡️
+    L2 w=107.0 ok | 攻10 · 无 · 命中82%
+    L3 w=58.0 ok | 暴30% · —
+    wrapped=107.0x48.0 need_h=46.0 card_h=63.0 fits
+    tooltip_ok=true len=93
+  card1 size=(176.0, 79.0) min=(24.0, 79.0) font=10 lines=4 avail=158.0 icon=20.0
+    autowrap=3 clip=false
+    L0 w=70.0 ok | 【武器】火焰剑
+    L1 w=70.0 ok | 🗡️ ☣🔥 🔥
+    L2 w=107.0 ok | 攻18 · 火 · 命中88%
+    L3 w=57.0 ok | 暴25% · 燃
+    wrapped=107.0x48.0 need_h=46.0 card_h=79.0 fits
+  card2 size=(176.0, 77.0) min=(22.0, 77.0) font=10 lines=4 avail=158.0 icon=20.0
+    autowrap=3 clip=false
+    L0 w=60.0 ok | 【武器】战斧
+    L1 w=35.0 ok | 🗡️ 🪓
+    L2 w=107.0 ok | 攻20 · 无 · 命中78%
+    L3 w=58.0 ok | 暴20% · —
+    wrapped=107.0x48.0 need_h=46.0 card_h=77.0 fits
+  card3 size=(176.0, 61.0) min=(2.0, 61.0) font=10 lines=4 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【武器】霜晶法杖
+    L1 w=83.0 ok | 🗡️ ❄️💠 ☣❄️
+    L2 w=107.0 ok | 攻15 · 冰 · 命中86%
+    L3 w=57.0 ok | 暴25% · 霜
+    wrapped=107.0x48.0 need_h=46.0 card_h=61.0 fits
+bottom_bar rect=[P: (6.0, 216.0), S: (468.0, 54.0)]
+  bar_child @Button@114 rect=[P: (0.0, 0.0), S: (21.0, 54.0)] text=🏅
+  bar_child @Button@122 rect=[P: (26.0, 0.0), S: (21.0, 54.0)] text=🔨
+  bar_child CountLabel rect=[P: (52.0, 20.0), S: (168.0, 13.0)] text=武器 2/2 · 技能 1/1 · 消耗品 1/1 · 护符 1/1
+  bar_child AnvilLabel rect=[P: (225.0, 20.0), S: (26.0, 13.0)] text=点数:0
+  bar_child @Button@113 rect=[P: (256.0, 0.0), S: (41.0, 54.0)] text=🗺 棋盘
+  bar_child @Button@105 rect=[P: (302.0, 0.0), S: (30.0, 54.0)] text=🎰带
+  bar_child ConfirmBtn rect=[P: (337.0, 0.0), S: (131.0, 54.0)] text=确认开战 ▶
+skill_1440x810  1440x810  err=0
+
+## skill_1440x810
+window=(1440, 810) ui_root=(480.0, 270.0)
+sub_panel rect=[P: (282.0, 26.0), S: (196.0, 184.0)]
+sub_list size=(176.0, 630.0)  scroll=(184.0, 144.0)
+cards=10 sub_list_children=10
+  card0 size=(176.0, 60.0) min=(2.0, 60.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=60.0 ok | 【转轮】定心
+    L1 w=241.0 OVERFLOW | 🕊 定心符入轮：本回合起护盾 +8（持续 2 回合）
+    L2 w=171.0 ok | 攻8 · 命中90% · 暴20% · ×1·2T
+    wrapped=171.0x47.0 need_h=45.0 card_h=60.0 fits
+    tooltip_ok=true len=107
+  card1 size=(176.0, 49.0) min=(2.0, 49.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=60.0 ok | 【转轮】余烬
+    L1 w=128.0 ok | 🔥 余烬落线：挂灼烧 DoT
+    L2 w=171.0 ok | 攻6 · 命中86% · 暴20% · ×1·2T
+    wrapped=171.0x36.0 need_h=34.0 card_h=49.0 fits
+  card2 size=(176.0, 60.0) min=(2.0, 60.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=60.0 ok | 【转轮】炎息
+    L1 w=191.0 OVERFLOW | 🔥 炎息入轮：总伤害 ×1.3（2 回合）
+    L2 w=171.0 ok | 攻3 · 命中90% · 暴20% · ×1·2T
+    wrapped=171.0x47.0 need_h=45.0 card_h=60.0 fits
+  card3 size=(176.0, 61.0) min=(2.0, 61.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【转轮】烈焰印记
+    L1 w=172.0 ok | 🔥 火印落线：造成 fire 属性伤害
+    L2 w=177.0 ok | 攻28 · 命中88% · 暴20% · ×1·2T
+    wrapped=177.0x36.0 need_h=34.0 card_h=61.0 fits
+  card4 size=(176.0, 60.0) min=(2.0, 60.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=60.0 ok | 【转轮】蓄势
+    L1 w=241.0 OVERFLOW | ⏳ 蓄势符入轮：本回合起伤害 +6（持续 2 回合）
+    L2 w=171.0 ok | 攻6 · 命中90% · 暴20% · ×1·2T
+    wrapped=171.0x47.0 need_h=45.0 card_h=60.0 fits
+  card5 size=(176.0, 73.0) min=(2.0, 73.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【转轮】奥术飞弹
+    L1 w=292.0 OVERFLOW | ✦ 远程奥术弹：落线时造成 light 属性伤害（命中率随技能）
+    L2 w=177.0 ok | 攻28 · 命中88% · 暴20% · ×1·2T
+    wrapped=177.0x48.0 need_h=46.0 card_h=73.0 fits
+  card6 size=(176.0, 49.0) min=(2.0, 49.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【转轮】狂怒印记
+    L1 w=131.0 ok | 💢 怒符入轮：伤害符号 +3
+    L2 w=171.0 ok | 攻3 · 命中90% · 暴20% · ×1·2T
+    wrapped=171.0x36.0 need_h=34.0 card_h=49.0 fits
+  card7 size=(176.0, 79.0) min=(24.0, 79.0) font=10 lines=3 avail=158.0 icon=20.0
+    autowrap=3 clip=false
+    L0 w=70.0 ok | 【转轮】治疗术
+    L1 w=117.0 ok | ✚ 回复术：落线恢复生命
+    L2 w=177.0 OVERFLOW | 攻32 · 命中90% · 暴20% · ×1·2T
+    wrapped=144.0x48.0 need_h=46.0 card_h=79.0 fits
+  card8 size=(176.0, 60.0) min=(2.0, 60.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=70.0 ok | 【转轮】再生术
+    L1 w=341.0 OVERFLOW | 🍃 再生符入轮：每回合回复 6 HP 持续 2 回合（纯恢复，不参与元素…
+    L2 w=171.0 ok | 攻3 · 命中90% · 暴20% · ×1·2T
+    wrapped=171.0x47.0 need_h=45.0 card_h=60.0 fits
+  card9 size=(176.0, 61.0) min=(2.0, 61.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【转轮】不屈战旗
+    L1 w=224.0 OVERFLOW | ⚑ 战旗入轮：本回合起护盾 +6（持续 2 回合）
+    L2 w=171.0 ok | 攻6 · 命中90% · 暴20% · ×1·2T
+    wrapped=171.0x48.0 need_h=46.0 card_h=61.0 fits
+bottom_bar rect=[P: (6.0, 216.0), S: (468.0, 54.0)]
+  bar_child @Button@114 rect=[P: (0.0, 0.0), S: (21.0, 54.0)] text=🏅
+  bar_child @Button@122 rect=[P: (26.0, 0.0), S: (21.0, 54.0)] text=🔨
+  bar_child CountLabel rect=[P: (52.0, 20.0), S: (168.0, 13.0)] text=武器 2/2 · 技能 1/1 · 消耗品 1/1 · 护符 1/1
+  bar_child AnvilLabel rect=[P: (225.0, 20.0), S: (26.0, 13.0)] text=点数:0
+  bar_child @Button@113 rect=[P: (256.0, 0.0), S: (41.0, 54.0)] text=🗺 棋盘
+  bar_child @Button@105 rect=[P: (302.0, 0.0), S: (30.0, 54.0)] text=🎰带
+  bar_child ConfirmBtn rect=[P: (337.0, 0.0), S: (131.0, 54.0)] text=确认开战 ▶
+active_1440x810  1440x810  err=0
+
+## active_1440x810
+window=(1440, 810) ui_root=(480.0, 270.0)
+sub_panel rect=[P: (282.0, 26.0), S: (196.0, 184.0)]
+sub_list size=(176.0, 593.0)  scroll=(184.0, 144.0)
+cards=10 sub_list_children=10
+  card0 size=(176.0, 48.0) min=(2.0, 48.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【主动】强袭药剂
+    L1 w=171.0 ok | ⚔️ 下一次转轮的所有伤害符号翻倍。
+    L2 w=33.0 ok | 持有 1
+    wrapped=171.0x35.0 need_h=33.0 card_h=48.0 fits
+    tooltip_ok=true len=46
+  card1 size=(176.0, 59.0) min=(2.0, 59.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【主动】清净药剂
+    L1 w=314.0 OVERFLOW | 🌿 解除自身负面状态：驱散寒霜（冻结转轮恢复）+ 清零酸蚀毒层。
+    L2 w=33.0 ok | 持有 1
+    wrapped=171.0x46.0 need_h=44.0 card_h=59.0 fits
+  card2 size=(176.0, 59.0) min=(2.0, 59.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【主动】火之精华
+    L1 w=295.0 OVERFLOW | 🔥 本房间内转轮注入🔥火系攻击符号（伤害 25），离房失效。
+    L2 w=33.0 ok | 持有 1
+    wrapped=175.0x46.0 need_h=44.0 card_h=59.0 fits
+  card3 size=(176.0, 66.0) min=(24.0, 66.0) font=10 lines=3 avail=158.0 icon=20.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【主动】治疗药剂
+    L1 w=138.0 ok | ❤️ 立即恢复 30 点生命值。
+    L2 w=33.0 ok | 持有 1
+    wrapped=138.0x35.0 need_h=33.0 card_h=66.0 fits
+  card4 size=(176.0, 59.0) min=(2.0, 59.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【主动】圣光圣杯
+    L1 w=258.0 OVERFLOW | 🏆 立即回复 60 HP（覆盖治疗药剂 30 的高档恢复）
+    L2 w=33.0 ok | 持有 1
+    wrapped=178.0x46.0 need_h=44.0 card_h=59.0 fits
+  card5 size=(176.0, 59.0) min=(2.0, 59.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【主动】冰之精华
+    L1 w=295.0 OVERFLOW | ❄️ 本房间内转轮注入❄️冰系攻击符号（伤害 25），离房失效。
+    L2 w=33.0 ok | 持有 1
+    wrapped=175.0x46.0 need_h=44.0 card_h=59.0 fits
+  card6 size=(176.0, 59.0) min=(2.0, 59.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【主动】熔火爆裂
+    L1 w=304.0 OVERFLOW | 💥 下一次转轮的所有伤害符号 ×3：覆盖强袭 ×2 的爆发强化版
+    L2 w=33.0 ok | 持有 1
+    wrapped=174.0x46.0 need_h=44.0 card_h=59.0 fits
+  card7 size=(176.0, 59.0) min=(2.0, 59.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【主动】毒之精华
+    L1 w=295.0 OVERFLOW | ☠️ 本房间内转轮注入☠️毒系攻击符号（伤害 25），离房失效。
+    L2 w=33.0 ok | 持有 1
+    wrapped=175.0x46.0 need_h=44.0 card_h=59.0 fits
+  card8 size=(176.0, 48.0) min=(2.0, 48.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【主动】净化药剂
+    L1 w=121.0 ok | 🧪 清除敌人的干扰意图。
+    L2 w=33.0 ok | 持有 1
+    wrapped=121.0x35.0 need_h=33.0 card_h=48.0 fits
+  card9 size=(176.0, 59.0) min=(2.0, 59.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【主动】重转卷轴
+    L1 w=201.0 OVERFLOW | 🌀 立刻免费重转一次（不触发敌人回合）。
+    L2 w=33.0 ok | 持有 1
+    wrapped=171.0x46.0 need_h=44.0 card_h=59.0 fits
+bottom_bar rect=[P: (6.0, 216.0), S: (468.0, 54.0)]
+  bar_child @Button@114 rect=[P: (0.0, 0.0), S: (21.0, 54.0)] text=🏅
+  bar_child @Button@122 rect=[P: (26.0, 0.0), S: (21.0, 54.0)] text=🔨
+  bar_child CountLabel rect=[P: (52.0, 20.0), S: (168.0, 13.0)] text=武器 2/2 · 技能 1/1 · 消耗品 1/1 · 护符 1/1
+  bar_child AnvilLabel rect=[P: (225.0, 20.0), S: (26.0, 13.0)] text=点数:0
+  bar_child @Button@113 rect=[P: (256.0, 0.0), S: (41.0, 54.0)] text=🗺 棋盘
+  bar_child @Button@105 rect=[P: (302.0, 0.0), S: (30.0, 54.0)] text=🎰带
+  bar_child ConfirmBtn rect=[P: (337.0, 0.0), S: (131.0, 54.0)] text=确认开战 ▶
+passive_1440x810  1440x810  err=0
+
+## passive_1440x810
+window=(1440, 810) ui_root=(480.0, 270.0)
+sub_panel rect=[P: (282.0, 26.0), S: (196.0, 184.0)]
+sub_list size=(176.0, 271.0)  scroll=(184.0, 144.0)
+cards=4 sub_list_children=4
+  card0 size=(176.0, 88.0) min=(24.0, 88.0) font=10 lines=3 avail=158.0 icon=20.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【常驻】守备护符
+    L1 w=361.0 OVERFLOW | 🛡️ 本局每回合获得 4 点护盾：挨打才消耗，不挨打则累积，提供稳定常驻减…
+    L2 w=20.0 ok | 被动
+    wrapped=151.0x57.0 need_h=55.0 card_h=88.0 fits
+    tooltip_ok=true len=58
+  card1 size=(176.0, 59.0) min=(2.0, 59.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【常驻】回春护符
+    L1 w=314.0 OVERFLOW | 🌿 本局每回合回复 6 HP，提供稳定常驻续航（与瞬回药剂互补）。
+    L2 w=20.0 ok | 被动
+    wrapped=174.0x46.0 need_h=44.0 card_h=59.0 fits
+  card2 size=(176.0, 59.0) min=(2.0, 59.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【常驻】抗扰护符
+    L1 w=261.0 OVERFLOW | 🚫 本局敌人干扰概率降低（约相当于 1 级铁砧抗扰）。
+    L2 w=20.0 ok | 被动
+    wrapped=178.0x46.0 need_h=44.0 card_h=59.0 fits
+  card3 size=(176.0, 59.0) min=(2.0, 59.0) font=10 lines=3 avail=178.0 icon=0.0
+    autowrap=3 clip=false
+    L0 w=80.0 ok | 【常驻】锈蚀核心
+    L1 w=211.0 OVERFLOW | 🛡 锈蚀傀儡的核心：本局所有伤害符号 +4。
+    L2 w=20.0 ok | 被动
+    wrapped=171.0x46.0 need_h=44.0 card_h=59.0 fits
+bottom_bar rect=[P: (6.0, 216.0), S: (468.0, 54.0)]
+  bar_child @Button@114 rect=[P: (0.0, 0.0), S: (21.0, 54.0)] text=🏅
+  bar_child @Button@122 rect=[P: (26.0, 0.0), S: (21.0, 54.0)] text=🔨
+  bar_child CountLabel rect=[P: (52.0, 20.0), S: (168.0, 13.0)] text=武器 2/2 · 技能 1/1 · 消耗品 1/1 · 护符 1/1
+  bar_child AnvilLabel rect=[P: (225.0, 20.0), S: (26.0, 13.0)] text=点数:0
+  bar_child @Button@113 rect=[P: (256.0, 0.0), S: (41.0, 54.0)] text=🗺 棋盘
+  bar_child @Button@105 rect=[P: (302.0, 0.0), S: (30.0, 54.0)] text=🎰带
+  bar_child ConfirmBtn rect=[P: (337.0, 0.0), S: (131.0, 54.0)] text=确认开战 ▶
+preview_1440x810  1440x810  err=0
+
+## preview_1440x810
+screen=(480.0, 270.0) panel=[P: (0.0, 0.0), S: (480.0, 270.0)] visible=true
+scroll rect=[P: (27.0, 17.0), S: (426.0, 236.0)]  content_min=(320.0, 131.0)  fits
+career_1440x810  1440x810  err=0
+
+## career_1440x810
+screen=(480.0, 270.0) panel=[P: (0.0, 0.0), S: (480.0, 270.0)] visible=true
+scroll rect=[P: (27.0, 12.0), S: (426.0, 246.0)]  content_min=(390.0, 221.0)  fits
+forge_1440x810  1440x810  err=0
+
+## forge_1440x810
+screen=(480.0, 270.0) panel=[P: (0.0, 0.0), S: (480.0, 270.0)] visible=true
+scroll rect=[P: (9.0, 32.0), S: (462.0, 231.0)]  content_min=(418.0, 461.0)  NEEDS_SCROLL
+
+## scroll_reset_1440x810 before=486 after=0 OK
+
+## ui_button_font skip_btn font=10 min=(96.0, 30.0)
+board_960x540  960x540  err=0
