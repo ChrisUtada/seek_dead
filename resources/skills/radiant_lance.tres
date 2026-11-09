@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="SkillData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/items/skill_data.gd" id="1"]
+[ext_resource type="Resource" path="res://resources/symbols/radiant_lance.tres" id="2"]
+
+[resource]
+script = ExtResource("1")
+buff_id = "radiant_lance"
+category = "skill"
+rarity = "common"
+base_power = 22.0
+hit_rate = 0.88
+buff_name = "光辉长枪"
+icon = "✨"
+description = "光辉长枪落线：造成 light 属性伤害，克制暗系敌人。"
+symbol = ExtResource("2")
+weight = 1.0

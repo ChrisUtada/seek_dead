@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="SkillData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/items/skill_data.gd" id="1"]
+[ext_resource type="Resource" path="res://resources/symbols/blight.tres" id="2"]
+
+[resource]
+script = ExtResource("1")
+buff_id = "blight"
+category = "skill"
+rarity = "uncommon"
+base_power = 0.0
+hit_rate = 0.90
+buff_name = "枯萎"
+icon = "🦠"
+description = "枯萎落线：对敌人叠加中毒，持续削血。"
+symbol = ExtResource("2")
+weight = 1.0

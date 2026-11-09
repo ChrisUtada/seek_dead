@@ -69,6 +69,7 @@ func start_run() -> void:
 		"battles": [],
 		"growth": [],
 		"weapon_changes": [],
+		"act_boons": [],
 		"shop": [],
 		"camp": [],
 		"consumables": [],
@@ -119,6 +120,14 @@ func note_act_start(act: int, summary: Dictionary = {}, prev: Dictionary = {}) -
 		last["boss"] = String(prev.get("boss", ""))
 	_data["act"] = int(act)
 	_data["acts"].append(_act_entry(summary))
+	_flush()
+
+
+# G7-A S5 后续（2026-11-09）：幕间锻魂记录（进入 ACT II / ACT III 时自动发放一次）。
+func note_act_boon(act: int, power: int, hp: int) -> void:
+	if not _active:
+		return
+	_data["act_boons"].append({"act": int(act), "power": int(power), "hp": int(hp)})
 	_flush()
 
 

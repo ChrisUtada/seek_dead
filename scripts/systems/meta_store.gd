@@ -23,13 +23,21 @@ func _init(ctrl: DuelController, m: Dictionary) -> void:
 # ---------------------------------------------------------------------------
 
 func load_meta() -> void:
-	var defaults := {"anvil_points": 0, "owned_weapons": [], "owned_charms": [], "owned_consumables": [], "anvil_pity": 0, "collection_milestones": [], "item_sources": {}, "career": {"unlocked": [], "bosses": []}, "codex": {}, "forge_styles": {}}
+	var defaults := {"anvil_points": 0, "owned_weapons": [], "owned_charms": [], "owned_consumables": [], "owned_skills": [], "anvil_pity": 0, "collection_milestones": [], "item_sources": {}, "career": {"unlocked": [], "bosses": []}, "codex": {}, "forge_styles": {}}
 	var lb = SaveSystem.load_lobby_data()
+	var had_save := false
+	var parsed: Dictionary = {}
 	if lb.has(_ctrl.ANVIL_SAVE_KEY) and lb[_ctrl.ANVIL_SAVE_KEY] is Dictionary:
-		var parsed: Dictionary = lb[_ctrl.ANVIL_SAVE_KEY]
+		had_save = true
+		parsed = lb[_ctrl.ANVIL_SAVE_KEY]
 		for k in defaults.keys():
 			if parsed.has(k):
 				meta[k] = parsed[k]
+	# G7-C 迁移：老档（有存档但无 owned_skills）只授予 G7-C 之前已有的 17 件技能，
+	# 不把新增的 23 件直接送掉；也不回收老档已能用的内容。
+	# 用固定清单而非目录扫描，避免以后新增技能被老档迁移一次性送完。
+	if had_save and not parsed.has("owned_skills"):
+		meta["owned_skills"] = _existing_paths(LEGACY_SKILLS)
 	_ctrl.hud._log("铁砧元进度已载入：点数 %d" % meta["anvil_points"])
 
 
@@ -54,13 +62,53 @@ const STARTER_WEAPONS: Array[String] = [
 const STARTER_CHARM_COUNT := 4
 # M6-C4：新档护符只给「纯增益的防御向 common」——混合/诅咒护符带 downside，不能作为开局默认。
 const STARTER_CHARM_DEFENSE_EFFECTS: Array[String] = ["shield", "room_shield", "heal", "interference_resist"]
+# G7-C：新档只给 4 个基础技能（原技能池最早的 4 件），其余技能靠铁砧/商店收集。
+const STARTER_SKILLS: Array[String] = [
+	"res://resources/skills/haste.tres",
+	"res://resources/skills/magic_bolt.tres",
+	"res://resources/skills/rage.tres",
+	"res://resources/skills/recovery.tres",
+]
+# G7-C 之前的 17 件技能：老档迁移只授予这些，不把 G7-C 新增的 23 件直接送掉。
+const LEGACY_SKILLS: Array[String] = [
+	"res://resources/skills/atonement_light.tres",
+	"res://resources/skills/atonement_mark.tres",
+	"res://resources/skills/aura_of_order.tres",
+	"res://resources/skills/calm.tres",
+	"res://resources/skills/ember.tres",
+	"res://resources/skills/fire_breath.tres",
+	"res://resources/skills/flame_mark.tres",
+	"res://resources/skills/focus.tres",
+	"res://resources/skills/haste.tres",
+	"res://resources/skills/holy_verdict.tres",
+	"res://resources/skills/magic_bolt.tres",
+	"res://resources/skills/nightmare_gaze.tres",
+	"res://resources/skills/nightmare_veil.tres",
+	"res://resources/skills/rage.tres",
+	"res://resources/skills/recovery.tres",
+	"res://resources/skills/shadow_regen.tres",
+	"res://resources/skills/war_banner.tres",
+]
 
 func seed_default_owned() -> void:
 	# 迁移口径：只「补足」基础子集，从不删除已有收藏——老存档的全池收藏原样保留（不回收已获得内容）。
 	_ensure_owned("owned_weapons", _starter_weapons())
 	_ensure_owned("owned_charms", _starter_charms())
 	_ensure_owned("owned_consumables", _all_active_items())
+	_ensure_owned("owned_skills", _starter_skills())
 	self.save_meta()
+
+
+func _starter_skills() -> Array:
+	return _existing_paths(STARTER_SKILLS)
+
+
+func _existing_paths(paths: Array) -> Array:
+	var out := []
+	for p in paths:
+		if ResourceLoader.exists(String(p)):
+			out.append(String(p))
+	return out
 
 
 func _ensure_owned(key: String, paths: Array) -> void:
@@ -129,7 +177,7 @@ static func _is_boss_relic(d: Resource, p: String) -> bool:
 func sanitize_owned() -> void:
 	# 自愈：历史上技能曾被误写入 owned_weapons（shop 的 owned_key 推导 bug）。
 	# 清洗各 owned_* 中不属于本类的路径，避免 load 出 SkillData 后整备屏按 weapon 读 weapon_name 崩溃。
-	for key in ["owned_weapons", "owned_charms", "owned_consumables"]:
+	for key in ["owned_weapons", "owned_charms", "owned_consumables", "owned_skills"]:
 		if not meta.has(key):
 			continue
 		var cleaned := []
@@ -142,6 +190,8 @@ func sanitize_owned() -> void:
 				ok = (d is ItemData and d.category == "passive")
 			elif key == "owned_consumables":
 				ok = (d is ItemData and d.category == "active")
+			elif key == "owned_skills":
+				ok = (d is SkillData)
 			if ok:
 				cleaned.append(p)
 		meta[key] = cleaned

@@ -1,0 +1,174 @@
+route,room,seed,turn,situation,target,counter_count,enemy_dmg,taken,blocked,player_hp,enemy_hp,forced,consumables
+same_element,寒铁精英,9601,1,输出窗口,res://resources/symbols/fire_slash.tres,1,313,25,0,75,37,0,-
+same_element,寒铁精英,9601,2,重击 50,res://resources/symbols/fire_slash.tres,1,556,0,0,75,-519,0,assault×1
+same_element,寒铁精英,9602,1,重击 50,res://resources/symbols/fire_slash.tres,2,313,50,0,50,37,0,-
+same_element,寒铁精英,9602,2,残血 37/350,res://resources/symbols/fire_slash.tres,2,556,0,0,50,-519,0,assault×1
+same_element,寒铁精英,9603,1,重击 50,res://resources/symbols/fire_slash.tres,2,313,50,0,50,37,0,-
+same_element,寒铁精英,9603,2,残血 37/350,res://resources/symbols/fire_slash.tres,2,556,0,0,50,-519,0,assault×1
+coverage,寒铁精英,9601,1,输出窗口,res://resources/symbols/fire_slash.tres,1,373,0,0,100,-23,0,element×1
+coverage,寒铁精英,9602,1,重击 50,res://resources/symbols/fire_slash.tres,1,373,0,0,100,-23,0,element×1
+coverage,寒铁精英,9603,1,重击 50,res://resources/symbols/fire_slash.tres,1,373,0,0,100,-23,0,element×1
+defense,寒铁精英,9601,1,输出窗口,res://resources/symbols/iron_slash.tres,1,108,21,4,79,242,0,-
+defense,寒铁精英,9601,2,输出窗口,res://resources/symbols/iron_slash.tres,4,108,21,4,64,134,0,-
+defense,寒铁精英,9601,3,重击 50,res://resources/symbols/aegis.tres,1,0,6,44,64,134,0,-
+defense,寒铁精英,9601,4,熔铸间隙,res://resources/symbols/iron_slash.tres,1,108,21,4,49,26,0,-
+defense,寒铁精英,9601,5,残血 26/350,res://resources/symbols/iron_slash.tres,1,108,0,0,85,-82,0,heal×1
+defense,寒铁精英,9602,1,重击 50,res://resources/symbols/aegis.tres,1,0,0,50,100,350,0,-
+defense,寒铁精英,9602,2,输出窗口,res://resources/symbols/fire_slash.tres,1,313,7,18,93,37,0,-
+defense,寒铁精英,9602,3,高甲 4/4,res://resources/symbols/fire_slash.tres,1,151,0,0,99,-114,0,-
+defense,寒铁精英,9603,1,重击 50,res://resources/symbols/aegis.tres,1,0,0,50,100,350,0,-
+defense,寒铁精英,9603,2,输出窗口,res://resources/symbols/iron_slash.tres,1,108,7,18,93,242,0,-
+defense,寒铁精英,9603,3,高甲 4/4,res://resources/symbols/iron_slash.tres,1,32,21,4,78,210,0,-
+defense,寒铁精英,9603,4,熔铸间隙,res://resources/symbols/iron_slash.tres,4,108,21,4,63,102,0,-
+defense,寒铁精英,9603,5,重击 50,res://resources/symbols/aegis.tres,4,0,0,50,69,102,0,-
+defense,寒铁精英,9603,6,重击 50,res://resources/symbols/aegis.tres,1,0,12,38,63,102,0,-
+defense,寒铁精英,9603,7,熔铸间隙,res://resources/symbols/iron_slash.tres,1,108,0,0,69,-6,0,-
+armor,寒铁精英,9601,1,输出窗口,res://resources/symbols/bolt_shot.tres,1,126,25,0,75,224,0,-
+armor,寒铁精英,9601,2,重击 50,res://resources/symbols/fire_slash.tres,1,313,0,0,75,-89,0,-
+armor,寒铁精英,9602,1,重击 50,res://resources/symbols/fire_slash.tres,1,313,50,0,50,37,0,-
+armor,寒铁精英,9602,2,残血 37/350,res://resources/symbols/bolt_shot.tres,1,126,0,0,50,-89,0,-
+armor,寒铁精英,9603,1,重击 50,res://resources/symbols/fire_slash.tres,1,313,50,0,50,37,0,-
+armor,寒铁精英,9603,2,残血 37/350,res://resources/symbols/fire_slash.tres,1,313,0,0,50,-276,0,-
+no_cleanse,寒铁精英,9601,1,输出窗口,res://resources/symbols/fire_slash.tres,1,313,25,0,75,37,0,-
+no_cleanse,寒铁精英,9601,2,重击 50,res://resources/symbols/fire_slash.tres,1,313,0,0,75,-276,0,-
+no_cleanse,寒铁精英,9602,1,重击 50,res://resources/symbols/fire_slash.tres,1,313,50,0,50,37,0,-
+no_cleanse,寒铁精英,9602,2,残血 37/350,res://resources/symbols/fire_slash.tres,1,313,0,0,50,-276,0,-
+no_cleanse,寒铁精英,9603,1,重击 50,res://resources/symbols/fire_slash.tres,1,313,50,0,50,37,0,-
+no_cleanse,寒铁精英,9603,2,残血 37/350,res://resources/symbols/fire_slash.tres,1,313,0,0,50,-276,0,-
+same_element,毒壳壁垒,9601,1,输出窗口,res://resources/symbols/fire_slash.tres,2,288,0,0,100,-63,0,-
+same_element,毒壳壁垒,9602,1,重击 26,res://resources/symbols/fire_slash.tres,1,288,0,0,100,-63,0,-
+same_element,毒壳壁垒,9603,1,输出窗口,res://resources/symbols/fire_slash.tres,2,288,0,0,100,-63,0,-
+coverage,毒壳壁垒,9601,1,输出窗口,res://resources/symbols/fire_slash.tres,1,348,0,0,100,-123,0,element×1
+coverage,毒壳壁垒,9602,1,重击 26,res://resources/symbols/fire_slash.tres,1,348,0,0,100,-123,0,element×1
+coverage,毒壳壁垒,9603,1,重击 26,res://resources/symbols/fire_slash.tres,1,348,0,0,100,-123,0,element×1
+defense,毒壳壁垒,9601,1,输出窗口,res://resources/symbols/iron_slash.tres,1,108,9,4,91,117,0,-
+defense,毒壳壁垒,9601,2,输出窗口,res://resources/symbols/iron_slash.tres,4,108,9,4,88,9,0,-
+defense,毒壳壁垒,9601,3,重击 26,res://resources/symbols/aegis.tres,1,0,0,26,94,9,0,-
+defense,毒壳壁垒,9601,4,残血 9/225,res://resources/symbols/iron_slash.tres,1,108,0,0,100,-99,0,-
+defense,毒壳壁垒,9602,1,重击 26,res://resources/symbols/aegis.tres,1,0,0,26,100,225,0,-
+defense,毒壳壁垒,9602,2,输出窗口,res://resources/symbols/fire_slash.tres,1,288,0,0,100,-63,0,-
+defense,毒壳壁垒,9603,1,重击 26,res://resources/symbols/aegis.tres,1,0,0,26,100,225,0,-
+defense,毒壳壁垒,9603,2,输出窗口,res://resources/symbols/iron_slash.tres,3,108,0,13,100,117,0,-
+defense,毒壳壁垒,9603,3,重击 26,res://resources/symbols/aegis.tres,1,0,0,26,100,117,0,-
+defense,毒壳壁垒,9603,4,输出窗口,res://resources/symbols/iron_slash.tres,3,108,0,13,100,9,0,-
+defense,毒壳壁垒,9603,5,重击 26,res://resources/symbols/aegis.tres,1,0,0,26,100,9,0,-
+defense,毒壳壁垒,9603,6,残血 9/225,res://resources/symbols/iron_slash.tres,1,108,0,0,100,-99,0,-
+armor,毒壳壁垒,9601,1,输出窗口,res://resources/symbols/bolt_shot.tres,1,126,13,0,87,99,0,-
+armor,毒壳壁垒,9601,2,输出窗口,res://resources/symbols/bolt_shot.tres,1,126,0,0,87,-27,0,-
+armor,毒壳壁垒,9602,1,重击 26,res://resources/symbols/fire_slash.tres,1,288,0,0,100,-63,0,-
+armor,毒壳壁垒,9603,1,重击 26,res://resources/symbols/fire_slash.tres,1,288,0,0,100,-63,0,-
+no_cleanse,毒壳壁垒,9601,1,输出窗口,res://resources/symbols/fire_slash.tres,1,288,0,0,100,-63,0,-
+no_cleanse,毒壳壁垒,9602,1,重击 26,res://resources/symbols/fire_slash.tres,1,288,0,0,100,-63,0,-
+no_cleanse,毒壳壁垒,9603,1,输出窗口,res://resources/symbols/fire_slash.tres,1,288,0,0,100,-63,0,-
+same_element,窃语咒师,9601,1,输出窗口,res://resources/symbols/fire_slash.tres,2,162,0,0,100,-43,0,-
+same_element,窃语咒师,9602,1,输出窗口,res://resources/symbols/fire_slash.tres,2,162,0,0,100,-43,0,-
+same_element,窃语咒师,9603,1,输出窗口,res://resources/symbols/fire_slash.tres,2,162,0,0,100,-43,0,-
+coverage,窃语咒师,9601,1,输出窗口,res://resources/symbols/fire_slash.tres,1,202,0,0,100,-83,0,-
+coverage,窃语咒师,9602,1,输出窗口,res://resources/symbols/ice_crystal.tres,1,168,0,0,100,-49,0,-
+coverage,窃语咒师,9603,1,输出窗口,res://resources/symbols/ice_crystal.tres,1,168,0,0,100,-49,0,-
+defense,窃语咒师,9601,1,输出窗口,res://resources/symbols/iron_slash.tres,1,108,9,4,91,11,0,-
+defense,窃语咒师,9601,2,残血 11/119,res://resources/symbols/iron_slash.tres,1,108,0,0,97,-97,0,-
+defense,窃语咒师,9602,1,输出窗口,res://resources/symbols/fire_slash.tres,1,162,0,0,100,-43,0,-
+defense,窃语咒师,9603,1,输出窗口,res://resources/symbols/iron_slash.tres,1,108,9,4,91,11,0,-
+defense,窃语咒师,9603,2,残血 11/119,res://resources/symbols/iron_slash.tres,1,108,0,0,97,-97,0,-
+armor,窃语咒师,9601,1,输出窗口,res://resources/symbols/bolt_shot.tres,1,126,0,0,100,-7,0,-
+armor,窃语咒师,9602,1,输出窗口,res://resources/symbols/bolt_shot.tres,1,126,0,0,100,-7,0,-
+armor,窃语咒师,9603,1,输出窗口,res://resources/symbols/fire_slash.tres,1,162,0,0,100,-43,0,-
+no_cleanse,窃语咒师,9601,1,输出窗口,res://resources/symbols/fire_slash.tres,1,162,0,0,100,-43,0,-
+no_cleanse,窃语咒师,9602,1,输出窗口,res://resources/symbols/fire_slash.tres,1,162,0,0,100,-43,0,-
+no_cleanse,窃语咒师,9603,1,输出窗口,res://resources/symbols/fire_slash.tres,1,162,0,0,100,-43,0,-
+same_element,重锤蛮兵,9601,1,输出窗口,res://resources/symbols/fire_slash.tres,2,162,18,0,82,23,0,-
+same_element,重锤蛮兵,9601,2,残血 23/185,res://resources/symbols/fire_slash.tres,2,324,0,0,82,-301,0,assault×1
+same_element,重锤蛮兵,9602,1,重击 36,res://resources/symbols/fire_slash.tres,2,162,36,0,64,23,0,-
+same_element,重锤蛮兵,9602,2,残血 23/185,res://resources/symbols/fire_slash.tres,2,324,0,0,64,-301,0,assault×1
+same_element,重锤蛮兵,9603,1,重击 36,res://resources/symbols/fire_slash.tres,2,162,36,0,64,23,0,-
+same_element,重锤蛮兵,9603,2,残血 23/185,res://resources/symbols/fire_slash.tres,2,324,0,0,64,-301,0,assault×1
+coverage,重锤蛮兵,9601,1,输出窗口,res://resources/symbols/fire_slash.tres,1,202,0,0,100,-17,0,-
+coverage,重锤蛮兵,9602,1,重击 36,res://resources/symbols/fire_slash.tres,1,157,36,0,64,28,1,-
+coverage,重锤蛮兵,9602,2,残血 28/185,res://resources/symbols/ice_crystal.tres,1,168,0,0,64,-140,0,-
+coverage,重锤蛮兵,9603,1,重击 36,res://resources/symbols/fire_slash.tres,1,202,0,0,100,-17,0,-
+defense,重锤蛮兵,9601,1,输出窗口,res://resources/symbols/iron_slash.tres,1,108,14,4,86,77,0,-
+defense,重锤蛮兵,9601,2,输出窗口,res://resources/symbols/iron_slash.tres,1,108,0,0,92,-31,0,-
+defense,重锤蛮兵,9602,1,重击 36,res://resources/symbols/aegis.tres,1,0,0,36,100,185,0,-
+defense,重锤蛮兵,9602,2,输出窗口,res://resources/symbols/fire_slash.tres,1,162,0,18,100,23,0,-
+defense,重锤蛮兵,9602,3,残血 23/185,res://resources/symbols/fire_slash.tres,1,162,0,0,100,-139,0,-
+defense,重锤蛮兵,9603,1,重击 36,res://resources/symbols/aegis.tres,1,0,0,36,100,185,0,-
+defense,重锤蛮兵,9603,2,输出窗口,res://resources/symbols/iron_slash.tres,3,108,0,18,100,77,0,-
+defense,重锤蛮兵,9603,3,重击 36,res://resources/symbols/aegis.tres,1,0,0,36,100,77,0,-
+defense,重锤蛮兵,9603,4,输出窗口,res://resources/symbols/iron_slash.tres,1,108,0,0,100,-31,0,-
+armor,重锤蛮兵,9601,1,输出窗口,res://resources/symbols/bolt_shot.tres,1,126,18,0,82,59,0,-
+armor,重锤蛮兵,9601,2,输出窗口,res://resources/symbols/bolt_shot.tres,1,126,0,0,82,-67,0,-
+armor,重锤蛮兵,9602,1,重击 36,res://resources/symbols/fire_slash.tres,1,162,36,0,64,23,0,-
+armor,重锤蛮兵,9602,2,残血 23/185,res://resources/symbols/bolt_shot.tres,1,126,0,0,64,-103,0,-
+armor,重锤蛮兵,9603,1,重击 36,res://resources/symbols/fire_slash.tres,1,162,36,0,64,23,0,-
+armor,重锤蛮兵,9603,2,残血 23/185,res://resources/symbols/fire_slash.tres,1,162,0,0,64,-139,0,-
+no_cleanse,重锤蛮兵,9601,1,输出窗口,res://resources/symbols/fire_slash.tres,1,162,18,0,82,23,0,-
+no_cleanse,重锤蛮兵,9601,2,残血 23/185,res://resources/symbols/fire_slash.tres,1,162,0,0,82,-139,0,-
+no_cleanse,重锤蛮兵,9602,1,重击 36,res://resources/symbols/fire_slash.tres,1,162,36,0,64,23,0,-
+no_cleanse,重锤蛮兵,9602,2,残血 23/185,res://resources/symbols/fire_slash.tres,1,162,0,0,64,-139,0,-
+no_cleanse,重锤蛮兵,9603,1,重击 36,res://resources/symbols/fire_slash.tres,1,162,36,0,64,23,0,-
+no_cleanse,重锤蛮兵,9603,2,残血 23/185,res://resources/symbols/fire_slash.tres,1,162,0,0,64,-139,0,-
+same_element,冰封铁瓮,9601,1,高甲 53/53,res://resources/symbols/fire_slash.tres,2,370,26,0,74,268,0,-
+same_element,冰封铁瓮,9601,2,输出窗口,res://resources/symbols/fire_slash.tres,2,613,0,0,74,-345,0,assault×1
+same_element,冰封铁瓮,9602,1,重击 52,res://resources/symbols/fire_slash.tres,2,370,52,0,48,268,0,-
+same_element,冰封铁瓮,9602,2,输出窗口,res://resources/symbols/fire_slash.tres,2,613,0,0,48,-345,0,assault×1
+same_element,冰封铁瓮,9603,1,重击 52,res://resources/symbols/fire_slash.tres,2,370,52,0,48,268,0,-
+same_element,冰封铁瓮,9603,2,输出窗口,res://resources/symbols/fire_slash.tres,2,613,0,0,48,-345,0,assault×1
+coverage,冰封铁瓮,9601,1,高甲 53/53,res://resources/symbols/fire_slash.tres,1,430,26,0,74,208,0,element×1
+coverage,冰封铁瓮,9601,2,输出窗口,res://resources/symbols/essence_fire.tres,1,380,0,0,74,-172,0,-
+coverage,冰封铁瓮,9602,1,重击 52,res://resources/symbols/fire_slash.tres,1,430,52,0,48,208,0,element×1
+coverage,冰封铁瓮,9602,2,输出窗口,res://resources/symbols/ice_crystal.tres,1,143,26,0,22,65,0,-
+coverage,冰封铁瓮,9602,3,低血 22/100,res://resources/symbols/fire_slash.tres,1,88,0,0,22,-23,1,-
+coverage,冰封铁瓮,9603,1,重击 52,res://resources/symbols/fire_slash.tres,1,430,52,0,48,208,0,element×1
+coverage,冰封铁瓮,9603,2,输出窗口,res://resources/symbols/ice_crystal.tres,1,143,26,0,22,65,0,-
+coverage,冰封铁瓮,9603,3,低血 22/100,res://resources/symbols/fire_slash.tres,1,208,0,0,22,-143,0,-
+defense,冰封铁瓮,9601,1,高甲 53/53,res://resources/symbols/iron_slash.tres,1,108,22,4,78,530,0,-
+defense,冰封铁瓮,9601,2,输出窗口,res://resources/symbols/iron_slash.tres,4,108,22,4,62,422,0,-
+defense,冰封铁瓮,9601,3,重击 52,res://resources/symbols/aegis.tres,4,0,28,24,40,422,0,-
+defense,冰封铁瓮,9601,4,低血 40/100,res://resources/symbols/aegis.tres,3,0,12,14,76,422,1,heal×1
+defense,冰封铁瓮,9601,5,重击 52,res://resources/symbols/aegis.tres,3,0,0,52,82,422,0,-
+defense,冰封铁瓮,9601,6,重击 52,res://resources/symbols/aegis.tres,3,18,26,26,62,404,1,-
+defense,冰封铁瓮,9601,7,重击 52,res://resources/symbols/aegis.tres,3,0,0,52,68,404,0,-
+defense,冰封铁瓮,9601,8,重击 52,res://resources/symbols/aegis.tres,1,0,0,52,74,404,0,-
+defense,冰封铁瓮,9601,9,高甲 24/77,res://resources/symbols/iron_slash.tres,1,0,0,26,80,404,0,-
+defense,冰封铁瓮,9601,10,熔铸间隙,res://resources/symbols/iron_slash.tres,1,30,20,6,66,374,0,-
+defense,冰封铁瓮,9601,11,输出窗口,res://resources/symbols/iron_slash.tres,3,108,22,4,50,266,0,-
+defense,冰封铁瓮,9601,12,重击 52,res://resources/symbols/aegis.tres,1,0,0,52,56,266,0,-
+defense,冰封铁瓮,9601,13,输出窗口,res://resources/symbols/iron_slash.tres,1,108,10,16,52,158,0,-
+defense,冰封铁瓮,9601,14,残血 158/638,res://resources/symbols/iron_slash.tres,3,108,22,4,36,50,0,-
+defense,冰封铁瓮,9601,15,重击 52,res://resources/symbols/aegis.tres,3,0,8,44,46,50,1,-
+defense,冰封铁瓮,9601,16,重击 52,res://resources/symbols/aegis.tres,1,0,0,52,52,50,0,-
+defense,冰封铁瓮,9601,17,残血 50/638,res://resources/symbols/iron_slash.tres,1,108,0,0,58,-58,0,-
+defense,冰封铁瓮,9602,1,重击 52,res://resources/symbols/aegis.tres,1,0,0,52,100,638,0,-
+defense,冰封铁瓮,9602,2,高甲 53/53,res://resources/symbols/fire_slash.tres,1,370,10,16,90,268,0,-
+defense,冰封铁瓮,9602,3,高甲 8/61,res://resources/symbols/fire_slash.tres,4,208,22,4,74,60,0,-
+defense,冰封铁瓮,9602,4,重击 52,res://resources/symbols/aegis.tres,1,0,0,52,80,60,0,-
+defense,冰封铁瓮,9602,5,残血 60/638,res://resources/symbols/fire_slash.tres,1,370,0,0,86,-310,0,-
+defense,冰封铁瓮,9603,1,重击 52,res://resources/symbols/aegis.tres,1,0,0,52,100,638,0,-
+defense,冰封铁瓮,9603,2,高甲 53/53,res://resources/symbols/iron_slash.tres,1,108,10,16,90,530,0,-
+defense,冰封铁瓮,9603,3,高甲 8/61,res://resources/symbols/iron_slash.tres,1,28,22,4,74,502,0,-
+defense,冰封铁瓮,9603,4,熔铸间隙,res://resources/symbols/iron_slash.tres,1,108,22,4,58,394,0,-
+defense,冰封铁瓮,9603,5,输出窗口,res://resources/symbols/iron_slash.tres,4,108,22,4,42,286,0,-
+defense,冰封铁瓮,9603,6,重击 52,res://resources/symbols/aegis.tres,1,0,28,24,50,286,0,heal×1
+defense,冰封铁瓮,9603,7,熔铸间隙,res://resources/symbols/iron_slash.tres,3,108,22,4,34,178,0,-
+defense,冰封铁瓮,9603,8,重击 52,res://resources/symbols/aegis.tres,3,0,0,52,40,178,0,-
+defense,冰封铁瓮,9603,9,低血 40/100,res://resources/symbols/aegis.tres,1,0,0,26,46,178,0,-
+defense,冰封铁瓮,9603,10,熔铸间隙,res://resources/symbols/iron_slash.tres,3,108,0,26,52,70,0,-
+defense,冰封铁瓮,9603,11,重击 52,res://resources/symbols/aegis.tres,3,0,0,52,58,70,0,-
+defense,冰封铁瓮,9603,12,重击 52,res://resources/symbols/aegis.tres,1,0,0,52,64,70,0,-
+defense,冰封铁瓮,9603,13,残血 70/638,res://resources/symbols/iron_slash.tres,1,108,0,0,70,-38,0,-
+armor,冰封铁瓮,9601,1,高甲 53/53,res://resources/symbols/bolt_shot.tres,2,126,26,0,74,512,0,armor_shred×1
+armor,冰封铁瓮,9601,2,高甲 41/53,res://resources/symbols/bolt_shot.tres,2,126,26,0,48,386,0,-
+armor,冰封铁瓮,9601,3,高甲 49/61,res://resources/symbols/bolt_shot.tres,1,42,26,0,22,344,0,-
+armor,冰封铁瓮,9601,4,重击 52,res://resources/symbols/fire_slash.tres,1,370,0,0,22,-26,0,-
+armor,冰封铁瓮,9602,1,重击 52,res://resources/symbols/fire_slash.tres,1,370,52,0,48,268,0,armor_shred×1
+armor,冰封铁瓮,9602,2,输出窗口,res://resources/symbols/bolt_shot.tres,1,126,26,0,22,142,0,-
+armor,冰封铁瓮,9602,3,低血 22/100,res://resources/symbols/fire_slash.tres,1,208,0,0,22,-66,0,-
+armor,冰封铁瓮,9603,1,重击 52,res://resources/symbols/fire_slash.tres,1,370,52,0,48,268,0,armor_shred×1
+armor,冰封铁瓮,9603,2,输出窗口,res://resources/symbols/fire_slash.tres,1,370,0,0,48,-102,0,-
+no_cleanse,冰封铁瓮,9601,1,高甲 53/53,res://resources/symbols/fire_slash.tres,1,370,26,0,74,268,0,-
+no_cleanse,冰封铁瓮,9601,2,输出窗口,res://resources/symbols/fire_slash.tres,1,370,0,0,74,-102,0,-
+no_cleanse,冰封铁瓮,9602,1,重击 52,res://resources/symbols/fire_slash.tres,1,370,52,0,48,268,0,-
+no_cleanse,冰封铁瓮,9602,2,输出窗口,res://resources/symbols/fire_slash.tres,1,370,0,0,48,-102,0,-
+no_cleanse,冰封铁瓮,9603,1,重击 52,res://resources/symbols/fire_slash.tres,1,370,52,0,48,268,0,-
+no_cleanse,冰封铁瓮,9603,2,输出窗口,res://resources/symbols/fire_slash.tres,1,370,0,0,48,-102,0,-

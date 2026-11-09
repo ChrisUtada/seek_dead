@@ -16,6 +16,7 @@ var _ctrl
 var _owned_weapons: Array[String] = []
 var _owned_charms: Array[String] = []
 var _owned_consumables: Array[String] = []
+var _owned_skills: Array[String] = []
 
 
 func _init(ctrl) -> void:
@@ -27,6 +28,7 @@ func snapshot() -> void:
 	_owned_weapons = _paths("owned_weapons")
 	_owned_charms = _paths("owned_charms")
 	_owned_consumables = _paths("owned_consumables")
+	_owned_skills = _paths("owned_skills")
 
 
 func lines() -> Array[String]:
@@ -123,6 +125,9 @@ func collection_line() -> String:
 			new_paths.append(p)
 	for p in _paths("owned_consumables"):
 		if not _owned_consumables.has(p):
+			new_paths.append(p)
+	for p in _paths("owned_skills"):
+		if not _owned_skills.has(p):
 			new_paths.append(p)
 	if new_paths.is_empty():
 		return "新收藏：无"
@@ -252,6 +257,8 @@ func _display_name(path: String) -> String:
 	var res = load(path)
 	if res is WeaponData:
 		return String(res.weapon_name)
+	if res is SkillData:
+		return String(res.buff_name) if String(res.buff_name) != "" else path.get_file().get_basename()
 	if res is ItemData:
 		return String(res.item_name)
 	return path.get_file().get_basename()

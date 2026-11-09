@@ -241,7 +241,7 @@ var reward_is_boss: bool = false       # 当前奖励是否来自 Boss 房（选
 
 # M5 元进度（铁砧锻造 + 存档持久化，跨局保留）
 # 已退役键（元进度三选一退化为仅 anvil）：weapon_upgrades / weapon_base_bonus / weapon_hit_bonus / charm_upgrades / interference_resist / first_clears
-var meta: Dictionary = {"anvil_points": 0, "owned_weapons": [], "owned_charms": [], "owned_consumables": [], "anvil_pity": 0, "collection_milestones": [], "item_sources": {}, "career": {"unlocked": [], "bosses": []}, "codex": {}, "forge_styles": {}}
+var meta: Dictionary = {"anvil_points": 0, "owned_weapons": [], "owned_charms": [], "owned_consumables": [], "owned_skills": [], "anvil_pity": 0, "collection_milestones": [], "item_sources": {}, "career": {"unlocked": [], "bosses": []}, "codex": {}, "forge_styles": {}}
 var _anvil_system                     # 铁砧锻造子系统 AnvilSystem（步骤2抽出；_ready 实例化并注入 self）
 const ANVIL_SAVE_KEY := "anvil_meta"   # 铁砧元进度存于 SaveSystem.lobby_data
 var _meta_store                        # 存档子系统 MetaStore（步骤1抽出；_ready 实例化并注入 self + meta）
@@ -758,6 +758,7 @@ func advance_act() -> bool:
 		ROOMS.append(r)
 	run_final = false                 # 只有进入最后一幕的 BOSS 节点时才会再置真
 	current_act = next_act
+	growth.grant_act_boon(next_act)   # G7-A S5 后续：幕间锻魂（符号伤害 +8 / 最大 HP +20）
 	if _journal != null:
 		_journal.note_act_start(next_act, board.summary(), prev)
 	board.set_feedback("%s 完成 → 进入 %s（第 %d/%d 幕）" % [

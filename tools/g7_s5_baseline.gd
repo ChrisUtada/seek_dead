@@ -18,9 +18,11 @@ extends Node
 #   set APPDATA=%TEMP%\seek_dead_probe_appdata
 #   Godot_v4.7-stable_win64_console.exe --headless --fixed-fps 60 --path . res://tools/g7_s5_baseline.tscn
 # 产物：docs/baseline/2026-11-08_run3_baseline/report.txt + data.json
+#       -- --out=res://docs/baseline/<新目录> 可改输出目录（复测时避免覆盖基线）。
 # ============================================================================
 
 const OUT_DIR := "res://docs/baseline/2026-11-08_run3_baseline"
+const GROWTH := preload("res://scripts/systems/growth_system.gd")
 const DUEL_SCENE := "res://scenes/duel/duel.tscn"
 const BASE_SEED := 5150
 const RUNS := 4                       # 可用 --runs=N 覆盖；--seed=S 覆盖起始种子（单点复核用）
@@ -32,6 +34,8 @@ var _rows: Array[Dictionary] = []      # 每条 = 一局的一幕（单幕局只
 var _bt: Dictionary = {}               # 当前战斗起点快照（用于逐战拆分）
 var _runs := RUNS                      # 可用命令行覆盖：-- --runs=1（快速自检）
 var _seed0 := BASE_SEED                # -- --seed=5151：只复核某颗种子
+var _out_dir: String = OUT_DIR         # -- --out=res://docs/baseline/<新目录>：复测不覆盖基线
+var _no_boon := false                  # -- --no-boon：关掉幕间锻魂，做同代码 A/B
 var _base_loadout: Array[String] = []
 var _base_skills: Array[String] = []
 var _base_charms: Array[String] = []
@@ -49,7 +53,11 @@ func _run() -> void:
 			_runs = maxi(1, int(String(a).get_slice("=", 1)))
 		elif String(a).begins_with("--seed="):
 			_seed0 = int(String(a).get_slice("=", 1))
-	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT_DIR))
+		elif String(a).begins_with("--out="):
+			_out_dir = String(a).get_slice("=", 1)
+		elif String(a) == "--no-boon":
+			_no_boon = true
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(_out_dir))
 	_duel = load(DUEL_SCENE).instantiate() as DuelController
 	add_child(_duel)
 	await _frames(8)
@@ -59,6 +67,8 @@ func _run() -> void:
 	_duel.board_config.shape_id = ""
 	_duel.board_config.special_id = ""
 	_duel.board_config.template_id = ""
+	if _no_boon:
+		_duel.growth.boon_enabled = false
 	_duel._confirm_loadout()
 	await _frames(8)
 	_base_loadout = _duel.selected_loadout.duplicate()
@@ -467,14 +477,16 @@ func _write_report() -> void:
 	_lines.append("    节奏口径以「回合/战」为主。停中率为 bot 固定停轮策略下的读数，不代表真人目押水平。")
 	_lines.append("    承伤/战的假人生命为 %d，不会战败；存活与战败率由作者真人局提供。" % DUMMY_HP)
 
-	var f := FileAccess.open("%s/report.txt" % OUT_DIR, FileAccess.WRITE)
+	var f := FileAccess.open("%s/report.txt" % _out_dir, FileAccess.WRITE)
 	if f != null:
 		f.store_string("\n".join(_lines) + "\n")
 		f.close()
-	var j := FileAccess.open("%s/data.json" % OUT_DIR, FileAccess.WRITE)
+	var j := FileAccess.open("%s/data.json" % _out_dir, FileAccess.WRITE)
 	if j != null:
 		j.store_string(JSON.stringify({"protocol": {"acts": [1, 3], "runs": _runs, "seed": _seed0,
-			"dummy_hp": DUMMY_HP}, "rows": _rows}, "\t"))
+			"dummy_hp": DUMMY_HP, "boon_enabled": not _no_boon,
+			"act_boon_power": GROWTH.ACT_BOON_POWER, "act_boon_hp": GROWTH.ACT_BOON_HP},
+			"rows": _rows}, "\t"))
 		j.close()
 
 

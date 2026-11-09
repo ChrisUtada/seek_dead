@@ -22,6 +22,8 @@ var target_hits := 0            # 其中落在目标符号的列数
 var forced_stops := 0           # 敌人夺轮/机制替玩家停的列数
 var buffer_queues := 0          # 进入一拍输入缓冲的次数
 var stop_outcomes: Dictionary = {}   # target/normal/miss/jam/lock/forced -> 次数
+var stop_kinds: Dictionary = {}      # G7-D：玩家主动停中的符号类别 damage/shield/heal/special/status/buff/trash -> 次数
+var consumable_uses: Dictionary = {} # G7-D：消耗品 effect -> 使用次数（多对策模式记录真实选择）
 
 var _spin_started := -1
 var _room_started := -1
@@ -45,6 +47,8 @@ func reset() -> void:
 	forced_stops = 0
 	buffer_queues = 0
 	stop_outcomes = {}
+	stop_kinds = {}
+	consumable_uses = {}
 	_spin_started = -1
 	_room_started = -1
 
@@ -67,14 +71,24 @@ func on_turn(triple: bool) -> void:
 
 
 # P1：一次落子（玩家/机制）。forced=true 仅用于敌人夺轮等非玩家目押。
-func on_stop(path: String, target: String, outcome: String, forced: bool) -> void:
+# kind = 符号类别（G7-D 多对策模式记录玩家实际选择）。
+func on_stop(path: String, target: String, outcome: String, forced: bool, kind: String = "") -> void:
 	stop_outcomes[outcome] = int(stop_outcomes.get(outcome, 0)) + 1
 	if forced:
 		forced_stops += 1
 		return
 	stop_total += 1
+	if kind != "":
+		stop_kinds[kind] = int(stop_kinds.get(kind, 0)) + 1
 	if target != "" and path == target:
 		target_hits += 1
+
+
+# G7-D：记录消耗品实际使用（effect = heal/purify/cleanse/assault/armor_shred/...）。
+func on_consumable(effect: String) -> void:
+	if effect == "":
+		return
+	consumable_uses[effect] = int(consumable_uses.get(effect, 0)) + 1
 
 
 func on_buffer_queued() -> void:
@@ -146,6 +160,7 @@ func summary() -> Dictionary:
 		"target_symbol": target_symbol, "stop_total": stop_total, "target_hits": target_hits,
 		"target_hit_rate": target_hit_rate(), "forced_stops": forced_stops,
 		"buffer_queues": buffer_queues, "stop_outcomes": stop_outcomes.duplicate(),
+		"stop_kinds": stop_kinds.duplicate(), "consumable_uses": consumable_uses.duplicate(),
 	}
 
 
@@ -153,9 +168,20 @@ func summary_text() -> String:
 	var picks := []
 	for k in reward_picks:
 		picks.append("%s×%d" % [k, int(reward_picks[k])])
-	return "回合%d · 三连%d(%.0f%%) · 旋转%d次均%.2fs · 敌攻%d 承伤%d 格挡%d · 清房%d 均TTK%.1fs · 换武器%d · 奖励卡%d 选择率%.0f%% · 目标停中%d/%d(%.0f%%) 缓冲%d [%s]" % [
+	var extra := ""
+	if not stop_kinds.is_empty():
+		var ks := []
+		for k in stop_kinds:
+			ks.append("%s×%d" % [k, int(stop_kinds[k])])
+		extra += " · 停轮类别[%s]" % ",".join(ks)
+	if not consumable_uses.is_empty():
+		var cs := []
+		for k in consumable_uses:
+			cs.append("%s×%d" % [k, int(consumable_uses[k])])
+		extra += " · 消耗品[%s]" % ",".join(cs)
+	return "回合%d · 三连%d(%.0f%%) · 旋转%d次均%.2fs · 敌攻%d 承伤%d 格挡%d · 清房%d 均TTK%.1fs · 换武器%d · 奖励卡%d 选择率%.0f%% · 目标停中%d/%d(%.0f%%) 缓冲%d [%s]%s" % [
 		turns, triples, triple_rate() * 100.0, spins, avg_spin_seconds(),
 		enemy_attacks, damage_taken, damage_blocked,
 		room_times.size(), avg_ttk(), weapon_swaps, rewards_shown, reward_pick_rate() * 100.0,
 		target_hits, stop_total, target_hit_rate() * 100.0, buffer_queues,
-		",".join(picks)]
+		",".join(picks), extra]

@@ -16,8 +16,8 @@ extends RefCounted
 const META_KEY := "codex"
 const NODE = preload("res://scripts/board/board_node_data.gd")
 
-const KIND_LABEL := {"weapon": "武器", "passive": "护符", "active": "消耗品"}
-const KIND_ICON := {"weapon": "🗡", "passive": "📿", "active": "🧪"}
+const KIND_LABEL := {"weapon": "武器", "passive": "护符", "active": "消耗品", "skill": "技能"}
+const KIND_ICON := {"weapon": "🗡", "passive": "📿", "active": "🧪", "skill": "✨"}
 const SYMBOL_KIND_LABEL := {
 	"damage": "伤害", "shield": "护盾", "heal": "回复", "status": "状态",
 	"special": "特殊", "buff": "增益", "trash": "废铁",
@@ -70,14 +70,18 @@ func _read_stat(path: String) -> Dictionary:
 # 统计写入
 # ---------------------------------------------------------------------------
 
-# 整备确认：武器/护符按「被带进一局」计一次使用。
-func note_equipped(weapons: Array, charms: Array) -> void:
+# 整备确认：武器/护符/技能按「被带进一局」计一次使用（G7-C 起技能也进图鉴）。
+func note_equipped(weapons: Array, charms: Array, skills: Array = []) -> void:
 	var changed := false
 	for p in weapons:
 		var st := _stat(String(p))
 		st["uses"] = int(st.get("uses", 0)) + 1
 		changed = true
 	for p in charms:
+		var st := _stat(String(p))
+		st["uses"] = int(st.get("uses", 0)) + 1
+		changed = true
+	for p in skills:
 		var st := _stat(String(p))
 		st["uses"] = int(st.get("uses", 0)) + 1
 		changed = true
@@ -142,7 +146,7 @@ func best_mastery_of(path: String) -> int:
 # 池内全部装备（含未拥有），按「已拥有优先、名称」排序；未拥有行只显示占位名。
 func list_entries(kind: String) -> Array:
 	var out: Array = []
-	var pool: Array = _ctrl.WEAPON_POOL if kind == "weapon" else _ctrl.ITEM_POOL
+	var pool: Array = _ctrl.SKILL_POOL if kind == "skill" else (_ctrl.WEAPON_POOL if kind == "weapon" else _ctrl.ITEM_POOL)
 	for p in pool:
 		var path := String(p)
 		var res = load(path)
@@ -150,6 +154,9 @@ func list_entries(kind: String) -> Array:
 			continue
 		if kind == "weapon":
 			if not (res is WeaponData):
+				continue
+		elif kind == "skill":
+			if not (res is SkillData):
 				continue
 		else:
 			if not (res is ItemData and String(res.category) == kind):
@@ -241,13 +248,15 @@ func source_lines(path: String) -> Array[String]:
 func _kind_of(res) -> String:
 	if res is WeaponData:
 		return "weapon"
+	if res is SkillData:
+		return "skill"
 	if res is ItemData:
 		return String(res.category)
 	return ""
 
 
 func _owned(path: String) -> bool:
-	for key in ["owned_weapons", "owned_charms", "owned_consumables"]:
+	for key in ["owned_weapons", "owned_charms", "owned_consumables", "owned_skills"]:
 		var arr: Array = _ctrl.meta.get(key, [])
 		if arr.has(path):
 			return true
@@ -258,12 +267,21 @@ func _display_name(path: String) -> String:
 	var res = load(path)
 	if res is WeaponData:
 		return String(res.weapon_name)
+	if res is SkillData:
+		return String(res.buff_name) if String(res.buff_name) != "" else path.get_file().get_basename()
 	if res is ItemData:
 		return String(res.item_name)
 	return path.get_file().get_basename()
 
 
 func _route_text(res, kind: String) -> String:
+	if kind == "skill":
+		var s = res.symbol
+		if s == null:
+			return "技能"
+		var sk := String(SYMBOL_KIND_LABEL.get(String(s.kind), String(s.kind)))
+		var se := ElementCounter.label(String(s.element))
+		return "技能 · " + sk + (" · " + se if se != "" and se != "无" else "")
 	if kind != "weapon":
 		var elem := ElementCounter.label(String(res.element))
 		return String(KIND_LABEL.get(kind, kind)) + (" · " + elem if elem != "" and elem != "无" else "")
@@ -289,6 +307,10 @@ func _route_text(res, kind: String) -> String:
 
 
 func _mechanism_text(res, kind: String) -> String:
+	if kind == "skill":
+		# 技能没有 downside_effect 字段；只给描述，避免按 ItemData 读键报错。
+		var sd := String(res.description)
+		return sd if sd != "" else "无"
 	if kind != "weapon":
 		var desc := String(res.description)
 		var bits: Array[String] = []

@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://ddxuthgtam243" path="res://scripts/ui/battle_hud.gd" id="1_hud"]
 [ext_resource type="PackedScene" path="res://scenes/ui/ui_button.tscn" id="3_btn"]
-[ext_resource type="Texture2D" path="res://assets/characters/viking_ash/idle_01.png" id="4_knight"]
+[ext_resource type="Texture2D" path="res://assets/characters/knight_v1/hero_48.png" id="4_knight"]
 [ext_resource type="Texture2D" path="res://assets/enemy_ember.png" id="5_enemy"]
 [ext_resource type="Texture2D" path="res://assets/icons/16/gold.png" id="6_gold"]
 [ext_resource type="Texture2D" path="res://assets/icons/16/hp.png" id="7_hp"]

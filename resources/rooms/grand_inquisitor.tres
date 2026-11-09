@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://scripts/battle/room_data.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/battle/gimmicks/shame_counter_gimmick.gd" id="2"]
 [ext_resource type="Script" path="res://scripts/battle/intent_data.gd" id="3"]
-[ext_resource type="Texture2D" path="res://assets/characters/grand_inquisitor/idle_01.png" id="art_room"]
+[ext_resource type="Texture2D" path="res://assets/characters/grand_inquisitor/boss_96.png" id="art_room"]
 
 [sub_resource type="Resource" script_class="IntentData" id="intent_attack"]
 script = ExtResource("3")

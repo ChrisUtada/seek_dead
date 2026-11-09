@@ -205,8 +205,8 @@ func _build_codex_ui() -> void:
 
 	var tabs := HBoxContainer.new()
 	tabs.add_theme_constant_override("separation", 4)
-	var tab_labels := {"weapon": "武器", "passive": "护符", "active": "消耗品"}
-	for k in ["weapon", "passive", "active"]:
+	var tab_labels := {"weapon": "武器", "skill": "技能", "passive": "护符", "active": "消耗品"}
+	for k in ["weapon", "skill", "passive", "active"]:
 		var b := Button.new()
 		b.text = String(tab_labels[k])
 		b.add_theme_font_size_override("font_size", 9)

@@ -41,6 +41,8 @@ func use(uid: String) -> void:
 		_ctrl._codex.note_used(String(slot["path"]))   # G6-04：图鉴使用次数
 	if _ctrl._journal != null:
 		_ctrl._journal.note_consumable(String(data.item_name))   # G5 工具：自动记录消耗品使用
+	if _ctrl._telemetry != null:
+		_ctrl._telemetry.on_consumable(str(data.effect))   # G7-D：记录真实对策使用
 	match data.effect:
 		"purify":  use_purify(data)
 		"cleanse": use_cleanse(data)

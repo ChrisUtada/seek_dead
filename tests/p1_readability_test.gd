@@ -86,7 +86,7 @@ func _run() -> void:
 	rd.apply_preset("readable")
 	_check(rd.min_wait == 0.085 and rd.accel == 0.0007, "readable 速度")
 	_check(rd.preview_slots == 2 and rd.visual_stop and rd.buffer_enabled and rd.feedback_enabled, "readable 预览/落点/缓冲/反馈")
-	_check(hud.p1_target_label != null and String(hud.p1_target_label.text).contains("readable"), "目标行显示预设")
+	_check(hud.p1_target_label != null and String(hud.p1_target_label.tooltip_text).contains("readable"), "预设名移入目标行 tooltip（主栏不再拼长预设名）")
 	rd.apply_preset("control")
 	rd.cycle_preset()
 	_check(rd.preset == "readable", "F8 循环 control→readable")
@@ -102,7 +102,8 @@ func _run() -> void:
 	duel.enemy_intent = {"data": null, "type": "heavy", "value": 46}
 	rd.update_turn_target()
 	_check(rd.target_symbol_path == "res://resources/symbols/block.tres", "重击回合优先推荐护盾")
-	_check(hud.p1_target_label.text.contains("重击·先护盾"), "目标行显示重击防御理由")
+	_check(hud.p1_target_label.text.contains("重击 46"), "目标行显示重击局势")
+	_check(hud.p1_target_label.text.contains("护盾符号"), "目标行列出护盾对策")
 	_check(hud.p1_target_label.tooltip_text.contains("46"), "悬浮说明包含真实重击数值")
 	rs.reel_strips[1].append([load("res://resources/symbols/heal.tres"), "none"])
 	duel.enemy_intent = {}
@@ -121,7 +122,7 @@ func _run() -> void:
 	duel.current_gimmick = rust
 	rd.update_turn_target()
 	_check(rd.target_reason == "间隙·输出", "熔铸间隙推荐集中输出")
-	_check(hud.p1_target_label.text.contains("间隙·输出"), "目标行显示输出窗口")
+	_check(hud.p1_target_label.text.contains("熔铸间隙"), "目标行显示间隙局势")
 	duel.current_gimmick = null
 	duel.enemy_intent = {}
 	duel.player_frost = 0

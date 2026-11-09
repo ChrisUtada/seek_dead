@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://scripts/battle/room_data.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/battle/gimmicks/rust_armor_gimmick.gd" id="2"]
 [ext_resource type="Script" path="res://scripts/battle/intent_data.gd" id="3"]
-[ext_resource type="Texture2D" path="res://assets/characters/frozen_urn/idle_01.png" id="4_art"]
+[ext_resource type="Texture2D" path="res://assets/characters/frozen_urn/boss_96.png" id="4_art"]
 
 [sub_resource type="Resource" script_class="IntentData" id="intent_attack"]
 script = ExtResource("3")
@@ -40,4 +40,4 @@ boss_reward_weapons = Array[String](["res://resources/weapon_templates/fire_swor
 boss_relic_path = "res://resources/charms/frost_core_relic.tres"
 art = ExtResource("4_art")
 art_scale = 2.0
-mechanic_summary = "每3回合叠甲冻结\n次回合熔铸间隙\n火系可破"
+mechanic_summary = "每3回合叠甲冻结\n次回合熔铸间隙\n特殊三连破甲"

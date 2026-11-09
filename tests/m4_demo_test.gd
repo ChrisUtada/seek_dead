@@ -6,7 +6,7 @@ extends Node
 #
 # 覆盖：
 # ① DemoConfig 白名单完整性：路径存在、类别匹配、starter 武器在池内
-# ② 开关关闭：武器 90 / 技能 17 / 装备 70、ROOMS = 3 幕 × 8 + 真·最终（25）
+# ② 开关关闭：武器 90 / 技能 40 / 装备 70、ROOMS = 3 幕 × 8 + 真·最终（25）
 # ③ 开关开启：池收窄为白名单（14 武器 / 10 技能 / 27 装备）、ROOMS = ACT1 8 房、无真·最终
 # ④ 旧存档池外装备不删除、但整备/商店/铁砧/奖励均不可见
 # ⑤ BOSS 主题武器按白名单过滤（ACT1 的 flame_staff 不出现在候选）
@@ -26,7 +26,7 @@ var _fails := 0
 var _checks := 0
 
 const EXPECT_FULL_WEAPONS := 90   # B01–B11 毒 14 + 火 12 + 冰 11 + 光 10 + 暗 9 + 无 10 入库（2026-11-02）
-const EXPECT_FULL_SKILLS := 17
+const EXPECT_FULL_SKILLS := 40   # G7-C：技能 17 → 40 收口
 const EXPECT_FULL_ITEMS := 70        # 45 护符 + 25 消耗品（M6-C4）
 const EXPECT_DEMO_WEAPONS := 14      # 计划 13 + ice_staff（M0-02 starter 必须可用，见配置注释）
 const EXPECT_DEMO_SKILLS := 10
@@ -233,6 +233,7 @@ func _test_shop_anvil_filtered(duel: DuelController) -> void:
 	for p in duel._anvil_system._anvil_pool():
 		var d = load(p)
 		var ok: bool = (d is WeaponData and duel.demo_config.allows_weapon(p)) \
+			or (d is SkillData and duel.demo_config.allows_skill(p)) \
 			or (d is ItemData and d.category == "passive" and duel.demo_config.allows_charm(p))
 		if not ok:
 			anvil_bad = p

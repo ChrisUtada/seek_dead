@@ -157,7 +157,8 @@ func _anvil_rarity_weight(p: String) -> float:
 
 
 func _anvil_pool() -> Array:
-	# 铁砧池 = 武器 + 护符(passive) 仅此两类；消耗品(active)/技能不进池（设计：铁砧只产武器或护符）
+	# 铁砧池 = 武器 + 护符(passive) + 技能（G7-C 起技能也是可收集装备）；
+	# 消耗品(active)不进池（设计：铁砧只产武器/护符/技能）。
 	var pool := []
 	for p in _ctrl.WEAPON_POOL:
 		pool.append(p)
@@ -167,11 +168,14 @@ func _anvil_pool() -> Array:
 			if _ctrl._meta_store._is_boss_relic(d, p):
 				continue   # BOSS 信物不进铁砧池（仅 BOSS 战利品可获，见 docs/BOSS信物_设计方案.md）
 			pool.append(p)
+	for p in _ctrl.SKILL_POOL:
+		pool.append(p)
 	return pool
 
 
 func _anvil_is_owned(p: String) -> bool:
-	return _ctrl.meta["owned_weapons"].has(p) or _ctrl.meta["owned_charms"].has(p) or _ctrl.meta["owned_consumables"].has(p)
+	return _ctrl.meta["owned_weapons"].has(p) or _ctrl.meta["owned_charms"].has(p) \
+		or _ctrl.meta["owned_consumables"].has(p) or _ctrl.meta["owned_skills"].has(p)
 
 
 func _anvil_not_yet_owned(pool: Array) -> Array:
@@ -184,9 +188,14 @@ func _anvil_not_yet_owned(pool: Array) -> Array:
 
 func _anvil_grant_owned(p: String) -> void:
 	var res = load(p)
-	if res is WeaponData or res is SkillData:
+	if res is WeaponData:
 		if not _ctrl.meta["owned_weapons"].has(p):
 			_ctrl.meta["owned_weapons"].append(p)
+	elif res is SkillData:
+		# G7-C：技能独立收藏池，不再误写 owned_weapons。
+		if not _ctrl.meta["owned_skills"].has(p):
+			_ctrl.meta["owned_skills"].append(p)
+		_ctrl._meta_store.record_source(p, _ctrl._item_source())
 	elif res is ItemData:
 		if res.category == "passive":
 			_ctrl._reward_system.remember_charm(p)   # G2-01：图鉴 + 来源记录

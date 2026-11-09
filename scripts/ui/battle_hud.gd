@@ -385,17 +385,26 @@ func _build_p1_ui() -> void:
 	dock.move_child(p1_status_row, 1)
 	p1_target_label = _label("", TypeScale.REEL)
 	p1_target_label.add_theme_color_override("font_color", Palette.ACCENT_GOLD)
+	# G7-D 修复：局势行可长可短，必须裁切而不是撑宽整行（960×540 / 480×270 均不越界）。
+	p1_target_label.clip_text = true
+	p1_target_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	p1_target_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	p1_status_row.add_child(p1_target_label)
 	for reel in controller.state.REELS:
 		var l := _label("", TypeScale.REEL)
 		l.add_theme_color_override("font_color", Palette.MUTED)
 		p1_status_row.add_child(l)
 		p1_stop_labels.append(l)
+	# 结算反馈同样只占一行，超长裁切，避免撑宽 ReelDock。
+	if feedback_label != null:
+		feedback_label.clip_text = true
+		feedback_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	_refresh_p1_ui()
 	_refresh_p1_previews()
 
 
 # P1：刷新目标声明与预设标签（预设切换 / 新局时调用）。
+# G7-D Step 2：标准模式显示「局势 + 真实可选对策」；固定目标对照仍显示 🎯 单目标。
 func _refresh_p1_ui() -> void:
 	if p1_target_label == null:
 		return
@@ -403,7 +412,29 @@ func _refresh_p1_ui() -> void:
 	if rd == null:
 		p1_target_label.text = ""
 		return
-	p1_target_label.text = "🎯 %s · %s · %s" % [rd.target_label(), String(rd.target_reason), String(rd.preset)]
+	if not rd.is_fixed_target() and String(rd.situation) != "":
+		var labels: Array = []
+		for c in rd.counters:
+			labels.append(String(c.get("label", "")))
+		var shown: Array = labels
+		if labels.size() > 2:
+			shown = labels.slice(0, 2)
+			shown.append("…")   # 主栏最多 2 条，完整对策在 tooltip（避免 960 宽越界）
+		var head := "⚖ " + String(rd.situation)
+		if labels.is_empty():
+			head += " · 无可主动对策"
+		else:
+			head += " · 可应对：" + " / ".join(shown)
+		p1_target_label.text = head
+		var tip: Array = [String(rd.situation_detail) + " · 预设 " + String(rd.preset)]
+		for c in rd.counters:
+			var nm := String(c.get("label", ""))
+			var nt := String(c.get("note", ""))
+			if nt != "":
+				tip.append("· %s：%s" % [nm, nt])
+		p1_target_label.tooltip_text = "\n".join(tip)
+		return
+	p1_target_label.text = "🎯 %s · %s" % [rd.target_label(), String(rd.target_reason)]
 	p1_target_label.tooltip_text = String(rd.target_detail)
 
 
@@ -756,7 +787,8 @@ func _update_match_badges(counts: Dictionary) -> void:
 # Step 5：底部单行短反馈（最高连击符号 / 克制或抵抗倍率 / 本回合总伤害）。
 # 纯展示：结算数据由 CombatSystem 在 evaluate() 末尾原样传入，不参与任何数值计算。
 # 不恢复大段伤害分解——完整分解仍只进 Debug.log（见 combat_system.push_dmg_line）。
-func _show_turn_feedback(counts: Dictionary, total: int, triple: bool = false, elem_triple: bool = false) -> void:
+func _show_turn_feedback(counts: Dictionary, total: int, triple: bool = false, elem_triple: bool = false,
+		shield_gain: int = -1, heal_gain: int = -1, heal_overflow_shield: int = 0) -> void:
 	if feedback_label == null:
 		return
 	var best_label := ""
@@ -771,16 +803,27 @@ func _show_turn_feedback(counts: Dictionary, total: int, triple: bool = false, e
 		best_label = String(s.name) if String(s.name) != "" else String(s.label)
 		best_n = c
 	var parts: Array[String] = []
+	# G7-D Step 5：护盾/治疗报「真实落地」值；满血且无溢出时不显示「恢复」，避免反馈与结算不一致。
+	var has_shield := false
+	var has_heal := false
 	for key in counts:
 		var sym: SymbolData = counts[key][0]
-		if sym != null and String(sym.kind) == "shield":
-			parts.append("护盾准备")
-			break
-	for key in counts:
-		var sym: SymbolData = counts[key][0]
-		if sym != null and String(sym.kind) == "heal":
-			parts.append("恢复")
-			break
+		if sym == null:
+			continue
+		if String(sym.kind) == "shield":
+			has_shield = true
+		elif String(sym.kind) == "heal":
+			has_heal = true
+	if shield_gain > 0:
+		parts.append("护盾+%d" % shield_gain)
+	elif has_shield and shield_gain < 0:
+		parts.append("护盾准备")   # 旧调用（无结算值）保持原文案
+	if heal_gain > 0:
+		parts.append("恢复+%d" % heal_gain)
+	elif heal_overflow_shield > 0:
+		parts.append("恢复→盾+%d" % heal_overflow_shield)
+	elif has_heal and heal_gain < 0:
+		parts.append("恢复")       # 旧调用（无结算值）保持原文案
 	if best_n >= 2:
 		parts.append("%s×%d" % [best_label, best_n])
 	if elem_triple:

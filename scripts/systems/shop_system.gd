@@ -232,12 +232,14 @@ func on_shop_buy_pressed(offer: Dictionary, source: String = "shop") -> void:
 		return
 	_ctrl.gold -= buy_price
 	arr.append(offer["path"])
-	# 技能不进拥有池（读取走 SKILL_POOL），仅武器/护符写入 owned_*
+	# G7-C：技能也写入独立收藏池 owned_skills（整备/图鉴读取）；武器/护符照旧。
 	var owned_key = ""
 	if kind == "weapon":
 		owned_key = "owned_weapons"
 	elif kind == "passive":
 		owned_key = "owned_charms"
+	elif kind == "skill":
+		owned_key = "owned_skills"
 	if owned_key != "":
 		if not _ctrl.meta[owned_key].has(offer["path"]):
 			_ctrl.meta[owned_key].append(offer["path"])

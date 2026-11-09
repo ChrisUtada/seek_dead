@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="SkillData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/items/skill_data.gd" id="1"]
+[ext_resource type="Resource" path="res://resources/symbols/renewal.tres" id="2"]
+
+[resource]
+script = ExtResource("1")
+buff_id = "renewal"
+category = "skill"
+rarity = "uncommon"
+base_power = 12.0
+hit_rate = 0.90
+buff_name = "复苏"
+icon = "🌱"
+description = "复苏落线：中量回复生命；三连治疗溢出转护盾。"
+symbol = ExtResource("2")
+weight = 1.0

@@ -142,8 +142,11 @@ func evaluate() -> void:
 	await _phase_attack(counts, acc)
 
 
+# G7-D Step 5：shield_gain / heal_gain / heal_overflow_shield 只供底部反馈报「真实落地」数值，
+# 不参与结算；结算仍读 shield / heal 原字段。
 func _new_acc() -> Dictionary:
-	return { "dmg": 0, "shield": 0, "heal": 0, "status_stacks": {}, "special": 0, "lines": [], "pierce": 0.0, "counter_triple": false, "triple": false, "heal_triple": false }
+	return { "dmg": 0, "shield": 0, "heal": 0, "status_stacks": {}, "special": 0, "lines": [], "pierce": 0.0, "counter_triple": false, "triple": false, "heal_triple": false,
+		"shield_gain": 0, "heal_gain": 0, "heal_overflow_shield": 0 }
 
 
 func _reset_turn_state() -> void:
@@ -223,12 +226,14 @@ func _phase_defense(acc: Dictionary) -> void:
 		_ctrl.enemy_status[st] = _ctrl.enemy_status.get(st, 0) + acc["status_stacks"][st]
 	if acc["shield"] > 0:
 		_ctrl.player_shield += acc["shield"]
+		acc["shield_gain"] = int(acc["shield"])
 		_ctrl.hud._popup("🛡+%d" % acc["shield"], Palette.POP_SHIELD, _ctrl.hud._player_sprite_anchor())
 		_ctrl.hud._log("获得 %d 护盾" % acc["shield"])
 	if acc["heal"] > 0:
 		var missing: int = _ctrl.player_hp_max - _ctrl.player_hp
 		var hp_gain: int = mini(int(acc["heal"]), missing)
 		_ctrl.player_hp += hp_gain
+		acc["heal_gain"] = hp_gain
 		if hp_gain > 0:
 			_ctrl.hud._popup("❤+%d" % hp_gain, Palette.POP_HEAL, _ctrl.hud._player_sprite_anchor())
 			_ctrl.hud._log("回复 %d HP" % hp_gain)
@@ -240,6 +245,7 @@ func _phase_defense(acc: Dictionary) -> void:
 			var overflow_cap: int = int(_ctrl.player_hp_max * DuelController.BALANCE.heal_overflow_shield_cap_pct)
 			shield_gain = mini(shield_gain, overflow_cap)
 			_ctrl.player_shield += shield_gain
+			acc["heal_overflow_shield"] = shield_gain
 			_ctrl.hud._log("治疗三连溢出转护盾 +%d（上限 %d）" % [shield_gain, overflow_cap])
 	if not acc["status_stacks"].is_empty():
 		_ctrl.hud._log("敌人获得状态: " + _ctrl.status_system.status_summary(acc["status_stacks"]))
@@ -329,7 +335,9 @@ func _phase_attack(counts: Dictionary, acc: Dictionary) -> void:
 		if _ctrl.hud.animator != null:
 			_ctrl.hud.animator.play_attack("player", "enemy")
 	# Step 5：底部单行短反馈（连击/克制/总伤害）。纯展示：读本回合结算结果，不改数值、不加时序等待。
-	_ctrl.hud._show_turn_feedback(counts, total, bool(acc.get("triple", false)), _ctrl._elem_triple)
+	# G7-D Step 5：护盾/治疗只报真实入账值（满血无回血时不显示「恢复」）。
+	_ctrl.hud._show_turn_feedback(counts, total, bool(acc.get("triple", false)), _ctrl._elem_triple,
+		int(acc.get("shield_gain", 0)), int(acc.get("heal_gain", 0)), int(acc.get("heal_overflow_shield", 0)))
 	# T21 元素充能：克制命中满额 → 释放元素爆发（穿透核爆 + 清甲，覆盖流爆发赛道）
 	if _ctrl.charge_points >= DuelController.BALANCE.charge_max:
 		_ctrl.charge_points = 0

@@ -104,14 +104,14 @@ func cat_name(cat: String) -> String:
 
 
 func owned_arr(kind: String) -> Array:
-	# 整备屏/商店读取拥有池（盘外跨局）。skills 暂用全池（待扩 owned_skills）。
+	# 整备屏/商店读取拥有池（盘外跨局）。G7-C：技能也走 owned_skills。
 	# M4-01：demo 开启时只展示白名单内内容；meta 原样保留，关闭开关后立即恢复。
 	var arr: Array
 	match kind:
 		"weapon":  arr = _ctrl.meta["owned_weapons"]
 		"passive": arr = _ctrl.meta["owned_charms"]
 		"active":  arr = _ctrl.meta["owned_consumables"]
-		"skill":   arr = _ctrl.SKILL_POOL
+		"skill":   arr = _ctrl.meta["owned_skills"]
 		_:         return []
 	if _ctrl.demo_active():
 		match kind:
@@ -132,7 +132,7 @@ func confirm_loadout() -> void:
 		return
 	# G6-04：整备确认时把武器/护符按「带进一局」计一次图鉴使用。
 	if _ctrl._codex != null:
-		_ctrl._codex.note_equipped(_ctrl.selected_loadout, _ctrl.selected_charms)
+		_ctrl._codex.note_equipped(_ctrl.selected_loadout, _ctrl.selected_charms, _ctrl.selected_skills)
 	# 消耗品：整备确认时把去重勾选清单实例化为腰带格（每格独立 charges；允许后续商店重复购买同类）
 	# 泛型数组属性跨对象只能 clear()/assign()，不能整体赋 []（运行时类型检查会拒绝）
 	_ctrl.consumable_slots.clear()

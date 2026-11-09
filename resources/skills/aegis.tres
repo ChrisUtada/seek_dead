@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="SkillData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/items/skill_data.gd" id="1"]
+[ext_resource type="Resource" path="res://resources/symbols/aegis.tres" id="2"]
+
+[resource]
+script = ExtResource("1")
+buff_id = "aegis"
+category = "skill"
+rarity = "uncommon"
+base_power = 10.0
+hit_rate = 0.90
+buff_name = "神盾"
+icon = "⚜"
+description = "神盾落线：中量护盾，光系防御手段。"
+symbol = ExtResource("2")
+weight = 1.0

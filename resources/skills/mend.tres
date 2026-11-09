@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="SkillData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/items/skill_data.gd" id="1"]
+[ext_resource type="Resource" path="res://resources/symbols/mend.tres" id="2"]
+
+[resource]
+script = ExtResource("1")
+buff_id = "mend"
+category = "skill"
+rarity = "common"
+base_power = 8.0
+hit_rate = 0.90
+buff_name = "包扎"
+icon = "🩹"
+description = "包扎落线：回复生命；三连治疗溢出转护盾。"
+symbol = ExtResource("2")
+weight = 1.0

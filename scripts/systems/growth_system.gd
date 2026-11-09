@@ -38,8 +38,13 @@ const HOARD_GOLD_BOSS := 5
 const STEADY_WAIT := 0.17        # 稳定节奏：每房前 2 回合的基础每跳间隔
 const STEADY_TURNS := 2
 const GUARD_SHIELD := 8
+# G7-A S5 后续（2026-11-09）：幕间锻魂——进入 ACT II / ACT III 时自动发放一次。
+# 只改本局运行时状态（本局符号伤害 + 最大 HP），不改敌人 / ante / 存档；ACT I 不发放。
+const ACT_BOON_POWER := 8
+const ACT_BOON_HP := 20
 
 var enabled: bool = true         # 探针开关（M2-04 对照组）：false 时房间胜利不发历练
+var boon_enabled: bool = true    # 探针开关（S5 复测 A/B）：false 时不发幕间锻魂
 var xp: int = 0
 var level: int = 1
 var perk_ids: Array[String] = []
@@ -147,6 +152,29 @@ func apply_victory_perks(kind: String) -> void:
 			_ctrl.hud._popup("💰+%d" % gold, Palette.POP_GOLD, _ctrl.hud._player_sprite_anchor())
 			_ctrl.hud._refresh_meta()
 		_ctrl.invalidate_state()
+
+
+# G7-A S5 后续（2026-11-09）：幕间锻魂。advance_act() 在换幕成功后调用一次；
+# 仅 act >= 2 生效，因此 ACT I 开局与单幕局（advance_act 永不被调用）行为不变。
+# 复用 reward_system.run_power_bonus（与「攻击研磨」同一本局加成层），不新增状态字段。
+func grant_act_boon(act: int) -> void:
+	if not enabled or not boon_enabled or act < 2:
+		return
+	var hp_before: int = _ctrl.player_hp
+	var hp_max_before: int = _ctrl.player_hp_max
+	var power_before: int = int(_ctrl._reward_system.run_power_bonus)
+	_ctrl._reward_system.run_power_bonus += ACT_BOON_POWER
+	_ctrl.player_hp_max += ACT_BOON_HP
+	_ctrl.player_hp = mini(_ctrl.player_hp_max, hp_before + ACT_BOON_HP)
+	var healed: int = _ctrl.player_hp - hp_before
+	if _ctrl.hud != null:
+		_ctrl.hud._log("◆ 幕间锻魂：本局符号伤害 +%d（%d → %d） · 最大 HP %d → %d（HP +%d）" % [
+			ACT_BOON_POWER, power_before, _ctrl._reward_system.run_power_bonus,
+			hp_max_before, _ctrl.player_hp_max, healed])
+		_ctrl.hud._popup("锻魂 +%d" % ACT_BOON_POWER, Palette.ACCENT_GOLD, _ctrl.hud.player_hp_label)
+	if _ctrl._journal != null:
+		_ctrl._journal.note_act_boon(act, ACT_BOON_POWER, ACT_BOON_HP)
+	_ctrl.invalidate_state()
 
 
 # 三选一候选：按家族打乱后各取一个未拥有技艺（候选覆盖不同家族，不出现同义卡）。

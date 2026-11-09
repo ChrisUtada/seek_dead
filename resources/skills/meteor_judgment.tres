@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="SkillData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/items/skill_data.gd" id="1"]
+[ext_resource type="Resource" path="res://resources/symbols/meteor_judgment.tres" id="2"]
+
+[resource]
+script = ExtResource("1")
+buff_id = "meteor_judgment"
+category = "skill"
+rarity = "epic"
+base_power = 46.0
+hit_rate = 0.90
+triple_pierce = true
+buff_name = "陨星审判"
+icon = "☄"
+description = "陨星审判落线：高伤 fire 属性伤害；三连破甲。"
+symbol = ExtResource("2")
+weight = 1.0

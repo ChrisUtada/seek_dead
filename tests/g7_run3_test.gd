@@ -172,7 +172,12 @@ func _test_final_flags(duel: DuelController) -> void:
 	_check(int(duel.board.act_summaries[0].get("act", 0)) == 1
 		and int(duel.board.act_summaries[1].get("act", 0)) == 2, "快照按幕顺序记录 ACT I / ACT II")
 	_check(rooms_ok, "每次换幕后 ROOMS 都按新棋盘重建且非空（%s）" % str(sizes))
+	# G7-A S5 后续：两次换幕各发放一次锻魂（+8 伤害 / +20 最大 HP）。
+	_check(int(duel._reward_system.run_power_bonus) == 16, "两次换幕累计锻魂：符号伤害 +16（%d）" % int(duel._reward_system.run_power_bonus))
+	_check(duel.player_hp_max == 140 and duel.player_hp == 140, "两次换幕累计锻魂：最大 HP 100 → 140（%d/%d）" % [duel.player_hp, duel.player_hp_max])
 	_check(not duel.advance_act(), "第三幕之后没有第四幕（advance_act = false）")
+	_check(int(duel._reward_system.run_power_bonus) == 16 and duel.player_hp_max == 140,
+		"无下一幕时不重复发放锻魂（+%d / %d）" % [int(duel._reward_system.run_power_bonus), duel.player_hp_max])
 	duel.board.return_to_board()
 
 
@@ -212,6 +217,8 @@ func _loadout_imprints(duel: DuelController) -> Dictionary:
 func _test_state_preserved(duel: DuelController) -> void:
 	seed(7413)
 	_build(duel, 3)
+	_check(int(duel._reward_system.run_power_bonus) == 0 and duel.player_hp_max == 100,
+		"ACT I 开局无锻魂（+%d / %d）" % [int(duel._reward_system.run_power_bonus), duel.player_hp_max])
 	# 造一组「不可能是开局默认值」的局内状态，便于逐项比对。
 	duel.player_hp_max = 137
 	duel.player_hp = 77
@@ -238,10 +245,15 @@ func _test_state_preserved(duel: DuelController) -> void:
 	_check(duel.board.act_label() == "ACT II", "幕名随幕切换（%s）" % duel.board.act_label())
 	var diffs: Array[String] = []
 	for k in before:
+		if k == "hp" or k == "hp_max":
+			continue   # G7-A S5 后续：锻魂按设计改这两项，单独断言
 		if str(before[k]) != str(after[k]):
 			diffs.append("%s %s→%s" % [k, str(before[k]), str(after[k])])
-	_check(diffs.is_empty(), "幕间不重置：HP/金币/装备/成长/熟练/铭印逐项相等%s" % ("" if diffs.is_empty() else "：" + ", ".join(diffs)))
-	_check(duel.player_hp == 77 and duel.player_hp_max == 137, "幕间 HP 保持 77/137（%d/%d）" % [duel.player_hp, duel.player_hp_max])
+	_check(diffs.is_empty(), "幕间不重置：金币/装备/成长/熟练/铭印逐项相等%s" % ("" if diffs.is_empty() else "：" + ", ".join(diffs)))
+	_check(duel.player_hp_max == 157 and duel.player_hp == 97, "幕间锻魂：最大 HP 137 → 157、HP 77 → 97（%d/%d）" % [duel.player_hp, duel.player_hp_max])
+	_check(int(duel._reward_system.run_power_bonus) == 8, "幕间锻魂：本局符号伤害 +8（%d）" % int(duel._reward_system.run_power_bonus))
+	_check((duel._journal._data.get("act_boons", []) as Array).size() == 1,
+		"局内记录锻魂 1 条（%d）" % (duel._journal._data.get("act_boons", []) as Array).size())
 	_check(duel.gold == 42, "幕间金币保持 42（%d）" % duel.gold)
 	_check(duel.ROOMS.size() == duel.board.battle_rooms.size(), "ROOMS 与第二幕棋盘战斗房同步（%d / %d）" % [duel.ROOMS.size(), duel.board.battle_rooms.size()])
 	_check(duel.ROOMS.size() != rooms_before or rooms_before == duel.board.battle_rooms.size(), "ROOMS 已按新棋盘重建（%d → %d）" % [rooms_before, duel.ROOMS.size()])
@@ -346,6 +358,8 @@ func _test_three_act_run(duel: DuelController) -> void:
 		for a in d.get("acts", []):
 			act_ids.append(int(a.get("act", 0)))
 		_check(act_ids == [1, 2, 3], "记录幕号顺序 %s" % str(act_ids))
+		_check((d.get("act_boons", []) as Array).size() == 2,
+			"局内记录锻魂 2 条（%d）" % (d.get("act_boons", []) as Array).size())
 	else:
 		_check(false, "局内记录已实例化")
 

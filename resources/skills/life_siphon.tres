@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="SkillData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/items/skill_data.gd" id="1"]
+[ext_resource type="Resource" path="res://resources/symbols/life_siphon.tres" id="2"]
+
+[resource]
+script = ExtResource("1")
+buff_id = "life_siphon"
+category = "skill"
+rarity = "common"
+base_power = 8.0
+hit_rate = 0.90
+buff_name = "生命汲取"
+icon = "🩸"
+description = "生命汲取落线：回复生命，暗系恢复手段。"
+symbol = ExtResource("2")
+weight = 1.0
