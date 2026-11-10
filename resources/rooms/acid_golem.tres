@@ -16,4 +16,4 @@ gimmick_params = {"interval": 3, "per_stack": 4, "max_stacks": 2, "two_cols_chan
 act = 1
 armor = 22
 art = ExtResource("3_art")
-art_scale = 1.0
+art_scale = 2.0

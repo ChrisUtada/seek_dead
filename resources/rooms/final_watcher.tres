@@ -16,4 +16,4 @@ gimmick_params = {"base_ratio": 0.06, "low_hp_bonus": 0.15, "max_trash": 10, "ph
 act = 3
 armor = 28
 art = ExtResource("art_room")
-art_scale = 1.0
+art_scale = 2.0

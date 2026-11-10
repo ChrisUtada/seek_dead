@@ -13,4 +13,4 @@ kind = "normal"
 act = 1
 armor = 12
 art = ExtResource("art_room")
-art_scale = 1.0
+art_scale = 2.0

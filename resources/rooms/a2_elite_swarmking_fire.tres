@@ -17,4 +17,4 @@ gimmick_script = ExtResource("3")
 gimmick_params = {"manic_atk_mult": 1.5, "manic_self_damage_pct": 0.03, "phase2_hp_ratio": 0.4, "depressed_atk_mult": 0.7, "p2_armor": 20}
 act = 2
 art = ExtResource("art_room")
-art_scale = 1.0
+art_scale = 2.0

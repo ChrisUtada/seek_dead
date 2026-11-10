@@ -15,4 +15,4 @@ gimmick_script = ExtResource("2")
 gimmick_params = {"dot_per_turn": 1, "dot_base": 1, "bomb_stacks": 12, "bomb_dmg": 20}
 act = 2
 art = ExtResource("art_room")
-art_scale = 1.0
+art_scale = 2.0

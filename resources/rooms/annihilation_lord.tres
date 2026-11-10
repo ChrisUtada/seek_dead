@@ -15,4 +15,4 @@ gimmick_script = ExtResource("2")
 gimmick_params = {"base_ratio": 0.06, "low_hp_bonus": 0.15, "max_trash": 10, "phase2_hp_ratio": 0.5, "phase2_trash_mult": 1.2, "phase2_flashback_chance": 0, "phase2_armor": 25, "phase3_hp_ratio": 0}
 act = 3
 art = ExtResource("art_room")
-art_scale = 1.0
+art_scale = 2.0
