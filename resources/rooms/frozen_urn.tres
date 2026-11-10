@@ -40,4 +40,4 @@ boss_reward_weapons = Array[String](["res://resources/weapon_templates/fire_swor
 boss_relic_path = "res://resources/charms/frost_core_relic.tres"
 art = ExtResource("4_art")
 art_scale = 2.0
-mechanic_summary = "每3回合叠甲冻结\n次回合熔铸间隙\n特殊三连破甲"
+mechanic_summary = "每3回合：蓄势→爆发\n叠甲冻结1~2列→次回合恢复\n特殊三连破甲"

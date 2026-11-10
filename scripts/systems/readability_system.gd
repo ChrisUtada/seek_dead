@@ -259,6 +259,10 @@ func update_turn_target() -> void:
 	var intent: Dictionary = _ctrl.enemy_intent
 	var intent_type := String(intent.get("type", "none"))
 	var intent_value := int(intent.get("value", 0))
+	# Step 5：机制声明的节奏窗口（蓄势 / 爆发 / 恢复）；普通战与无 Rhythm 的机制为空。
+	var rhythm := ""
+	if _ctrl.current_gimmick != null:
+		rhythm = String(_ctrl.current_gimmick.rhythm_window(_ctrl))
 	if intent_type == "heavy":
 		var shield := _first_symbol_of_kind("shield")
 		var heal := _first_symbol_of_kind("heal")
@@ -284,7 +288,7 @@ func update_turn_target() -> void:
 			_low_hp_counters())
 		_refresh_ui()
 		return
-	var recovery: bool = _ctrl.current_gimmick != null and _ctrl.current_gimmick.recovery_window(_ctrl)
+	var recovery: bool = rhythm == "恢复" or (_ctrl.current_gimmick != null and _ctrl.current_gimmick.recovery_window(_ctrl))
 	if recovery:
 		if _ctrl.enemy_armor > 0:
 			var special := _first_symbol_of_kind("special")
@@ -295,6 +299,26 @@ func update_turn_target() -> void:
 		else:
 			_set_target(_default_target(), "间隙·输出", "本回合不会新增叠甲/冻结；集中输出，避免拖入下一次加压。")
 		_set_situation("熔铸间隙", "本回合不新增叠甲/冻结；可争取三连、破甲或集中输出。", _recovery_counters())
+		_refresh_ui()
+		return
+	# Step 5：爆发窗口 = 敌人刚叠甲/冻结的当回合；恢复窗口已在上方优先处理。
+	if rhythm == "爆发":
+		var burst_special := _first_symbol_of_kind("special")
+		_set_target(burst_special if burst_special != "" else _default_target(),
+			"爆发·破甲/承伤", "敌人完成蓄势：护甲与冻结已生效；可三连破甲、穿透直击、清净解冻或直接承伤。")
+		_set_situation("爆发 · 护甲 %d/%d" % [int(_ctrl.enemy_armor), int(_ctrl.enemy_armor_max)],
+			"敌人刚完成蓄势：护甲/冻结已生效。破甲、解冻、硬吃与继续输出都是可计算的选择。",
+			_burst_counters())
+		_refresh_ui()
+		return
+	# Step 5：蓄势窗口 = 下一次叠甲/冻结前的准备回合；提前破甲和留资源同样成立。
+	if rhythm == "蓄势":
+		var prep_special := _first_symbol_of_kind("special")
+		_set_target(prep_special if prep_special != "" else _default_target(),
+			"蓄势·准备", "下一次叠甲/冻结还没到；可提前破甲、攒强化，或保留资源给爆发后的恢复窗口。")
+		_set_situation("蓄势 · 下回合爆发",
+			"敌人正在蓄势，下一次爆发（叠甲/冻结）即将到来。提前破甲、保持输出、攒资源或直接留到恢复窗口都成立。",
+			_windup_counters())
 		_refresh_ui()
 		return
 	if _ctrl.enemy_armor > 0:
@@ -389,6 +413,36 @@ func _recovery_counters() -> Array:
 	_push_counter(out, _symbol_counter("damage", "输出符号", "集中输出"))
 	_push_counter(out, _consumable_counter("assault", "强化药剂", "下一次转轮伤害提升"))
 	_push_counter(out, _consumable_counter("attack", "攻击药剂", "立即伤害"))
+	return out
+
+
+# Step 5：爆发当回合的真实对策（破甲 / 直击 / 解冻 / 承伤 / 强化），不指定唯一答案。
+func _burst_counters() -> Array:
+	var out: Array = []
+	_push_counter(out, _symbol_counter("special", "破甲（特殊三连）", "三连清空护甲"))
+	_push_counter(out, _pierce_counter())
+	_push_counter(out, _consumable_counter("armor_shred", "破甲酸液", "立即清除护甲"))
+	if _ctrl.player_frost > 0:
+		_push_counter(out, _consumable_counter("cleanse", "清净药剂", "当回合解除冻结"))
+	_push_counter(out, _symbol_counter("damage", "承压输出", "冻结/护甲下仍可正常停轮"))
+	_push_counter(out, _consumable_counter("assault", "强化药剂", "下一次转轮伤害提升"))
+	out.append({"label": "直接承伤", "kind": "fallback", "path": "",
+		"note": "不投入资源，按当前护甲/冻结继续输出；冻结会在下一回合自消。"})
+	return out
+
+
+# Step 5：蓄势回合的真实对策（提前破甲 / 保持输出 / 攒资源 / 留到恢复窗口）。
+func _windup_counters() -> Array:
+	var out: Array = []
+	if _ctrl.enemy_armor > 0:
+		_push_counter(out, _symbol_counter("special", "提前破甲（特殊三连）", "三连清空护甲"))
+		_push_counter(out, _pierce_counter())
+		_push_counter(out, _consumable_counter("armor_shred", "破甲酸液", "立即清除护甲"))
+	_push_counter(out, _symbol_counter("damage", "保持输出", "蓄势回合同样是输出窗口"))
+	_push_counter(out, _consumable_counter("assault", "强化药剂", "把下一次转轮留给恢复窗口"))
+	_push_counter(out, _consumable_counter("attack", "攻击药剂", "立即伤害"))
+	out.append({"label": "保留资源", "kind": "fallback", "path": "",
+		"note": "不投入消耗品也可以；把资源留给爆发后的恢复窗口同样成立。"})
 	return out
 
 

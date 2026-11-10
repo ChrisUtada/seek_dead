@@ -1,6 +1,7 @@
-[gd_resource type="Resource" script_class="RoomData" load_steps=4 format=3]
+[gd_resource type="Resource" script_class="RoomData" load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/battle/room_data.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/battle/gimmicks/normal_trait_gimmick.gd" id="3"]
 [ext_resource type="Resource" path="res://resources/archetypes/striker.tres" id="2"]
 [ext_resource type="Texture2D" path="res://assets/characters/a1_striker_light/idle_01.png" id="art_room"]
 
@@ -15,3 +16,6 @@ kind = "normal"
 act = 1
 art = ExtResource("art_room")
 art_scale = 2.0
+gimmick_script = ExtResource("3")
+gimmick_params = {"trait": "first_hit_ward", "ward": 10}
+mechanic_summary = "首次受击后\n获得10护甲（一次）"

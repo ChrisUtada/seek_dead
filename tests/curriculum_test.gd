@@ -7,7 +7,7 @@ extends Node
 # 断言：
 # ① 精英房全覆盖 mini 机制（gimmick_script + 非空 gimmick_params），且脚本 ∈ 本幕家族白名单；
 # ② mini 参数弱于 BOSS 默认（抽查 rust/whisper/abyss 三家族关键键）；
-# ③ 普通房不挂机制（普通 A/B 靠元素与行为族教学）；
+# ③ 普通房最多挂 1 个早期特性（仅 normal_trait_gimmick，且 trait / 摘要非空）——Step 4 样板；
 # ④ BOSS 房 13 个 gimmick 不受影响。
 # ============================================================================
 
@@ -34,6 +34,7 @@ func _run() -> void:
 
 	var elites := 0
 	var bosses := 0
+	var normal_traits := 0
 	for r in duel.ALL_ROOMS:
 		var fid: String = r.resource_path.get_file()
 		if r.kind == "elite":
@@ -49,10 +50,16 @@ func _run() -> void:
 		elif r.kind == "boss":
 			bosses += 1
 			_check(r.gimmick_script != null, "BOSS 挂机制 %s" % fid)
-		else:
-			_check(r.gimmick_script == null, "普通房无机制 %s" % fid)
+		elif r.gimmick_script != null:
+			# Step 4：普通怪允许且只允许一个早期特性样板；不得套用精英 / BOSS 多机制脚本。
+			normal_traits += 1
+			var sn: String = r.gimmick_script.resource_path.get_file().get_basename()
+			_check(sn == "normal_trait_gimmick", "普通房只挂早期特性脚本 %s（实测 %s）" % [fid, sn])
+			_check(String(r.gimmick_params.get("trait", "")) != "", "普通特性 trait 非空 %s" % fid)
+			_check(String(r.mechanic_summary) != "", "普通特性有可见摘要 %s" % fid)
 	_check(elites == 12, "精英总数 12（%d）" % elites)
 	_check(bosses == 13, "BOSS 总数 13（%d）" % bosses)
+	_check(normal_traits >= 3 and normal_traits <= 4, "普通怪早期特性样板 3–4 只（%d）" % normal_traits)
 
 	print("---")
 	print("PASSED %d / FAILED %d" % [_checks - _fails, _fails])

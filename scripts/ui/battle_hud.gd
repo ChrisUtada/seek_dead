@@ -1099,9 +1099,20 @@ func _refresh_meta() -> void:
 	var room_list: Array = controller.state.ROOMS
 	var cur_room: RoomData = room_list[controller.state.room_index] if controller.state.room_index >= 0 and controller.state.room_index < room_list.size() else null
 	var mech_txt: String = String(cur_room.mechanic_summary) if cur_room != null else ""
+	# Step 5：节奏窗口标签（蓄势/爆发/恢复）——与机制摘要同一行，玩家不用读长文即可判断当前时段。
+	var rhythm := ""
+	if controller.current_gimmick != null:
+		rhythm = String(controller.current_gimmick.rhythm_window(controller))
+	if rhythm != "":
+		mech_txt = "【%s】%s" % [rhythm, mech_txt] if mech_txt != "" else "【%s】" % rhythm
 	enemy_mechanic_label.text = mech_txt
 	enemy_mechanic_label.visible = mech_txt != ""
 	enemy_mechanic_label.tooltip_text = mech_txt
+	match rhythm:
+		"爆发": enemy_mechanic_label.add_theme_color_override("font_color", Palette.POP_DAMAGE)
+		"恢复": enemy_mechanic_label.add_theme_color_override("font_color", Palette.POP_HEAL)
+		"蓄势": enemy_mechanic_label.add_theme_color_override("font_color", Palette.ACCENT_GOLD)
+		_: enemy_mechanic_label.add_theme_color_override("font_color", Palette.MUTED)
 	# T21 元素充能条：克制命中进度（满额释放元素爆发）+ 主导元素（2026-08-14：本回合命中最多的元素）
 	if controller.state.charge_points > 0:
 		var lead_txt := ""

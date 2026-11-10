@@ -71,6 +71,15 @@ func _setup(duel: DuelController) -> void:
 	duel._confirm_loadout()
 	# 让测试完全可控：停掉真实节拍器，转轮状态由用例直接摆位。
 	duel.reel_system._timer.stop()
+	# Step 4 普通怪特性可能在本房开局注入干扰（窃语咒师注废 / 冰锋群蝠冻结），
+	# 会让「视觉落点」子测误判为废铁/冻结列。本测试只验证视觉落点与缓冲，
+	# 先清空本房干扰列，避免结果依赖随机抽到的起始房。
+	duel.pending_jam_reel = -1
+	duel.pending_lock_reel = -1
+	duel.pending_chaos = false
+	duel.pending_auto_stop = false
+	duel.player_frost = 0
+	duel.frozen_cols.clear()
 
 
 func _run() -> void:

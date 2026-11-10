@@ -18,4 +18,4 @@ gimmick_params = {"interval": 3, "per_stack": 4, "max_stacks": 2, "two_cols_chan
 act = 1
 art = ExtResource("art_room")
 art_scale = 2.0
-mechanic_summary = "每3回合叠甲冻结\n次回合熔铸间隙\n特殊三连破甲"
+mechanic_summary = "每3回合：蓄势→爆发\n叠甲冻结 → 次回合恢复\n特殊三连破甲"

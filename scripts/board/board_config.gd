@@ -28,6 +28,22 @@ extends Resource
 # G4-01 分支价值模板：空 = 每局随机（standard / mirror / elite_first / elite_upper / elite_lower）；
 # 测试与调试可填模板 id 固定类型分配（不影响骨架、深度与边）。
 @export var template_id: String = ""
+# 2026-11-10 扫雷棋盘 Step 2：棋盘布局模型。
+#   "legacy" = 现有 1D3 / 25–29 节点骨架（默认，旧测试与试玩包不变）；
+#   "grid4x4" = 固定 4×4 扫雷内容灰盒（Step 1/2）。
+@export var layout_mode: String = "legacy"
+# 4×4 内容冻结种子；同种子房间 / 武器 / 护符完全一致。
+@export var grid_seed: int = 20261110
+
+
+# 是否使用 4×4 扫雷网格。layout_mode 优先；命令行 --grid 可临时覆盖（需配合 --board）。
+func use_grid() -> bool:
+	if layout_mode == "grid4x4":
+		return true
+	var args := OS.get_cmdline_user_args()
+	if "--grid" in args:
+		return true
+	return "--grid" in OS.get_cmdline_args()
 
 
 func is_active() -> bool:

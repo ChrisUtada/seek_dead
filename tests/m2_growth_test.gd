@@ -249,6 +249,10 @@ func _test_new_perks(duel: DuelController) -> void:
 	var vi: int = duel.hud.visual_center_index(0)
 	_check(vi == 1, "稳手测试前提：视觉中心为索引 1（实测 %d）" % vi)
 	rs.reel_cursor[0] = 0
+	# Step 4：普通怪可能带「首轮注废」特性（窃语咒师），注废列会跳过视觉缓冲。
+	# 本子测只验证稳手缓冲，先清掉本房干扰列，避免测试依赖随机抽到的房间。
+	duel.pending_jam_reel = -1
+	duel.pending_lock_reel = -1
 	rs.lock_reel(0)
 	_check(rs.has_pending_stop(0) and not rs.reel_stopped[0], "稳手：进入一拍缓冲而不是立即落子")
 	_check(not rd.steady_hand_ready(), "稳手：本回合的缓冲已用掉")

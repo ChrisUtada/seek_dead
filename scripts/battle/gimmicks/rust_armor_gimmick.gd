@@ -30,6 +30,7 @@ func on_room_start(ctrl) -> void:
 	_max_stacks = int(p.get("max_stacks", 3))
 	_two_cols_chance = float(p.get("two_cols_chance", 0.3))
 	ctrl.hud._log("🛡 熔铸护甲展开：每 %d 回合叠加一层护甲（上限 %d 层）" % [_interval, _max_stacks])
+	ctrl.hud._log("🛡 熔铸节律：蓄势 %d 回合 → 爆发（叠甲+冻结）→ 次回合恢复（熔铸间隙）" % _interval)
 
 func on_turn_begin(ctrl) -> void:
 	_turns += 1
@@ -38,7 +39,7 @@ func on_turn_begin(ctrl) -> void:
 		_stacks += 1
 		ctrl.enemy_armor_max += _per_stack
 		ctrl.enemy_armor += _per_stack
-		ctrl.hud._log("⚠ 熔铸加压：叠甲与冻结；随后一回合进入熔铸间隙")
+		ctrl.hud._log("⚠ 熔铸爆发：叠甲与冻结；随后一回合进入熔铸间隙（恢复）")
 		ctrl.hud._log("🛡 熔铸护甲 +%d（%d/%d 层，护甲 %d/%d）" % [_per_stack, _stacks, _max_stacks, int(ctrl.enemy_armor), int(ctrl.enemy_armor_max)])
 		# T30 寒霜侵蚀：与叠甲同频（固定节奏，第 3/6/9 回合；叠甲封顶后 frost 同步停止）
 		# 2026-08-09 单侧性纪律：玩家侧冻结上限读 frozen StatusDef.max_cols（frost 已回归纯敌人侧）
@@ -56,3 +57,15 @@ func on_turn_begin(ctrl) -> void:
 
 func recovery_window(_ctrl) -> bool:
 	return _last_pressure_turn >= 0 and _turns == _last_pressure_turn + 1
+
+
+# Step 5：蓄势（下一次叠甲/冻结前的准备回合）→ 爆发（叠甲+冻结当回合）→ 恢复（熔铸间隙）。
+# 叠满 max_stacks 后不再加压，返回空串（HUD 不再声明节奏窗口）。
+func rhythm_window(_ctrl) -> String:
+	if recovery_window(_ctrl):
+		return "恢复"
+	if _last_pressure_turn >= 0 and _turns == _last_pressure_turn:
+		return "爆发"
+	if _stacks < _max_stacks:
+		return "蓄势"
+	return ""

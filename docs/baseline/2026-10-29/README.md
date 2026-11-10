@@ -1,6 +1,6 @@
 # M0-01 · 当前基线（2026-10-29）
 
-> 依据：《统一落地执行计划》M0-01。本目录只记录现状，**未改战斗逻辑、未删旧素材**。
+> 依据：《统一制作执行计划_2026-11-06》M0-01。本目录只记录现状，**未改战斗逻辑、未删旧素材**。
 > 代码基准：`e4266e0`；Godot 4.7 stable；窗口 960×540（480×270 逻辑分辨率，`canvas_items` 2× 整数放大）。
 
 ## 1. 产物
@@ -15,7 +15,7 @@
 | `06_meta.png` | 元进度（通关后的候选展示） |
 | `baseline_data.txt` | 本次运行的实际配装、25 房顺序、符号带、奖励池、BOSS 候选、关键平衡值 |
 | `regression_smoke.log` | `run_smoke.bat` 8/8 回归结果（exit 0） |
-| `task_status.md` | 当前未完成任务状态表（以《统一落地执行计划》为准） |
+| `task_status.md` | 当前未完成任务状态表（以《统一制作执行计划_2026-11-06》为准） |
 
 复现：`Godot_v4.7-stable_win64_console.exe --path <项目> res://tools/baseline_capture.tscn`
 （必须窗口模式；`--headless` 无帧缓冲会得到空图。工具源码 `tools/baseline_capture.gd`。）
