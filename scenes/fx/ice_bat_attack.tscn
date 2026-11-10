@@ -1,0 +1,65 @@
+[gd_scene format=3 uid="uid://caxi6dekb0ywb"]
+
+[ext_resource type="Script" uid="uid://dernsu6nael0f" path="res://scripts/fx/ice_bat_attack.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://cuj5ed6q5vgqn" path="res://assets/characters/knight_v1/hero_48.png" id="2_player"]
+[ext_resource type="Texture2D" uid="uid://chvtluwwyqn4e" path="res://assets/characters/a1_swarm_ice/idle_01.png" id="3_enemy"]
+[ext_resource type="SpriteFrames" uid="uid://bdrhoheekuc54" path="res://assets/fx/ice-spikes/ice-spikes.tres" id="4_spikes"]
+[ext_resource type="SpriteFrames" uid="uid://csvkcw6yv8kst" path="res://assets/fx/snowflake-burst/snowflake-burst.tres" id="5_burst"]
+[ext_resource type="SpriteFrames" uid="uid://o6g80f52y7rg" path="res://assets/fx/frost-breath/frost-breath.tres" id="6_breath"]
+
+[node name="IceBatAttack" type="Node2D" unique_id=366083203]
+script = ExtResource("1_script")
+
+[node name="Backdrop" type="ColorRect" parent="." unique_id=1201306232]
+offset_right = 480.0
+offset_bottom = 270.0
+color = Color(0.06666667, 0.07450981, 0.09411765, 1)
+
+[node name="Ground" type="ColorRect" parent="." unique_id=44441844]
+offset_top = 236.0
+offset_right = 480.0
+offset_bottom = 270.0
+color = Color(0.09803922, 0.1058824, 0.12941177, 1)
+
+[node name="SpikesFx" type="AnimatedSprite2D" parent="." unique_id=690872786]
+z_index = 1
+texture_filter = 1
+position = Vector2(121, 212)
+scale = Vector2(0.55, 0.55)
+sprite_frames = ExtResource("4_spikes")
+frame = 12
+flip_h = true
+
+[node name="PlayerSprite" type="Sprite2D" parent="." unique_id=575160673]
+texture_filter = 1
+position = Vector2(132, 212)
+texture = ExtResource("2_player")
+
+[node name="EnemySprite" type="Sprite2D" parent="." unique_id=1640313518]
+texture_filter = 1
+position = Vector2(378, 188)
+texture = ExtResource("3_enemy")
+
+[node name="BurstFx" type="AnimatedSprite2D" parent="." unique_id=1245931301]
+texture_filter = 1
+position = Vector2(130, 213)
+sprite_frames = ExtResource("5_burst")
+frame = 8
+
+[node name="BreathFx" type="AnimatedSprite2D" parent="." unique_id=224340837]
+y_sort_enabled = true
+texture_filter = 1
+position = Vector2(280, 219)
+sprite_frames = ExtResource("6_breath")
+frame = 8
+flip_h = true
+
+[node name="NozzleHint" type="Marker2D" parent="BreathFx" unique_id=1351377746]
+position = Vector2(78, -3)
+
+[node name="Hint" type="Label" parent="." unique_id=659900547]
+offset_left = 8.0
+offset_top = 4.0
+offset_right = 180.0
+offset_bottom = 20.0
+text = "R 重播 | 拖 BreathFx，让它的 NozzleHint 落在敌人嘴边"

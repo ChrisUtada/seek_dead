@@ -88,9 +88,19 @@ func on_spin_pressed() -> void:
 
 	# 阶段 3：敌人行动（先让玩家看清敌人刚掉的血）
 	await _ctrl.get_tree().create_timer(0.20).timeout
+	var intent_type := String(_ctrl.enemy_intent.get("type", ""))
 	_ctrl.enemy_system.take_turn()
 	_ctrl.apply_enemy_hp_floor()   # P-审计 P1：DoT/爆炸等敌人回合内扣血的旁路收口
 	_ctrl.hud._refresh_meta()
+	# 属性攻击演出：喷出 → 命中爆发 → 地面冰锥。不播完就推进回合会「一秒糊过去」，
+	# 所以在这里等足时长（0 = 该元素暂无素材，直接过）。
+	if intent_type == "attack" or intent_type == "heavy":
+		var fx_time: float = _ctrl.hud.play_enemy_attack_fx(_ctrl.enemy_element)
+		if fx_time > 0.0:
+			# 有专属特效：闪红/屏震由 BattleFx 在命中帧触发，这里只等演出播完
+			await _ctrl.get_tree().create_timer(fx_time).timeout
+		elif _ctrl.hud.animator != null:
+			_ctrl.hud.animator.play_enemy_attack()   # 无素材时退回旧的轻演出
 	if _ctrl.enemy_hp <= 0:
 		# 敌人可能在自身回合被状态 DoT 结算致死
 		_ctrl.hud._log("★ 击败 %s！（状态结算）" % _ctrl.enemy_name)

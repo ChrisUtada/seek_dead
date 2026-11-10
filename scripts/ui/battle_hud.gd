@@ -211,6 +211,7 @@ var p1_stop_labels: Array = []          # [reel] -> Label（每列停轮结果�
 @onready var gold_label = $Margin/Content/InfoBar/GoldLabel
 
 var animator = null   # P4 战斗动画器（tween 驱动立绘演出），_build_ui 末尾创建
+var fx = null         # 战斗特效层（属性攻击的像素特效），_build_ui 末尾创建
 
 var panel_view                       # P2（2026-08-24）：左栏玩家面板视图逻辑（player_panel_view.gd）
 var overlay
@@ -348,6 +349,11 @@ func _build_ui() -> void:
 	animator = BattleAnimator.new()
 	add_child(animator)
 	animator.setup(self)
+
+	# 特效层：属性攻击的像素特效（冰风/爆发/冰锥），同样由 setup 缓存立绘引用
+	fx = BattleFx.new()
+	add_child(fx)
+	fx.setup(self)
 
 func _build_p1_ui() -> void:
 	var dock = $Margin/Content/MainRow/CenterStage/ReelDock
@@ -884,6 +890,14 @@ func _player_sprite_anchor() -> Control:
 
 func _enemy_sprite_anchor() -> Control:
 	return enemy_sprite if enemy_sprite != null else enemy_panel
+
+
+# 敌人属性攻击的像素特效。返回调用方需要等待的秒数（0 = 该元素暂无演出素材）。
+# 表现层只读元素与立绘位置，不改任何战斗数值；时序由调用方（turn_flow）负责等待。
+func play_enemy_attack_fx(elem: String) -> float:
+	if fx == null:
+		return 0.0
+	return fx.play_enemy_attack(elem)
 
 
 # 敌人立绘切换（RoomData.art 数据驱动）：旧图退场（淡出+缩小）→ 换图 → 新图入场（淡入复位）。
