@@ -18,8 +18,9 @@ extends RefCounted
 #          它不自动选目标，也不跨越多格。
 # ============================================================================
 
-# 2026-11-12 转轮手感 Step 3：主滚动 9 格/秒，高速封顶 12 格/秒（readable 11），
-# 加速段约 1.5s 内到达上限。旧模型起步 0.15s/格（6.7 格/秒）、封顶 0.06s/格（16.7 格/秒）。
+# 2026-11-12 转轮手感 Step 3：5 格/秒起转，0.32s 后进入 9 格/秒巡航，
+# 高速封顶 12 格/秒（readable 11），巡航后加速段约 1.5s 内到达上限。
+# 旧模型起步 0.15s/格（6.7 格/秒）、封顶 0.06s/格（16.7 格/秒）。
 const CRUISE_CPS := 9.0
 const MAX_CPS := 12.0
 const READABLE_MAX_CPS := 11.0
@@ -191,6 +192,10 @@ func on_stop(reel: int, sym, reason: String) -> void:
 		forced_stops += 1
 	if _ctrl.hud != null and _ctrl.hud.has_method("_show_stop_feedback") and feedback_enabled:
 		_ctrl.hud._show_stop_feedback(reel, nm, outcome)
+	# Step 4：停列短确认（边框 + 轻微缩放）对 control 预设也生效——它只做视觉确认，
+	# 不加文本、不改落点、不占输入；预设差异仍留给 preview/visual/buffer/feedback。
+	if _ctrl.hud != null and _ctrl.hud.has_method("_pulse_stop_cell"):
+		_ctrl.hud._pulse_stop_cell(reel, outcome)
 	if _ctrl._telemetry != null:
 		_ctrl._telemetry.on_stop(path, target_symbol_path, outcome, reason != "player", kind)
 
