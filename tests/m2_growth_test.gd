@@ -259,7 +259,9 @@ func _test_new_perks(duel: DuelController) -> void:
 	rs._pending_stops.clear()
 	rs.reel_stopped[0] = false
 	rs.lock_reel(0)
-	_check(rs.reel_stopped[0], "稳手：本回合第二次按停不再缓冲，直接落子")
+	_check(rs.is_absorbing(0), "稳手：本回合第二次按停不再缓冲，直接进入吸附")
+	await get_tree().create_timer(0.25).timeout
+	_check(rs.reel_stopped[0], "稳手：吸附完成后落子")
 	rd.begin_spin()
 	_check(rd.steady_hand_ready(), "稳手：下一回合重新可用")
 	view._active = backup_active

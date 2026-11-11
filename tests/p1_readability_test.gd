@@ -178,7 +178,7 @@ func _run() -> void:
 	var nxt: Array = rs.next_symbols(0, 2, 0)
 	_check(nxt.size() == 2 and nxt[0].resource_path == TARGET_PATH, "next_symbols 从 base 之后取 2 格")
 
-	# 5. 视觉落点（无缓冲）：视觉中心在下一格时立即锁定该格
+	# 5. 视觉落点（无缓冲）：请求后先进入吸附，吸附完成才落子
 	rd.apply_preset("visual")
 	hud._refresh_p1_ui()
 	rs.begin_spin()
@@ -189,11 +189,16 @@ func _run() -> void:
 	sv._active = true
 	sv._index = 0
 	sv._frac = 0.7
+	duel.grid[0][0] = duel.TRASH_SYMBOL
 	rs.stop_next_reel()
-	_check(rs.reel_stopped[0], "visual 无缓冲：立即锁定")
+	_check(rs.is_absorbing(0) and not rs.reel_stopped[0], "visual 无缓冲：先进入吸附，不立即落子")
+	_check(rs.absorb_target(0) == 1, "visual 无缓冲：吸附目标 = 按停时的视觉中心")
+	_check(duel.grid[0][0] == duel.TRASH_SYMBOL, "visual 无缓冲：吸附中保持请求前符号")
+	await get_tree().create_timer(0.25).timeout
+	_check(rs.reel_stopped[0], "visual 无缓冲：吸附完成后落子")
 	_check(duel.grid[0][0].resource_path == TARGET_PATH, "visual 无缓冲：落在视觉中心下一格")
 
-	# 6. 视觉落点 + 缓冲 + 反馈：排队一拍后锁定
+	# 6. 视觉落点 + 缓冲 + 反馈：排队一拍后进入吸附，吸附完成才结算
 	rd.apply_preset("readable")
 	rs.begin_spin()
 	rs._timer.stop()
@@ -208,9 +213,12 @@ func _run() -> void:
 	rs.stop_next_reel()
 	_check(not rs.reel_stopped[0] and rs.has_pending_stop(0), "buffer：先排队，不立即锁定")
 	rs.on_spin_tick()
-	_check(rs.reel_stopped[0], "buffer：下一拍锁定")
-	_check(duel.grid[0][0].resource_path == TARGET_PATH, "buffer：下一拍落在视觉中心")
+	_check(rs.is_absorbing(0) and rs.has_pending_stop(0) == false, "buffer：下一拍提交吸附目标")
+	_check(rs.absorb_target(0) == 1, "buffer：吸附目标为视觉中心")
 	_check(rs._pending_stops.is_empty(), "buffer：最多一拍，队列清空")
+	await get_tree().create_timer(0.25).timeout
+	_check(rs.reel_stopped[0], "buffer：吸附完成后落子")
+	_check(duel.grid[0][0].resource_path == TARGET_PATH, "buffer：下一拍落在视觉中心")
 	_check(int(duel._telemetry.buffer_queues) == before_buf + 1, "遥测记录缓冲次数")
 	_check(int(duel._telemetry.stop_total) == before_stop + 1, "遥测记录主动按停")
 	_check(int(duel._telemetry.target_hits) >= 1, "遥测记录目标命中")

@@ -17,11 +17,15 @@ extends RefCounted
 signal spin_finished
 
 const MISS_SYMBOL = preload("res://resources/symbols/miss.tres")
+# 2026-11-12 Step 2：停轮吸附时长沿用 Step 1 的区间常量；用 preload 而非全局类名，
+# 避免 --script / 未打开编辑器的环境读不到 global_script_class_cache。
+const _REEL_CLOCK = preload("res://scripts/battle/reel_clock.gd")
 
 const _SPIN_BASE_WAIT := 0.15          # 起始每跳间隔（秒）——调慢以便看清落点、凑三连 special
 const _SPIN_MIN_WAIT := 0.06           # 最快每跳间隔（封顶也调慢，整体更易控）
 const _STRIP_MIN_CELLS := 30           # 转轮带最小格数（整份平铺补足，不改变符号占比）
 const _GOLD_CELLS := 2                 # 金币符号常驻格数（经济引擎，与装备频率解耦）
+const ABSORB_DECEL_CELLS := 1.0        # 吸附减速格数（Step 3 再按手感调）
 # 2026-08-09 传统 slots 频率（拍板）：格子数 = 权重档位（保底 2 = 目押下限），
 # rare/epic 符号封顶 2 格（≤ 普通——大奖罕见，推翻旧「稀有度不影响次数」决策）。
 const RARITY_RANK := {"common": 0, "uncommon": 1, "rare": 2, "epic": 3}
@@ -38,6 +42,9 @@ var _locked_prev_elem: Array[String] = []   # [reel] -> 锁轮保留的上一轮
 var _spinning := false                 # 旋转进行中（供输入分支判断）
 var _spin_ticks := 0                   # 已跳次数（用于加速上限）
 var _pending_stops: Dictionary = {}    # P1 输入缓冲：reel -> true（最多等到下一逻辑拍锁定）
+# 2026-11-12 Step 2：停轮先记录、再吸附、最后落子。
+# reel -> {idx, reason, progress, tween}；吸附中拒绝重复停轮，网格与结算只在完成时更新。
+var _absorb: Dictionary = {}
 
 var spinning: bool:
 	get:
@@ -74,6 +81,28 @@ func has_pending_stop(r: int) -> bool:
 	return bool(_pending_stops.get(r, false))
 
 
+# Step 2：该列是否正处于「停轮吸附」中（已记录落点，尚未写格子/结算）。
+func is_absorbing(r: int) -> bool:
+	return _absorb.has(r)
+
+
+# 吸附进度 0..1（供 ReelSpinView 只读驱动减速动画）；非吸附返回 -1。
+func absorb_progress(r: int) -> float:
+	if not _absorb.has(r):
+		return -1.0
+	return float(_absorb[r].get("progress", 0.0))
+
+
+# 吸附目标格（请求停轮时记录的落点）。
+func absorb_target(r: int) -> int:
+	return int(_absorb[r].get("idx", -1)) if _absorb.has(r) else -1
+
+
+# 一列是否仍占用输入：已停或吸附中都算 busy，避免重复停轮/重复结算。
+func is_busy(r: int) -> bool:
+	return r >= 0 and r < reel_stopped.size() and (bool(reel_stopped[r]) or is_absorbing(r))
+
+
 func _init(ctrl) -> void:
 	_ctrl = ctrl
 	_timer = Timer.new()
@@ -85,6 +114,7 @@ func _init(ctrl) -> void:
 # 开始一次旋转：构建转轮带、随机起点、启动节拍器。结果在 spin_finished 后结算。
 # 冻结列已在回合一开始（_begin_player_turn）声明——此处仅让冻结列不转、其余正常转。
 func begin_spin() -> void:
+	_clear_absorbs()
 	reel_cursor = []
 	reel_stopped = []
 	_pending_stops.clear()
@@ -237,24 +267,27 @@ func on_spin_tick() -> void:
 	if not _spinning:
 		return
 	_spin_ticks += 1
-	var any_moving := false
+	var any_active := false
 	for r in DuelController.REELS:
-		if not reel_stopped[r]:
-			var strip_len = reel_strips[r].size() if reel_strips.size() > r and not reel_strips[r].is_empty() else 1
-			reel_cursor[r] = (reel_cursor[r] + 1) % strip_len
-			write_reel_cell(r)
-			any_moving = true
-	if not any_moving:
+		if reel_stopped[r]:
+			continue
+		any_active = true
+		if is_absorbing(r):
+			continue   # 停轮吸附中：结果已记录，不再推进/改写该列
+		var strip_len = reel_strips[r].size() if reel_strips.size() > r and not reel_strips[r].is_empty() else 1
+		reel_cursor[r] = (reel_cursor[r] + 1) % strip_len
+		write_reel_cell(r)
+	if not any_active:
 		finish_spin()
 		return
-	# P1 输入缓冲：上一拍按停时视觉中心还在「下一格」，本拍已到达——现在锁定。
+	# P1 输入缓冲：上一拍按停时视觉中心还在「下一格」，本拍已到达——现在提交停轮吸附。
 	for r in _pending_stops.keys():
-		if reel_stopped[r]:
+		if reel_stopped[r] or is_absorbing(r):
 			_pending_stops.erase(r)
 			continue
 		_pending_stops.erase(r)
 		var strip_len2: int = reel_strips[r].size() if reel_strips.size() > r and not reel_strips[r].is_empty() else 1
-		_lock_at(r, int(reel_cursor[r]) % strip_len2, "player")
+		_begin_absorb(r, int(reel_cursor[r]) % strip_len2, "player")
 	if not _spinning:
 		return   # 缓冲落子可能刚好停完最后一列，finish_spin 已接管
 	_ctrl.hud._refresh_p1_previews()
@@ -301,7 +334,7 @@ func next_symbols(r: int, count: int, base_index: int = -1) -> Array:
 # 锁定某列：默认取视觉中心（P1），并在需要时进入最多一拍的输入缓冲。
 # use_visual=false 用于敌人自动停等非玩家目押路径；reason 只影响遥测与 HUD 反馈。
 func lock_reel(r: int, use_visual: bool = true, reason: String = "player") -> void:
-	if r < 0 or r >= DuelController.REELS or reel_stopped[r]:
+	if r < 0 or r >= DuelController.REELS or reel_stopped[r] or is_absorbing(r):
 		return
 	# 注废/锁轮列的结果是机制决定的，不进入视觉解析或输入缓冲。
 	if r == _ctrl.pending_jam_reel or r == _ctrl.pending_lock_reel:
@@ -332,10 +365,58 @@ func lock_reel(r: int, use_visual: bool = true, reason: String = "player") -> vo
 				elif _ctrl.readability.visual_stop and (vi == (cur + 1) % n or vi == (cur - 1 + n) % n):
 					# 视觉对齐但不开缓冲：立即锁定玩家看到的那一格（最多前后一格，不跨多格）。
 					idx = vi
-	_lock_at(r, idx, reason)
+	_begin_absorb(r, idx, reason)
 
 
-# 真正落子并收尾（不经过视觉解析；缓冲到点也走这里）。
+# Step 2：停轮请求先记录，不立即写格子；0.12–0.16s 减速吸附结束才落子并进入结算。
+# 吸附是本列「请求之后唯一允许的动作」：期间拒绝重复停轮，位置不再由节拍器推进。
+func _begin_absorb(r: int, idx: int, reason: String) -> void:
+	if r < 0 or r >= DuelController.REELS or reel_stopped[r] or is_absorbing(r):
+		return
+	var strip = reel_strips[r] if reel_strips.size() > r else null
+	if strip == null or strip.is_empty():
+		_lock_at(r, 0, reason)   # 无带子：保持旧行为（直接落废铁）
+		return
+	idx = int(idx) % strip.size()
+	_pending_stops.erase(r)
+	var tween: Tween = _ctrl.create_tween()
+	_absorb[r] = {"idx": idx, "reason": reason, "progress": 0.0, "tween": tween}
+	_ctrl.hud.set_reel_enabled(r, false)   # 吸附中拒绝点击/空格重复停列
+	tween.tween_method(_set_absorb_progress.bind(r), 0.0, 1.0, _absorb_seconds())
+	tween.finished.connect(_complete_absorb.bind(r))
+
+
+# 吸附时长：按当前节拍折算速度与减速格数，收敛到 Step 1 的 0.12–0.16s 区间。
+func _absorb_seconds() -> float:
+	var speed: float = 1.0 / maxf(current_spin_wait(), 0.001)
+	return clampf(2.0 * ABSORB_DECEL_CELLS / maxf(speed, 0.001),
+		_REEL_CLOCK.MIN_STOP_SECONDS, _REEL_CLOCK.MAX_STOP_SECONDS)
+
+
+func _set_absorb_progress(p: float, r: int) -> void:
+	if _absorb.has(r):
+		_absorb[r]["progress"] = clampf(p, 0.0, 1.0)
+
+
+# 吸附完成：此时才写入格子符号、收尾并检查是否所有列都停完。
+func _complete_absorb(r: int) -> void:
+	if not _absorb.has(r):
+		return
+	var rec: Dictionary = _absorb[r]
+	_absorb.erase(r)
+	_lock_at(r, int(rec.get("idx", 0)), String(rec.get("reason", "player")))
+
+
+# 中断吸附（新回合/房间重置）：只清理状态，不落子。
+func _clear_absorbs() -> void:
+	for r in _absorb.keys():
+		var tw = _absorb[r].get("tween")
+		if tw != null and is_instance_valid(tw):
+			tw.kill()
+	_absorb.clear()
+
+
+# 真正落子并收尾（不经过视觉解析；吸附完成才走这里）。
 func _lock_at(r: int, idx: int, reason: String) -> void:
 	if r < 0 or r >= DuelController.REELS or reel_stopped[r]:
 		return
@@ -384,7 +465,7 @@ func _lock_at(r: int, idx: int, reason: String) -> void:
 # 输入缓冲中的列不会重复入队；敌人 auto_stop 传 use_visual=false / reason="forced"。
 func stop_next_reel(use_visual: bool = true, reason: String = "player") -> void:
 	for r in DuelController.REELS:
-		if not reel_stopped[r] and not has_pending_stop(r):
+		if not reel_stopped[r] and not is_absorbing(r) and not has_pending_stop(r):
 			lock_reel(r, use_visual, reason)
 			return
 
@@ -394,6 +475,7 @@ func finish_spin() -> void:
 	if not _spinning:
 		return
 	_spinning = false
+	_clear_absorbs()   # 防御性清理：所有列都已停，不应再有吸附中的记录
 	_timer.stop()
 	_pending_stops.clear()
 	if _ctrl._telemetry != null:
@@ -412,6 +494,7 @@ func finish_spin() -> void:
 
 # 房间开局 / 精华注入后重建落子：清空角标，逐格从新带子随机落子（先于旋转的初始画面）。
 func reset_grid() -> void:
+	_clear_absorbs()   # 新房间/精华注入：丢弃未完成的吸附记录
 	_ctrl.hud._clear_badges()
 	_ctrl.hud._clear_stop_feedback()   # 新房间/精华注入：上一回合的停轮结果不再适用
 	_ctrl.grid_elem = []
