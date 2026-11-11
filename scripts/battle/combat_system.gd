@@ -77,9 +77,10 @@ func contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> voi
 		# 2026-08-07 重构：shield/heal 不吃武器攻击力/克制/元进度——只 = 符号 base × 连线 × 暴击（治疗/护盾符号保持小值，来自技能/房奖励）
 		"shield":  acc["shield"]  += sym.base * mult * crit_mult_val
 		# 2026-08-07 治疗术倍率表（方案 A）：1连×1.0 / 2连×2.5 / 3连×5.0；
+		# 2026-11-11 Step 1：倍率表移入 BalanceConfig.heal_line_mults，三连倍率可独立复测
 		# 不吃暴击/连线精通/克制——治疗规则简单可预期；3连标记 heal_triple 供溢出转护盾
 		"heal":
-			acc["heal"] += sym.base * [1.0, 2.5, 5.0][mini(raw - 1, 2)]
+			acc["heal"] += sym.base * float(DuelController.BALANCE.heal_line_mults[mini(raw - 1, 2)])
 			if raw >= 3:
 				acc["heal_triple"] = true
 		"status":  acc["status_stacks"][sym.status_type] = acc["status_stacks"].get(sym.status_type, 0) + mult * crit_mult_val + (int(_ctrl.charm_dot_amp) if _ctrl.deprived_level < 1 else 0) + int(_ctrl._item_status_bonus.get(sym.resource_path, 0))   # 毒腺囊（信物）挂 DoT 层数 +N；G6-05 霜鸣每次多 +1 层（只作用于该符号）
@@ -234,6 +235,7 @@ func _phase_defense(acc: Dictionary) -> void:
 		var hp_gain: int = mini(int(acc["heal"]), missing)
 		_ctrl.player_hp += hp_gain
 		acc["heal_gain"] = hp_gain
+		var overflow_shield := 0
 		if hp_gain > 0:
 			_ctrl.hud._popup("❤+%d" % hp_gain, Palette.POP_HEAL, _ctrl.hud._player_sprite_anchor())
 			_ctrl.hud._log("回复 %d HP" % hp_gain)
@@ -245,8 +247,11 @@ func _phase_defense(acc: Dictionary) -> void:
 			var overflow_cap: int = int(_ctrl.player_hp_max * DuelController.BALANCE.heal_overflow_shield_cap_pct)
 			shield_gain = mini(shield_gain, overflow_cap)
 			_ctrl.player_shield += shield_gain
+			overflow_shield = shield_gain
 			acc["heal_overflow_shield"] = shield_gain
 			_ctrl.hud._log("治疗三连溢出转护盾 +%d（上限 %d）" % [shield_gain, overflow_cap])
+		if _ctrl._telemetry != null:
+			_ctrl._telemetry.on_heal(hp_gain, overflow_shield)   # Step 1 复测：治疗/转盾只统计，不改结算
 	if not acc["status_stacks"].is_empty():
 		_ctrl.hud._log("敌人获得状态: " + _ctrl.status_system.status_summary(acc["status_stacks"]))
 		_ctrl.hud._popup(_ctrl.status_system.status_summary(acc["status_stacks"]), Palette.POP_STATUS, _ctrl.hud._enemy_sprite_anchor())
@@ -489,9 +494,11 @@ func on_counter(kind: String, pierce_need: int = 3) -> void:
 		if _ctrl._career != null:
 			_ctrl._career.note_armor_break()   # G6-01：仅记录 BOSS 房破甲（不改结算）
 	if kind == "element":
-		var burst = int(_ctrl.enemy_hp_max * 0.20)
+		var burst = int(_ctrl.enemy_hp_max * DuelController.BALANCE.counter_burst_pct)
 		if burst > 0:
 			apply_enemy_damage(burst, true)
+			if _ctrl._telemetry != null:
+				_ctrl._telemetry.on_counter_burst(burst)
 			_ctrl.hud._popup("💥克制核爆!-%d" % burst, Palette.POP_DAMAGE, _ctrl.hud._enemy_sprite_anchor())
 			_ctrl.hud._log("⚡ 克制元素三连触发核爆：%d 伤害（穿透护甲）" % burst)
 	if _ctrl.hud.animator != null:

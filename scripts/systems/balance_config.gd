@@ -54,6 +54,10 @@ extends Resource
 @export var charge_burst_pct: float = 0.15    # 元素爆发伤害 = 敌人 max HP × 此比例（穿透直击）
 @export var charge_extra_base: int = 30       # 主导元素爆发附伤基础值（× 该元素克制倍率，2026-08-14）
 
+# —— 三连收益校准（2026-11-11 Step 1，单一数值轴可复测）——
+@export var counter_burst_pct: float = 0.125  # 克制元素三连核爆 = 敌人 max HP × 此比例（穿透直击）
+@export var heal_line_mults: Array = [1.0, 2.5, 5.0]   # 治疗符号 1/2/3 连倍率（三连倍率可独立复测）
+
 # —— T25 关卡结构（2026-08-09 房数重排：一局 24 房 = 3 幕 × 每幕 8 房 + 真·最终通关后战）——
 @export var run_acts: int = 3                                     # 幕数
 @export var run_act_layout: Array = ["normal", "normal", "normal", "elite", "normal", "normal", "elite", "boss"]   # 每幕房型序列（5 普通 + 2 精英 + 1 常规 BOSS 战）

@@ -24,6 +24,11 @@ var buffer_queues := 0          # 进入一拍输入缓冲的次数
 var stop_outcomes: Dictionary = {}   # target/normal/miss/jam/lock/forced -> 次数
 var stop_kinds: Dictionary = {}      # G7-D：玩家主动停中的符号类别 damage/shield/heal/special/status/buff/trash -> 次数
 var consumable_uses: Dictionary = {} # G7-D：消耗品 effect -> 使用次数（多对策模式记录真实选择）
+# 2026-11-11 Step 1：三连收益校准专用（只统计，不参与结算）
+var counter_triples := 0        # 克制元素三连触发的核爆次数
+var counter_burst_damage := 0   # 核爆穿透伤害合计
+var heal_total := 0             # 实际回复 HP 合计（不含溢出）
+var heal_overflow_shield := 0   # 治疗三连溢出转护盾合计
 
 var _spin_started := -1
 var _room_started := -1
@@ -49,6 +54,10 @@ func reset() -> void:
 	stop_outcomes = {}
 	stop_kinds = {}
 	consumable_uses = {}
+	counter_triples = 0
+	counter_burst_damage = 0
+	heal_total = 0
+	heal_overflow_shield = 0
 	_spin_started = -1
 	_room_started = -1
 
@@ -99,6 +108,18 @@ func on_player_hit(eff: int, blocked: int, dealt: int) -> void:
 	enemy_attacks += 1
 	damage_blocked += blocked
 	damage_taken += dealt
+
+
+# Step 1：克制元素三连核爆（穿透直击）— 只统计伤害，不改结算。
+func on_counter_burst(damage: int) -> void:
+	counter_triples += 1
+	counter_burst_damage += damage
+
+
+# Step 1：治疗实际入账与三连溢出转盾— 只统计，不改结算。
+func on_heal(hp_gain: int, overflow_shield: int) -> void:
+	heal_total += hp_gain
+	heal_overflow_shield += overflow_shield
 
 
 func on_room_start() -> void:
@@ -161,6 +182,8 @@ func summary() -> Dictionary:
 		"target_hit_rate": target_hit_rate(), "forced_stops": forced_stops,
 		"buffer_queues": buffer_queues, "stop_outcomes": stop_outcomes.duplicate(),
 		"stop_kinds": stop_kinds.duplicate(), "consumable_uses": consumable_uses.duplicate(),
+		"counter_triples": counter_triples, "counter_burst_damage": counter_burst_damage,
+		"heal_total": heal_total, "heal_overflow_shield": heal_overflow_shield,
 	}
 
 
