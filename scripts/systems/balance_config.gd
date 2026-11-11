@@ -56,7 +56,7 @@ extends Resource
 
 # —— 三连收益校准（2026-11-11 Step 1，单一数值轴可复测）——
 @export var counter_burst_pct: float = 0.125  # 克制元素三连核爆 = 敌人 max HP × 此比例（穿透直击）
-@export var heal_line_mults: Array = [1.0, 2.5, 5.0]   # 治疗符号 1/2/3 连倍率（三连倍率可独立复测）
+@export var heal_line_mults: Array = [1.0, 2.5, 4.5]   # 治疗符号 1/2/3 连倍率（三连倍率可独立复测）
 
 # —— T25 关卡结构（2026-08-09 房数重排：一局 24 房 = 3 幕 × 每幕 8 房 + 真·最终通关后战）——
 @export var run_acts: int = 3                                     # 幕数

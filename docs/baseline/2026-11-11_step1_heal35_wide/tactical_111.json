@@ -1,0 +1,102 @@
+{
+  "boss": "碎裂石像鬼",
+  "buffer_queues": 45,
+  "consumable_uses": {
+    "heal": 2
+  },
+  "counter_burst_damage": 248,
+  "counter_triples": 7,
+  "damage_blocked": 71,
+  "damage_taken": 398,
+  "enemy_attacks": 10,
+  "errors": [],
+  "growth": {
+    "mastery": "铭印 锋铸×2",
+    "summary": "技艺 运筹×1"
+  },
+  "heal_overflow_shield": 15,
+  "heal_total": 220,
+  "rooms": [
+    {
+      "enemy_hp_start": 95,
+      "finished": true,
+      "hp_end": 100,
+      "hp_start": 100,
+      "kind": "normal",
+      "name": "裂石像",
+      "turns": 1
+    },
+    {
+      "enemy_hp_start": 115,
+      "finished": true,
+      "hp_end": 100,
+      "hp_start": 100,
+      "kind": "normal",
+      "name": "辉光游侠",
+      "turns": 1
+    },
+    {
+      "enemy_hp_start": 106,
+      "finished": true,
+      "hp_end": 105,
+      "hp_start": 100,
+      "kind": "normal",
+      "name": "毒孢菌",
+      "turns": 1
+    },
+    {
+      "enemy_hp_start": 304,
+      "finished": true,
+      "hp_end": 48,
+      "hp_start": 105,
+      "kind": "elite",
+      "name": "寒铁精英",
+      "turns": 5
+    },
+    {
+      "enemy_hp_start": 297,
+      "finished": true,
+      "hp_end": 61,
+      "hp_start": 48,
+      "kind": "normal",
+      "name": "毒壳壁垒",
+      "turns": 2
+    },
+    {
+      "enemy_hp_start": 111,
+      "finished": true,
+      "hp_end": 66,
+      "hp_start": 61,
+      "kind": "normal",
+      "name": "冰锋群蝠",
+      "turns": 1
+    },
+    {
+      "enemy_hp_start": 359,
+      "finished": true,
+      "hp_end": 66,
+      "hp_start": 66,
+      "kind": "elite",
+      "name": "锈铁傀儡",
+      "turns": 1
+    },
+    {
+      "enemy_hp_start": 527,
+      "finished": true,
+      "hp_end": -8,
+      "hp_start": 66,
+      "kind": "boss",
+      "name": "碎裂石像鬼",
+      "turns": 4
+    }
+  ],
+  "seed": 111,
+  "stop_total": 46,
+  "strategy": "tactical",
+  "target_hit_rate": 1.0,
+  "target_hits": 46,
+  "terminal": "LOST",
+  "triples": 8,
+  "turns": 16,
+  "weapon_swaps": 0
+}
