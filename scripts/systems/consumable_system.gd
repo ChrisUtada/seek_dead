@@ -73,14 +73,17 @@ func use_purify(data: Resource) -> void:
 		var t = _ctrl.enemy_intent.get("type")
 		_ctrl.enemy_intent = {"data": null, "type": "none", "value": 0}
 		_ctrl.hud._log("%s：抵消了敌人的%s" % [data.item_name, _ctrl._intent_name(t)])
+		_ctrl.hud._show_action_feedback("净化：抵消%s" % _ctrl._intent_name(t))
 	else:
 		_ctrl.hud._log("%s：当前无干扰意图可清除" % data.item_name)
+		_ctrl.hud._show_action_feedback("净化：无目标")
 
 
 # 清净药剂（2026-08-09 新增）：解除玩家自身负面状态——frost 冻结解冻 + DoT 毒层清零。
 # 职责单一：只作用于玩家侧，与净化药剂（敌人意图）分工。
 func use_cleanse(data: Resource) -> void:
 	var cleaned_any := false
+	var tags: Array[String] = []
 	if _ctrl.player_frost > 0:
 		_ctrl.player_frost = 0
 		_ctrl.frozen_cols.clear()   # 动态 _ctrl 访问下不能直接赋 []（untyped 数组赋 typed Array[int] 字段会运行时类型错误）
@@ -88,29 +91,39 @@ func use_cleanse(data: Resource) -> void:
 		for r in _ctrl.REELS:
 			_ctrl.hud._refresh_cell(r, 0)
 		_ctrl.hud._log("清净药剂：驱散寒霜，冻结转轮恢复！")
+		tags.append("寒霜")
 		cleaned_any = true
 	if int(_ctrl.player_status.get("poison", 0)) > 0:
 		_ctrl.player_status["poison"] = 0
 		_ctrl.hud._log("清净药剂：驱散酸蚀，毒层清零！")
+		tags.append("酸蚀")
 		cleaned_any = true
 	if not cleaned_any:
 		_ctrl.hud._log("清净药剂：当前无寒霜/酸蚀可清除")
+		_ctrl.hud._show_action_feedback("清净：无状态")
+	else:
+		_ctrl.hud._show_action_feedback("清净：" + "、".join(tags))
 
 
 func use_heal(data: Resource) -> void:
+	var before := int(_ctrl.player_hp)
 	_ctrl.player_hp = mini(_ctrl.player_hp_max, _ctrl.player_hp + data.value)
+	var gain := int(_ctrl.player_hp) - before
 	_ctrl.hud._log("%s：回复 %d HP（现 %d）" % [data.item_name, data.value, _ctrl.player_hp])
+	_ctrl.hud._show_action_feedback(("恢复+%d" % gain) if gain > 0 else "恢复：已满")
 
 
 func use_assault(data: Resource) -> void:
 	_ctrl.assault_next_spin = data.value
 	_ctrl.hud._log("%s：下一次转轮伤害 ×%d" % [data.item_name, data.value])
+	_ctrl.hud._show_action_feedback("强化×%d" % int(data.value))
 
 
 func use_reroll(data: Resource) -> void:
 	# value = 重转次数（重转卷轴 1；赦免令 2——连转洗盘，天平审判官律法解）
 	var times: int = maxi(1, int(data.value))
 	_ctrl.hud._log("%s：免费重转 %d 次！" % [data.item_name, times])
+	_ctrl.hud._show_action_feedback("重转×%d" % times)
 	for i in times:
 		await _ctrl._free_spin()
 
@@ -121,6 +134,7 @@ func use_element(data: Resource) -> void:
 		_ctrl.room_element_mult[data.element] = true
 		_ctrl.hud._log("元素精华（%s）：转轮注入%s系攻击符号「%s」！" % [data.item_name, ElementCounter.label(data.element), DuelController.ESSENCE_SYMBOLS[data.element].name])
 		_ctrl.hud._popup("✨%s符号入池" % ElementCounter.label(data.element), ElementCounter.color(data.element), _ctrl.hud._player_sprite_anchor())
+		_ctrl.hud._show_action_feedback("元素注入：%s" % ElementCounter.label(data.element))
 		_ctrl._build_pool(_ctrl.selected_loadout)
 		_ctrl.reel_system.build_strips()
 		_ctrl.reel_system.reset_grid()
@@ -143,6 +157,7 @@ func use_attack(data: Resource) -> void:
 	if st != "" and stacks > 0:
 		_ctrl.enemy_status[st] = _ctrl.enemy_status.get(st, 0) + stacks
 	_ctrl.hud._log("%s：%d 伤害%s%s" % [data.item_name, dmg, " [克制]" if em > 1.0 else "", ("，敌人获得状态: " + _ctrl.status_system.status_summary({st: stacks})) if stacks > 0 else ""])
+	_ctrl.hud._show_action_feedback(("伤害-%d" % dmg) if dmg > 0 else "伤害：0")
 	if dmg > 0:
 		_ctrl.hud._popup("-%d%s" % [dmg, " [克制]" if em > 1.0 else ""], Palette.POP_DAMAGE, _ctrl.hud._enemy_sprite_anchor())
 	if stacks > 0:
@@ -154,6 +169,7 @@ func use_armor_shred(data: Resource) -> void:
 	var shred: int = mini(int(data.value), _ctrl.enemy_armor)
 	_ctrl.enemy_armor -= shred
 	_ctrl.hud._log("%s：清除护甲 %d（剩 %d）" % [data.item_name, shred, _ctrl.enemy_armor])
+	_ctrl.hud._show_action_feedback(("破甲-%d" % shred) if shred > 0 else "破甲：无护甲")
 	if shred > 0:
 		_ctrl.hud._popup("💥破甲-%d" % shred, Palette.POP_DAMAGE, _ctrl.hud._enemy_sprite_anchor())
 

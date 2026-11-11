@@ -421,7 +421,7 @@ func _refresh_p1_ui() -> void:
 	if not rd.is_fixed_target() and String(rd.situation) != "":
 		var labels: Array = []
 		for c in rd.counters:
-			labels.append(String(c.get("label", "")))
+			labels.append(String(c.get("short", c.get("label", ""))))
 		var shown: Array = labels
 		if labels.size() > 2:
 			shown = labels.slice(0, 2)
@@ -430,7 +430,7 @@ func _refresh_p1_ui() -> void:
 		if labels.is_empty():
 			head += " · 无可主动对策"
 		else:
-			head += " · 可应对：" + " / ".join(shown)
+			head += " · 对策：" + "/".join(shown)
 		p1_target_label.text = head
 		var tip: Array = [String(rd.situation_detail) + " · 预设 " + String(rd.preset)]
 		for c in rd.counters:
@@ -794,7 +794,8 @@ func _update_match_badges(counts: Dictionary) -> void:
 # 纯展示：结算数据由 CombatSystem 在 evaluate() 末尾原样传入，不参与任何数值计算。
 # 不恢复大段伤害分解——完整分解仍只进 Debug.log（见 combat_system.push_dmg_line）。
 func _show_turn_feedback(counts: Dictionary, total: int, triple: bool = false, elem_triple: bool = false,
-		shield_gain: int = -1, heal_gain: int = -1, heal_overflow_shield: int = 0) -> void:
+		shield_gain: int = -1, heal_gain: int = -1, heal_overflow_shield: int = 0,
+		armor_cleared: int = 0, counter_burst: int = 0, charge_burst: int = 0) -> void:
 	if feedback_label == null:
 		return
 	var best_label := ""
@@ -820,16 +821,28 @@ func _show_turn_feedback(counts: Dictionary, total: int, triple: bool = false, e
 			has_shield = true
 		elif String(sym.kind) == "heal":
 			has_heal = true
+	# Step 4：结果类别优先——防御 → 破甲 → 恢复 → 爆发 → 总伤害。
+	# 窄屏裁切时先省略连击/克制细节，不省略「发生了什么」。
 	if shield_gain > 0:
 		parts.append("护盾+%d" % shield_gain)
 	elif has_shield and shield_gain < 0:
 		parts.append("护盾准备")   # 旧调用（无结算值）保持原文案
+	if armor_cleared > 0:
+		parts.append("破甲-%d" % armor_cleared)
 	if heal_gain > 0:
 		parts.append("恢复+%d" % heal_gain)
 	elif heal_overflow_shield > 0:
 		parts.append("恢复→盾+%d" % heal_overflow_shield)
 	elif has_heal and heal_gain < 0:
 		parts.append("恢复")       # 旧调用（无结算值）保持原文案
+	if counter_burst > 0:
+		parts.append("核爆-%d" % counter_burst)
+	if charge_burst > 0:
+		parts.append("充能爆发-%d" % charge_burst)
+	if total > 0:
+		parts.append("-%d" % total)
+		if controller.enemy_hp > 0 and controller.enemy_hp <= int(controller.enemy_hp_max * 0.25):
+			parts.append("收尾窗口")
 	if best_n >= 2:
 		parts.append("%s×%d" % [best_label, best_n])
 	if elem_triple:
@@ -840,11 +853,14 @@ func _show_turn_feedback(counts: Dictionary, total: int, triple: bool = false, e
 		parts.append("克制×%s" % ElementCounter.fmt_mult(ElementCounter.MULT_ADVANTAGE))
 	elif controller._eval_dis:
 		parts.append("抵抗×%s" % ElementCounter.fmt_mult(ElementCounter.MULT_RESIST))
-	if total > 0:
-		parts.append("-%d" % total)
-		if controller.enemy_hp > 0 and controller.enemy_hp <= int(controller.enemy_hp_max * 0.25):
-			parts.append("收尾窗口")
 	feedback_label.text = " / ".join(parts)
+
+
+# Step 4：消耗品使用后的单行结果反馈（净化 / 清净 / 破甲 / 恢复 / 强化 / 伤害）。
+# 与回合结算反馈共用同一行；下一次转轮结算会自然覆盖。纯展示，不参与结算。
+func _show_action_feedback(text: String) -> void:
+	if feedback_label != null and text != "":
+		feedback_label.text = text
 
 
 # 敌人元素 / 弱 / 抗：写入右侧 EnemyPanel 内三 Label（取代原底部 LegendBar）。

@@ -15,6 +15,12 @@ extends RefCounted
 
 var _ctrl  # DuelController
 
+# Step 4（2026-11-11）：本回合结果反馈的分类累计。只供 HUD 文案，不参与结算。
+# 破甲量 = 特殊三连/充能爆发真正清掉的护甲；核爆/充能爆发 = 对应的穿透伤害。
+var _turn_armor_cleared := 0
+var _turn_counter_burst := 0
+var _turn_charge_burst := 0
+
 
 func _init(ctrl) -> void:
 	_ctrl = ctrl
@@ -155,6 +161,9 @@ func _reset_turn_state() -> void:
 	_ctrl._eval_dis = false
 	_ctrl._turn_hit_used = false   # 碎片王冠（信物）：每回合首击标记重置
 	_ctrl._charge_elem_counts = {}   # 主导元素统计每回合重置
+	_turn_armor_cleared = 0
+	_turn_counter_burst = 0
+	_turn_charge_burst = 0
 
 
 # —— 阶段 1：符号计数与贡献（含增益/金币符号）——
@@ -341,13 +350,15 @@ func _phase_attack(counts: Dictionary, acc: Dictionary) -> void:
 			_ctrl.hud.animator.play_attack("player", "enemy")
 	# Step 5：底部单行短反馈（连击/克制/总伤害）。纯展示：读本回合结算结果，不改数值、不加时序等待。
 	# G7-D Step 5：护盾/治疗只报真实入账值（满血无回血时不显示「恢复」）。
-	_ctrl.hud._show_turn_feedback(counts, total, bool(acc.get("triple", false)), _ctrl._elem_triple,
-		int(acc.get("shield_gain", 0)), int(acc.get("heal_gain", 0)), int(acc.get("heal_overflow_shield", 0)))
+	# Step 4：破甲/核爆/充能爆发在充能爆发结算之后再统一上报（见下方 apply_enemy_hp_floor 后）。
 	# T21 元素充能：克制命中满额 → 释放元素爆发（穿透核爆 + 清甲，覆盖流爆发赛道）
 	if _ctrl.charge_points >= DuelController.BALANCE.charge_max:
 		_ctrl.charge_points = 0
 		release_element_burst()
 	_ctrl.apply_enemy_hp_floor()   # P-审计 P1：爆发/穿透等一切扣血后统一收口（血锁防旁路）
+	_ctrl.hud._show_turn_feedback(counts, total, bool(acc.get("triple", false)), _ctrl._elem_triple,
+		int(acc.get("shield_gain", 0)), int(acc.get("heal_gain", 0)), int(acc.get("heal_overflow_shield", 0)),
+		_turn_armor_cleared, _turn_counter_burst, _turn_charge_burst)
 	_ctrl.hud._refresh_meta()   # 伤害落地后立即刷新：HP/护甲即时变化（破甲窗口需即时可见）
 	await _ctrl.get_tree().create_timer(0.35).timeout
 	# 天平审判官：玩家转轮结算完成通知（空转/MISS 回合也触发，规则判定读 ctrl.grid 停轮结果）
@@ -488,14 +499,17 @@ func apply_enemy_damage(amount: float, pierce: bool) -> float:
 # · "element" = 进阶核爆：克制元素三连，除破甲外再追加一次直接打血（穿透）的核爆伤害。
 func on_counter(kind: String, pierce_need: int = 3) -> void:
 	if _ctrl.enemy_armor > 0:
+		var cleared := int(_ctrl.enemy_armor)
+		_turn_armor_cleared += cleared   # Step 4：结果反馈报真实破甲量
 		var tag := "special %s破甲" % ("三连" if pierce_need >= 3 else "二连")
-		_ctrl.hud._log("💥 %s！护甲清零（%d）" % [tag if kind == "special" else "克制元素三连", int(_ctrl.enemy_armor)])
+		_ctrl.hud._log("💥 %s！护甲清零（%d）" % [tag if kind == "special" else "克制元素三连", cleared])
 		_ctrl.enemy_armor = 0
 		if _ctrl._career != null:
 			_ctrl._career.note_armor_break()   # G6-01：仅记录 BOSS 房破甲（不改结算）
 	if kind == "element":
 		var burst = int(_ctrl.enemy_hp_max * DuelController.BALANCE.counter_burst_pct)
 		if burst > 0:
+			_turn_counter_burst += burst   # Step 4：核爆与连线伤害分开报
 			apply_enemy_damage(burst, true)
 			if _ctrl._telemetry != null:
 				_ctrl._telemetry.on_counter_burst(burst)
@@ -533,9 +547,11 @@ func tick_status() -> void:
 func release_element_burst() -> void:
 	var burst := int(_ctrl.enemy_hp_max * DuelController.BALANCE.charge_burst_pct)
 	if _ctrl.enemy_armor > 0:
+		_turn_armor_cleared += int(_ctrl.enemy_armor)   # Step 4：结果反馈报真实破甲量
 		_ctrl.enemy_armor = 0
 		_ctrl.hud._log("⚡ 元素充能爆发：护甲清零！")
 	if burst > 0:
+		_turn_charge_burst += burst   # Step 4：充能爆发与连线伤害分开报
 		apply_enemy_damage(burst, true)
 		_ctrl.hud._popup("⚡元素爆发!-%d" % burst, Palette.POP_DAMAGE, _ctrl.hud._enemy_sprite_anchor())
 		_ctrl.hud._log("⚡ 元素充能爆发：%d 穿透伤害（直击 HP，无视护甲）" % burst)
@@ -549,6 +565,7 @@ func release_element_burst() -> void:
 		var em: float = ElementCounter.multiplier(lead, _ctrl.enemy_element)
 		var extra := int(round(float(DuelController.BALANCE.charge_extra_base) * em))
 		if extra > 0:
+			_turn_charge_burst += extra
 			apply_enemy_damage(float(extra), false)
 			_ctrl.hud._popup("%s爆发!-%d" % [ElementCounter.label(lead), extra], ElementCounter.color(lead), _ctrl.hud._enemy_sprite_anchor())
 			_ctrl.hud._log("⚡ %s系爆发附伤：%d（×%s）" % [ElementCounter.label(lead), extra, ElementCounter.fmt_mult(em)])

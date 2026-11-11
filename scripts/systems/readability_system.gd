@@ -389,7 +389,7 @@ func _heavy_counters(value: int) -> Array:
 	if _ctrl.player_hp < _ctrl.player_hp_max:
 		_push_counter(out, _symbol_counter("heal", "治疗符号", "可停中"))
 	_push_counter(out, _consumable_counter("heal", "治疗药剂", "立即回复"))
-	out.append({"label": "硬吃 %d" % value, "kind": "fallback", "path": "",
+	out.append({"label": "硬吃 %d" % value, "short": "硬吃 %d" % value, "kind": "fallback", "path": "",
 		"note": "不投入资源，预计承受 %d 伤害；护甲与格挡会降低实际承伤。" % value})
 	return out
 
@@ -399,7 +399,7 @@ func _low_hp_counters() -> Array:
 	_push_counter(out, _symbol_counter("heal", "治疗符号", "可停中"))
 	_push_counter(out, _consumable_counter("heal", "治疗药剂", "立即回复"))
 	_push_counter(out, _symbol_counter("shield", "护盾符号", "可停中"))
-	out.append({"label": "抢攻", "kind": "fallback", "path": "",
+	out.append({"label": "抢攻", "short": "抢攻", "kind": "fallback", "path": "",
 		"note": "若判断能先击杀，可放弃恢复继续输出。"})
 	return out
 
@@ -426,7 +426,7 @@ func _burst_counters() -> Array:
 		_push_counter(out, _consumable_counter("cleanse", "清净药剂", "当回合解除冻结"))
 	_push_counter(out, _symbol_counter("damage", "承压输出", "冻结/护甲下仍可正常停轮"))
 	_push_counter(out, _consumable_counter("assault", "强化药剂", "下一次转轮伤害提升"))
-	out.append({"label": "直接承伤", "kind": "fallback", "path": "",
+	out.append({"label": "直接承伤", "short": "承伤", "kind": "fallback", "path": "",
 		"note": "不投入资源，按当前护甲/冻结继续输出；冻结会在下一回合自消。"})
 	return out
 
@@ -441,7 +441,7 @@ func _windup_counters() -> Array:
 	_push_counter(out, _symbol_counter("damage", "保持输出", "蓄势回合同样是输出窗口"))
 	_push_counter(out, _consumable_counter("assault", "强化药剂", "把下一次转轮留给恢复窗口"))
 	_push_counter(out, _consumable_counter("attack", "攻击药剂", "立即伤害"))
-	out.append({"label": "保留资源", "kind": "fallback", "path": "",
+	out.append({"label": "保留资源", "short": "留资源", "kind": "fallback", "path": "",
 		"note": "不投入消耗品也可以；把资源留给爆发后的恢复窗口同样成立。"})
 	return out
 
@@ -453,7 +453,7 @@ func _armor_counters() -> Array:
 	_push_counter(out, _consumable_counter("armor_shred", "破甲酸液", "立即清除护甲"))
 	_push_counter(out, _symbol_counter("damage", "输出符号", "先磨甲再打血"))
 	if out.is_empty():
-		out.append({"label": "普通攻击磨甲", "kind": "fallback", "path": "",
+		out.append({"label": "普通攻击磨甲", "short": "磨甲", "kind": "fallback", "path": "",
 			"note": "没有特殊/穿透/破甲消耗品；只能按普通伤害逐点磨掉护甲。"})
 	return out
 
@@ -466,7 +466,7 @@ func _interference_counters(data: IntentData, itype: String) -> Array:
 	if _ctrl.player_frost > 0 or int(_ctrl.player_status.get("poison", 0)) > 0:
 		_push_counter(out, _consumable_counter("cleanse", "清净药剂", "解除冻结/毒层"))
 	_push_counter(out, _symbol_counter("damage", "照常输出", "干扰下仍可正常停轮输出"))
-	out.append({"label": "照常停轮", "kind": "fallback", "path": "",
+	out.append({"label": "照常停轮", "short": "照常", "kind": "fallback", "path": "",
 		"note": "不使用消耗品，按正常节奏停轮；干扰不会导致必败。"})
 	return out
 
@@ -490,7 +490,7 @@ func _symbol_counter(kind: String, label: String, note: String) -> Dictionary:
 	var paths := _symbol_paths_of_kind(kind)
 	if paths.is_empty():
 		return {}
-	return {"label": label, "kind": "symbol_" + kind, "path": paths[0],
+	return {"label": label, "short": _symbol_short(kind), "kind": "symbol_" + kind, "path": paths[0],
 		"note": "%s：%s" % [note, "、".join(_symbol_names(paths))]}
 
 
@@ -498,7 +498,7 @@ func _pierce_counter() -> Dictionary:
 	var paths := _pierce_paths()
 	if paths.is_empty():
 		return {}
-	return {"label": "穿透符号", "kind": "symbol_pierce", "path": paths[0],
+	return {"label": "穿透符号", "short": "穿透", "kind": "symbol_pierce", "path": paths[0],
 		"note": "穿透护甲直接扣 HP：%s" % "、".join(_symbol_names(paths))}
 
 
@@ -508,9 +508,19 @@ func _consumable_counter(effect: String, label: String, note: String) -> Diction
 			continue
 		var d = load(String(slot.get("path", "")))
 		if d is ItemData and String(d.effect) == effect:
-			return {"label": label, "kind": "consumable_" + effect, "path": String(slot["path"]),
+			return {"label": label, "short": _consumable_short(effect), "kind": "consumable_" + effect, "path": String(slot["path"]),
 				"note": "%s（%s）" % [note, String(d.item_name)]}
 	return {}
+
+
+# Step 4：主栏只放短标签，完整名称与说明仍在 tooltip；避免 480 逻辑宽度下只显示半条对策。
+func _symbol_short(kind: String) -> String:
+	return {"shield": "护盾", "heal": "治疗", "special": "特殊三连", "damage": "输出", "buff": "增益"}.get(kind, kind)
+
+
+func _consumable_short(effect: String) -> String:
+	return {"heal": "治疗药", "armor_shred": "酸液", "cleanse": "清净", "purify": "净化",
+		"assault": "强化", "attack": "攻击药", "reroll": "重转", "element": "精华"}.get(effect, effect)
 
 
 func _push_counter(out: Array, counter: Dictionary) -> void:

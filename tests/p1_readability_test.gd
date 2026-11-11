@@ -112,7 +112,7 @@ func _run() -> void:
 	rd.update_turn_target()
 	_check(rd.target_symbol_path == "res://resources/symbols/block.tres", "重击回合优先推荐护盾")
 	_check(hud.p1_target_label.text.contains("重击 46"), "目标行显示重击局势")
-	_check(hud.p1_target_label.text.contains("护盾符号"), "目标行列出护盾对策")
+	_check(hud.p1_target_label.text.contains("护盾"), "目标行列出护盾对策")
 	_check(hud.p1_target_label.tooltip_text.contains("46"), "悬浮说明包含真实重击数值")
 	rs.reel_strips[1].append([load("res://resources/symbols/heal.tres"), "none"])
 	duel.enemy_intent = {}
