@@ -91,8 +91,16 @@ func _run_one(strategy: String, run_seed: int) -> Dictionary:
 			var key := "%d:%s" % [duel.room_index, duel.enemy_name]
 			if key != last_key:
 				last_key = key
+				var room_trait := ""
+				var room_summary := ""
+				if duel.current_room != null:
+					room_trait = String(duel.current_room.gimmick_params.get("trait", ""))
+					room_summary = String(duel.current_room.mechanic_summary)
 				current = {"name": duel.enemy_name, "kind": duel.current_room.kind, "hp_start": duel.player_hp,
-					"enemy_hp_start": duel.enemy_hp, "turns": 0, "hp_end": duel.player_hp, "finished": false}
+					"enemy_hp_start": duel.enemy_hp, "turns": 0, "hp_end": duel.player_hp, "finished": false,
+					"trait": room_trait, "mechanic_summary": room_summary,
+					"armor_start": int(duel.enemy_armor), "armor_max_start": int(duel.enemy_armor_max),
+					"frost_start": int(duel.player_frost), "jam_start": int(duel.pending_jam_reel)}
 				if duel.current_room.kind == "boss": result["boss"] = duel.enemy_name
 			if strategy == "tactical": _use_consumables()
 			var error: String = await _play_turn(strategy)
@@ -128,6 +136,10 @@ func _end_room(result: Dictionary, current: Dictionary) -> void:
 	current["finished"] = true
 	current["turns"] = duel.turn_count
 	current["hp_end"] = duel.player_hp
+	current["armor_end"] = int(duel.enemy_armor)
+	# 普通怪特性是否在离房前已经触发（shell 在入场即生效，不置 _done，由 armor_max_start 判定）
+	# 用 get("_done") 防御：精英/BOSS gimmick 不一定有该字段。
+	current["trait_done"] = (duel.current_gimmick.get("_done") == true) if duel.current_gimmick != null else false
 	(result["rooms"] as Array).append(current)
 
 

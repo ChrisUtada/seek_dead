@@ -76,8 +76,8 @@ func contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> voi
 			push_dmg_line(acc, sym, elem, flat, bonus, mult, em, dv, crit_mult_val)
 		# 2026-08-07 重构：shield/heal 不吃武器攻击力/克制/元进度——只 = 符号 base × 连线 × 暴击（治疗/护盾符号保持小值，来自技能/房奖励）
 		"shield":  acc["shield"]  += sym.base * mult * crit_mult_val
-		# 2026-08-07 治疗术倍率表（方案 A）：1连×1.0 / 2连×2.5 / 3连×5.0；
-		# 2026-11-11 Step 1：倍率表移入 BalanceConfig.heal_line_mults，三连倍率可独立复测
+		# 治疗倍率由 BalanceConfig.heal_line_mults 配置，当前三连为 4.5 倍；
+		# 2026-11-11 Step 1：倍率表移入配置，三连倍率可独立复测
 		# 不吃暴击/连线精通/克制——治疗规则简单可预期；3连标记 heal_triple 供溢出转护盾
 		"heal":
 			acc["heal"] += sym.base * float(DuelController.BALANCE.heal_line_mults[mini(raw - 1, 2)])
@@ -269,7 +269,7 @@ func _phase_counter(counts: Dictionary, acc: Dictionary) -> void:
 		if _ctrl.current_gimmick != null:
 			_ctrl.current_gimmick.on_special_triple(_ctrl)   # BOSS 自定义钩子（三连感知，语义泛化）
 
-	# 破甲：带破甲机制（triple_pierce）的连携 → 清甲；克制三连 → 核爆（清甲 + 20% max HP）
+	# 破甲：带破甲机制（triple_pierce）的连携 → 清甲；克制三连 → 核爆（清甲 + 按比例穿透）
 	# G6-05 破城铸式把该武器的破甲所需连数降到 2（其它来源仍为 3）。
 	var triple_pierce: bool = false
 	var pierce_need := 3
