@@ -1,0 +1,320 @@
+{
+  "build": "armor_pierce",
+  "build_label": "破甲穿透（重弩+战锤）",
+  "consumable_uses": {
+    "armor_shred": 1,
+    "heal": 2
+  },
+  "counter_burst_damage": 0,
+  "counter_triples": 0,
+  "counter_turns": [],
+  "damage_blocked": 0,
+  "damage_taken": 119,
+  "death_turn": -1,
+  "enemy_armor_end": 0,
+  "enemy_armor_start": 20,
+  "enemy_hp_end": -3,
+  "enemy_hp_max": 240,
+  "heal_overflow_shield": 0,
+  "heal_total": 0,
+  "hp_end": 41,
+  "hp_max": 100,
+  "result": "WON",
+  "room": "boss_urn",
+  "room_kind": "boss",
+  "room_name": "冰封铁瓮",
+  "seed": 999,
+  "telemetry": {
+    "avg_spin": 0.0183333333333333,
+    "avg_ttk": 0.0,
+    "buffer_queues": 0,
+    "consumable_uses": {
+      "armor_shred": 1,
+      "heal": 2
+    },
+    "counter_burst_damage": 0,
+    "counter_triples": 0,
+    "damage_blocked": 0,
+    "damage_taken": 119,
+    "enemy_attacks": 5,
+    "forced_stops": 0,
+    "heal_overflow_shield": 0,
+    "heal_total": 0,
+    "reward_pick_rate": 0.0,
+    "reward_picks": {},
+    "rewards_shown": 3,
+    "rooms_cleared": 0,
+    "spin_seconds": 0.11,
+    "spins": 6,
+    "stop_kinds": {
+      "damage": 9,
+      "gold": 2,
+      "trash": 3
+    },
+    "stop_outcomes": {
+      "miss": 3,
+      "normal": 7,
+      "target": 4
+    },
+    "stop_total": 14,
+    "target_hit_rate": 0.285714285714286,
+    "target_hits": 4,
+    "target_symbol": "res://resources/symbols/bolt_shot.tres",
+    "triple_rate": 0.0,
+    "triples": 0,
+    "turns": 6,
+    "weapon_swaps": 0
+  },
+  "triple_turns": [],
+  "triples": 0,
+  "turn_cap": 20,
+  "turn_log": [
+    {
+      "aim": "bolt_shot.tres",
+      "armor_end": 8,
+      "armor_start": 8,
+      "charge_start": 0,
+      "consumables": [
+        "armor_shred"
+      ],
+      "counter_burst": 0,
+      "counters": [
+        "穿透",
+        "酸液",
+        "输出",
+        "留资源"
+      ],
+      "damage_dealt": 61,
+      "damage_taken": 17,
+      "enemy_hp_end": 179,
+      "enemy_hp_start": 240,
+      "feedback": "-69 / 弩矢×2",
+      "frost_start": 0,
+      "grid": [
+        "res://resources/symbols/bolt_shot.tres",
+        "res://resources/symbols/iron_slash.tres",
+        "res://resources/symbols/gold.tres"
+      ],
+      "grid_end": [
+        "res://resources/symbols/bolt_shot.tres",
+        "res://resources/symbols/iron_slash.tres",
+        "res://resources/symbols/bolt_shot.tres"
+      ],
+      "heal": 0,
+      "hp_end": 83,
+      "hp_start": 100,
+      "intent": "",
+      "poison_start": 0,
+      "shield_end": 0,
+      "shield_start": 0,
+      "situation": "蓄势 · 下回合爆发",
+      "triple": false,
+      "turn": 1,
+      "window": "爆发"
+    },
+    {
+      "aim": "bolt_shot.tres",
+      "armor_end": 0,
+      "armor_start": 8,
+      "charge_start": 0,
+      "consumables": [],
+      "counter_burst": 0,
+      "counters": [
+        "治疗药",
+        "硬吃 34"
+      ],
+      "damage_dealt": 40,
+      "damage_taken": 34,
+      "enemy_hp_end": 139,
+      "enemy_hp_start": 179,
+      "feedback": "-48",
+      "frost_start": 1,
+      "grid": [
+        "res://resources/symbols/bolt_shot.tres",
+        "res://resources/symbols/iron_slash.tres",
+        "res://resources/symbols/bolt_shot.tres"
+      ],
+      "grid_end": [
+        "res://resources/symbols/bolt_shot.tres",
+        "res://resources/symbols/bolt_shot.tres",
+        "res://resources/symbols/iron_slash.tres"
+      ],
+      "heal": 0,
+      "hp_end": 49,
+      "hp_start": 83,
+      "intent": "heavy",
+      "poison_start": 0,
+      "shield_end": 0,
+      "shield_start": 0,
+      "situation": "重击 34",
+      "triple": false,
+      "turn": 2,
+      "window": "恢复"
+    },
+    {
+      "aim": "bolt_shot.tres",
+      "armor_end": 0,
+      "armor_start": 0,
+      "charge_start": 0,
+      "consumables": [
+        "heal"
+      ],
+      "counter_burst": 0,
+      "counters": [
+        "输出"
+      ],
+      "damage_dealt": 27,
+      "damage_taken": 17,
+      "enemy_hp_end": 112,
+      "enemy_hp_start": 139,
+      "feedback": "-27",
+      "frost_start": 0,
+      "grid": [
+        "res://resources/symbols/bolt_shot.tres",
+        "res://resources/symbols/bolt_shot.tres",
+        "res://resources/symbols/iron_slash.tres"
+      ],
+      "grid_end": [
+        "res://resources/symbols/iron_slash.tres",
+        "res://resources/symbols/miss.tres",
+        "res://resources/symbols/gold.tres"
+      ],
+      "heal": 0,
+      "hp_end": 62,
+      "hp_start": 79,
+      "intent": "attack",
+      "poison_start": 0,
+      "shield_end": 0,
+      "shield_start": 0,
+      "situation": "熔铸间隙",
+      "triple": false,
+      "turn": 3,
+      "window": "蓄势"
+    },
+    {
+      "aim": "bolt_shot.tres",
+      "armor_end": 8,
+      "armor_start": 0,
+      "charge_start": 0,
+      "consumables": [],
+      "counter_burst": 0,
+      "counters": [
+        "输出",
+        "留资源"
+      ],
+      "damage_dealt": 54,
+      "damage_taken": 17,
+      "enemy_hp_end": 58,
+      "enemy_hp_start": 112,
+      "feedback": "-54 / 收尾窗口",
+      "frost_start": 0,
+      "grid": [
+        "res://resources/symbols/iron_slash.tres",
+        "res://resources/symbols/miss.tres",
+        "res://resources/symbols/gold.tres"
+      ],
+      "grid_end": [
+        "res://resources/symbols/iron_slash.tres",
+        "res://resources/symbols/miss.tres",
+        "res://resources/symbols/miss.tres"
+      ],
+      "heal": 0,
+      "hp_end": 45,
+      "hp_start": 62,
+      "intent": "attack",
+      "poison_start": 0,
+      "shield_end": 0,
+      "shield_start": 0,
+      "situation": "蓄势 · 下回合爆发",
+      "triple": false,
+      "turn": 4,
+      "window": "爆发"
+    },
+    {
+      "aim": "bolt_shot.tres",
+      "armor_end": 8,
+      "armor_start": 8,
+      "charge_start": 0,
+      "consumables": [
+        "heal"
+      ],
+      "counter_burst": 0,
+      "counters": [
+        "治疗药",
+        "硬吃 34"
+      ],
+      "damage_dealt": 0,
+      "damage_taken": 34,
+      "enemy_hp_end": 58,
+      "enemy_hp_start": 58,
+      "feedback": "",
+      "frost_start": 2,
+      "grid": [
+        "res://resources/symbols/iron_slash.tres",
+        "res://resources/symbols/miss.tres",
+        "res://resources/symbols/miss.tres"
+      ],
+      "grid_end": [
+        "res://resources/symbols/gold.tres",
+        "res://resources/symbols/miss.tres",
+        "res://resources/symbols/miss.tres"
+      ],
+      "heal": 0,
+      "hp_end": 41,
+      "hp_start": 75,
+      "intent": "heavy",
+      "poison_start": 0,
+      "shield_end": 0,
+      "shield_start": 0,
+      "situation": "重击 34",
+      "triple": false,
+      "turn": 5,
+      "window": "恢复"
+    },
+    {
+      "aim": "bolt_shot.tres",
+      "armor_end": 0,
+      "armor_start": 8,
+      "charge_start": 0,
+      "consumables": [],
+      "counter_burst": 0,
+      "counters": [
+        "穿透",
+        "输出"
+      ],
+      "damage_dealt": 61,
+      "damage_taken": 0,
+      "enemy_hp_end": -3,
+      "enemy_hp_start": 58,
+      "feedback": "-69",
+      "frost_start": 1,
+      "grid": [
+        "res://resources/symbols/gold.tres",
+        "res://resources/symbols/miss.tres",
+        "res://resources/symbols/miss.tres"
+      ],
+      "grid_end": [
+        "res://resources/symbols/gold.tres",
+        "res://resources/symbols/iron_slash.tres",
+        "res://resources/symbols/bolt_shot.tres"
+      ],
+      "heal": 0,
+      "hp_end": 41,
+      "hp_start": 41,
+      "intent": "attack",
+      "poison_start": 0,
+      "shield_end": 0,
+      "shield_start": 0,
+      "situation": "熔铸间隙",
+      "triple": false,
+      "turn": 6,
+      "window": "恢复"
+    }
+  ],
+  "turns": 6,
+  "windows": {
+    "恢复": 3,
+    "爆发": 2,
+    "蓄势": 1
+  }
+}

@@ -1,0 +1,197 @@
+{
+  "build": "status_dot",
+  "build_label": "状态持续（毒匕+枯萎长枪）",
+  "consumable_uses": {
+    "armor_shred": 1,
+    "cleanse": 1
+  },
+  "counter_burst_damage": 0,
+  "counter_triples": 0,
+  "counter_turns": [],
+  "damage_blocked": 0,
+  "damage_taken": 40,
+  "death_turn": -1,
+  "enemy_armor_end": 0,
+  "enemy_armor_start": 0,
+  "enemy_hp_end": -1,
+  "enemy_hp_max": 200,
+  "heal_overflow_shield": 0,
+  "heal_total": 0,
+  "hp_end": 60,
+  "hp_max": 100,
+  "result": "WON",
+  "room": "elite_rust",
+  "room_kind": "elite",
+  "room_name": "寒铁精英",
+  "seed": 666,
+  "telemetry": {
+    "avg_spin": 0.0146666666666667,
+    "avg_ttk": 0.348,
+    "buffer_queues": 0,
+    "consumable_uses": {
+      "armor_shred": 1,
+      "cleanse": 1
+    },
+    "counter_burst_damage": 0,
+    "counter_triples": 0,
+    "damage_blocked": 0,
+    "damage_taken": 40,
+    "enemy_attacks": 3,
+    "forced_stops": 0,
+    "heal_overflow_shield": 0,
+    "heal_total": 0,
+    "reward_pick_rate": 0.0,
+    "reward_picks": {},
+    "rewards_shown": 0,
+    "rooms_cleared": 1,
+    "spin_seconds": 0.044,
+    "spins": 3,
+    "stop_kinds": {
+      "damage": 3,
+      "gold": 2,
+      "status": 4
+    },
+    "stop_outcomes": {
+      "normal": 6,
+      "target": 3
+    },
+    "stop_total": 9,
+    "target_hit_rate": 0.333333333333333,
+    "target_hits": 3,
+    "target_symbol": "res://resources/symbols/venom_bite.tres",
+    "triple_rate": 0.0,
+    "triples": 0,
+    "turns": 3,
+    "weapon_swaps": 0
+  },
+  "triple_turns": [],
+  "triples": 0,
+  "turn_cap": 20,
+  "turn_log": [
+    {
+      "aim": "poison.tres",
+      "armor_end": 4,
+      "armor_start": 0,
+      "charge_start": 0,
+      "consumables": [],
+      "counter_burst": 0,
+      "counters": [
+        "输出",
+        "留资源"
+      ],
+      "damage_dealt": 78,
+      "damage_taken": 10,
+      "enemy_hp_end": 122,
+      "enemy_hp_start": 200,
+      "feedback": "-42 / 毒×2 / 同元素三连",
+      "frost_start": 0,
+      "grid": [
+        "res://resources/symbols/poison.tres",
+        "res://resources/symbols/poison.tres",
+        "res://resources/symbols/gold.tres"
+      ],
+      "grid_end": [
+        "res://resources/symbols/poison.tres",
+        "res://resources/symbols/venom_bite.tres",
+        "res://resources/symbols/poison.tres"
+      ],
+      "heal": 0,
+      "hp_end": 90,
+      "hp_start": 100,
+      "intent": "",
+      "poison_start": 0,
+      "shield_end": 0,
+      "shield_start": 0,
+      "situation": "蓄势 · 下回合爆发",
+      "triple": false,
+      "turn": 1,
+      "window": "爆发"
+    },
+    {
+      "aim": "poison.tres",
+      "armor_end": 0,
+      "armor_start": 0,
+      "charge_start": 0,
+      "consumables": [
+        "cleanse",
+        "armor_shred"
+      ],
+      "counter_burst": 0,
+      "counters": [
+        "治疗药",
+        "硬吃 40"
+      ],
+      "damage_dealt": 57,
+      "damage_taken": 20,
+      "enemy_hp_end": 65,
+      "enemy_hp_start": 122,
+      "feedback": "-21",
+      "frost_start": 0,
+      "grid": [
+        "res://resources/symbols/poison.tres",
+        "res://resources/symbols/venom_bite.tres",
+        "res://resources/symbols/poison.tres"
+      ],
+      "grid_end": [
+        "res://resources/symbols/poison.tres",
+        "res://resources/symbols/venom_bite.tres",
+        "res://resources/symbols/gold.tres"
+      ],
+      "heal": 0,
+      "hp_end": 70,
+      "hp_start": 90,
+      "intent": "heavy",
+      "poison_start": 0,
+      "shield_end": 0,
+      "shield_start": 0,
+      "situation": "重击 40",
+      "triple": false,
+      "turn": 2,
+      "window": "恢复"
+    },
+    {
+      "aim": "poison.tres",
+      "armor_end": 0,
+      "armor_start": 0,
+      "charge_start": 0,
+      "consumables": [],
+      "counter_burst": 0,
+      "counters": [
+        "输出"
+      ],
+      "damage_dealt": 66,
+      "damage_taken": 10,
+      "enemy_hp_end": -1,
+      "enemy_hp_start": 65,
+      "feedback": "-21 / 收尾窗口",
+      "frost_start": 0,
+      "grid": [
+        "res://resources/symbols/poison.tres",
+        "res://resources/symbols/venom_bite.tres",
+        "res://resources/symbols/gold.tres"
+      ],
+      "grid_end": [
+        "res://resources/symbols/venom_bite.tres",
+        "res://resources/symbols/poison.tres",
+        "res://resources/symbols/gold.tres"
+      ],
+      "heal": 0,
+      "hp_end": 60,
+      "hp_start": 70,
+      "intent": "attack",
+      "poison_start": 0,
+      "shield_end": 0,
+      "shield_start": 0,
+      "situation": "熔铸间隙",
+      "triple": false,
+      "turn": 3,
+      "window": "恢复"
+    }
+  ],
+  "turns": 3,
+  "windows": {
+    "恢复": 2,
+    "爆发": 1,
+    "蓄势": 0
+  }
+}
