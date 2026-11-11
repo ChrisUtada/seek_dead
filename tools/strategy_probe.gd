@@ -100,10 +100,11 @@ func _run_one(strategy: String, run_seed: int) -> Dictionary:
 					"enemy_hp_start": duel.enemy_hp, "turns": 0, "hp_end": duel.player_hp, "finished": false,
 					"trait": room_trait, "mechanic_summary": room_summary,
 					"armor_start": int(duel.enemy_armor), "armor_max_start": int(duel.enemy_armor_max),
-					"frost_start": int(duel.player_frost), "jam_start": int(duel.pending_jam_reel)}
+					"frost_start": int(duel.player_frost), "jam_start": int(duel.pending_jam_reel),
+					"turn_log": []}
 				if duel.current_room.kind == "boss": result["boss"] = duel.enemy_name
 			if strategy == "tactical": _use_consumables()
-			var error: String = await _play_turn(strategy)
+			var error: String = await _play_turn(strategy, current)
 			if error != "OK":
 				result["errors"].append(error)
 				result["terminal"] = error
@@ -140,10 +141,27 @@ func _end_room(result: Dictionary, current: Dictionary) -> void:
 	# 普通怪特性是否在离房前已经触发（shell 在入场即生效，不置 _done，由 armor_max_start 判定）
 	# 用 get("_done") 防御：精英/BOSS gimmick 不一定有该字段。
 	current["trait_done"] = (duel.current_gimmick.get("_done") == true) if duel.current_gimmick != null else false
+	# Step 3：把逐回合窗口压成摘要，便于直接统计「爆发/恢复是否真的出现」。
+	var burst_turns: Array = []
+	var recovery_turns: Array = []
+	for t in (current.get("turn_log", []) as Array):
+		var window := String(t.get("window", ""))
+		if window == "爆发": burst_turns.append(int(t.get("turn", 0)))
+		elif window == "恢复": recovery_turns.append(int(t.get("turn", 0)))
+	current["burst_turns"] = burst_turns
+	current["recovery_turns"] = recovery_turns
+	current["rhythm_seen"] = not burst_turns.is_empty() and not recovery_turns.is_empty()
 	(result["rooms"] as Array).append(current)
 
 
-func _play_turn(strategy: String) -> String:
+func _play_turn(strategy: String, current: Dictionary) -> String:
+	# Step 3：逐回合记录节奏窗口与护甲/冻结状态，用于验证「蓄势—爆发—恢复」在真实对局里是否实际出现。
+	# window 取自 gimmick 只读钩子，不改变结算。
+	var turn_rec := {"turn": int(duel.turn_count), "window": "",
+		"armor": int(duel.enemy_armor), "frost": int(duel.player_frost),
+		"enemy_hp": int(duel.enemy_hp), "hp": int(duel.player_hp)}
+	if duel.current_gimmick != null:
+		turn_rec["window"] = String(duel.current_gimmick.rhythm_window(duel))
 	duel._on_spin_pressed()
 	var frames := 0
 	while frames < 1200:
@@ -161,9 +179,19 @@ func _play_turn(strategy: String) -> String:
 						if path == duel.readability.target_symbol_path or frames > 360:
 							duel._on_reel_clicked(reel)
 		elif not duel._busy:
+			_finish_turn(current, turn_rec)
 			return "OK"
 		await get_tree().process_frame
+	_finish_turn(current, turn_rec)
 	return "TURN_TIMEOUT"
+
+
+func _finish_turn(current: Dictionary, turn_rec: Dictionary) -> void:
+	turn_rec["armor_end"] = int(duel.enemy_armor)
+	turn_rec["frost_end"] = int(duel.player_frost)
+	turn_rec["enemy_hp_end"] = int(duel.enemy_hp)
+	turn_rec["hp_end"] = int(duel.player_hp)
+	(current["turn_log"] as Array).append(turn_rec)
 
 
 func _next_reel() -> int:

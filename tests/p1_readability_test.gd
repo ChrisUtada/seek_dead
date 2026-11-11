@@ -123,7 +123,8 @@ func _run() -> void:
 	var rust = load("res://scripts/battle/gimmicks/rust_armor_gimmick.gd").new()
 	rust.on_room_start(duel)
 	rust._interval = 3   # 冰封铁瓮实际参数；不依赖当前普通房的默认回落值
-	for i in 3:
+	rust._first_pressure_turn = 2   # 首轮第 2 回合爆发，次回合恢复
+	for i in 2:
 		rust.on_turn_begin(duel)
 	_check(not rust.recovery_window(duel), "叠甲/冻结回合不是恢复窗口")
 	rust.on_turn_begin(duel)

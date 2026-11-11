@@ -6,7 +6,7 @@ extends Node
 #
 # 覆盖（Step 5 出口）：
 # ① 样板：ACT1 精英「寒铁精英」+ ACT1 BOSS「冰封铁瓮」，同一 rust_armor 机制；
-# ② 蓄势—爆发—恢复窗口按真实回合顺序出现（第 3/6/9 回合爆发，次回合恢复）；
+# ② 蓄势—爆发—恢复窗口按真实回合顺序出现（首轮第 2 回合爆发，之后每 3 回合，次回合恢复）；
 # ③ HUD 在机制摘要前显示【蓄势/爆发/恢复】，并按窗口变色；
 # ④ 标准提示在三个窗口都列出当前真实多对策，不指定唯一答案；
 # ⑤ 不修改基础 HP/攻击，不读取玩家 Build / 玩家 HP 动态调值；
@@ -160,6 +160,8 @@ func _test_sample_rooms(duel: DuelController) -> void:
 			and room.gimmick_script.resource_path.get_file() == "rust_armor_gimmick.gd",
 			"%s 使用熔铸护甲机制" % room.name)
 		_check(int(room.gimmick_params.get("interval", 0)) == 3, "%s 加压间隔 3 回合" % room.name)
+		_check(int(room.gimmick_params.get("first_pressure_turn", 0)) == 2,
+			"%s 首轮第 2 回合爆发（保证 2 回合击杀也看到蓄势→爆发）" % room.name)
 		var summary := String(room.mechanic_summary)
 		_check(summary.contains("蓄势") and summary.contains("爆发") and summary.contains("恢复"),
 			"%s 摘要写明蓄势—爆发—恢复（实际 %s）" % [room.name, summary.replace("\n", " / ")])
@@ -180,11 +182,12 @@ func _test_elite_windows(duel: DuelController) -> void:
 		return
 	var base_armor: int = int(duel.enemy_armor)
 	var seq: Array = [g.rhythm_window(duel)]
-	for i in 6:
+	for i in 5:
 		g.on_turn_begin(duel)
 		seq.append(g.rhythm_window(duel))
-	_check(seq == ["蓄势", "蓄势", "爆发", "恢复", "蓄势", "爆发", "恢复"],
+	_check(seq == ["蓄势", "爆发", "恢复", "蓄势", "爆发", "恢复"],
 		"寒铁精英窗口顺序（实际 %s）" % str(seq))
+	_check(seq[1] == "爆发", "寒铁精英首轮在第 2 回合爆发（不是第 3 回合）")
 	_check(int(duel.enemy_armor) == base_armor + 8, "两次爆发共叠 8 护甲（%d → %d）" % [base_armor, int(duel.enemy_armor)])
 	_check(g.rhythm_window(duel) == "恢复" and g.recovery_window(duel), "恢复窗口与 recovery_window 一致")
 	g.on_turn_begin(duel)
@@ -201,10 +204,10 @@ func _test_boss_windows(duel: DuelController) -> void:
 		return
 	var base_armor: int = int(duel.enemy_armor)
 	var seq: Array = [g.rhythm_window(duel)]
-	for i in 9:
+	for i in 8:
 		g.on_turn_begin(duel)
 		seq.append(g.rhythm_window(duel))
-	_check(seq == ["蓄势", "蓄势", "爆发", "恢复", "蓄势", "爆发", "恢复", "蓄势", "爆发", "恢复"],
+	_check(seq == ["蓄势", "爆发", "恢复", "蓄势", "爆发", "恢复", "蓄势", "爆发", "恢复"],
 		"冰封铁瓮窗口顺序（实际 %s）" % str(seq))
 	_check(int(duel.enemy_armor) == base_armor + 24, "三次爆发共叠 24 护甲（%d → %d）" % [base_armor, int(duel.enemy_armor)])
 	g.on_turn_begin(duel)
@@ -224,7 +227,6 @@ func _test_hud_tag(duel: DuelController) -> void:
 	_check(String(lbl.text).contains(String((load(BOSS) as RoomData).mechanic_summary)),
 		"HUD 仍保留完整机制摘要")
 	_check(lbl.get_theme_color("font_color") == Palette.ACCENT_GOLD, "蓄势标签用交互金")
-	g.on_turn_begin(duel)
 	g.on_turn_begin(duel)
 	duel.invalidate_state()
 	duel.hud._refresh_meta()
@@ -259,10 +261,9 @@ func _test_readability(duel: DuelController) -> void:
 	_check(_has_label(rd, "保留资源"), "蓄势保留「保留资源」兜底")
 	_check(not String(duel.hud.p1_target_label.text).begins_with("🎯"), "标准提示不显示唯一目标")
 
-	# 爆发回合（第 3 回合）
+	# 爆发回合（第 2 回合）
 	g.on_turn_begin(duel)
-	g.on_turn_begin(duel)
-	_check(g.rhythm_window(duel) == "爆发", "第 3 回合进入爆发")
+	_check(g.rhythm_window(duel) == "爆发", "第 2 回合进入爆发")
 	duel.enemy_intent = {}
 	duel.readability.update_turn_target()
 	rd = duel.readability
@@ -275,7 +276,7 @@ func _test_readability(duel: DuelController) -> void:
 	_check(_has_label(rd, "直接承伤"), "爆发保留直接承伤兜底")
 	_check(rd.counters.size() >= 3 and _non_fallback(rd) >= 3, "爆发给出多条真实对策（%d）" % rd.counters.size())
 
-	# 恢复回合（第 4 回合）
+	# 恢复回合（第 3 回合）
 	g.on_turn_begin(duel)
 	duel.enemy_intent = {}
 	duel.readability.update_turn_target()
@@ -311,8 +312,8 @@ func _test_no_build_scaling(duel: DuelController) -> void:
 	var elite: RoomData = load(ELITE)
 	var keys: Array = elite.gimmick_params.keys()
 	keys.sort()
-	_check(keys == ["interval", "max_stacks", "per_stack", "two_cols_chance"],
-		"样板参数只有节奏/护甲四项（实际 %s）" % str(keys))
+	_check(keys == ["first_pressure_turn", "interval", "max_stacks", "per_stack", "two_cols_chance"],
+		"样板参数只有节奏/护甲五项（实际 %s）" % str(keys))
 
 
 # ---------------------------------------------------------------------------

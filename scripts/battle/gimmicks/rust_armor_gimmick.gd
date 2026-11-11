@@ -7,13 +7,17 @@ const ICON := "🛡❄"   # 下一房预告横幅的机制图标（battle_hud �
 # 每 interval 回合叠 1 层护甲（每层 +per_stack，上限 max_stacks 层），叠加在 RoomData.armor 之上。
 # 玩家打出 special 三连清空全部护甲（由 DuelController._on_counter("special") 统一处理）。
 # 设计意图：教玩家主动追求 special 三连 / 用穿透符号破甲（RPG 式破甲机制）。
-# T24 参数化：interval/per_stack/max_stacks/two_cols_chance 读 RoomData.gimmick_params（空则回落默认值，行为不变）——
+# T24 参数化：interval/per_stack/max_stacks/two_cols_chance/first_pressure_turn 读 RoomData.gimmick_params（空则回落默认值，行为不变）——
 # Act2/3 复用脚本时在 .tres 调参即可，不再硬编码。
 
 var _interval := 2
 var _per_stack := 8
 var _max_stacks := 3
 var _two_cols_chance := 0.3   # 2026-08-13 用户拍板：冻结随机 1~2 列，2 列概率（1 列更常见）
+# Step 3（2026-11-11）：首轮爆发的回合数。默认 = interval（保持旧节奏：第 2/3 回合首次爆发）。
+# 样板房可前移到第 2 回合，使 2 回合内的高爆发击杀至少看到一次「蓄势→爆发」；
+# 之后仍按 interval 重复，不改变层数、护甲量或任何动态数值。
+var _first_pressure_turn := 2
 
 var _stacks := 0
 var _turns := 0
@@ -29,12 +33,13 @@ func on_room_start(ctrl) -> void:
 	_per_stack = int(p.get("per_stack", 8))
 	_max_stacks = int(p.get("max_stacks", 3))
 	_two_cols_chance = float(p.get("two_cols_chance", 0.3))
+	_first_pressure_turn = int(p.get("first_pressure_turn", _interval))
 	ctrl.hud._log("🛡 熔铸护甲展开：每 %d 回合叠加一层护甲（上限 %d 层）" % [_interval, _max_stacks])
-	ctrl.hud._log("🛡 熔铸节律：蓄势 %d 回合 → 爆发（叠甲+冻结）→ 次回合恢复（熔铸间隙）" % _interval)
+	ctrl.hud._log("🛡 熔铸节律：首轮蓄势 %d 回合 → 爆发（叠甲+冻结）→ 次回合恢复（熔铸间隙），之后每 %d 回合重复" % [_first_pressure_turn - 1, _interval])
 
 func on_turn_begin(ctrl) -> void:
 	_turns += 1
-	if _turns % _interval == 0 and _stacks < _max_stacks:
+	if _turns >= _first_pressure_turn and (_turns - _first_pressure_turn) % _interval == 0 and _stacks < _max_stacks:
 		_last_pressure_turn = _turns
 		_stacks += 1
 		ctrl.enemy_armor_max += _per_stack

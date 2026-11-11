@@ -261,7 +261,8 @@ func _test_recovery(duel: DuelController) -> void:
 	var rust = load("res://scripts/battle/gimmicks/rust_armor_gimmick.gd").new()
 	rust.on_room_start(duel)
 	rust._interval = 3
-	for i in 3:
+	rust._first_pressure_turn = 2
+	for i in 2:
 		rust.on_turn_begin(duel)
 	rust.on_turn_begin(duel)
 	duel.current_gimmick = rust
