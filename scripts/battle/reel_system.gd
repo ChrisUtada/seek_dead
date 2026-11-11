@@ -21,8 +21,10 @@ const MISS_SYMBOL = preload("res://resources/symbols/miss.tres")
 # 避免 --script / 未打开编辑器的环境读不到 global_script_class_cache。
 const _REEL_CLOCK = preload("res://scripts/battle/reel_clock.gd")
 
-const _SPIN_BASE_WAIT := 1.0 / 9.0     # 起始每跳间隔（秒）——9 格/秒（Step 3 巡航速度）
+const _SPIN_BASE_WAIT := 1.0 / 9.0     # 巡航每跳间隔（秒）——9 格/秒（Step 3）
 const _SPIN_MIN_WAIT := 1.0 / 12.0     # 最快每跳间隔——12 格/秒封顶（Step 3）
+const STARTUP_CPS := 5.0               # 起转初速：给首轮观察留出时间，不改变巡航/封顶
+const STARTUP_RAMP_SECONDS := 0.32     # 二次速度曲线从初速升至巡航，再进入原有逐拍加速
 const _STRIP_MIN_CELLS := 30           # 转轮带最小格数（整份平铺补足，不改变符号占比）
 const _GOLD_CELLS := 2                 # 金币符号常驻格数（经济引擎，与装备频率解耦）
 const ABSORB_DECEL_CELLS := 1.0        # 吸附减速格数（Step 3 再按手感调）
@@ -44,6 +46,8 @@ var _locked_prev_sym: Array = []       # [reel] -> 锁轮保留的上一轮符�
 var _locked_prev_elem: Array[String] = []   # [reel] -> 锁轮保留的上一轮有效元素
 var _spinning := false                 # 旋转进行中（供输入分支判断）
 var _spin_ticks := 0                   # 已跳次数（用于加速上限）
+var _startup_ticks := 0                # 启动段拍数；巡航后的加速从启动段结束时重新计拍
+var _startup_tween: Tween = null       # 逐帧更新启动速度；逻辑拍仍由同一 Timer 推进
 var _pending_stops: Dictionary = {}    # P1 输入缓冲：reel -> true（最多等到下一逻辑拍锁定）
 # 2026-11-12 Step 2：停轮先记录、再吸附、最后落子。
 # reel -> {idx, reason, progress, tween}；吸附中拒绝重复停轮，网格与结算只在完成时更新。
@@ -84,6 +88,47 @@ func _accel() -> float:
 	if _ctrl.readability != null:
 		return float(_ctrl.readability.accel)
 	return 0.0020
+
+
+func _startup_wait(base: float, progress: float) -> float:
+	var start_factor: float = clampf(STARTUP_CPS * base, 0.0, 1.0)
+	var u: float = clampf(progress, 0.0, 1.0)
+	var factor: float = start_factor + (1.0 - start_factor) * u * u
+	return base / maxf(factor, 0.001)
+
+
+func _spin_wait_at(elapsed: float, spin_ticks: int, startup_ticks: int) -> float:
+	var base: float = _ctrl.growth.spin_wait_base(_base_wait())
+	if elapsed < STARTUP_RAMP_SECONDS:
+		return _startup_wait(base, elapsed / STARTUP_RAMP_SECONDS)
+	var accel_ticks: int = maxi(0, spin_ticks - startup_ticks)
+	return maxf(_min_wait(), base - accel_ticks * _accel())
+
+
+func _set_startup_progress(progress: float) -> void:
+	if not _spinning or _timer == null:
+		return
+	var base: float = _ctrl.growth.spin_wait_base(_base_wait())
+	_timer.wait_time = _startup_wait(base, progress)
+
+
+func _finish_startup() -> void:
+	_startup_tween = null
+	if _spinning:
+		_timer.wait_time = _spin_wait_at(STARTUP_RAMP_SECONDS, _spin_ticks, _startup_ticks)
+
+
+func _clear_startup_tween() -> void:
+	if _startup_tween != null and _startup_tween.is_valid():
+		_startup_tween.kill()
+	_startup_tween = null
+
+
+func _start_startup_tween() -> void:
+	_clear_startup_tween()
+	_startup_tween = _ctrl.create_tween()
+	_startup_tween.tween_method(_set_startup_progress, 0.0, 1.0, STARTUP_RAMP_SECONDS)
+	_startup_tween.finished.connect(_finish_startup)
 
 
 func has_pending_stop(r: int) -> bool:
@@ -180,12 +225,14 @@ func begin_spin() -> void:
 		_ctrl.hud.set_reel_enabled(r, true)
 	_spinning = true
 	_spin_ticks = 0
+	_startup_ticks = 0
 	_reset_auto_stop()
 	_spin_model_seconds = 0.0
 	_spin_end_model = 0.0
 	_last_spin_seconds = 0.0
-	_timer.wait_time = _ctrl.growth.spin_wait_base(_base_wait())   # M2-01：稳定节奏前 2 回合放慢
+	_timer.wait_time = _spin_wait_at(0.0, 0, 0)
 	_timer.start()
+	_start_startup_tween()
 	if _ctrl.readability != null:
 		_ctrl.readability.begin_spin()
 	_ctrl.hud._refresh_p1_previews()
@@ -301,6 +348,8 @@ func on_spin_tick() -> void:
 		return
 	_spin_ticks += 1
 	# 模型耗时：本拍间隔 = 上一拍设置的 wait_time（冻结/吸附时也计入真实等待）。
+	if _spin_model_seconds < STARTUP_RAMP_SECONDS:
+		_startup_ticks += 1
 	_spin_model_seconds += current_spin_wait()
 	var any_active := false
 	for r in DuelController.REELS:
@@ -334,8 +383,7 @@ func on_spin_tick() -> void:
 			stop_next_reel(false, "forced")
 			_auto_stop_index += 1
 			_auto_stop_left = auto_stop_interval(_auto_stop_index)
-	var w = max(_min_wait(), _ctrl.growth.spin_wait_base(_base_wait()) - _spin_ticks * _accel())
-	_timer.wait_time = w
+	_timer.wait_time = _spin_wait_at(_spin_model_seconds, _spin_ticks, _startup_ticks)
 
 
 # 把当前带子位置的符号写入展示格（旋转中每跳调用，复用既有 _refresh_cell）。
@@ -518,6 +566,7 @@ func finish_spin() -> void:
 		return
 	_last_spin_seconds = maxf(_spin_model_seconds, _spin_end_model)
 	_spinning = false
+	_clear_startup_tween()
 	_clear_absorbs()   # 防御性清理：所有列都已停，不应再有吸附中的记录
 	_timer.stop()
 	_pending_stops.clear()

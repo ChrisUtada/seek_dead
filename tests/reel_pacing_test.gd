@@ -100,30 +100,73 @@ func _run() -> void:
 	_stack_strips(duel)
 	var rs = duel.reel_system
 
-	# 1. 速度区间：巡航 8–10 格/秒，封顶 10–12 格/秒
+	# 1. 速度区间：初速 4.5–5.5，巡航 8–10 格/秒，封顶 10–12 格/秒
 	_start(duel, [false, true, true])
-	var cruise_cps: float = 1.0 / rs.current_spin_wait()
+	var start_cps: float = 1.0 / rs.current_spin_wait()
+	_check(start_cps >= 4.5 and start_cps <= 5.5, "起转初速在 4.5–5.5 格/秒（实测 %.2f）" % start_cps)
+	var cruise_cps: float = 1.0 / rs._base_wait()
 	_check(cruise_cps >= 8.0 and cruise_cps <= 10.0, "巡航速度在 8–10 格/秒（实测 %.2f）" % cruise_cps)
 	var cap_cps: float = 1.0 / float(rs._min_wait())
 	_check(cap_cps >= 10.0 and cap_cps <= 12.0, "高速封顶在 10–12 格/秒（实测 %.2f）" % cap_cps)
+	_check(rs.STARTUP_RAMP_SECONDS >= 0.28 and rs.STARTUP_RAMP_SECONDS <= 0.35,
+		"启动加速段在 0.28–0.35s（实测 %.2f）" % rs.STARTUP_RAMP_SECONDS)
 	_check(rs.auto_stop_interval(0) >= 0.22 and rs.auto_stop_interval(0) <= 0.28,
 		"逐列基础停顿在 0.22–0.28s（实测 %.2f）" % rs.auto_stop_interval(0))
 	var step: float = rs.auto_stop_interval(1) - rs.auto_stop_interval(0)
 	_check(step >= 0.06 and step <= 0.08, "后续列递增在 0.06–0.08s（实测 %.2f）" % step)
 
-	# 2. 加速段：逐步逼近封顶，且永不超过封顶
+	# 2. 启动段平滑接近巡航；随后逐步逼近封顶，且永不超过封顶
 	var saw_max := false
 	var over_cap := false
+	var startup_monotonic := true
+	var previous_cps := start_cps
+	var reached_cruise_at := -1.0
+	var cruise_after_startup := 0.0
 	for _i in 40:
 		rs.on_spin_tick()
 		var w: float = rs.current_spin_wait()
-		if 1.0 / w > cap_cps + 0.001:
+		var cps: float = 1.0 / w
+		if rs.spin_model_seconds() <= rs.STARTUP_RAMP_SECONDS + 0.001:
+			startup_monotonic = startup_monotonic and cps + 0.001 >= previous_cps
+			previous_cps = cps
+		if reached_cruise_at < 0.0 and rs.spin_model_seconds() >= rs.STARTUP_RAMP_SECONDS:
+			reached_cruise_at = rs.spin_model_seconds()
+			cruise_after_startup = cps
+		if cps > cap_cps + 0.001:
 			over_cap = true
 		if is_equal_approx(w, rs._min_wait()):
 			saw_max = true
+	_check(startup_monotonic, "启动段速度单调上升，没有先跳高速再回落")
+	_check(reached_cruise_at >= 0.28 and reached_cruise_at <= 0.45,
+		"启动段按节拍量化后约 0.32s 结束（实测 %.3fs）" % reached_cruise_at)
+	_check(absf(cruise_after_startup - cruise_cps) <= 0.01,
+		"启动段结束接入 9 格/秒巡航，不提前逐拍加速（实测 %.2f）" % cruise_after_startup)
 	_check(not over_cap, "加速段从未超过 12 格/秒封顶")
 	_check(saw_max, "持续旋转后到达封顶速度")
 	_check(rs.spin_model_seconds() > 0.0, "旋转模型耗时在累积")
+
+	# 2b. 真实帧驱动：启动速度必须逐帧更新，而不是每格才跳一个档位
+	_start(duel, [false, true, true])
+	rs._timer.start()
+	var frame_cps: Array[float] = []
+	var frame_monotonic := true
+	var previous_frame_cps := start_cps
+	for _i in 18:
+		await get_tree().process_frame
+		var cps: float = 1.0 / rs.current_spin_wait()
+		frame_cps.append(cps)
+		frame_monotonic = frame_monotonic and cps + 0.001 >= previous_frame_cps
+		previous_frame_cps = cps
+	rs._timer.stop()
+	var distinct_speeds := {}
+	for cps in frame_cps:
+		distinct_speeds[snappedf(cps, 0.0001)] = true
+	_check(distinct_speeds.size() >= 12,
+		"0.3s 内至少出现 12 个连续速度采样（实测 %d）" % distinct_speeds.size())
+	_check(frame_monotonic, "逐帧启动速度单调上升，没有回落或跳档")
+	_check(not frame_cps.is_empty() and frame_cps[-1] > start_cps + 1.0
+		and frame_cps[-1] <= cruise_cps + 0.01,
+		"真实帧驱动在启动段内平滑接近巡航")
 
 	# 3. 手动按停立即进入吸附（不额外等待逐列停顿）
 	_start(duel, [false, true, true])
