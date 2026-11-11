@@ -91,9 +91,9 @@ func _run() -> void:
 
 	# 1. 预设表
 	rd.apply_preset("control")
-	_check(rd.min_wait == 0.06 and rd.preview_slots == 0 and not rd.visual_stop and not rd.buffer_enabled, "control 预设数值")
+	_check(is_equal_approx(rd.min_wait, 1.0 / 12.0) and rd.preview_slots == 0 and not rd.visual_stop and not rd.buffer_enabled, "control 预设数值")
 	rd.apply_preset("readable")
-	_check(rd.min_wait == 0.085 and rd.accel == 0.0007, "readable 速度")
+	_check(is_equal_approx(rd.min_wait, 1.0 / 11.0) and is_equal_approx(rd.accel, 0.0014), "readable 速度")
 	_check(rd.preview_slots == 2 and rd.visual_stop and rd.buffer_enabled and rd.feedback_enabled, "readable 预览/落点/缓冲/反馈")
 	_check(hud.p1_target_label != null and String(hud.p1_target_label.tooltip_text).contains("readable"), "预设名移入目标行 tooltip（主栏不再拼长预设名）")
 	rd.apply_preset("control")

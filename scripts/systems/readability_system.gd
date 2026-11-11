@@ -18,22 +18,30 @@ extends RefCounted
 #          它不自动选目标，也不跨越多格。
 # ============================================================================
 
+# 2026-11-12 转轮手感 Step 3：主滚动 9 格/秒，高速封顶 12 格/秒（readable 11），
+# 加速段约 1.5s 内到达上限。旧模型起步 0.15s/格（6.7 格/秒）、封顶 0.06s/格（16.7 格/秒）。
+const CRUISE_CPS := 9.0
+const MAX_CPS := 12.0
+const READABLE_MAX_CPS := 11.0
+const CONTROL_ACCEL := 0.0020
+const READABLE_ACCEL := 0.0014
+
 const PRESETS := {
-	"control":  {"base": 0.15, "min": 0.06,  "accel": 0.0010, "preview": 0, "visual": false, "buffer": false, "feedback": false},
-	"readable": {"base": 0.15, "min": 0.085, "accel": 0.0007, "preview": 2, "visual": true,  "buffer": true,  "feedback": true},
-	"speed":    {"base": 0.15, "min": 0.085, "accel": 0.0007, "preview": 0, "visual": false, "buffer": false, "feedback": false},
-	"preview":  {"base": 0.15, "min": 0.06,  "accel": 0.0010, "preview": 2, "visual": false, "buffer": false, "feedback": false},
-	"visual":   {"base": 0.15, "min": 0.06,  "accel": 0.0010, "preview": 0, "visual": true,  "buffer": false, "feedback": false},
-	"buffer":   {"base": 0.15, "min": 0.06,  "accel": 0.0010, "preview": 0, "visual": true,  "buffer": true,  "feedback": false},
-	"feedback": {"base": 0.15, "min": 0.06,  "accel": 0.0010, "preview": 0, "visual": false, "buffer": false, "feedback": true},
+	"control":  {"base": 1.0 / CRUISE_CPS, "min": 1.0 / MAX_CPS, "accel": CONTROL_ACCEL, "preview": 0, "visual": false, "buffer": false, "feedback": false},
+	"readable": {"base": 1.0 / CRUISE_CPS, "min": 1.0 / READABLE_MAX_CPS, "accel": READABLE_ACCEL, "preview": 2, "visual": true,  "buffer": true,  "feedback": true},
+	"speed":    {"base": 1.0 / CRUISE_CPS, "min": 1.0 / READABLE_MAX_CPS, "accel": READABLE_ACCEL, "preview": 0, "visual": false, "buffer": false, "feedback": false},
+	"preview":  {"base": 1.0 / CRUISE_CPS, "min": 1.0 / MAX_CPS, "accel": CONTROL_ACCEL, "preview": 2, "visual": false, "buffer": false, "feedback": false},
+	"visual":   {"base": 1.0 / CRUISE_CPS, "min": 1.0 / MAX_CPS, "accel": CONTROL_ACCEL, "preview": 0, "visual": true,  "buffer": false, "feedback": false},
+	"buffer":   {"base": 1.0 / CRUISE_CPS, "min": 1.0 / MAX_CPS, "accel": CONTROL_ACCEL, "preview": 0, "visual": true,  "buffer": true,  "feedback": false},
+	"feedback": {"base": 1.0 / CRUISE_CPS, "min": 1.0 / MAX_CPS, "accel": CONTROL_ACCEL, "preview": 0, "visual": false, "buffer": false, "feedback": true},
 }
 const CYCLE := ["control", "readable"]
 
 var _ctrl
 var preset := "control"
-var base_wait := 0.15
-var min_wait := 0.06
-var accel := 0.0010
+var base_wait := 1.0 / CRUISE_CPS
+var min_wait := 1.0 / MAX_CPS
+var accel := CONTROL_ACCEL
 var preview_slots := 0
 var visual_stop := false
 var buffer_enabled := false
@@ -102,7 +110,7 @@ func _apply(name: String, notify: bool) -> void:
 
 
 func _speed_text() -> String:
-	if is_equal_approx(accel, 0.0010) and is_equal_approx(min_wait, 0.06):
+	if is_equal_approx(accel, CONTROL_ACCEL) and is_equal_approx(min_wait, 1.0 / MAX_CPS):
 		return "当前"
 	return "慢化"
 

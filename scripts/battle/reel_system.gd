@@ -21,11 +21,14 @@ const MISS_SYMBOL = preload("res://resources/symbols/miss.tres")
 # 避免 --script / 未打开编辑器的环境读不到 global_script_class_cache。
 const _REEL_CLOCK = preload("res://scripts/battle/reel_clock.gd")
 
-const _SPIN_BASE_WAIT := 0.15          # 起始每跳间隔（秒）——调慢以便看清落点、凑三连 special
-const _SPIN_MIN_WAIT := 0.06           # 最快每跳间隔（封顶也调慢，整体更易控）
+const _SPIN_BASE_WAIT := 1.0 / 9.0     # 起始每跳间隔（秒）——9 格/秒（Step 3 巡航速度）
+const _SPIN_MIN_WAIT := 1.0 / 12.0     # 最快每跳间隔——12 格/秒封顶（Step 3）
 const _STRIP_MIN_CELLS := 30           # 转轮带最小格数（整份平铺补足，不改变符号占比）
 const _GOLD_CELLS := 2                 # 金币符号常驻格数（经济引擎，与装备频率解耦）
 const ABSORB_DECEL_CELLS := 1.0        # 吸附减速格数（Step 3 再按手感调）
+# 2026-11-12 Step 3：逐列基础停顿（方案 §5）——自动/夺轮停列的基础间隔与递增。
+const AUTO_STOP_BASE_WAIT := 0.25      # 第 1 列自动停下的基础停顿（方案 0.22–0.28）
+const AUTO_STOP_STEP_WAIT := 0.07      # 后续每列递增（方案 0.06–0.08）
 # 2026-08-09 传统 slots 频率（拍板）：格子数 = 权重档位（保底 2 = 目押下限），
 # rare/epic 符号封顶 2 格（≤ 普通——大奖罕见，推翻旧「稀有度不影响次数」决策）。
 const RARITY_RANK := {"common": 0, "uncommon": 1, "rare": 2, "epic": 3}
@@ -45,6 +48,12 @@ var _pending_stops: Dictionary = {}    # P1 输入缓冲：reel -> true（最多
 # 2026-11-12 Step 2：停轮先记录、再吸附、最后落子。
 # reel -> {idx, reason, progress, tween}；吸附中拒绝重复停轮，网格与结算只在完成时更新。
 var _absorb: Dictionary = {}
+# 2026-11-12 Step 3：逐列自动停轮节奏与本次旋转的模型耗时（秒）。
+var _auto_stop_index := 0
+var _auto_stop_left := AUTO_STOP_BASE_WAIT
+var _spin_model_seconds := 0.0
+var _spin_end_model := 0.0
+var _last_spin_seconds := 0.0
 
 var spinning: bool:
 	get:
@@ -74,7 +83,7 @@ func _min_wait() -> float:
 func _accel() -> float:
 	if _ctrl.readability != null:
 		return float(_ctrl.readability.accel)
-	return 0.0010
+	return 0.0020
 
 
 func has_pending_stop(r: int) -> bool:
@@ -101,6 +110,26 @@ func absorb_target(r: int) -> int:
 # 一列是否仍占用输入：已停或吸附中都算 busy，避免重复停轮/重复结算。
 func is_busy(r: int) -> bool:
 	return r >= 0 and r < reel_stopped.size() and (bool(reel_stopped[r]) or is_absorbing(r))
+
+
+# 上一次完整旋转的模型耗时（节拍累计 + 吸附，秒）。供探针/报告记录，不参与结算。
+func last_spin_seconds() -> float:
+	return _last_spin_seconds
+
+
+# 本次旋转已累计的模型时间（秒，不含尚未发生的吸附）。
+func spin_model_seconds() -> float:
+	return _spin_model_seconds
+
+
+# 自动停轮节奏（Step 3）：第 n 列的目标间隔 = 基础 + 递增 × n。
+func auto_stop_interval(index: int) -> float:
+	return AUTO_STOP_BASE_WAIT + AUTO_STOP_STEP_WAIT * maxi(0, index)
+
+
+func _reset_auto_stop() -> void:
+	_auto_stop_index = 0
+	_auto_stop_left = AUTO_STOP_BASE_WAIT
 
 
 func _init(ctrl) -> void:
@@ -151,6 +180,10 @@ func begin_spin() -> void:
 		_ctrl.hud.set_reel_enabled(r, true)
 	_spinning = true
 	_spin_ticks = 0
+	_reset_auto_stop()
+	_spin_model_seconds = 0.0
+	_spin_end_model = 0.0
+	_last_spin_seconds = 0.0
 	_timer.wait_time = _ctrl.growth.spin_wait_base(_base_wait())   # M2-01：稳定节奏前 2 回合放慢
 	_timer.start()
 	if _ctrl.readability != null:
@@ -267,6 +300,8 @@ func on_spin_tick() -> void:
 	if not _spinning:
 		return
 	_spin_ticks += 1
+	# 模型耗时：本拍间隔 = 上一拍设置的 wait_time（冻结/吸附时也计入真实等待）。
+	_spin_model_seconds += current_spin_wait()
 	var any_active := false
 	for r in DuelController.REELS:
 		if reel_stopped[r]:
@@ -291,9 +326,14 @@ func on_spin_tick() -> void:
 	if not _spinning:
 		return   # 缓冲落子可能刚好停完最后一列，finish_spin 已接管
 	_ctrl.hud._refresh_p1_previews()
-	# 敌人夺轮（auto_stop）：每跳自动停一列（落点随机，玩家无法目押停轮时机；与手动按停共存）
+	# 敌人夺轮（auto_stop）：Step 3 改为按「逐列基础停顿」节奏停列——
+	# 第 1 列 0.25s，之后每列 +0.07s；仍走与手动相同的 stop_next_reel/吸附入口。
 	if _ctrl.pending_auto_stop:
-		stop_next_reel(false, "forced")
+		_auto_stop_left -= current_spin_wait()
+		if _auto_stop_left <= 0.0:
+			stop_next_reel(false, "forced")
+			_auto_stop_index += 1
+			_auto_stop_left = auto_stop_interval(_auto_stop_index)
 	var w = max(_min_wait(), _ctrl.growth.spin_wait_base(_base_wait()) - _spin_ticks * _accel())
 	_timer.wait_time = w
 
@@ -379,10 +419,12 @@ func _begin_absorb(r: int, idx: int, reason: String) -> void:
 		return
 	idx = int(idx) % strip.size()
 	_pending_stops.erase(r)
+	var secs: float = _absorb_seconds()
+	_spin_end_model = maxf(_spin_end_model, _spin_model_seconds + secs)
 	var tween: Tween = _ctrl.create_tween()
 	_absorb[r] = {"idx": idx, "reason": reason, "progress": 0.0, "tween": tween}
 	_ctrl.hud.set_reel_enabled(r, false)   # 吸附中拒绝点击/空格重复停列
-	tween.tween_method(_set_absorb_progress.bind(r), 0.0, 1.0, _absorb_seconds())
+	tween.tween_method(_set_absorb_progress.bind(r), 0.0, 1.0, secs)
 	tween.finished.connect(_complete_absorb.bind(r))
 
 
@@ -474,6 +516,7 @@ func stop_next_reel(use_visual: bool = true, reason: String = "player") -> void:
 func finish_spin() -> void:
 	if not _spinning:
 		return
+	_last_spin_seconds = maxf(_spin_model_seconds, _spin_end_model)
 	_spinning = false
 	_clear_absorbs()   # 防御性清理：所有列都已停，不应再有吸附中的记录
 	_timer.stop()
