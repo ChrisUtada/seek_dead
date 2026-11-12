@@ -202,7 +202,7 @@ func _reel_icon(base: Texture2D) -> Texture2D:
 	var p := base.resource_path
 	if p == "" or not p.contains("/16/"):
 		return base
-	var big := p.replace("/16/", "/32/")
+	var big := p.replace("/symbols/16/", "/symbols/")   # 32px 版直接放在 symbols/ 下
 	return load(big) as Texture2D if ResourceLoader.exists(big) else base
 
 

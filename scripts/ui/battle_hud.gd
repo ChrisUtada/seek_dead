@@ -136,6 +136,9 @@ var cells = []   # 展示用 Button 引用 [reel][row]
 var cell_spin_views = []   # P1：每格 ReelSpinView 引用 [reel][row]（视觉中心/预览查询）
 var cell_badges = []   # 每格右上角匹配角标 Label 引用 [reel][row]
 var cell_elem_strips = []   # 每格底部元素色条（Step 4：图标模式下替代文字染色）[reel][row]
+var cell_icon_layers = []   # 每格图标覆盖层（TextureRect）：符号图标独立于 Button.icon，便于叠粒子
+var cell_icon_fx = []       # 每格图标粒子（1px 火花，元素色）
+const PX1_TEX = preload("res://assets/fx/fx_px1.png")
 # 2026-11-12 转轮手感 Step 4：停列短反馈（边框闪 + 轻微缩放，0.12–0.16s）。
 var cell_stop_flashes = []   # [reel][row] -> Panel（仅边框 StyleBoxFlat）
 var cell_stop_tweens = []    # [reel][row] -> Tween（复用前先 kill，避免叠加）
@@ -272,6 +275,8 @@ func _build_ui() -> void:
 		cell_spin_views.append([])
 		cell_badges.append([])
 		cell_elem_strips.append([])
+		cell_icon_layers.append([])
+		cell_icon_fx.append([])
 		cell_stop_flashes.append([])
 		cell_stop_tweens.append([])
 		for row in controller.state.ROWS:
@@ -289,6 +294,45 @@ func _build_ui() -> void:
 			cells[reel].append(cell)
 			controller.grid[reel].append(TRASH_SYMBOL)
 			# 匹配角标（右上角锚定，封装在 symbol_cell.tscn 的 Badge 子节点）
+			# 图标覆盖层：静态格用它显示 32px 符号图，便于做动效（Button.icon 无法单独位移）
+			var icon_layer := TextureRect.new()
+			icon_layer.name = "IconLayer"
+			icon_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			icon_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+			icon_layer.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+			icon_layer.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			icon_layer.visible = false
+			cell.add_child(icon_layer)
+			cell.move_child(icon_layer, 0)      # 放到 Badge 之下，避免盖住匹配角标
+			cell_icon_layers[reel].append(icon_layer)
+			# 图标粒子：1px 火花贴着图标往上飘（元素色），比"呼吸上下动"更符合像素画的动感
+			var fx := CPUParticles2D.new()
+			fx.name = "IconFx"
+			fx.texture = PX1_TEX
+			fx.position = Vector2(19, 20)
+			fx.amount = 12
+			fx.lifetime = 0.55
+			fx.one_shot = true
+			fx.explosiveness = 1.0
+			fx.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+			fx.emission_rect_extents = Vector2(4, 4)
+			fx.direction = Vector2(0, -1)
+			fx.spread = 180.0          # 四散炸开
+			fx.gravity = Vector2(0, 120)
+			fx.initial_velocity_min = 22.0
+			fx.initial_velocity_max = 48.0
+			fx.emitting = false
+			var ramp := Gradient.new()
+			ramp.set_color(0, Color(1, 1, 1, 0.0))
+			ramp.add_point(0.25, Color(1, 1, 1, 0.95))
+			ramp.add_point(0.7, Color(1, 1, 1, 0.6))
+			ramp.set_color(ramp.get_point_count() - 1, Color(1, 1, 1, 0.0))
+			fx.color_ramp = ramp
+			var mat := CanvasItemMaterial.new()
+			mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+			fx.material = mat
+			cell.add_child(fx)
+			cell_icon_fx[reel].append(fx)
 			var badge = cell.get_node("Badge")
 			cell_badges[reel].append(badge)
 			# Step 4：图标模式不再用文字染色表达元素，改格底 2px 元素色条（元素=none 时隐藏）
@@ -573,6 +617,12 @@ func _pulse_stop_cell(reel: int, outcome: String) -> void:
 	tw.tween_method(_set_cell_pop.bind(cell), 0.0, 1.0, 0.14)
 	tw.parallel().tween_property(flash, "modulate:a", 0.0, 0.14)
 	cell_stop_tweens[reel][0] = tw
+	# 按停爆裂：整列 3 个格子同时炸一次粒子（元素色在 _refresh_cell 里已上色）
+	if cell_icon_fx.size() > reel:
+		for fx in cell_icon_fx[reel]:
+			if fx is CPUParticles2D:
+				fx.restart()
+				fx.emitting = true
 
 
 func _set_cell_pop(t: float, cell: Control) -> void:
@@ -1089,16 +1139,23 @@ func _refresh_cell(reel: int, row: int) -> void:
 	var rs = controller.reel_system
 	# 2026-10-30：旋转中的未停列由 ReelSpinView 显示纵向滚动，格子自身清空文字避免重影。
 	var scrolling: bool = rs != null and rs.spinning and not rs.reel_stopped[reel]
+	var layer: TextureRect = cell_icon_layers[reel][row]
 	if scrolling:
 		b.icon = null
 		b.text = ""
-	# M3-03：有 16×16 图标则用图标（文字清空）；无图回落 label。洞察预览在图标模式退化为 ▸。
+		layer.visible = false
+	# M3-03：有图标则用图标覆盖层（文字清空）；无图回落 label。
 	elif s.icon_tex != null:
-		b.icon = s.icon_tex
+		b.icon = null
 		b.text = ""
+		layer.texture = _cell_icon(s.icon_tex)
+		layer.visible = true
+		var fx2: CPUParticles2D = cell_icon_fx[reel][row]
+		fx2.color = ElementCounter.color(elem) if elem != "none" else s.color
 	else:
 		b.icon = null
 		b.text = s.label
+		layer.visible = false
 	# M2-01 洞察：旋转中下一格预览由 ReelSpinView 贴在格底显示（见 reel_spin_view._sync_preview）——
 	# 滚动视觉会盖住格子自身文字，这里不再写 b.text。
 	var fc: Color = s.color if elem == "none" else s.color.lerp(ElementCounter.color(elem), 0.55)
@@ -1840,3 +1897,14 @@ func _refresh_consumable_panel() -> void:
 # 4 格子点击：发 consumable_used(uid) 信号让 controller 走统一扣减+结算路径
 func _on_consumable_cell_pressed(cell_index: int) -> void:
 	panel_view.on_consumable_cell_pressed(cell_index)
+
+
+## 格子约 38px：符号图标 16px 太小，优先换用 /16/ → /32/ 的同名版本（1:1 不缩放）
+func _cell_icon(base: Texture2D) -> Texture2D:
+	if base == null:
+		return null
+	var p := base.resource_path
+	if p == "" or not p.contains("/16/"):
+		return base
+	var big := p.replace("/symbols/16/", "/symbols/")   # 32px 版直接放在 symbols/ 下
+	return load(big) as Texture2D if ResourceLoader.exists(big) else base
