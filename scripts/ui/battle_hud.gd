@@ -138,6 +138,8 @@ var cell_badges = []   # 每格右上角匹配角标 Label 引用 [reel][row]
 var cell_elem_strips = []   # 每格底部元素色条（Step 4：图标模式下替代文字染色）[reel][row]
 var cell_icon_layers = []   # 每格图标覆盖层（TextureRect）：符号图标独立于 Button.icon，便于叠粒子
 var cell_icon_fx = []       # 每格图标粒子（1px 火花，元素色）
+var _cell_want_icon = []    # [reel][row] -> Texture2D / null（滚轮遮挡时暂不显示）
+var _cell_want_text = []    # [reel][row] -> String（无图标时的 label 兜底）
 const PX1_TEX = preload("res://assets/fx/fx_px1.png")
 # 2026-11-12 转轮手感 Step 4：停列短反馈（边框闪 + 轻微缩放，0.12–0.16s）。
 var cell_stop_flashes = []   # [reel][row] -> Panel（仅边框 StyleBoxFlat）
@@ -281,6 +283,8 @@ func _build_ui() -> void:
 		cell_elem_strips.append([])
 		cell_icon_layers.append([])
 		cell_icon_fx.append([])
+		_cell_want_icon.append([])
+		_cell_want_text.append([])
 		cell_stop_flashes.append([])
 		cell_stop_tweens.append([])
 		for row in controller.state.ROWS:
@@ -337,6 +341,8 @@ func _build_ui() -> void:
 			fx.material = mat
 			cell.add_child(fx)
 			cell_icon_fx[reel].append(fx)
+			_cell_want_icon[reel].append(null)
+			_cell_want_text[reel].append("")
 			var badge = cell.get_node("Badge")
 			cell_badges[reel].append(badge)
 			# Step 4：图标模式不再用文字染色表达元素，改格底 2px 元素色条（元素=none 时隐藏）
@@ -1153,13 +1159,14 @@ func _refresh_cell(reel: int, row: int) -> void:
 		b.icon = null
 		b.text = ""
 		layer.texture = _cell_icon(s.icon_tex)
-		layer.visible = true
+		_cell_want_icon[reel][row] = layer.texture
+		_cell_want_text[reel][row] = ""
 		var fx2: CPUParticles2D = cell_icon_fx[reel][row]
 		fx2.color = ElementCounter.color(elem) if elem != "none" else s.color
 	else:
 		b.icon = null
-		b.text = s.label
-		layer.visible = false
+		_cell_want_icon[reel][row] = null
+		_cell_want_text[reel][row] = s.label
 	# M2-01 洞察：旋转中下一格预览由 ReelSpinView 贴在格底显示（见 reel_spin_view._sync_preview）——
 	# 滚动视觉会盖住格子自身文字，这里不再写 b.text。
 	var fc: Color = s.color if elem == "none" else s.color.lerp(ElementCounter.color(elem), 0.55)
@@ -1901,6 +1908,26 @@ func _refresh_consumable_panel() -> void:
 # 4 格子点击：发 consumable_used(uid) 信号让 controller 走统一扣减+结算路径
 func _on_consumable_cell_pressed(cell_index: int) -> void:
 	panel_view.on_consumable_cell_pressed(cell_index)
+
+
+## 转轮滚动/吸附期间，ReelSpinView 会盖在格子上；此时静止层必须让位，
+## 否则会出现"剑 + 火焰"两张图叠在同一格（2026-11-12 用户反馈）。
+func _sync_cell_occlusion() -> void:
+	for reel in cell_spin_views.size():
+		var busy := false
+		if cell_spin_views[reel].size() > 0:
+			var sv = cell_spin_views[reel][0]
+			busy = is_instance_valid(sv) and sv.visible
+		for row in cell_icon_layers[reel].size():
+			var layer: TextureRect = cell_icon_layers[reel][row]
+			var want: Texture2D = _cell_want_icon[reel][row]
+			layer.visible = (not busy) and want != null
+			cells[reel][row].text = "" if busy else String(_cell_want_text[reel][row])
+
+
+func _process(_delta: float) -> void:
+	if not cells.is_empty():
+		_sync_cell_occlusion()
 
 
 ## 格子约 38px：符号图标 16px 太小，优先换用 /16/ → /32/ 的同名版本（1:1 不缩放）
