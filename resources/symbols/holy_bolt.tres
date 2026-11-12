@@ -2,8 +2,11 @@
 
 [ext_resource type="Script" path="res://scripts/battle/symbol_data.gd" id="1"]
 
+[ext_resource type="Texture2D" path="res://assets/icons/symbols/16/holy_bolt.png" id="2_icon"]
+
 [resource]
 script = ExtResource("1")
+icon_tex = ExtResource("2_icon")
 label = "🔱"
 name = "圣辉穿刺"
 kind = "damage"
