@@ -2,7 +2,7 @@ extends SceneTree
 ## 临时：加载战斗场景，截取转轮区域，验证符号图标是否生效。
 
 const OUT := "res://.workbuddy/art_trials/icons/battle_%d.png"
-const MARKS := [70, 240]
+const MARKS := [70, 200, 225, 250, 280]
 
 var _f := 0
 var _scene: Node = null
@@ -18,6 +18,9 @@ var _started := false
 
 func _process(_delta: float) -> bool:
 	_f += 1
+	if _f == 195 and _scene.get("hud") != null:
+		_scene.hud.reel_clicked.emit(0)
+		print("spin started")
 
 	if _f == 90 and not _started:
 		_started = true

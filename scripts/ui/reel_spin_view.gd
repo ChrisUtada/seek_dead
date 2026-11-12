@@ -10,7 +10,7 @@ extends Control
 # 槽位覆盖方向按符号流动方向排列：索引大的槽在下（先滚出视野）。
 
 const SLOTS := 5          # 滚动槽数量（覆盖 38px 窗口 + 上下各一格余量）
-const SPACING := 19.0     # 相邻符号的中心距（≈ 符号高度，与 38px 格同步）
+const SPACING := 30.0     # 相邻符号的中心距（符号图标 32px，30 只重叠 2px，都在透明角上）
 
 var controller   # DuelController
 var reel: int = 0
@@ -186,7 +186,7 @@ func _fill(rs) -> void:
 		var lbl := _labels[i]
 		var tex := _textures[i]
 		if sym.icon_tex != null:
-			tex.texture = _reel_icon(sym.icon_tex)
+			tex.texture = _reel_icon(sym.icon_tex)   # 滚动流同用 32px，和静止格尺寸一致
 			tex.visible = true
 			lbl.visible = false
 			lbl.text = ""
@@ -197,13 +197,14 @@ func _fill(rs) -> void:
 			lbl.add_theme_color_override("font_color", sym.color)
 
 
-## 转轮格子约 32px：16px 图标只占一半，优先换用同名的 32px 版本（1:1 不缩放，保持像素锐利）。
-## SymbolData.icon_tex 仍指向 16px（文字按钮等小位置共用），这里只做显示层替换。
+## 滚动流也用 32px 图标（与静止格一致）：16px 版放在 /symbols/16/，32px 在 /symbols/ 根下
 func _reel_icon(base: Texture2D) -> Texture2D:
+	if base == null:
+		return null
 	var p := base.resource_path
-	if p == "" or not p.contains("/16/"):
+	if p == "" or not p.contains("/symbols/16/"):
 		return base
-	var big := p.replace("/symbols/16/", "/symbols/")   # 32px 版直接放在 symbols/ 下
+	var big := p.replace("/symbols/16/", "/symbols/")
 	return load(big) as Texture2D if ResourceLoader.exists(big) else base
 
 
