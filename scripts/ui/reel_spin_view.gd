@@ -185,7 +185,7 @@ func _fill(rs) -> void:
 		var lbl := _labels[i]
 		var tex := _textures[i]
 		if sym.icon_tex != null:
-			tex.texture = sym.icon_tex
+			tex.texture = _reel_icon(sym.icon_tex)
 			tex.visible = true
 			lbl.visible = false
 			lbl.text = ""
@@ -194,6 +194,16 @@ func _fill(rs) -> void:
 			lbl.visible = true
 			lbl.text = sym.label
 			lbl.add_theme_color_override("font_color", sym.color)
+
+
+## 转轮格子约 32px：16px 图标只占一半，优先换用同名的 32px 版本（1:1 不缩放，保持像素锐利）。
+## SymbolData.icon_tex 仍指向 16px（文字按钮等小位置共用），这里只做显示层替换。
+func _reel_icon(base: Texture2D) -> Texture2D:
+	var p := base.resource_path
+	if p == "" or not p.contains("/16/"):
+		return base
+	var big := p.replace("/16/", "/32/")
+	return load(big) as Texture2D if ResourceLoader.exists(big) else base
 
 
 func _layout_entries() -> void:
