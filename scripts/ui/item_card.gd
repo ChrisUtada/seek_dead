@@ -9,12 +9,14 @@ extends Button
 # 未填的行自动隐藏。configure 在节点入树前调用，故不依赖 @onready，用懒解析缓存子节点。
 
 const VON_FONT = preload("res://assets/fonts/VonwaonBitmap-12px.tres")
+const PX1_TEX = preload("res://assets/fx/fx_px1.png")   # 1px 点，图标火星专用（不能用 4x4 余烬，48px 下变成脏点）
 
 var _title_label: Label
 var _desc_label: Label
 var _status_label: Label
 var _icon_rect: TextureRect
 var _fit_min_y := 0.0
+var _art_fx: CPUParticles2D
 
 
 func _resolve() -> void:
@@ -86,11 +88,44 @@ func _apply_fit() -> bool:
 # 卡片美术（预留位）：传 null / 不调用 = 保持 emoji 图标呈现，隐藏图格
 # min_size 默认 48（大量美术预留位）；结算/奖励这类 60 高的小卡传 (24,24)，
 # 否则 48 图格 + 两行文字会顶破卡片。图格本身只做居中显示，不做放大。
-func set_art(tex: Texture2D, min_size: Vector2 = Vector2(48, 48)) -> void:
+func set_art(tex: Texture2D, min_size: Vector2 = Vector2(48, 48), fx_color := Color(0, 0, 0, 0)) -> void:
 	_resolve()
 	_icon_rect.texture = tex
 	_icon_rect.custom_minimum_size = min_size
 	_icon_rect.visible = tex != null
+	if tex == null:
+		return
+	if fx_color.a > 0.0:
+		_ensure_art_fx(fx_color)
+
+
+func _ensure_art_fx(color: Color) -> void:
+	# 图标上的元素火星：1px 点、加色混合、极少数量，只做"活"的感觉，不做爆炸
+	if _art_fx == null:
+		_art_fx = CPUParticles2D.new()
+		_art_fx.texture = PX1_TEX
+		_art_fx.amount = 6
+		_art_fx.lifetime = 2.1
+		_art_fx.preprocess = 1.2
+		_art_fx.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+		_art_fx.emission_rect_extents = Vector2(9, 11)
+		_art_fx.direction = Vector2(0, -1)
+		_art_fx.spread = 26.0
+		_art_fx.gravity = Vector2(0, -7)
+		_art_fx.initial_velocity_min = 2.0
+		_art_fx.initial_velocity_max = 6.0
+		_art_fx.scale_amount_min = 1.0
+		_art_fx.scale_amount_max = 1.0
+		var g := Gradient.new()
+		g.set_color(0, Color(1, 1, 1, 0.0))
+		g.add_point(0.22, Color(1, 1, 1, 1.0))
+		g.add_point(0.7, Color(1, 1, 1, 0.75))
+		g.set_color(g.get_point_count() - 1, Color(1, 1, 1, 0.0))
+		_art_fx.color_ramp = g
+		_art_fx.position = Vector2(28, 18)   # 图标对角线中上段（刃身）
+		_icon_rect.add_child(_art_fx)
+	_art_fx.color = color
+	_art_fx.emitting = true
 
 
 func set_status(text: String, color: Color) -> void:

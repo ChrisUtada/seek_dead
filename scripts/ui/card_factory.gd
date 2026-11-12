@@ -77,6 +77,11 @@ func item_card(data: Resource, path: String, kind: String) -> Dictionary:
 					if sw.symbol.kind == "special" or sw.symbol.kind == "status":
 						mech_name = sw.symbol.name
 						break
+			# 元素小图标（整备副屏武器行）：一眼看出元素，文字行仍然保留元素名
+			var eico := WeaponIcons.element_icon(String(wd.element) if wd != null else "none")
+			if eico != null:
+				btn.icon = eico
+				btn.expand_icon = false
 			# G0-02：攻击显示锋铸后的真实基础攻击；G6-05：再显示铸式后的命中/攻击。
 			var forge_n: int = _ctrl.mastery.forge_bonus(path) if _ctrl.mastery != null else 0
 			var atk_txt := "攻%d" % _ctrl.weapon_power(path)
@@ -162,13 +167,25 @@ func reward_card(rw: RewardData, index: int = -1, slot_label: String = "") -> Bu
 				elif art == null and res.get("icon_tex") != null:
 					art = res.get("icon_tex")
 	# 有主图时不再重复显示 emoji 图标前缀（否则图 + emoji 并列重复）
+	# 武器图标（assets/icons/weapons）：有图就顶掉 emoji，并挂元素色粒子
+	var wp := String(payload.get("path", "")) if not payload.is_empty() else ""
+	var wico: Texture2D = WeaponIcons.icon_for_path(wp) if wp != "" else null
+	var elem := ""
+	if wico != null and art == null:
+		art = wico
+		var wr: Resource = load(wp)
+		if wr != null and wr.get("element") != null:
+			elem = String(wr.get("element"))
 	var prefix: String = "" if art != null else rw.icon + " "
 	var title_text: String = String(payload.get("title", rw.label)) if not payload.is_empty() else rw.label
 	var desc_text: String = String(payload.get("desc", rw.desc)) if not payload.is_empty() else rw.desc
 	if slot_label != "":
 		title_text = "[%s] %s" % [slot_label, title_text]
 	card.configure(prefix + title_text, desc_text)
-	card.set_art(art, Vector2(24, 24))
+	if wico != null:
+		card.set_art(wico, Vector2(36, 36), WeaponIcons.color_for(elem))
+	else:
+		card.set_art(art, Vector2(24, 24))
 	# 槽位标签 + 具体物品名可能超出 84px 卡宽：标题允许换行，避免撑破三列布局。
 	(card.get_node("Center/VBox/TitleLabel") as Label).autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	# G8-05：高度按真实内容算（图 24 + 换行标题 + 描述），固定 96 只在短文案时够用
@@ -244,6 +261,10 @@ func shop_card(offer: Dictionary) -> Button:
 	# 原本直接画到卡片边框外；标题允许换行，卡片高度由内容自适应。
 	(card.get_node("Center/VBox/TitleLabel") as Label).autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	card.set_tooltip(load(offer["path"]), offer["kind"])   # 物品悬停信息窗（ItemTooltip 生成器）
+	if offer["kind"] == "weapon":
+		var woff: Resource = load(offer["path"])
+		var welem := String(woff.get("element")) if woff != null and woff.get("element") != null else ""
+		WeaponIcons.apply(card, String(offer["path"]), welem, Vector2(32, 32))
 	var price = offer.get("price", _ctrl._shop_price(offer["kind"], -1, offer["path"]))   # 2026-08-10 fix：显示货架锁定报价（不再每次重算 jitter 随机）
 	var is_active = (offer["kind"] == "active")
 	var cap = _ctrl.state.CONSUMABLE_CAP if is_active else _ctrl._loadout_system.cat_max(offer["kind"])          # 消耗品按腰带总容量 4；其余按整备上限
@@ -296,3 +317,4 @@ func sell_card(title_text: String, sub_text: String, disabled: bool, cb: Callabl
 	if not cb.is_null():
 		card.pressed.connect(cb)
 	return card
+
