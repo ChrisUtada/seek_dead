@@ -74,11 +74,12 @@ func _process(delta: float) -> void:
 		return
 	var rs = controller.reel_system
 	if rs == null or not rs.spinning or _strip(rs).is_empty() or _reel_stopped(rs):
-		if _active:
-			_active = false
-			_absorb_active = false
-			visible = false
-			_preview.visible = false
+		# 必须无条件隐藏：之前只在 _active 为真时才隐藏，导致停轮后若从未激活
+		# （或 _active 被重置）就留下 5 个符号槽一直挂在格子里，和静止图标叠成一团。
+		_active = false
+		_absorb_active = false
+		visible = false
+		_preview.visible = false
 		return
 	# 停轮吸附：视觉缓出到请求时记录的落点，完成后由 ReelSystem 写格子并隐藏本层。
 	if rs.has_method("is_absorbing") and rs.is_absorbing(reel):
