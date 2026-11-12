@@ -14,6 +14,15 @@ extends Resource
 @export var icon_tex: Texture2D = null   # M3-03：通用图标绑定；为空时回落 emoji
 @export var rarity: String = "common"    # 强度档位 common|uncommon|rare|epic（T6：护符/消耗品分档，铁砧加权/商店定价用，不动结算）
 @export var category: String = "active"  # active / passive
+
+# 四级品质战利品 Step 1：与 LoadoutItem 同口径的构筑标签；取值见 item_taxonomy.gd。
+@export var family_tags: Array[String] = []
+@export var role: String = ""
+@export var mechanism_summary: String = ""
+@export var act_min: int = 1
+@export var act_max: int = 3
+@export var source_tags: Array[String] = []
+@export var unique_group: String = ""
 @export var effect: String = ""          # 主动: purify/cleanse/heal/assault/reroll/element/attack/armor_shred；被动: damage_bonus/room_shield/shield/interference_resist/damage_mult/armor_pierce/element_boost/status_boost/dot_reduce/thorns/dot_amp/free_reroll/charge_start/first_hit（M6-C4 起混合护符实际启用 downside_effect）
 @export var element: String = ""         # 元素类效果指定元素（如 effect="element" 的精华消耗品 / effect="attack" 的攻击元素）
 @export var value: int = 0               # 效果数值（加成型；attack = 立即伤害，armor_shred = 清除护甲量）

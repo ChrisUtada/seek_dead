@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1")
-rarity = "rare"
+rarity = "uncommon"
 category = "passive"
 item_id = "element_charm"
 item_name = "元素契印"
@@ -12,3 +12,10 @@ description = "元素克制倍率额外 +0.2（×1.5 → ×1.7，仅克制时生
 icon = "✨"
 effect = "element_boost"
 mult_value = 0.2
+family_tags = Array[String](["charge", "combo"])
+role = "damage"
+mechanism_summary = "被动常驻：元素克制倍率额外 +0.2（×1.5 → ×1.7，仅克制时生效），元素克制流投资（T2）。"
+act_min = 1
+act_max = 3
+source_tags = Array[String](["elite", "shop", "anvil"])
+unique_group = "charm_element_boost"

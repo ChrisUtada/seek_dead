@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1")
-rarity = "rare"
+rarity = "uncommon"
 category = "passive"
 item_id = "counter_shield"
 item_name = "反击之盾"
@@ -12,3 +12,10 @@ description = "本局每回合护盾 +6：双挡石像鬼重击与石屑反弹�
 icon = "🛡️"
 effect = "shield"
 value = 6
+family_tags = Array[String](["shield"])
+role = "defense"
+mechanism_summary = "被动常驻：本局每回合护盾 +6：双挡石像鬼重击与石屑反弹，碎裂石像鬼护盾流核心（覆盖守备 4 / 低于铁壁 8）。"
+act_min = 1
+act_max = 3
+source_tags = Array[String](["elite", "shop", "anvil"])
+unique_group = "charm_shield"

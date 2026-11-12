@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1")
-rarity = "rare"
+rarity = "uncommon"
 category = "passive"
 item_id = "frost_bulwark"
 item_name = "霜晶壁垒"
@@ -12,3 +12,10 @@ description = "本局每回合护盾 +10：覆盖铁壁 8 的高档常驻盾—�
 icon = "🧊"
 effect = "shield"
 value = 10
+family_tags = Array[String](["shield"])
+role = "defense"
+mechanism_summary = "被动常驻：本局每回合护盾 +10：覆盖铁壁 8 的高档常驻盾——躁怒元素使 P1 ×2 重击窗口核心生存，与治疗/守备叠加。"
+act_min = 1
+act_max = 3
+source_tags = Array[String](["elite", "shop", "anvil"])
+unique_group = "charm_shield"

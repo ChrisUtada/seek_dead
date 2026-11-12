@@ -21,6 +21,17 @@ extends Resource
 
 @export var category: String = "weapon"   # "weapon" | "skill" —— 槽位规则与 UI 分列依据
 @export var rarity: String = "common"     # 强度档位 common|uncommon|rare|epic（只定强度，不定频率）
+
+# 四级品质战利品 Step 1：构筑家族 / 用途 / 来源 / 机制摘要。
+# 取值见 scripts/items/item_taxonomy.gd；品质只表达机制定位与收藏层级，不直接改符号频率。
+# 机制摘要必须写清「触发条件 + 效果 + 限制」，供奖励卡与图鉴直接展示，不再二次解释。
+@export var family_tags: Array[String] = []      # fire/ice/poison/light/dark/shield/charge/combo/reel/resource
+@export var role: String = ""                    # damage|defense|recovery|control|resource|utility|conversion
+@export var mechanism_summary: String = ""
+@export var act_min: int = 1                     # 合法幕次下限（不是品质替代）
+@export var act_max: int = 3                     # 合法幕次上限
+@export var source_tags: Array[String] = []      # normal/elite/boss/chest/event/shop/anvil/start
+@export var unique_group: String = ""            # 同机制分组：三选一避免三项换皮
 @export var base_power: float = 10.0      # 攻击力 / 效能（升级主通道；P3 结算改读此字段取代 weapon.damage 缝合）
 @export var hit_rate: float = 0.85        # 命中率（1 - hit_rate = 废铁 miss 格占比；P2 按此注入转轮）
 @export var crit_mult: float = 2.0        # 三连暴击倍率（方案A：确定性，符号/元素凑齐 3 连即按此倍率结算；

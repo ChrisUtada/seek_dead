@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1")
-rarity = "rare"
+rarity = "uncommon"
 category = "passive"
 item_id = "soul_soothe"
 item_name = "灵魂安抚"
@@ -12,3 +12,10 @@ description = "本局每回合回复 10 HP（覆盖回春 6 的高档常驻回�
 icon = "💗"
 effect = "heal"
 value = 10
+family_tags = Array[String](["light"])
+role = "recovery"
+mechanism_summary = "被动常驻：本局每回合回复 10 HP（覆盖回春 6 的高档常驻回血）——碎裂魔王 P1 高攻 / P3 毒层期生存底线。"
+act_min = 1
+act_max = 3
+source_tags = Array[String](["elite", "shop", "anvil"])
+unique_group = "charm_heal"

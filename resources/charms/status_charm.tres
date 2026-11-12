@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1")
-rarity = "epic"
+rarity = "rare"
 category = "passive"
 item_id = "status_charm"
 item_name = "疫病祭符"
@@ -12,3 +12,10 @@ description = "灼烧/霜冻/毒伤害 ×1.5，状态叠加轴投资（T2）。"
 icon = "☠️"
 effect = "status_boost"
 mult_value = 1.5
+family_tags = Array[String](["fire", "ice", "poison"])
+role = "damage"
+mechanism_summary = "被动常驻：灼烧/霜冻/毒伤害 ×1.5，状态叠加轴投资（T2）。"
+act_min = 2
+act_max = 3
+source_tags = Array[String](["elite", "shop", "anvil"])
+unique_group = "charm_status_boost"
