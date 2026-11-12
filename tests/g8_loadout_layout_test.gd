@@ -92,6 +92,22 @@ func _run() -> void:
 			right = maxf(right, ctl.position.x + ctl.size.x)
 	_check(right <= bar.size.x + 0.5, "底部栏子项不越界（%.1f / %.1f）" % [right, bar.size.x])
 
+	# Step 7：整备底栏直接进入 4×4 扫雷棋盘（与旧棋盘按钮并列）。
+	var cfg = duel.board_config
+	cfg.enabled = false
+	cfg.layout_mode = "legacy"
+	lo._refresh_board_toggle()
+	_check(lo._board_btn != null and lo._grid_btn != null, "整备底栏有旧棋盘 / 扫雷两个入口")
+	lo._toggle_grid_mode()
+	_check(cfg.is_active() and cfg.use_grid(), "扫雷入口开启 4×4 棋盘")
+	_check(String(lo._grid_btn.text).contains("扫雷✓"), "扫雷入口显示开启态")
+	lo._toggle_grid_mode()
+	_check(not cfg.is_active(), "再点扫雷入口回到线性")
+	lo._toggle_board_mode()
+	_check(cfg.is_active() and not cfg.use_grid(), "旧棋盘入口仍进入 1D3 棋盘")
+	lo._toggle_board_mode()
+	_check(not cfg.is_active(), "再点旧棋盘入口回到线性")
+
 	# 三个叠层：内容不超出屏幕，且超长时可用滚动查看
 	lo._preview_panel.visible = true
 	lo._refresh_preview()

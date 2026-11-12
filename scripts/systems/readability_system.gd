@@ -18,22 +18,31 @@ extends RefCounted
 #          它不自动选目标，也不跨越多格。
 # ============================================================================
 
+# 2026-11-12 转轮手感 Step 3：5 格/秒起转，0.32s 后进入 9 格/秒巡航，
+# 高速封顶 12 格/秒（readable 11），巡航后加速段约 1.5s 内到达上限。
+# 旧模型起步 0.15s/格（6.7 格/秒）、封顶 0.06s/格（16.7 格/秒）。
+const CRUISE_CPS := 9.0
+const MAX_CPS := 12.0
+const READABLE_MAX_CPS := 11.0
+const CONTROL_ACCEL := 0.0020
+const READABLE_ACCEL := 0.0014
+
 const PRESETS := {
-	"control":  {"base": 0.15, "min": 0.06,  "accel": 0.0010, "preview": 0, "visual": false, "buffer": false, "feedback": false},
-	"readable": {"base": 0.15, "min": 0.085, "accel": 0.0007, "preview": 2, "visual": true,  "buffer": true,  "feedback": true},
-	"speed":    {"base": 0.15, "min": 0.085, "accel": 0.0007, "preview": 0, "visual": false, "buffer": false, "feedback": false},
-	"preview":  {"base": 0.15, "min": 0.06,  "accel": 0.0010, "preview": 2, "visual": false, "buffer": false, "feedback": false},
-	"visual":   {"base": 0.15, "min": 0.06,  "accel": 0.0010, "preview": 0, "visual": true,  "buffer": false, "feedback": false},
-	"buffer":   {"base": 0.15, "min": 0.06,  "accel": 0.0010, "preview": 0, "visual": true,  "buffer": true,  "feedback": false},
-	"feedback": {"base": 0.15, "min": 0.06,  "accel": 0.0010, "preview": 0, "visual": false, "buffer": false, "feedback": true},
+	"control":  {"base": 1.0 / CRUISE_CPS, "min": 1.0 / MAX_CPS, "accel": CONTROL_ACCEL, "preview": 0, "visual": false, "buffer": false, "feedback": false},
+	"readable": {"base": 1.0 / CRUISE_CPS, "min": 1.0 / READABLE_MAX_CPS, "accel": READABLE_ACCEL, "preview": 2, "visual": true,  "buffer": true,  "feedback": true},
+	"speed":    {"base": 1.0 / CRUISE_CPS, "min": 1.0 / READABLE_MAX_CPS, "accel": READABLE_ACCEL, "preview": 0, "visual": false, "buffer": false, "feedback": false},
+	"preview":  {"base": 1.0 / CRUISE_CPS, "min": 1.0 / MAX_CPS, "accel": CONTROL_ACCEL, "preview": 2, "visual": false, "buffer": false, "feedback": false},
+	"visual":   {"base": 1.0 / CRUISE_CPS, "min": 1.0 / MAX_CPS, "accel": CONTROL_ACCEL, "preview": 0, "visual": true,  "buffer": false, "feedback": false},
+	"buffer":   {"base": 1.0 / CRUISE_CPS, "min": 1.0 / MAX_CPS, "accel": CONTROL_ACCEL, "preview": 0, "visual": true,  "buffer": true,  "feedback": false},
+	"feedback": {"base": 1.0 / CRUISE_CPS, "min": 1.0 / MAX_CPS, "accel": CONTROL_ACCEL, "preview": 0, "visual": false, "buffer": false, "feedback": true},
 }
 const CYCLE := ["control", "readable"]
 
 var _ctrl
 var preset := "control"
-var base_wait := 0.15
-var min_wait := 0.06
-var accel := 0.0010
+var base_wait := 1.0 / CRUISE_CPS
+var min_wait := 1.0 / MAX_CPS
+var accel := CONTROL_ACCEL
 var preview_slots := 0
 var visual_stop := false
 var buffer_enabled := false
@@ -102,7 +111,7 @@ func _apply(name: String, notify: bool) -> void:
 
 
 func _speed_text() -> String:
-	if is_equal_approx(accel, 0.0010) and is_equal_approx(min_wait, 0.06):
+	if is_equal_approx(accel, CONTROL_ACCEL) and is_equal_approx(min_wait, 1.0 / MAX_CPS):
 		return "当前"
 	return "慢化"
 
@@ -183,6 +192,10 @@ func on_stop(reel: int, sym, reason: String) -> void:
 		forced_stops += 1
 	if _ctrl.hud != null and _ctrl.hud.has_method("_show_stop_feedback") and feedback_enabled:
 		_ctrl.hud._show_stop_feedback(reel, nm, outcome)
+	# Step 4：停列短确认（边框 + 轻微缩放）对 control 预设也生效——它只做视觉确认，
+	# 不加文本、不改落点、不占输入；预设差异仍留给 preview/visual/buffer/feedback。
+	if _ctrl.hud != null and _ctrl.hud.has_method("_pulse_stop_cell"):
+		_ctrl.hud._pulse_stop_cell(reel, outcome)
 	if _ctrl._telemetry != null:
 		_ctrl._telemetry.on_stop(path, target_symbol_path, outcome, reason != "player", kind)
 
@@ -259,6 +272,10 @@ func update_turn_target() -> void:
 	var intent: Dictionary = _ctrl.enemy_intent
 	var intent_type := String(intent.get("type", "none"))
 	var intent_value := int(intent.get("value", 0))
+	# Step 5：机制声明的节奏窗口（蓄势 / 爆发 / 恢复）；普通战与无 Rhythm 的机制为空。
+	var rhythm := ""
+	if _ctrl.current_gimmick != null:
+		rhythm = String(_ctrl.current_gimmick.rhythm_window(_ctrl))
 	if intent_type == "heavy":
 		var shield := _first_symbol_of_kind("shield")
 		var heal := _first_symbol_of_kind("heal")
@@ -284,7 +301,7 @@ func update_turn_target() -> void:
 			_low_hp_counters())
 		_refresh_ui()
 		return
-	var recovery: bool = _ctrl.current_gimmick != null and _ctrl.current_gimmick.recovery_window(_ctrl)
+	var recovery: bool = rhythm == "恢复" or (_ctrl.current_gimmick != null and _ctrl.current_gimmick.recovery_window(_ctrl))
 	if recovery:
 		if _ctrl.enemy_armor > 0:
 			var special := _first_symbol_of_kind("special")
@@ -295,6 +312,26 @@ func update_turn_target() -> void:
 		else:
 			_set_target(_default_target(), "间隙·输出", "本回合不会新增叠甲/冻结；集中输出，避免拖入下一次加压。")
 		_set_situation("熔铸间隙", "本回合不新增叠甲/冻结；可争取三连、破甲或集中输出。", _recovery_counters())
+		_refresh_ui()
+		return
+	# Step 5：爆发窗口 = 敌人刚叠甲/冻结的当回合；恢复窗口已在上方优先处理。
+	if rhythm == "爆发":
+		var burst_special := _first_symbol_of_kind("special")
+		_set_target(burst_special if burst_special != "" else _default_target(),
+			"爆发·破甲/承伤", "敌人完成蓄势：护甲与冻结已生效；可三连破甲、穿透直击、清净解冻或直接承伤。")
+		_set_situation("爆发 · 护甲 %d/%d" % [int(_ctrl.enemy_armor), int(_ctrl.enemy_armor_max)],
+			"敌人刚完成蓄势：护甲/冻结已生效。破甲、解冻、硬吃与继续输出都是可计算的选择。",
+			_burst_counters())
+		_refresh_ui()
+		return
+	# Step 5：蓄势窗口 = 下一次叠甲/冻结前的准备回合；提前破甲和留资源同样成立。
+	if rhythm == "蓄势":
+		var prep_special := _first_symbol_of_kind("special")
+		_set_target(prep_special if prep_special != "" else _default_target(),
+			"蓄势·准备", "下一次叠甲/冻结还没到；可提前破甲、攒强化，或保留资源给爆发后的恢复窗口。")
+		_set_situation("蓄势 · 下回合爆发",
+			"敌人正在蓄势，下一次爆发（叠甲/冻结）即将到来。提前破甲、保持输出、攒资源或直接留到恢复窗口都成立。",
+			_windup_counters())
 		_refresh_ui()
 		return
 	if _ctrl.enemy_armor > 0:
@@ -365,7 +402,7 @@ func _heavy_counters(value: int) -> Array:
 	if _ctrl.player_hp < _ctrl.player_hp_max:
 		_push_counter(out, _symbol_counter("heal", "治疗符号", "可停中"))
 	_push_counter(out, _consumable_counter("heal", "治疗药剂", "立即回复"))
-	out.append({"label": "硬吃 %d" % value, "kind": "fallback", "path": "",
+	out.append({"label": "硬吃 %d" % value, "short": "硬吃 %d" % value, "kind": "fallback", "path": "",
 		"note": "不投入资源，预计承受 %d 伤害；护甲与格挡会降低实际承伤。" % value})
 	return out
 
@@ -375,7 +412,7 @@ func _low_hp_counters() -> Array:
 	_push_counter(out, _symbol_counter("heal", "治疗符号", "可停中"))
 	_push_counter(out, _consumable_counter("heal", "治疗药剂", "立即回复"))
 	_push_counter(out, _symbol_counter("shield", "护盾符号", "可停中"))
-	out.append({"label": "抢攻", "kind": "fallback", "path": "",
+	out.append({"label": "抢攻", "short": "抢攻", "kind": "fallback", "path": "",
 		"note": "若判断能先击杀，可放弃恢复继续输出。"})
 	return out
 
@@ -392,6 +429,36 @@ func _recovery_counters() -> Array:
 	return out
 
 
+# Step 5：爆发当回合的真实对策（破甲 / 直击 / 解冻 / 承伤 / 强化），不指定唯一答案。
+func _burst_counters() -> Array:
+	var out: Array = []
+	_push_counter(out, _symbol_counter("special", "破甲（特殊三连）", "三连清空护甲"))
+	_push_counter(out, _pierce_counter())
+	_push_counter(out, _consumable_counter("armor_shred", "破甲酸液", "立即清除护甲"))
+	if _ctrl.player_frost > 0:
+		_push_counter(out, _consumable_counter("cleanse", "清净药剂", "当回合解除冻结"))
+	_push_counter(out, _symbol_counter("damage", "承压输出", "冻结/护甲下仍可正常停轮"))
+	_push_counter(out, _consumable_counter("assault", "强化药剂", "下一次转轮伤害提升"))
+	out.append({"label": "直接承伤", "short": "承伤", "kind": "fallback", "path": "",
+		"note": "不投入资源，按当前护甲/冻结继续输出；冻结会在下一回合自消。"})
+	return out
+
+
+# Step 5：蓄势回合的真实对策（提前破甲 / 保持输出 / 攒资源 / 留到恢复窗口）。
+func _windup_counters() -> Array:
+	var out: Array = []
+	if _ctrl.enemy_armor > 0:
+		_push_counter(out, _symbol_counter("special", "提前破甲（特殊三连）", "三连清空护甲"))
+		_push_counter(out, _pierce_counter())
+		_push_counter(out, _consumable_counter("armor_shred", "破甲酸液", "立即清除护甲"))
+	_push_counter(out, _symbol_counter("damage", "保持输出", "蓄势回合同样是输出窗口"))
+	_push_counter(out, _consumable_counter("assault", "强化药剂", "把下一次转轮留给恢复窗口"))
+	_push_counter(out, _consumable_counter("attack", "攻击药剂", "立即伤害"))
+	out.append({"label": "保留资源", "short": "留资源", "kind": "fallback", "path": "",
+		"note": "不投入消耗品也可以；把资源留给爆发后的恢复窗口同样成立。"})
+	return out
+
+
 func _armor_counters() -> Array:
 	var out: Array = []
 	_push_counter(out, _symbol_counter("special", "破甲（特殊三连）", "三连清空护甲"))
@@ -399,7 +466,7 @@ func _armor_counters() -> Array:
 	_push_counter(out, _consumable_counter("armor_shred", "破甲酸液", "立即清除护甲"))
 	_push_counter(out, _symbol_counter("damage", "输出符号", "先磨甲再打血"))
 	if out.is_empty():
-		out.append({"label": "普通攻击磨甲", "kind": "fallback", "path": "",
+		out.append({"label": "普通攻击磨甲", "short": "磨甲", "kind": "fallback", "path": "",
 			"note": "没有特殊/穿透/破甲消耗品；只能按普通伤害逐点磨掉护甲。"})
 	return out
 
@@ -412,7 +479,7 @@ func _interference_counters(data: IntentData, itype: String) -> Array:
 	if _ctrl.player_frost > 0 or int(_ctrl.player_status.get("poison", 0)) > 0:
 		_push_counter(out, _consumable_counter("cleanse", "清净药剂", "解除冻结/毒层"))
 	_push_counter(out, _symbol_counter("damage", "照常输出", "干扰下仍可正常停轮输出"))
-	out.append({"label": "照常停轮", "kind": "fallback", "path": "",
+	out.append({"label": "照常停轮", "short": "照常", "kind": "fallback", "path": "",
 		"note": "不使用消耗品，按正常节奏停轮；干扰不会导致必败。"})
 	return out
 
@@ -436,7 +503,7 @@ func _symbol_counter(kind: String, label: String, note: String) -> Dictionary:
 	var paths := _symbol_paths_of_kind(kind)
 	if paths.is_empty():
 		return {}
-	return {"label": label, "kind": "symbol_" + kind, "path": paths[0],
+	return {"label": label, "short": _symbol_short(kind), "kind": "symbol_" + kind, "path": paths[0],
 		"note": "%s：%s" % [note, "、".join(_symbol_names(paths))]}
 
 
@@ -444,7 +511,7 @@ func _pierce_counter() -> Dictionary:
 	var paths := _pierce_paths()
 	if paths.is_empty():
 		return {}
-	return {"label": "穿透符号", "kind": "symbol_pierce", "path": paths[0],
+	return {"label": "穿透符号", "short": "穿透", "kind": "symbol_pierce", "path": paths[0],
 		"note": "穿透护甲直接扣 HP：%s" % "、".join(_symbol_names(paths))}
 
 
@@ -454,9 +521,19 @@ func _consumable_counter(effect: String, label: String, note: String) -> Diction
 			continue
 		var d = load(String(slot.get("path", "")))
 		if d is ItemData and String(d.effect) == effect:
-			return {"label": label, "kind": "consumable_" + effect, "path": String(slot["path"]),
+			return {"label": label, "short": _consumable_short(effect), "kind": "consumable_" + effect, "path": String(slot["path"]),
 				"note": "%s（%s）" % [note, String(d.item_name)]}
 	return {}
+
+
+# Step 4：主栏只放短标签，完整名称与说明仍在 tooltip；避免 480 逻辑宽度下只显示半条对策。
+func _symbol_short(kind: String) -> String:
+	return {"shield": "护盾", "heal": "治疗", "special": "特殊三连", "damage": "输出", "buff": "增益"}.get(kind, kind)
+
+
+func _consumable_short(effect: String) -> String:
+	return {"heal": "治疗药", "armor_shred": "酸液", "cleanse": "清净", "purify": "净化",
+		"assault": "强化", "attack": "攻击药", "reroll": "重转", "element": "精华"}.get(effect, effect)
 
 
 func _push_counter(out: Array, counter: Dictionary) -> void:

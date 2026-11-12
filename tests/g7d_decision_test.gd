@@ -11,7 +11,8 @@ extends Node
 # ④ 固定目标对照（--p1-target）仍走 🎯 单目标口径；
 # ⑤ 遥测新增 stop_kinds / consumable_uses，记录玩家实际选择；
 # ⑥ 寒铁精英 / 冰封铁瓮的机制摘要与实际回合一致（每 3 回合加压、次回合间隙、特殊三连破甲）；
-# ⑦ Step 5：底部反馈只报真实结算值（护盾入账 / 实际回血 / 溢出转盾 / 收尾窗口），护盾行与状态一致。
+# ⑦ Step 5：底部反馈只报真实结算值（护盾入账 / 实际回血 / 溢出转盾 / 收尾窗口），护盾行与状态一致；
+# ⑧ Step 4：结果反馈区分防御 / 净化 / 破甲 / 恢复 / 核爆 / 充能爆发，类别排在连击细节之前。
 # 测试在隔离 APPDATA 下运行，不触碰真实存档。
 # ============================================================================
 
@@ -156,7 +157,7 @@ func _test_output(duel: DuelController) -> void:
 	var rd = duel.readability
 	_check(rd.situation == "输出窗口", "输出窗口局势（实际 %s）" % rd.situation)
 	_check(_has_kind(rd, "symbol_damage"), "输出窗口列出带内输出符号")
-	_check(String(duel.hud.p1_target_label.text).contains("可应对"), "目标行使用「局势 + 可应对」结构")
+	_check(String(duel.hud.p1_target_label.text).contains("对策"), "目标行使用「局势 + 对策」结构")
 	_check(not String(duel.hud.p1_target_label.text).begins_with("🎯"), "标准模式不再显示唯一目标")
 	_check(duel.hud.p1_target_label.clip_text, "局势行开启裁切，长文本不撑宽 UI")
 	_check(duel.hud.p1_target_label.text_overrun_behavior == TextServer.OVERRUN_TRIM_ELLIPSIS,
@@ -261,7 +262,8 @@ func _test_recovery(duel: DuelController) -> void:
 	var rust = load("res://scripts/battle/gimmicks/rust_armor_gimmick.gd").new()
 	rust.on_room_start(duel)
 	rust._interval = 3
-	for i in 3:
+	rust._first_pressure_turn = 2
+	for i in 2:
 		rust.on_turn_begin(duel)
 	rust.on_turn_begin(duel)
 	duel.current_gimmick = rust
@@ -340,6 +342,33 @@ func _test_feedback_consistency(duel: DuelController) -> void:
 	duel.enemy_hp = 80
 	duel.hud._show_turn_feedback(shield_counts, 10, false, false, 5, 0, 0)
 	_check(not String(duel.hud.feedback_label.text).contains("收尾窗口"), "非残血时不提示收尾窗口")
+
+	# Step 4：结果反馈区分破甲 / 核爆 / 充能爆发，且类别排在连击细节之前。
+	duel.hud._show_turn_feedback(shield_counts, 10, false, false, 5, 0, 0, 53, 79, 84)
+	txt = String(duel.hud.feedback_label.text)
+	_check(txt.contains("破甲-53"), "反馈显示真实破甲量（实际 %s）" % txt)
+	_check(txt.contains("核爆-79"), "反馈显示克制核爆伤害（实际 %s）" % txt)
+	_check(txt.contains("充能爆发-84"), "反馈显示充能爆发伤害（实际 %s）" % txt)
+	_check(txt.find("破甲-53") < txt.find("格挡"), "破甲类别排在连击细节之前（实际 %s）" % txt)
+
+	# Step 4：消耗品结果反馈——净化 / 清净 / 破甲 / 恢复各自可辨。
+	duel.enemy_armor = 20
+	duel.consumable_system.use_armor_shred(load(ACID_SOLVENT))
+	_check(String(duel.hud.feedback_label.text).contains("破甲-12"),
+		"破甲酸液反馈显示实际清甲量（实际 %s）" % String(duel.hud.feedback_label.text))
+	duel.player_frost = 1
+	duel.consumable_system.use_cleanse(load(CLEANSE_POTION))
+	_check(String(duel.hud.feedback_label.text).contains("清净：寒霜"),
+		"清净药剂反馈标明驱散的状态（实际 %s）" % String(duel.hud.feedback_label.text))
+	duel.enemy_intent = {"data": null, "type": "jam", "value": 0}
+	duel.consumable_system.use_purify(load(PURIFY_POTION))
+	_check(String(duel.hud.feedback_label.text).contains("净化：抵消注废"),
+		"净化药剂反馈标明被抵消的干扰（实际 %s）" % String(duel.hud.feedback_label.text))
+	duel.player_hp = duel.player_hp_max - 3
+	duel.consumable_system.use_heal(load(HEAL_POTION))
+	_check(String(duel.hud.feedback_label.text).contains("恢复+3"),
+		"治疗药剂反馈显示真实入账值（实际 %s）" % String(duel.hud.feedback_label.text))
+	duel.hud.feedback_label.text = ""
 
 	duel.player_shield = 0
 	duel.invalidate_state()

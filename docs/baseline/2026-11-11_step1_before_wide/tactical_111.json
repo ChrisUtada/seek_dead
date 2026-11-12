@@ -1,0 +1,102 @@
+{
+  "boss": "碎裂石像鬼",
+  "buffer_queues": 40,
+  "consumable_uses": {
+    "heal": 2
+  },
+  "counter_burst_damage": 443,
+  "counter_triples": 7,
+  "damage_blocked": 109,
+  "damage_taken": 314,
+  "enemy_attacks": 8,
+  "errors": [],
+  "growth": {
+    "mastery": "铭印 锋铸×2",
+    "summary": "技艺 运筹×1"
+  },
+  "heal_overflow_shield": 81,
+  "heal_total": 246,
+  "rooms": [
+    {
+      "enemy_hp_start": 95,
+      "finished": true,
+      "hp_end": 100,
+      "hp_start": 100,
+      "kind": "normal",
+      "name": "裂石像",
+      "turns": 1
+    },
+    {
+      "enemy_hp_start": 115,
+      "finished": true,
+      "hp_end": 100,
+      "hp_start": 100,
+      "kind": "normal",
+      "name": "辉光游侠",
+      "turns": 1
+    },
+    {
+      "enemy_hp_start": 106,
+      "finished": true,
+      "hp_end": 105,
+      "hp_start": 100,
+      "kind": "normal",
+      "name": "毒孢菌",
+      "turns": 1
+    },
+    {
+      "enemy_hp_start": 304,
+      "finished": true,
+      "hp_end": 105,
+      "hp_start": 105,
+      "kind": "elite",
+      "name": "寒铁精英",
+      "turns": 1
+    },
+    {
+      "enemy_hp_start": 297,
+      "finished": true,
+      "hp_end": 105,
+      "hp_start": 105,
+      "kind": "normal",
+      "name": "毒壳壁垒",
+      "turns": 1
+    },
+    {
+      "enemy_hp_start": 111,
+      "finished": true,
+      "hp_end": 110,
+      "hp_start": 105,
+      "kind": "normal",
+      "name": "冰锋群蝠",
+      "turns": 1
+    },
+    {
+      "enemy_hp_start": 359,
+      "finished": true,
+      "hp_end": 110,
+      "hp_start": 110,
+      "kind": "elite",
+      "name": "锈铁傀儡",
+      "turns": 1
+    },
+    {
+      "enemy_hp_start": 527,
+      "finished": true,
+      "hp_end": 102,
+      "hp_start": 110,
+      "kind": "boss",
+      "name": "碎裂石像鬼",
+      "turns": 8
+    }
+  ],
+  "seed": 111,
+  "stop_total": 44,
+  "strategy": "tactical",
+  "target_hit_rate": 1.0,
+  "target_hits": 44,
+  "terminal": "WON_GAME",
+  "triples": 8,
+  "turns": 15,
+  "weapon_swaps": 0
+}

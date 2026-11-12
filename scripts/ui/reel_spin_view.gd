@@ -22,6 +22,10 @@ var _index := 0
 var _frac := 0.0
 var _active := false
 var _preview: Label = null   # M2-01 洞察：旋转中在格底显示下一格（滚动把格子文字清空后的替代展示）
+# 2026-11-12 Step 2：停轮吸附。进度由 ReelSystem 的 tween 提供，本层只负责把视觉
+# 从请求时的位置缓出到记录的落点；不写 grid、不改逻辑游标、不参与结算。
+var _absorb_active := false
+var _absorb_from := -1.0
 
 
 func configure(ctrl, r: int) -> void:
@@ -72,9 +76,15 @@ func _process(delta: float) -> void:
 	if rs == null or not rs.spinning or _strip(rs).is_empty() or _reel_stopped(rs):
 		if _active:
 			_active = false
+			_absorb_active = false
 			visible = false
 			_preview.visible = false
 		return
+	# 停轮吸附：视觉缓出到请求时记录的落点，完成后由 ReelSystem 写格子并隐藏本层。
+	if rs.has_method("is_absorbing") and rs.is_absorbing(reel):
+		_render_absorb(rs)
+		return
+	_absorb_active = false
 	if not _active:
 		_activate(rs)
 	var wait: float = rs.current_spin_wait()
@@ -94,6 +104,8 @@ func _activate(rs) -> void:
 	var strip: Array = _strip(rs)
 	_index = int(rs.reel_cursor[reel]) % strip.size()
 	_frac = 0.0
+	_absorb_active = false
+	_absorb_from = -1.0
 	_active = true
 	visible = true
 	_fill(rs)
@@ -103,6 +115,36 @@ func _activate(rs) -> void:
 	if cell != null:
 		cell.text = ""
 		cell.icon = null
+
+
+# 停轮吸附：从请求时的连续位置缓出到 ReelSystem 记录的落点格。
+# 进度由逻辑层的 tween 提供，因此 30/60/120fps 下停稳位置一致。
+func _render_absorb(rs) -> void:
+	var strip: Array = _strip(rs)
+	var n: int = strip.size()
+	if n <= 0:
+		return
+	if not _active:
+		_activate(rs)
+	if not _absorb_active:
+		_absorb_from = float(_index) + _frac
+		_absorb_active = true
+	var target: int = rs.absorb_target(reel)
+	if target < 0:
+		return
+	var p: float = clampf(rs.absorb_progress(reel), 0.0, 1.0)
+	# 取最短有符号距离：落点与当前视觉位置通常相差 ≤0.5 格，避免绕整圈。
+	var diff: float = fposmod(float(target) - _absorb_from, float(n))
+	if diff > float(n) * 0.5:
+		diff -= float(n)
+	var eased: float = 1.0 - (1.0 - p) * (1.0 - p)
+	var pos: float = _absorb_from + diff * eased
+	var idx: int = floori(pos)
+	_index = ((idx % n) + n) % n
+	_frac = pos - float(idx)
+	_fill(rs)
+	_layout_entries()
+	_preview.visible = false
 
 
 # P1 视觉落点：当前最靠近窗口中心的带子索引。

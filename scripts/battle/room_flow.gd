@@ -245,6 +245,16 @@ func return_to_loadout() -> void:
 	_ctrl.invalidate_state()
 
 
+# 扫雷棋盘 Step 3：主动撤回整备（BoardScreen 二次确认后调用）。
+# 不发 BOSS / 通关奖励，记录 result=retreat；图鉴、收藏、解锁与局外点数由 return_to_loadout 落盘保留。
+func retreat_run() -> void:
+	if _ctrl._journal != null:
+		_ctrl._journal.finish("retreat")
+	if _ctrl._codex != null:
+		_ctrl._codex.record_run(_ctrl.mastery)   # 保留本局武器最高熟练（同战败口径）
+	return_to_loadout()
+
+
 # 铁砧纯 gacha 入口：委托 AnvilSystem 完成扣点→摇→结算→写 last_anvil_drops→落盘。
 func on_anvil_roll_pressed() -> void:
 	var drops = _ctrl._anvil_system.roll_anvil()

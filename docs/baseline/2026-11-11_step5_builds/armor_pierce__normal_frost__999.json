@@ -1,0 +1,148 @@
+{
+  "build": "armor_pierce",
+  "build_label": "破甲穿透（重弩+战锤）",
+  "consumable_uses": {},
+  "counter_burst_damage": 0,
+  "counter_triples": 0,
+  "counter_turns": [],
+  "damage_blocked": 0,
+  "damage_taken": 10,
+  "death_turn": -1,
+  "enemy_armor_end": 0,
+  "enemy_armor_start": 0,
+  "enemy_hp_end": -20,
+  "enemy_hp_max": 55,
+  "heal_overflow_shield": 0,
+  "heal_total": 0,
+  "hp_end": 90,
+  "hp_max": 100,
+  "result": "WON",
+  "room": "normal_frost",
+  "room_kind": "normal",
+  "room_name": "冰锋群蝠",
+  "seed": 999,
+  "telemetry": {
+    "avg_spin": 0.0115,
+    "avg_ttk": 0.163,
+    "buffer_queues": 0,
+    "consumable_uses": {},
+    "counter_burst_damage": 0,
+    "counter_triples": 0,
+    "damage_blocked": 0,
+    "damage_taken": 10,
+    "enemy_attacks": 1,
+    "forced_stops": 0,
+    "heal_overflow_shield": 0,
+    "heal_total": 0,
+    "reward_pick_rate": 0.0,
+    "reward_picks": {},
+    "rewards_shown": 0,
+    "rooms_cleared": 1,
+    "spin_seconds": 0.023,
+    "spins": 2,
+    "stop_kinds": {
+      "damage": 3,
+      "gold": 2
+    },
+    "stop_outcomes": {
+      "normal": 4,
+      "target": 1
+    },
+    "stop_total": 5,
+    "target_hit_rate": 0.2,
+    "target_hits": 1,
+    "target_symbol": "res://resources/symbols/bolt_shot.tres",
+    "triple_rate": 0.0,
+    "triples": 0,
+    "turns": 2,
+    "weapon_swaps": 0
+  },
+  "triple_turns": [],
+  "triples": 0,
+  "turn_cap": 20,
+  "turn_log": [
+    {
+      "aim": "bolt_shot.tres",
+      "armor_end": 0,
+      "armor_start": 0,
+      "charge_start": 0,
+      "consumables": [],
+      "counter_burst": 0,
+      "counters": [
+        "输出",
+        "照常"
+      ],
+      "damage_dealt": 48,
+      "damage_taken": 10,
+      "enemy_hp_end": 7,
+      "enemy_hp_start": 55,
+      "feedback": "-48 / 收尾窗口",
+      "frost_start": 1,
+      "grid": [
+        "res://resources/symbols/bolt_shot.tres",
+        "res://resources/symbols/iron_slash.tres",
+        "res://resources/symbols/gold.tres"
+      ],
+      "grid_end": [
+        "res://resources/symbols/bolt_shot.tres",
+        "res://resources/symbols/iron_slash.tres",
+        "res://resources/symbols/gold.tres"
+      ],
+      "heal": 0,
+      "hp_end": 90,
+      "hp_start": 100,
+      "intent": "",
+      "poison_start": 0,
+      "shield_end": 0,
+      "shield_start": 0,
+      "situation": "干扰 寒霜",
+      "triple": false,
+      "turn": 1,
+      "window": ""
+    },
+    {
+      "aim": "bolt_shot.tres",
+      "armor_end": 0,
+      "armor_start": 0,
+      "charge_start": 0,
+      "consumables": [],
+      "counter_burst": 0,
+      "counters": [
+        "输出"
+      ],
+      "damage_dealt": 27,
+      "damage_taken": 0,
+      "enemy_hp_end": -20,
+      "enemy_hp_start": 7,
+      "feedback": "-27 / 金币×2",
+      "frost_start": 0,
+      "grid": [
+        "res://resources/symbols/bolt_shot.tres",
+        "res://resources/symbols/iron_slash.tres",
+        "res://resources/symbols/gold.tres"
+      ],
+      "grid_end": [
+        "res://resources/symbols/gold.tres",
+        "res://resources/symbols/iron_slash.tres",
+        "res://resources/symbols/gold.tres"
+      ],
+      "heal": 0,
+      "hp_end": 90,
+      "hp_start": 90,
+      "intent": "attack",
+      "poison_start": 0,
+      "shield_end": 0,
+      "shield_start": 0,
+      "situation": "残血 7/55",
+      "triple": false,
+      "turn": 2,
+      "window": ""
+    }
+  ],
+  "turns": 2,
+  "windows": {
+    "恢复": 0,
+    "爆发": 0,
+    "蓄势": 0
+  }
+}

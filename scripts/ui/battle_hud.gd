@@ -136,6 +136,10 @@ var cells = []   # 展示用 Button 引用 [reel][row]
 var cell_spin_views = []   # P1：每格 ReelSpinView 引用 [reel][row]（视觉中心/预览查询）
 var cell_badges = []   # 每格右上角匹配角标 Label 引用 [reel][row]
 var cell_elem_strips = []   # 每格底部元素色条（Step 4：图标模式下替代文字染色）[reel][row]
+# 2026-11-12 转轮手感 Step 4：停列短反馈（边框闪 + 轻微缩放，0.12–0.16s）。
+var cell_stop_flashes = []   # [reel][row] -> Panel（仅边框 StyleBoxFlat）
+var cell_stop_tweens = []    # [reel][row] -> Tween（复用前先 kill，避免叠加）
+var _feedback_tween: Tween = null   # 底部短反馈的缩放脉冲（纯视觉）
 var loadout_screen                     # 整备场景（scenes/ui/loadout_scene.tscn 实例，hud 兄弟节点）
 var board_screen                       # M2 棋盘主视图（scripts/board/board_screen.gd，hud 兄弟节点）
 # 消耗品腰带 4 个固定格子（2x2），由 hud._refresh_consumable_panel 同步状态；
@@ -268,6 +272,8 @@ func _build_ui() -> void:
 		cell_spin_views.append([])
 		cell_badges.append([])
 		cell_elem_strips.append([])
+		cell_stop_flashes.append([])
+		cell_stop_tweens.append([])
 		for row in controller.state.ROWS:
 			var cell = SYMBOL_CELL.instantiate()
 			cell.custom_minimum_size = Vector2(38, 38)
@@ -306,6 +312,22 @@ func _build_ui() -> void:
 			cell.add_child(spin_view)
 			spin_view.configure(controller, reel)
 			cell_spin_views[reel].append(spin_view)
+			# Step 4：停列短边框（全透明底，仅 2px 边框；停稳时闪一下后淡出）
+			var flash := Panel.new()
+			flash.name = "StopFlash"
+			flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			flash.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			var fsb := StyleBoxFlat.new()
+			fsb.bg_color = Color(0, 0, 0, 0)
+			fsb.draw_center = false
+			fsb.border_color = Palette.ACCENT_GOLD
+			for side in ["left", "top", "right", "bottom"]:
+				fsb.set("border_width_" + side, 2)
+			flash.add_theme_stylebox_override("panel", fsb)
+			flash.modulate.a = 0.0
+			cell.add_child(flash)
+			cell_stop_flashes[reel].append(flash)
+			cell_stop_tweens[reel].append(null)
 
 	# P1：在转轮与 SPIN 之间插入「下一格预览 / 目标与停轮结果」两行（纯展示）。
 	_build_p1_ui()
@@ -421,7 +443,7 @@ func _refresh_p1_ui() -> void:
 	if not rd.is_fixed_target() and String(rd.situation) != "":
 		var labels: Array = []
 		for c in rd.counters:
-			labels.append(String(c.get("label", "")))
+			labels.append(String(c.get("short", c.get("label", ""))))
 		var shown: Array = labels
 		if labels.size() > 2:
 			shown = labels.slice(0, 2)
@@ -430,7 +452,7 @@ func _refresh_p1_ui() -> void:
 		if labels.is_empty():
 			head += " · 无可主动对策"
 		else:
-			head += " · 可应对：" + " / ".join(shown)
+			head += " · 对策：" + "/".join(shown)
 		p1_target_label.text = head
 		var tip: Array = [String(rd.situation_detail) + " · 预设 " + String(rd.preset)]
 		for c in rd.counters:
@@ -488,6 +510,16 @@ func _clear_stop_feedback() -> void:
 	for l in p1_stop_labels:
 		l.text = ""
 		l.add_theme_color_override("font_color", Palette.MUTED)
+	# Step 4：清掉停列闪光与缩放，避免跨回合残留或叠加。
+	for reel in cell_stop_flashes.size():
+		for row in cell_stop_flashes[reel].size():
+			var tw = cell_stop_tweens[reel][row] if cell_stop_tweens.size() > reel and cell_stop_tweens[reel].size() > row else null
+			if tw != null and is_instance_valid(tw):
+				tw.kill()
+			cell_stop_tweens[reel][row] = null
+			cell_stop_flashes[reel][row].modulate.a = 0.0
+			if cells.size() > reel and cells[reel].size() > row:
+				cells[reel][row].scale = Vector2.ONE
 
 
 func _show_stop_feedback(reel: int, nm: String, outcome: String) -> void:
@@ -520,10 +552,51 @@ func _show_stop_feedback(reel: int, nm: String, outcome: String) -> void:
 	l.add_theme_color_override("font_color", col)
 
 
+# Step 4：停列短反馈——0.14s 内边框亮起淡出 + 格子轻微缩放回正。
+# 纯表现层：不阻塞输入、不改变落点与结算；control 预设也保留（「每次操作都有确认感」）。
+func _pulse_stop_cell(reel: int, outcome: String) -> void:
+	if reel < 0 or reel >= cells.size() or cells[reel].is_empty():
+		return
+	if cell_stop_flashes.size() <= reel or cell_stop_flashes[reel].is_empty():
+		return
+	var cell: Control = cells[reel][0]
+	var flash: Panel = cell_stop_flashes[reel][0]
+	var sb := flash.get_theme_stylebox("panel") as StyleBoxFlat
+	if sb != null:
+		sb.border_color = _stop_feedback_color(outcome)
+	flash.modulate.a = 1.0
+	cell.pivot_offset = cell.size * 0.5
+	var old = cell_stop_tweens[reel][0]
+	if old != null and is_instance_valid(old):
+		old.kill()
+	var tw := create_tween()
+	tw.tween_method(_set_cell_pop.bind(cell), 0.0, 1.0, 0.14)
+	tw.parallel().tween_property(flash, "modulate:a", 0.0, 0.14)
+	cell_stop_tweens[reel][0] = tw
+
+
+func _set_cell_pop(t: float, cell: Control) -> void:
+	if is_instance_valid(cell):
+		cell.scale = Vector2.ONE * (1.0 + 0.08 * sin(t * PI))
+
+
+func _stop_feedback_color(outcome: String) -> Color:
+	match outcome:
+		"target", "lock":
+			return Palette.ACCENT_GOLD
+		"miss", "jam":
+			return Palette.POP_DAMAGE
+		"forced":
+			return Palette.MUTED_DIM
+		_:
+			return Palette.TITLE
+
+
 # 回合级停轮摘要写到底部反馈行（随后会被战斗结算反馈覆盖，属于预期）。
 func _show_spin_summary(text: String) -> void:
 	if feedback_label != null and text != "":
 		feedback_label.text = text
+		feedback_label.add_theme_color_override("font_color", Palette.MUTED)
 
 
 func _build_loadout_screen() -> void:
@@ -774,6 +847,11 @@ func _clear_badges() -> void:
 	# 只清文本不隐藏——该行常驻占位，避免反馈出现/消失时转轮区上下跳动。
 	if feedback_label != null:
 		feedback_label.text = ""
+		feedback_label.add_theme_color_override("font_color", Palette.TITLE)
+		feedback_label.scale = Vector2.ONE
+		if _feedback_tween != null and is_instance_valid(_feedback_tween):
+			_feedback_tween.kill()
+			_feedback_tween = null
 
 
 func _update_match_badges(counts: Dictionary) -> void:
@@ -794,7 +872,8 @@ func _update_match_badges(counts: Dictionary) -> void:
 # 纯展示：结算数据由 CombatSystem 在 evaluate() 末尾原样传入，不参与任何数值计算。
 # 不恢复大段伤害分解——完整分解仍只进 Debug.log（见 combat_system.push_dmg_line）。
 func _show_turn_feedback(counts: Dictionary, total: int, triple: bool = false, elem_triple: bool = false,
-		shield_gain: int = -1, heal_gain: int = -1, heal_overflow_shield: int = 0) -> void:
+		shield_gain: int = -1, heal_gain: int = -1, heal_overflow_shield: int = 0,
+		armor_cleared: int = 0, counter_burst: int = 0, charge_burst: int = 0) -> void:
 	if feedback_label == null:
 		return
 	var best_label := ""
@@ -820,16 +899,28 @@ func _show_turn_feedback(counts: Dictionary, total: int, triple: bool = false, e
 			has_shield = true
 		elif String(sym.kind) == "heal":
 			has_heal = true
+	# Step 4：结果类别优先——防御 → 破甲 → 恢复 → 爆发 → 总伤害。
+	# 窄屏裁切时先省略连击/克制细节，不省略「发生了什么」。
 	if shield_gain > 0:
 		parts.append("护盾+%d" % shield_gain)
 	elif has_shield and shield_gain < 0:
 		parts.append("护盾准备")   # 旧调用（无结算值）保持原文案
+	if armor_cleared > 0:
+		parts.append("破甲-%d" % armor_cleared)
 	if heal_gain > 0:
 		parts.append("恢复+%d" % heal_gain)
 	elif heal_overflow_shield > 0:
 		parts.append("恢复→盾+%d" % heal_overflow_shield)
 	elif has_heal and heal_gain < 0:
 		parts.append("恢复")       # 旧调用（无结算值）保持原文案
+	if counter_burst > 0:
+		parts.append("核爆-%d" % counter_burst)
+	if charge_burst > 0:
+		parts.append("充能爆发-%d" % charge_burst)
+	if total > 0:
+		parts.append("-%d" % total)
+		if controller.enemy_hp > 0 and controller.enemy_hp <= int(controller.enemy_hp_max * 0.25):
+			parts.append("收尾窗口")
 	if best_n >= 2:
 		parts.append("%s×%d" % [best_label, best_n])
 	if elem_triple:
@@ -840,11 +931,54 @@ func _show_turn_feedback(counts: Dictionary, total: int, triple: bool = false, e
 		parts.append("克制×%s" % ElementCounter.fmt_mult(ElementCounter.MULT_ADVANTAGE))
 	elif controller._eval_dis:
 		parts.append("抵抗×%s" % ElementCounter.fmt_mult(ElementCounter.MULT_RESIST))
-	if total > 0:
-		parts.append("-%d" % total)
-		if controller.enemy_hp > 0 and controller.enemy_hp <= int(controller.enemy_hp_max * 0.25):
-			parts.append("收尾窗口")
 	feedback_label.text = " / ".join(parts)
+	# Step 4：结果分级——爆发/破甲/三连 > 普通命中 > 防御恢复。
+	# 只改颜色与 0.12s 缩放脉冲，不加长动画、不遮下一次转轮。
+	var tier_col: Color = Palette.TITLE
+	var pop := 1.0
+	if counter_burst > 0 or charge_burst > 0:
+		tier_col = Palette.ACCENT_GOLD
+		pop = 1.10
+	elif triple or elem_triple:
+		tier_col = Palette.ACCENT_GOLD
+		pop = 1.07
+	elif armor_cleared > 0:
+		tier_col = Palette.ARMOR
+		pop = 1.05
+	elif shield_gain > 0 or heal_gain > 0 or heal_overflow_shield > 0:
+		tier_col = Palette.POP_HEAL if heal_gain > 0 else Palette.POP_SHIELD
+		pop = 1.03
+	elif total > 0:
+		pop = 1.02
+	# 连击强度：2–8 连小幅递增并封顶（项目暂无音频资源，用缩放幅度做「音调」的可视替代）。
+	pop += 0.006 * float(maxi(0, clampi(best_n, 0, 8) - 1))
+	feedback_label.add_theme_color_override("font_color", tier_col)
+	_pulse_feedback_label(pop)
+
+
+# Step 4：底部反馈行的短脉冲（0.12s，纯视觉，不改变下一回合输入）。
+func _pulse_feedback_label(pop: float) -> void:
+	if feedback_label == null:
+		return
+	feedback_label.pivot_offset = feedback_label.size * 0.5
+	if _feedback_tween != null and is_instance_valid(_feedback_tween):
+		_feedback_tween.kill()
+	feedback_label.scale = Vector2.ONE
+	_feedback_tween = create_tween()
+	_feedback_tween.tween_method(_set_label_pop.bind(feedback_label, pop), 0.0, 1.0, 0.12)
+
+
+func _set_label_pop(t: float, label: Label, pop: float) -> void:
+	if is_instance_valid(label):
+		label.scale = Vector2.ONE * (1.0 + (pop - 1.0) * sin(t * PI))
+
+
+# Step 4：消耗品使用后的单行结果反馈（净化 / 清净 / 破甲 / 恢复 / 强化 / 伤害）。
+# 与回合结算反馈共用同一行；下一次转轮结算会自然覆盖。纯展示，不参与结算。
+func _show_action_feedback(text: String) -> void:
+	if feedback_label != null and text != "":
+		feedback_label.text = text
+		feedback_label.add_theme_color_override("font_color", Palette.TITLE)
 
 
 # 敌人元素 / 弱 / 抗：写入右侧 EnemyPanel 内三 Label（取代原底部 LegendBar）。
@@ -1099,9 +1233,20 @@ func _refresh_meta() -> void:
 	var room_list: Array = controller.state.ROOMS
 	var cur_room: RoomData = room_list[controller.state.room_index] if controller.state.room_index >= 0 and controller.state.room_index < room_list.size() else null
 	var mech_txt: String = String(cur_room.mechanic_summary) if cur_room != null else ""
+	# Step 5：节奏窗口标签（蓄势/爆发/恢复）——与机制摘要同一行，玩家不用读长文即可判断当前时段。
+	var rhythm := ""
+	if controller.current_gimmick != null:
+		rhythm = String(controller.current_gimmick.rhythm_window(controller))
+	if rhythm != "":
+		mech_txt = "【%s】%s" % [rhythm, mech_txt] if mech_txt != "" else "【%s】" % rhythm
 	enemy_mechanic_label.text = mech_txt
 	enemy_mechanic_label.visible = mech_txt != ""
 	enemy_mechanic_label.tooltip_text = mech_txt
+	match rhythm:
+		"爆发": enemy_mechanic_label.add_theme_color_override("font_color", Palette.POP_DAMAGE)
+		"恢复": enemy_mechanic_label.add_theme_color_override("font_color", Palette.POP_HEAL)
+		"蓄势": enemy_mechanic_label.add_theme_color_override("font_color", Palette.ACCENT_GOLD)
+		_: enemy_mechanic_label.add_theme_color_override("font_color", Palette.MUTED)
 	# T21 元素充能条：克制命中进度（满额释放元素爆发）+ 主导元素（2026-08-14：本回合命中最多的元素）
 	if controller.state.charge_points > 0:
 		var lead_txt := ""

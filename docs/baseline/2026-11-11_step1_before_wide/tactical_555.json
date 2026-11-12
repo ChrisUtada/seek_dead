@@ -1,0 +1,102 @@
+{
+  "boss": "碎裂石像鬼",
+  "buffer_queues": 95,
+  "consumable_uses": {
+    "heal": 2
+  },
+  "counter_burst_damage": 208,
+  "counter_triples": 5,
+  "damage_blocked": 309,
+  "damage_taken": 1353,
+  "enemy_attacks": 33,
+  "errors": [],
+  "growth": {
+    "mastery": "铭印 锋铸×1·调律×1",
+    "summary": "技艺 生存×1"
+  },
+  "heal_overflow_shield": 90,
+  "heal_total": 1135,
+  "rooms": [
+    {
+      "enemy_hp_start": 90,
+      "finished": true,
+      "hp_end": 100,
+      "hp_start": 100,
+      "kind": "normal",
+      "name": "腐化史莱姆",
+      "turns": 1
+    },
+    {
+      "enemy_hp_start": 195,
+      "finished": true,
+      "hp_end": 100,
+      "hp_start": 100,
+      "kind": "normal",
+      "name": "毒壳壁垒",
+      "turns": 1
+    },
+    {
+      "enemy_hp_start": 126,
+      "finished": true,
+      "hp_end": 105,
+      "hp_start": 100,
+      "kind": "normal",
+      "name": "暗影诡匠",
+      "turns": 1
+    },
+    {
+      "enemy_hp_start": 243,
+      "finished": true,
+      "hp_end": 115,
+      "hp_start": 115,
+      "kind": "elite",
+      "name": "毒疫术士",
+      "turns": 1
+    },
+    {
+      "enemy_hp_start": 166,
+      "finished": true,
+      "hp_end": 108,
+      "hp_start": 115,
+      "kind": "normal",
+      "name": "裂石像",
+      "turns": 2
+    },
+    {
+      "enemy_hp_start": 161,
+      "finished": true,
+      "hp_end": 120,
+      "hp_start": 108,
+      "kind": "normal",
+      "name": "寒鳞蝠",
+      "turns": 2
+    },
+    {
+      "enemy_hp_start": 359,
+      "finished": true,
+      "hp_end": 120,
+      "hp_start": 120,
+      "kind": "elite",
+      "name": "锈铁傀儡",
+      "turns": 1
+    },
+    {
+      "enemy_hp_start": 527,
+      "finished": true,
+      "hp_end": -8,
+      "hp_start": 120,
+      "kind": "boss",
+      "name": "碎裂石像鬼",
+      "turns": 26
+    }
+  ],
+  "seed": 555,
+  "stop_total": 105,
+  "strategy": "tactical",
+  "target_hit_rate": 0.990476190476191,
+  "target_hits": 104,
+  "terminal": "LOST",
+  "triples": 12,
+  "turns": 35,
+  "weapon_swaps": 1
+}

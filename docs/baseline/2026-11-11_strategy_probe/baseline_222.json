@@ -1,0 +1,68 @@
+{
+  "boss": "",
+  "buffer_queues": 50,
+  "damage_blocked": 84,
+  "damage_taken": 216,
+  "enemy_attacks": 19,
+  "errors": [],
+  "growth": {
+    "mastery": "铭印 锋铸×1",
+    "summary": "技艺 生存×1"
+  },
+  "rooms": [
+    {
+      "enemy_hp_start": 100,
+      "finished": true,
+      "hp_end": 89,
+      "hp_start": 100,
+      "kind": "normal",
+      "name": "辉光游侠",
+      "turns": 4
+    },
+    {
+      "enemy_hp_start": 92,
+      "finished": true,
+      "hp_end": 69,
+      "hp_start": 89,
+      "kind": "normal",
+      "name": "毒孢菌",
+      "turns": 4
+    },
+    {
+      "enemy_hp_start": 112,
+      "finished": true,
+      "hp_end": 66,
+      "hp_start": 69,
+      "kind": "normal",
+      "name": "余烬傀儡",
+      "turns": 2
+    },
+    {
+      "enemy_hp_start": 221,
+      "finished": true,
+      "hp_end": 46,
+      "hp_start": 76,
+      "kind": "elite",
+      "name": "腐殖巨蠕",
+      "turns": 4
+    },
+    {
+      "enemy_hp_start": 140,
+      "finished": true,
+      "hp_end": -2,
+      "hp_start": 46,
+      "kind": "normal",
+      "name": "寒鳞蝠",
+      "turns": 3
+    }
+  ],
+  "seed": 222,
+  "stop_total": 51,
+  "strategy": "baseline",
+  "target_hit_rate": 0.176470588235294,
+  "target_hits": 9,
+  "terminal": "LOST",
+  "triples": 0,
+  "turns": 17,
+  "weapon_swaps": 0
+}

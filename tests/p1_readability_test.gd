@@ -71,6 +71,15 @@ func _setup(duel: DuelController) -> void:
 	duel._confirm_loadout()
 	# 让测试完全可控：停掉真实节拍器，转轮状态由用例直接摆位。
 	duel.reel_system._timer.stop()
+	# Step 4 普通怪特性可能在本房开局注入干扰（窃语咒师注废 / 冰锋群蝠冻结），
+	# 会让「视觉落点」子测误判为废铁/冻结列。本测试只验证视觉落点与缓冲，
+	# 先清空本房干扰列，避免结果依赖随机抽到的起始房。
+	duel.pending_jam_reel = -1
+	duel.pending_lock_reel = -1
+	duel.pending_chaos = false
+	duel.pending_auto_stop = false
+	duel.player_frost = 0
+	duel.frozen_cols.clear()
 
 
 func _run() -> void:
@@ -82,9 +91,9 @@ func _run() -> void:
 
 	# 1. 预设表
 	rd.apply_preset("control")
-	_check(rd.min_wait == 0.06 and rd.preview_slots == 0 and not rd.visual_stop and not rd.buffer_enabled, "control 预设数值")
+	_check(is_equal_approx(rd.min_wait, 1.0 / 12.0) and rd.preview_slots == 0 and not rd.visual_stop and not rd.buffer_enabled, "control 预设数值")
 	rd.apply_preset("readable")
-	_check(rd.min_wait == 0.085 and rd.accel == 0.0007, "readable 速度")
+	_check(is_equal_approx(rd.min_wait, 1.0 / 11.0) and is_equal_approx(rd.accel, 0.0014), "readable 速度")
 	_check(rd.preview_slots == 2 and rd.visual_stop and rd.buffer_enabled and rd.feedback_enabled, "readable 预览/落点/缓冲/反馈")
 	_check(hud.p1_target_label != null and String(hud.p1_target_label.tooltip_text).contains("readable"), "预设名移入目标行 tooltip（主栏不再拼长预设名）")
 	rd.apply_preset("control")
@@ -103,7 +112,7 @@ func _run() -> void:
 	rd.update_turn_target()
 	_check(rd.target_symbol_path == "res://resources/symbols/block.tres", "重击回合优先推荐护盾")
 	_check(hud.p1_target_label.text.contains("重击 46"), "目标行显示重击局势")
-	_check(hud.p1_target_label.text.contains("护盾符号"), "目标行列出护盾对策")
+	_check(hud.p1_target_label.text.contains("护盾"), "目标行列出护盾对策")
 	_check(hud.p1_target_label.tooltip_text.contains("46"), "悬浮说明包含真实重击数值")
 	rs.reel_strips[1].append([load("res://resources/symbols/heal.tres"), "none"])
 	duel.enemy_intent = {}
@@ -114,7 +123,8 @@ func _run() -> void:
 	var rust = load("res://scripts/battle/gimmicks/rust_armor_gimmick.gd").new()
 	rust.on_room_start(duel)
 	rust._interval = 3   # 冰封铁瓮实际参数；不依赖当前普通房的默认回落值
-	for i in 3:
+	rust._first_pressure_turn = 2   # 首轮第 2 回合爆发，次回合恢复
+	for i in 2:
 		rust.on_turn_begin(duel)
 	_check(not rust.recovery_window(duel), "叠甲/冻结回合不是恢复窗口")
 	rust.on_turn_begin(duel)
@@ -168,7 +178,7 @@ func _run() -> void:
 	var nxt: Array = rs.next_symbols(0, 2, 0)
 	_check(nxt.size() == 2 and nxt[0].resource_path == TARGET_PATH, "next_symbols 从 base 之后取 2 格")
 
-	# 5. 视觉落点（无缓冲）：视觉中心在下一格时立即锁定该格
+	# 5. 视觉落点（无缓冲）：请求后先进入吸附，吸附完成才落子
 	rd.apply_preset("visual")
 	hud._refresh_p1_ui()
 	rs.begin_spin()
@@ -179,11 +189,16 @@ func _run() -> void:
 	sv._active = true
 	sv._index = 0
 	sv._frac = 0.7
+	duel.grid[0][0] = duel.TRASH_SYMBOL
 	rs.stop_next_reel()
-	_check(rs.reel_stopped[0], "visual 无缓冲：立即锁定")
+	_check(rs.is_absorbing(0) and not rs.reel_stopped[0], "visual 无缓冲：先进入吸附，不立即落子")
+	_check(rs.absorb_target(0) == 1, "visual 无缓冲：吸附目标 = 按停时的视觉中心")
+	_check(duel.grid[0][0] == duel.TRASH_SYMBOL, "visual 无缓冲：吸附中保持请求前符号")
+	await get_tree().create_timer(0.25).timeout
+	_check(rs.reel_stopped[0], "visual 无缓冲：吸附完成后落子")
 	_check(duel.grid[0][0].resource_path == TARGET_PATH, "visual 无缓冲：落在视觉中心下一格")
 
-	# 6. 视觉落点 + 缓冲 + 反馈：排队一拍后锁定
+	# 6. 视觉落点 + 缓冲 + 反馈：排队一拍后进入吸附，吸附完成才结算
 	rd.apply_preset("readable")
 	rs.begin_spin()
 	rs._timer.stop()
@@ -198,9 +213,12 @@ func _run() -> void:
 	rs.stop_next_reel()
 	_check(not rs.reel_stopped[0] and rs.has_pending_stop(0), "buffer：先排队，不立即锁定")
 	rs.on_spin_tick()
-	_check(rs.reel_stopped[0], "buffer：下一拍锁定")
-	_check(duel.grid[0][0].resource_path == TARGET_PATH, "buffer：下一拍落在视觉中心")
+	_check(rs.is_absorbing(0) and rs.has_pending_stop(0) == false, "buffer：下一拍提交吸附目标")
+	_check(rs.absorb_target(0) == 1, "buffer：吸附目标为视觉中心")
 	_check(rs._pending_stops.is_empty(), "buffer：最多一拍，队列清空")
+	await get_tree().create_timer(0.25).timeout
+	_check(rs.reel_stopped[0], "buffer：吸附完成后落子")
+	_check(duel.grid[0][0].resource_path == TARGET_PATH, "buffer：下一拍落在视觉中心")
 	_check(int(duel._telemetry.buffer_queues) == before_buf + 1, "遥测记录缓冲次数")
 	_check(int(duel._telemetry.stop_total) == before_stop + 1, "遥测记录主动按停")
 	_check(int(duel._telemetry.target_hits) >= 1, "遥测记录目标命中")

@@ -1,0 +1,91 @@
+{
+  "boss": "",
+  "buffer_queues": 46,
+  "consumable_uses": {},
+  "counter_burst_damage": 89,
+  "counter_triples": 2,
+  "damage_blocked": 48,
+  "damage_taken": 202,
+  "enemy_attacks": 13,
+  "errors": [],
+  "growth": {
+    "mastery": "铭印 锋铸×2",
+    "summary": "技艺 生存×1"
+  },
+  "heal_overflow_shield": 0,
+  "heal_total": 50,
+  "rooms": [
+    {
+      "enemy_hp_start": 85,
+      "finished": true,
+      "hp_end": 92,
+      "hp_start": 100,
+      "kind": "normal",
+      "name": "余烬傀儡",
+      "turns": 2
+    },
+    {
+      "enemy_hp_start": 103,
+      "finished": true,
+      "hp_end": 82,
+      "hp_start": 92,
+      "kind": "normal",
+      "name": "腐化史莱姆",
+      "turns": 1
+    },
+    {
+      "enemy_hp_start": 225,
+      "finished": true,
+      "hp_end": 76,
+      "hp_start": 82,
+      "kind": "normal",
+      "name": "毒壳壁垒",
+      "turns": 3
+    },
+    {
+      "enemy_hp_start": 221,
+      "finished": true,
+      "hp_end": 73,
+      "hp_start": 86,
+      "kind": "elite",
+      "name": "腐殖巨蠕",
+      "turns": 2
+    },
+    {
+      "enemy_hp_start": 96,
+      "finished": true,
+      "hp_end": 74,
+      "hp_start": 73,
+      "kind": "normal",
+      "name": "冰锋群蝠",
+      "turns": 2
+    },
+    {
+      "enemy_hp_start": 201,
+      "finished": true,
+      "hp_end": 20,
+      "hp_start": 74,
+      "kind": "normal",
+      "name": "辉光游侠",
+      "turns": 5
+    },
+    {
+      "enemy_hp_start": 463,
+      "finished": true,
+      "hp_end": -32,
+      "hp_start": 20,
+      "kind": "elite",
+      "name": "寒铁精英",
+      "turns": 1
+    }
+  ],
+  "seed": 333,
+  "stop_total": 47,
+  "strategy": "baseline",
+  "target_hit_rate": 0.212765957446809,
+  "target_hits": 10,
+  "terminal": "LOST",
+  "triples": 0,
+  "turns": 16,
+  "weapon_swaps": 0
+}

@@ -222,7 +222,8 @@ func note_special(kind: String, outcome: String) -> void:
 
 
 # 局末收口：通关（最终 BOSS）或战败都会走到这里（room_flow.log_telemetry）。
-func finish() -> void:
+# reason 由主动撤回传入 "retreat"（Step 3），其余调用保持原判定：LOST=defeat / 其它=clear。
+func finish(reason: String = "") -> void:
 	if not _active or _finished:
 		return
 	_finished = true
@@ -236,7 +237,7 @@ func finish() -> void:
 			"kind": String(room.kind) if room != null else "",
 			"hp": int(_ctrl.player_hp),
 		}
-	_data["result"] = "defeat" if lost else "clear"
+	_data["result"] = reason if reason != "" else ("defeat" if lost else "clear")
 	_data["ended_at"] = Time.get_datetime_string_from_system()
 	_data["duration_sec"] = snappedf(float(Time.get_ticks_msec() - _started_ms) / 1000.0, 0.1)
 	_data["loadout_end"] = _loadout_names()
