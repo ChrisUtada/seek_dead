@@ -13,6 +13,7 @@ var hud: BattleHud
 
 const CHAR_CATS := ["weapon", "skill", "active", "passive"]
 const TITLES := {"weapon": "武器", "skill": "技能", "active": "消耗品", "passive": "护符"}
+const SHOW_CHIBI := false      # 临时开关：旧的 16×16 小人是否显示
 const SPRITE_TARGET := 44.0     # 小人目标高度(px)，_ready 按贴图高度缩放（位置在 tscn 里手动调）
 const RING_R := 28.0            # 选中环半径
 const SUB_OPEN_X := 282.0       # 副屏展开时左上 x（与 tscn SubPanel.offset_left 对应）
@@ -44,6 +45,7 @@ var _forge_box: VBoxContainer = null
 
 # ---- 静态节点（来自 scenes/ui/loadout_scene.tscn，可在编辑器调整）----
 @onready var chars_root: Node2D = $CharsRoot
+@onready var _camp_fx: Node = get_node_or_null("CampFx")
 @onready var ring: Line2D = $CharsRoot/Ring
 @onready var _ui_layer: CanvasLayer = $UILayer
 @onready var ui_root: Control = $UILayer/UIRoot
@@ -75,6 +77,7 @@ func _ready() -> void:
 		if sp != null and sp.texture != null:
 			var s := SPRITE_TARGET / float(sp.texture.get_height())
 			sp.scale = Vector2(s, s)
+			sp.visible = SHOW_CHIBI     # 旧的 16×16 小人暂不显示，交互仍由距离判定承担
 	_init_ring_points()
 	_refresh_char_highlight()
 
@@ -146,6 +149,8 @@ func show_screen() -> void:
 	_update_loadout_count()
 	_refresh_char_highlight()
 	_set_sub_open(true, true)  # 默认展开副屏，小人左移
+	if _camp_fx != null:
+		_camp_fx.start_ambience()
 
 
 func hide_screen() -> void:
@@ -155,6 +160,8 @@ func hide_screen() -> void:
 	if _ui_layer != null:
 		_ui_layer.visible = false          # 显式隐藏 CanvasLayer 覆盖层
 	process_mode = Node.PROCESS_MODE_DISABLED   # 顺手停掉本节点的 _input/_process，连鼠标事件都不再接收
+	if _camp_fx != null:
+		_camp_fx.stop_ambience()
 	hud.show()                 # 回到战斗 HUD（含外框）
 
 

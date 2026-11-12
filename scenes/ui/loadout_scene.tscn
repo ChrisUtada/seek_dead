@@ -6,6 +6,8 @@
 [ext_resource type="Texture2D" uid="uid://dgm8w2f23cbs6" path="res://assets/xh.png" id="4_xh"]
 [ext_resource type="Texture2D" uid="uid://d1iy32diy2o17" path="res://assets/hf.png" id="5_hf"]
 [ext_resource type="Texture2D" uid="uid://kctq4oxl4uvp" path="res://assets/tz.png" id="6_tz"]
+[ext_resource type="Texture2D" uid="uid://dbrhpr1f4bp17" path="res://assets/camp_bg.png" id="7_bg"]
+[ext_resource type="Script" uid="uid://d2r3hm513mkle" path="res://scripts/ui/camp_fx.gd" id="8_fx"]
 
 [sub_resource type="CircleShape2D" id="ShapeCircle"]
 radius = 26.0
@@ -34,10 +36,17 @@ grow_vertical = 2
 mouse_filter = 2
 color = Color(0.06, 0.06, 0.1, 1)
 
+[node name="CampBg" type="Sprite2D" parent="." unique_id=602200193]
+position = Vector2(240, 135)
+texture = ExtResource("7_bg")
+
+[node name="CampFx" type="Node2D" parent="." unique_id=1462657953]
+script = ExtResource("8_fx")
+
 [node name="CharsRoot" type="Node2D" parent="." unique_id=2101453205]
 
 [node name="Char_weapon" type="Area2D" parent="CharsRoot" unique_id=480578271]
-position = Vector2(72, 96)
+position = Vector2(142, 252)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CharsRoot/Char_weapon" unique_id=1993244107]
 shape = SubResource("ShapeCircle")
@@ -46,7 +55,7 @@ shape = SubResource("ShapeCircle")
 texture = ExtResource("2_wq")
 
 [node name="Char_skill" type="Area2D" parent="CharsRoot" unique_id=2094100784]
-position = Vector2(150, 70)
+position = Vector2(196, 124)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CharsRoot/Char_skill" unique_id=1399127629]
 shape = SubResource("ShapeCircle")
@@ -55,7 +64,7 @@ shape = SubResource("ShapeCircle")
 texture = ExtResource("3_jn")
 
 [node name="Char_active" type="Area2D" parent="CharsRoot" unique_id=2020053196]
-position = Vector2(158, 150)
+position = Vector2(318, 132)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CharsRoot/Char_active" unique_id=1667379688]
 shape = SubResource("ShapeCircle")
@@ -64,7 +73,7 @@ shape = SubResource("ShapeCircle")
 texture = ExtResource("4_xh")
 
 [node name="Char_passive" type="Area2D" parent="CharsRoot" unique_id=1019788801]
-position = Vector2(72, 176)
+position = Vector2(398, 176)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CharsRoot/Char_passive" unique_id=58393609]
 shape = SubResource("ShapeCircle")
@@ -73,7 +82,7 @@ shape = SubResource("ShapeCircle")
 texture = ExtResource("5_hf")
 
 [node name="Char_anvil" type="Area2D" parent="CharsRoot" unique_id=2087272657]
-position = Vector2(214, 112)
+position = Vector2(258, 250)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CharsRoot/Char_anvil" unique_id=233590344]
 shape = SubResource("ShapeCircle")
