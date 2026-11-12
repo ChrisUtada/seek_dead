@@ -269,6 +269,10 @@ func _build_ui() -> void:
 
 	# 转轮格子：GridContainer 由 .tscn 提供，按 REELS×ROWS 实例化 symbol_cell。
 	grid_container.columns = controller.state.REELS
+	# 符号图标 32px 塞在 38px 格子里，默认 4px 格间距会让相邻图标只隔 10px，视觉上黏在一起。
+	# 拉开到 10px，图标边缘留出 16px 呼吸。
+	grid_container.add_theme_constant_override("h_separation", 10)
+	grid_container.add_theme_constant_override("v_separation", 10)
 	for reel in controller.state.REELS:
 		cells.append([])
 		controller.grid.append([])
