@@ -36,6 +36,9 @@ var _last_survival := 0.0     # 受击检测基准：player_hp + player_shield�
 var _last_enemy_hp := 0.0     # 空转检测基准：玩家结算前 enemy_hp
 var _p2_room_data: RoomData
 var _p3_room_data: RoomData
+# Step 5：剥盾后下一回合不再剥盾；P3 入场清算罪业（归零）并留一回合喘息。
+var _recovery_pending := false
+var _recovering := false
 
 func on_room_start(ctrl) -> void:
 	var p: Dictionary = ctrl.ROOMS[ctrl.room_index].gimmick_params if (ctrl.room_index >= 0 and ctrl.room_index < ctrl.ROOMS.size()) else {}
@@ -49,6 +52,8 @@ func on_room_start(ctrl) -> void:
 	_sins = 0
 	_phase2 = false
 	_phase3 = false
+	_recovery_pending = false
+	_recovering = false
 	_last_survival = float(ctrl.player_hp + ctrl.player_shield)
 	_last_enemy_hp = float(ctrl.enemy_hp)
 	_p2_room_data = RoomData.new()
@@ -60,6 +65,8 @@ func on_room_start(ctrl) -> void:
 	ctrl.hud._log("⚖ 耻辱审判官：罪业清算——受击/空转记罪 +1（攻击 ×(1+罪业×%s)）；HP<%d%% 拷问心防（剥盾），HP<%d%% 终极审判（血线 ×%s）" % [_sin_atk_per, int(_phase2_hp_ratio * 100), int(_phase3_hp_ratio * 100), _low_hp_mult])
 
 func on_turn_begin(ctrl) -> void:
+	_recovering = _recovery_pending
+	_recovery_pending = false
 	# 受击罪：敌人行动后检测（player_hp+shield 较上回合结算后下降 = 本回合受击）
 	var survival: float = float(ctrl.player_hp + ctrl.player_shield)
 	if survival < _last_survival - 0.5:
@@ -67,10 +74,13 @@ func on_turn_begin(ctrl) -> void:
 		ctrl.hud._log("⚖ 罪业+1（受击）：当前罪业 %d——敌方攻击 ×%s" % [_sins, 1.0 + _sins * _sin_atk_per])
 	_last_survival = survival
 	if _phase2:
-		# 拷问心防：每回合开局剥盾（纯血量承伤——护符/增益盾无法保留）
-		if ctrl.player_shield > 0:
+		# 拷问心防：剥盾后下一回合不再剥盾（真实间隙）；纯血量承伤——护符/增益盾无法保留
+		if _recovering:
+			ctrl.hud._log("⚖ 拷问间隙：本回合不剥盾（恢复/输出窗口）")
+		elif ctrl.player_shield > 0:
 			ctrl.player_shield = 0
-			ctrl.hud._log("⚖ 拷问心防：护盾剥离（本回合 %d 盾被剥夺）" % ctrl.player_shield)
+			_recovery_pending = true
+			ctrl.hud._log("⚖ 拷问心防：护盾剥离（下回合不再剥盾）")
 			_last_survival = float(ctrl.player_hp)
 	# 罪业乘区 × 阶段基础倍率 ×（P3 血线审判）
 	var base_mult: float = _phase3_atk_mult if _phase3 else (_phase2_atk_mult if _phase2 else 1.0)
@@ -106,8 +116,26 @@ func on_damaged(ctrl, _dmg: int) -> void:
 		return
 	if _phase2 and not _phase3 and _phase3_hp_ratio > 0.0 and ctrl.enemy_hp <= int(float(ctrl.enemy_hp_max) * _phase3_hp_ratio):
 		_phase3 = true
+		_sins = 0                      # Step 5：终极审判前清算——罪业归零
+		_recovery_pending = true       # 下一回合喘息（不追加罪业压力）
 		ctrl.boss_atk_mult = _phase3_atk_mult * (1.0 + _sins * _sin_atk_per)
 		ctrl.enemy_intent = ctrl.status_system.roll_intent(_p3_room_data)
 		ctrl.hud._log("⚖ 终极审判：罪无可赦——攻击 ×%s，玩家血量 <50%% 时伤害再 ×%s" % [_phase3_atk_mult, _low_hp_mult])
 		ctrl.hud._popup("⚖ 终极审判！", Palette.POP_STATUS, ctrl.hud._enemy_sprite_anchor())
 		ctrl.hud._refresh_meta()
+
+
+func recovery_window(_ctrl) -> bool:
+	return _recovering
+
+
+func rhythm_window(_ctrl) -> String:
+	return "恢复" if _recovering else ""
+
+
+func recovery_title(_ctrl) -> String:
+	return "审判间隙"
+
+
+func recovery_detail(_ctrl) -> String:
+	return "本回合不剥盾、不追加罪业压力；可治疗、补盾或集中输出。"

@@ -166,10 +166,16 @@ func _run() -> void:
 	rs.spin_finished.disconnect(on_finished)
 
 	# 6. 吸附不消耗全局 RNG
+	# 2026-11-12：前面的用例会触发一次真实 spin_finished，可能的结算/敌人回合在 0.25s 窗口外
+	# 才收尾（速度曲线变慢后时序改变）。先等后台流程静默，再开始 RNG 取样，避免把结算随机
+	# 误记为吸附消耗。
+	await get_tree().create_timer(0.5).timeout
 	rs.begin_spin()
 	rs._timer.stop()
 	rs.reel_cursor.assign([0, 0, 0])
-	rs.reel_stopped.assign([false, true, true])
+	# 只停第 1 列、保留另外两列未停：吸附完成时不会触发 finish_spin/结算，
+	# 从而把观测窗口严格限定在吸附本身（避免把回合结算的随机误记为吸附消耗）。
+	rs.reel_stopped.assign([false, false, false])
 	rs._pending_stops.clear()
 	_arm_reel(duel, 0, 0, 0.7)
 	seed(777777)
@@ -183,4 +189,4 @@ func _run() -> void:
 	for _i in 16:
 		after.append(randi())
 	_check(rs.reel_stopped[0], "RNG 用例中吸附完成")
-	_check(expected == after, "停轮吸附不消耗全局 RNG")
+	_check(expected == after, "停轮吸附不消耗全局 RNG（停列爆裂粒子也不得取全局随机）")

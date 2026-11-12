@@ -49,3 +49,4 @@ boss_reward_weapons = Array[String](["res://resources/weapon_templates/holy_swor
 boss_relic_path = "res://resources/charms/maze_echo_relic.tres"
 art = ExtResource("art_room")
 art_scale = 2.0
+mechanic_summary = "每3回合锁1列并攻击×1.5；HP<50%锁轮加速至2回合并可能乱权；锁轮后一回合不追加干扰。净化、利用锁符、控P2爆发。"

@@ -40,3 +40,4 @@ boss_reward_weapons = Array[String](["res://resources/weapon_templates/ice_gun.t
 boss_relic_path = "res://resources/charms/crown_fragment_relic.tres"
 art = ExtResource("art_room")
 art_scale = 2.0
+mechanic_summary = "P1火属性高攻；P2<66%切冰并每回合叠甲；P3<33%切毒并挂毒；人格切换后一回合不叠甲/不挂新毒。按阶段换元素、破甲、清净。"

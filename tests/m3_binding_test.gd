@@ -84,13 +84,19 @@ func _test_reel_cell(duel: DuelController) -> void:
 	duel.grid_elem[0][0] = "none"
 	duel.invalidate_state()
 	duel.hud._refresh_cell(0, 0)
+	# 2026-11-12：文字/图标由 _sync_cell_occlusion 在帧内应用（滚动遮挡需要），
+	# 图标走独立 TextureRect 覆盖层，不再写 Button.icon（f47c919 起的叠图修复）。
+	duel.hud._sync_cell_occlusion()
 	var cell: Button = duel.hud.cells[0][0]
-	_check(cell.icon == null and cell.text == "▲", "无图标：转轮格回落 label")
+	var layer: TextureRect = duel.hud.cell_icon_layers[0][0]
+	_check(cell.icon == null and cell.text == "▲" and not layer.visible, "无图标：转轮格回落 label")
 	var t := _tex()
 	sym.icon_tex = t
 	duel.invalidate_state()
 	duel.hud._refresh_cell(0, 0)
-	_check(cell.icon == t and cell.text == "", "有图标：转轮格显示图标并清空文字")
+	duel.hud._sync_cell_occlusion()
+	_check(cell.icon == null and cell.text == "" and layer.texture == t and layer.visible,
+		"有图标：转轮格图标层显示并清空文字")
 	duel.grid[0][0] = DuelController.TRASH_SYMBOL
 	duel.invalidate_state()
 	duel.hud._refresh_cell(0, 0)
@@ -106,7 +112,10 @@ func _test_list_button(duel: DuelController) -> void:
 	_check(btn.icon == t, "整备列表：装备图标绑定到按钮")
 	wd.icon_tex = null
 	var card2: Dictionary = duel.hud._make_item_card(wd, "res://resources/weapon_templates/fire_sword.tres", "weapon")
-	_check(card2["btn"].icon == null, "整备列表：无图标不设置图标")
+	# 2026-11-12：武器行在没有 icon_tex 时仍会挂元素小图标（card_factory 的元素色标记），
+	# 因此这里只断言「不使用这一张 icon_tex」，而不是按钮完全没有图标。
+	_check(card2["btn"].icon != t and card2["btn"].icon == WeaponIcons.element_icon("none"),
+		"整备列表：无 icon_tex 时回落到元素小图标")
 
 
 func _test_card_art() -> void:

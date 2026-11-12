@@ -40,3 +40,4 @@ boss_reward_weapons = Array[String](["res://resources/weapon_templates/fire_swor
 boss_relic_path = "res://resources/charms/stone_shard_relic.tres"
 art = ExtResource("art_room")
 art_scale = 2.0
+mechanic_summary = "每次受击反弹石屑（15%，单次上限5）；反弹后次回合石翼展开，不反弹。集中一击、护盾、展开窗输出。"

@@ -40,3 +40,4 @@ boss_reward_weapons = Array[String](["res://resources/weapon_templates/holy_swor
 boss_relic_path = "res://resources/charms/void_echo_relic.tres"
 art = ExtResource("art_room")
 art_scale = 2.0
+mechanic_summary = "入场剥离护符；HP<50%技能出池并补甲32；技能出池后一回合攻击降低且不注废。依靠武器/消耗品与集中输出。"

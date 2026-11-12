@@ -41,6 +41,14 @@ func on_special_triple(ctrl) -> void:
 func recovery_window(_ctrl) -> bool:
 	return false
 
+# Step 5：恢复窗口的标题与说明。标准提示按机制取真实文案，避免所有 BOSS 都显示「熔铸间隙」。
+# 只影响提示，不参与结算；返回空串 = 用通用文案。
+func recovery_title(_ctrl) -> String:
+	return "间隙"
+
+func recovery_detail(_ctrl) -> String:
+	return "本回合敌人不追加新的加压或干扰；可治疗、净化、破甲或集中输出。"
+
 # Step 5：本回合所处的节奏窗口名（蓄势 / 爆发 / 恢复）；空串 = 该机制不声明窗口。
 # 纯读状态，供 HUD 标签与标准提示展示，不参与结算。
 func rhythm_window(_ctrl) -> String:
@@ -51,3 +59,13 @@ func rhythm_window(_ctrl) -> String:
 # 用例：勇者的阴影 P3 血锁（和解为唯一出口）——直击/穿透/DoT/元素爆发全部覆盖，杜绝旁路击杀。
 func hp_floor(ctrl) -> int:
 	return -1
+
+
+# 2026-11-12 Step 1：玩家破甲（护甲清零）后调用——共用触发模块的「首次破甲」触发点。
+func on_armor_break(ctrl) -> void:
+	pass
+
+
+# 2026-11-12 Step 1：敌人 HP 任意变动（含 DoT / 核爆 / 锁血收口）后调用——「阶段转换」触发点。
+func on_hp_changed(ctrl) -> void:
+	pass

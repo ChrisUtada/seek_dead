@@ -33,6 +33,9 @@ var _phase2 := false
 var _turns := 0
 var _pending_rule := ""
 var _p2_room_data: RoomData
+# Step 5：律法达成后的下一回合不宣告新律法，作为整理资源/恢复的真实间隙。
+var _recovery_pending := false
+var _recovering := false
 
 func on_room_start(ctrl) -> void:
 	var p: Dictionary = ctrl.ROOMS[ctrl.room_index].gimmick_params if (ctrl.room_index >= 0 and ctrl.room_index < ctrl.ROOMS.size()) else {}
@@ -51,6 +54,8 @@ func on_room_start(ctrl) -> void:
 	_phase2 = false
 	_turns = 0
 	_pending_rule = ""
+	_recovery_pending = false
+	_recovering = false
 	_p2_room_data = RoomData.new()
 	_p2_room_data.kind = "boss"
 	_p2_room_data.intents.assign(P2_INTENTS)   # 2026-08-14 fix：RoomData.intents 为 Array[IntentData] 强类型，直接赋普通 Array 报 Invalid assignment
@@ -58,6 +63,8 @@ func on_room_start(ctrl) -> void:
 
 func on_turn_begin(ctrl) -> void:
 	_turns += 1
+	_recovering = _recovery_pending
+	_recovery_pending = false
 	ctrl.boss_atk_mult = _p2_atk_mult if _phase2 else 1.0
 	var rule_turn: bool = _rule_pool.size() > 0 and (_turns % _rule_every == 0)
 	if rule_turn:
@@ -69,6 +76,8 @@ func on_turn_begin(ctrl) -> void:
 		ctrl.enemy_intent = ctrl.status_system.roll_intent(_p2_room_data)
 	else:
 		_pending_rule = ""
+	if _recovering:
+		ctrl.hud._log("⚖ 律法间隙：本回合不宣告新律法，可整理消耗品/净化/集中输出")
 
 func on_turn_resolved(ctrl) -> void:
 	if _pending_rule == "":
@@ -77,7 +86,8 @@ func on_turn_resolved(ctrl) -> void:
 	_pending_rule = ""
 	if _rule_met(ctrl, rule):
 		ctrl.boss_atk_mult *= _rule_reward_atk_mult
-		ctrl.hud._log("⚖ 律法遵从：敌方攻击 ×%s（安全窗口）" % _rule_reward_atk_mult)
+		_recovery_pending = true
+		ctrl.hud._log("⚖ 律法遵从：敌方攻击 ×%s（安全窗口），下一回合不宣告新律法" % _rule_reward_atk_mult)
 		return
 	ctrl.boss_atk_mult *= _rule_punish_mult
 	var hv: int = int(round(ctrl.enemy_atk * ctrl.boss_atk_mult))
@@ -130,3 +140,19 @@ func _rule_met(ctrl, rule: String) -> bool:
 		"all_damage":
 			return s0.kind == "damage" and s1.kind == "damage" and s2.kind == "damage"
 	return false
+
+
+func recovery_window(_ctrl) -> bool:
+	return _recovering
+
+
+func rhythm_window(_ctrl) -> String:
+	return "恢复" if _recovering else ""
+
+
+func recovery_title(_ctrl) -> String:
+	return "律法间隙"
+
+
+func recovery_detail(_ctrl) -> String:
+	return "本回合不宣告新律法；可整理消耗品、净化或集中输出。"

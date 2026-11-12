@@ -49,3 +49,4 @@ boss_reward_weapons = Array[String](["res://resources/weapon_templates/fire_swor
 boss_relic_path = "res://resources/charms/rhythm_shell_relic.tres"
 art = ExtResource("4_art")
 art_scale = 2.0
+mechanic_summary = "4回合开合：闭合补甲45+回血+注废；开合甲0并强制重击。闭合攒资源，开合爆发/防御。"

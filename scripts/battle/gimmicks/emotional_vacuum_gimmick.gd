@@ -25,6 +25,10 @@ var _p2_armor := 32
 var _phase2 := false
 var _rebuild_pending := false
 var _p2_room_data: RoomData
+# Step 5：技能出池后的下一回合是「麻木静默」——攻击降低且不注废，给玩家整理资源。
+var _recovery_pending := false
+var _recovering := false
+var _p2_recover_data: RoomData
 
 func on_room_start(ctrl) -> void:
 	var p: Dictionary = ctrl.ROOMS[ctrl.room_index].gimmick_params if (ctrl.room_index >= 0 and ctrl.room_index < ctrl.ROOMS.size()) else {}
@@ -35,9 +39,14 @@ func on_room_start(ctrl) -> void:
 	_p2_armor = int(p.get("p2_armor", 32))
 	_phase2 = false
 	_rebuild_pending = false
+	_recovery_pending = false
+	_recovering = false
 	_p2_room_data = RoomData.new()
 	_p2_room_data.kind = "boss"
 	_p2_room_data.intents.assign(P2_INTENTS)
+	_p2_recover_data = RoomData.new()
+	_p2_recover_data.kind = "boss"
+	_p2_recover_data.intents.assign(_build_p2_recover_intents())
 	# P1 情感剥离：护符被动全部失效（deprived_level=1，聚合层读取）+ 开局盾扣回
 	if _deprive_charms:
 		ctrl.deprived_level = 1
@@ -51,6 +60,8 @@ func on_room_start(ctrl) -> void:
 		ctrl.hud._log("⚫ 无名虚空：情感涌动（剥夺关闭，参数演习模式）")
 
 func on_turn_begin(ctrl) -> void:
+	_recovering = _recovery_pending
+	_recovery_pending = false
 	# P2 技能出池延迟到下一回合重建条带（build_strips 仅进房/精华时构建）——照元素精华序列
 	if _rebuild_pending:
 		_rebuild_pending = false
@@ -59,9 +70,12 @@ func on_turn_begin(ctrl) -> void:
 		ctrl.reel_system.reset_grid()
 		ctrl.hud._log("⚫ 转轮重建：技能符号已出池——只剩武器与消耗品")
 		ctrl.hud._refresh_meta()
-	ctrl.boss_atk_mult = _p2_atk_mult if _phase2 else 1.0
+		_recovery_pending = true   # 出池后的下一回合进入麻木静默
+	ctrl.boss_atk_mult = 0.6 if _recovering else (_p2_atk_mult if _phase2 else 1.0)
 	if _phase2:
-		ctrl.enemy_intent = ctrl.status_system.roll_intent(_p2_room_data)
+		ctrl.enemy_intent = ctrl.status_system.roll_intent(_p2_recover_data if _recovering else _p2_room_data)
+		if _recovering:
+			ctrl.hud._log("⚫ 麻木静默：本回合攻击降低且不注废，可整理武器/消耗品")
 
 func on_damaged(ctrl, _dmg: int) -> void:
 	if _phase2 or _phase2_hp_ratio <= 0.0:
@@ -78,3 +92,38 @@ func on_damaged(ctrl, _dmg: int) -> void:
 		ctrl.hud._log("⚫ 全面麻木：技能失效——护甲 %d，攻击 ×%s，意图转入麻木剖面（技能符号下一回合出池）" % [_p2_armor, _p2_atk_mult])
 		ctrl.hud._popup("⚫ 全面麻木！", Palette.POP_STATUS, ctrl.hud._enemy_sprite_anchor())
 		ctrl.hud._refresh_meta()
+
+
+# Step 5：麻木静默剖面 attack 70 / heavy 30，不含注废。
+func _build_p2_recover_intents() -> Array[IntentData]:
+	var att: IntentData = IntentData.new()
+	att.id = "attack"
+	att.display_name = "攻击"
+	att.icon = "⚔"
+	att.weight = 70.0
+	att.purifiable = false
+	att.value_mult = 1.0
+	var hvy: IntentData = IntentData.new()
+	hvy.id = "heavy"
+	hvy.display_name = "重击"
+	hvy.icon = "💥"
+	hvy.weight = 30.0
+	hvy.purifiable = false
+	hvy.value_mult = 2.0
+	return [att, hvy]
+
+
+func recovery_window(_ctrl) -> bool:
+	return _recovering
+
+
+func rhythm_window(_ctrl) -> String:
+	return "恢复" if _recovering else ""
+
+
+func recovery_title(_ctrl) -> String:
+	return "麻木静默"
+
+
+func recovery_detail(_ctrl) -> String:
+	return "本回合攻击降低且不注废；可整理武器/消耗品、治疗或集中输出。"

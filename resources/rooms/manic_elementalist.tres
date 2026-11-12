@@ -40,3 +40,4 @@ boss_reward_weapons = Array[String](["res://resources/weapon_templates/ice_gun.t
 boss_relic_path = "res://resources/charms/dual_core_relic.tres"
 art = ExtResource("art_room")
 art_scale = 2.0
+mechanic_summary = "P1攻击×2并每回合自损5%；HP<50%切冰、补甲45、攻击×0.6，转换首回合不注废。P1抢攻，P2换火系/破甲。"

@@ -1,0 +1,70 @@
+﻿id,name,kind,act,element,hp,atk,armor,eff_hp,eff_atk,eff_armor,archetype_id,archetype_weights,gimmick_script,gimmick_params,mechanic_summary,boss_role,final_boss
+a1_brute_none,重锤蛮兵,normal,1,none,0,16,,140,16,0,heavy_brawler,"{""attack"": 60, ""heavy"": 40}",,,,,False
+a1_bulwark_poison,毒壳壁垒,normal,1,poison,0,12,,170,12,0,bulwark,"{""attack"": 70, ""heavy"": 30}",scripts/battle/gimmicks/normal_trait_gimmick.gd,"{""trait"": ""shell"", ""armor"": 20}","开局20护甲
+破甲后不再获得",,False
+a1_elite_brute_ice,寒铁精英,elite,1,ice,0,20,,200,20,0,elite_brute,"{""attack"": 50, ""heavy"": 50}",scripts/battle/gimmicks/rust_armor_gimmick.gd,"{""interval"": 3, ""per_stack"": 4, ""max_stacks"": 2, ""two_cols_chance"": 0, ""first_pressure_turn"": 2}","首轮蓄势1回合→爆发
+之后每3回合：蓄势→爆发
+叠甲冻结→恢复·特殊三连破甲",,False
+a1_elite_caster_poison,毒疫术士,elite,1,poison,0,17,,160,17,0,elite_caster,"{""attack"": 35, ""chaos"": 25, ""heavy"": 10, ""auto_stop"": 30}",scripts/battle/gimmicks/acid_bomb_gimmick.gd,"{""dot_per_turn"": 1, ""dot_base"": 1, ""bomb_stacks"": 12, ""bomb_dmg"": 20}",,,False
+a1_hexer_none,窃语咒师,normal,1,none,0,12,,90,12,0,jammer,"{""attack"": 35, ""jam"": 25, ""lock"": 25, ""auto_stop"": 15}",scripts/battle/gimmicks/normal_trait_gimmick.gd,"{""trait"": ""jam_open"", ""column"": 0}","首次转轮前
+第1列注废（仅一次）",,False
+a1_striker_light,辉光游侠,normal,1,light,0,13,,100,13,0,striker,"{""attack"": 60, ""heavy"": 20, ""jam"": 10, ""lock"": 10}",scripts/battle/gimmicks/normal_trait_gimmick.gd,"{""trait"": ""first_hit_ward"", ""ward"": 10}","首次受击后
+获得10护甲（一次）",,False
+a1_swarm_ice,冰锋群蝠,normal,1,ice,0,10,,55,10,0,swarmer,"{""attack"": 100}",scripts/battle/gimmicks/normal_trait_gimmick.gd,"{""trait"": ""frost_open""}","首回合冻结1列
+次回合自消",,False
+a1_trickster_dark,暗影诡匠,normal,1,dark,0,14,,95,14,0,trickster,"{""attack"": 25, ""jam"": 20, ""lock"": 20, ""chaos"": 20, ""auto_stop"": 15}",,,,,False
+a2_brute_dark,暮色蛮兵,normal,2,dark,0,0,,140,14,0,heavy_brawler,"{""attack"": 60, ""heavy"": 40}",,,,,False
+a2_brute_none,铁臂蛮兵,normal,2,none,0,0,,140,14,0,heavy_brawler,"{""attack"": 60, ""heavy"": 40}",,,,,False
+a2_bulwark_light,圣壳壁垒,normal,2,light,0,0,,170,10,0,bulwark,"{""attack"": 70, ""heavy"": 30}",,,,,False
+a2_bulwark_none,石壳壁垒,normal,2,none,0,0,,170,10,0,bulwark,"{""attack"": 70, ""heavy"": 30}",,,,,False
+a2_caster_poison,毒雾术士,normal,2,poison,0,0,,100,11,0,status_sower,"{""attack"": 35, ""chaos"": 20, ""heavy"": 15, ""auto_stop"": 30}",,,,,False
+a2_elite_hexer_dark,深渊咒师,elite,2,dark,0,0,,150,13,0,elite_hexer,"{""attack"": 25, ""jam"": 30, ""lock"": 30, ""auto_stop"": 15}",scripts/battle/gimmicks/whisper_lock_gimmick.gd,"{""lock_every"": 4, ""attack_mult"": 1.3, ""phase2_hp_ratio"": 0}",,,False
+a2_elite_swarmking_fire,炎爆群王,elite,2,fire,0,0,,170,16,0,elite_swarmking,"{""attack"": 90, ""heavy"": 10}",scripts/battle/gimmicks/bipolar_phase_gimmick.gd,"{""manic_atk_mult"": 1.5, ""manic_self_damage_pct"": 0.03, ""phase2_hp_ratio"": 0.4, ""depressed_atk_mult"": 0.7, ""p2_armor"": 20}",,,False
+a2_striker_dark,暗行游侠,normal,2,dark,0,0,,100,11,0,striker,"{""attack"": 60, ""heavy"": 20, ""jam"": 10, ""lock"": 10}",,,,,False
+a2_swarm_fire,炎锋群蝠,normal,2,fire,0,0,,55,9,0,swarmer,"{""attack"": 100}",,,,,False
+a2_trickster_none,迷面诡匠,normal,2,none,0,0,,95,12,0,trickster,"{""attack"": 25, ""jam"": 20, ""lock"": 20, ""chaos"": 20, ""auto_stop"": 15}",,,,,False
+a3_brute_light,辉铁蛮兵,normal,3,light,0,0,,140,14,0,heavy_brawler,"{""attack"": 60, ""heavy"": 40}",,,,,False
+a3_brute_none,深渊蛮兵,normal,3,none,0,0,,140,14,0,heavy_brawler,"{""attack"": 60, ""heavy"": 40}",,,,,False
+a3_bulwark_fire,熔壳壁垒,normal,3,fire,0,0,,170,10,0,bulwark,"{""attack"": 70, ""heavy"": 30}",,,,,False
+a3_bulwark_none,黑曜壁垒,normal,3,none,0,0,,170,10,0,bulwark,"{""attack"": 70, ""heavy"": 30}",,,,,False
+a3_caster_ice,霜语术士,normal,3,ice,0,0,,100,11,0,status_sower,"{""attack"": 35, ""chaos"": 20, ""heavy"": 15, ""auto_stop"": 30}",,,,,False
+a3_elite_trickster_dark,终末庄家,elite,3,dark,0,0,,155,15,0,elite_trickster,"{""attack"": 30, ""chaos"": 35, ""heavy"": 20, ""auto_stop"": 15}",scripts/battle/gimmicks/abyss_erosion_gimmick.gd,"{""base_ratio"": 0.06, ""low_hp_bonus"": 0.15, ""max_trash"": 10, ""phase2_hp_ratio"": 0.5, ""phase2_trash_mult"": 1.2, ""phase2_flashback_chance"": 0, ""phase2_armor"": 25, ""phase3_hp_ratio"": 0}",,,False
+a3_elite_warden_light,圣盾守关,elite,3,light,0,0,,180,14,18,elite_warden,"{""attack"": 70, ""heavy"": 30}",scripts/battle/gimmicks/abyss_erosion_gimmick.gd,"{""base_ratio"": 0.06, ""low_hp_bonus"": 0.15, ""max_trash"": 10, ""phase2_hp_ratio"": 0.5, ""phase2_trash_mult"": 1.2, ""phase2_flashback_chance"": 0, ""phase2_armor"": 25, ""phase3_hp_ratio"": 0}",,,False
+a3_striker_light,圣辉游侠,normal,3,light,0,0,,100,11,0,striker,"{""attack"": 60, ""heavy"": 20, ""jam"": 10, ""lock"": 10}",,,,,False
+a3_swarm_poison,毒针群蝠,normal,3,poison,0,0,,55,9,0,swarmer,"{""attack"": 100}",,,,,False
+a3_trickster_dark,深渊诡匠,normal,3,dark,0,0,,95,12,0,trickster,"{""attack"": 25, ""jam"": 20, ""lock"": 20, ""chaos"": 20, ""auto_stop"": 15}",,,,,False
+abyss_watcher,深渊监视者,boss,3,light,460,27,35,460,27,35,,,scripts/battle/gimmicks/abyss_erosion_gimmick.gd,"{""base_ratio"": 0.1, ""low_hp_bonus"": 0.3, ""max_trash"": 24, ""phase2_hp_ratio"": 0.66, ""phase2_trash_mult"": 1.5, ""phase2_flashback_chance"": 0.5, ""phase2_armor"": 40, ""phase3_hp_ratio"": 0.33, ""phase3_trash_mult"": 2.0, ""phase3_atk_mult"": 1.3, ""phase3_armor"": 45}",,fixed,False
+abyssal_cantor,深渊咏者,elite,2,dark,240,18,20,240,18,20,,,scripts/battle/gimmicks/whisper_lock_gimmick.gd,"{""lock_every"": 4, ""attack_mult"": 1.3, ""phase2_hp_ratio"": 0}",,,False
+acid_ghoul,酸蚀恶鬼,boss,1,poison,204,14,10,204,14,10,,,scripts/battle/gimmicks/acid_bomb_gimmick.gd,"{""dot_per_turn"": 2, ""dot_base"": 1, ""bomb_stacks"": 10, ""bomb_dmg"": 30}",,rotating,False
+acid_golem,锈铁傀儡,elite,1,ice,155,16,22,155,16,22,,,scripts/battle/gimmicks/rust_armor_gimmick.gd,"{""interval"": 3, ""per_stack"": 4, ""max_stacks"": 2, ""two_cols_chance"": 0}",,,False
+annihilation_apostle,湮灭使徒,normal,3,fire,215,19,,215,19,0,,,,,,,False
+annihilation_lord,湮灭领主,elite,3,fire,395,26,,395,26,0,,,scripts/battle/gimmicks/abyss_erosion_gimmick.gd,"{""base_ratio"": 0.06, ""low_hp_bonus"": 0.15, ""max_trash"": 10, ""phase2_hp_ratio"": 0.5, ""phase2_trash_mult"": 1.2, ""phase2_flashback_chance"": 0, ""phase2_armor"": 25, ""phase3_hp_ratio"": 0}",,,False
+beguiling_lantern,迷魂灯笼,normal,2,fire,135,13,,135,13,0,,,,,,,False
+blasphemy_priest,邪颂祭司,elite,2,poison,255,19,,255,19,0,,,scripts/battle/gimmicks/acid_bomb_gimmick.gd,"{""dot_per_turn"": 1, ""dot_base"": 1, ""bomb_stacks"": 12, ""bomb_dmg"": 20}",,,False
+brittle_gargoyle,碎裂石像鬼,boss,1,ice,198,25,8,198,25,8,,,scripts/battle/gimmicks/glass_cannon_gimmick.gd,"{""reflect_ratio"": 0.15, ""reflect_cap"": 5}",,rotating,False
+cocoon_sentinel,茧居石雕,boss,1,ice,240,15,45,240,15,45,,,scripts/battle/gimmicks/cocoon_cycle_gimmick.gd,"{""cycle_period"": 4, ""shell_armor"": 45, ""open_armor"": 0, ""heal_per_turn"": 6, ""open_heavy_mult"": 2.0}",,hidden,False
+collapsing_core,坍缩星核,normal,3,light,195,17,,195,17,0,,,,,,,False
+corrupted_slime,腐化史莱姆,normal,1,poison,90,13,12,90,13,12,,,,,,,False
+cracked_statue,裂石像,normal,1,light,95,12,16,95,12,16,,,,,,,False
+defiled_scribe,亵渎书吏,normal,2,ice,140,13,,140,13,0,,,,,,,False
+ember_golem,余烬傀儡,normal,1,fire,85,12,,85,12,0,,,,,,,False
+final_watcher,终焉守望,elite,3,light,370,24,28,370,24,28,,,scripts/battle/gimmicks/abyss_erosion_gimmick.gd,"{""base_ratio"": 0.06, ""low_hp_bonus"": 0.15, ""max_trash"": 10, ""phase2_hp_ratio"": 0.5, ""phase2_trash_mult"": 1.2, ""phase2_flashback_chance"": 0, ""phase2_armor"": 25, ""phase3_hp_ratio"": 0}",,,False
+frost_bat,寒鳞蝠,normal,1,ice,80,10,,80,10,0,,,,,,,False
+frozen_urn,冰封铁瓮,boss,1,ice,240,17,20,240,17,20,,,scripts/battle/gimmicks/rust_armor_gimmick.gd,"{""interval"": 3, ""per_stack"": 8, ""max_stacks"": 3, ""two_cols_chance"": 0.3, ""first_pressure_turn"": 2}","首轮蓄势1回合→爆发
+之后每3回合：蓄势→爆发
+叠甲冻结1~2列→恢复·特殊三连破甲",fixed,False
+grand_inquisitor,耻辱审判官,boss,3,light,450,26,25,450,26,25,,,scripts/battle/gimmicks/shame_counter_gimmick.gd,"{""sin_atk_per"": 0.08, ""phase2_hp_ratio"": 0.66, ""phase2_atk_mult"": 0.9, ""phase3_hp_ratio"": 0.33, ""phase3_atk_mult"": 1.0, ""low_hp_ratio"": 0.5, ""low_hp_mult"": 2.0}",,hidden,False
+hero_shadow,勇者的阴影,boss,3,none,600,30,40,600,30,40,,,scripts/battle/gimmicks/shadow_projection_gimmick.gd,"{""projection_every"": 2, ""mirror_base_per"": 0.05, ""phase2_hp_ratio"": 0.66, ""phase3_hp_ratio"": 0.2}",,fixed,True
+humus_worm,腐殖巨蠕,elite,1,poison,0,0,,145,13,0,poison_biter,"{""attack"": 30, ""chaos"": 30, ""heavy"": 10, ""auto_stop"": 30}",scripts/battle/gimmicks/acid_bomb_gimmick.gd,"{""dot_per_turn"": 1, ""dot_base"": 1, ""bomb_stacks"": 12, ""bomb_dmg"": 20}",,,False
+manic_elementalist,躁怒元素使,boss,2,fire,280,18,15,280,18,15,,,scripts/battle/gimmicks/bipolar_phase_gimmick.gd,"{""manic_atk_mult"": 2.0, ""manic_self_damage_pct"": 0.05, ""phase2_hp_ratio"": 0.5, ""depressed_atk_mult"": 0.6, ""p2_armor"": 45}",,rotating,False
+maze_whisperer,迷宫低语者,boss,2,dark,300,16,25,300,16,25,,,scripts/battle/gimmicks/whisper_lock_gimmick.gd,"{""lock_every"": 3, ""attack_mult"": 1.5, ""phase2_hp_ratio"": 0.5, ""phase2_lock_every"": 2, ""phase2_attack_mult"": 1.8, ""phase2_chaos_chance"": 0.25}",,rotating,False
+nameless_void,无名虚空,boss,2,dark,320,18,20,320,18,20,,,scripts/battle/gimmicks/emotional_vacuum_gimmick.gd,"{""phase2_hp_ratio"": 0.5, ""deprive_charms"": true, ""deprive_skills"": true, ""p2_atk_mult"": 0.85, ""p2_armor"": 32}",,hidden,False
+riftsoul_wanderer,裂界游魂,normal,3,poison,220,20,,220,20,0,,,,,,,False
+rust_blind_bat,锈盲蝠,normal,1,ice,75,10,,75,10,0,,,,,,,False
+scale_inquisitor,天平审判官,boss,2,light,300,17,20,300,17,20,,,scripts/battle/gimmicks/compulsion_rule_gimmick.gd,"{""rule_pool"": [""same_element"", ""all_distinct"", ""all_damage""], ""rule_every"": 2, ""rule_reward_atk_mult"": 0.5, ""rule_punish_mult"": 2.0, ""phase2_hp_ratio"": 0.5, ""p2_atk_mult"": 0.9, ""p2_armor"": 35, ""p2_lock_consumable"": true}",,rotating,False
+shadow_acolyte,暗影信徒,normal,2,dark,125,12,,125,12,0,,,,,,,False
+shattered_king,碎裂魔王,boss,3,fire,440,24,20,440,24,20,,,scripts/battle/gimmicks/split_ego_gimmick.gd,"{""phase2_hp_ratio"": 0.66, ""phase3_hp_ratio"": 0.33, ""anger_atk_mult"": 1.15, ""fear_atk_mult"": 0.9, ""fear_armor_step"": 6, ""fear_armor_cap"": 45, ""grief_dot_per_turn"": 2, ""grief_dot_base"": 1}",,rotating,False
+toxin_spore,毒孢菌,normal,1,poison,80,12,10,80,12,10,,,,,,,False
+void_echo,虚空回响,normal,3,dark,205,18,,205,18,0,,,,,,,False
+void_whisperer,虚空低语者,normal,2,dark,130,14,,130,14,0,,,,,,,False
+whispering_cultist,呓语教徒,boss,2,dark,290,20,25,290,20,25,,,scripts/battle/gimmicks/whisper_lock_gimmick.gd,,,,False

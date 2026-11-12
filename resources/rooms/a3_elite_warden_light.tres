@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://scripts/battle/room_data.gd" id="1"]
 [ext_resource type="Resource" path="res://resources/archetypes/elite_warden.tres" id="2"]
-[ext_resource type="Script" path="res://scripts/battle/gimmicks/abyss_erosion_gimmick.gd" id="3"]
+[ext_resource type="Script" path="res://scripts/battle/gimmicks/shield_warden_gimmick.gd" id="3"]
 [ext_resource type="Texture2D" path="res://assets/characters/a3_elite_warden_light/idle_01.png" id="art_room"]
 
 [resource]
@@ -14,7 +14,8 @@ archetype = ExtResource("2")
 element = "light"
 kind = "elite"
 gimmick_script = ExtResource("3")
-gimmick_params = {"base_ratio": 0.06, "low_hp_bonus": 0.15, "max_trash": 10, "phase2_hp_ratio": 0.5, "phase2_trash_mult": 1.2, "phase2_flashback_chance": 0, "phase2_armor": 25, "phase3_hp_ratio": 0}
+gimmick_params = {"armor": 20, "per_stack": 10, "interval": 4}
 act = 3
 art = ExtResource("art_room")
 art_scale = 2.0
+mechanic_summary = "入场+20甲；每4回合补10甲并锁1列，次回合恢复。"

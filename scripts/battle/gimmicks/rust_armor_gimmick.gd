@@ -14,6 +14,10 @@ var _interval := 2
 var _per_stack := 8
 var _max_stacks := 3
 var _two_cols_chance := 0.3   # 2026-08-13 用户拍板：冻结随机 1~2 列，2 列概率（1 列更常见）
+# Step 4（D1）：精英冻结在护甲被打破时立即解除；BOSS 冻结固定到次回合（默认 false）。
+var _freeze_clears_on_break := false
+# Step 4（锈铁傀儡）：叠甲/冻结同回合附加腐蚀（护盾收益 -25%，破甲或清净解除）。
+var _apply_corrode := false
 # Step 3（2026-11-11）：首轮爆发的回合数。默认 = interval（保持旧节奏：第 2/3 回合首次爆发）。
 # 样板房可前移到第 2 回合，使 2 回合内的高爆发击杀至少看到一次「蓄势→爆发」；
 # 之后仍按 interval 重复，不改变层数、护甲量或任何动态数值。
@@ -34,6 +38,8 @@ func on_room_start(ctrl) -> void:
 	_max_stacks = int(p.get("max_stacks", 3))
 	_two_cols_chance = float(p.get("two_cols_chance", 0.3))
 	_first_pressure_turn = int(p.get("first_pressure_turn", _interval))
+	_freeze_clears_on_break = bool(p.get("freeze_clears_on_break", false))
+	_apply_corrode = bool(p.get("apply_corrode", false))
 	ctrl.hud._log("🛡 熔铸护甲展开：每 %d 回合叠加一层护甲（上限 %d 层）" % [_interval, _max_stacks])
 	ctrl.hud._log("🛡 熔铸节律：首轮蓄势 %d 回合 → 爆发（叠甲+冻结）→ 次回合恢复（熔铸间隙），之后每 %d 回合重复" % [_first_pressure_turn - 1, _interval])
 
@@ -56,12 +62,36 @@ func on_turn_begin(ctrl) -> void:
 			cols = 2
 		ctrl.player_frost = cols
 		ctrl.hud._log("❄ 寒霜侵蚀：冻结 %d 列（次回合自消，清净药剂可当回合解除）" % cols)
+		if _apply_corrode:
+			ctrl.apply_debuff("corrode")
+			ctrl.hud._log("🧪 锈蚀：护盾收益 -25%（破甲或清净解除）")
 	elif recovery_window(ctrl):
 		ctrl.hud._log("⚔ 熔铸间隙：本回合不再叠甲/冻结，抓住破甲与输出窗口")
 	# 护甲清空由 DuelController._on_counter("special") 统一处理（special 三连），此处不再重复
 
 func recovery_window(_ctrl) -> bool:
 	return _last_pressure_turn >= 0 and _turns == _last_pressure_turn + 1
+
+
+func recovery_title(_ctrl) -> String:
+	return "熔铸间隙"
+
+
+func recovery_detail(_ctrl) -> String:
+	return "本回合不新增叠甲/冻结；可争取三连、破甲或集中输出。"
+
+
+# Step 4（D1）：精英的冻结随破甲立即解除（BOSS 保持到次回合），让「破甲」这条应对同时清掉两种压力。
+func on_armor_break(ctrl) -> void:
+	if not _freeze_clears_on_break:
+		return
+	if int(ctrl.player_frost) <= 0:
+		return
+	ctrl.player_frost = 0
+	ctrl.frozen_cols.clear()
+	for r in DuelController.REELS:
+		ctrl.hud._refresh_cell(r, 0)
+	ctrl.hud._log("🛡→❄ 护甲破碎：冻结随甲解除（本回合可正常转动）")
 
 
 # Step 5：蓄势（下一次叠甲/冻结前的准备回合）→ 爆发（叠甲+冻结当回合）→ 恢复（熔铸间隙）。

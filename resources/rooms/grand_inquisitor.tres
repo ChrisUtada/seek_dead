@@ -49,3 +49,4 @@ boss_reward_weapons = Array[String](["res://resources/weapon_templates/night_scy
 boss_relic_path = "res://resources/charms/innocence_seal_relic.tres"
 art = ExtResource("art_room")
 art_scale = 2.0
+mechanic_summary = "受击/空转记罪，攻击随罪业提升；P2<66%剥盾，剥后一回合不剥盾；P3<33%罪业归零但低血伤害×2。少失误、保血、利用审判间隙。"

@@ -219,6 +219,10 @@ func _layout_entries() -> void:
 
 # M2-01 洞察：旋转中格子文字被滚动视觉清空，下一格预览改由本层贴在格底显示。
 func _sync_preview(rs) -> void:
+	# 2026-11-12 Step 1：目盲隐藏格底预览（当前中心符号不受影响）。
+	if controller.debuffs != null and controller.debuffs.preview_hidden():
+		_preview.visible = false
+		return
 	# P1 预览行开启时，下一格由 ReelDock 右侧独立行显示（洞察会在该行 +1 格），
 	# 避免格底小字与预览行重复；control（预览 0）保持原洞察行为。
 	if controller.readability != null and int(controller.readability.preview_slots) > 0:

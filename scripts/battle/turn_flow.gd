@@ -25,6 +25,7 @@ func begin_player_turn() -> void:
 	if _ctrl.game_state != _ctrl.FlowState.PLAYING:
 		return
 	_ctrl.turn_count += 1
+	_ctrl.turn_resolved = false   # 2026-11-12 Step 3：进入转轮前相位（debuff 计时用）
 	# 深渊凝视（信物）：每回合开始元素充能 +N（不触发爆发，爆发仍由克制命中驱动）
 	if _ctrl.charm_charge_start > 0 and _ctrl.deprived_level < 1:
 		_ctrl.charge_points += _ctrl.charm_charge_start

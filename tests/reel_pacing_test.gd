@@ -5,7 +5,7 @@ extends Node
 # 运行：Godot --headless --fixed-fps 60 --path <项目> res://tests/reel_pacing_test.tscn
 #
 # 覆盖（真实 DuelController，冻结节拍器后手动驱动 on_spin_tick）：
-#   1. 巡航 8–10 格/秒、封顶 10–12 格/秒
+#   1. 巡航/封顶与 ReadabilitySystem 的缩放后常量一致（2026-11-12：5.7 / 7.6 格/秒）
 #   2. 加速段逐步逼近封顶，且永不超过封顶
 #   3. 手动按停立即响应（不额外加延迟）
 #   4. 自动/夺轮停列按 0.25s + 0.07s 递增的逐列节奏，而不是同一拍全部停下
@@ -15,6 +15,8 @@ extends Node
 # ============================================================================
 
 const TARGET_PATH := "res://resources/symbols/fire_slash.tres"
+# 2026-11-12：符号 32px、槽距 30px 后，速度曲线按 19/30 等比缩放；断言跟随常量，避免再次漂移。
+const ReadabilityScript := preload("res://scripts/systems/readability_system.gd")
 
 var _checks := 0
 var _fails := 0
@@ -100,14 +102,16 @@ func _run() -> void:
 	_stack_strips(duel)
 	var rs = duel.reel_system
 
-	# 1. 速度区间：初速 4.5–5.5，巡航 8–10 格/秒，封顶 10–12 格/秒
+	# 1. 速度区间：起转初速 5 CPS，巡航/封顶跟随 ReadabilitySystem（缩放后 5.7 / 7.6 格/秒）
 	_start(duel, [false, true, true])
 	var start_cps: float = 1.0 / rs.current_spin_wait()
 	_check(start_cps >= 4.5 and start_cps <= 5.5, "起转初速在 4.5–5.5 格/秒（实测 %.2f）" % start_cps)
 	var cruise_cps: float = 1.0 / rs._base_wait()
-	_check(cruise_cps >= 8.0 and cruise_cps <= 10.0, "巡航速度在 8–10 格/秒（实测 %.2f）" % cruise_cps)
+	_check(is_equal_approx(cruise_cps, ReadabilityScript.CRUISE_CPS),
+		"巡航速度 = ReadabilitySystem.CRUISE_CPS（实测 %.2f / %.2f）" % [cruise_cps, ReadabilityScript.CRUISE_CPS])
 	var cap_cps: float = 1.0 / float(rs._min_wait())
-	_check(cap_cps >= 10.0 and cap_cps <= 12.0, "高速封顶在 10–12 格/秒（实测 %.2f）" % cap_cps)
+	_check(is_equal_approx(cap_cps, ReadabilityScript.MAX_CPS),
+		"高速封顶 = ReadabilitySystem.MAX_CPS（实测 %.2f / %.2f）" % [cap_cps, ReadabilityScript.MAX_CPS])
 	_check(rs.STARTUP_RAMP_SECONDS >= 0.28 and rs.STARTUP_RAMP_SECONDS <= 0.35,
 		"启动加速段在 0.28–0.35s（实测 %.2f）" % rs.STARTUP_RAMP_SECONDS)
 	_check(rs.auto_stop_interval(0) >= 0.22 and rs.auto_stop_interval(0) <= 0.28,
@@ -140,8 +144,8 @@ func _run() -> void:
 	_check(reached_cruise_at >= 0.28 and reached_cruise_at <= 0.45,
 		"启动段按节拍量化后约 0.32s 结束（实测 %.3fs）" % reached_cruise_at)
 	_check(absf(cruise_after_startup - cruise_cps) <= 0.01,
-		"启动段结束接入 9 格/秒巡航，不提前逐拍加速（实测 %.2f）" % cruise_after_startup)
-	_check(not over_cap, "加速段从未超过 12 格/秒封顶")
+		"启动段结束接入 %.1f 格/秒巡航，不提前逐拍加速（实测 %.2f）" % [cruise_cps, cruise_after_startup])
+	_check(not over_cap, "加速段从未超过 %.1f 格/秒封顶" % cap_cps)
 	_check(saw_max, "持续旋转后到达封顶速度")
 	_check(rs.spin_model_seconds() > 0.0, "旋转模型耗时在累积")
 
@@ -164,7 +168,8 @@ func _run() -> void:
 	_check(distinct_speeds.size() >= 12,
 		"0.3s 内至少出现 12 个连续速度采样（实测 %d）" % distinct_speeds.size())
 	_check(frame_monotonic, "逐帧启动速度单调上升，没有回落或跳档")
-	_check(not frame_cps.is_empty() and frame_cps[-1] > start_cps + 1.0
+	# 缩放后起转初速 5.0 → 巡航 5.7，0.3s 内应接近巡航但不超过它。
+	_check(not frame_cps.is_empty() and frame_cps[-1] > start_cps + 0.3
 		and frame_cps[-1] <= cruise_cps + 0.01,
 		"真实帧驱动在启动段内平滑接近巡航")
 

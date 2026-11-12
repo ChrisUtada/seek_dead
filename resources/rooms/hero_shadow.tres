@@ -48,3 +48,4 @@ gimmick_script = ExtResource("2")
 gimmick_params = {"projection_every": 2, "mirror_base_per": 0.05, "phase2_hp_ratio": 0.66, "phase3_hp_ratio": 0.2}
 art = ExtResource("art_room")
 art_scale = 2.0
+mechanic_summary = "P1每2回合复刻前8个BOSS机制之一；P2<66%追加Act3机制并回敬符号；P3<20%放下武器，无法击杀——任意三连/治疗符号/恢复净化消耗品即和解通关。"

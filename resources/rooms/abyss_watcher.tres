@@ -40,3 +40,4 @@ boss_reward_weapons = Array[String](["res://resources/weapon_templates/night_scy
 boss_relic_path = "res://resources/charms/abyss_gaze_relic.tres"
 art = ExtResource("art_room")
 art_scale = 2.0
+mechanic_summary = "P1每回合注废；P2<66%停轮可能强制重转；P3<33%注废翻倍、攻击×1.3、护甲45；强制重转/吞噬后一回合不追加注废。净化、读重转、空档爆发。"

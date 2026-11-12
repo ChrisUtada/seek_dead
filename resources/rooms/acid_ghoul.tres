@@ -40,3 +40,4 @@ boss_reward_weapons = Array[String](["res://resources/weapon_templates/holy_swor
 boss_relic_path = "res://resources/charms/venom_gland_relic.tres"
 art = ExtResource("art_room")
 art_scale = 2.0
+mechanic_summary = "每回合挂毒2层，10层爆炸-30；爆炸后毒囊暴露1回合，不挂毒。清净、减层、暴露窗火/光爆发。"

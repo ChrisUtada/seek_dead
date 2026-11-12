@@ -329,6 +329,10 @@ func _build_ui() -> void:
 			fx.gravity = Vector2(0, 120)
 			fx.initial_velocity_min = 22.0
 			fx.initial_velocity_max = 48.0
+			# 2026-11-12 Step 0：粒子固定种子，避免停列爆裂在每次触发时从全局 RNG 取样
+			# （否则每停一列都会平移种子局的随机流）。
+			fx.use_fixed_seed = true
+			fx.seed = 20261112
 			fx.emitting = false
 			var ramp := Gradient.new()
 			ramp.set_color(0, Color(1, 1, 1, 0.0))
@@ -529,6 +533,10 @@ func _refresh_p1_previews() -> void:
 	if rd == null or int(rd.preview_slots) <= 0 or rs == null or not rs.spinning:
 		p1_preview_row.visible = false
 		return
+	# 2026-11-12 Step 1：目盲——隐藏后续预览，当前中心格仍可见（不消耗 RNG）。
+	if controller.debuffs != null and controller.debuffs.preview_hidden():
+		p1_preview_row.visible = false
+		return
 	# 洞察在 P1 预览行里额外 +1 格；control（预览 0）仍走原来的格内预览，不改变对照。
 	var slots: int = int(rd.preview_slots)
 	if controller.growth != null and controller.growth.has_perk("insight"):
@@ -631,7 +639,10 @@ func _pulse_stop_cell(reel: int, outcome: String) -> void:
 	if cell_icon_fx.size() > reel:
 		for fx in cell_icon_fx[reel]:
 			if fx is CPUParticles2D:
-				fx.restart()
+				# 2026-11-12 Step 0 基线：CPUParticles2D.restart() 会消耗 1 次全局 RNG，
+				# 每停一列就平移整个种子局的随机流（违反「提示/动画不消耗 RNG」）。
+				# one_shot 播完后 emitting 自动回落 false，直接置 true 可再次触发爆裂，
+				# 且不向全局随机流取样。
 				fx.emitting = true
 
 
@@ -1270,15 +1281,26 @@ func _refresh_meta() -> void:
 		player_buff_label.text += " · ❄霜冻×%d" % controller.state.player_frost
 	# 2026-08-09 酸蚀恶鬼：玩家 DoT 状态（毒层；≥ 爆炸阈值整行警示色）
 	var poison: int = int(controller.state.player_status.get("poison", 0))
+	# 2026-11-12 Step 3：灼烧 DoT（熔壳壁垒），与酸蚀并列展示
+	var burn: int = int(controller.state.player_status.get("burn", 0))
 	if poison > 0:
 		player_buff_label.text += " · ☣酸蚀×%d" % poison
 		if poison >= controller.state.player_dot_bomb_stacks:
 			player_buff_label.add_theme_color_override("font_color", Palette.POP_DAMAGE)
 		else:
 			player_buff_label.remove_theme_color_override("font_color")
+	elif burn > 0:
+		player_buff_label.add_theme_color_override("font_color", Palette.POP_DAMAGE)
 	else:
 		player_buff_label.remove_theme_color_override("font_color")
-	player_buff_label.visible = controller._buff_summary() != "无" or controller.state.player_frost > 0 or poison > 0
+	if burn > 0:
+		player_buff_label.text += " · 🔥灼烧×%d" % burn
+	# 2026-11-12 Step 1：玩家侧减益（虚弱/易伤/腐蚀/禁疗/目盲/缠绕/反噬…）
+	var debuff_txt: String = controller.debuff_summary() if controller.debuffs != null else ""
+	if debuff_txt != "":
+		player_buff_label.text += " · " + debuff_txt
+		player_buff_label.tooltip_text = controller.debuffs.detail_text()
+	player_buff_label.visible = controller._buff_summary() != "无" or controller.state.player_frost > 0 or poison > 0 or burn > 0 or debuff_txt != ""
 	enemy_name_label.text = controller.state.enemy_name
 	enemy_name_label.tooltip_text = controller.state.enemy_name
 	enemy_stage_name.text = controller.state.enemy_name

@@ -37,6 +37,9 @@ var _phase3_armor := 45
 var _phase2 := false
 var _phase3 := false
 var _flashback_pending := false
+# Step 5：强制重转/高阶吞噬后的下一回合不追加注废（真实恢复窗）。
+var _skip_trash_next := false
+var _recovering := false
 var _p2_room_data: RoomData
 var _p3_room_data: RoomData
 
@@ -56,6 +59,8 @@ func on_room_start(ctrl) -> void:
 	_phase2 = false
 	_phase3 = false
 	_flashback_pending = false
+	_skip_trash_next = false
+	_recovering = false
 	_p2_room_data = RoomData.new()
 	_p2_room_data.kind = "boss"
 	_p2_room_data.intents.assign(P2_INTENTS)
@@ -69,6 +74,8 @@ func on_room_start(ctrl) -> void:
 	ctrl.hud._log("🕳 深渊侵蚀：每回合向转轮注入废铁，池越大/血越低注入越多%s" % phase_txt)
 
 func on_turn_begin(ctrl) -> void:
+	_recovering = _skip_trash_next
+	_skip_trash_next = false
 	# 闪回掷取：P2 起每回合一次（消费后即 false，重转不重复触发）
 	_flashback_pending = _phase2 and not _phase3 and _phase2_flashback_chance > 0.0 and randf() < _phase2_flashback_chance
 	var hp_ratio: float = float(ctrl.enemy_hp) / float(ctrl.enemy_hp_max)
@@ -78,9 +85,12 @@ func on_turn_begin(ctrl) -> void:
 	if _phase3:
 		ratio *= _phase3_trash_mult
 	var add: int = int(round(ctrl.pool.size() * ratio))
-	ctrl.boss_trash = mini(_max_trash, ctrl.boss_trash + add)
-	if add > 0:
-		ctrl.hud._log("🕳 深渊侵蚀 +%d 废铁（池 %d，HP %d%%）" % [add, ctrl.pool.size(), int(hp_ratio * 100)])
+	if _recovering:
+		ctrl.hud._log("🕳 深渊喘息：本回合不追加注废（净化/输出窗口）")
+	else:
+		ctrl.boss_trash = mini(_max_trash, ctrl.boss_trash + add)
+		if add > 0:
+			ctrl.hud._log("🕳 深渊侵蚀 +%d 废铁（池 %d，HP %d%%）" % [add, ctrl.pool.size(), int(hp_ratio * 100)])
 	# 阶段倍率/意图
 	ctrl.boss_atk_mult = _phase3_atk_mult if _phase3 else 1.0
 	if _phase3:
@@ -101,6 +111,7 @@ func on_damaged(ctrl, _dmg: int) -> void:
 		return
 	if _phase2 and not _phase3 and _phase3_hp_ratio > 0.0 and ctrl.enemy_hp <= int(float(ctrl.enemy_hp_max) * _phase3_hp_ratio):
 		_phase3 = true
+		_skip_trash_next = true   # Step 5：高阶吞噬后的下一回合不追加注废
 		ctrl.enemy_armor_max = _phase3_armor
 		ctrl.enemy_armor = _phase3_armor
 		ctrl.boss_atk_mult = _phase3_atk_mult
@@ -114,4 +125,21 @@ func consume_flashback() -> bool:
 	if not _flashback_pending:
 		return false
 	_flashback_pending = false
+	_skip_trash_next = true   # Step 5：强制重转后的下一回合不追加注废
 	return true
+
+
+func recovery_window(_ctrl) -> bool:
+	return _recovering
+
+
+func rhythm_window(_ctrl) -> String:
+	return "恢复" if _recovering else ""
+
+
+func recovery_title(_ctrl) -> String:
+	return "深渊喘息"
+
+
+func recovery_detail(_ctrl) -> String:
+	return "本回合不追加注废；可净化、解除干扰或趁空档集中输出。"

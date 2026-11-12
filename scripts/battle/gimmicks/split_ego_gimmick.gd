@@ -34,6 +34,9 @@ var _phase2 := false
 var _phase3 := false
 var _p2_room_data: RoomData
 var _p3_room_data: RoomData
+# Step 5：人格切换后的下一回合是僵直拍——不叠甲/不挂新毒，避免阶段机制直接叠加。
+var _recovery_pending := false
+var _recovering := false
 
 func on_room_start(ctrl) -> void:
 	var p: Dictionary = ctrl.ROOMS[ctrl.room_index].gimmick_params if (ctrl.room_index >= 0 and ctrl.room_index < ctrl.ROOMS.size()) else {}
@@ -47,6 +50,8 @@ func on_room_start(ctrl) -> void:
 	_grief_dot_base = int(p.get("grief_dot_base", 1))
 	_phase2 = false
 	_phase3 = false
+	_recovery_pending = false
+	_recovering = false
 	_p2_room_data = RoomData.new()
 	_p2_room_data.kind = "boss"
 	_p2_room_data.intents.assign(P2_INTENTS)
@@ -58,6 +63,8 @@ func on_room_start(ctrl) -> void:
 	ctrl.hud._popup("💔 愤怒人格：烈焰暴怒！", Palette.POP_STATUS, ctrl.hud._enemy_sprite_anchor())
 
 func on_turn_begin(ctrl) -> void:
+	_recovering = _recovery_pending
+	_recovery_pending = false
 	# 人格倍率/意图
 	if _phase3:
 		ctrl.boss_atk_mult = 1.0
@@ -68,6 +75,9 @@ func on_turn_begin(ctrl) -> void:
 			var dot_dmg: int = stacks * _grief_dot_base
 			ctrl.combat.enemy_deal_damage(dot_dmg)
 			ctrl.hud._log("☣ 悲伤侵蚀：%d 层毒伤 -%d（护盾可挡）" % [stacks, dot_dmg])
+		if _recovering:
+			ctrl.hud._log("💔 人格僵直：本回合不挂新毒（旧毒照常结算）")
+			return
 		var add: int = maxi(0, _grief_dot_per_turn - int(ctrl.charm_dot_reduce))   # 蚀毒壁垒护符：挂毒量 -N/回合
 		ctrl.player_status["poison"] = int(ctrl.player_status.get("poison", 0)) + add
 		ctrl.hud._log("☣ 悲伤人格：玩家中毒 +%d 层（%d 层）" % [add, int(ctrl.player_status.get("poison", 0))])
@@ -75,6 +85,9 @@ func on_turn_begin(ctrl) -> void:
 	if _phase2:
 		ctrl.boss_atk_mult = _fear_atk_mult
 		ctrl.enemy_intent = ctrl.status_system.roll_intent(_p2_room_data)
+		if _recovering:
+			ctrl.hud._log("💔 人格僵直：本回合不叠甲（恢复/换元素窗口）")
+			return
 		# 恐惧人格：每回合叠甲（上限 fear_armor_cap）
 		if ctrl.enemy_armor < _fear_armor_cap:
 			ctrl.enemy_armor = mini(_fear_armor_cap, ctrl.enemy_armor + _fear_armor_step)
@@ -86,6 +99,7 @@ func on_turn_begin(ctrl) -> void:
 func on_damaged(ctrl, _dmg: int) -> void:
 	if not _phase2 and _phase2_hp_ratio > 0.0 and ctrl.enemy_hp <= int(float(ctrl.enemy_hp_max) * _phase2_hp_ratio):
 		_phase2 = true
+		_recovery_pending = true
 		ctrl.enemy_element = "ice"
 		ctrl.hud._update_enemy_element()
 		ctrl.boss_atk_mult = _fear_atk_mult
@@ -96,6 +110,7 @@ func on_damaged(ctrl, _dmg: int) -> void:
 		return
 	if _phase2 and not _phase3 and _phase3_hp_ratio > 0.0 and ctrl.enemy_hp <= int(float(ctrl.enemy_hp_max) * _phase3_hp_ratio):
 		_phase3 = true
+		_recovery_pending = true
 		ctrl.enemy_element = "poison"
 		ctrl.hud._update_enemy_element()
 		ctrl.boss_atk_mult = 1.0
@@ -103,3 +118,19 @@ func on_damaged(ctrl, _dmg: int) -> void:
 		ctrl.hud._log("☣ 悲伤人格：毒泪弥漫——属性→毒（弱光），每回合挂毒 %d 层（清净药剂可解）" % _grief_dot_per_turn)
 		ctrl.hud._popup("☣ 悲伤人格！", Palette.POP_STATUS, ctrl.hud._enemy_sprite_anchor())
 		ctrl.hud._refresh_meta()
+
+
+func recovery_window(_ctrl) -> bool:
+	return _recovering
+
+
+func rhythm_window(_ctrl) -> String:
+	return "恢复" if _recovering else ""
+
+
+func recovery_title(_ctrl) -> String:
+	return "人格僵直"
+
+
+func recovery_detail(_ctrl) -> String:
+	return "人格刚切换：本回合不叠甲/不挂新毒；可换元素、治疗或抢输出。"

@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="RoomData" load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/battle/room_data.gd" id="1"]
-[ext_resource type="Script" path="res://scripts/battle/gimmicks/abyss_erosion_gimmick.gd" id="2"]
+[ext_resource type="Script" path="res://scripts/battle/gimmicks/final_watcher_gimmick.gd" id="2"]
 [ext_resource type="Texture2D" path="res://assets/characters/final_watcher/idle_01.png" id="art_room"]
 
 [resource]
@@ -12,8 +12,9 @@ atk = 24
 element = "light"
 kind = "elite"
 gimmick_script = ExtResource("2")
-gimmick_params = {"base_ratio": 0.06, "low_hp_bonus": 0.15, "max_trash": 10, "phase2_hp_ratio": 0.5, "phase2_trash_mult": 1.2, "phase2_flashback_chance": 0, "phase2_armor": 25, "phase3_hp_ratio": 0}
+gimmick_params = {"interval": 2, "hp_ratio": 0.5, "heavy_mult": 2.0}
 act = 3
 armor = 28
 art = ExtResource("art_room")
 art_scale = 2.0
+mechanic_summary = "每2回合交替目盲/锁轮；HP<50%后干扰回合追加重击。"

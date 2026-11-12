@@ -305,15 +305,25 @@ func update_turn_target() -> void:
 		return
 	var recovery: bool = rhythm == "恢复" or (_ctrl.current_gimmick != null and _ctrl.current_gimmick.recovery_window(_ctrl))
 	if recovery:
+		# Step 5：恢复窗口文案由机制声明，避免非熔铸类 BOSS 误显示「熔铸间隙」。
+		var rec_title := "间隙"
+		var rec_detail := "本回合敌人不追加新的加压或干扰；可治疗、净化、破甲或集中输出。"
+		if _ctrl.current_gimmick != null:
+			var t := String(_ctrl.current_gimmick.recovery_title(_ctrl))
+			var d := String(_ctrl.current_gimmick.recovery_detail(_ctrl))
+			if t != "":
+				rec_title = t
+			if d != "":
+				rec_detail = d
 		if _ctrl.enemy_armor > 0:
 			var special := _first_symbol_of_kind("special")
 			if special != "":
-				_set_target(special, "间隙·破甲", "本回合不会新增叠甲/冻结；争取三连破甲，随后集中输出。")
+				_set_target(special, "间隙·破甲", rec_detail)
 			else:
-				_set_target(_default_target(), "间隙·输出", "本回合不会新增叠甲/冻结；集中输出，避免拖入下一次加压。")
+				_set_target(_default_target(), "间隙·输出", rec_detail)
 		else:
-			_set_target(_default_target(), "间隙·输出", "本回合不会新增叠甲/冻结；集中输出，避免拖入下一次加压。")
-		_set_situation("熔铸间隙", "本回合不新增叠甲/冻结；可争取三连、破甲或集中输出。", _recovery_counters())
+			_set_target(_default_target(), "间隙·输出", rec_detail)
+		_set_situation(rec_title, rec_detail, _recovery_counters())
 		_refresh_ui()
 		return
 	# Step 5：爆发窗口 = 敌人刚叠甲/冻结的当回合；恢复窗口已在上方优先处理。

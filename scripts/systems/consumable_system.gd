@@ -68,15 +68,31 @@ func use(uid: String) -> void:
 # 玩家侧状态（frost 冻结 / DoT 毒层）改由清净药剂（cleanse）解——净化不再跨「BOSS 侧 / 玩家侧」双职责。
 func use_purify(data: Resource) -> void:
 	var it_data: IntentData = _ctrl.enemy_intent.get("data")
-	var purifiable: bool = it_data.purifiable if it_data != null else _ctrl.enemy_intent.get("type") in ["jam", "lock", "chaos"]
+	var purifiable: bool = it_data.purifiable if it_data != null else _ctrl.enemy_intent.get("type") in ["jam", "lock", "chaos", "auto_stop"]
+	var negated := ""
 	if purifiable:
 		var t = _ctrl.enemy_intent.get("type")
 		_ctrl.enemy_intent = {"data": null, "type": "none", "value": 0}
-		_ctrl.hud._log("%s：抵消了敌人的%s" % [data.item_name, _ctrl._intent_name(t)])
-		_ctrl.hud._show_action_feedback("净化：抵消%s" % _ctrl._intent_name(t))
-	else:
-		_ctrl.hud._log("%s：当前无干扰意图可清除" % data.item_name)
+		negated = _ctrl._intent_name(t)
+		_ctrl.hud._log("%s：抵消了敌人的%s" % [data.item_name, negated])
+	# 2026-11-12 Step 1：净化同时解除「转轮干扰类」减益（目盲/缠绕）——
+	# 与清净药剂（毒/灼烧/冻结/虚弱…状态类）职责分离，互不越界。
+	var cleared: Array[String] = []
+	if _ctrl.debuffs != null:
+		cleared = _ctrl.debuffs.clear_interference(_ctrl)
+		if not cleared.is_empty():
+			_ctrl.hud._log("%s：解除 %s" % [data.item_name, "、".join(cleared)])
+	if negated == "" and cleared.is_empty():
+		_ctrl.hud._log("%s：当前无干扰意图/转轮减益可清除" % data.item_name)
 		_ctrl.hud._show_action_feedback("净化：无目标")
+		return
+	if negated != "":
+		var fb := "净化：抵消" + negated
+		if not cleared.is_empty():
+			fb += "·" + "、".join(cleared)
+		_ctrl.hud._show_action_feedback(fb)
+	else:
+		_ctrl.hud._show_action_feedback("净化：" + "、".join(cleared))
 
 
 # 清净药剂（2026-08-09 新增）：解除玩家自身负面状态——frost 冻结解冻 + DoT 毒层清零。
@@ -98,18 +114,37 @@ func use_cleanse(data: Resource) -> void:
 		_ctrl.hud._log("清净药剂：驱散酸蚀，毒层清零！")
 		tags.append("酸蚀")
 		cleaned_any = true
+	# 2026-11-12 Step 3：灼烧同属玩家侧 DoT，由清净一并解除
+	if int(_ctrl.player_status.get("burn", 0)) > 0:
+		_ctrl.player_status["burn"] = 0
+		_ctrl.hud._log("清净药剂：扑灭灼烧，火层清零！")
+		tags.append("灼烧")
+		cleaned_any = true
+	# 2026-11-12 Step 1：状态类减益（虚弱/易伤/腐蚀/禁疗/反噬）统一由清净解除。
+	if _ctrl.debuffs != null:
+		var cleared: Array[String] = _ctrl.debuffs.clear_status(_ctrl)
+		if not cleared.is_empty():
+			_ctrl.hud._log("清净药剂：解除 %s" % "、".join(cleared))
+			for nm in cleared:
+				tags.append(nm)
+			cleaned_any = true
 	if not cleaned_any:
-		_ctrl.hud._log("清净药剂：当前无寒霜/酸蚀可清除")
+		_ctrl.hud._log("清净药剂：当前无寒霜/酸蚀/负面状态可清除")
 		_ctrl.hud._show_action_feedback("清净：无状态")
 	else:
 		_ctrl.hud._show_action_feedback("清净：" + "、".join(tags))
 
 
 func use_heal(data: Resource) -> void:
+	# 2026-11-12 Step 1：禁疗让治疗收益 -50%（不完全禁止），消耗品治疗同样折算。
+	var heal_mult: float = _ctrl.debuffs.heal_mult() if _ctrl.debuffs != null else 1.0
+	var amount: int = int(round(float(data.value) * heal_mult))
+	if heal_mult != 1.0:
+		_ctrl.hud._log("🚫 禁疗：治疗收益 ×%s" % ElementCounter.fmt_mult(heal_mult))
 	var before := int(_ctrl.player_hp)
-	_ctrl.player_hp = mini(_ctrl.player_hp_max, _ctrl.player_hp + data.value)
+	_ctrl.player_hp = mini(_ctrl.player_hp_max, _ctrl.player_hp + amount)
 	var gain := int(_ctrl.player_hp) - before
-	_ctrl.hud._log("%s：回复 %d HP（现 %d）" % [data.item_name, data.value, _ctrl.player_hp])
+	_ctrl.hud._log("%s：回复 %d HP（现 %d）" % [data.item_name, amount, _ctrl.player_hp])
 	_ctrl.hud._show_action_feedback(("恢复+%d" % gain) if gain > 0 else "恢复：已满")
 
 

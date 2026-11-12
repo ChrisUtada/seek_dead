@@ -163,9 +163,13 @@ func _test_sample_rooms(duel: DuelController) -> void:
 		_check(int(room.gimmick_params.get("first_pressure_turn", 0)) == 2,
 			"%s 首轮第 2 回合爆发（保证 2 回合击杀也看到蓄势→爆发）" % room.name)
 		var summary := String(room.mechanic_summary)
-		_check(summary.contains("蓄势") and summary.contains("爆发") and summary.contains("恢复"),
-			"%s 摘要写明蓄势—爆发—恢复（实际 %s）" % [room.name, summary.replace("\n", " / ")])
-		_check(summary.contains("特殊三连破甲"), "%s 摘要保留破甲对策" % room.name)
+		if room == elite:
+			_check(summary.contains("破甲") and summary.contains("冻结"),
+				"%s 摘要写明叠甲/冻结与破甲解除（实际 %s）" % [room.name, summary.replace("\n", " / ")])
+		else:
+			_check(summary.contains("蓄势") and summary.contains("爆发") and summary.contains("恢复"),
+				"%s 摘要写明蓄势—爆发—恢复（实际 %s）" % [room.name, summary.replace("\n", " / ")])
+			_check(summary.contains("特殊三连破甲"), "%s 摘要保留破甲对策" % room.name)
 	_check(int(elite.gimmick_params.get("max_stacks", 0)) == 2, "寒铁精英封顶 2 层")
 	_check(int(boss.gimmick_params.get("max_stacks", 0)) == 3, "冰封铁瓮封顶 3 层")
 
@@ -312,8 +316,8 @@ func _test_no_build_scaling(duel: DuelController) -> void:
 	var elite: RoomData = load(ELITE)
 	var keys: Array = elite.gimmick_params.keys()
 	keys.sort()
-	_check(keys == ["first_pressure_turn", "interval", "max_stacks", "per_stack", "two_cols_chance"],
-		"样板参数只有节奏/护甲五项（实际 %s）" % str(keys))
+	_check(keys == ["first_pressure_turn", "freeze_clears_on_break", "interval", "max_stacks", "per_stack", "two_cols_chance"],
+		"样板参数只有节奏/护甲/破甲解冻六项（实际 %s）" % str(keys))
 
 
 # ---------------------------------------------------------------------------

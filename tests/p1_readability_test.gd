@@ -17,6 +17,8 @@ extends Node
 
 const WEAPON_DIR := "res://resources/weapon_templates/"
 const TARGET_PATH := "res://resources/symbols/fire_slash.tres"
+# 2026-11-12 二次调整：转轮速度曲线按 19/30 等比缩放，断言不再硬编码旧常量。
+const ReadabilityScript := preload("res://scripts/systems/readability_system.gd")
 
 var _checks := 0
 var _fails := 0
@@ -91,9 +93,9 @@ func _run() -> void:
 
 	# 1. 预设表
 	rd.apply_preset("control")
-	_check(is_equal_approx(rd.min_wait, 1.0 / 12.0) and rd.preview_slots == 0 and not rd.visual_stop and not rd.buffer_enabled, "control 预设数值")
+	_check(is_equal_approx(rd.min_wait, 1.0 / ReadabilityScript.MAX_CPS) and rd.preview_slots == 0 and not rd.visual_stop and not rd.buffer_enabled, "control 预设数值")
 	rd.apply_preset("readable")
-	_check(is_equal_approx(rd.min_wait, 1.0 / 11.0) and is_equal_approx(rd.accel, 0.0014), "readable 速度")
+	_check(is_equal_approx(rd.min_wait, 1.0 / ReadabilityScript.READABLE_MAX_CPS) and is_equal_approx(rd.accel, ReadabilityScript.READABLE_ACCEL), "readable 速度")
 	_check(rd.preview_slots == 2 and rd.visual_stop and rd.buffer_enabled and rd.feedback_enabled, "readable 预览/落点/缓冲/反馈")
 	_check(hud.p1_target_label != null and String(hud.p1_target_label.tooltip_text).contains("readable"), "预设名移入目标行 tooltip（主栏不再拼长预设名）")
 	rd.apply_preset("control")

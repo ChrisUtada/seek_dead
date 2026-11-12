@@ -17,8 +17,15 @@ var _manic_self_damage_pct := 0.05
 var _phase2_hp_ratio := 0.5
 var _depressed_atk_mult := 0.6
 var _p2_armor := 45
+# Step 4（D3）：精英 P1 自损改为每 N 回合一次（周期脉冲）；BOSS 默认每回合。
+var _self_damage_every := 1
+var _turns := 0
 var _phase2 := false
 var _p2_room_data: RoomData
+# Step 5：P1→P2 的转换拍——首回合攻击降低且不注废，给玩家换元素/恢复的空档。
+var _recovery_pending := false
+var _recovering := false
+var _p2_recover_data: RoomData
 
 func on_room_start(ctrl) -> void:
 	var p: Dictionary = ctrl.ROOMS[ctrl.room_index].gimmick_params if (ctrl.room_index >= 0 and ctrl.room_index < ctrl.ROOMS.size()) else {}
@@ -27,20 +34,35 @@ func on_room_start(ctrl) -> void:
 	_phase2_hp_ratio = float(p.get("phase2_hp_ratio", 0.5))
 	_depressed_atk_mult = float(p.get("depressed_atk_mult", 0.6))
 	_p2_armor = int(p.get("p2_armor", 45))
+	_self_damage_every = maxi(1, int(p.get("self_damage_every", 1)))
+	_turns = 0
 	_phase2 = false
+	_recovery_pending = false
+	_recovering = false
 	_p2_room_data = RoomData.new()
 	_p2_room_data.kind = "boss"
 	# P2 意图剖面 attack 50 / heavy 20 / jam 30（注废可净化）——须内联构建实例设权重：
 	# 不能复用共享 intent .tres（weight 均为 1.0 → 33/33/33）且 untyped 数组赋 typed 字段会运行时类型错误
 	_p2_room_data.intents.assign(_build_p2_intents())
+	_p2_recover_data = RoomData.new()
+	_p2_recover_data.kind = "boss"
+	_p2_recover_data.intents.assign(_build_p2_recover_intents())
 	ctrl.boss_atk_mult = _manic_atk_mult
 	ctrl.hud._log("🌊 躁怒元素使：躁狂发作——攻击 ×%s，每回合自扣 %d%% max HP（HP<%d%% 坠入抑郁：切冰属性 + 厚甲 %d）" % [_manic_atk_mult, int(_manic_self_damage_pct * 100), int(_phase2_hp_ratio * 100), _p2_armor])
 
 func on_turn_begin(ctrl) -> void:
+	_turns += 1
+	_recovering = _recovery_pending
+	_recovery_pending = false
 	ctrl.boss_atk_mult = _depressed_atk_mult if _phase2 else _manic_atk_mult
 	if _phase2:
 		# 抑郁期意图剖面：attack 50 / heavy 20 / jam 30（注废可净化）——覆盖掷取，HUD 意图栏同步
-		ctrl.enemy_intent = ctrl.status_system.roll_intent(_p2_room_data)
+		# Step 5：转换首回合用不含注废的恢复剖面，保证是真实空档。
+		ctrl.enemy_intent = ctrl.status_system.roll_intent(_p2_recover_data if _recovering else _p2_room_data)
+		if _recovering:
+			ctrl.hud._log("🌊 情绪低垂：本回合不注废，趁空档换火系/破甲或恢复")
+		return
+	if _turns % _self_damage_every != 0:
 		return
 	var self_dmg := int(ceil(float(ctrl.enemy_hp_max) * _manic_self_damage_pct))
 	if self_dmg > 0:
@@ -59,6 +81,7 @@ func _try_enter_phase2(ctrl) -> void:
 		return
 	if ctrl.enemy_hp <= int(float(ctrl.enemy_hp_max) * _phase2_hp_ratio):
 		_phase2 = true
+		_recovery_pending = true
 		ctrl.enemy_element = "ice"
 		ctrl.hud._update_enemy_element()
 		ctrl.enemy_armor_max = _p2_armor
@@ -95,3 +118,38 @@ func _build_p2_intents() -> Array[IntentData]:
 	jam.purifiable = true
 	jam.value_mult = 0.0
 	return [att, hvy, jam]
+
+
+# Step 5：转换拍使用 attack 70 / heavy 30，不含注废——保证恢复窗真实可读。
+func _build_p2_recover_intents() -> Array[IntentData]:
+	var att := IntentData.new()
+	att.id = "attack"
+	att.display_name = "攻击"
+	att.icon = "⚔"
+	att.weight = 70.0
+	att.purifiable = false
+	att.value_mult = 1.0
+	var hvy := IntentData.new()
+	hvy.id = "heavy"
+	hvy.display_name = "重击"
+	hvy.icon = "💥"
+	hvy.weight = 30.0
+	hvy.purifiable = false
+	hvy.value_mult = 2.0
+	return [att, hvy]
+
+
+func recovery_window(_ctrl) -> bool:
+	return _recovering
+
+
+func rhythm_window(_ctrl) -> String:
+	return "恢复" if _recovering else ""
+
+
+func recovery_title(_ctrl) -> String:
+	return "情绪低垂"
+
+
+func recovery_detail(_ctrl) -> String:
+	return "P2 首回合攻击降低且不注废；可换火系、破甲、治疗或整理资源。"

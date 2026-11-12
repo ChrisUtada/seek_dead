@@ -40,3 +40,4 @@ boss_reward_weapons = Array[String](["res://resources/weapon_templates/night_scy
 boss_relic_path = "res://resources/charms/law_brand_relic.tres"
 art = ExtResource("art_room")
 art_scale = 2.0
+mechanic_summary = "每2回合宣告律法：达成攻击×0.5，违逆重击×2；P2<50%补甲并锁1消耗品槽，达成后一回合不宣告新律法。遵律、防御、安排消耗品。"

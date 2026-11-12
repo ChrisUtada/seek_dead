@@ -202,6 +202,15 @@ var pending_jam_reel = -1              # 敌人注废 → 下一轮强制废铁�
 var pending_lock_reel = -1             # 敌人锁轮 → 下一轮该列固定为当前符号（-1 无）
 var pending_chaos = false              # 敌人乱权 → 下一轮权重削弱优势符号
 var pending_auto_stop = false          # 敌人夺轮（auto_stop）→ 下一轮转轮自动停止（落点随机，无法目押）
+var enemy_stunned := 0                 # 2026-11-12 Step 2：敌人下一次行动失效（裂石像破甲窗口），由 EnemySystem 消耗
+var turn_damage_elems: Array[String] = []   # 2026-11-12 Step 2：本回合实际造成伤害的元素（余烬傀儡等元素触发读取）
+# —— 2026-11-12 Step 3：普通怪机制通用支撑（全部确定性，不消耗 RNG）——
+var turn_resolved := false             # 本回合是否已进入结算（debuff 计时区分「转轮前/后施加」）
+var last_enemy_intent: Dictionary = {} # 上一次敌人实际执行的意图（虚空低语者/回响复制用）
+var enemy_extra_attacks: Array = []    # 本次行动追加攻击 [{"value": int, "poison": int}]，执行后清空
+var enemy_attack_poison := 0           # 本次行动命中后附加给玩家的毒层数，执行后清空
+var enemy_attack_pierce_pct := 0.0     # 本次行动按比例穿透护盾（圣辉游侠），执行后清空
+var enemy_self_damage_after := 0       # 本次行动结束后自损 HP（湮灭使徒），执行后清空
 # 净化完全走消耗品（净化药剂·charges 用尽即移出腰带），不再有"净化上限/净化次数"局内缓存
 
 # M6 护符被动（整局生效，_apply_charms 在 _confirm_loadout 结算）
@@ -295,6 +304,7 @@ var hud: BattleHud
 var reel_system: ReelSystem             # 2026-08-09 拆分：转轮带/旋转/按停逻辑（reel_system.gd）
 var combat: CombatSystem                # 2026-08-09 拆分：回合结算/符号贡献/敌我攻防（combat_system.gd）
 var status_system: StatusSystem         # 2026-08-09 拆分：意图/状态定义与查询（status_system.gd）
+var debuffs                             # 2026-11-12 Step 1：玩家侧共用减益模块（debuff_system.gd；怪物经 apply_debuff 施加）
 var consumable_system: ConsumableSystem # 2026-08-09 拆分：消耗品使用/效果分发（consumable_system.gd）
 var enemy_system: EnemySystem           # 2026-08-09 拆分：敌人回合/意图执行（enemy_system.gd）
 var run_setup                         # P2 架构还债（2026-08-24）：对局构建/BOSS 抽取/ante 曲线（run_setup.gd，preload 实例化）
@@ -343,6 +353,7 @@ func _ready() -> void:
 	reel_system = ReelSystem.new(self)
 	combat = CombatSystem.new(self)
 	status_system = StatusSystem.new(self)
+	debuffs = preload("res://scripts/battle/debuff_system.gd").new()   # Step 1：玩家侧减益（不注册全局 class_name，避免 headless 类缓存）
 	consumable_system = ConsumableSystem.new(self)
 	enemy_system = EnemySystem.new(self)
 	room_flow = preload("res://scripts/battle/room_flow.gd").new(self)
@@ -832,6 +843,7 @@ func start_room_data(r: RoomData, idx: int, ria_override: int = -1, is_final: bo
 	player_frost = 0                      # T30：寒霜侵蚀每房清零（BOSS 战状态，不跨房）
 	frozen_cols = []                      # T30：冻结列随 frost 清零
 	player_status = {}                    # 2026-08-09：玩家侧 DoT 每房清零（BOSS 战状态，不跨房）
+	debuffs.reset()                       # 2026-11-12 Step 1：玩家侧减益每房清零（不跨房残留）
 	player_dot_bomb_stacks = 10           # 2026-08-09：爆炸阈值回落默认（gimmick on_room_start 覆盖）
 	player_buffs = {}                     # Phase C：主动技能不跨房保留
 	player_shield = 0
@@ -844,6 +856,14 @@ func start_room_data(r: RoomData, idx: int, ria_override: int = -1, is_final: bo
 	pending_lock_reel = -1
 	pending_chaos = false
 	pending_auto_stop = false
+	enemy_stunned = 0                     # 2026-11-12 Step 2：行动失效不跨房
+	turn_damage_elems.clear()             # 2026-11-12 Step 2：元素触发记录每房清零
+	turn_resolved = false                 # 2026-11-12 Step 3：debuff 计时相位
+	last_enemy_intent = {}
+	enemy_extra_attacks.clear()
+	enemy_attack_poison = 0
+	enemy_attack_pierce_pct = 0.0
+	enemy_self_damage_after = 0
 	# 净化完全走消耗品（净化药剂·charges 用尽即移出腰带），无需每房回满
 	game_state = FlowState.PLAYING                # 必须在重建消耗品按钮前置为 playing，否则房间过渡瞬间按钮被误判为禁用
 	_refresh_consumable_panel()
@@ -1378,3 +1398,28 @@ func apply_enemy_hp_floor() -> void:
 		var floor_v: int = current_gimmick.hp_floor(self)
 		if floor_v > 0:
 			enemy_hp = maxi(floor_v, enemy_hp)
+	# 2026-11-12 Step 1：阶段触发统一在「任何扣血路径收口之后」检查，避免 DoT/爆发漏检。
+	if current_gimmick != null and current_gimmick.has_method("on_hp_changed"):
+		current_gimmick.on_hp_changed(self)
+
+
+# ---------------------------------------------------------------------------
+# 2026-11-12 Step 1：玩家侧减益（debuff_system）对外入口
+# 怪物/gimmick 只调 apply_debuff；结算层只读 debuffs 的 *_mult() 查询。
+# ---------------------------------------------------------------------------
+func apply_debuff(id: String, turns: int = -1, stacks: int = 1, extra: Dictionary = {}) -> bool:
+	if debuffs == null:
+		return false
+	return debuffs.apply(self, id, turns, stacks, extra)
+
+
+func debuff_summary() -> String:
+	return debuffs.summary() if debuffs != null else ""
+
+
+func notify_armor_break() -> void:
+	# 腐蚀随破甲解除；再通知 gimmick 的「首次破甲」触发。
+	if debuffs != null:
+		debuffs.clear_on_armor_break(self)
+	if current_gimmick != null and current_gimmick.has_method("on_armor_break"):
+		current_gimmick.on_armor_break(self)

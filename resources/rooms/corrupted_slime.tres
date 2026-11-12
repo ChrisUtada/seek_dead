@@ -1,6 +1,7 @@
-[gd_resource type="Resource" script_class="RoomData" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="RoomData" load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/battle/room_data.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/battle/gimmicks/normal_trait_gimmick.gd" id="3"]
 [ext_resource type="Texture2D" path="res://assets/characters/corrupted_slime/idle_01.png" id="art_room"]
 
 [resource]
@@ -14,3 +15,6 @@ act = 1
 armor = 12
 art = ExtResource("art_room")
 art_scale = 2.0
+gimmick_script = ExtResource("3")
+gimmick_params = {"trait": "poison_hit", "stacks": 1}
+mechanic_summary = "首次受击\n中毒1层（一次）"

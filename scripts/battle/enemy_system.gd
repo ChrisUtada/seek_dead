@@ -19,7 +19,20 @@ func _init(ctrl) -> void:
 
 # 敌人回合主入口（玩家结算后调用）：执行预告的意图 → 清理 → 状态 DoT 结算。
 func take_turn() -> void:
+	# 2026-11-12 Step 2：行动失效（裂石像破甲窗口）——消耗一次，跳过本次意图但照常结算 DoT。
+	if int(_ctrl.enemy_stunned) > 0:
+		_ctrl.enemy_stunned -= 1
+		_ctrl.hud._log("🪨 崩解：本回合无法行动（破甲输出窗口）")
+		_ctrl.enemy_intent = {}
+		_ctrl.enemy_extra_attacks.clear()
+		_ctrl.enemy_attack_poison = 0
+		_ctrl.enemy_attack_pierce_pct = 0.0
+		_ctrl.enemy_self_damage_after = 0
+		_ctrl.combat.tick_status()
+		_ctrl.invalidate_state()
+		return
 	var it: Dictionary = _ctrl.enemy_intent
+	_ctrl.last_enemy_intent = it.duplicate(true)   # Step 3：供「重复上一意图」读取（复制，防后续改字典）
 	match it.get("type", "attack"):
 		"attack", "heavy": _do_attack(it)
 		"jam":             _do_jam()
@@ -27,13 +40,57 @@ func take_turn() -> void:
 		"chaos":           _do_chaos()
 		"auto_stop":       _do_auto_stop()
 		"none":            _ctrl.hud._log("敌人意图落空（已被净化）")
+	_resolve_extra_attacks()
+	_resolve_self_damage_after()
 	_ctrl.enemy_intent = {}
 	_ctrl.combat.tick_status()
 	_ctrl.invalidate_state()   # 敌人攻击扣血/意图清空/DoT 结算
 
 
 func _do_attack(it: Dictionary) -> void:
-	_ctrl.combat.enemy_deal_damage(it.get("value", _ctrl.enemy_atk))
+	var raw: int = int(it.get("value", _ctrl.enemy_atk))
+	# 圣辉游侠：少量伤害直接穿透护盾（先扣，再走统一闸口结算剩余）
+	var pct: float = float(_ctrl.enemy_attack_pierce_pct)
+	_ctrl.enemy_attack_pierce_pct = 0.0
+	if pct > 0.0:
+		var pierce: int = int(round(float(raw) * pct))
+		if pierce > 0:
+			_ctrl.player_hp = maxi(0, int(_ctrl.player_hp) - pierce)
+			_ctrl.hud._popup("🗡穿透 -%d" % pierce, Palette.POP_DAMAGE, _ctrl.hud._player_sprite_anchor())
+			_ctrl.hud._log("🗡 穿透护盾：%d 点直接命中（本次攻击 %d 的 %d%%）" % [pierce, raw, int(round(pct * 100.0))])
+	_ctrl.combat.enemy_deal_damage(raw)
+	# 毒针群蝠：主攻击附带毒层
+	if int(_ctrl.enemy_attack_poison) > 0:
+		var stacks: int = int(_ctrl.enemy_attack_poison)
+		_ctrl.enemy_attack_poison = 0
+		_ctrl.player_status["poison"] = int(_ctrl.player_status.get("poison", 0)) + stacks
+		_ctrl.hud._log("🧪 毒针：玩家中毒 +%d 层（共 %d）" % [stacks, int(_ctrl.player_status["poison"])])
+
+
+# Step 3：一次行动的多段攻击（炎锋群蝠 / 毒针群蝠），逐段走统一伤害闸口。
+func _resolve_extra_attacks() -> void:
+	var list: Array = _ctrl.enemy_extra_attacks
+	_ctrl.enemy_extra_attacks = []
+	for item in list:
+		var d: Dictionary = item
+		var value: int = int(d.get("value", 0))
+		if value <= 0:
+			continue
+		_ctrl.combat.enemy_deal_damage(value)
+		var poison: int = int(d.get("poison", 0))
+		if poison > 0:
+			_ctrl.player_status["poison"] = int(_ctrl.player_status.get("poison", 0)) + poison
+			_ctrl.hud._log("🧪 追加一击附带毒 +%d 层（共 %d）" % [poison, int(_ctrl.player_status["poison"])])
+
+
+# Step 3：行动后自损（湮灭使徒）——走敌人 HP 直扣，不吃护甲，可被任何上限/下限钩子收口。
+func _resolve_self_damage_after() -> void:
+	var dmg: int = int(_ctrl.enemy_self_damage_after)
+	_ctrl.enemy_self_damage_after = 0
+	if dmg <= 0:
+		return
+	_ctrl.enemy_hp = maxi(0, int(_ctrl.enemy_hp) - dmg)
+	_ctrl.hud._log("💥 反噬自身：%s -%d HP（剩余 %d）" % [_ctrl.enemy_name, dmg, int(_ctrl.enemy_hp)])
 
 
 # 注废：下一轮随机一列被废铁占据（锁定时落实，见 ReelSystem.lock_reel）

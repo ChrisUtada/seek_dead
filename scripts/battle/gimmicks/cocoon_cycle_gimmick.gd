@@ -20,6 +20,7 @@ var _open_armor := 0
 var _heal_per_turn := 6
 var _open_heavy_mult := 2.0
 var _turns := 0
+var _is_open := false
 
 func on_room_start(ctrl) -> void:
 	var p: Dictionary = ctrl.ROOMS[ctrl.room_index].gimmick_params if (ctrl.room_index >= 0 and ctrl.room_index < ctrl.ROOMS.size()) else {}
@@ -29,6 +30,7 @@ func on_room_start(ctrl) -> void:
 	_heal_per_turn = int(p.get("heal_per_turn", 6))
 	_open_heavy_mult = float(p.get("open_heavy_mult", 2.0))
 	_turns = 0
+	_is_open = false
 	# 进房即闭合：厚甲补满
 	ctrl.enemy_armor_max = _shell_armor
 	ctrl.enemy_armor = _shell_armor
@@ -38,6 +40,7 @@ func on_room_start(ctrl) -> void:
 func on_turn_begin(ctrl) -> void:
 	_turns += 1
 	var is_open: bool = (_turns % _cycle_period) == 0
+	_is_open = is_open
 	if is_open:
 		# 开合：甲归零 + 不回血 + 强制重击（威慑窗口）——意图覆盖可读，玩家提前一回合可见
 		ctrl.enemy_armor_max = _open_armor
@@ -60,3 +63,20 @@ func on_turn_begin(ctrl) -> void:
 func _show_phase(ctrl, is_open: bool) -> void:
 	if ctrl.hud != null:
 		ctrl.hud.set_enemy_art(ART_OPEN if is_open else ART_CLOSED, ART_SCALE)
+
+
+# Step 5：开合回合 = 玩家输出窗口（护甲归零、不回血），但敌人会强制重击。
+func recovery_window(_ctrl) -> bool:
+	return _is_open
+
+
+func rhythm_window(_ctrl) -> String:
+	return "恢复" if _is_open else ""
+
+
+func recovery_title(_ctrl) -> String:
+	return "茧壳开合"
+
+
+func recovery_detail(_ctrl) -> String:
+	return "护甲归零、不再回血；本回合可抢输出，也可先防御这次强制重击。"

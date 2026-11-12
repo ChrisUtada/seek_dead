@@ -75,6 +75,7 @@ func contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> voi
 			# 破甲 = 仅带破甲机制（triple_pierce）的武器/技能三连触发（evaluate 里判 _item_pierce_map）
 			if raw >= 3:
 				acc["triple"] = true
+			_note_damage_elem(elem)
 			if sym.pierce_armor or randf() < pierce_p:
 				acc["pierce"] += dv     # 穿透护甲：直接扣 HP
 			else:
@@ -101,12 +102,20 @@ func contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> voi
 				_ctrl._turn_hit_used = true
 			if raw >= 3:
 				acc["triple"] = true
+			_note_damage_elem(elem)
 			if sym.pierce_armor or randf() < pierce_p:
 				acc["pierce"] += sv
 			else:
 				acc["special"] += sv
 			push_dmg_line(acc, sym, elem, flat, bonus, mult, em, sv, crit_mult_val)
 		_: pass
+
+
+# 2026-11-12 Step 2：记录本回合造成伤害的元素（去重），供「每回合首次受到某元素伤害」类普通特性读取。
+func _note_damage_elem(elem: String) -> void:
+	if elem == "none" or _ctrl.turn_damage_elems.has(elem):
+		return
+	_ctrl.turn_damage_elems.append(elem)
 
 
 # S2：伤害分解行（§5.2 标为 P0——"爽感的一半来自看懂这一下为什么这么大"；
@@ -141,6 +150,7 @@ func push_dmg_line(acc: Dictionary, sym: SymbolData, elem: String, flat, bonus, 
 # 2026-08-07：重转机制移除，单次结算（chain_mult 参数退役）
 # 2026-11-08（G8）：原单函数按阶段拆分；执行顺序、RNG 调用与 await 时序与拆分前逐行一致。
 func evaluate() -> void:
+	_ctrl.turn_resolved = true   # 2026-11-12 Step 3：转轮已结束，此后施加的 debuff 从下一回合起计时
 	var acc := _new_acc()
 	_reset_turn_state()
 	var counts := _phase_symbols(acc)
@@ -161,6 +171,7 @@ func _reset_turn_state() -> void:
 	_ctrl._eval_dis = false
 	_ctrl._turn_hit_used = false   # 碎片王冠（信物）：每回合首击标记重置
 	_ctrl._charge_elem_counts = {}   # 主导元素统计每回合重置
+	_ctrl.turn_damage_elems.clear()  # 2026-11-12 Step 2：本回合伤害元素记录（余烬傀儡等读取）
 	_turn_armor_cleared = 0
 	_turn_counter_burst = 0
 	_turn_charge_burst = 0
@@ -224,6 +235,18 @@ func _phase_symbols(acc: Dictionary) -> Dictionary:
 
 	# 匹配角标（×N，N>=2）
 	_ctrl.hud._update_match_badges(counts)
+	# 2026-11-12 Step 1：反噬判定——连续使用上一回合出现过的符号时记小额代价（每回合最多一次）。
+	# 只读本回合停轮结果，不消耗 RNG；未挂反噬时仅更新「上一回合符号」记录。
+	if _ctrl.debuffs != null:
+		var turn_syms: Array[String] = []
+		for key in counts:
+			var s: SymbolData = counts[key][0]
+			if s.kind == "trash" or s == DuelController.GOLD_SYMBOL:
+				continue
+			var p: String = s.resource_path
+			if not turn_syms.has(p):
+				turn_syms.append(p)
+		_ctrl.debuffs.note_turn_symbols(_ctrl, turn_syms)
 	return counts
 
 
@@ -232,6 +255,17 @@ func _phase_defense(acc: Dictionary) -> void:
 	# Phase C：铁壁(shield)/回春(regen) 按回合生效，并入本回合护盾与治疗（F-0 聚合层）
 	acc["shield"] += int(agg_shield())
 	acc["heal"] += int(agg_regen())
+	# 2026-11-12 Step 1：腐蚀 / 禁疗在「全部来源聚合之后、落地之前」统一折算，
+	# 覆盖符号、铁壁/回春等所有护盾/治疗来源，避免只砍符号的漏算。
+	if _ctrl.debuffs != null:
+		var shield_mult: float = _ctrl.debuffs.shield_mult()
+		if shield_mult != 1.0 and acc["shield"] > 0:
+			acc["shield"] = int(round(float(acc["shield"]) * shield_mult))
+			_ctrl.hud._log("🧪 腐蚀：本回合护盾收益 ×%s" % ElementCounter.fmt_mult(shield_mult))
+		var heal_mult: float = _ctrl.debuffs.heal_mult()
+		if heal_mult != 1.0 and acc["heal"] > 0:
+			acc["heal"] = int(round(float(acc["heal"]) * heal_mult))
+			_ctrl.hud._log("🚫 禁疗：本回合治疗收益 ×%s" % ElementCounter.fmt_mult(heal_mult))
 	for st in acc["status_stacks"].keys():
 		_ctrl.enemy_status[st] = _ctrl.enemy_status.get(st, 0) + acc["status_stacks"][st]
 	if acc["shield"] > 0:
@@ -300,11 +334,13 @@ func _phase_attack(counts: Dictionary, acc: Dictionary) -> void:
 	# —— 攻击结算（先破甲后掉血；穿透符号直接扣 HP）——
 	# Phase C：迅捷(damage_mult) 对本回合总伤害做乘算（F-0 聚合层，含护符乘区）
 	var buff_mult = agg_damage_mult()
+	# 2026-11-12 Step 1：虚弱对「连线+穿透」总伤害乘算；核爆/充能爆发按 maxHP 比例，不受虚弱影响。
+	var debuff_mult: float = _ctrl.debuffs.damage_mult() if _ctrl.debuffs != null else 1.0
 	var assault = _ctrl.assault_next_spin
 	var normal_subtotal = acc["dmg"] + acc["special"]
 	var pierce_subtotal = acc.get("pierce", 0.0)
-	var normal_total = int(normal_subtotal * assault * buff_mult * DuelController.BALANCE.player_dmg_mult)
-	var pierce_total = int(pierce_subtotal * assault * buff_mult * DuelController.BALANCE.player_dmg_mult)
+	var normal_total = int(normal_subtotal * assault * buff_mult * DuelController.BALANCE.player_dmg_mult * debuff_mult)
+	var pierce_total = int(pierce_subtotal * assault * buff_mult * DuelController.BALANCE.player_dmg_mult * debuff_mult)
 	_ctrl.assault_next_spin = 1
 	var total = normal_total + pierce_total
 	# S2：伤害分解只进调试日志（Debug.log），屏幕仅保留总伤害飘字（见下方 _popup）
@@ -320,6 +356,8 @@ func _phase_attack(counts: Dictionary, acc: Dictionary) -> void:
 			tail.append("增益×%s" % ElementCounter.fmt_mult(bm))
 		if assault != 1:
 			tail.append("强袭×%s" % ElementCounter.fmt_mult(float(assault)))
+		if debuff_mult != 1.0:
+			tail.append("虚弱×%s" % ElementCounter.fmt_mult(debuff_mult))
 		if DuelController.BALANCE.player_dmg_mult != 1.0:
 			tail.append("全局×%s" % ElementCounter.fmt_mult(DuelController.BALANCE.player_dmg_mult))
 		if pierce_total > 0:
@@ -366,6 +404,9 @@ func _phase_attack(counts: Dictionary, acc: Dictionary) -> void:
 		_ctrl.current_gimmick.on_turn_resolved(_ctrl)
 	# Phase C：回合末递减增益剩余回合
 	tick_buffs()
+	# 2026-11-12 Step 1：减益计时在「玩家实际经历完本回合」后结算（施放当回合不扣）。
+	if _ctrl.debuffs != null:
+		_ctrl.debuffs.tick_turn_end(_ctrl)
 	if _ctrl._telemetry != null:
 		_ctrl._telemetry.on_turn(bool(acc.get("triple", false)))   # M1-06：回合与三连率
 	_ctrl.invalidate_state()   # 伤害/护盾/充能/状态与 gimmick 钩子写入（on_special_triple/on_damaged/on_turn_resolved）统一在此覆盖
@@ -454,7 +495,11 @@ func tick_buffs() -> void:
 # 敌人攻击玩家（debuff 减益由元素驱动：frost/poison = 敌人减攻）。本函数是对玩家伤害的唯一闸口。
 func enemy_deal_damage(raw: int) -> void:
 	var atk_down = 1.0 - min(0.5, _ctrl.enemy_status.get("frost", 0) * 0.2 + _ctrl.enemy_status.get("poison", 0) * 0.2)
-	var eff = int(round(float(raw) * atk_down * _ctrl.boss_atk_mult))
+	# 2026-11-12 Step 1：易伤在敌人→玩家唯一伤害闸口折算（+25%）。
+	var taken_mult: float = _ctrl.debuffs.taken_mult() if _ctrl.debuffs != null else 1.0
+	var eff = int(round(float(raw) * atk_down * _ctrl.boss_atk_mult * taken_mult))
+	if taken_mult != 1.0:
+		_ctrl.hud._log("🩸 易伤：承伤 ×%s" % ElementCounter.fmt_mult(taken_mult))
 	if _ctrl.boss_atk_mult != 1.0:
 		_ctrl.hud._log("🔒 呓语强化：敌人攻击 ×%s" % ElementCounter.fmt_mult(_ctrl.boss_atk_mult))
 	if atk_down < 1.0:
@@ -506,6 +551,7 @@ func on_counter(kind: String, pierce_need: int = 3) -> void:
 		_ctrl.enemy_armor = 0
 		if _ctrl._career != null:
 			_ctrl._career.note_armor_break()   # G6-01：仅记录 BOSS 房破甲（不改结算）
+		_ctrl.notify_armor_break()   # 2026-11-12 Step 1：腐蚀解除 + gimmick「首次破甲」触发
 	if kind == "element":
 		var burst = int(_ctrl.enemy_hp_max * DuelController.BALANCE.counter_burst_pct)
 		if burst > 0:
@@ -550,6 +596,7 @@ func release_element_burst() -> void:
 		_turn_armor_cleared += int(_ctrl.enemy_armor)   # Step 4：结果反馈报真实破甲量
 		_ctrl.enemy_armor = 0
 		_ctrl.hud._log("⚡ 元素充能爆发：护甲清零！")
+		_ctrl.notify_armor_break()   # 2026-11-12 Step 1：破甲路径统一（腐蚀解除 / 首次破甲触发）
 	if burst > 0:
 		_turn_charge_burst += burst   # Step 4：充能爆发与连线伤害分开报
 		apply_enemy_damage(burst, true)

@@ -424,6 +424,15 @@ func next_symbols(r: int, count: int, base_index: int = -1) -> Array:
 func lock_reel(r: int, use_visual: bool = true, reason: String = "player") -> void:
 	if r < 0 or r >= DuelController.REELS or reel_stopped[r] or is_absorbing(r):
 		return
+	# 2026-11-12 Step 1：缠绕——本回合只能按指定方向逐列停止。
+	# 只约束玩家手动按停；自动停轮（reason="forced"）不受限，避免与夺轮/冻结叠加时软锁。
+	if reason == "player" and _ctrl.debuffs != null and _ctrl.debuffs.entangle_active():
+		var need: int = _ctrl.debuffs.entangle_next(self)
+		if need >= 0 and r != need:
+			var dir_txt: String = "从左往右" if _ctrl.debuffs.entangle_order() == "ltr" else "从右往左"
+			_ctrl.hud._show_action_feedback("缠绕：先停第 %d 列" % (need + 1))
+			_ctrl.hud._log("🪢 缠绕：本回合需%s逐列停止（下一列：第 %d 列）" % [dir_txt, need + 1])
+			return
 	# 注废/锁轮列的结果是机制决定的，不进入视觉解析或输入缓冲。
 	if r == _ctrl.pending_jam_reel or r == _ctrl.pending_lock_reel:
 		_lock_at(r, 0, reason)
@@ -554,6 +563,13 @@ func _lock_at(r: int, idx: int, reason: String) -> void:
 # 停止下一列（空格）：依次锁定尚未停下的列，时机由玩家掌握。
 # 输入缓冲中的列不会重复入队；敌人 auto_stop 传 use_visual=false / reason="forced"。
 func stop_next_reel(use_visual: bool = true, reason: String = "player") -> void:
+	# 2026-11-12 Step 3：缠绕时「下一列」必须按指定方向——否则空格键会反复点被拒绝的列导致软锁。
+	# 自动停轮（forced）不受此约束，仍按普通顺序。
+	if reason == "player" and _ctrl.debuffs != null and _ctrl.debuffs.entangle_active():
+		var need: int = _ctrl.debuffs.entangle_next(self)
+		if need >= 0 and not reel_stopped[need] and not is_absorbing(need) and not has_pending_stop(need):
+			lock_reel(need, use_visual, reason)
+			return
 	for r in DuelController.REELS:
 		if not reel_stopped[r] and not is_absorbing(r) and not has_pending_stop(r):
 			lock_reel(r, use_visual, reason)
