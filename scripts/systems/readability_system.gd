@@ -18,14 +18,16 @@ extends RefCounted
 #          它不自动选目标，也不跨越多格。
 # ============================================================================
 
-# 2026-11-12 转轮手感 Step 3：5 格/秒起转，0.32s 后进入 9 格/秒巡航，
-# 高速封顶 12 格/秒（readable 11），巡航后加速段约 1.5s 内到达上限。
-# 旧模型起步 0.15s/格（6.7 格/秒）、封顶 0.06s/格（16.7 格/秒）。
-const CRUISE_CPS := 9.0
-const MAX_CPS := 12.0
-const READABLE_MAX_CPS := 11.0
-const CONTROL_ACCEL := 0.0020
-const READABLE_ACCEL := 0.0014
+# 2026-11-12 转轮手感 Step 3：5 格/秒起转，0.32s 后进入巡航，高速封顶，加速段约 1.5s。
+# 2026-11-12 二次调整：符号图标从 16px 升到 32px，滚动槽间距 19→30px，
+# 同样的「格/秒」下视觉像素速度会快 58%（171→270 px/s）。为了让观感回到改动前，
+# 把整条速度曲线按 19/30 = 0.633 等比缩放（含上限与加速），保持 1.5s 到顶的时间不变。
+# 代价：转轮逻辑节拍变慢，旋转总时长约 ×1.58。
+const CRUISE_CPS := 5.7           # 原 9.0；视觉 ≈ 30px × 5.7 = 171 px/s
+const MAX_CPS := 7.6              # 原 12.0
+const READABLE_MAX_CPS := 7.0     # 原 11.0
+const CONTROL_ACCEL := 0.0051     # 原 0.0020：节拍变慢后需按比例加大，才能仍在 ~1.5s 到顶
+const READABLE_ACCEL := 0.0038    # 原 0.0014
 
 const PRESETS := {
 	"control":  {"base": 1.0 / CRUISE_CPS, "min": 1.0 / MAX_CPS, "accel": CONTROL_ACCEL, "preview": 0, "visual": false, "buffer": false, "feedback": false},
