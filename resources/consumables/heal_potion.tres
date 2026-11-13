@@ -20,5 +20,5 @@ role = "recovery"
 mechanism_summary = "主动使用（1 次）：立即恢复 30 点生命值。"
 act_min = 1
 act_max = 3
-source_tags = Array[String](["normal", "elite", "shop", "start"])
+source_tags = Array[String](["normal", "elite", "shop", "start", "chest"])
 unique_group = "consumable_heal"

@@ -255,6 +255,10 @@ const BATTLE_ORDER := [
 # 1,3,4,6 共享段；7,8 中段；10 尾段（长尾的尾路商店 / BOSS 不参与此表）。
 
 var _ctrl
+# Step 5：探索来源（宝箱 / 搜寻 / 装备格）的品质与候选走 chest 来源表。
+# 每次生成取一次专用种子：同种子棋盘内容可复现，且不改变生成器其它全局 RNG 抽样序列。
+var _gen_act := 1
+var _loot_rng := RandomNumberGenerator.new()
 
 
 func _init(ctrl) -> void:
@@ -262,6 +266,8 @@ func _init(ctrl) -> void:
 
 
 func generate(act: int, cfg) -> Dictionary:
+	_gen_act = act
+	_loot_rng.seed = randi()
 	var shape: Dictionary = _pick_shape(cfg)
 	var tpl: Dictionary = _pick_template(cfg)
 	var overrides: Dictionary = tpl.get("overrides", {})
@@ -450,11 +456,11 @@ func _assign_treasure(t: Dictionary) -> void:
 	var path := ""
 	match kind:
 		"weapon":
-			path = String(_ctrl._reward_system.pick_explore_weapon_path())
+			path = _pick_explore("weapon", _ctrl.selected_loadout)
 		"charm":
-			path = _pick_charm_path()
+			path = _pick_explore("passive", _ctrl.selected_charms)
 		_:
-			path = _pick_active_path()
+			path = _pick_explore("active")
 	if path == "":
 		kind = "gold"
 	t["treasure_kind"] = kind
@@ -510,18 +516,16 @@ func _assign_armory(t: Dictionary) -> void:
 
 
 # 两把互不重复、且当前装配未持有的武器；池不足时返回能凑到的数量。
+# Step 5：具体武器走探索来源表（chest），品质由来源决定，不再按旧获取权重抽。
 func _pick_armory_paths() -> Array:
 	var out: Array = []
 	for i in 2:
-		var cand: Array = []
-		for p in _ctrl.WEAPON_POOL:
-			var s := String(p)
-			if _ctrl.selected_loadout.has(p) or s in out:
-				continue
-			cand.append(s)
-		if cand.is_empty():
+		var exclude: Array = out.duplicate()
+		exclude.append_array(_ctrl.selected_loadout)
+		var pick := _pick_explore("weapon", exclude)
+		if pick == "":
 			break
-		out.append(String(_ctrl._reward_system.acq_weighted_pick(cand)))
+		out.append(pick)
 	return out
 
 
@@ -533,28 +537,16 @@ func _weapon_brief(path: String) -> String:
 
 
 func _pick_charm_path() -> String:
-	var relics: Array = _ctrl._reward_system.relic_paths()
-	var cand: Array = []
-	for p in _ctrl.ITEM_POOL:
-		if p in relics:
-			continue
-		var res: Resource = load(p)
-		if res != null and String(res.get("category")) == "passive":
-			cand.append(p)
-	if cand.is_empty():
-		return ""
-	return String(_ctrl._reward_system.acq_weighted_pick(cand))
+	return _pick_explore("passive", _ctrl.selected_charms)
 
 
 func _pick_active_path() -> String:
-	var cand: Array = []
-	for p in _ctrl.ITEM_POOL:
-		var res: Resource = load(p)
-		if res != null and String(res.get("category")) == "active":
-			cand.append(p)
-	if cand.is_empty():
-		return ""
-	return String(_ctrl._reward_system.acq_weighted_pick(cand))
+	return _pick_explore("active")
+
+
+# Step 5：探索来源统一入口。rng 与幕次由本生成器持有，同种子可复现。
+func _pick_explore(category: String, exclude: Array = []) -> String:
+	return String(_ctrl._reward_system.pick_explore_loot(category, _gen_act, _loot_rng, exclude))
 
 
 # ---------------------------------------------------------------------------
@@ -827,7 +819,7 @@ func _room_desc(r: RoomData, type: String) -> String:
 # ---------------------------------------------------------------------------
 
 func _assign_weapon(n: Dictionary) -> void:
-	var path := String(_ctrl._reward_system.pick_explore_weapon_path())
+	var path := _pick_explore("weapon", _ctrl.selected_loadout)
 	if path == "":
 		for p in _ctrl.WEAPON_POOL:
 			if not _ctrl.selected_loadout.has(p):

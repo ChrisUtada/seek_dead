@@ -17,5 +17,5 @@ role = "defense"
 mechanism_summary = "被动常驻：每间房间开局获得 12 点护盾。"
 act_min = 1
 act_max = 3
-source_tags = Array[String](["elite", "shop", "anvil"])
+source_tags = Array[String](["elite", "shop", "anvil", "chest"])
 unique_group = "charm_room_shield"

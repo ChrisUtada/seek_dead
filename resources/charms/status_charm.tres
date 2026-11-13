@@ -17,5 +17,5 @@ role = "damage"
 mechanism_summary = "被动常驻：灼烧/霜冻/毒伤害 ×1.5，状态叠加轴投资（T2）。"
 act_min = 2
 act_max = 3
-source_tags = Array[String](["elite", "shop", "anvil"])
+source_tags = Array[String](["elite", "shop", "anvil", "chest"])
 unique_group = "charm_status_boost"

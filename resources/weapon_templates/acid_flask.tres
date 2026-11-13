@@ -35,5 +35,5 @@ role = "damage"
 mechanism_summary = "毒系施法远程：蚀液（5权重，毒伤害） + 毒（1权重，挂中毒）；非三连暴击+8%；同源三连充能+1、状态+1；同源三连35%穿透；命中率89%，基础伤害10。符号需落线触发，未命中为废铁格。"
 act_min = 1
 act_max = 3
-source_tags = Array[String](["normal", "elite", "shop", "anvil"])
+source_tags = Array[String](["normal", "elite", "shop", "anvil", "chest"])
 unique_group = "weapon_poison_poison_line"

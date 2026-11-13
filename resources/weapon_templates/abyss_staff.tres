@@ -35,5 +35,5 @@ role = "damage"
 mechanism_summary = "暗系施法远程：暗影锁链（4权重，暗伤害） + 深渊撕咬（3权重，暗伤害）；三连×2.5，非三连暴击+12%；同源三连充能+1、状态+1；同源三连35%穿透；命中率91%，基础伤害16。符号需落线触发，未命中为废铁格。"
 act_min = 1
 act_max = 3
-source_tags = Array[String](["normal", "elite", "shop", "anvil"])
+source_tags = Array[String](["normal", "elite", "shop", "anvil", "chest"])
 unique_group = "weapon_dark_pure_line"

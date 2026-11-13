@@ -38,5 +38,5 @@ role = "damage"
 mechanism_summary = "暗系重型近战：暗斩（5权重，暗伤害）；三连清空护甲；命中率75%，基础伤害23。符号需落线触发，未命中为废铁格。"
 act_min = 1
 act_max = 3
-source_tags = Array[String](["normal", "elite", "boss", "shop", "anvil"])
+source_tags = Array[String](["normal", "elite", "boss", "shop", "anvil", "chest"])
 unique_group = "weapon_dark_pure_triple"

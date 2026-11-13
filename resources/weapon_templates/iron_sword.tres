@@ -30,5 +30,5 @@ role = "damage"
 mechanism_summary = "无属性系中型近战：铁斩（5权重，无属性伤害）；三连清空护甲；命中率80%，基础伤害12。符号需落线触发，未命中为废铁格。"
 act_min = 1
 act_max = 3
-source_tags = Array[String](["normal", "elite", "boss", "shop", "anvil"])
+source_tags = Array[String](["normal", "elite", "boss", "shop", "anvil", "chest"])
 unique_group = "weapon_none_pure_triple"

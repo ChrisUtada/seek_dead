@@ -20,5 +20,5 @@ role = "recovery"
 mechanism_summary = "被动常驻：本局每回合回复 12 HP（覆盖灵魂安抚 10 的顶级常驻回血）——耻辱审判官受击/血线期生存，罪业损失对冲；代价：所有伤害 ×0.9。"
 act_min = 2
 act_max = 3
-source_tags = Array[String](["elite", "shop", "anvil"])
+source_tags = Array[String](["elite", "shop", "anvil", "chest"])
 unique_group = "charm_heal"

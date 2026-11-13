@@ -34,5 +34,5 @@ role = "damage"
 mechanism_summary = "光系轻型近战：晨曦箭（5权重，光伤害）；非三连暴击+10%；同源三连追加50%伤害；命中率88%，基础伤害10。符号需落线触发，未命中为废铁格。"
 act_min = 1
 act_max = 3
-source_tags = Array[String](["normal", "elite", "boss", "shop", "anvil"])
+source_tags = Array[String](["normal", "elite", "boss", "shop", "anvil", "chest"])
 unique_group = "weapon_light_pure_line"

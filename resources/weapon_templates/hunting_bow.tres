@@ -29,5 +29,5 @@ role = "damage"
 mechanism_summary = "无属性系中型远程：箭矢（5权重，无属性伤害）；非三连暴击+8%；同源三连35%穿透；命中率89%，基础伤害10。符号需落线触发，未命中为废铁格。"
 act_min = 1
 act_max = 3
-source_tags = Array[String](["normal", "elite", "shop", "anvil"])
+source_tags = Array[String](["normal", "elite", "shop", "anvil", "chest"])
 unique_group = "weapon_none_pure_line"

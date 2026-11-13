@@ -21,5 +21,5 @@ role = "damage"
 mechanism_summary = "主动使用（1 次）：立即造成 20 火属性伤害（参与克制）+ 敌人挂 1 层灼烧——打冰系敌人 ×1.5 且克制充能 +1。"
 act_min = 1
 act_max = 3
-source_tags = Array[String](["normal", "elite", "shop", "start"])
+source_tags = Array[String](["normal", "elite", "shop", "start", "chest"])
 unique_group = "consumable_attack_fire_burn"

@@ -19,5 +19,5 @@ role = "damage"
 mechanism_summary = "被动常驻：灼烧/霜冻/毒伤害 ×2.0；代价：所有伤害 ×0.85——把整条命押在状态层数上。"
 act_min = 2
 act_max = 3
-source_tags = Array[String](["elite", "shop", "anvil"])
+source_tags = Array[String](["elite", "shop", "anvil", "chest"])
 unique_group = "charm_status_boost"

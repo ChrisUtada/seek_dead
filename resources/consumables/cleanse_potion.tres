@@ -18,5 +18,5 @@ role = "recovery"
 mechanism_summary = "主动使用（1 次）：解除自身负面状态：驱散寒霜（冻结转轮恢复）+ 清零酸蚀毒层。与净化药剂（抵消敌人意图）分工。"
 act_min = 1
 act_max = 3
-source_tags = Array[String](["normal", "elite", "shop", "start"])
+source_tags = Array[String](["normal", "elite", "shop", "start", "chest"])
 unique_group = "consumable_cleanse"

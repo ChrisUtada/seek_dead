@@ -17,5 +17,5 @@ role = "recovery"
 mechanism_summary = "被动常驻：本局每回合回复 10 HP（覆盖回春 6 的高档常驻回血）——碎裂魔王 P1 高攻 / P3 毒层期生存底线。"
 act_min = 1
 act_max = 3
-source_tags = Array[String](["elite", "shop", "anvil"])
+source_tags = Array[String](["elite", "shop", "anvil", "chest"])
 unique_group = "charm_heal"

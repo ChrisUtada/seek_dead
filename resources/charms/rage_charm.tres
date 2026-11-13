@@ -21,5 +21,5 @@ role = "damage"
 mechanism_summary = "被动常驻：本局所有伤害 ×1.5（全局乘区）；代价：每回合回血 -3。"
 act_min = 2
 act_max = 3
-source_tags = Array[String](["elite", "shop", "anvil"])
+source_tags = Array[String](["elite", "shop", "anvil", "chest"])
 unique_group = "charm_damage_mult"

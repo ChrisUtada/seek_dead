@@ -36,5 +36,5 @@ role = "damage"
 mechanism_summary = "火系重型近战：火斩（6权重，无属性伤害） + 燃（2权重，挂灼烧）；三连清空护甲；命中率75%，基础伤害23。符号需落线触发，未命中为废铁格。"
 act_min = 1
 act_max = 3
-source_tags = Array[String](["normal", "elite", "shop", "anvil"])
+source_tags = Array[String](["normal", "elite", "shop", "anvil", "chest"])
 unique_group = "weapon_fire_burn_triple"

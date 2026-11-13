@@ -18,5 +18,5 @@ role = "recovery"
 mechanism_summary = "主动使用（2 次）：驱散寒霜 + 毒层清零（可用 2 次）——碎裂魔王 P3 毒层清零双保险（覆盖清净药剂单次）。"
 act_min = 2
 act_max = 3
-source_tags = Array[String](["normal", "elite", "shop", "start"])
+source_tags = Array[String](["normal", "elite", "shop", "start", "chest"])
 unique_group = "consumable_cleanse"

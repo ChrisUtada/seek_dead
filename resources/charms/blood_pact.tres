@@ -19,5 +19,5 @@ role = "damage"
 mechanism_summary = "被动常驻：本局伤害符号 +6；代价：所有伤害 ×0.9——以量换质，越早拿到越划算。"
 act_min = 1
 act_max = 3
-source_tags = Array[String](["elite", "shop", "anvil"])
+source_tags = Array[String](["elite", "shop", "anvil", "chest"])
 unique_group = "charm_damage_bonus"

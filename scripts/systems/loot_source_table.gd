@@ -85,6 +85,14 @@ static func shop_tiers(act: int) -> Array:
 	return tiers.duplicate()
 
 
+# 商店货架的确定性类别序列（与 shop_tiers 同下标；Step 5）。
+static func shop_categories(act: int) -> Array:
+	if not is_valid_act(act):
+		return []
+	var cats: Array = BALANCE.loot_shop_categories.get(act, [])
+	return cats.duplicate()
+
+
 # 品质序（仅用于排序与测试，不参与抽取）。
 static func rank(quality: String) -> int:
 	var idx := QUALITIES.find(quality)

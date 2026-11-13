@@ -21,7 +21,7 @@ var run_symbol_bonus: Dictionary = {}   # resource_path -> 额外权重（本局
 var run_power_bonus: int = 0            # 本局符号基础伤害加成（房奖励：攻击研磨）
 var run_shield_next: int = 0            # 进入下一房时获得的护盾（房奖励：守望结界 / 精英备战）
 var choice_payloads: Array[Dictionary] = []   # M1-01：与 reward_choices 按 index 对齐的预确定结果 {kind,path,title,desc}
-var _acq_cache: Dictionary = {}         # path -> {w, hi}：Legacy 获取权重缓存（仅探索/营地临时通道；Step 5 移除）
+var _acq_cache: Dictionary = {}         # path -> {w, hi}：Legacy 获取权重缓存（仅营地付费补给货架；探索已于 Step 5 迁移）
 var _loot: LootPool                     # Step 3：统一来源品质池（专用 RNG，不消耗地图 RNG）
 var _loot_offer: LootOffer              # Step 4：同层三选一（一次定层，重抽不重抽品质）
 
@@ -143,17 +143,60 @@ func pick_reward_weapon_path() -> String:
 	return String(res.get("path", ""))
 
 
-# ⚠ Legacy（Step 5 前探索/棋盘通道）：从当前未装备武器按获取权重抽一把。
-# 棋盘生成要求「同种子可复现」，且不得引入专用 RNG 流改变全局抽样序列；
-# 探索来源表接入（Step 5）后本方法与 acq_weight* 一并移除。
-func pick_explore_weapon_path() -> String:
-	var cand := []
-	for p in _ctrl.WEAPON_POOL:
-		if not _ctrl.selected_loadout.has(p):
-			cand.append(p)
-	if cand.is_empty():
+# Step 5：探索来源（宝箱 / 搜寻 / 棋盘装备格）。
+# 品质只来自 chest 来源行；rng 由棋盘生成器持有（同种子可复现），
+# 不消耗战斗/奖励 RNG 流，也不写 meta / 装配。
+# 抽中的品质层在该类别下没有合法候选时，只在同一来源表内按原权重改抽一个「有候选」的层：
+# 不跨来源、不凭空提层；整类都为空才返回 ""（节点按既有规则折算金币）。
+func pick_explore_loot(category: String, act: int, rng: RandomNumberGenerator,
+		exclude: Array = []) -> String:
+	if rng == null:
 		return ""
-	return acq_weighted_pick(cand)
+	var opts := {"category": category, "include_relics": false, "exclude": exclude}
+	var quality := LootSourceTable.roll_quality("chest", act, rng)
+	if quality == "":
+		return ""
+	var tier: Dictionary = _loot.tier_items("chest", act, quality, opts)
+	if not bool(tier["ok"]):
+		var avail := _explore_available_qualities("chest", act, opts)
+		if avail.is_empty():
+			return ""
+		quality = _roll_quality_from(avail, rng)
+		if quality == "":
+			return ""
+		tier = _loot.tier_items("chest", act, quality, opts)
+		if not bool(tier["ok"]):
+			return ""
+	var items: Array = tier["items"]
+	return String(items[rng.randi_range(0, items.size() - 1)])
+
+
+# 探索来源中「该类别确实有候选」的品质层 → 原表权重（供空层改抽，不改变来源）。
+func _explore_available_qualities(source: String, act: int, opts: Dictionary) -> Dictionary:
+	var weights: Dictionary = LootSourceTable.weights_for(source, act).get("weights", {})
+	var out := {}
+	for q in LootSourceTable.QUALITIES:
+		if int(weights.get(q, 0)) <= 0:
+			continue
+		var tier: Dictionary = _loot.tier_items(source, act, q, opts)
+		if bool(tier["ok"]):
+			out[q] = int(weights[q])
+	return out
+
+
+# 按给定权重抽一个品质（权重来自来源表，已剔除空层）。
+func _roll_quality_from(weights: Dictionary, rng: RandomNumberGenerator) -> String:
+	var total := 0
+	for q in LootSourceTable.QUALITIES:
+		total += int(weights.get(q, 0))
+	if total <= 0:
+		return ""
+	var roll := rng.randf() * float(total)
+	for q in LootSourceTable.QUALITIES:
+		roll -= float(weights.get(q, 0))
+		if roll <= 0.0:
+			return q
+	return LootSourceTable.QUALITIES[LootSourceTable.QUALITIES.size() - 1]
 
 
 func _weapon_payload() -> Dictionary:
@@ -260,9 +303,12 @@ func _current_source() -> String:
 	return "normal"
 
 
-# Step 3：商店货架——确定性品质阶梯（不走随机来源表，也不消耗地图 RNG）。
+# Step 3/5：商店货架——确定性品质阶梯 + 确定性类别序列（不走随机来源表，也不消耗地图 RNG）。
 func roll_shop_ladder(act: int, opts: Dictionary = {}) -> Array:
-	return _loot.roll_ladder(act, LootSourceTable.shop_tiers(act), opts)
+	var merged := opts.duplicate(true)
+	if not merged.has("categories"):
+		merged["categories"] = LootSourceTable.shop_categories(act)
+	return _loot.roll_ladder(act, LootSourceTable.shop_tiers(act), merged)
 
 
 # ---------------------------------------------------------------------------

@@ -17,5 +17,5 @@ role = "damage"
 mechanism_summary = "被动常驻：每符号伤害 40% 概率直击 HP（穿透护甲，覆盖破甲符 25%）——P2 破甲窗口强开，乱权/锁轮下免攒三连。"
 act_min = 2
 act_max = 3
-source_tags = Array[String](["elite", "shop", "anvil"])
+source_tags = Array[String](["elite", "shop", "anvil", "chest"])
 unique_group = "charm_armor_pierce"

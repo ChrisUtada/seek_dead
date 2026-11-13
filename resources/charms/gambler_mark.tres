@@ -19,5 +19,5 @@ role = "defense"
 mechanism_summary = "被动常驻：本局每回合护盾 +8；代价：所有伤害 ×0.9——用输出换一层不挨打就累积的盾。"
 act_min = 1
 act_max = 3
-source_tags = Array[String](["elite", "shop", "anvil"])
+source_tags = Array[String](["elite", "shop", "anvil", "chest"])
 unique_group = "charm_shield"

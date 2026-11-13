@@ -17,5 +17,5 @@ role = "damage"
 mechanism_summary = "被动常驻：每符号伤害 15% 概率直击 HP——破甲系列入门档（破甲符 25% / 碎甲之印 40%）。"
 act_min = 1
 act_max = 3
-source_tags = Array[String](["elite", "shop", "anvil"])
+source_tags = Array[String](["elite", "shop", "anvil", "chest"])
 unique_group = "charm_armor_pierce"

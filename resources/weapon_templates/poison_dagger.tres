@@ -39,5 +39,5 @@ role = "damage"
 mechanism_summary = "毒系轻型近战：毒（5权重，挂中毒）；非三连暴击+10%；同源三连追加50%伤害；命中率88%，基础伤害7。符号需落线触发，未命中为废铁格。"
 act_min = 1
 act_max = 3
-source_tags = Array[String](["normal", "elite", "shop", "anvil"])
+source_tags = Array[String](["normal", "elite", "shop", "anvil", "chest"])
 unique_group = "weapon_poison_poison_line"

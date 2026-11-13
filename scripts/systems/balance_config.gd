@@ -84,6 +84,14 @@ extends Resource
 	2: ["common", "common", "uncommon", "uncommon", "rare", "rare"],
 	3: ["common", "uncommon", "uncommon", "rare", "rare", "epic"],
 }
+# 商店每格的确定性类别（与 loot_shop_ladder 同下标；Step 5）。
+# 类别按幕次固定，品质按阶梯固定，具体物品仍由专用 RNG 抽取；不与战斗来源表共用随机逻辑。
+# 指定类别在该层无候选时（例如 act1 稀有消耗品尚未解锁）回退到该层任意类别，保证货架格数不缩水。
+@export var loot_shop_categories: Dictionary = {
+	1: ["weapon", "active", "skill", "passive", "active", "weapon"],
+	2: ["weapon", "active", "passive", "skill", "weapon", "passive"],
+	3: ["weapon", "passive", "active", "skill", "weapon", "weapon"],
+}
 
 # —— 四级品质战利品 · 同层转化（Step 4，docs/... §4.3）——
 # 同层物品不足 3 项 / 重复 / 满槽时，用同品质的固定转化补齐；跳过也按同层固定值结算。

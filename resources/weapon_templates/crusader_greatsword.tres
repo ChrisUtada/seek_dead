@@ -30,5 +30,5 @@ role = "damage"
 mechanism_summary = "光系重型近战：圣辉斩（6权重，光伤害）；三连清空护甲，非三连暴击+5%；命中率75%，基础伤害22。符号需落线触发，未命中为废铁格。"
 act_min = 1
 act_max = 3
-source_tags = Array[String](["normal", "elite", "shop", "anvil"])
+source_tags = Array[String](["normal", "elite", "shop", "anvil", "chest"])
 unique_group = "weapon_light_pure_triple"

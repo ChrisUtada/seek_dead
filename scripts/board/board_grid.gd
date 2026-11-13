@@ -96,6 +96,8 @@ const RHYTHM_SAMPLE := {
 
 var _ctrl
 var _rng := RandomNumberGenerator.new()
+# Step 5：装备格的探索来源（chest 品质表）。内容在生成时冻结，同 seed 可复现。
+var _gen_act := 1
 
 
 func _init(ctrl) -> void:
@@ -106,6 +108,7 @@ func _init(ctrl) -> void:
 # template_override >= 0 时强制指定模板（测试 / 采集用）；-1 = 按 seed 轮换。
 func generate(act: int = 1, seed_value: int = 20261110, template_override: int = -1) -> Dictionary:
 	_rng.seed = seed_value
+	_gen_act = act
 	var tpl_index: int = template_override if template_override >= 0 else template_index_for(seed_value)
 	tpl_index = clampi(tpl_index, 0, TEMPLATES.size() - 1)
 	var tpl: Array = TEMPLATES[tpl_index]
@@ -301,19 +304,15 @@ func _assign_normals(by_id: Dictionary, act: int, used: Dictionary) -> void:
 
 
 func _assign_weapons(by_id: Dictionary, used: Dictionary) -> void:
-	var cand: Array = []
-	for p in _ctrl.WEAPON_POOL:
-		var s := String(p)
-		if _ctrl.selected_loadout.has(p) or used.has(s):
-			continue
-		cand.append(s)
 	for id in _ids_of_type(by_id, "weapon"):
-		if cand.is_empty():
+		var exclude: Array = _ctrl.selected_loadout.duplicate()
+		for k in used:
+			exclude.append(String(k))
+		var pick := String(_ctrl._reward_system.pick_explore_loot("weapon", _gen_act, _rng, exclude))
+		if pick == "":
 			by_id[id]["title"] = "武器（无可用候选）"
 			by_id[id]["desc"] = "落地折算金币 +15（武器池已空）"
 			continue
-		var pick := _weighted_take(cand)
-		cand.erase(pick)
 		used[pick] = true
 		by_id[id]["item_path"] = pick
 		_fill_weapon_text(by_id[id], pick)
@@ -321,19 +320,12 @@ func _assign_weapons(by_id: Dictionary, used: Dictionary) -> void:
 
 func _assign_charm(by_id: Dictionary) -> void:
 	var id := _first_id(by_id, "charm")
-	var relics: Array = _ctrl._reward_system.relic_paths()
-	var cand: Array = []
-	for p in _ctrl.ITEM_POOL:
-		if p in relics:
-			continue
-		var res: Resource = load(p)
-		if res != null and String(res.get("category")) == "passive":
-			cand.append(String(p))
-	if cand.is_empty():
+	var pick := String(_ctrl._reward_system.pick_explore_loot(
+		"passive", _gen_act, _rng, _ctrl.selected_charms))
+	if pick == "":
 		by_id[id]["title"] = "护符（无可用候选）"
 		by_id[id]["desc"] = "落地折算金币 +15（护符池已空）"
 		return
-	var pick := _weighted_take(cand)
 	by_id[id]["item_path"] = pick
 	var cd: ItemData = load(pick)
 	by_id[id]["title"] = "护符 · %s" % (cd.item_name if cd != null else pick.get_file().get_basename())
@@ -393,18 +385,6 @@ func _room_desc(r: RoomData, type: String) -> String:
 # ---------------------------------------------------------------------------
 # 工具
 # ---------------------------------------------------------------------------
-
-func _weighted_take(cand: Array) -> String:
-	var total := 0.0
-	for p in cand:
-		total += float(_ctrl._reward_system.acq_weight(String(p)))
-	var roll := _rng.randf() * total
-	for p in cand:
-		roll -= float(_ctrl._reward_system.acq_weight(String(p)))
-		if roll <= 0.0:
-			return String(p)
-	return String(cand[cand.size() - 1])
-
 
 func _shuffle(arr: Array) -> void:
 	for i in range(arr.size() - 1, 0, -1):

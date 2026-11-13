@@ -154,8 +154,13 @@ func _test_candidates_legality() -> void:
 	_check(relics > 0, "include_relics=true 时信物进入候选（%d）" % relics)
 
 	var chest: Dictionary = pool.candidates("chest", 1, {})
-	_check(String(chest["reason"]) == "no_candidates",
-		"chest 暂无标签物品 → no_candidates（Step 5 补内容）")
+	_check(bool(chest["ok"]) and not (chest["items"] as Array).is_empty(),
+		"chest 已有探索标签物品（%d）" % (chest["items"] as Array).size())
+	var chest_relic_leak := 0
+	for p in chest["items"]:
+		if String(p).get_file().contains("_relic"):
+			chest_relic_leak += 1
+	_check(chest_relic_leak == 0, "chest 默认不返回 BOSS 信物（泄漏 %d）" % chest_relic_leak)
 
 
 func _kind_of(path: String) -> String:

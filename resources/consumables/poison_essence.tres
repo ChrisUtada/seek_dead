@@ -19,5 +19,5 @@ role = "damage"
 mechanism_summary = "主动使用（1 次）：本房间内转轮注入☠️毒系攻击符号（伤害 25），离房失效。"
 act_min = 1
 act_max = 3
-source_tags = Array[String](["normal", "elite", "shop", "start"])
+source_tags = Array[String](["normal", "elite", "shop", "start", "chest"])
 unique_group = "consumable_element_poison"

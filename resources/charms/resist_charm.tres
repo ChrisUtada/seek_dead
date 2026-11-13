@@ -17,5 +17,5 @@ role = "defense"
 mechanism_summary = "被动常驻：本局敌人干扰概率降低（约相当于 1 级铁砧抗扰）。"
 act_min = 1
 act_max = 3
-source_tags = Array[String](["elite", "shop", "anvil", "start"])
+source_tags = Array[String](["elite", "shop", "anvil", "start", "chest"])
 unique_group = "charm_interference_resist"

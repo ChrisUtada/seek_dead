@@ -108,6 +108,20 @@ func _part_a_shop_ladder(duel: DuelController) -> void:
 	_check(relic_violations == 0, "商店永不上架 BOSS 信物（违规 %d）" % relic_violations)
 	_check(selected_violations == 0, "已带护符/技能不上架（违规 %d）" % selected_violations)
 
+	# Step 5：类别序列按幕次确定（指定类别空池时回退，但货架格数不变）
+	for act in [1, 2, 3]:
+		duel.current_act = act
+		var want_cats: Array = LootSourceTable.shop_categories(act)
+		var cat_bad := 0
+		for i in SHOP_ROLLS:
+			duel._shop_system.roll_shop()
+			var got: Array = []
+			for o in duel._shop_system.shop_offers:
+				got.append(String(o["kind"]))
+			if got != want_cats:
+				cat_bad += 1
+		_check(cat_bad == 0, "act%d 货架类别序列 == 配置（%d 轮偏差 %d）" % [act, SHOP_ROLLS, cat_bad])
+
 	# 固定专用种子 → 货架路径序列可复现（质量阶梯本身确定，只验证抽取可复现）
 	duel.current_act = 2
 	duel._reward_system._loot.reset_run(4242)

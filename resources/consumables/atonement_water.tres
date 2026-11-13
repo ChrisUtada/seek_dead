@@ -18,5 +18,5 @@ role = "recovery"
 mechanism_summary = "主动使用（2 次）：立即回复 40 HP，可用 2 次（合计 80）——耻辱审判官 P3 血线审判期分两次保血线，避免单次过量。"
 act_min = 2
 act_max = 3
-source_tags = Array[String](["normal", "elite", "shop", "start"])
+source_tags = Array[String](["normal", "elite", "shop", "start", "chest"])
 unique_group = "consumable_heal"

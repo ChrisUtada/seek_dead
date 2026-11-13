@@ -41,6 +41,7 @@ acquisition_weight = {"common": 100, "uncommon": 55, "rare": 28, "epic": 12}
 boss_depth_bias = [1.0, 1.8, 2.5]
 loot_source_weights = {"normal": {"common": 70, "uncommon": 25, "rare": 5, "epic": 0}, "elite": {"common": 20, "uncommon": 50, "rare": 27, "epic": 3}, "boss": {"common": 0, "uncommon": 10, "rare": 60, "epic": 30}, "chest": {"common": 35, "uncommon": 40, "rare": 22, "epic": 3}}
 loot_shop_ladder = {1: ["common", "common", "common", "uncommon", "uncommon", "rare"], 2: ["common", "common", "uncommon", "uncommon", "rare", "rare"], 3: ["common", "uncommon", "uncommon", "rare", "rare", "epic"]}
+loot_shop_categories = {1: ["weapon", "active", "skill", "passive", "active", "weapon"], 2: ["weapon", "active", "passive", "skill", "weapon", "passive"], 3: ["weapon", "passive", "active", "skill", "weapon", "weapon"]}
 loot_conversion_gold = {"common": 6, "uncommon": 10, "rare": 18, "epic": 30}
 loot_conversion_power = {"common": 1, "uncommon": 2, "rare": 3, "epic": 4}
 loot_skip_gold = {"common": 4, "uncommon": 7, "rare": 12, "epic": 20}

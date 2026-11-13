@@ -139,7 +139,9 @@ func roll_n(source: String, act: int, n: int, opts: Dictionary = {}, forced_qual
 	return result
 
 
-# 商店确定性阶梯：每格按指定品质抽一个，跨格无放回（类别混合；类别确定性留给 Step 5）。
+# 商店确定性阶梯：每格按指定品质抽一个，跨格无放回。
+# Step 5：opts.categories 按格给出确定性类别（与 tiers 同下标）；指定类别在该层无候选时
+# 回退到该层任意类别，保证货架格数不缩水。类别确定性来自 BalanceConfig.loot_shop_categories。
 # 返回 Array[{ok, quality, path, reason}]
 func roll_ladder(act: int, tiers: Array, opts: Dictionary = {}) -> Array:
 	var out: Array = []
@@ -149,24 +151,13 @@ func roll_ladder(act: int, tiers: Array, opts: Dictionary = {}) -> Array:
 	var used := {}
 	for p in opts.get("exclude", []):
 		used[String(p)] = true
-	for q in tiers:
-		var quality := String(q)
-		var cand: Array[String] = []
-		for e in _index:
-			if bool(e["relic"]) and not bool(opts.get("include_relics", false)):
-				continue
-			if used.has(String(e["path"])):
-				continue
-			if String(e["rarity"]) != quality:
-				continue
-			if not (act >= int(e["act_min"]) and act <= int(e["act_max"])):
-				continue
-			if not ("shop" in (e["tags"] as Array)):
-				continue
-			if not _demo_allows(e):
-				continue
-			cand.append(String(e["path"]))
-		cand.sort()
+	var cats: Array = opts.get("categories", [])
+	for i in tiers.size():
+		var quality := String(tiers[i])
+		var want_cat := String(cats[i]) if i < cats.size() else ""
+		var cand := _ladder_candidates(act, quality, want_cat, used, opts)
+		if cand.is_empty() and want_cat != "":
+			cand = _ladder_candidates(act, quality, "", used, opts)
 		if cand.is_empty():
 			out.append({"ok": false, "quality": quality, "path": "", "reason": "empty_tier"})
 			continue
@@ -174,6 +165,30 @@ func roll_ladder(act: int, tiers: Array, opts: Dictionary = {}) -> Array:
 		used[path] = true
 		out.append({"ok": true, "quality": quality, "path": path, "reason": ""})
 	return out
+
+
+# 阶梯单格候选：来源标签 shop + 幕次 + 品质 +（可选）类别 + 未使用 + demo 白名单。
+func _ladder_candidates(act: int, quality: String, category: String, used: Dictionary,
+		opts: Dictionary) -> Array[String]:
+	var cand: Array[String] = []
+	for e in _index:
+		if bool(e["relic"]) and not bool(opts.get("include_relics", false)):
+			continue
+		if used.has(String(e["path"])):
+			continue
+		if String(e["rarity"]) != quality:
+			continue
+		if category != "" and String(e["kind"]) != category:
+			continue
+		if not (act >= int(e["act_min"]) and act <= int(e["act_max"])):
+			continue
+		if not ("shop" in (e["tags"] as Array)):
+			continue
+		if not _demo_allows(e):
+			continue
+		cand.append(String(e["path"]))
+	cand.sort()
+	return cand
 
 
 # 打乱顺序也走专用流，不消耗地图 RNG。

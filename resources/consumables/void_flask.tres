@@ -19,5 +19,5 @@ role = "damage"
 mechanism_summary = "主动使用（2 次）：立即造成 18 暗属性伤害（参与克制：打光 ×1.5 并充能 +1），可用 2 次；无附加状态，纯即时伤害。"
 act_min = 2
 act_max = 3
-source_tags = Array[String](["normal", "elite", "shop", "start"])
+source_tags = Array[String](["normal", "elite", "shop", "start", "chest"])
 unique_group = "consumable_attack_dark"

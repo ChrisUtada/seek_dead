@@ -39,5 +39,5 @@ role = "damage"
 mechanism_summary = "冰系中型近战：冰弹（4权重，无属性伤害） + 霜（2权重，挂霜冻）；非三连暴击+5%；命中率84%，基础伤害16。符号需落线触发，未命中为废铁格。"
 act_min = 2
 act_max = 3
-source_tags = Array[String](["normal", "elite", "shop", "anvil"])
+source_tags = Array[String](["normal", "elite", "shop", "anvil", "chest"])
 unique_group = "weapon_ice_frost_line"

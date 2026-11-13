@@ -17,5 +17,5 @@ role = "defense"
 mechanism_summary = "被动常驻：本局每回合护盾 +10：覆盖铁壁 8 的高档常驻盾——躁怒元素使 P1 ×2 重击窗口核心生存，与治疗/守备叠加。"
 act_min = 1
 act_max = 3
-source_tags = Array[String](["elite", "shop", "anvil"])
+source_tags = Array[String](["elite", "shop", "anvil", "chest"])
 unique_group = "charm_shield"

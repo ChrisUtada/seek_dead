@@ -19,5 +19,5 @@ role = "damage"
 mechanism_summary = "被动常驻：元素克制倍率额外 +0.5（×1.5 → ×2.0）；代价：所有伤害 ×0.9——只在打中克制时回本。"
 act_min = 2
 act_max = 3
-source_tags = Array[String](["elite", "shop", "anvil"])
+source_tags = Array[String](["elite", "shop", "anvil", "chest"])
 unique_group = "charm_element_boost"

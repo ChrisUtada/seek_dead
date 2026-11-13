@@ -36,5 +36,5 @@ role = "damage"
 mechanism_summary = "毒系重型近战：毒牙（5权重，毒伤害） + 毒（1权重，挂中毒）；三连清空护甲，非三连暴击+5%；命中率75%，基础伤害23。符号需落线触发，未命中为废铁格。"
 act_min = 2
 act_max = 3
-source_tags = Array[String](["normal", "elite", "shop", "anvil"])
+source_tags = Array[String](["normal", "elite", "shop", "anvil", "chest"])
 unique_group = "weapon_poison_poison_triple"

@@ -17,5 +17,5 @@ role = "recovery"
 mechanism_summary = "被动常驻：本局每回合回复 6 HP，提供稳定常驻续航（与瞬回药剂互补）。"
 act_min = 1
 act_max = 3
-source_tags = Array[String](["elite", "shop", "anvil", "start"])
+source_tags = Array[String](["elite", "shop", "anvil", "start", "chest"])
 unique_group = "charm_heal"

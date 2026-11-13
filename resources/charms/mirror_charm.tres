@@ -20,5 +20,5 @@ role = "defense"
 mechanism_summary = "被动常驻：本局抗扰 +3（干扰类意图权重 -36%，保留 25% 下限）：迷宫低语者 P1/P2 干扰战的核心投资；代价：每回合护盾 -2。"
 act_min = 2
 act_max = 3
-source_tags = Array[String](["elite", "shop", "anvil"])
+source_tags = Array[String](["elite", "shop", "anvil", "chest"])
 unique_group = "charm_interference_resist"

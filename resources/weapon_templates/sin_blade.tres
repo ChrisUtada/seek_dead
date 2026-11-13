@@ -39,5 +39,5 @@ role = "damage"
 mechanism_summary = "暗系轻型近战：暗斩（4权重，暗伤害） + 深渊撕咬（2权重，暗伤害）；非三连暴击+5%；同源三连追加50%伤害；命中率88%，基础伤害15。符号需落线触发，未命中为废铁格。"
 act_min = 1
 act_max = 3
-source_tags = Array[String](["normal", "elite", "boss", "shop", "anvil"])
+source_tags = Array[String](["normal", "elite", "boss", "shop", "anvil", "chest"])
 unique_group = "weapon_dark_pure_line"

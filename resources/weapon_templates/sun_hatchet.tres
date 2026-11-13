@@ -35,5 +35,5 @@ role = "damage"
 mechanism_summary = "光系中型近战：圣辉斩（4权重，光伤害） + 晨曦之光（2权重，光伤害）；非三连暴击+5%；命中率84%，基础伤害12。符号需落线触发，未命中为废铁格。"
 act_min = 1
 act_max = 3
-source_tags = Array[String](["normal", "elite", "shop", "anvil"])
+source_tags = Array[String](["normal", "elite", "shop", "anvil", "chest"])
 unique_group = "weapon_light_pure_line"

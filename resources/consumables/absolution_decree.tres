@@ -18,5 +18,5 @@ role = "utility"
 mechanism_summary = "主动使用（1 次）：立刻免费重转两次（不触发敌人回合）——律法违逆前的洗盘补救，天平审判官 P2 锁槽期反制。"
 act_min = 2
 act_max = 3
-source_tags = Array[String](["normal", "elite", "shop", "start"])
+source_tags = Array[String](["normal", "elite", "shop", "start", "chest"])
 unique_group = "consumable_reroll"
