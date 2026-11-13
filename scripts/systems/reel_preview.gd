@@ -2,9 +2,10 @@ class_name ReelPreview
 extends RefCounted
 
 # M1-04 转轮带预览（纯计算，不写 controller 状态）：
-# 给定「假设配装」→ 真实带子构成（聚合 / 稀有度封顶 / 共享来源 / MISS / 金币 / 精华注入），
+# 给定「假设配装」→ 真实带子构成（聚合 / 权重档位 / 共享来源 / MISS / 金币 / 精华注入），
 # 口径与 reel_system.build_strips 完全一致（格子数走同一个 ReelSystem.cells_for），
 # 两者一致性由 M1 回归守护（tests/m1_reward_reach_test.gd）。
+# Step 2：物品品质不参与格数；同一符号换到任何 rarity 上，带子构成都不变。
 #
 # 用途：整备页「🎰 转轮带」总览、武器替换弹层的得失预览。
 
@@ -26,7 +27,6 @@ static func compose(weapons: Array, skills: Array, charms: Array, elements = [],
 			continue
 		var st: Dictionary = styles.get(wpath, {})
 		var st_weights: Dictionary = st.get("weights", {})
-		var rank: int = ReelSystem.RARITY_RANK.get(String(_rarity(wd)), 0)
 		var it_total := 0.0
 		for sw in wd.symbols:
 			if sw == null or sw.symbol == null:
@@ -35,7 +35,7 @@ static func compose(weapons: Array, skills: Array, charms: Array, elements = [],
 			var elem: String = ReelSystem.effective_element(sym, wd.element, wd.reel_element)
 			var tune_w: float = float(tune.get(wpath, {}).get(sym.resource_path, 0))   # M2-02 调律：按武器+主符号加权（与 build_pool 同口径）
 			var style_w: float = float(st_weights.get(sym.resource_path, 0.0))          # G6-05 铸式符号权重
-			var w: float = _add(agg, sym, elem, float(sw.weight) + tune_w + style_w, float(run_bonus.get(sym.resource_path, 0.0)) + float(syn_w.get(sym.resource_path, 0.0)), rank, wd.weapon_name)
+			var w: float = _add(agg, sym, elem, float(sw.weight) + tune_w + style_w, float(run_bonus.get(sym.resource_path, 0.0)) + float(syn_w.get(sym.resource_path, 0.0)), wd.weapon_name)
 			if w > 0.0:
 				it_total += w
 		if it_total > 0.0:
@@ -48,9 +48,8 @@ static func compose(weapons: Array, skills: Array, charms: Array, elements = [],
 			var sd: SkillData = load(spath)
 			if sd == null or sd.symbol == null:
 				continue
-			var rank2: int = ReelSystem.RARITY_RANK.get(String(_rarity(sd)), 0)
 			var elem2: String = sd.symbol.element if sd.symbol.element != "none" else "none"
-			var w2: float = _add(agg, sd.symbol, elem2, float(sd.weight), float(run_bonus.get(sd.symbol.resource_path, 0.0)) + float(syn_w.get(sd.symbol.resource_path, 0.0)), rank2, "技能" + sd.icon)
+			var w2: float = _add(agg, sd.symbol, elem2, float(sd.weight), float(run_bonus.get(sd.symbol.resource_path, 0.0)) + float(syn_w.get(sd.symbol.resource_path, 0.0)), "技能" + sd.icon)
 			if w2 > 0.0:
 				wsum += w2
 				var hit2: float = clamp(sd.hit_rate, 0.0, 1.0)
@@ -61,15 +60,15 @@ static func compose(weapons: Array, skills: Array, charms: Array, elements = [],
 		var ess: SymbolData = DuelController.ESSENCE_SYMBOLS.get(e)
 		if ess == null:
 			continue
-		var w3: float = _add(agg, ess, String(e), DuelController.ESSENCE_POOL_WEIGHT, float(run_bonus.get(ess.resource_path, 0.0)) + float(syn_w.get(ess.resource_path, 0.0)), 0, "精华·" + ElementCounter.label(String(e)))
+		var w3: float = _add(agg, ess, String(e), DuelController.ESSENCE_POOL_WEIGHT, float(run_bonus.get(ess.resource_path, 0.0)) + float(syn_w.get(ess.resource_path, 0.0)), "精华·" + ElementCounter.label(String(e)))
 		if w3 > 0.0:
 			wsum += w3
-	# 行 + 格数（含共享来源/稀有度封顶）
+	# 行 + 格数（含共享来源；品质不参与）
 	var rows := []
 	var total_cells := 0
 	for key in agg:
 		var g: Dictionary = agg[key]
-		var cells: int = ReelSystem.cells_for(float(g["w"]), g["sym"].kind, int(g["rank"]), int(g["sources"]))
+		var cells: int = ReelSystem.cells_for(float(g["w"]))
 		var cut: int = int(trim.get(String(key), 0))
 		if cut > 0:
 			cells = maxi(1, cells - cut)
@@ -78,8 +77,7 @@ static func compose(weapons: Array, skills: Array, charms: Array, elements = [],
 		rows.append({
 			"key": key, "path": g["sym"].resource_path, "name": disp,
 			"kind": g["sym"].kind, "elem": g["elem"], "weight": float(g["w"]),
-			"cells": cells, "sources": int(g["sources"]), "rank": int(g["rank"]),
-			"items": g["items"],
+			"cells": cells, "items": g["items"],
 		})
 	rows.sort_custom(func(a, b): return float(a["weight"]) > float(b["weight"]))
 	# MISS：按 miss_w/wsum 折算格数（保底 1）——与 build_strips 同式
@@ -157,17 +155,15 @@ static func summary_line(comp: Dictionary) -> String:
 		"、".join(syns) if not syns.is_empty() else "无"]
 
 
-static func _add(agg: Dictionary, sym: SymbolData, elem: String, base_w: float, mod: float, rank: int, source_name: String) -> float:
+static func _add(agg: Dictionary, sym: SymbolData, elem: String, base_w: float, mod: float, source_name: String) -> float:
 	var w: float = maxf(0.0, base_w + mod)
 	if w <= 0.0:
 		return 0.0
 	var key: String = sym.resource_path + "|" + elem
 	if not agg.has(key):
-		agg[key] = {"sym": sym, "elem": elem, "w": 0.0, "rank": 0, "sources": 0, "items": []}
+		agg[key] = {"sym": sym, "elem": elem, "w": 0.0, "items": []}
 	var g: Dictionary = agg[key]
 	g["w"] = float(g["w"]) + w
-	g["rank"] = maxi(int(g["rank"]), rank)
-	g["sources"] = int(g["sources"]) + 1
 	if not g["items"].has(source_name):
 		g["items"].append(source_name)
 	return w
@@ -201,8 +197,3 @@ static func _syn_names(syns: Array) -> Array:
 	for s in syns:
 		out.append(String((s["def"] as SynergyData).name))
 	return out
-
-
-static func _rarity(res: Resource) -> String:
-	var r: Variant = res.get("rarity")
-	return String(r) if r != null else "common"

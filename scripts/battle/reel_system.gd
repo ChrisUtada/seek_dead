@@ -34,8 +34,8 @@ const AUTO_STOP_BASE_WAIT := 0.25      # 第 1 列自动停下的基础停顿（
 const AUTO_STOP_STEP_WAIT := 0.07      # 后续每列递增（方案 0.06–0.08）
 # 2026-08-09 传统 slots 频率（拍板）：格子数 = 权重档位（保底 2 = 目押下限），
 # rare/epic 符号封顶 2 格（≤ 普通——大奖罕见，推翻旧「稀有度不影响次数」决策）。
-const RARITY_RANK := {"common": 0, "uncommon": 1, "rare": 2, "epic": 3}
-const _RARE_CAP_CELLS := 2             # rare/epic 符号格数上限（不得超过普通符号）
+# 2026-11-13 Step 2：品质（rarity）不再参与格数/频率。符号占格只由聚合权重与带规则决定；
+# 旧的「rare/epic 非伤害符号封顶 2 格」已移除——同一符号在 common 与 epic 物品上格数一致。
 
 var _ctrl                                # DuelController
 var _timer: Timer
@@ -262,7 +262,6 @@ func build_strips() -> void:
 		var syms: Array = it["syms"]
 		if syms.is_empty():
 			continue
-		var it_rank: int = RARITY_RANK.get(String(it.get("rarity", "common")), 0)
 		var it_total_w := 0.0
 		for s in syms:
 			var w = max(0.0, s[1] + _ctrl.combat.agg_symbol_weight_mod(s[0]) + _ctrl._synergy_system.weight_mod(s[0]))
@@ -271,11 +270,9 @@ func build_strips() -> void:
 			it_total_w += w
 			var key: String = s[0].resource_path + "|" + s[2]
 			if not agg.has(key):
-				agg[key] = {"sym": s[0], "elem": s[2], "w": 0.0, "rank": 0, "sources": 0,
+				agg[key] = {"sym": s[0], "elem": s[2], "w": 0.0,
 					"src": "", "src_power": -1.0, "src_weights": {}}
 			agg[key]["w"] += w
-			agg[key]["rank"] = maxi(int(agg[key]["rank"]), it_rank)
-			agg[key]["sources"] += 1
 			var src_id: String = String(s[3]) if s.size() > 3 else ""
 			var src_pw: float = float(s[4]) if s.size() > 4 else 0.0
 			if src_id != "":
@@ -297,7 +294,7 @@ func build_strips() -> void:
 	var total_cells := 0
 	if wsum > 0.0:
 		for k in agg:
-			var cnt: int = cells_for(agg[k]["w"], agg[k]["sym"].kind, int(agg[k]["rank"]), int(agg[k]["sources"]))
+			var cnt: int = cells_for(agg[k]["w"])
 			cnt = _apply_trim(String(k), cnt)
 			var allocation: Dictionary = allocate_source_cells(agg[k]["src_weights"], cnt)
 			if allocation.is_empty():
@@ -374,16 +371,16 @@ static func allocate_source_cells(weights: Dictionary, total: int) -> Dictionary
 	return out
 
 
-# 单条 (符号|有效元素) 聚合项的格子数（M1-02：build_strips 与奖励灌注预览共用，
-# 避免「卡片说 +N 格、实际带子不变」的口径漂移）。
-static func cells_for(w: float, kind: String, rank: int, sources: int) -> int:
+# 单条 (符号|有效元素) 聚合项的格子数。只由聚合权重决定（2 格起，2/4 权重升到 3/4 格）：
+# 符号类型、物品品质、来源数量都不参与——同一符号在 common 与 epic 物品上的带格数完全一致。
+# Step 2 前这里还有「非 damage 的 rare/epic 单源符号封顶 2 格」，会把品质暗中变成频率惩罚，已移除。
+# build_strips、灌注预览与 ReelPreview 共用此口径，避免「卡片说 +N 格、实际带子不变」。
+static func cells_for(w: float) -> int:
 	var cnt := 2
 	if w >= 4.0:
 		cnt = 4
 	elif w >= 2.0:
 		cnt = 3
-	if kind != "damage" and rank >= RARITY_RANK["rare"] and sources < 2:
-		cnt = mini(cnt, _RARE_CAP_CELLS)
 	return cnt
 
 

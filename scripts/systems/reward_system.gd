@@ -175,11 +175,11 @@ func symbol_infusions() -> Array:
 
 
 # 该符号在当前装备集合下实际占用的转轮带格数（口径与 reel_system.build_strips 一致：
-# 同 (符号|有效元素) 聚合权重 → 档位 2/3/4；非 damage 的 rare/epic 单源封顶 2；零权重不占格）。
+# 同 (符号|有效元素) 聚合权重 → 档位 2/3/4；品质与来源数量不参与；零权重不占格）。
+# Step 2：这里不再读取物品 rarity，灌注预览与真实带子对同一 Build 永远一致。
 func _symbol_cells(sym: SymbolData, extra: float) -> int:
 	var grouped := {}
 	for it in _ctrl.pool_items:
-		var it_rank: int = ReelSystem.RARITY_RANK.get(String(it.get("rarity", "common")), 0)
 		for s in it["syms"]:
 			var csym: SymbolData = s[0]
 			if csym == null or csym.resource_path != sym.resource_path:
@@ -188,16 +188,10 @@ func _symbol_cells(sym: SymbolData, extra: float) -> int:
 			if w <= 0.0:
 				continue
 			var key := String(s[2])
-			if not grouped.has(key):
-				grouped[key] = {"w": 0.0, "rank": 0, "sources": 0}
-			var g: Dictionary = grouped[key]
-			g["w"] = float(g["w"]) + w
-			g["rank"] = maxi(int(g["rank"]), it_rank)
-			g["sources"] = int(g["sources"]) + 1
+			grouped[key] = float(grouped.get(key, 0.0)) + w
 	var total := 0
 	for key in grouped:
-		var g: Dictionary = grouped[key]
-		total += ReelSystem.cells_for(float(g["w"]), sym.kind, int(g["rank"]), int(g["sources"]))
+		total += ReelSystem.cells_for(float(grouped[key]))
 	return total
 
 

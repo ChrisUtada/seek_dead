@@ -192,7 +192,10 @@ func _test_build_pool(duel: DuelController) -> void:
 
 func _test_strip_diffs(duel: DuelController) -> void:
 	var fs = _fs(duel)
-	var d_fire: Array = _diff([FIRE, ICE], FIRE, fs.style_def(FIRE))
+	# Step 2 品质/频率解耦后，火焰剑+霜晶法杖的符号带是 14 格，烈刃 -5% 命中的期望 MISS 增量
+	# 不足 1 格会被取整吞掉（预览如实显示「无带子差异」）。改用 11 格的火焰剑+匕首，
+	# 保留「命中惩罚 → MISS 增加」这条方向覆盖，不为了凑预览虚构格数。
+	var d_fire: Array = _diff([FIRE, DAGGER], FIRE, fs.style_def(FIRE))
 	var d_dagger: Array = _diff([DAGGER, AXE], DAGGER, fs.style_def(DAGGER))
 	var d_axe: Array = _diff([AXE], AXE, fs.style_def(AXE))
 	var d_ice: Array = _diff([ICE], ICE, fs.style_def(ICE))
