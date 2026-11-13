@@ -66,8 +66,25 @@ extends Resource
 
 # —— T8 掉落渠道（2026-08-24，docs/装备收集规划_200.md §11/§12.1）——
 @export var drop_consumable_chance_normal: float = 0.12   # 普通房清房掉 1 消耗品概率（设计区间 10~15% 取中值；不吃稀有竞争，active 池均匀）
-@export var acquisition_weight: Dictionary = {"common": 100, "uncommon": 55, "rare": 28, "epic": 12}   # 共享获取权重表（§11.1，×100 整数；精英护符保底/商店/BOSS 武器候选共用）
-@export var boss_depth_bias: Array = [1.0, 1.8, 2.5]   # §11.2 BOSS 深度偏置（按幕乘算 rare/epic 权重，越深越出好货；商店不加偏置）
+@export var acquisition_weight: Dictionary = {"common": 100, "uncommon": 55, "rare": 28, "epic": 12}   # ⚠ Legacy（Step 3 起仅探索/营地临时通道使用）：Step 5 接入探索来源表后移除；战斗/商店/BOSS 不得再读
+@export var boss_depth_bias: Array = [1.0, 1.8, 2.5]   # ⚠ Legacy：Step 3 起 BOSS 武器不再使用深度偏置（来源表是唯一品质概率）
+
+# —— 四级品质战利品 · 来源品质表（Step 3，docs/四级品质战利品... §4.1）——
+# 首版以本表为战斗/探索来源的唯一品质概率来源；不叠加旧稀有度加权或深度偏置。
+# 权重为 0~100 整数刻度，每行合计 100。act 目前不改变表（预留扩展：后续按幕调表只改这里）。
+@export var loot_source_weights: Dictionary = {
+	"normal": {"common": 70, "uncommon": 25, "rare": 5, "epic": 0},
+	"elite": {"common": 20, "uncommon": 50, "rare": 27, "epic": 3},
+	"boss": {"common": 0, "uncommon": 10, "rare": 60, "epic": 30},
+	"chest": {"common": 35, "uncommon": 40, "rare": 22, "epic": 3},
+}
+# 商店不做随机品质：按幕次给出确定性货架阶梯（Step 3 起；Step 5 再加类别确定性）。
+@export var loot_shop_ladder: Dictionary = {
+	1: ["common", "common", "common", "uncommon", "uncommon", "rare"],
+	2: ["common", "common", "uncommon", "uncommon", "rare", "rare"],
+	3: ["common", "uncommon", "uncommon", "rare", "rare", "epic"],
+}
+
 
 # —— 三拍板落地（2026-08-24）——
 @export var anvil_award_normal: int = 0    # 铁砧里程碑：普通房 0（金币/奖励卡/T8 掉落已三渠道，防平摊稀释）

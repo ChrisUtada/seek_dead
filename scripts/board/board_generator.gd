@@ -450,7 +450,7 @@ func _assign_treasure(t: Dictionary) -> void:
 	var path := ""
 	match kind:
 		"weapon":
-			path = String(_ctrl._reward_system.pick_reward_weapon_path())
+			path = String(_ctrl._reward_system.pick_explore_weapon_path())
 		"charm":
 			path = _pick_charm_path()
 		_:
@@ -827,7 +827,7 @@ func _room_desc(r: RoomData, type: String) -> String:
 # ---------------------------------------------------------------------------
 
 func _assign_weapon(n: Dictionary) -> void:
-	var path := String(_ctrl._reward_system.pick_reward_weapon_path())
+	var path := String(_ctrl._reward_system.pick_explore_weapon_path())
 	if path == "":
 		for p in _ctrl.WEAPON_POOL:
 			if not _ctrl.selected_loadout.has(p):

@@ -5,7 +5,7 @@ extends Node
 # 运行：Godot --headless --fixed-fps 60 --path <项目> res://tests/t8_drops_test.tscn
 #
 # 覆盖（docs/装备收集规划_200.md §12.1）：
-# ① 共享获取权重分布：按候选构成解析期望对照频数；epic 占比 <5%；排除 BOSS 信物；
+# ① 精英护符品质分布：按来源表（elite）对照频数；epic 占比 <5%；排除 BOSS 信物；
 # ② 普通房掉落概率 ≈ 0.12，授予必为 active 消耗品；腰带满折金币（奇数试预填满覆盖兜底分支）；
 # ③ 精英房保底 1 护符：同一局内前 3 次免费开槽入槽（CHARM_CAP=3），此后转金币；永不掉信物；
 # ④ BOSS 房不经掉落渠道。
@@ -31,7 +31,7 @@ func _run() -> void:
 		get_tree().quit(2)
 		return
 
-	_part_a_weighted_distribution(duel)
+	_part_a_source_distribution(duel)
 	await _part_b_normal_drop_rate(duel)
 	_part_c_elite_guarantee(duel)
 	_part_d_boss_isolated(duel)
@@ -60,18 +60,6 @@ func _room_of_kind(duel: DuelController, kind: String) -> RoomData:
 	return duel.ALL_ROOMS[0]
 
 
-func _passive_candidates(duel: DuelController) -> Array[String]:
-	var relics: Array = duel._reward_system.relic_paths()
-	var cand: Array[String] = []
-	for p in duel.ITEM_POOL:
-		if p in relics:
-			continue
-		var res: Resource = load(p)
-		if res != null and res.get("category") == "passive":
-			cand.append(p)
-	return cand
-
-
 func _setup_room(duel: DuelController, r: RoomData) -> void:
 	duel._reset_run_state()
 	var rooms: Array[RoomData] = [r]
@@ -80,31 +68,35 @@ func _setup_room(duel: DuelController, r: RoomData) -> void:
 	duel._start_room(0)
 
 
-# ① 共享获取权重分布：观察频数 vs 候选构成解析期望（±max(25, 10%)）；epic 占比 <5%
-func _part_a_weighted_distribution(duel: DuelController) -> void:
+# ① 精英护符：来源表（elite）品质分布 + 排除 BOSS 信物；epic 占比 <5%
+# Step 3：不再读 acquisition_weight——品质概率只来自 LootSourceTable（act2 各层均有货）。
+func _part_a_source_distribution(duel: DuelController) -> void:
 	seed(8001)
-	var cand := _passive_candidates(duel)
-	_check(cand.size() >= 20, "精英护符候选 ≥20（排除信物后 %d）" % cand.size())
+	duel._reset_run_state()
+	var opts := {"category": "passive", "include_relics": false}
+	var weights: Dictionary = LootSourceTable.weights_for("elite", 2)["weights"]
 	var tally := {"common": 0, "uncommon": 0, "rare": 0, "epic": 0}
-	var expect := {"common": 0.0, "uncommon": 0.0, "rare": 0.0, "epic": 0.0}
-	var total_w := 0.0
-	for p in cand:
-		var res: Resource = load(p)
-		var r: String = String(res.get("rarity"))
-		expect[r] += float(DuelController.BALANCE.acquisition_weight.get(r, 100))
-		total_w += float(DuelController.BALANCE.acquisition_weight.get(r, 100))
-	for k in expect.keys():
-		expect[k] = expect[k] / total_w * float(PICK_TRIALS)
+	var relic_violations := 0
+	var empty := 0
 	for i in PICK_TRIALS:
-		var path: String = duel._reward_system.acq_weighted_pick(cand)
-		var res: Resource = load(path)
-		tally[String(res.get("rarity"))] += 1
-	for k in tally.keys():
-		var tol: float = maxf(25.0, float(expect[k]) * 0.10)
-		_check(absf(float(tally[k]) - expect[k]) <= tol,
-			"%s 频数符合期望（obs %d / exp %.0f）" % [k, tally[k], expect[k]])
+		var res: Dictionary = duel._reward_system._loot.roll("elite", 2, opts)
+		if not bool(res.get("ok", false)):
+			empty += 1
+			continue
+		tally[String(res["quality"])] = int(tally.get(String(res["quality"]), 0)) + 1
+		if String(res["path"]).get_file().contains("_relic"):
+			relic_violations += 1
+	_check(empty == 0, "精英护符各品质层均有货（空层 %d）" % empty)
+	for q in LootSourceTable.QUALITIES:
+		var exp: float = float(weights.get(q, 0)) / 100.0 * float(PICK_TRIALS)
+		var p: float = float(weights.get(q, 0)) / 100.0
+		var sd: float = sqrt(float(PICK_TRIALS) * p * (1.0 - p))
+		var tol: float = maxf(25.0, 4.0 * sd)
+		_check(absf(float(tally[q]) - exp) <= tol,
+			"elite %s 频数符合来源表（obs %d / exp %.0f，4σ=%.0f）" % [q, tally[q], exp, tol])
 	var epic_share: float = float(tally["epic"]) / float(PICK_TRIALS)
 	_check(epic_share < 0.05, "epic 占比 <5%%（实测 %.1f%%）" % [epic_share * 100.0])
+	_check(relic_violations == 0, "精英护符零信物（违规 %d）" % relic_violations)
 
 
 # ② 普通房掉落概率 + 授予类型 + 腰带满折算金币。

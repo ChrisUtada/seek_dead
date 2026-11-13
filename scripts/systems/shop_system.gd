@@ -124,30 +124,38 @@ func shop_name(path: String, kind: String) -> String:
 
 
 func roll_shop() -> void:
-	var candidates := []
-	for p in _ctrl.WEAPON_POOL:
-		# 2026-08-07：武器全池售卖（图鉴模型下 owned_weapons=全量，过滤=商店空；替换购买已支持换装）
-		candidates.append({"path": p, "kind": "weapon"})
-	for p in _ctrl.ITEM_POOL:
-		var d = load(p)
-		if d is ItemData:
-			if d.category == "passive" and _ctrl.selected_charms.has(p):
-				continue   # 护符：本局已带不上架（避免占位拒单）；已拥有但未带可买
-			if d.category == "passive" and _ctrl._meta_store._is_boss_relic(d, p):
-				continue   # BOSS 信物不进商店（仅 BOSS 战利品可获，见 docs/BOSS信物_设计方案.md）
-			candidates.append({"path": p, "kind": d.category})   # 消耗品不过滤：腰带允许同类重复占格
-	for p in _ctrl.SKILL_POOL:
-		if _ctrl.selected_skills.has(p):
-			continue   # 本局已带技能不上架（技能唯一持有、无 owned 池）
-		candidates.append({"path": p, "kind": "skill"})
-	# T7（2026-08-24）：货架改 acquisition_weight 加权无放回抽样（替代 shuffle 均匀）——
-	# 稀有度驱动获取频率轴；商店不加深度偏置（§11.2 偏置为 BOSS 渠道专属）
+	# Step 3：货架品质不再按物品稀有度加权随机，改读来源表配套的确定性阶梯
+	# （每幕 6 格：越深rare/epic越多，见 BalanceConfig.loot_shop_ladder）。
+	# 保留旧过滤语义：本局已带护符/技能不上架；BOSS 信物不进商店；消耗品允许同类重复。
+	var act: int = maxi(1, mini(3, int(_ctrl.current_act)))
+	var exclude: Array = []
+	exclude.append_array(_ctrl.selected_charms)
+	exclude.append_array(_ctrl.selected_skills)
+	var ladder: Array = _ctrl._reward_system.roll_shop_ladder(act, {"exclude": exclude})
 	shop_offers = []
-	for c in _ctrl._reward_system.acq_weighted_sample(candidates, 6):
+	for slot in ladder:
+		if not bool(slot.get("ok", false)):
+			continue
+		var p := String(slot["path"])
+		var kind := _shop_kind(p)
+		if kind == "":
+			continue
 		# 2026-08-10 fix：报价在货架生成时锁定（offer["price"]）——显示与购买统一读它，
 		# 否则每次调用 shop_price() 的随机 jitter 会让价格点击后跳动
-		shop_offers.append({"path": c["path"], "kind": c["kind"], "name": shop_name(c["path"], c["kind"]), "price": shop_price(c["kind"], -1, c["path"]), "sold": false})
+		shop_offers.append({"path": p, "kind": kind, "name": shop_name(p, kind), "price": shop_price(kind, -1, p), "sold": false})
 	_ctrl.invalidate_state()
+
+
+# 货架条目类别（按资源类型判定，避免依赖 controller 的候选池裁剪）。
+func _shop_kind(path: String) -> String:
+	var d: Resource = load(path)
+	if d is WeaponData:
+		return "weapon"
+	if d is SkillData:
+		return "skill"
+	if d is ItemData:
+		return String(d.category)
+	return ""
 
 
 # 货架刷新（2026-08-09）：Balatro 式递增价 + 每房间歇期限次（双闸门防金币无限转化）。

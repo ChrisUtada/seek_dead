@@ -21,10 +21,12 @@ var run_symbol_bonus: Dictionary = {}   # resource_path -> 额外权重（本局
 var run_power_bonus: int = 0            # 本局符号基础伤害加成（房奖励：攻击研磨）
 var run_shield_next: int = 0            # 进入下一房时获得的护盾（房奖励：守望结界 / 精英备战）
 var choice_payloads: Array[Dictionary] = []   # M1-01：与 reward_choices 按 index 对齐的预确定结果 {kind,path,title,desc}
-var _acq_cache: Dictionary = {}         # path -> {w, hi}：获取权重缓存（shop/BOSS 抽样每局数万次 load() 的性能修复）
+var _acq_cache: Dictionary = {}         # path -> {w, hi}：Legacy 获取权重缓存（仅探索/营地临时通道；Step 5 移除）
+var _loot: LootPool                     # Step 3：统一来源品质池（专用 RNG，不消耗地图 RNG）
 
 func _init(ctrl: DuelController) -> void:
 	_ctrl = ctrl
+	_loot = LootPool.new(ctrl)
 
 
 # ---------------------------------------------------------------------------
@@ -35,6 +37,8 @@ func reset_run() -> void:
 	run_symbol_bonus = {}
 	run_power_bonus = 0
 	run_shield_next = 0
+	if _loot != null:
+		_loot.reset_run()   # 本局来源品质抽取的专用种子（只取一次，之后不碰地图 RNG）
 	_ctrl.invalidate_state()
 
 
@@ -129,8 +133,19 @@ func _fill_reward_payloads(choices: Array) -> void:
 		choice_payloads.append(pl)
 
 
-# 武器奖励预确定：从当前未装备的武器按获取权重抽一把（展示前定死，确认后不再随机）
+# 武器奖励预确定：按当前来源品质表抽具体武器（展示前定死，确认后不再随机）
 func pick_reward_weapon_path() -> String:
+	var res: Dictionary = _loot.roll(_current_source(), _current_act(), {
+		"category": "weapon",
+		"exclude": _ctrl.selected_loadout,
+	})
+	return String(res.get("path", ""))
+
+
+# ⚠ Legacy（Step 5 前探索/棋盘通道）：从当前未装备武器按获取权重抽一把。
+# 棋盘生成要求「同种子可复现」，且不得引入专用 RNG 流改变全局抽样序列；
+# 探索来源表接入（Step 5）后本方法与 acq_weight* 一并移除。
+func pick_explore_weapon_path() -> String:
 	var cand := []
 	for p in _ctrl.WEAPON_POOL:
 		if not _ctrl.selected_loadout.has(p):
@@ -229,16 +244,24 @@ func _consumable_payload() -> Dictionary:
 	return {"kind": "consumable", "path": path, "title": "消耗品 · %s" % nm, "desc": desc}
 
 
-# 随机消耗品路径（active 池均匀；展示预确定与旧调用路径兜底共用）。
+# 消耗品奖励预确定：按当前来源品质表抽一件 active（腰带允许同类重复，不排除已带）
 func pick_active_item_path() -> String:
-	var cand := []
-	for p in _ctrl.ITEM_POOL:
-		var res: Resource = load(p)
-		if res != null and res.get("category") == "active":
-			cand.append(p)
-	if cand.is_empty():
-		return ""
-	return cand[randi() % cand.size()]
+	var res: Dictionary = _loot.roll(_current_source(), _current_act(), {"category": "active"})
+	return String(res.get("path", ""))
+
+
+# 当前房间对应的来源（普通/精英/BOSS）；未知房间按普通战处理。
+func _current_source() -> String:
+	if _ctrl.room_index >= 0 and _ctrl.room_index < _ctrl.ROOMS.size():
+		var k := String(_ctrl.ROOMS[_ctrl.room_index].kind)
+		if k == "normal" or k == "elite" or k == "boss":
+			return k
+	return "normal"
+
+
+# Step 3：商店货架——确定性品质阶梯（不走随机来源表，也不消耗地图 RNG）。
+func roll_shop_ladder(act: int, opts: Dictionary = {}) -> Array:
+	return _loot.roll_ladder(act, LootSourceTable.shop_tiers(act), opts)
 
 
 # 新武器写入局外收藏（图鉴/开局池）；落盘时机与商店一致（局末统一保存）
@@ -260,28 +283,12 @@ func remember_charm(path: String) -> void:
 	_ctrl._meta_store.record_source(path, _ctrl._item_source())
 
 
-# 稀有度权重档（胜利奖励方案：common 50 / uncommon 30 / rare 20；幕三 rare 升至 30、common 降至 40）
-func _rarity_weight(r: String, act: int) -> float:
-	match r:
-		"rare":
-			return 0.3 if act >= 3 else 0.2
-		"uncommon":
-			return 0.3
-	return 0.4 if act >= 3 else 0.5
-
-
-func _weighted_pick(pool: Array, act: int) -> RewardData:
+# Step 3：奖励卡「类型」不再按 RewardData.rarity 加权——物品品质与奖励卡类型是两层随机，
+# 品质由来源表在候选池层决定；这里只负责在合法类型里等概率取一张（同层的具体物品由 payload 定）。
+func _weighted_pick(pool: Array, _act: int) -> RewardData:
 	if pool.is_empty():
 		return null
-	var total := 0.0
-	for rw in pool:
-		total += _rarity_weight(rw.rarity, act)
-	var roll := randf() * total
-	for rw in pool:
-		roll -= _rarity_weight(rw.rarity, act)
-		if roll <= 0.0:
-			return rw
-	return pool[pool.size() - 1]
+	return pool[randi() % pool.size()]
 
 
 # T6 精英房「战前补给」：2 固定（金币囤/铁砧点）+ 1 动态高品质位（rare 构筑/大数值——胜利奖励方案 2026-08-13）
@@ -303,25 +310,21 @@ func roll_elite_rewards() -> Array:
 	return out
 
 
-# BOSS 战利品：从主题池+混合券抽 3 张候选卡（dict 结构，供 HUD 直接渲染）。
-# 候选构成：① 主题新武器（未持有即进池——满双武器也进，选择时走替换弹层，M1-01）② Boss 信物（占护符槽，若未占满）。
-# T7（2026-08-24）：武器候选改 acq_weighted_sample 加权无放回抽样（替代 shuffle 均匀），
-# 并按幕乘 boss_depth_bias 深度偏置（只抬 rare/epic——越深越出好货，§11.2）。
+# BOSS 战利品：先按来源表（boss）确定品质，再在主题池的同品质层内无放回抽至多 3 把。
+# 主题过滤保留；不再使用 acquisition_weight / boss_depth_bias（Step 3 起来源表是唯一品质概率）。
+# 同层不足 3 把时按实际数量返回，空层返回明确原因（Step 4 再补同层转化）。
 func roll_boss_rewards(room) -> Array:
 	var cands := []
-	# ① 主题新武器：房间指定池（空则按 element 从全部武器取；真·最终不回退=明确「无战利品」），
-	# 玩家尚未持有即入候选（槽满由 controller 的替换弹层处理）；按获取权重 × 幕深度偏置 加权抽至多 3 把
-	var src: Array = room.boss_reward_weapons if (room.boss_reward_weapons.size() > 0) else ([] if room.final_boss else _ctrl.WEAPON_POOL)
-	# M4-01：demo 白名单收窄——房间主题池可能含池外武器（如 ACT1 的 flame_staff），过滤后为空则视为无战利品
-	if _ctrl.demo_active():
-		src = _ctrl.demo_config.filter_weapons(src)
-	var weapon_pool := []
-	for p in src:
-		if not _ctrl.selected_loadout.has(p):
-			weapon_pool.append(p)
-	var act: int = int(room.act) if room.act >= 1 and room.act <= _ctrl.BALANCE.boss_depth_bias.size() else 1
-	var bias: float = float(_ctrl.BALANCE.boss_depth_bias[act - 1])
-	var picked_weapons: Array = acq_weighted_sample(weapon_pool, mini(3, weapon_pool.size()), bias)
+	# ① 主题新武器：房间指定池；真·最终没有掉落池 → 明确空主题；非最终未指定池 → 全部 boss 来源武器。
+	var opts := {"category": "weapon", "exclude": _ctrl.selected_loadout}
+	if room.final_boss:
+		opts["theme"] = []
+	elif room.boss_reward_weapons.size() > 0:
+		opts["theme"] = room.boss_reward_weapons
+	# M4-01 demo 白名单由 LootPool 统一过滤，不在这里二次裁剪
+	var act: int = maxi(1, mini(3, int(room.act)))
+	var picked: Dictionary = _loot.roll_n("boss", act, 3, opts)
+	var picked_weapons: Array = picked.get("paths", [])
 	for p in picked_weapons:
 		var wd: WeaponData = load(p)
 		var elem = wd.element if wd != null else "none"
@@ -341,7 +344,7 @@ func roll_boss_rewards(room) -> Array:
 			"desc": "信物 · 占护符槽",
 			"tip": (rd.description if rd != null else "专属信物 · 占护符槽"),
 		})
-	cands.shuffle()   # 展示顺序随机（抽取本身已加权）
+	_loot.shuffle_in_place(cands)   # 展示顺序随机（抽取本身已定层，不消耗地图 RNG）
 	# 空池保底（2026-08-14，docs/BOSS信物_设计方案.md §4）：武器槽满 2 + 护符槽满/无信物
 	# → 两来源全被拦截，注入铁砧点兜底卡，战利品永不空屏
 	if cands.is_empty():
@@ -605,31 +608,23 @@ func _grant_symbol_reward(rd: RewardData, index: int) -> void:
 	_ctrl.hud._popup("✨%s %d→%d 格" % [sym.label, before, after], Palette.POP_BUFF, _ctrl.hud._player_sprite_anchor())
 
 
-# 构筑奖励：随机未持有武器进转轮带 / 随机未持有消耗品进腰带（胜利奖励方案 2026-08-13）
+# 构筑奖励兜底：按当前来源品质表抽同类别一件（武器排除已装备；消耗品允许腰带重复）。
+# Step 3 起不再全池均匀 / 不再读 acquisition_weight；同层为空则放弃本次授予（由上层改为其它卡）。
 func _pick_item_reward(kind: String) -> void:
 	# A 方案防御保底：武器槽满（上限 2）时不追加（候选层已拦截，此处双保险）
 	if kind == "weapon" and _ctrl.selected_loadout.size() >= _ctrl._loadout_system.cat_cap("weapon"):
 		return
-	var owned: Array = _ctrl.selected_loadout if kind == "weapon" else []
-	var src: Array = _ctrl.WEAPON_POOL if kind == "weapon" else _ctrl.ITEM_POOL
-	var cand := []
-	for p in src:
-		var res: Resource = load(p)
-		if res == null:
-			continue
-		if kind != "weapon" and res.get("category") != "active":
-			continue
-		if not owned.has(p):
-			cand.append(p)
-	if cand.is_empty():
-		for p in src:
-			var res: Resource = load(p)
-			if res != null and (kind == "weapon" or res.get("category") == "active"):
-				cand.append(p)
-	if cand.is_empty():
+	var category := "weapon" if kind == "weapon" else "active"
+	var opts := {"category": category}
+	if kind == "weapon":
+		opts["exclude"] = _ctrl.selected_loadout
+	var res: Dictionary = _loot.roll(_current_source(), _current_act(), opts)
+	if not bool(res.get("ok", false)):
 		return
-	var path: String = cand[randi() % cand.size()]
+	var path := String(res["path"])
 	var cd: Resource = load(path)
+	if cd == null:
+		return
 	if kind == "weapon":
 		_ctrl._loadout_system.grow_slot("weapon")                 # 免费武器自动开槽（同 BOSS 战利品）
 		_ctrl.selected_loadout.append(path)
@@ -706,8 +701,8 @@ func show_meta_choice() -> void:
 
 # ---------------------------------------------------------------------------
 # T8 掉落渠道（2026-08-24，docs/装备收集规划_200.md §12.1）：
-# 普通房 12% 掉 1 消耗品（active 池均匀，不吃稀有竞争）；精英房保底 1 护符
-# （acquisition_weight 加权，排除 BOSS 信物）。BOSS 房走自身战利品不经此处。
+# 普通房 12% 掉 1 消耗品；精英房保底 1 护符。BOSS 房走自身战利品不经此处。
+# Step 3：两处品质都改由来源表决定（normal / elite），不再读 acquisition_weight。
 # 入口：room_flow.finish_room 在铁砧点/金币入账后调用。
 # ---------------------------------------------------------------------------
 func apply_room_drops() -> void:
@@ -717,29 +712,28 @@ func apply_room_drops() -> void:
 	if kind == "elite":
 		_drop_elite_charm()
 	elif kind == "normal" and randf() < BALANCE.drop_consumable_chance_normal:
-		var cand := []
-		for p in _ctrl.ITEM_POOL:
-			var res: Resource = load(p)
-			if res != null and res.get("category") == "active":
-				cand.append(p)
-		if not cand.is_empty():
-			_grant_drop_consumable(cand[randi() % cand.size()])
+		var res: Dictionary = _loot.roll("normal", _current_act(), {"category": "active"})
+		if bool(res.get("ok", false)):
+			_grant_drop_consumable(String(res["path"]))
 
 
-# 精英保底护符：acquisition_weight 加权抽取；护符槽未达天花板时免费开槽（先例：武器奖励自动开槽），
-# 已达 CHARM_CAP 天花板则折算金币（卖价），保底永不落空。排除 BOSS 信物（信物仅 BOSS 战利品可获）。
+# 精英保底护符：来源表（elite）定品质 → 同品质层抽一个非信物护符；
+# 护符槽未达天花板时免费开槽（先例：武器奖励自动开槽），已达 CHARM_CAP 天花板则折算金币（卖价），
+# 保底永不落空。排除 BOSS 信物（信物仅 BOSS 战利品可获）。
+# 同层为空（数据缺口/已持有过滤）时重抽品质，仍空则退回该来源的合法护符全集——保底不落空。
 func _drop_elite_charm() -> void:
-	var relics := relic_paths()
-	var cand := []
-	for p in _ctrl.ITEM_POOL:
-		if p in relics:
-			continue
-		var res: Resource = load(p)
-		if res != null and res.get("category") == "passive":
-			cand.append(p)
-	if cand.is_empty():
+	var act := _current_act()
+	var opts := {"category": "passive", "include_relics": false, "exclude": _ctrl.selected_charms}
+	var path := ""
+	for _attempt in range(6):
+		var res: Dictionary = _loot.roll("elite", act, opts)
+		if bool(res.get("ok", false)):
+			path = String(res["path"])
+			break
+	if path == "":
+		path = _any_legal_charm(act, opts)
+	if path == "":
 		return
-	var path := acq_weighted_pick(cand)
 	if sel_passive_size() >= _ctrl._loadout_system.cat_max("passive"):
 		if _ctrl._loadout_system.can_grow_slot("passive"):
 			_ctrl._loadout_system.grow_slot("passive")
@@ -754,8 +748,19 @@ func _drop_elite_charm() -> void:
 	remember_charm(path)   # G2-01：精英掉落护符写入图鉴/来源
 	_ctrl._apply_charms()
 	var cd: Resource = load(path)
-	_ctrl.hud._log("精英掉落：获得护符 %s（按获取权重加权，占护符槽）" % (cd.item_name if cd != null else path))
+	_ctrl.hud._log("精英掉落：获得护符 %s（按来源品质表，占护符槽）" % (cd.item_name if cd != null else path))
 	_ctrl.hud._popup("🎁 获得护符 %s" % (cd.icon if cd != null else "🛡"), Palette.ACCENT_GOLD, _ctrl.hud._player_sprite_anchor())
+
+
+# 精英掉落兜底：该来源合法护符全集里随机一个（仍走专用 RNG，不消耗地图 RNG）。
+func _any_legal_charm(act: int, opts: Dictionary) -> String:
+	var pool: Dictionary = _loot.candidates("elite", act, opts)
+	var items: Array = pool.get("items", [])
+	if items.is_empty():
+		return ""
+	var copy := items.duplicate()
+	_loot.shuffle_in_place(copy)
+	return String(copy[0])
 
 
 # 普通房消耗品掉落授予：腰带满（CONSUMABLE_CAP）→ 折算金币（卖价），保底语义不落空。
