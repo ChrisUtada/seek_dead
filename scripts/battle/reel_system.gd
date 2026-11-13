@@ -271,14 +271,29 @@ func build_strips() -> void:
 			it_total_w += w
 			var key: String = s[0].resource_path + "|" + s[2]
 			if not agg.has(key):
-				agg[key] = {"sym": s[0], "elem": s[2], "w": 0.0, "rank": 0, "sources": 0}
+				agg[key] = {"sym": s[0], "elem": s[2], "w": 0.0, "rank": 0, "sources": 0,
+					"src": "", "src_power": -1.0}
 			agg[key]["w"] += w
 			agg[key]["rank"] = maxi(int(agg[key]["rank"]), it_rank)
 			agg[key]["sources"] += 1   # 共享源数（2026-08-14：≥2 件装备共用 → 构筑投资突破稀有度封顶，见 _RARE_CAP 判定）
+			# 2026-11-13：记录该 (符号|元素) 的来源武器，多把共用时取 base_power 最高者。
+			# 只影响图标显示（HUD 让斩击符号跟随武器），不参与任何结算。
+			var src_id: String = String(s[3]) if s.size() > 3 else ""
+			var src_pw: float = float(s[4]) if s.size() > 4 else 0.0
+			if src_id != "" and src_pw > float(agg[key]["src_power"]):
+				agg[key]["src"] = src_id
+				agg[key]["src_power"] = src_pw
 		# 2026-08-09 恢复 MISS：命中率 1.0 = 无 miss（当前武器/技能均 <1.0，形成带子 MISS 段）
 		var hit: float = clamp(it.get("hit", 1.0), 0.0, 1.0)
 		if hit < 1.0:
 			miss_w += it_total_w * (1.0 - hit)
+	# 2026-11-13：把「来源武器」落到 controller 供 HUD 查询（key 与 agg 同一口径：符号路径|有效元素）。
+	# 不新增 grid_src —— 同一 (符号|元素) 只对应一把武器，用旁路 map 就不必改动
+	# grid_elem 的全部写入点与置换类 gimmick。
+	_ctrl._sym_src_map.clear()
+	for k in agg:
+		if String(agg[k]["src"]) != "":
+			_ctrl._sym_src_map[k] = String(agg[k]["src"])
 	var wsum: float = 0.0
 	for k in agg:
 		wsum += agg[k]["w"]
@@ -660,6 +675,7 @@ func _reset_pool_state() -> void:
 	_ctrl._item_pierce_map = {}
 	_ctrl._item_pierce_at = {}
 	_ctrl._item_status_bonus = {}
+	_ctrl._sym_src_map = {}
 
 
 # 强度轴映射：符号 resource_path -> 该物品有效攻击力(base_power)；共享符号取最高者（最强来源）。
@@ -753,14 +769,21 @@ static func make_pool_item(item_name: String, hit_rate: float, syms: Array, rari
 	return {"name": item_name, "hit": clampf(hit_rate, 0.0, 1.0), "syms": syms, "rarity": String(rarity if rarity != null else "common")}
 
 
-# 武器符号段：[符号, 权重, 有效元素]；weight_bonus 按符号 resource_path 给出调律/铸式增量。
+# 武器符号段：[符号, 权重, 有效元素, 武器 id, 武器 base_power]。
+# weight_bonus 按符号 resource_path 给出调律/铸式增量。
+# 后两项供 HUD 让「斩击类符号」的格子图标跟随携带的武器（2026-11-13 用户需求）：
+# 火斩被 14 把火系武器共用，原先全部显示同一张通用火斩图，看不出手上拿的是巨剑还是法杖。
+# base_power 只用于多把武器共用同一符号时选出「结算真正生效的那把」
+# （与 _weapon_power_map 取 max 的口径一致）。
 static func weapon_syms(wd: WeaponData, weight_bonus: Dictionary) -> Array:
 	var syms := []
+	var wid: String = str(wd.resource_path).get_file().get_basename()
 	for sw in wd.symbols:
 		if sw == null or sw.symbol == null:
 			continue
 		var sp: String = sw.symbol.resource_path
-		syms.append([sw.symbol, float(sw.weight) + float(weight_bonus.get(sp, 0.0)), effective_element(sw.symbol, wd.element, wd.reel_element)])
+		syms.append([sw.symbol, float(sw.weight) + float(weight_bonus.get(sp, 0.0)),
+			effective_element(sw.symbol, wd.element, wd.reel_element), wid, float(wd.base_power)])
 	return syms
 
 
@@ -779,8 +802,12 @@ static func flatten_pool(items: Array, gold_sym: SymbolData, gold_weight: float)
 	var flat: Array = []
 	for it in items:
 		for s in it["syms"]:
-			flat.append([s[0], s[1], s[2]])
-	flat.append([gold_sym, gold_weight, "none"])
+			# 后两项（武器 id / base_power）只有武器段有：技能段与精华段留空，
+			# 它们不参与「斩击图标跟随武器」。
+			flat.append([s[0], s[1], s[2],
+				String(s[3]) if s.size() > 3 else "",
+				float(s[4]) if s.size() > 4 else 0.0])
+	flat.append([gold_sym, gold_weight, "none", "", 0.0])
 	return flat
 
 

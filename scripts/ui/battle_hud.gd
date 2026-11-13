@@ -1169,7 +1169,7 @@ func _refresh_cell(reel: int, row: int) -> void:
 	elif s.icon_tex != null:
 		b.icon = null
 		b.text = ""
-		layer.texture = _cell_icon(s.icon_tex)
+		layer.texture = _cell_symbol_tex(reel, row, s)
 		_cell_want_icon[reel][row] = layer.texture
 		_cell_want_text[reel][row] = ""
 		var fx2: CPUParticles2D = cell_icon_fx[reel][row]
@@ -1961,3 +1961,25 @@ func _cell_icon(base: Texture2D) -> Texture2D:
 		return base
 	var big := p.replace("/symbols/16/", "/symbols/")   # 32px 版直接放在 symbols/ 下
 	return load(big) as Texture2D if ResourceLoader.exists(big) else base
+
+
+## 2026-11-13：斩击类符号（*_slash）的格子图标跟随「携带的武器」。
+## 火斩被 14 把火系武器共用，原先全部显示同一张通用火斩图，看不出手上是巨剑还是法杖；
+## 现在锻炉巨剑的火斩格直接显示锻炉巨剑，余烬长剑的显示余烬长剑。
+## 只作用于武器带来的 *_slash 符号 —— 燃 / 爆 / 技能 / 精华等保持自己的图标
+## （用户明确：燃属于状态，不该变成武器）。
+## 图标用 96 母版 3:1 降到 32（与符号图标同口径的整数降采样，48px 版 1.5:1 会糊），
+## 由 tools/make_weapon_cell_icons.py 预生成到 assets/icons/weapons/cell/。
+func _cell_symbol_tex(reel: int, row: int, s: SymbolData) -> Texture2D:
+	if s == null:
+		return null
+	if s.resource_path.ends_with("_slash.tres") and controller != null:
+		var ge = controller.grid_elem
+		var elem: String = "none"
+		if ge.size() > reel and ge[reel].size() > row:
+			elem = String(ge[reel][row])
+		var wid: String = String(controller._sym_src_map.get(s.resource_path + "|" + elem, ""))
+		var wtex := WeaponIcons.cell_icon_for_id(wid)
+		if wtex != null:
+			return wtex
+	return _cell_icon(s.icon_tex)

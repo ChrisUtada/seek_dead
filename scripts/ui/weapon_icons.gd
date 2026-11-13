@@ -18,6 +18,7 @@ const ELEMENT_COLORS := {
 
 static var _cache := {}
 static var _elem_cache := {}
+static var _cell_cache := {}
 
 
 ## 资源路径 → 图标贴图（不存在则 null）
@@ -32,6 +33,22 @@ static func icon_for_path(path: String) -> Texture2D:
 	if ResourceLoader.exists(icon_path):
 		tex = load(icon_path) as Texture2D
 	_cache[path] = tex
+	return tex
+
+
+## 武器 id → 转轮格子用的 32px 图标（96 母版 3:1 整数降采样，见 tools/make_weapon_cell_icons.py）。
+## 2026-11-13：斩击类符号的格子图标跟随携带的武器，格子 38×38 且图标层不缩放，
+## 所以必须是正好 32px 的版本（48px 版是 1.5:1，会糊）。缺失返回 null，调用方回落符号图标。
+static func cell_icon_for_id(weapon_id: String) -> Texture2D:
+	if weapon_id == "":
+		return null
+	if _cell_cache.has(weapon_id):
+		return _cell_cache[weapon_id]
+	var p := DIR + "cell/icon_" + weapon_id + "_32.png"
+	var tex: Texture2D = null
+	if ResourceLoader.exists(p):
+		tex = load(p) as Texture2D
+	_cell_cache[weapon_id] = tex
 	return tex
 
 

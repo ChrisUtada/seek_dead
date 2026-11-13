@@ -183,11 +183,13 @@ func _fill(rs) -> void:
 	var strip: Array = _strip(rs)
 	var n: int = strip.size()
 	for i in SLOTS:
-		var sym: SymbolData = strip[(_index + i - (SLOTS / 2) + n) % n][0]
+		var entry: Array = strip[(_index + i - (SLOTS / 2) + n) % n]
+		var sym: SymbolData = entry[0]
+		var elem: String = String(entry[1]) if entry.size() > 1 else "none"
 		var lbl := _labels[i]
 		var tex := _textures[i]
 		if sym.icon_tex != null:
-			tex.texture = _reel_icon(sym.icon_tex)   # 滚动流同用 32px，和静止格尺寸一致
+			tex.texture = _reel_icon(sym.icon_tex, sym, elem)   # 滚动流同用 32px，和静止格尺寸一致
 			tex.visible = true
 			lbl.visible = false
 			lbl.text = ""
@@ -198,8 +200,15 @@ func _fill(rs) -> void:
 			lbl.add_theme_color_override("font_color", sym.color)
 
 
-## 滚动流也用 32px 图标（与静止格一致）：16px 版放在 /symbols/16/，32px 在 /symbols/ 根下
-func _reel_icon(base: Texture2D) -> Texture2D:
+## 滚动流也用 32px 图标（与静止格一致）：16px 版放在 /symbols/16/，32px 在 /symbols/ 根下。
+## 2026-11-13：斩击类符号跟随来源武器，与静止格用同一套判定 ——
+## 否则旋转中显示通用火斩、停下瞬间才跳成武器图标。
+func _reel_icon(base: Texture2D, s: SymbolData = null, elem: String = "none") -> Texture2D:
+	if s != null and s.resource_path.ends_with("_slash.tres") and controller != null:
+		var wid: String = String(controller._sym_src_map.get(s.resource_path + "|" + elem, ""))
+		var wtex := WeaponIcons.cell_icon_for_id(wid)
+		if wtex != null:
+			return wtex
 	if base == null:
 		return null
 	var p := base.resource_path

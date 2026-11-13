@@ -113,6 +113,12 @@ var run_final := false                      # 棋盘模式：当前是否本局�
 var grid = []
 # grid_elem[reel][row] = 该格符号的「有效元素」（武器元素继承后的实际元素，用于逐符号克制结算）
 var grid_elem = []
+# 2026-11-13：斩击类符号的图标要跟随「携带的武器」（用户需求：拿巨剑时转轮里的火斩
+# 应该显示巨剑，而不是所有火系武器共用同一张通用火斩图）。
+# key = "符号资源路径|有效元素"，value = 来源武器 id（如 "forge_greatsword"）。
+# 同一符号被多把武器共用时取 base_power 最高者，与 _weapon_power_map 取 max 的结算口径一致。
+# 只供 HUD 查图标，不参与任何结算；由 ReelSystem.build_strips 重建。
+var _sym_src_map: Dictionary = {}
 
 # 合并后的加权符号池：元素为 [SymbolData, weight, element]（element = 有效元素）
 var pool: Array[Array] = []
