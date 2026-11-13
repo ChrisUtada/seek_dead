@@ -113,28 +113,29 @@ var run_final := false                      # 棋盘模式：当前是否本局�
 var grid = []
 # grid_elem[reel][row] = 该格符号的「有效元素」（武器元素继承后的实际元素，用于逐符号克制结算）
 var grid_elem = []
-# 2026-11-13：斩击类符号的图标要跟随「携带的武器」（用户需求：拿巨剑时转轮里的火斩
-# 应该显示巨剑，而不是所有火系武器共用同一张通用火斩图）。
-# key = "符号资源路径|有效元素"，value = 来源武器 id（如 "forge_greatsword"）。
-# 同一符号被多把武器共用时取 base_power 最高者，与 _weapon_power_map 取 max 的结算口径一致。
-# 只供 HUD 查图标，不参与任何结算；由 ReelSystem.build_strips 重建。
+# grid_src[reel][row] = 实际停中格的来源武器 id。符号族仍负责同族连线，来源负责完整图标与物品特性。
+var grid_src: Array = []
+# 单源或无来源格子的图标兜底；多源格必须读 grid_src / 带子 entry[2]，不能再只显示最高攻来源。
 var _sym_src_map: Dictionary = {}
 
 # 合并后的加权符号池：元素为 [SymbolData, weight, element]（element = 有效元素）
 var pool: Array[Array] = []
 var loadout_names: Array[String] = []
-var _weapon_power_map: Dictionary = {}   # 符号 resource_path -> 该物品有效攻击力(base_power + 元进度武器加成)，由 _build_pool 构建。P3：结算时 _contribute 读此值把「物品强度轴」灌进符号伤害（docs/[已完成]物品中心重构方案.md §8）
-var _item_crit_map: Dictionary = {}   # 符号 resource_path -> 该物品三连暴击倍率(crit_mult)，由 _build_pool 构建（方案 A）。普通/special 三连均按此倍率结算，共享符号取最高 crit_mult。
-var _item_crit_chance_map: Dictionary = {}   # 符号 resource_path -> 该物品非三连暴击率加成(crit_chance)，_build_pool 构建（2026-08-07：高 base 低暴击代价轴）
-var _item_pierce_map: Dictionary = {}   # 符号 resource_path -> 该物品是否带破甲机制(triple_pierce)，_build_pool 构建（2026-08-07：破甲=武器/技能机制，非三连通用）
-var _item_pierce_at: Dictionary = {}    # G6-05：符号 resource_path -> 破甲所需连数（默认 3；破城铸式为 2）
-var _item_status_bonus: Dictionary = {} # G6-05：符号 resource_path -> 每次结算额外状态层数（霜鸣铸式；默认 0）
+# 基础键 = 符号路径，保留单源/技能/旧探针口径；扩展键 = 符号路径|武器id，保存该来源自己的数值。
+var _weapon_power_map: Dictionary = {}
+var _item_crit_map: Dictionary = {}
+var _item_crit_chance_map: Dictionary = {}
+var _item_pierce_map: Dictionary = {}
+var _item_pierce_at: Dictionary = {}
+var _item_status_bonus: Dictionary = {}
+var _source_archetype_map: Dictionary = {} # 武器id -> WeaponData.Archetype，用于同源三连原型效果
+var _source_weapon_type_map: Dictionary = {} # 武器id -> WeaponData.WeaponType，用于远程穿透
 var pool_items: Array[Dictionary] = []              # 装备自洽：每件装备一段 [ {name, hit, syms:[[SymbolData, weight, element]]} ]，_build_strips 据此生成各自的转轮子带
 
 var _busy: bool = false                 # 旋转序列进行中，防重入
 var _eval_adv := false                  # _evaluate 阶段2：本回合是否触发过「克制」
 var _eval_dis := false                  # _evaluate 阶段2：本回合是否触发过「抵抗」
-var _elem_triple := false               # 2026-08-07 同元素三连：3 列有效元素相同（可不同符号）→ 必暴 + 克制核爆（参考 Slots & Skulls 匹配判定宽容化）
+var _elem_triple := false               # 同元素3格触发元素共鸣：充能与状态强化，不再自动必暴+核爆
 var _last_triple := false               # 保留（重转机制移除后暂未使用，供未来重转设计）
 var charge_points := 0                   # T21 元素充能：克制命中累计，满 BALANCE.charge_max 释放元素爆发（每房清零）
 var _charge_elem_counts: Dictionary = {} # 2026-08-14 主导元素统计：本回合各元素克制命中次数（释放爆发时取最高者）

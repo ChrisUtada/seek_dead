@@ -40,11 +40,12 @@ const _RARE_CAP_CELLS := 2             # rare/epic 符号格数上限（不得�
 var _ctrl                                # DuelController
 var _timer: Timer
 
-var reel_strips: Array = []            # [reel] -> Array[ [SymbolData, element] ]
+var reel_strips: Array = []            # [reel] -> Array[ [SymbolData, element, source_weapon_id] ]
 var reel_cursor: Array[int] = []       # [reel] -> 当前带子索引（旋转时递增，取模长度）
 var reel_stopped: Array[bool] = []     # [reel] -> 该列是否已停
 var _locked_prev_sym: Array = []       # [reel] -> 锁轮保留的上一轮符号
 var _locked_prev_elem: Array[String] = []   # [reel] -> 锁轮保留的上一轮有效元素
+var _locked_prev_src: Array[String] = []    # [reel] -> 锁轮保留的来源武器
 var _spinning := false                 # 旋转进行中（供输入分支判断）
 var _spin_ticks := 0                   # 已跳次数（用于加速上限）
 var _startup_ticks := 0                # 启动段拍数；巡航后的加速从启动段结束时重新计拍
@@ -195,6 +196,7 @@ func begin_spin() -> void:
 	_pending_stops.clear()
 	_locked_prev_sym = []
 	_locked_prev_elem = []
+	_locked_prev_src = []
 	for r in DuelController.REELS:
 		if r in _ctrl.frozen_cols:
 			# 冻结列：本轮不转、不可按停（锁定 spin 前的符号；结算时该格失效，见 _evaluate）
@@ -202,6 +204,7 @@ func begin_spin() -> void:
 			reel_stopped.append(true)
 			_locked_prev_sym.append(_ctrl.grid[r][0] if _ctrl.grid.size() > r and _ctrl.grid[r].size() > 0 else DuelController.TRASH_SYMBOL)
 			_locked_prev_elem.append(_ctrl.grid_elem[r][0] if _ctrl.grid_elem.size() > r and _ctrl.grid_elem[r].size() > 0 else "none")
+			_locked_prev_src.append(String(_ctrl.grid_src[r][0]) if _ctrl.grid_src.size() > r and _ctrl.grid_src[r].size() > 0 else "")
 			_ctrl.hud.set_reel_enabled(r, false)
 			continue
 		if r == _ctrl.pending_lock_reel:
@@ -212,6 +215,7 @@ func begin_spin() -> void:
 			reel_stopped.append(true)
 			_locked_prev_sym.append(_ctrl.grid[r][0] if _ctrl.grid.size() > r and _ctrl.grid[r].size() > 0 else DuelController.TRASH_SYMBOL)
 			_locked_prev_elem.append(_ctrl.grid_elem[r][0] if _ctrl.grid_elem.size() > r and _ctrl.grid_elem[r].size() > 0 else "none")
+			_locked_prev_src.append(String(_ctrl.grid_src[r][0]) if _ctrl.grid_src.size() > r and _ctrl.grid_src[r].size() > 0 else "")
 			_ctrl.hud.set_reel_enabled(r, false)
 			_ctrl.hud._refresh_cell(r, 0)   # spin 前刷新：金框 + 固定符号立即可见
 			_ctrl.hud._log("🔒 第 %d 列被锁轮：本轮固定不转（符号照常结算）" % (r + 1))
@@ -219,9 +223,9 @@ func begin_spin() -> void:
 		var strip_len = reel_strips[r].size() if reel_strips.size() > r and not reel_strips[r].is_empty() else 1
 		reel_cursor.append(randi() % strip_len)
 		reel_stopped.append(false)
-		# 锁轮列：保留旋转前该列的符号与有效元素
 		_locked_prev_sym.append(_ctrl.grid[r][0] if _ctrl.grid.size() > r and _ctrl.grid[r].size() > 0 else DuelController.TRASH_SYMBOL)
 		_locked_prev_elem.append(_ctrl.grid_elem[r][0] if _ctrl.grid_elem.size() > r and _ctrl.grid_elem[r].size() > 0 else "none")
+		_locked_prev_src.append(String(_ctrl.grid_src[r][0]) if _ctrl.grid_src.size() > r and _ctrl.grid_src[r].size() > 0 else "")
 		# 旋转期间允许点击该列以停止
 		_ctrl.hud.set_reel_enabled(r, true)
 	_spinning = true
@@ -242,27 +246,23 @@ func begin_spin() -> void:
 	_ctrl.hud._log("转轮旋转中——按【空格】逐列停止，或点击某一列单独停下（不停就一直转）")
 
 
-# 方案 B（2026-08-07）：跨装备聚合 (符号|有效元素) 权重，共享符号累加（同元素堆三连）；
-# 2026-08-09 传统 slots 频率（拍板）：每符号格子数 = 权重档位（2-4 格，保底 2 目押下限），
-# rare/epic 符号封顶 2 格（≤ 普通符号——大奖罕见）；MISS 按 miss_w/wsum 比例折算格数（保底 1）。
-# 稀释表达 = 符号种类增多 → 条带变长（每符号格数稳定，频率可预期可目押），替代旧 16 格总预算。
-# 结算/连锁/special 三连等下游逻辑不变（仍按 REELS x ROWS 落子统计）。
+# 同族建带（2026-11-13）：符号族汇总权重并决定总格数，再按来源分配每把武器的格子。
+# 每条带子 entry = [SymbolData, 有效元素, 来源武器id]；同族可连线，每格按来源结算。
+# MISS 仍按各装备权重与命中率聚合，最小带长平铺不改变分源比例。
 func build_strips() -> void:
 	reel_strips = []
 	if _ctrl.pool_items.is_empty():
 		for r in DuelController.REELS:
-			reel_strips.append([[DuelController.TRASH_SYMBOL, "none"]])
+			reel_strips.append([[DuelController.TRASH_SYMBOL, "none", ""]])
 		return
-	# —— 方案 B：跨装备聚合 (符号 | 有效元素) 权重 ——
-	# 同一 (符号, 有效元素) 被多件装备携带时权重累加（同元素武器堆三连；异元素互不稀释符号总价值）。
-	# 有效元素已在 _build_pool 用 _eff_element 解析（普通符号继承武器元素，special 优先 reel_element）。
-	var agg := {}   # key("path|elem") -> {sym, elem, w, rank, sources}
-	var miss_w := 0.0   # MISS 聚合权重：Σ 装备符号总权重 × (1 - hit_rate)
+	# 符号族负责总格数与同族连线；来源武器负责该格的图标和实际数值。
+	var agg := {}
+	var miss_w := 0.0
 	for it in _ctrl.pool_items:
 		var syms: Array = it["syms"]
 		if syms.is_empty():
 			continue
-		var it_rank: int = RARITY_RANK.get(String(it.get("rarity", "common")), 0)   # 2026-08-09：携带装备稀有度（最高者决定封顶）
+		var it_rank: int = RARITY_RANK.get(String(it.get("rarity", "common")), 0)
 		var it_total_w := 0.0
 		for s in syms:
 			var w = max(0.0, s[1] + _ctrl.combat.agg_symbol_weight_mod(s[0]) + _ctrl._synergy_system.weight_mod(s[0]))
@@ -272,24 +272,20 @@ func build_strips() -> void:
 			var key: String = s[0].resource_path + "|" + s[2]
 			if not agg.has(key):
 				agg[key] = {"sym": s[0], "elem": s[2], "w": 0.0, "rank": 0, "sources": 0,
-					"src": "", "src_power": -1.0}
+					"src": "", "src_power": -1.0, "src_weights": {}}
 			agg[key]["w"] += w
 			agg[key]["rank"] = maxi(int(agg[key]["rank"]), it_rank)
-			agg[key]["sources"] += 1   # 共享源数（2026-08-14：≥2 件装备共用 → 构筑投资突破稀有度封顶，见 _RARE_CAP 判定）
-			# 2026-11-13：记录该 (符号|元素) 的来源武器，多把共用时取 base_power 最高者。
-			# 只影响图标显示（HUD 让斩击符号跟随武器），不参与任何结算。
+			agg[key]["sources"] += 1
 			var src_id: String = String(s[3]) if s.size() > 3 else ""
 			var src_pw: float = float(s[4]) if s.size() > 4 else 0.0
+			if src_id != "":
+				agg[key]["src_weights"][src_id] = float(agg[key]["src_weights"].get(src_id, 0.0)) + w
 			if src_id != "" and src_pw > float(agg[key]["src_power"]):
 				agg[key]["src"] = src_id
 				agg[key]["src_power"] = src_pw
-		# 2026-08-09 恢复 MISS：命中率 1.0 = 无 miss（当前武器/技能均 <1.0，形成带子 MISS 段）
 		var hit: float = clamp(it.get("hit", 1.0), 0.0, 1.0)
 		if hit < 1.0:
 			miss_w += it_total_w * (1.0 - hit)
-	# 2026-11-13：把「来源武器」落到 controller 供 HUD 查询（key 与 agg 同一口径：符号路径|有效元素）。
-	# 不新增 grid_src —— 同一 (符号|元素) 只对应一把武器，用旁路 map 就不必改动
-	# grid_elem 的全部写入点与置换类 gimmick。
 	_ctrl._sym_src_map.clear()
 	for k in agg:
 		if String(agg[k]["src"]) != "":
@@ -300,41 +296,34 @@ func build_strips() -> void:
 	var base := []
 	var total_cells := 0
 	if wsum > 0.0:
-		# 2026-08-09 传统 slots 频率：格子数 = 权重档位（保底 2 = 目押下限；≥2 → 3 格；≥4 → 4 格），
-		# rare/epic（rank ≥ 2）封顶 2 格——稀有符号不得超过普通符号（大奖罕见）。
-		# 2026-08-14 按 kind 分流：damage 攻击符号【不受】稀有度封顶（主输出按权重档位 2/3/4 格——
-		# 修「反向稀有度惩罚」：同权重 5 的 uncommon 弩矢 4 格 vs rare 暗斩 2 格，带高稀有武器反而更刮）；
-		# status/buff 等功能符号维持 rare/epic 封顶 2 格（大奖罕见语义本就指向机制符号）。
-		# 2026-08-14 例外：共享符号 ≥2 源（sources ≥ 2）突破封顶走正常档位——修复「双同属性武器陷阱构装」
-		# （低攻第二把被 max 攻 + 封顶双重吃掉，收益≈0，蒙特卡洛实测 +1%）。单件仍封顶。
 		for k in agg:
 			var cnt: int = cells_for(agg[k]["w"], agg[k]["sym"].kind, int(agg[k]["rank"]), int(agg[k]["sources"]))
-			cnt = _apply_trim(String(k), cnt)   # G7-B B1：主动减带（保底 1 格）
-			for _c in cnt:
-				base.append([agg[k]["sym"], agg[k]["elem"]])
+			cnt = _apply_trim(String(k), cnt)
+			var allocation: Dictionary = allocate_source_cells(agg[k]["src_weights"], cnt)
+			if allocation.is_empty():
+				for _c in cnt:
+					base.append([agg[k]["sym"], agg[k]["elem"], ""])
+			else:
+				for src_id in allocation:
+					for _c in int(allocation[src_id]):
+						base.append([agg[k]["sym"], agg[k]["elem"], String(src_id)])
 			total_cells += cnt
-	# 2026-08-09 恢复 MISS：按 miss_w/wsum 比例折算格数（保底 1）——命中率越低带子越脏；
-	# 废铁仍由敌人意图注入（chaos/abyss_erosion，见下）。金币常驻（经济引擎，与装备频率解耦）
 	if miss_w > 0.0:
 		var miss_cells: int = maxi(1, roundi(float(total_cells) * miss_w / maxf(0.001, wsum)))
 		for _c in miss_cells:
-			base.append([MISS_SYMBOL, "none"])
+			base.append([MISS_SYMBOL, "none", ""])
 	for _c in _GOLD_CELLS:
-		base.append([DuelController.GOLD_SYMBOL, "none"])
-	# 敌人乱权：向整带注入额外废铁（等比重削弱所有装备，忠实还原「削弱优势」意图）
+		base.append([DuelController.GOLD_SYMBOL, "none", ""])
 	if _ctrl.pending_chaos:
 		var extra: int = roundi(float(base.size()) * 0.20)
 		for _c in extra:
-			base.append([DuelController.TRASH_SYMBOL, "none"])
-	# S10 T2：深渊侵蚀注入额外废铁
+			base.append([DuelController.TRASH_SYMBOL, "none", ""])
 	for _i in _ctrl.boss_trash:
-		base.append([DuelController.TRASH_SYMBOL, "none"])
-	# 最小带长保护：整份平铺到 _STRIP_MIN_CELLS 以上——只拉长周期，各符号占比完全不变
+		base.append([DuelController.TRASH_SYMBOL, "none", ""])
 	if base.size() < _STRIP_MIN_CELLS:
 		var unit = base.duplicate(true)
 		while base.size() < _STRIP_MIN_CELLS:
 			base.append_array(unit.duplicate(true))
-	# 3 根转轮 = base 的洗牌副本（落点由玩家停止时机决定）
 	for r in DuelController.REELS:
 		var copy = base.duplicate(true)
 		for i in range(copy.size() - 1, 0, -1):
@@ -343,6 +332,46 @@ func build_strips() -> void:
 			copy[i] = copy[j]
 			copy[j] = tmp
 		reel_strips.append(copy)
+
+
+# 在符号族总格数内按权重分配来源。每个来源先保 1 格，其余用最大余数法分配；
+# 不新增 RNG，装备顺序决定同权重余数的归属。
+static func allocate_source_cells(weights: Dictionary, total: int) -> Dictionary:
+	var out := {}
+	if total <= 0 or weights.is_empty():
+		return out
+	var keys: Array = weights.keys()
+	if keys.size() == 1:
+		out[keys[0]] = total
+		return out
+	for i in mini(total, keys.size()):
+		out[keys[i]] = 1
+	if total <= keys.size():
+		return out
+	var remaining: int = total - keys.size()
+	var weight_sum := 0.0
+	for k in keys:
+		weight_sum += float(weights[k])
+	if weight_sum <= 0.0:
+		return out
+	var fractions := {}
+	var allocated := 0
+	for k in keys:
+		var exact: float = float(remaining) * float(weights[k]) / weight_sum
+		var add: int = floori(exact)
+		out[k] = int(out.get(k, 0)) + add
+		fractions[k] = exact - add
+		allocated += add
+	remaining -= allocated
+	while remaining > 0:
+		var best = keys[0]
+		for k in keys:
+			if float(fractions[k]) > float(fractions[best]) + 0.0001:
+				best = k
+		out[best] = int(out.get(best, 0)) + 1
+		fractions[best] = 0.0
+		remaining -= 1
+	return out
 
 
 # 单条 (符号|有效元素) 聚合项的格子数（M1-02：build_strips 与奖励灌注预览共用，
@@ -402,16 +431,26 @@ func on_spin_tick() -> void:
 	_timer.wait_time = _spin_wait_at(_spin_model_seconds, _spin_ticks, _startup_ticks)
 
 
+func _set_grid_src(r: int, row: int, source_id: String) -> void:
+	while _ctrl.grid_src.size() <= r:
+		_ctrl.grid_src.append([])
+	while _ctrl.grid_src[r].size() <= row:
+		_ctrl.grid_src[r].append("")
+	_ctrl.grid_src[r][row] = source_id
+
+
 # 把当前带子位置的符号写入展示格（旋转中每跳调用，复用既有 _refresh_cell）。
 func write_reel_cell(r: int) -> void:
 	var strip = reel_strips[r] if reel_strips.size() > r else null
 	if strip == null or strip.is_empty():
 		_ctrl.grid[r][0] = DuelController.TRASH_SYMBOL
 		_ctrl.grid_elem[r][0] = "none"
+		_set_grid_src(r, 0, "")
 	else:
 		var idx = reel_cursor[r] % strip.size()
 		_ctrl.grid[r][0] = strip[idx][0]
 		_ctrl.grid_elem[r][0] = strip[idx][1]
+		_set_grid_src(r, 0, String(strip[idx][2]) if strip[idx].size() > 2 else "")
 	_ctrl.hud._refresh_cell(r, 0)
 
 
@@ -544,6 +583,7 @@ func _lock_at(r: int, idx: int, reason: String) -> void:
 	if r == _ctrl.pending_jam_reel:
 		_ctrl.grid[r][0] = DuelController.TRASH_SYMBOL
 		_ctrl.grid_elem[r][0] = "none"
+		_set_grid_src(r, 0, "")
 		_ctrl.pending_jam_reel = -1
 		sym = DuelController.TRASH_SYMBOL
 		reason = "jam"
@@ -551,6 +591,7 @@ func _lock_at(r: int, idx: int, reason: String) -> void:
 	elif r == _ctrl.pending_lock_reel:
 		_ctrl.grid[r][0] = _locked_prev_sym[r]
 		_ctrl.grid_elem[r][0] = _locked_prev_elem[r]
+		_set_grid_src(r, 0, _locked_prev_src[r])
 		_ctrl.pending_lock_reel = -1
 		sym = _locked_prev_sym[r]
 		reason = "lock"
@@ -561,10 +602,12 @@ func _lock_at(r: int, idx: int, reason: String) -> void:
 			idx = int(idx) % strip.size()
 			_ctrl.grid[r][0] = strip[idx][0]
 			_ctrl.grid_elem[r][0] = strip[idx][1]
+			_set_grid_src(r, 0, String(strip[idx][2]) if strip[idx].size() > 2 else "")
 			sym = strip[idx][0]
 		else:
 			_ctrl.grid[r][0] = DuelController.TRASH_SYMBOL
 			_ctrl.grid_elem[r][0] = "none"
+			_set_grid_src(r, 0, "")
 	reel_stopped[r] = true
 	_ctrl.hud._refresh_cell(r, 0)
 	_ctrl.hud.set_reel_enabled(r, false)
@@ -626,17 +669,21 @@ func reset_grid() -> void:
 	_ctrl.hud._clear_badges()
 	_ctrl.hud._clear_stop_feedback()   # 新房间/精华注入：上一回合的停轮结果不再适用
 	_ctrl.grid_elem = []
+	_ctrl.grid_src = []
 	for reel in DuelController.REELS:
 		_ctrl.grid_elem.append([])
+		_ctrl.grid_src.append([])
 		for row in DuelController.ROWS:
 			_ctrl.grid_elem[reel].append("none")
+			_ctrl.grid_src[reel].append("")
 			_ctrl.grid[reel][row] = DuelController.TRASH_SYMBOL
 			if reel_strips.size() > reel and not reel_strips[reel].is_empty():
 				var idx = randi() % reel_strips[reel].size()
 				_ctrl.grid[reel][row] = reel_strips[reel][idx][0]
 				_ctrl.grid_elem[reel][row] = reel_strips[reel][idx][1]
+				_ctrl.grid_src[reel][row] = String(reel_strips[reel][idx][2]) if reel_strips[reel][idx].size() > 2 else ""
 			_ctrl.hud._refresh_cell(reel, row)
-	_ctrl.invalidate_state()   # grid_elem 重新实例化
+	_ctrl.invalidate_state()   # grid_elem / grid_src 重新实例化
 
 
 # ----------------------------------------------------------------------------
@@ -675,32 +722,48 @@ func _reset_pool_state() -> void:
 	_ctrl._item_pierce_map = {}
 	_ctrl._item_pierce_at = {}
 	_ctrl._item_status_bonus = {}
+	_ctrl._source_archetype_map = {}
+	_ctrl._source_weapon_type_map = {}
 	_ctrl._sym_src_map = {}
 
 
-# 强度轴映射：符号 resource_path -> 该物品有效攻击力(base_power)；共享符号取最高者（最强来源）。
+static func source_key(symbol_path: String, source_id: String) -> String:
+	return symbol_path if source_id == "" else symbol_path + "|" + source_id
+
+
+# 基础键继续服务技能、单源与旧探针；扩展键保存每把武器自己的强度与三连特性。
 func _apply_weapon_strength(loadout: Array) -> void:
 	for path in loadout:
 		var wd: WeaponData = load(path)
 		if wd == null or wd.symbols == null:
 			_ctrl.hud._log("⚠ 武器加载失败（符号未入池）: %s" % path)
 			continue
+		var wid: String = str(wd.resource_path).get_file().get_basename()
+		_ctrl._source_archetype_map[wid] = int(wd.archetype)
+		_ctrl._source_weapon_type_map[wid] = int(wd.weapon_type)
 		var style_power: int = _ctrl._forge_styles.power_bonus(path) if _ctrl._forge_styles != null else 0
 		var style_pierce: int = _ctrl._forge_styles.pierce_at(path) if _ctrl._forge_styles != null else 3
 		var style_status: int = _ctrl._forge_styles.status_bonus(path) if _ctrl._forge_styles != null else 0
-		var eff: float = wd.base_power + _ctrl.mastery.forge_bonus(path) + style_power   # M2-02 锋铸 + G6-05 铸式
+		var eff: float = wd.base_power + _ctrl.mastery.forge_bonus(path) + style_power
+		var crit_add: float = _ctrl.mastery.crit_bonus(path) if _ctrl.mastery != null else 0.0
 		for sw in wd.symbols:
 			if sw == null or sw.symbol == null:
 				continue
 			var sp = sw.symbol.resource_path
+			var sk: String = source_key(sp, wid)
+			_ctrl._weapon_power_map[sk] = eff
+			_ctrl._item_crit_map[sk] = wd.crit_mult + crit_add
+			_ctrl._item_crit_chance_map[sk] = wd.crit_chance
 			_ctrl._weapon_power_map[sp] = max(_ctrl._weapon_power_map.get(sp, 0.0), eff)
-			var crit_add: float = _ctrl.mastery.crit_bonus(path) if _ctrl.mastery != null else 0.0
-			_ctrl._item_crit_map[sp] = max(_ctrl._item_crit_map.get(sp, 1.0), wd.crit_mult + crit_add)   # G7-A S2 暴虐
+			_ctrl._item_crit_map[sp] = max(_ctrl._item_crit_map.get(sp, 1.0), wd.crit_mult + crit_add)
 			_ctrl._item_crit_chance_map[sp] = max(_ctrl._item_crit_chance_map.get(sp, 0.0), wd.crit_chance)
 			if wd.triple_pierce:
+				_ctrl._item_pierce_map[sk] = true
+				_ctrl._item_pierce_at[sk] = style_pierce
 				_ctrl._item_pierce_map[sp] = true
 				_ctrl._item_pierce_at[sp] = mini(int(_ctrl._item_pierce_at.get(sp, 3)), style_pierce)
 			if style_status > 0:
+				_ctrl._item_status_bonus[sk] = style_status
 				_ctrl._item_status_bonus[sp] = maxi(int(_ctrl._item_status_bonus.get(sp, 0)), style_status)
 
 
@@ -771,10 +834,8 @@ static func make_pool_item(item_name: String, hit_rate: float, syms: Array, rari
 
 # 武器符号段：[符号, 权重, 有效元素, 武器 id, 武器 base_power]。
 # weight_bonus 按符号 resource_path 给出调律/铸式增量。
-# 后两项供 HUD 让「斩击类符号」的格子图标跟随携带的武器（2026-11-13 用户需求）：
-# 火斩被 14 把火系武器共用，原先全部显示同一张通用火斩图，看不出手上拿的是巨剑还是法杖。
-# base_power 只用于多把武器共用同一符号时选出「结算真正生效的那把」
-# （与 _weapon_power_map 取 max 的口径一致）。
+# 武器 id 随每个带格保留，供完整图标和来源结算；base_power 仅用于无多源格子时的旧显示兜底。
+# 实际生效强度读取 _weapon_power_map 的「符号|武器id」扩展键，包含锋铸与铸式修正。
 static func weapon_syms(wd: WeaponData, weight_bonus: Dictionary) -> Array:
 	var syms := []
 	var wid: String = str(wd.resource_path).get_file().get_basename()

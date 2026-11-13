@@ -27,12 +27,12 @@ func _init(ctrl) -> void:
 
 
 # 单符号贡献：按 kind 路由到伤害/护盾/治疗/状态/特殊。acc 为回合累计字典（见 evaluate）。
-func contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> void:
-	# 2026-08-14：连线精通训练轨已随训练点系统移除——连线倍率 = 原始匹配数（raw）
+func contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String, source_id: String = "", family_raw: int = -1, family_charge: bool = true) -> void:
+	# raw = 当前来源的格数；family_raw = 同符号族总格数。混合来源各自结算，三连倍率只按符号族触发一次。
 	var mult = raw
-	# 2026-08-07 武器系统重构（T12）：伤害只由武器攻击力决定——flat = item_power + 元进度加成，
-	# 符号 sym.base 不再参与缩放（BASE_POWER_REF 退役）；非武器符号（异常路径）兜底 sym.base。
-	var item_power: float = _ctrl._weapon_power_map.get(sym.resource_path, 0.0)
+	var combo_raw: int = raw if family_raw < 0 else family_raw
+	var sk: String = ReelSystem.source_key(sym.resource_path, source_id)
+	var item_power: float = _ctrl._weapon_power_map.get(sk, _ctrl._weapon_power_map.get(sym.resource_path, 0.0))
 	var flat: float = item_power + agg_power_flat() if item_power > 0.0 else sym.base + agg_power_flat()
 	# bonus = 非 sym.base 部分（攻击力差值 + 元进度聚合），供 push_dmg_line 分解展示（恒等式 flat = sym.base + bonus）
 	var bonus: float = flat - sym.base
@@ -46,20 +46,28 @@ func contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> voi
 			em += _ctrl.charm_element_boost
 		if em > 1.0:
 			_ctrl._eval_adv = true
-			_ctrl._charge_elem_counts[elem] = int(_ctrl._charge_elem_counts.get(elem, 0)) + 1   # 主导元素统计（不受充能规则影响，保证爆发元素归属准确）
-			# P-调参（2026-08-24 拍板 A+B）：充能收紧——单格擦边克制不再充能，
-			# 需「同符号双连或同元素三连」的有效克制命中才 +1（奖励打点准，抑制核爆机关枪化）
-			if raw >= 2 or _ctrl._elem_triple:
-				_ctrl.charge_points += 1              # T21 元素充能：有效克制命中 +1
-				acc["counter_triple"] = true
+			if family_charge:
+				_ctrl._charge_elem_counts[elem] = int(_ctrl._charge_elem_counts.get(elem, 0)) + 1
+				if combo_raw >= 2:
+					_ctrl.charge_points += 1
+					acc["counter_triple"] = true
 		elif em < 1.0:
 			_ctrl._eval_dis = true
-	# 方案 B：三连必暴（crit_mult，现状保留）；非三连每符号实例按 BALANCE.crit_chance + 物品 crit_chance 独立暴击——
-	# 单带靠三连大暴，多带靠每列小暴；高 base 武器低暴击（代价轴，2026-08-07）。
-	# 2026-08-07 同元素三连：同元素 3 格（可不同符号）同样必暴（匹配判定宽容化，参考 Slots & Skulls）。
-	# 共鸣 crit_bonus 在暴击触发时叠加到 crit_mult（激活集由 _synergy_system 缓存）。
-	var crit_rate: float = DuelController.BALANCE.crit_chance + _ctrl._item_crit_chance_map.get(sym.resource_path, 0.0)
-	var crit_mult_val: float = (_ctrl._item_crit_map.get(sym.resource_path, 1.0) + _ctrl._synergy_system.crit_bonus(sym)) if raw >= 3 or _ctrl._elem_triple or randf() < crit_rate else 1.0
+	# 同源三连使用武器自己的专精倍率；同族混合三连固定为1.5倍；同元素共鸣不再自动必暴。
+	var crit_rate: float = DuelController.BALANCE.crit_chance + _ctrl._item_crit_chance_map.get(sk, _ctrl._item_crit_chance_map.get(sym.resource_path, 0.0))
+	var crit_mult_val := 1.0
+	if raw >= 3:
+		crit_mult_val = _ctrl._item_crit_map.get(sk, _ctrl._item_crit_map.get(sym.resource_path, 1.0)) + _ctrl._synergy_system.crit_bonus(sym)
+	elif combo_raw >= 3:
+		crit_mult_val = 1.5
+	elif randf() < crit_rate:
+		crit_mult_val = _ctrl._item_crit_map.get(sk, _ctrl._item_crit_map.get(sym.resource_path, 1.0)) + _ctrl._synergy_system.crit_bonus(sym)
+	var source_triple: bool = raw >= 3 and source_id != ""
+	var archetype: int = int(_ctrl._source_archetype_map.get(source_id, WeaponData.Archetype.MEDIUM))
+	var weapon_type: int = int(_ctrl._source_weapon_type_map.get(source_id, WeaponData.WeaponType.MELEE))
+	var magic_triple: bool = source_triple and archetype == WeaponData.Archetype.MAGIC
+	if magic_triple:
+		_ctrl.charge_points += 1
 	# T2 破甲护符：非穿透符号按概率直击 HP（穿透护甲；无名虚空剥夺时概率归零）——damage/special 共用
 	var pierce_p: float = _ctrl.charm_pierce_chance if _ctrl.deprived_level < 1 else 0.0
 	match sym.kind:
@@ -67,17 +75,19 @@ func contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> voi
 			var dv = flat * mult * em
 			if crit_mult_val > 1.0:
 				dv *= crit_mult_val
-			# 碎片王冠（信物）：每回合首个伤害符号 ×N（damage/special 共用标记）
+			if source_triple and archetype == WeaponData.Archetype.LIGHT:
+				dv *= 1.5
 			if not _ctrl._turn_hit_used and _ctrl.charm_first_hit > 1.0 and _ctrl.deprived_level < 1:
 				dv *= _ctrl.charm_first_hit
 				_ctrl._turn_hit_used = true
-			# 2026-08-07 三连通用化：任意同符号 3 连 → 必暴（triple 标记供 gimmick/破甲判定）；
-			# 破甲 = 仅带破甲机制（triple_pierce）的武器/技能三连触发（evaluate 里判 _item_pierce_map）
-			if raw >= 3:
+			if combo_raw >= 3:
 				acc["triple"] = true
 			_note_damage_elem(elem)
 			if sym.pierce_armor or randf() < pierce_p:
-				acc["pierce"] += dv     # 穿透护甲：直接扣 HP
+				acc["pierce"] += dv
+			elif source_triple and weapon_type == WeaponData.WeaponType.RANGED:
+				acc["pierce"] += dv * 0.35
+				acc["dmg"] += dv * 0.65
 			else:
 				acc["dmg"] += dv
 			push_dmg_line(acc, sym, elem, flat, bonus, mult, em, dv, crit_mult_val)
@@ -88,23 +98,26 @@ func contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String) -> voi
 		# 不吃暴击/连线精通/克制——治疗规则简单可预期；3连标记 heal_triple 供溢出转护盾
 		"heal":
 			acc["heal"] += sym.base * float(DuelController.BALANCE.heal_line_mults[mini(raw - 1, 2)])
-			if raw >= 3:
+			if combo_raw >= 3:
 				acc["heal_triple"] = true
-		"status":  acc["status_stacks"][sym.status_type] = acc["status_stacks"].get(sym.status_type, 0) + mult * crit_mult_val + (int(_ctrl.charm_dot_amp) if _ctrl.deprived_level < 1 else 0) + int(_ctrl._item_status_bonus.get(sym.resource_path, 0))   # 毒腺囊（信物）挂 DoT 层数 +N；G6-05 霜鸣每次多 +1 层（只作用于该符号）
+		"status":  acc["status_stacks"][sym.status_type] = acc["status_stacks"].get(sym.status_type, 0) + mult * crit_mult_val + (int(_ctrl.charm_dot_amp) if _ctrl.deprived_level < 1 else 0) + int(_ctrl._item_status_bonus.get(sk, 0) if source_id != "" else _ctrl._item_status_bonus.get(sym.resource_path, 0)) + (1 if magic_triple else 0)
 		"special":
-			# special（火焰法杖等专属高伤符号，2026-08-07 起与 damage 同源；三连同样必暴/连锁/破甲机制）
 			var sv = flat * mult * em
 			if crit_mult_val > 1.0:
 				sv *= crit_mult_val
-			# 碎片王冠（信物）：每回合首个伤害符号 ×N
+			if source_triple and archetype == WeaponData.Archetype.LIGHT:
+				sv *= 1.5
 			if not _ctrl._turn_hit_used and _ctrl.charm_first_hit > 1.0 and _ctrl.deprived_level < 1:
 				sv *= _ctrl.charm_first_hit
 				_ctrl._turn_hit_used = true
-			if raw >= 3:
+			if combo_raw >= 3:
 				acc["triple"] = true
 			_note_damage_elem(elem)
 			if sym.pierce_armor or randf() < pierce_p:
 				acc["pierce"] += sv
+			elif source_triple and weapon_type == WeaponData.WeaponType.RANGED:
+				acc["pierce"] += sv * 0.35
+				acc["special"] += sv * 0.65
 			else:
 				acc["special"] += sv
 			push_dmg_line(acc, sym, elem, flat, bonus, mult, em, sv, crit_mult_val)
@@ -162,7 +175,7 @@ func evaluate() -> void:
 # G7-D Step 5：shield_gain / heal_gain / heal_overflow_shield 只供底部反馈报「真实落地」数值，
 # 不参与结算；结算仍读 shield / heal 原字段。
 func _new_acc() -> Dictionary:
-	return { "dmg": 0, "shield": 0, "heal": 0, "status_stacks": {}, "special": 0, "lines": [], "pierce": 0.0, "counter_triple": false, "triple": false, "heal_triple": false,
+	return { "dmg": 0, "shield": 0, "heal": 0, "status_stacks": {}, "special": 0, "lines": [], "pierce": 0.0, "counter_triple": false, "triple": false, "heal_triple": false, "element_resonance": false,
 		"shield_gain": 0, "heal_gain": 0, "heal_overflow_shield": 0 }
 
 
@@ -181,7 +194,7 @@ func _reset_turn_state() -> void:
 func _phase_symbols(acc: Dictionary) -> Dictionary:
 	_ctrl.hud._clear_badges()
 
-	# 按「符号 + 有效元素」计数（解决共享符号跨武器元素冲突；HUD 角标据此展示）
+	# 符号族统计连线总数，第四项按来源记录格数；来源不拆散同族三连。
 	# T30：冻结列（失效格）不参与计数——不匹配、不结算、无攻击
 	var counts = {}
 	for p in _ctrl.PAYLINES[0]:
@@ -189,11 +202,15 @@ func _phase_symbols(acc: Dictionary) -> Dictionary:
 			continue
 		var sym: SymbolData = _ctrl.grid[p[0]][p[1]]
 		var elem: String = _ctrl.grid_elem[p[0]][p[1]]
+		var src := ""
+		if _ctrl.grid_src.size() > p[0] and _ctrl.grid_src[p[0]].size() > p[1]:
+			src = String(_ctrl.grid_src[p[0]][p[1]])
 		var key: String = sym.resource_path + "|" + elem
 		if not counts.has(key):
-			counts[key] = [sym, elem, 0]
+			counts[key] = [sym, elem, 0, {}]
 		counts[key][2] += 1
-	# 2026-08-07 同元素三连：统计每「有效元素」总出现数（跨符号聚合，仅非 none）——3 列同元素即必暴/核爆
+		counts[key][3][src] = int(counts[key][3].get(src, 0)) + 1
+	# 同元素3格 = 元素共鸣：每回合一次充能，并强化本回合已有状态，不替代同源/同族三连。
 	_ctrl._elem_triple = false
 	var elem_total := {}
 	for key in counts:
@@ -205,7 +222,9 @@ func _phase_symbols(acc: Dictionary) -> Dictionary:
 			_ctrl._elem_triple = true
 			break
 	if _ctrl._elem_triple:
-		_ctrl.hud._log("⚡ 元素三连！同元素 3 格（必暴）")
+		acc["element_resonance"] = true
+		_ctrl.charge_points += 1
+		_ctrl.hud._log("✦ 元素共鸣：同元素3格，充能+1；本回合状态+1")
 	# Phase C：先结算 buff 符号（本回合即生效，命中当回合就吃到增益）
 	for key in counts:
 		var s: SymbolData = counts[key][0]
@@ -221,17 +240,21 @@ func _phase_symbols(acc: Dictionary) -> Dictionary:
 				_ctrl.gold += g
 				_ctrl.hud._log("💰 金币 +%d" % g)
 				_ctrl.hud._popup("💰+%d" % g, Palette.POP_GOLD, _ctrl.hud._player_sprite_anchor())
-	# 再结算常规符号（此时 contribute 读到的已是含新增益的加成，并按各自有效元素吃克制）
+	# 每个来源分别结算自身格数，同族总数只负责连线、三连和充能判定。
 	for key in counts:
 		var s: SymbolData = counts[key][0]
 		var elem: String = counts[key][1]
 		var c: int = counts[key][2]
-		if s.kind == "trash" or s.kind == "buff" or s == DuelController.GOLD_SYMBOL:   # trash/MISS 不结算
+		if s.kind == "trash" or s.kind == "buff" or s == DuelController.GOLD_SYMBOL:
 			continue
 		if s.kind == "special" and c < 1:
 			continue
-		_ctrl.mastery.note_settle(s.resource_path)   # M2-02：本房有效符号结算（武器熟练依据）
-		contribute(s, c, acc, elem)
+		var first_source := true
+		for src in counts[key][3]:
+			var source_count: int = int(counts[key][3][src])
+			_ctrl.mastery.note_settle(s.resource_path, String(src))
+			contribute(s, source_count, acc, elem, String(src), c, first_source)
+			first_source = false
 
 	# 匹配角标（×N，N>=2）
 	_ctrl.hud._update_match_badges(counts)
@@ -266,6 +289,9 @@ func _phase_defense(acc: Dictionary) -> void:
 		if heal_mult != 1.0 and acc["heal"] > 0:
 			acc["heal"] = int(round(float(acc["heal"]) * heal_mult))
 			_ctrl.hud._log("🚫 禁疗：本回合治疗收益 ×%s" % ElementCounter.fmt_mult(heal_mult))
+	if acc.get("element_resonance", false):
+		for st in acc["status_stacks"].keys():
+			acc["status_stacks"][st] += 1
 	for st in acc["status_stacks"].keys():
 		_ctrl.enemy_status[st] = _ctrl.enemy_status.get(st, 0) + acc["status_stacks"][st]
 	if acc["shield"] > 0:
@@ -318,10 +344,18 @@ func _phase_counter(counts: Dictionary, acc: Dictionary) -> void:
 	var pierce_need := 3
 	for key in counts:
 		var sp: String = counts[key][0].resource_path
-		var need := int(_ctrl._item_pierce_at.get(sp, 3))
-		if _ctrl._item_pierce_map.has(sp) and counts[key][2] >= need:
-			triple_pierce = true
-			pierce_need = mini(pierce_need, need)
+		for src in counts[key][3]:
+			var source_id := String(src)
+			var sk: String = ReelSystem.source_key(sp, source_id)
+			var need := int(_ctrl._item_pierce_at.get(sk, 3) if source_id != "" else _ctrl._item_pierce_at.get(sp, 3))
+			var has_pierce: bool = bool(_ctrl._item_pierce_map.get(sk, false) if source_id != "" else _ctrl._item_pierce_map.get(sp, false))
+			var source_count := int(counts[key][3][src])
+			var heavy_triple: bool = source_count >= 3 and int(_ctrl._source_archetype_map.get(source_id, -1)) == WeaponData.Archetype.HEAVY
+			if (has_pierce and source_count >= need) or heavy_triple:
+				triple_pierce = true
+				pierce_need = mini(pierce_need, need)
+				break
+		if triple_pierce:
 			break
 	if acc.get("counter_triple", false):
 		on_counter("element")
@@ -541,13 +575,13 @@ func apply_enemy_damage(amount: float, pierce: bool) -> float:
 
 # 反制即爆发（Plan C）：
 # · "special" = 通用破甲：清空敌人护甲，开启「伤害直击 HP」的爆发窗口（所有敌人通用破绽）。
-# · "element" = 进阶核爆：克制元素三连，除破甲外再追加一次直接打血（穿透）的核爆伤害。
+# · "element" = 进阶核爆：同族符号的克制连线，除破甲外再追加一次直接打血（穿透）的核爆伤害。
 func on_counter(kind: String, pierce_need: int = 3) -> void:
 	if _ctrl.enemy_armor > 0:
 		var cleared := int(_ctrl.enemy_armor)
 		_turn_armor_cleared += cleared   # Step 4：结果反馈报真实破甲量
 		var tag := "special %s破甲" % ("三连" if pierce_need >= 3 else "二连")
-		_ctrl.hud._log("💥 %s！护甲清零（%d）" % [tag if kind == "special" else "克制元素三连", cleared])
+		_ctrl.hud._log("💥 %s！护甲清零（%d）" % [tag if kind == "special" else "克制同族连线", cleared])
 		_ctrl.enemy_armor = 0
 		if _ctrl._career != null:
 			_ctrl._career.note_armor_break()   # G6-01：仅记录 BOSS 房破甲（不改结算）
@@ -560,7 +594,7 @@ func on_counter(kind: String, pierce_need: int = 3) -> void:
 			if _ctrl._telemetry != null:
 				_ctrl._telemetry.on_counter_burst(burst)
 			_ctrl.hud._popup("💥克制核爆!-%d" % burst, Palette.POP_DAMAGE, _ctrl.hud._enemy_sprite_anchor())
-			_ctrl.hud._log("⚡ 克制元素三连触发核爆：%d 伤害（穿透护甲）" % burst)
+			_ctrl.hud._log("⚡ 克制同族连线触发核爆：%d 伤害（穿透护甲）" % burst)
 	if _ctrl.hud.animator != null:
 		_ctrl.hud.animator.play_counter(kind)
 

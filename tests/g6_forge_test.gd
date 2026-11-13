@@ -171,7 +171,7 @@ func _test_build_pool(duel: DuelController) -> void:
 	_check(is_equal_approx(float(duel._weapon_power_map.get(FIRE_SLASH, 0.0)), 20.0), "烈刃入池：火焰剑攻击 18→20")
 	var fire_item := _item_named(duel, "火焰剑")
 	_check(fire_item != null and is_equal_approx(float(fire_item.get("hit", 0.0)), 0.83), "烈刃入池：命中 88%→83%")
-	_check(is_equal_approx(float(duel._weapon_power_map.get(ICE_CRYSTAL, 0.0)), 13.0), "霜鸣入池：霜晶法杖攻击 15→13")
+	_check(is_equal_approx(float(duel._weapon_power_map.get(ICE_CRYSTAL, 0.0)), 12.0), "霜鸣入池：霜晶法杖攻击 14→12")
 	_check(int(duel._item_status_bonus.get(ICE_CRYSTAL, 0)) == 1, "霜鸣入池：冰霜晶弹带 +1 状态层")
 	_check(_weight_of(duel, ICE_CRYSTAL) == 3.0, "霜鸣入池：冰霜晶弹权重 4→3")
 
@@ -179,8 +179,8 @@ func _test_build_pool(duel: DuelController) -> void:
 	duel.selected_loadout.append(DAGGER)
 	duel._build_pool(duel.selected_loadout)
 	var dagger_item := _item_named(duel, "匕首")
-	_check(is_equal_approx(float(duel._weapon_power_map.get(DAGGER_SLASH, 0.0)), 8.0), "稳手入池：匕首攻击 10→8")
-	_check(dagger_item != null and is_equal_approx(float(dagger_item.get("hit", 0.0)), 0.90), "稳手入池：命中 82%→90%")
+	_check(is_equal_approx(float(duel._weapon_power_map.get(DAGGER_SLASH, 0.0)), 6.0), "稳手入池：匕首攻击 8→6")
+	_check(dagger_item != null and is_equal_approx(float(dagger_item.get("hit", 0.0)), 0.94), "稳手入池：命中 86%→94%")
 
 	duel.selected_loadout.clear()
 	duel.selected_loadout.append(AXE)

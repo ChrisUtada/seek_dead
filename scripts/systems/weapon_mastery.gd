@@ -61,9 +61,9 @@ func reset_room() -> void:
 	_settled.clear()
 
 
-# combat evaluate 的有效结算点调用（非 trash/buff/金币 的符号真正结算时）。
-func note_settle(sym_path: String) -> void:
-	_settled[sym_path] = true
+# combat evaluate 的有效结算点调用。共享符号按来源武器分别记录，旧探针可不传来源。
+func note_settle(sym_path: String, source_id: String = "") -> void:
+	_settled[sym_path if source_id == "" else source_id + "|" + sym_path] = true
 
 
 # R 等级：1 起步，按累计熟练跨过 R2 / R3 / R4 门槛。
@@ -345,8 +345,11 @@ func _weapon_settled(path: String) -> bool:
 	var wd: WeaponData = load(path)
 	if wd == null:
 		return false
+	var wid: String = str(wd.resource_path).get_file().get_basename()
 	for sw in wd.symbols:
-		if sw != null and sw.symbol != null and _settled.has(sw.symbol.resource_path):
+		if sw == null or sw.symbol == null:
+			continue
+		if _settled.has(wid + "|" + sw.symbol.resource_path) or _settled.has(sw.symbol.resource_path):
 			return true
 	return false
 

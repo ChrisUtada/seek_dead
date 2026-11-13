@@ -3,7 +3,7 @@ extends Node
 # 充能门控微探针：直接驱动 CombatSystem.contribute 验证 A+B 调参规则
 # ① 单格擦边克制(raw=1)：不充能、不计核爆标记
 # ② 同符号双连(raw=2)+克制：充能+1 且计核爆标记
-# ③ 元素三连(_elem_triple)+单格克制：充能+1
+# ③ 元素共鸣在完整停轮阶段单独结算，单格 contribute 不重复充能（集成断言见 weapon_archetype_test）
 # ④ 非克制：一律不充能
 # ⑤ 阈值：charge_max=6
 
@@ -50,7 +50,7 @@ func _run() -> void:
 	duel._elem_triple = true
 	acc = {"dmg": 0, "special": 0, "pierce": 0.0, "shield": 0, "heal": 0, "status_stacks": {}, "lines": [], "counter_triple": false, "triple": false, "heal_triple": false}
 	duel.combat.contribute(fire_sym, 1, acc, "fire")
-	_check(duel.charge_points == 1, "③ 元素三连下单格克制也充能 +1")
+	_check(duel.charge_points == 0, "③ 单格贡献不冒充元素共鸣；共鸣改由完整停轮阶段结算")
 	duel._elem_triple = false
 
 	duel.enemy_element = "fire"

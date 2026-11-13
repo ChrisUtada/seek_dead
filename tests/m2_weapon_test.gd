@@ -297,14 +297,14 @@ func _test_archetype_candidates(duel: DuelController) -> void:
 	_check(light_ids.has("calibrate") and not light_ids.has("forge"), "LIGHT 候选给校准、不给锋铸")
 	_check(heavy_ids.has("tyrant") and not heavy_ids.has("tune"), "HEAVY 候选给暴虐、不给调律")
 
-	# 校准：每次 +5%，最多 2 次，上限 100%
-	_check(is_equal_approx(duel.weapon_hit(DAGGER), 0.82), "校准前命中 82%")
+	# 校准：每次 +5%，最多 2 次，上限 100%；轻型原型校准前为 86%
+	_check(is_equal_approx(duel.weapon_hit(DAGGER), 0.86), "校准前命中 86%")
 	_check(m.choose(DAGGER, "calibrate"), "选择校准成功")
-	_check(is_equal_approx(duel.weapon_hit(DAGGER), 0.87), "校准：命中 82% → 87%")
+	_check(is_equal_approx(duel.weapon_hit(DAGGER), 0.91), "校准：命中 86% → 91%")
 	_check(m.choose(DAGGER, "calibrate"), "第二次校准成功")
-	_check(is_equal_approx(duel.weapon_hit(DAGGER), 0.92), "第二次校准：命中 → 92%")
+	_check(is_equal_approx(duel.weapon_hit(DAGGER), 0.96), "第二次校准：命中 → 96%")
 	_check(not m.choose(DAGGER, "calibrate"), "校准达 2 次上限后拒绝")
-	_check(is_equal_approx(duel.weapon_hit(DAGGER), 0.92), "超过上限后命中不再增长")
+	_check(is_equal_approx(duel.weapon_hit(DAGGER), 0.96), "超过上限后命中不再增长")
 	# 接近上限时不提供（临时改内存里的 hit_rate，立即还原；不写 .tres）
 	m.imprints.erase(DAGGER)
 	var dagger_res: WeaponData = load(DAGGER)
@@ -312,7 +312,7 @@ func _test_archetype_candidates(duel: DuelController) -> void:
 	dagger_res.hit_rate = 0.97
 	_check(not _cand_ids(m, DAGGER).has("calibrate"), "命中 97% 时不提供校准（+5% 会被 100% 吞掉）")
 	dagger_res.hit_rate = hit_backup
-	_check(is_equal_approx(float((load(DAGGER) as WeaponData).hit_rate), 0.82), "共享 .tres 的 hit_rate 未被修改")
+	_check(is_equal_approx(float((load(DAGGER) as WeaponData).hit_rate), 0.86), "共享 .tres 的 hit_rate 未被修改")
 
 	# 暴虐：+0.25 三连暴击倍率，并入既有 _item_crit_map（不新增乘区）
 	m.imprints.clear()

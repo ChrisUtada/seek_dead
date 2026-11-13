@@ -8,6 +8,7 @@ extends RefCounted
 
 var grid: Array = []
 var grid_elem: Array = []
+var grid_src: Array = []
 var reward_choices: Array = []          # 元素混合（RewardData / dict），保持未泛型
 var room_index: int = 0
 var REELS: int = 3
@@ -79,6 +80,7 @@ static func build(ctrl) -> BattleState:
 	var s := BattleState.new()
 	s.grid = ctrl.grid
 	s.grid_elem = ctrl.grid_elem
+	s.grid_src = ctrl.grid_src
 	s.reward_choices = ctrl.reward_choices
 	s.room_index = ctrl.room_index
 	s.REELS = ctrl.REELS

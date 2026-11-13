@@ -446,15 +446,18 @@ func _every(ctrl, n: int) -> bool:
 func _shift_symbols(ctrl) -> void:
 	var sym0: Array = []
 	var elem0: Array[String] = []
+	var source0: Array[String] = []
 	for r in DuelController.REELS:
 		if ctrl.grid.size() > r and ctrl.grid[r].size() > 0:
 			sym0.append(ctrl.grid[r][0])
 			elem0.append(String(ctrl.grid_elem[r][0]))
+			source0.append(String(ctrl.grid_src[r][0]) if ctrl.grid_src.size() > r and ctrl.grid_src[r].size() > 0 else "")
 	if sym0.size() == 3:
 		for r in DuelController.REELS:
 			var src := (r + 2) % 3   # 向右平移一位
 			ctrl.grid[r][0] = sym0[src]
 			ctrl.grid_elem[r][0] = elem0[src]
+			ctrl.reel_system._set_grid_src(r, 0, source0[src])
 			ctrl.hud._refresh_cell(r, 0)
 	for r in DuelController.REELS:
 		var strips: Array = ctrl.reel_system.reel_strips
