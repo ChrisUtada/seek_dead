@@ -49,6 +49,12 @@ func set_desc_color(color: Color) -> void:
 	_desc_label.add_theme_color_override("font_color", color)
 
 
+# Step 7：标题取品质色（奖励卡 / BOSS 战利品卡）。只改这一张卡，不写共享主题。
+func set_title_color(color: Color) -> void:
+	_resolve()
+	_title_label.add_theme_color_override("font_color", color)
+
+
 # G8-05：Button 的最小尺寸只按自身 text 算，不包含子控件。卡片高度写死时，
 # 长描述自动换行后会画到卡片外（战后成长槽实测内容 124px / 卡 96px）。
 # 入树后按 Center/VBox 的真实最小高度把卡片撑够。必须等布局给出真实宽度再量：

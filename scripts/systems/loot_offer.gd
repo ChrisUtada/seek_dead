@@ -15,7 +15,6 @@ extends RefCounted
 
 const BALANCE = preload("res://resources/config/balance_config.tres")
 const ITEM_CATEGORIES := ["weapon", "passive", "active"]
-const QUALITY_NAMES := {"common": "基础", "uncommon": "进阶", "rare": "稀有", "epic": "传说"}
 
 var source := ""
 var act := 1
@@ -86,7 +85,7 @@ func skip_result() -> Dictionary:
 
 
 func quality_name() -> String:
-	return String(QUALITY_NAMES.get(quality, quality))
+	return LootSourceTable.quality_label(quality)
 
 
 # ---------------------------------------------------------------------------
@@ -197,11 +196,12 @@ func _item_option(path: String) -> Dictionary:
 	var role := String(res.get("role")) if res != null else ""
 	var state := _grant_state(cat, path)
 	var opt := {
-		"kind": "item", "quality": quality, "category": cat, "path": path,
-		"role": role, "purpose": _purpose_of(res, role),
+		"kind": "item", "quality": quality, "quality_name": quality_name(), "category": cat,
+		"path": path, "role": role, "purpose": _purpose_of(res, role),
 		"unique_group": String(e.get("unique_group", "")),
 		"icon": _icon_of(cat),
 		"tooltip": _mechanism(res),
+		"condition": "", "result": "", "mechanism": _mechanism(res),
 		"grant": state,
 		"gold": 0, "power": 0, "mastery": 0,
 		"needs_replace": false,
@@ -214,15 +214,23 @@ func _item_option(path: String) -> Dictionary:
 		opt["gold"] = g
 		opt["title"] = "%s · 已拥有 → 金币 +%d" % [nm, g]
 		opt["desc"] = "本局已拥有 / 槽位已满：按同层转化结算金币 +%d" % g
+		opt["condition"] = "本局已拥有 / 槽位已满"
+		opt["result"] = "金币 +%d" % g
 	elif state == "mastery":
 		var m := _duplicate_mastery()
 		opt["mastery"] = m
 		opt["title"] = "%s · 已拥有 → 熟练 +%d" % [nm, m]
 		opt["desc"] = "本局已装备：转化为该武器熟练 +%d（R%d · %d/%d）" % [
 			m, _mastery_rank(path), _mastery_points(path), _mastery_next(path)]
+		opt["condition"] = "本局已装备（重复武器）"
+		opt["result"] = "熟练 +%d（R%d · %d/%d）" % [
+			m, _mastery_rank(path), _mastery_points(path), _mastery_next(path)]
 	else:
 		opt["title"] = "%s · %s" % [_category_label(cat), nm]
 		opt["desc"] = _grant_desc(cat)
+		opt["condition"] = _condition_text(cat)
+		opt["result"] = _grant_desc(cat)
+	opt["tooltip"] = _item_tooltip(res, opt)
 	return opt
 
 
@@ -231,17 +239,23 @@ func _conversion_option(type: String) -> Dictionary:
 		var p := int(BALANCE.loot_conversion_power.get(quality, 0))
 		return {
 			"kind": "conversion", "conversion": "power", "quality": quality,
+			"quality_name": quality_name(),
 			"role": "damage", "purpose": "damage", "icon": "⚔", "power": p, "gold": 0,
 			"title": "同层强化 · 伤害 +%d" % p,
 			"desc": "本局符号伤害 +%d（同品质转化，不跨层）" % p,
+			"condition": "同层转化（无前置）", "result": "本局符号伤害 +%d" % p,
+			"mechanism": "同层强化：本局所有符号伤害 +%d，不改变来源层。" % p,
 			"tooltip": "同层强化：本局所有符号伤害 +%d。品质 %s，不改变来源层。" % [p, quality_name()],
 		}
 	var g := _conversion_gold()
 	return {
 		"kind": "conversion", "conversion": "gold", "quality": quality,
+		"quality_name": quality_name(),
 		"role": "resource", "purpose": "resource", "icon": "💰", "gold": g, "power": 0,
 		"title": "同层转化 · 金币 +%d" % g,
 		"desc": "金币 +%d（同品质转化，不跨层）" % g,
+		"condition": "同层转化（无前置）", "result": "金币 +%d" % g,
+		"mechanism": "同层转化：金币 +%d，不改变来源层。" % g,
 		"tooltip": "同层转化：金币 +%d。品质 %s，不改变来源层。" % [g, quality_name()],
 	}
 
@@ -250,9 +264,12 @@ func _make_skip() -> Dictionary:
 	var g := int(BALANCE.loot_skip_gold.get(quality, 0))
 	return {
 		"kind": "conversion", "conversion": "gold", "quality": quality,
+		"quality_name": quality_name(),
 		"role": "resource", "purpose": "resource", "icon": "💰", "gold": g, "power": 0,
 		"title": "跳过 · 金币 +%d" % g,
 		"desc": "不取战利品，直接获得同层转化金币 +%d" % g,
+		"condition": "跳过本次战利品", "result": "金币 +%d" % g,
+		"mechanism": "不取本次战利品，获得 %s 层固定转化。" % quality_name(),
 		"tooltip": "跳过本次战利品，获得 %s 层固定转化：金币 +%d（展示值即结算值）。" % [quality_name(), g],
 	}
 
@@ -352,6 +369,35 @@ func _grant_desc(cat: String) -> String:
 	return "加入本局构筑"
 
 
+# Step 7：卡面「条件」行——只描述当前槽位与获得方式，不制造品质对比。
+func _condition_text(cat: String) -> String:
+	if _ctrl == null:
+		return "无前置"
+	match cat:
+		"weapon":
+			var cap: int = int(_ctrl._loadout_system.cat_cap("weapon"))
+			return "武器槽 %d/%d" % [_ctrl.selected_loadout.size(), cap]
+		"passive":
+			var pcap: int = int(_ctrl._loadout_system.cat_max("passive"))
+			return "护符槽 %d/%d" % [_ctrl.selected_charms.size(), pcap]
+		"active":
+			return "腰带 %d/%d" % [_ctrl.consumable_slots.size(), _ctrl.CONSUMABLE_CAP]
+	return "无前置"
+
+
+# 悬停窗：机制 + 条件 + 结果三段齐全（卡面只放短句）。
+func _item_tooltip(res: Resource, opt: Dictionary) -> String:
+	var parts: Array[String] = []
+	var mech := String(opt.get("mechanism", ""))
+	if mech != "":
+		parts.append(mech)
+	parts.append("条件：%s" % String(opt.get("condition", "")))
+	parts.append("结果：%s" % String(opt.get("result", "")))
+	if res != null and bool(opt.get("needs_replace", false)):
+		parts.append("武器槽已满：选择后进入替换流程（旧武器回收藏，熟练/铭印保留）。")
+	return "\n".join(parts)
+
+
 func _mechanism(res: Resource) -> String:
 	if res == null:
 		return ""
@@ -363,4 +409,6 @@ func _mechanism(res: Resource) -> String:
 
 func _result(ok: bool) -> Dictionary:
 	return {"ok": ok, "reason": reason, "quality": quality,
+		"quality_name": quality_name(), "source": source,
+		"source_label": LootSourceTable.source_label(source),
 		"options": options.duplicate(true), "skip": skip.duplicate(true)}

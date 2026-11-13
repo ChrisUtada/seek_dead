@@ -28,6 +28,7 @@ func reset_run() -> void:
 
 
 # 生成三槽候选（顺序固定：补给 / 构筑 / 成长），并同步 reward_choices 供既有奖励结算路径读取。
+# Step 7 起玩家界面改走「战利品三选一 + 成长位分开结算」，本方法只保留给旧路径与回归测试。
 func build(kind: String) -> Array:
 	_sync_queue()
 	var rewards: Array = _ctrl._reward_system.roll_slot_rewards(kind)
@@ -39,6 +40,13 @@ func build(kind: String) -> Array:
 	out.append(_reward_view(rewards, 1, "build", "构筑", "武器与符号"))
 	out.append(_growth_view(rewards))
 	return out
+
+
+# Step 7：只取成长位（技艺 / 铭印）。没有真实成长时返回空字典——不生成「下一房对策」假成长卡，
+# 也不与战利品三选一混作一组（计划 §4.2）。
+func build_growth(_kind: String = "") -> Dictionary:
+	_sync_queue()
+	return _growth_view([], false)
 
 
 # 应用成长位（技艺 / 铭印 / 下一房对策）。返回是否成功；失败时调用方应结束本次界面。
@@ -212,7 +220,7 @@ func _reward_view(rewards: Array, index: int, slot: String, label: String, hint:
 	}
 
 
-func _growth_view(rewards: Array = []) -> Dictionary:
+func _growth_view(rewards: Array = [], allow_fallback: bool = true) -> Dictionary:
 	var head: Dictionary = _head()
 	if not head.is_empty():
 		var e: Dictionary = head["entry"]
@@ -224,6 +232,9 @@ func _growth_view(rewards: Array = []) -> Dictionary:
 			"title": String(v["title"]), "desc": String(v["desc"]),
 			"tooltip": String(v.get("tooltip", v["desc"])), "icon": String(v.get("icon", "✦")),
 		}
+	# Step 7：没有真实成长时不补「下一房对策」假卡（计划 §4.2）。
+	if not allow_fallback:
+		return {}
 	# 无待处理成长：给「下一房对策」（真实生效，不是伪选项）。
 	# 避开本屏补给 / 构筑已占用的同义效果，避免三张卡出现两张护盾或两袋金币。
 	var taken := {}

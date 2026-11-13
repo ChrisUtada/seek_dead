@@ -1,0 +1,158 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+WARNING: res://scenes/ui/loadout_scene.tscn:9 - ext_resource, invalid UID: uid://dbrhpr1f4bp17 - using text path instead: res://assets/camp_bg.png
+   at: load (scene/resources/resource_format_text.cpp:501)
+铁砧元进度已载入：点数 0
+已为你预选默认配装（可自由调整后再开战）
+护符已装配：伤害+0 / 开局护盾+0 / 每回合护盾+4 / 每回合回血+0 / 抗扰+0
+🦇 锈蚀：首次受击后下一轮注废 1 列（仅一次，净化可解）
+▶ 回合 1 开始
+▶ 进入房间 1/25：锈盲蝠（HP 75，攻击 10）
+PASS  common 显示「基础」
+PASS  uncommon 显示「进阶」
+PASS  rare 显示「稀有」
+PASS  epic 显示「传说」
+PASS  normal 来源名「普通战」
+PASS  elite 来源名「精英战」
+PASS  chest 来源名「探索宝箱」
+PASS  四级品质颜色互不相同（4）
+PASS  战利品屏可见
+PASS  战利品屏根节点在屏内
+PASS  标题写明战利品（普通战 · 基础战利品）
+PASS  标题写明来源（普通战）
+PASS  副标题写明同层三选一
+PASS  固定三张同层候选
+PASS  跳过按钮写明冻结金币（跳过 · 金币 +4）
+PASS  战利品阶段提供重抽
+PASS  跳过 / 重抽按钮都在屏内
+PASS  冻结 payload 为 3 项
+PASS  候选 0 带品质名
+PASS  候选 0 带机制文本
+PASS  候选 0 带条件文本
+PASS  候选 0 带结果文本
+PASS  候选 0 悬停窗含条件
+PASS  候选 0 悬停窗含结果
+PASS  候选 1 带品质名
+PASS  候选 1 带机制文本
+PASS  候选 1 带条件文本
+PASS  候选 1 带结果文本
+PASS  候选 1 悬停窗含条件
+PASS  候选 1 悬停窗含结果
+PASS  候选 2 带品质名
+PASS  候选 2 带机制文本
+PASS  候选 2 带条件文本
+PASS  候选 2 带结果文本
+PASS  候选 2 悬停窗含条件
+PASS  候选 2 悬停窗含结果
+PASS  战利品卡 0 内容横向够（min 76.0 / avail 84.0）
+PASS  战利品卡 0 内容纵向够（min 61.0 / avail 116.0）
+PASS  战利品卡 1 内容横向够（min 76.0 / avail 84.0）
+PASS  战利品卡 1 内容纵向够（min 110.0 / avail 116.0）
+PASS  战利品卡 2 内容横向够（min 76.0 / avail 84.0）
+PASS  战利品卡 2 内容纵向够（min 61.0 / avail 116.0）
+PASS  战利品卡组在滚动容器内
+PASS  战利品卡组横向不溢出（min 264.0 / 宽 268.0）
+战利品转化：金币 +4（共 8）
+铁砧点数 +0（本局 0/40，共 0）
+金币 +6（清房 5 + 利息 1，共 14）
+PASS  三项品质完全相同（uncommon）
+PASS  卡面不出现「更高品质 / 推荐」诱导
+战利品转化：金币 +7（共 21）
+铁砧点数 +0（本局 0/40，共 0）
+金币 +9（清房 5 + 利息 4，共 30）
+PASS  重抽 1 后品质层不变
+PASS  重抽 1 后跳过金币不变
+PASS  重抽 1 后仍为三项
+PASS  重抽 2 后品质层不变
+PASS  重抽 2 后跳过金币不变
+PASS  重抽 2 后仍为三项
+PASS  重抽 3 后品质层不变
+PASS  重抽 3 后跳过金币不变
+PASS  重抽 3 后仍为三项
+PASS  重抽 4 后品质层不变
+PASS  重抽 4 后跳过金币不变
+PASS  重抽 4 后仍为三项
+PASS  重抽 5 后品质层不变
+PASS  重抽 5 后跳过金币不变
+PASS  重抽 5 后仍为三项
+PASS  重抽 6 后品质层不变
+PASS  重抽 6 后跳过金币不变
+PASS  重抽 6 后仍为三项
+PASS  重抽不改标题
+PASS  重抽后卡组仍是三张
+PASS  多次重抽确实换过同层候选
+战利品转化：金币 +12（共 42）
+铁砧点数 +0（本局 0/40，共 0）
+金币 +10（清房 5 + 利息 5，共 52）
+PASS  存在可直接结算的候选
+战利品：获得武器 侍僧短剑（已加入转轮带）
+铁砧点数 +0（本局 0/40，共 0）
+金币 +10（清房 5 + 利息 5，共 62）
+掉落：获得消耗品 炽热瓶（入腰带）
+PASS  第一次点击产生结算变化
+战利品结算失败：already_settled
+PASS  重复点击不二次发奖
+PASS  直接重复结算返回 already_settled（already_settled）
+PASS  已结算后再结算不改变状态
+战利品转化：金币 +7（共 69）
+铁砧点数 +0（本局 0/40，共 0）
+金币 +10（清房 5 + 利息 5，共 79）
+PASS  跳过至少获得冻结金币（+17，期望 ≥7）
+PASS  跳过走同一套「已结算」标记
+PASS  跳过后面板收尾
+PASS  再次跳过不二次发奖
+PASS  收尾后奖励屏已隐藏
+PASS  ESC 不结算、不发奖
+PASS  ESC 后仍在战利品阶段
+PASS  ESC 不关闭战利品屏
+战利品转化：金币 +12（共 91）
+铁砧点数 +0（本局 0/40，共 0）
+金币 +10（清房 5 + 利息 5，共 101）
+PASS  构造出满槽武器候选
+PASS  满槽武器候选冻结 needs_replace
+PASS  满槽点武器卡弹出替换弹层
+PASS  替换弹层期间未结算
+PASS  取消替换后仍留在战利品阶段
+PASS  取消替换不改配装
+战利品替换：火焰剑 → 酸液瓶
+铁砧点数 +0（本局 0/40，共 0）
+金币 +10（清房 5 + 利息 5，共 111）
+PASS  替换后旧武器移出配装
+PASS  替换后新武器进入配装
+PASS  替换结算同样只发一次（already_settled）
+🎓 历练 Lv.2：最大 HP 100 → 105（立即恢复 5）
+  ◆ 获得 1 次技艺选择
+PASS  本房有真实成长
+PASS  成长队列为技艺
+战利品转化：金币 +4（共 115）
+PASS  战利品结算后进入成长阶段
+PASS  成长阶段标题正确（成长 · 技艺）
+PASS  成长阶段只展示真实成长卡
+PASS  成长阶段不提供重抽
+PASS  成长阶段按钮写明保留
+铁砧点数 +0（本局 0/40，共 0）
+金币 +10（清房 5 + 利息 5，共 125）
+PASS  ESC 保留成长，待选不清零
+PASS  保留后收尾
+🎓 历练 Lv.2：最大 HP 100 → 105（立即恢复 5）
+  ◆ 获得 1 次技艺选择
+战利品：获得消耗品 冰之精华（入腰带）
+PASS  第二次进入成长阶段
+✦ 习得技艺「精打细算」：每个房间间歇首次商店刷新免费
+📈 本局成长：Lv.2 · 3/7 ｜ 技艺 运筹×1
+铁砧点数 +0（本局 0/40，共 0）
+金币 +10（清房 5 + 利息 5，共 135）
+PASS  选择成长后技艺入列、待选清零
+PASS  开关奖励屏不改战利品 RNG 种子
+PASS  开关奖励屏不改房间表
+PASS  开关奖励屏不改棋盘内容
+PASS  找到非最终 BOSS 房
+PASS  BOSS 战利品卡带品质角标（【稀有】暗 夜幕镰刀 新武器 · 进转轮带）
+PASS  BOSS 战利品出现武器候选
+PASS  BOSS 武器候选带品质字段
+---
+LOOTUI|RESULT PASS (checks=107 fails=0)
+WARNING: 4 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2535)
+ERROR: 2 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:822)

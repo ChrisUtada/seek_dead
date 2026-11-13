@@ -35,6 +35,14 @@ signal buy_requested(offer: Dictionary)      # 商店购入
 @warning_ignore("unused_signal")
 signal sell_requested(uid_or_path: String, kind: String)  # 卖出（消耗品按 uid，其余按 path）
 signal reward_chosen(id: String, index: int)  # 房奖励三选一（index 对齐 reward_payloads，M1-01）
+@warning_ignore("unused_signal")
+signal loot_offer_chosen(index: int)          # Step 7：同层三选一卡点击（冻结 payload 下标）
+@warning_ignore("unused_signal")
+signal loot_offer_reroll_requested            # Step 7：重抽（同层，不重抽品质）
+@warning_ignore("unused_signal")
+signal loot_offer_skip_requested              # Step 7：跳过战利品（结算冻结金币）
+@warning_ignore("unused_signal")
+signal post_battle_defer_requested            # Step 7：成长位「保留到下次战斗」
 signal post_battle_growth_chosen(cand: Dictionary)  # M1 战后成长屏的成长位（技艺 / 铭印 / 下一房对策）
 signal boss_reward_chosen(cand: Dictionary)  # BOSS 战利品三选一
 @warning_ignore("unused_signal")
@@ -746,6 +754,25 @@ func _show_reward_screen(is_boss: bool) -> void:
 # M1 战后成长三槽屏（补给 / 构筑 / 成长）。
 func show_post_battle(offer: Array, summary: String) -> void:
 	reward_screen.show_post_battle(offer, summary)
+
+
+# Step 7：同层三选一（战利品阶段）。
+func show_loot_offer(view: Dictionary) -> void:
+	reward_screen.show_loot_offer(view)
+
+
+# Step 7：重抽后原地刷新（品质层不变）。
+func refresh_loot_offer(view: Dictionary) -> void:
+	reward_screen.refresh_loot_offer(view)
+
+
+# Step 7：成长阶段（技艺 / 铭印；与战利品分开结算）。
+func show_loot_growth(cand: Dictionary, summary: String) -> void:
+	reward_screen.show_loot_growth(cand, summary)
+
+
+func _make_loot_offer_card(opt: Dictionary, index: int) -> Button:
+	return _cards.loot_offer_card(opt, index)
 
 
 func _make_reward_card(rw: RewardData, index: int = -1, slot_label: String = "") -> Button:

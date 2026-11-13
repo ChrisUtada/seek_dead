@@ -16,6 +16,21 @@ const BALANCE = preload("res://resources/config/balance_config.tres")
 const QUALITIES := ["common", "uncommon", "rare", "epic"]
 const BATTLES := ["normal", "elite", "boss", "chest"]
 const SOURCES := ["normal", "elite", "boss", "chest", "event", "shop", "anvil"]
+# Step 7：四级品质统一显示名（存档值不变，只收口展示文案）。
+const QUALITY_LABELS := {"common": "基础", "uncommon": "进阶", "rare": "稀有", "epic": "传说"}
+# 来源显示名（奖励屏标题与图鉴共用一套口径）。
+const SOURCE_LABELS := {
+	"normal": "普通战", "elite": "精英战", "boss": "BOSS",
+	"chest": "探索宝箱", "event": "特殊事件", "shop": "商店", "anvil": "铁砧",
+}
+
+
+static func quality_label(quality: String) -> String:
+	return String(QUALITY_LABELS.get(quality, quality))
+
+
+static func source_label(source: String) -> String:
+	return String(SOURCE_LABELS.get(source, source))
 const ACT_NOTES := {
 	"event": "特殊事件按公开风险单独配置，首版未配置",
 	"anvil": "铁砧是局外 gacha，不进入战斗来源表",

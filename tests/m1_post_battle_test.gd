@@ -1,15 +1,15 @@
 extends Node
 
 # ============================================================================
-# M1 战后成长三槽 · headless 回归
+# M1 战后结算 · headless 回归
 # 运行：Godot --headless --fixed-fps 60 --path <项目> res://tests/m1_post_battle_test.tscn
 #
-# 覆盖：
-# ① 普通房胜利 → 三槽屏（补给 / 构筑 / 成长），标题与槽位标签固定；
-# ② 候选合法性：满血不出治疗、槽位间不重复、卡面带当前值 → 选择后值；
-# ③ 成长队列：同一胜利只取一项；未选的技艺/铭印进入下一战斗房成长位（候选冻结）；
-# ④ 跳过 = 放弃本次成长，待处理成长保留；
-# ⑤ BOSS 胜利不显示普通三槽屏；未处理成长随队列进入下一战斗房；
+# Step 7 起玩家界面 = 战利品三选一（同层）+ 成长位分开结算；本套件锁定：
+# ① 普通房胜利 → 战利品阶段（来源 / 品质 / 三项同层 / 重抽 / 跳过）→ 成长阶段；
+# ② 旧三槽候选生成（补给 / 构筑）仍合法：满血不出治疗、槽位间不重复；
+# ③ 成长队列：同一胜利只取一项；未选的技艺/铭印进入下一战斗房（候选冻结）；
+# ④ 整体跳过 = 跳过战利品 + 放弃本次成长，待处理成长保留；
+# ⑤ BOSS 胜利不显示普通战利品屏；未处理成长随队列进入下一战斗房；
 # ⑥ 腰带满时消耗品卡明确折算金币，不在选择后静默失败。
 # 测试结束还原 meta（不污染玩家真实存档）。
 # ============================================================================
@@ -96,31 +96,55 @@ func _fresh(duel: DuelController, kind: String = "normal") -> void:
 
 func _test_three_slots(duel: DuelController) -> void:
 	_fresh(duel)
-	duel.growth.xp = 2   # 普通房 +1 → Lv.2，成长位为技艺
+	# 留 1 个武器空位：本用例要验证「点卡 → 结算 → 成长阶段」，不在这里测替换弹层。
+	if duel.selected_loadout.size() >= 2:
+		duel.selected_loadout.resize(1)
+		duel._build_pool(duel.selected_loadout)
+	duel.growth.xp = 2   # 普通房 +1 → Lv.2，成长队列有技艺
 	duel.room_flow.begin_post_battle()
 	var screen = duel.hud.reward_screen
-	_check(duel.room_flow.post_battle_active, "普通房胜利进入战后成长")
-	_check(screen.visible, "战后成长屏可见")
-	_check(screen.title_label.text == "战后成长 · 选择一项", "标题为「战后成长 · 选择一项」")
-	_check(screen.reward_grid.get_child_count() == 3, "固定三张卡")
-	_check(screen._skip_btn.text == "放弃本次成长", "跳过按钮写明「放弃本次成长」")
-	_check(screen.sub_label.text.find("本局成长") >= 0, "页头保留本局成长摘要")
-	var offer: Array = duel.room_flow.post_offer()
-	_check(offer.size() == 3, "候选槽位 = 3")
-	_check(String(offer[0].get("slot_label", "")) == "补给", "第 1 槽为补给")
-	_check(String(offer[1].get("slot_label", "")) == "构筑", "第 2 槽为构筑")
-	_check(String(offer[2].get("slot_label", "")) == "成长", "第 3 槽为成长")
-	_check(String(offer[2].get("kind", "")) == "perk", "成长位为技艺（本房触发）")
-	for i in range(3):
-		var desc := String(offer[i].get("desc", ""))
-		_check(desc != "", "槽位 %d 带效果说明" % (i + 1))
-		_check(desc.find("→") >= 0 or desc.find("提前") >= 0 or desc.find("获得") >= 0
-			or desc.find("入腰带") >= 0 or desc.find("折算金币") >= 0,
-			"槽位 %d 给出可感知结果（%s）" % [i + 1, desc])
-	_check(offer[0].get("reward") != null and offer[1].get("reward") != null, "补给/构筑为具体奖励对象")
-	duel.room_flow.auto_pick_post_battle(["growth"])
-	_check(duel.growth.perk_ids.size() == 1 and duel.growth.pending_picks == 0, "成长位选择后技艺入列")
-	_check(duel.in_interroom and not duel.room_flow.post_battle_active, "选择后进入间歇")
+	_check(duel.room_flow.post_battle_active, "普通房胜利进入战后结算")
+	_check(duel.room_flow.post_battle_phase() == "loot", "先进入战利品三选一阶段")
+	_check(screen.visible, "战利品屏可见")
+	_check(screen.title_label.text.find("战利品") >= 0,
+		"标题写明战利品（%s）" % screen.title_label.text)
+	_check(screen.title_label.text.find("普通战") >= 0, "标题写明来源（普通战）")
+	_check(screen.reward_grid.get_child_count() == 3, "固定三张同层候选")
+	_check(screen._skip_btn.text.begins_with("跳过 · 金币 +"),
+		"跳过按钮写明冻结金币（%s）" % screen._skip_btn.text)
+	_check(screen._reroll_btn != null and screen._reroll_btn.visible, "战利品阶段提供重抽")
+	var view: Dictionary = duel.room_flow.loot_view()
+	var opts: Array = view.get("options", [])
+	_check(opts.size() == 3, "冻结 payload 为 3 项")
+	var q := String(view.get("quality", ""))
+	var same_tier := true
+	for o in opts:
+		if String(o.get("quality", "")) != q:
+			same_tier = false
+		_check(String(o.get("quality_name", "")) != "", "候选带品质名")
+		_check(String(o.get("condition", "")) != "", "候选带条件文本")
+		_check(String(o.get("result", "")) != "", "候选带结果文本")
+		_check(String(o.get("tooltip", "")) != "", "候选带机制文本")
+	_check(same_tier, "三项同层")
+	_check(duel.room_flow.post_battle_has_growth(), "成长队列已就绪（战利品阶段即可回答）")
+	_check(String(duel.room_flow.post_battle_growth_candidate().get("kind", "")) == "perk",
+		"成长位为技艺（本房触发）")
+	# 手动点一张不需要替换弹层的卡 → 战利品结算一次 → 进入成长阶段。
+	var pick := 0
+	for i in range(opts.size()):
+		if not bool((opts[i] as Dictionary).get("needs_replace", false)):
+			pick = i
+			break
+	duel._on_loot_offer_chosen(pick)
+	_check(duel.room_flow.post_battle_phase() == "growth", "战利品结算后进入成长阶段")
+	_check(screen.title_label.text.begins_with("成长 ·"),
+		"成长阶段标题正确（%s）" % screen.title_label.text)
+	_check(screen.reward_grid.get_child_count() == 1, "成长阶段只展示真实成长卡")
+	_check(not screen._reroll_btn.visible, "成长阶段不提供重抽")
+	_check(screen._skip_btn.text == "保留到下次战斗", "成长阶段跳过 = 保留")
+	duel._on_post_battle_defer()
+	_check(duel.growth.pending_picks == 1, "保留后技艺仍待选")
+	_check(duel.in_interroom and not duel.room_flow.post_battle_active, "收尾进入间歇")
 	duel.in_interroom = false
 	duel.hud.set_interroom_enabled(false)
 
@@ -148,20 +172,21 @@ func _test_growth_queue(duel: DuelController) -> void:
 	_fresh(duel)
 	duel.growth.xp = 2
 	duel.room_flow.begin_post_battle()
-	var first: Array = duel.room_flow.post_offer()
-	var frozen_id := String(first[2].get("growth_id", ""))
-	_check(frozen_id != "", "成长位冻结具体技艺 id")
-	# 本次选补给 → 技艺未选，进入队列。
-	duel.room_flow.auto_pick_post_battle(["supply"])
-	_check(duel.growth.pending_picks == 1, "选补给后技艺仍待选")
+	var first: Dictionary = duel.room_flow.post_battle_growth_candidate()
+	var frozen_id := String(first.get("growth_id", ""))
+	_check(frozen_id != "", "成长候选冻结具体技艺 id")
+	# 只结算战利品、不取成长 → 技艺未选，进入队列。
+	duel.room_flow.auto_pick_post_battle([])
+	_check(duel.growth.pending_picks == 1,
+		"只结算战利品后技艺仍待选（pending=%d）" % duel.growth.pending_picks)
 	_check(not duel.room_flow.post_battle_active and duel.in_interroom, "本次成长选择结束")
 	# 下一战斗房：同一技艺仍在成长位，候选不重新随机。
 	duel.in_interroom = false
 	duel.hud.set_interroom_enabled(false)
 	duel.room_flow.begin_post_battle()
-	var second: Array = duel.room_flow.post_offer()
-	_check(String(second[2].get("kind", "")) == "perk", "下一战斗房成长位仍为技艺")
-	_check(String(second[2].get("growth_id", "")) == frozen_id, "未选成长候选冻结（id 不变）")
+	var second: Dictionary = duel.room_flow.post_battle_growth_candidate()
+	_check(String(second.get("kind", "")) == "perk", "下一战斗房成长位仍为技艺")
+	_check(String(second.get("growth_id", "")) == frozen_id, "未选成长候选冻结（id 不变）")
 	duel.room_flow.auto_pick_post_battle(["growth"])
 	_check(duel.growth.perk_ids.size() == 1 and duel.growth.pending_picks == 0, "下一房选中后技艺入列")
 	duel.in_interroom = false
@@ -174,7 +199,8 @@ func _test_skip_keeps_growth(duel: DuelController) -> void:
 	duel.room_flow.begin_post_battle()
 	_check(duel.room_flow.post_battle_has_growth(), "跳过前成长位有真实成长")
 	duel._on_reward_skip_pressed()
-	_check(duel.growth.pending_picks == 1, "跳过 = 放弃本次成长，待选保留")
+	_check(duel.growth.pending_picks == 1,
+		"跳过 = 放弃本次成长，待选保留（pending=%d）" % duel.growth.pending_picks)
 	_check(not duel.room_flow.post_battle_active and duel.in_interroom, "跳过后进入间歇")
 	duel.in_interroom = false
 	duel.hud.set_interroom_enabled(false)

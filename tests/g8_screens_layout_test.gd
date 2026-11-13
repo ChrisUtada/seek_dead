@@ -132,7 +132,7 @@ func _test_shop() -> void:
 	await _frames(12)
 
 
-# --- 奖励（战后成长三槽 + BOSS 战利品） --------------------------------
+# --- 奖励（战后同层三选一 + BOSS 战利品） -------------------------------
 
 func _test_reward() -> void:
 	_duel.growth.reset_run()
@@ -149,22 +149,28 @@ func _test_reward() -> void:
 	await _frames(6)
 
 	var r: RewardScreen = _duel.hud.reward_screen
-	_check(r.visible, "战后成长屏可见")
+	_check(r.visible, "战利品屏可见")
 	_check_in_screen("奖励屏根节点", r)
 	var dialog: PanelContainer = r.title_label.get_parent().get_parent().get_parent()
 	_check_in_screen("奖励对话框", dialog)
 	_check_label_fits("奖励屏标题", r.title_label)
 	_check_label_fits("奖励屏副标题", r.sub_label)
 	_check(r.sub_label.autowrap_mode != TextServer.AUTOWRAP_OFF, "奖励副标题开启自动换行")
-	_check(r.reward_grid.get_child_count() == 3, "战后成长固定三张卡（%d）" % r.reward_grid.get_child_count())
-	_check_grid_fits("战后成长卡组", r.reward_grid)
+	_check(r.title_label.text.find("战利品") >= 0, "战利品屏标题正确（%s）" % r.title_label.text)
+	_check(r.sub_label.text.find("同层三选一") >= 0, "战利品屏副标题说明同层")
+	_check(r.reward_grid.get_child_count() == 3, "战后战利品固定三张卡（%d）" % r.reward_grid.get_child_count())
+	_check_grid_fits("战后战利品卡组", r.reward_grid)
 	# 卡片内容：文本不裁切 + 高度够
 	for i in range(r.reward_grid.get_child_count()):
-		_check_card_content("战后成长卡 %d" % i, r.reward_grid.get_child(i) as Button)
+		_check_card_content("战后战利品卡 %d" % i, r.reward_grid.get_child(i) as Button)
 	_check(r._skip_btn != null, "奖励屏有跳过按钮")
 	if r._skip_btn != null:
 		_check_in_screen("奖励跳过按钮", r._skip_btn)
 		_check(r._skip_btn.text.length() > 0, "跳过按钮有文案")
+	# Step 7：重抽按钮在战利品阶段可见，且不越界。
+	_check(r._reroll_btn != null and r._reroll_btn.visible, "战利品屏有重抽按钮")
+	if r._reroll_btn != null:
+		_check_in_screen("奖励重抽按钮", r._reroll_btn)
 	# 纵向：内容超出时滚动可用（或内容本来够小）
 	var scroll: ScrollContainer = r.reward_grid.get_parent()
 	_check(scroll != null, "奖励卡组在滚动容器内")

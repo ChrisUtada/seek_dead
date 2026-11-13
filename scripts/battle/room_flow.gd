@@ -11,12 +11,15 @@ func _init(ctrl) -> void:
 	_ctrl = ctrl
 
 
-# 清房推进编排（M1 战后成长）：
-# 普通 / 精英胜利 → begin_post_battle（先结算历练/熟练，再生成三槽屏）
-# → 玩家选一项 → finish_room / finish_post_battle（应用 → 铁砧/金币/掉落 → 间歇或元进度）。
+# 清房推进编排（M1 战后成长 → Step 7 同层三选一）：
+# 普通 / 精英胜利 → begin_post_battle（先结算历练/熟练，再生成战利品三选一）
+#   → 战利品阶段：选一项 / 重抽 / 跳过（同层冻结值）→ 成长阶段（技艺 / 铭印，可保留）
+#   → finish_post_battle（铁砧/金币/掉落 → 间歇或元进度）。
 # BOSS 胜利不走三槽屏：保留专属战利品；未处理的成长留在队列，进入下一战斗房的成长位。
 var post_battle_active := false
-var _post_offer: Array = []
+var _post_offer: Array = []       # 本次胜利可用的成长候选（0 或 1 项，展示前冻结）
+var _phase := ""                  # "" | "loot" | "growth"
+var _loot_view: Dictionary = {}
 
 
 func begin_post_battle() -> void:
@@ -24,8 +27,95 @@ func begin_post_battle() -> void:
 		return
 	post_battle_active = true
 	_settle_victory()
-	_post_offer = _ctrl._post_battle.build(_current_kind())
-	_ctrl.hud.show_post_battle(_post_offer, _growth_summary_text())
+	# 成长候选先冻结：战利品阶段的 post_battle_has_growth() 仍要能回答「本房有没有真实成长」。
+	_post_offer = _growth_candidates()
+	_start_loot_phase()
+
+
+# 新一局 / 回整备：清掉未完成的战后结算状态（避免跨局残留 active=true 卡住下一局）。
+func reset_flow() -> void:
+	post_battle_active = false
+	_post_offer = []
+	_phase = ""
+	_loot_view = {}
+
+
+func _start_loot_phase() -> void:
+	_phase = "loot"
+	_loot_view = _ctrl._reward_system.build_loot_offer(_current_source(), _current_act())
+	if not bool(_loot_view.get("ok", false)):
+		# 来源表异常 / 空池：按跳过结算（冻结值），不阻塞收尾。
+		_ctrl._reward_system.settle_loot_skip()
+		_enter_growth_phase()
+		return
+	_ctrl.hud.show_loot_offer(_loot_view)
+
+
+# 战利品结算成功（controller 在 settle_loot_offer / settle_loot_replace 后调用）。
+func after_loot_settled() -> void:
+	if not post_battle_active or _phase != "loot":
+		return
+	_enter_growth_phase()
+
+
+# 重抽：只换同层候选；品质层与跳过值由 build 冻结。
+func on_loot_reroll() -> void:
+	if not post_battle_active or _phase != "loot":
+		return
+	var v: Dictionary = _ctrl._reward_system.reroll_loot_offer()
+	if bool(v.get("ok", false)):
+		_loot_view = v
+		_ctrl.hud.refresh_loot_offer(v)
+
+
+# 跳过战利品（UI 按钮）：只结算冻结金币，然后照常进入成长阶段（两件事分开结算）。
+func skip_loot() -> void:
+	if not post_battle_active or _phase != "loot":
+		return
+	_ctrl._reward_system.settle_loot_skip()
+	_enter_growth_phase()
+
+
+# 整体跳过（旧跳过信号 / bot 路径）：跳过战利品 + 放弃本次成长（成长仍留在队列）。
+func skip_post_battle() -> void:
+	if not post_battle_active:
+		return
+	if _phase == "loot":
+		_ctrl._reward_system.settle_loot_skip()
+	_finish_post_battle(Callable())
+
+
+# 成长阶段「保留到下次战斗」：不发放任何东西，队列原样保留。
+func defer_growth() -> void:
+	if not post_battle_active or _phase != "growth":
+		return
+	_finish_post_battle(Callable())
+
+
+func _enter_growth_phase() -> void:
+	_phase = "growth"
+	_post_offer = _growth_candidates()
+	var cand: Dictionary = _post_offer[0] if not _post_offer.is_empty() else {}
+	if cand.is_empty():
+		_finish_post_battle(Callable())
+		return
+	_ctrl.hud.show_loot_growth(cand, _growth_summary_text())
+
+
+func _growth_candidates() -> Array:
+	var g: Dictionary = _ctrl._post_battle.build_growth(_current_kind())
+	return [] if g.is_empty() else [g]
+
+
+func _current_source() -> String:
+	var k := _current_kind()
+	return k if k in ["normal", "elite"] else "normal"
+
+
+func _current_act() -> int:
+	if _ctrl.room_index >= 0 and _ctrl.room_index < _ctrl.ROOMS.size():
+		return maxi(1, int(_ctrl.ROOMS[_ctrl.room_index].act))
+	return 1
 
 
 func finish_room(apply_fn: Callable, is_boss: bool) -> void:
@@ -41,8 +131,12 @@ func finish_room(apply_fn: Callable, is_boss: bool) -> void:
 
 
 func _finish_post_battle(apply_fn: Callable) -> void:
+	if not post_battle_active:
+		return
 	post_battle_active = false
+	_phase = ""
 	_post_offer = []
+	_loot_view = {}
 	_ctrl.hud.hide_reward_screen()
 	if apply_fn.is_valid():
 		apply_fn.call()
@@ -115,31 +209,68 @@ func post_battle_has_growth() -> bool:
 
 
 # 测试 / bot 用：按槽位偏好自动选择一项并确认（与玩家点卡走同一套应用路径）。
-# want_growth_id 非空时，只接受该 id 的成长卡（探针按铭印类型分组用）。
+# Step 7：先结算战利品（取第一项可正常授予的物品；全是替换 / 转化时按跳过），再处理成长位。
+# want_growth_id 非空时，只接受该 id 的成长卡（探针按铭印类型分组用）；不匹配则保留到下次。
 func auto_pick_post_battle(prefer: Array = ["growth", "supply", "build"], want_growth_id: String = "") -> bool:
 	if not post_battle_active:
 		return false
-	var chosen: Dictionary = {}
-	for slot in prefer:
-		for cand in _post_offer:
-			if String(cand.get("slot", "")) != String(slot):
-				continue
-			if String(slot) == "growth" and want_growth_id != "":
-				if String(cand.get("kind", "")) not in ["perk", "imprint"]:
-					continue
-				if String(cand.get("growth_id", "")) != want_growth_id:
-					continue
-			chosen = cand
-			break
-		if not chosen.is_empty():
-			break
-	if chosen.is_empty():
+	if _phase == "loot":
+		_auto_settle_loot()
+		if not post_battle_active:
+			return true
+	if _phase != "growth":
 		return false
-	if String(chosen.get("kind", "")) == "reward":
-		_ctrl._on_reward_chosen(String(chosen["reward"].id), int(chosen["index"]))
-	else:
-		_ctrl._on_post_battle_growth_chosen(chosen)
+	var chosen := _growth_candidate(want_growth_id)
+	if chosen.is_empty() or not prefer.has("growth"):
+		defer_growth()
+		return true
+	_ctrl._on_post_battle_growth_chosen(chosen)
 	return true
+
+
+# bot 战利品策略：优先可正常授予的物品（跳过需要替换弹层的项），否则取第一项，再否则跳过。
+func _auto_settle_loot() -> void:
+	var opts: Array = _ctrl._reward_system.loot_offer_view().get("options", [])
+	var pick := -1
+	for i in range(opts.size()):
+		var o: Dictionary = opts[i]
+		if bool(o.get("needs_replace", false)):
+			continue
+		if String(o.get("kind", "")) == "item" and String(o.get("grant", "")) in ["item", "mastery"]:
+			pick = i
+			break
+	if pick < 0:
+		for i in range(opts.size()):
+			if not bool((opts[i] as Dictionary).get("needs_replace", false)):
+				pick = i
+				break
+	var res: Dictionary = {}
+	if pick >= 0:
+		res = _ctrl._reward_system.settle_loot_offer(pick)
+	if not bool(res.get("ok", false)):
+		res = _ctrl._reward_system.settle_loot_skip()   # 兜底：不阻塞 bot / 探针
+	after_loot_settled()
+
+
+func _growth_candidate(want_growth_id: String = "") -> Dictionary:
+	for cand in _post_offer:
+		if String(cand.get("slot", "")) != "growth":
+			continue
+		if String(cand.get("kind", "")) not in ["perk", "imprint"]:
+			continue
+		if want_growth_id != "" and String(cand.get("growth_id", "")) != want_growth_id:
+			continue
+		return cand
+	return {}
+
+
+# 当前阶段（测试 / 探针只读）："" | "loot" | "growth"。
+func post_battle_phase() -> String:
+	return _phase
+
+
+func loot_view() -> Dictionary:
+	return _loot_view.duplicate(true)
 
 
 # P0-2：成长摘要（结算页头 + 确认后日志），让「本局成长方向」可复述。

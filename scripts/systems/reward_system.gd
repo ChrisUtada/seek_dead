@@ -25,6 +25,7 @@ var _acq_cache: Dictionary = {}         # path -> {w, hi}：Legacy 获取权重�
 var _loot: LootPool                     # Step 3：统一来源品质池（专用 RNG，不消耗地图 RNG）
 var _loot_offer: LootOffer              # Step 4：同层三选一（一次定层，重抽不重抽品质）
 var _loot_settled := false              # Step 6：本组三选一是否已结算（同一奖励只发一次）
+var _loot_view: Dictionary = {}         # Step 7：最近一次生成/重抽的展示快照（品质冻结）
 
 func _init(ctrl: DuelController) -> void:
 	_ctrl = ctrl
@@ -42,6 +43,7 @@ func reset_run() -> void:
 	if _loot != null:
 		_loot.reset_run()   # 本局来源品质抽取的专用种子（只取一次，之后不碰地图 RNG）
 	_loot_settled = false
+	_loot_view = {}
 	_ctrl.invalidate_state()
 
 
@@ -322,7 +324,8 @@ func build_loot_offer(source: String, act: int, opts: Dictionary = {}, forced_qu
 	if _loot_offer == null:
 		_loot_offer = LootOffer.new(_ctrl, _loot)
 	_loot_settled = false
-	return _loot_offer.build(source, act, opts, forced_quality)
+	_loot_view = _loot_offer.build(source, act, opts, forced_quality)
+	return _loot_view
 
 
 func reroll_loot_offer() -> Dictionary:
@@ -330,7 +333,20 @@ func reroll_loot_offer() -> Dictionary:
 		return {"ok": false, "reason": "no_offer", "quality": "", "options": [], "skip": {}}
 	if _loot_settled:
 		return {"ok": false, "reason": "already_settled", "quality": "", "options": [], "skip": {}}
-	return _loot_offer.reroll()
+	_loot_view = _loot_offer.reroll()
+	return _loot_view
+
+
+# Step 7：当前展示快照（UI 重抽后原地刷新；品质 / 跳过值随 build 冻结）。
+func loot_offer_view() -> Dictionary:
+	return _loot_view.duplicate(true)
+
+
+# Step 7：第 index 项的冻结 payload（点击前判断 needs_replace）。
+func loot_offer_option(index: int) -> Dictionary:
+	if _loot_offer == null:
+		return {}
+	return _loot_offer.payload_at(index)
 
 
 func loot_offer_skip() -> Dictionary:
@@ -371,6 +387,36 @@ func settle_loot_skip() -> Dictionary:
 		return res
 	_loot_settled = true
 	return res
+
+
+# Step 7：武器槽满时的替换结算——玩家在替换弹层选定旧武器后调用。
+# 与 settle_loot_offer 共享「只结算一次」纪律：成功才置位，取消 / 非法参数不消耗机会。
+func settle_loot_replace(index: int, old_path: String) -> Dictionary:
+	if _loot_offer == null:
+		return {"ok": false, "reason": "no_offer"}
+	if _loot_settled:
+		return {"ok": false, "reason": "already_settled"}
+	var opt: Dictionary = _loot_offer.payload_at(index)
+	if opt.is_empty():
+		return {"ok": false, "reason": "invalid_index"}
+	if String(opt.get("kind", "")) != "item" or String(opt.get("category", "")) != "weapon":
+		return {"ok": false, "reason": "not_weapon"}
+	var p := String(opt.get("path", ""))
+	if p == "" or not _ctrl.selected_loadout.has(old_path) or _ctrl.selected_loadout.has(p):
+		return {"ok": false, "reason": "invalid_replace"}
+	var old_name := _ctrl._shop_name(old_path, "weapon")
+	_ctrl.selected_loadout.erase(old_path)
+	_ctrl.selected_loadout.append(p)
+	remember_weapon(p, _loot_offer.source)
+	if _ctrl._telemetry != null:
+		_ctrl._telemetry.on_weapon_swap()
+	if _ctrl._journal != null:
+		_ctrl._journal.note_weapon_change(String(old_name), _ctrl._shop_name(p, "weapon"), "战利品")
+	_ctrl._build_pool(_ctrl.selected_loadout)
+	_ctrl.hud._log("战利品替换：%s → %s" % [old_name, _ctrl._shop_name(p, "weapon")])
+	_ctrl.invalidate_state()
+	_loot_settled = true
+	return {"ok": true, "kind": "replace", "path": p, "old_path": old_path}
 
 
 func _apply_loot_option(opt: Dictionary) -> Dictionary:
@@ -535,11 +581,12 @@ func roll_boss_rewards(room) -> Array:
 	var act: int = maxi(1, mini(3, int(room.act)))
 	var picked: Dictionary = _loot.roll_n("boss", act, 3, opts)
 	var picked_weapons: Array = picked.get("paths", [])
+	var boss_quality := String(picked.get("quality", ""))
 	for p in picked_weapons:
 		var wd: WeaponData = load(p)
 		var elem = wd.element if wd != null else "none"
 		cands.append({
-			"kind": "boss_weapon", "path": p,
+			"kind": "boss_weapon", "path": p, "quality": boss_quality,
 			"icon": ElementCounter.label(elem),
 			"label": (wd.weapon_name if wd != null else p.get_file().get_basename()),
 			"desc": "新武器 · 进转轮带",
@@ -549,6 +596,7 @@ func roll_boss_rewards(room) -> Array:
 		var rd: ItemData = load(room.boss_relic_path)
 		cands.append({
 			"kind": "boss_relic", "path": room.boss_relic_path,
+			"quality": String(rd.rarity) if rd != null else "",
 			"icon": (rd.icon if rd != null else "🏆"),
 			"label": (rd.item_name if rd != null else "Boss 信物"),
 			"desc": "信物 · 占护符槽",

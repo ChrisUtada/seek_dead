@@ -221,10 +221,60 @@ func boss_reward_card(cand: Dictionary) -> Button:
 	var card: ItemCard = ITEM_CARD.instantiate()
 	card.custom_minimum_size = Vector2(84, 60)
 	card.fit_min_height(60.0)
-	card.configure("%s %s" % [cand.get("icon", ""), cand.get("label", "")], cand.get("desc", ""))
+	var title_text := "%s %s" % [cand.get("icon", ""), cand.get("label", "")]
+	# Step 7：BOSS 卡也带四级品质名与颜色（与战后三选一同一套口径）。
+	var q := String(cand.get("quality", ""))
+	if q != "":
+		title_text = "【%s】%s" % [LootSourceTable.quality_label(q), title_text]
+		card.set_title_color(Palette.quality_color(q))
+	card.configure(title_text, cand.get("desc", ""))
 	card.set_art(cand.get("art", null))
 	card.tooltip_text = String(cand.get("tip", cand.get("desc", "")))
 	card.pressed.connect(_hud.boss_reward_chosen.emit.bind(cand))
+	return card
+
+
+# Step 7：同层三选一卡（品质名 + 结果 + 条件 + 机制 tooltip）。
+# 卡面刻意不放「更高品质」角标或箭头：三项同层，比较维度只有用途与当前 Build。
+func loot_offer_card(opt: Dictionary, index: int) -> Button:
+	var card: ItemCard = ITEM_CARD.instantiate()
+	card.custom_minimum_size = Vector2(84, 96)
+	var q := String(opt.get("quality", ""))
+	var qname := String(opt.get("quality_name", LootSourceTable.quality_label(q)))
+	var col: Color = Palette.quality_color(q)
+	var title_text := "【%s】%s" % [qname, String(opt.get("title", ""))]
+	card.configure(title_text, _short_desc(String(opt.get("result", "")), 24))
+	card.set_title_color(col)
+	(card.get_node("Center/VBox/TitleLabel") as Label).autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	# 条件行：槽位占用 / 重复转化 / 同层转化。短句，超长进 tooltip。
+	var cond := String(opt.get("condition", ""))
+	card.set_status(cond, Palette.MUTED if cond != "" else col)
+	# 84px 卡宽放不下「武器槽 2/2」这类条件句，允许换行（高度由 fit_min_height 撑够）。
+	(card.get_node("Center/VBox/StatusLabel") as Label).autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	# 美术：武器优先用武器图标（元素色火星），其余用资源自带图标。
+	var path := String(opt.get("path", ""))
+	var art: Texture2D = null
+	var elem := ""
+	if path != "":
+		var res: Resource = load(path)
+		if res != null:
+			var wico: Texture2D = WeaponIcons.icon_for_path(path)
+			if wico != null:
+				art = wico
+				if res.get("element") != null:
+					elem = String(res.get("element"))
+			elif res.get("art") != null:
+				art = res.get("art")
+			elif res.get("icon_tex") != null:
+				art = res.get("icon_tex")
+	if art != null:
+		if elem != "":
+			card.set_art(art, Vector2(32, 32), WeaponIcons.color_for(elem))
+		else:
+			card.set_art(art, Vector2(24, 24))
+	card.fit_min_height(96.0)
+	card.tooltip_text = String(opt.get("tooltip", opt.get("desc", "")))
+	card.pressed.connect(_hud.loot_offer_chosen.emit.bind(index))
 	return card
 
 

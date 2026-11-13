@@ -385,6 +385,10 @@ func _ready() -> void:
 	hud.shop_reroll_requested.connect(_on_shop_reroll_pressed)
 	hud.reward_chosen.connect(_on_reward_chosen)
 	hud.post_battle_growth_chosen.connect(_on_post_battle_growth_chosen)
+	hud.loot_offer_chosen.connect(_on_loot_offer_chosen)
+	hud.loot_offer_reroll_requested.connect(_on_loot_offer_reroll)
+	hud.loot_offer_skip_requested.connect(_on_loot_offer_skip)
+	hud.post_battle_defer_requested.connect(_on_post_battle_defer)
 	hud.boss_reward_chosen.connect(_on_boss_reward_chosen)
 	hud.reward_skip_requested.connect(_on_reward_skip_pressed)
 	hud.shop_requested.connect(_on_shop_requested)
@@ -554,7 +558,58 @@ func _weapon_tooltip_state(path: String) -> Dictionary:
 
 
 func _on_reward_skip_pressed() -> void:
+	# Step 7：战后战利品阶段 → 结算冻结金币并放弃本次成长；其余路径沿用旧跳过。
+	if room_flow.post_battle_active:
+		room_flow.skip_post_battle()
+		return
 	room_flow.finish_room(Callable(), reward_is_boss)
+
+
+# ---------------------------------------------------------------------------
+# Step 7：同层三选一交互（查看 / 确认 / 替换 / 重抽 / 跳过）
+# ---------------------------------------------------------------------------
+
+# 点击战利品卡：正常授予 / 重复转化直接结算；武器槽满先走替换弹层（取消则留在本屏）。
+func _on_loot_offer_chosen(index: int) -> void:
+	var opt: Dictionary = _reward_system.loot_offer_option(index)
+	if opt.is_empty():
+		return
+	if bool(opt.get("needs_replace", false)):
+		var p := String(opt.get("path", ""))
+		if p == "" or selected_loadout.has(p):
+			return
+		hud.request_weapon_replace("战利品：替换武器", _weapon_info(p),
+			func(old_path: String) -> void: _on_loot_replace_chosen(index, old_path), p)
+		return
+	if _telemetry != null:
+		_telemetry.on_reward_pick("loot_" + String(opt.get("kind", "")))
+	var res: Dictionary = _reward_system.settle_loot_offer(index)
+	if not bool(res.get("ok", false)):
+		hud._log("战利品结算失败：%s" % String(res.get("reason", "")))
+		return
+	room_flow.after_loot_settled()
+
+
+# 替换弹层选定旧武器：由 RewardSystem 统一结算并置位「已结算」（同一组只发一次）。
+func _on_loot_replace_chosen(index: int, old_path: String) -> void:
+	var res: Dictionary = _reward_system.settle_loot_replace(index, old_path)
+	if not bool(res.get("ok", false)):
+		hud._log("战利品替换失败：%s" % String(res.get("reason", "")))
+		return
+	room_flow.after_loot_settled()
+
+
+func _on_loot_offer_reroll() -> void:
+	room_flow.on_loot_reroll()
+
+
+func _on_loot_offer_skip() -> void:
+	# UI「跳过 · 金币 +X」= 只跳过战利品；成长位照常提供（可再保留到下次）。
+	room_flow.skip_loot()
+
+
+func _on_post_battle_defer() -> void:
+	room_flow.defer_growth()
 
 
 # M1：战后成长屏的成长位（技艺 / 铭印 / 下一房对策）。与奖励卡走同一条收尾路径：
@@ -712,6 +767,8 @@ func _full_reset() -> void:
 # 新一局公共状态重置（不含开战）：已迁至 LoadoutSystem.reset_run_state（P2 架构还债，2026-08-24）——单行转发。
 func _reset_run_state() -> void:
 	_loadout_system.reset_run_state()
+	if room_flow != null:
+		room_flow.reset_flow()   # Step 7：清掉上一局未完成的战后结算状态
 	if _career != null:
 		_career.reset_run()   # G6-01：每局临时成就标记清零（跨局解锁仍在 meta）
 	if _run_summary != null:
