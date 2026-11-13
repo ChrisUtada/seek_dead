@@ -186,6 +186,41 @@ func shuffle_in_place(arr: Array) -> void:
 
 
 # ---------------------------------------------------------------------------
+# Step 4：同层三选一支持
+# ---------------------------------------------------------------------------
+
+# 用专用流抽一个品质（LootOffer 一次定层；重抽不得再调用）。
+func roll_quality(source: String, act: int) -> String:
+	return LootSourceTable.roll_quality(source, act, _rng)
+
+
+# 指定品质层的合法候选（已按字典序排序）。
+# 返回 {ok, reason, items}
+func tier_items(source: String, act: int, quality: String, opts: Dictionary = {}) -> Dictionary:
+	var pool := candidates(source, act, opts)
+	if not bool(pool["ok"]):
+		return {"ok": false, "reason": pool["reason"], "items": []}
+	var tier := _tier(pool["items"], quality)
+	if tier.is_empty():
+		return {"ok": false, "reason": "empty_tier", "items": []}
+	return {"ok": true, "reason": "", "items": tier}
+
+
+# 专用流无放回取至多 n 个（返回新数组，不改入参）。
+func pick_n(paths: Array, n: int) -> Array:
+	if n <= 0 or paths.is_empty():
+		return []
+	return _sample(paths, mini(n, paths.size()))
+
+
+# 路径元数据副本（供 LootOffer 冻结卡片文案；不改索引本体）。
+func entry_of(path: String) -> Dictionary:
+	if _index.is_empty():
+		_build_index()
+	return _entry(path).duplicate(true)
+
+
+# ---------------------------------------------------------------------------
 # 内部
 # ---------------------------------------------------------------------------
 

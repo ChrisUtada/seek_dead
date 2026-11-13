@@ -85,6 +85,13 @@ extends Resource
 	3: ["common", "uncommon", "uncommon", "rare", "rare", "epic"],
 }
 
+# —— 四级品质战利品 · 同层转化（Step 4，docs/... §4.3）——
+# 同层物品不足 3 项 / 重复 / 满槽时，用同品质的固定转化补齐；跳过也按同层固定值结算。
+# 不新增货币：金币走现有 gold，强化走现有 run_power_bonus。数值为模拟起点，Step 8 再调。
+@export var loot_conversion_gold: Dictionary = {"common": 6, "uncommon": 10, "rare": 18, "epic": 30}
+@export var loot_conversion_power: Dictionary = {"common": 1, "uncommon": 2, "rare": 3, "epic": 4}
+@export var loot_skip_gold: Dictionary = {"common": 4, "uncommon": 7, "rare": 12, "epic": 20}
+
 
 # —— 三拍板落地（2026-08-24）——
 @export var anvil_award_normal: int = 0    # 铁砧里程碑：普通房 0（金币/奖励卡/T8 掉落已三渠道，防平摊稀释）

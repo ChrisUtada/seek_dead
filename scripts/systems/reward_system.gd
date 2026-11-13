@@ -23,6 +23,7 @@ var run_shield_next: int = 0            # 进入下一房时获得的护盾（�
 var choice_payloads: Array[Dictionary] = []   # M1-01：与 reward_choices 按 index 对齐的预确定结果 {kind,path,title,desc}
 var _acq_cache: Dictionary = {}         # path -> {w, hi}：Legacy 获取权重缓存（仅探索/营地临时通道；Step 5 移除）
 var _loot: LootPool                     # Step 3：统一来源品质池（专用 RNG，不消耗地图 RNG）
+var _loot_offer: LootOffer              # Step 4：同层三选一（一次定层，重抽不重抽品质）
 
 func _init(ctrl: DuelController) -> void:
 	_ctrl = ctrl
@@ -262,6 +263,29 @@ func _current_source() -> String:
 # Step 3：商店货架——确定性品质阶梯（不走随机来源表，也不消耗地图 RNG）。
 func roll_shop_ladder(act: int, opts: Dictionary = {}) -> Array:
 	return _loot.roll_ladder(act, LootSourceTable.shop_tiers(act), opts)
+
+
+# ---------------------------------------------------------------------------
+# Step 4：同层三选一（生成 / 冻结 / 重抽 / 跳过）
+# ---------------------------------------------------------------------------
+# 返回 {ok, reason, quality, options, skip}；options 与 skip 在 build 时冻结。
+# 重抽沿用同一品质层，不重新抽品质；跳过的金币值在 build 时已写死。
+func build_loot_offer(source: String, act: int, opts: Dictionary = {}, forced_quality: String = "") -> Dictionary:
+	if _loot_offer == null:
+		_loot_offer = LootOffer.new(_ctrl, _loot)
+	return _loot_offer.build(source, act, opts, forced_quality)
+
+
+func reroll_loot_offer() -> Dictionary:
+	if _loot_offer == null:
+		return {"ok": false, "reason": "no_offer", "quality": "", "options": [], "skip": {}}
+	return _loot_offer.reroll()
+
+
+func loot_offer_skip() -> Dictionary:
+	if _loot_offer == null:
+		return {}
+	return _loot_offer.skip_result()
 
 
 # 新武器写入局外收藏（图鉴/开局池）；落盘时机与商店一致（局末统一保存）
