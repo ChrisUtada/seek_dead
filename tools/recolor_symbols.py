@@ -25,6 +25,7 @@
   py -3.15 tools/recolor_symbols.py             # 正式写入 assets/icons/symbols/ 与 16/
   py -3.15 tools/recolor_symbols.py --check     # 只校验 blade 组与已落盘资源逐像素一致
   py -3.15 tools/recolor_symbols.py --ramp=b    # 火系色带切到 b 档（默认 a）
+  py -3.15 tools/recolor_symbols.py --only=abyss_bite   # 只重做指定符号（逗号分隔多个）
 """
 import os
 import sys
@@ -111,6 +112,20 @@ SOURCE_OVERRIDE = {
     "abyss_bite":              ("venom_bite_96.png", 1.0),
 }
 
+# 2026-11-13 用户反馈「深渊撕咬看不出是牙齿」，要求牙尖末端加滴落鲜血。
+# 血层是「着色后的叠加」，在 recolor 之后、derive 之前作用于 96 尺度。
+# 🔴 abyss_bite 复用 venom_bite_96 母版（毒牙共用），所以血只能按名字后处理，
+#    绝不能画进母版文件，否则毒牙也会带血。坐标以 32px 版为基准、乘 SCALE 得到 96 坐标。
+#
+# 二次调整（同日）：第一版「牙尖斑点 + 牙缝细流 + 散落血珠」被用户判定「杂乱」，
+# 改为「牙尖末端整段替换成红色」的极简做法 —— 不做斑点、不做细流、不做悬空血珠，
+# 牙身几何与 alpha 剪影完全不变，只把尖端那一段按固定红替换。
+BLOOD_SCALE = 3
+TIP_START_Y32 = 26            # 32px 尺度上红尖起始行（96 对应 y >= 78）
+TIP_RED = (200, 45, 52)       # 红尖主体
+TIP_RED_EDGE = (112, 18, 26)  # 红尖边缘：原本半透明的过渡像素用更深的红，避免生硬
+BLOOD_JOBS = {"abyss_bite"}
+
 DARK_K = 0.40        # 暗面 = 主色 × 该系数
 LIGHT_WHITE = 0.40   # 亮面 = 主色向白混合比例
 HILITE_WHITE = 0.20  # L>195 额外向白混合上限
@@ -184,6 +199,29 @@ def recolor(master: Image.Image, main, mode: str, ramp=None):
     return out, changed
 
 
+def paint_blood(im: Image.Image) -> Image.Image:
+    """把深渊撕咬的牙尖末端整段替换成红色（96 尺度，起始行 = 32 版 TIP_START_Y32 × SCALE）。
+
+    只改颜色，不改几何：alpha / 剪影完全保持原样，所以不会出现多余的悬空像素。
+    边缘（原 alpha < 180 的过渡像素）用更深的红，避免红块外沿生硬。
+    """
+    out = im.copy()
+    dst = out.load()
+    src = im.load()
+    s = BLOOD_SCALE
+    tinted = 0
+    for y in range(TIP_START_Y32 * s, im.height):
+        for x in range(im.width):
+            a = src[x, y][3]
+            if a <= 60:
+                continue
+            c = TIP_RED_EDGE if a < 180 else TIP_RED
+            dst[x, y] = (c[0], c[1], c[2], a)
+            tinted += 1
+    assert tinted > 0, "paint_blood: 红尖区域没有可用像素，检查 TIP_START_Y32"
+    return out
+
+
 def derive(im96: Image.Image, side: int, colors: int, contrast: float) -> Image.Image:
     """与 tools/split_symbols.py 完全一致的降采样管线。"""
     a = im96.resize((side, side), Image.BOX)
@@ -231,6 +269,9 @@ def build(name: str, spec, mode: str, ramp=None):
     master = load_master(name)
     recolored, n = recolor(master, main_color(spec), mode, ramp)
     verify(master, recolored, name, mode)
+    if name in BLOOD_JOBS:
+        recolored = paint_blood(recolored)
+        print(f"{name:24s} 血层已叠加（{len(BLOOD_JOBS)} 个符号）")
     result = {}
     for side, colors, contrast in ((32, 22, 1.12), (16, 14, 1.18)):
         result[side] = derive(recolored, side, colors, contrast)
@@ -240,7 +281,7 @@ def build(name: str, spec, mode: str, ramp=None):
 
 def make_preview(all_new: dict) -> None:
     """全库总览（4x 放大）+ 20px 小屏模拟，用于一次性验收整套符号的色彩与辨识度。"""
-    names = list(JOBS)
+    names = list(all_new)
     pad, cols = 14, 7
     S = 3
     cell = 32 * S + 14
@@ -289,13 +330,21 @@ def main() -> None:
     preview = "--preview" in sys.argv
     check = "--check" in sys.argv
     ramp_key = "a"
+    only = None
     for arg in sys.argv:
         if arg.startswith("--ramp="):
             ramp_key = arg.split("=", 1)[1]
+        if arg.startswith("--only="):
+            only = {s.strip() for s in arg.split("=", 1)[1].split(",") if s.strip()}
     assert ramp_key in FIRE_RAMPS, f"未知火系色带档位 {ramp_key}，可用：{list(FIRE_RAMPS)}"
+    if only:
+        unknown = only - set(JOBS)
+        assert not unknown, f"--only 里有未知符号：{sorted(unknown)}"
     os.makedirs(PREVIEW if preview else os.path.join(DST, "16"), exist_ok=True)
     all_new = {}
     for n, (spec, mode) in JOBS.items():
+        if only and n not in only:
+            continue
         r = FIRE_RAMPS[ramp_key] if n in FIRE_RAMP_JOBS else None
         all_new[n] = build(n, spec, mode, r)
     if check:
