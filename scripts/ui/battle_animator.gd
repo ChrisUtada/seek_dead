@@ -12,9 +12,28 @@ const PLAYER_IDLE_FRAMES := [
 ]
 const PLAYER_IDLE_FRAME_TIME := 0.18
 
+# ── 方案 A：借 pixelfx-godot 的 act 时序，只借时间、不借像素 ──────────────────
+# 数据源：./pfx sheets melee/sword-slash --spriteframes 产出的 meta.pixelfx.act
+#   windup 0.55 / hit t 0.06 / freeze 0.14 / recovery 0.11 / duration 0.75 / shake 0.18 amp 2
+# 官方整套约 1.35s，对回合制偏拖；按 ACT_TIME_SCALE 等比压到 ~0.34s，
+# 保留「前摇 → 命中顿帧 → 恢复」的结构比例，玩家仍是 48×48 静态立绘、不旋转、不切帧。
+# pixelfx 的小人由 rig.gd 骨架实时求解，不是可替换的帧动画，故这里只取时序数据。
+const ACT_TIME_SCALE := 0.42
+const ACT_WINDUP := 0.55 * ACT_TIME_SCALE
+const ACT_FREEZE := 0.14 * ACT_TIME_SCALE
+const ACT_RECOVER := 0.11 * ACT_TIME_SCALE
+const SLASH_SPEED_SCALE := 2.4   # 24 帧 @30fps = 0.8s，压到 ~0.33s 与演出等长
+const SLASH_FRAMES := preload("res://assets/fx/sword_slash.res")   # 自包含 SpriteFrames，动画名 "default"
+# 落点三件套（F6 目视后改这里即可）：单帧 136×104，pivot 来自 meta.pixelfx.pivot。
+# 默认让弧光落在剑举朝右的上半身方向；曾试 (20,56)/0.55，弧光压在腰腹且与剑不连贯。
+const SLASH_FX_PIVOT := Vector2(44, 92)
+const SLASH_FX_SCALE := Vector2(0.45, 0.45)
+const SLASH_FX_POS := Vector2(30, 42)
+
 var hud = null
 var player_sprite: Control = null
 var enemy_sprite: Control = null
+var _slash_fx: AnimatedSprite2D = null
 var _shake_base := Transform2D()   # 屏震基准变换，供 _apply_shake 读取
 var _idle_timer: Timer = null          # 站立呼吸节拍器
 var _idle_index := 0                   # 站立当前帧
@@ -31,6 +50,36 @@ func setup(p_hud) -> void:
 	hud.add_child(_idle_timer)
 	_idle_timer.start()
 
+	# 斩击特效层：挂为玩家立绘的子节点（天然在角色前面），先 add_child 再 configure。
+	# 零插件依赖 —— 直接播导出的 SpriteFrames，不需要把 addons/pixelfx 拷进 res://addons/、也不用启用插件。
+	_slash_fx = AnimatedSprite2D.new()
+	_slash_fx.name = "SlashFx"
+	player_sprite.add_child(_slash_fx)
+	_slash_fx.sprite_frames = SLASH_FRAMES
+	_slash_fx.animation = "default"
+	_slash_fx.centered = false
+	_slash_fx.offset = -SLASH_FX_PIVOT        # 让 feet 落在 SLASH_FX_POS
+	_slash_fx.scale = SLASH_FX_SCALE          # 136×104 → ~61×47，适配 48×48 骑士 / 480×270
+	_slash_fx.position = SLASH_FX_POS
+	_slash_fx.speed_scale = SLASH_SPEED_SCALE
+	_slash_fx.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_slash_fx.visible = false
+	_slash_fx.animation_finished.connect(_on_slash_finished)
+
+
+func _on_slash_finished() -> void:
+	if _slash_fx != null:
+		_slash_fx.visible = false
+
+
+func _play_slash_fx() -> void:
+	if _slash_fx == null:
+		return
+	_slash_fx.visible = true
+	_slash_fx.frame = 0
+	_slash_fx.speed_scale = SLASH_SPEED_SCALE
+	_slash_fx.play("default")
+
 
 func _on_idle_tick() -> void:
 	if player_sprite == null:
@@ -43,7 +92,9 @@ func _sprite(which: String) -> Control:
 	return player_sprite if which == "player" else enemy_sprite
 
 
-# 攻击者轻微缩放 + 目标受击暖白闪；玩家不旋转、不切换挥剑帧。
+# 攻击者蓄力 → 命中定格 → 恢复；目标闪白对齐命中点。
+# 时长来自 pixelfx-godot 的 act 时序（见文件头常量），只借时间不借像素；玩家不旋转、不切帧。
+# 特效层固定在玩家侧：玩家攻击时读作剑尖弧光，敌人攻击时读作落在该处的受击弧光。
 func play_attack(attacker: String, target: String) -> void:
 	var atk = _sprite(attacker)
 	var tgt = _sprite(target)
@@ -51,15 +102,26 @@ func play_attack(attacker: String, target: String) -> void:
 		return
 	_center_pivot(atk)
 	var home_scale = atk.scale
+
+	# 特效 ~0.33s 与下面演出 ~0.34s 等长：起手帧对齐前摇、弧光峰值对齐命中。
+	_play_slash_fx()
+
+	# 前摇：官方 WIND→CUT，略收身再前冲；只用 scale，不动 VBoxContainer 布局。
 	var tw = create_tween()
-	tw.tween_property(atk, "scale", home_scale * 1.16, 0.09)
-	tw.tween_property(atk, "scale", home_scale, 0.15)
+	tw.tween_property(atk, "scale", Vector2(home_scale.x * 0.94, home_scale.y * 1.10), ACT_WINDUP * 0.65)
+	tw.tween_property(atk, "scale", Vector2(home_scale.x * 1.16, home_scale.y * 0.96), ACT_WINDUP * 0.35)
+	tw.tween_interval(ACT_FREEZE)   # hit-stop：命中瞬间定格
+	tw.tween_property(atk, "scale", home_scale, ACT_RECOVER)
+
 	if attacker == "enemy":
 		var twr = create_tween()
-		twr.tween_property(atk, "rotation", -0.10, 0.09)
-		twr.tween_property(atk, "rotation", 0.0, 0.15)
+		twr.tween_property(atk, "rotation", -0.10, ACT_WINDUP)
+		twr.tween_property(atk, "rotation", 0.0, ACT_FREEZE + ACT_RECOVER)
+
+	# 目标受击暖白闪延迟到命中点才起，不再从攻击一开始就亮。
 	var base = tgt.modulate
 	var tw2 = create_tween()
+	tw2.tween_interval(ACT_WINDUP)
 	tw2.tween_property(tgt, "modulate", Color(1.75, 1.70, 1.55), 0.07)
 	tw2.tween_property(tgt, "modulate", base, 0.24)
 

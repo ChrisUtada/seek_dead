@@ -171,11 +171,14 @@ func reward_card(rw: RewardData, index: int = -1, slot_label: String = "") -> Bu
 	var wp := String(payload.get("path", "")) if not payload.is_empty() else ""
 	var wico: Texture2D = WeaponIcons.icon_for_path(wp) if wp != "" else null
 	var elem := ""
-	if wico != null and art == null:
-		art = wico
+	if wico != null:
+		# 元素色必须按武器资源无条件取：资源自带 art 的武器同样会显示 wico，
+		# 只在「art 为空」分支里取会让这些卡退化成中性灰粒子。
 		var wr: Resource = load(wp)
 		if wr != null and wr.get("element") != null:
 			elem = String(wr.get("element"))
+		if art == null:
+			art = wico
 	var prefix: String = "" if art != null else rw.icon + " "
 	var title_text: String = String(payload.get("title", rw.label)) if not payload.is_empty() else rw.label
 	var desc_text: String = String(payload.get("desc", rw.desc)) if not payload.is_empty() else rw.desc

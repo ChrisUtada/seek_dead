@@ -96,10 +96,10 @@ func set_art(tex: Texture2D, min_size: Vector2 = Vector2(48, 48), fx_color := Co
 	if tex == null:
 		return
 	if fx_color.a > 0.0:
-		_ensure_art_fx(fx_color)
+		_ensure_art_fx(fx_color, min_size)
 
 
-func _ensure_art_fx(color: Color) -> void:
+func _ensure_art_fx(color: Color, min_size: Vector2) -> void:
 	# 图标上的元素火星：1px 点、加色混合、极少数量，只做"活"的感觉，不做爆炸
 	if _art_fx == null:
 		_art_fx = CPUParticles2D.new()
@@ -122,8 +122,12 @@ func _ensure_art_fx(color: Color) -> void:
 		g.add_point(0.7, Color(1, 1, 1, 0.75))
 		g.set_color(g.get_point_count() - 1, Color(1, 1, 1, 0.0))
 		_art_fx.color_ramp = g
-		_art_fx.position = Vector2(28, 18)   # 图标对角线中上段（刃身）
 		_icon_rect.add_child(_art_fx)
+	# 图格并非都是 48：商店 32、奖励 36、生涯解锁 24。粒子是 IconRect 的子节点，
+	# 坐标相对图格左上；写死 48 口径会让火星飘到图标外，等于这把没加粒子。
+	var k := clampf(minf(min_size.x, min_size.y) / 48.0, 0.45, 1.0)
+	_art_fx.position = Vector2(28, 18) * k   # 图标对角线中上段（刃身）
+	_art_fx.emission_rect_extents = Vector2(9, 11) * k
 	_art_fx.color = color
 	_art_fx.emitting = true
 
