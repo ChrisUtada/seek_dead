@@ -24,6 +24,7 @@ var choice_payloads: Array[Dictionary] = []   # M1-01：与 reward_choices 按 i
 var _acq_cache: Dictionary = {}         # path -> {w, hi}：Legacy 获取权重缓存（仅营地付费补给货架；探索已于 Step 5 迁移）
 var _loot: LootPool                     # Step 3：统一来源品质池（专用 RNG，不消耗地图 RNG）
 var _loot_offer: LootOffer              # Step 4：同层三选一（一次定层，重抽不重抽品质）
+var _loot_settled := false              # Step 6：本组三选一是否已结算（同一奖励只发一次）
 
 func _init(ctrl: DuelController) -> void:
 	_ctrl = ctrl
@@ -40,6 +41,7 @@ func reset_run() -> void:
 	run_shield_next = 0
 	if _loot != null:
 		_loot.reset_run()   # 本局来源品质抽取的专用种子（只取一次，之后不碰地图 RNG）
+	_loot_settled = false
 	_ctrl.invalidate_state()
 
 
@@ -319,12 +321,15 @@ func roll_shop_ladder(act: int, opts: Dictionary = {}) -> Array:
 func build_loot_offer(source: String, act: int, opts: Dictionary = {}, forced_quality: String = "") -> Dictionary:
 	if _loot_offer == null:
 		_loot_offer = LootOffer.new(_ctrl, _loot)
+	_loot_settled = false
 	return _loot_offer.build(source, act, opts, forced_quality)
 
 
 func reroll_loot_offer() -> Dictionary:
 	if _loot_offer == null:
 		return {"ok": false, "reason": "no_offer", "quality": "", "options": [], "skip": {}}
+	if _loot_settled:
+		return {"ok": false, "reason": "already_settled", "quality": "", "options": [], "skip": {}}
 	return _loot_offer.reroll()
 
 
@@ -334,23 +339,158 @@ func loot_offer_skip() -> Dictionary:
 	return _loot_offer.skip_result()
 
 
+# Step 6：结算一组三选一中的一个选项。展示时冻结的 payload 即结算值；
+# 同一组只结算一次（重复点击 / 回访不会二次发奖），失败时不消耗结算机会。
+# 返回 {ok, reason, kind, path?, gold?, power?, mastery?}
+func settle_loot_offer(index: int) -> Dictionary:
+	if _loot_offer == null:
+		return {"ok": false, "reason": "no_offer"}
+	if _loot_settled:
+		return {"ok": false, "reason": "already_settled"}
+	var opt: Dictionary = _loot_offer.payload_at(index)
+	if opt.is_empty():
+		return {"ok": false, "reason": "invalid_index"}
+	var res := _apply_loot_option(opt)
+	if not bool(res.get("ok", false)):
+		return res
+	_loot_settled = true
+	return res
+
+
+# Step 6：跳过战利品——只结算 build 时冻结的同层金币，同样只发一次。
+func settle_loot_skip() -> Dictionary:
+	if _loot_offer == null:
+		return {"ok": false, "reason": "no_offer"}
+	if _loot_settled:
+		return {"ok": false, "reason": "already_settled"}
+	var skip: Dictionary = _loot_offer.skip_result()
+	if skip.is_empty():
+		return {"ok": false, "reason": "no_skip"}
+	var res := _apply_loot_option(skip)
+	if not bool(res.get("ok", false)):
+		return res
+	_loot_settled = true
+	return res
+
+
+func _apply_loot_option(opt: Dictionary) -> Dictionary:
+	match String(opt.get("kind", "")):
+		"conversion":
+			return _apply_conversion(opt)
+		"item":
+			var path := String(opt.get("path", ""))
+			if path == "":
+				return {"ok": false, "reason": "empty_path"}
+			var grant := String(opt.get("grant", "item"))
+			if grant == "gold":
+				var g := int(opt.get("gold", 0))
+				if g <= 0:
+					return {"ok": false, "reason": "zero_gold"}
+				_ctrl.gold += g
+				_ctrl.hud._log("战利品转化：金币 +%d（共 %d）" % [g, _ctrl.gold])
+				_ctrl.hud._popup("💰+%d" % g, Palette.POP_GOLD, _ctrl.hud._player_sprite_anchor())
+				_ctrl.invalidate_state()
+				return {"ok": true, "kind": "gold", "gold": g}
+			if grant == "mastery":
+				var m := int(opt.get("mastery", 0))
+				if m <= 0 or _ctrl.mastery == null:
+					return {"ok": false, "reason": "mastery_unavailable"}
+				var got: int = int(_ctrl.mastery.grant_points(path, m))
+				if got <= 0:
+					return {"ok": false, "reason": "mastery_failed"}
+				_ctrl.invalidate_state()
+				return {"ok": true, "kind": "mastery", "path": path, "mastery": got}
+			return _grant_loot_item(path, String(opt.get("category", "")))
+	return {"ok": false, "reason": "unknown_kind"}
+
+
+func _apply_conversion(opt: Dictionary) -> Dictionary:
+	var g := int(opt.get("gold", 0))
+	var p := int(opt.get("power", 0))
+	if g <= 0 and p <= 0:
+		return {"ok": false, "reason": "empty_conversion"}
+	if g > 0:
+		_ctrl.gold += g
+		_ctrl.hud._log("战利品转化：金币 +%d（共 %d）" % [g, _ctrl.gold])
+		_ctrl.hud._popup("💰+%d" % g, Palette.POP_GOLD, _ctrl.hud._player_sprite_anchor())
+	if p > 0:
+		run_power_bonus += p
+		_ctrl.hud._log("战利品强化：本局符号伤害 +%d（共 +%d）" % [p, run_power_bonus])
+		_ctrl.hud._popup("⚔+%d" % p, Palette.POP_BUFF, _ctrl.hud._player_sprite_anchor())
+	_ctrl.invalidate_state()
+	return {"ok": true, "kind": "conversion", "gold": g, "power": p}
+
+
+# 正常授予（重复 / 满槽已在 payload 层转成 gold / mastery，正常不会走到失败分支）。
+func _grant_loot_item(path: String, category: String) -> Dictionary:
+	var loot_source := _loot_offer.source if _loot_offer != null else ""
+	match category:
+		"weapon":
+			if _ctrl.selected_loadout.has(path):
+				return {"ok": false, "reason": "duplicate_weapon"}
+			if _ctrl.selected_loadout.size() >= _ctrl._loadout_system.cat_cap("weapon"):
+				return {"ok": false, "reason": "needs_replace"}
+			_ctrl._loadout_system.grow_slot("weapon")
+			_ctrl.selected_loadout.append(path)
+			_ctrl._build_pool(_ctrl.selected_loadout)
+			remember_weapon(path, loot_source)
+			var wd: WeaponData = load(path)
+			var wn := String(wd.weapon_name) if wd != null else path.get_file().get_basename()
+			_ctrl.hud._log("战利品：获得武器 %s（已加入转轮带）" % wn)
+			_ctrl.hud._popup("⚔ 获得 %s" % wn, Palette.ACCENT_GOLD, _ctrl.hud._player_sprite_anchor())
+		"passive":
+			if _ctrl.selected_charms.has(path):
+				return {"ok": false, "reason": "duplicate_charm"}
+			if _ctrl.selected_charms.size() >= _ctrl._loadout_system.cat_max("passive"):
+				if _ctrl._loadout_system.can_grow_slot("passive"):
+					_ctrl._loadout_system.grow_slot("passive")
+				else:
+					return {"ok": false, "reason": "charm_slots_full"}
+			_ctrl.selected_charms.append(path)
+			remember_charm(path, loot_source)
+			_ctrl._apply_charms()
+			var cd: ItemData = load(path)
+			var cn := String(cd.item_name) if cd != null else path.get_file().get_basename()
+			_ctrl.hud._log("战利品：获得护符 %s（占护符槽）" % cn)
+			_ctrl.hud._popup("🛡 获得 %s" % cn, Palette.ACCENT_GOLD, _ctrl.hud._player_sprite_anchor())
+		"active":
+			if _ctrl.consumable_slots.size() >= _ctrl.CONSUMABLE_CAP:
+				return {"ok": false, "reason": "belt_full"}
+			var item: ItemData = load(path)
+			if item == null:
+				return {"ok": false, "reason": "missing_resource"}
+			_ctrl._consumable_uid += 1
+			_ctrl.consumable_slots.append({"path": path, "item_id": item.item_id,
+				"charges": item.charges, "uid": "c%d" % _ctrl._consumable_uid})
+			if not _ctrl.meta["owned_consumables"].has(path):
+				_ctrl.meta["owned_consumables"].append(path)
+			_ctrl._meta_store.record_source(path, _ctrl._item_source(loot_source))
+			_ctrl._refresh_consumable_panel()
+			_ctrl.hud._log("战利品：获得消耗品 %s（入腰带）" % item.item_name)
+			_ctrl.hud._popup("🎁 获得 %s" % item.item_name, Palette.POP_GOLD, _ctrl.hud._player_sprite_anchor())
+		_:
+			return {"ok": false, "reason": "bad_category"}
+	_ctrl.invalidate_state()
+	return {"ok": true, "kind": "item", "path": path, "category": category}
+
+
 # 新武器写入局外收藏（图鉴/开局池）；落盘时机与商店一致（局末统一保存）
-func remember_weapon(path: String) -> void:
+func remember_weapon(path: String, loot_source: String = "") -> void:
 	if path == "":
 		return
 	if not _ctrl.meta["owned_weapons"].has(path):
 		_ctrl.meta["owned_weapons"].append(path)
 		_ctrl._anvil_system.check_collection_milestones()   # M1-03：按真实收集进度结算图鉴里程碑
-	_ctrl._meta_store.record_source(path, _ctrl._item_source())   # G2-01：来源记录
+	_ctrl._meta_store.record_source(path, _ctrl._item_source(loot_source))   # G2-01：来源记录
 
 
 # G2-01：护符获得后写入图鉴/开局池；来源记录与武器同一口径。
-func remember_charm(path: String) -> void:
+func remember_charm(path: String, loot_source: String = "") -> void:
 	if path == "":
 		return
 	if not _ctrl.meta["owned_charms"].has(path):
 		_ctrl.meta["owned_charms"].append(path)
-	_ctrl._meta_store.record_source(path, _ctrl._item_source())
+	_ctrl._meta_store.record_source(path, _ctrl._item_source(loot_source))
 
 
 # Step 3：奖励卡「类型」不再按 RewardData.rarity 加权——物品品质与奖励卡类型是两层随机，

@@ -24,6 +24,10 @@ const SYMBOL_KIND_LABEL := {
 }
 const STATUS_LABEL := {"burn": "灼烧", "frost": "霜冻", "poison": "中毒"}
 const RARITY_LABEL := {"common": "普通", "uncommon": "精良", "rare": "稀有", "epic": "史诗"}
+# Step 6：战利品来源与普通房间 / 棋盘节点来源分开显示，保证图鉴来源与实际获得通道一致。
+const LOOT_SOURCE_LABEL := {
+	"normal": "普通战利品", "elite": "精英战利品", "boss": "BOSS 战利品", "chest": "探索宝箱",
+}
 
 var _ctrl
 var _stats: Dictionary = {}
@@ -387,6 +391,9 @@ func _source_text(e: Dictionary) -> String:
 	var bits: Array[String] = []
 	bits.append("ACT%d" % int(e.get("act", 1)))
 	bits.append("棋盘" if String(e.get("mode", "")) == "board" else "线性")
+	var loot := String(e.get("loot_source", ""))
+	if loot != "":
+		bits.append(String(LOOT_SOURCE_LABEL.get(loot, loot)))
 	var nt := String(e.get("node_type", ""))
 	if nt != "":
 		bits.append(String(NODE.label(nt)))

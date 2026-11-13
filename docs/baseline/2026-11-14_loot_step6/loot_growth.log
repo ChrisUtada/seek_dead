@@ -1,0 +1,51 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+WARNING: res://scenes/ui/loadout_scene.tscn:9 - ext_resource, invalid UID: uid://dbrhpr1f4bp17 - using text path instead: res://assets/camp_bg.png
+   at: load (scene/resources/resource_format_text.cpp:501)
+铁砧元进度已载入：点数 0
+已为你预选默认配装（可自由调整后再开战）
+PASS  已装备武器候选标记为熟练转化（1 项）
+PASS  熟练转化数值 = epic 配置 +4（实测 4）
+PASS  重复武器展示文案包含「熟练」
+PASS  找到熟练转化选项
+⚒ 重复转化：火焰法杖 熟练 +4（R2 · 4/7）
+✦ 火焰法杖 达 R2：可选择一项铭印
+PASS  结算重复武器 → 熟练 +4
+PASS  熟练累计 = 展示值（0 → 4）
+PASS  跨 R2 门槛只欠一次铭印（0 → 1）
+PASS  重复结算返回 already_settled
+PASS  重复结算不二次加熟练 / 不重复欠铭印
+PASS  20 次重抽不改变熟练 / 欠铭印 / 待选技艺
+⚒ 重复转化：火焰法杖 熟练 +4（R2 · 4/7）
+✦ 火焰法杖 达 R2：可选择一项铭印
+PASS  重抽后结算仍按展示值推进成长
+战利品强化：本局符号伤害 +4（共 +4）
+PASS  同层强化结算 +4
+PASS  同层强化重复结算被拒绝
+战利品转化：金币 +30（共 34）
+PASS  同层金币转化结算 +30
+战利品转化：金币 +20（共 54）
+PASS  跳过结算 +20 同层金币
+PASS  重复跳过被拒绝
+PASS  普通战利品包含可授予武器
+战利品：获得武器 酸液瓶（已加入转轮带）
+PASS  结算后武器进入转轮带（acid_flask）
+PASS  武器写入图鉴 owned_weapons
+PASS  来源记录 loot_source = normal（实测 normal）
+PASS  图鉴来源文案与获得通道一致（ACT1 · 线性 · 普通战利品）
+PASS  重复结算不重复授予
+PASS  已带护符候选标记为金币转化
+战利品转化：金币 +6（共 10）
+PASS  重复护符结算金币 +6
+战利品转化：金币 +6（共 10）
+PASS  满腰带结算金币 +6
+PASS  满槽候选冻结 needs_replace
+PASS  满槽直接结算返回 needs_replace
+战利品：获得武器 暮色手斧（已加入转轮带）
+PASS  失败后腾出槽位仍可结算（未消耗结算机会）
+⚒ 重复转化：火焰法杖 熟练 +5（R2 · 5/7）
+✦ 火焰法杖 达 R2：可选择一项铭印
+PASS  图鉴记录最高 R 等级（R2）
+PASS  图鉴记录最高熟练点数（5）
+---
+LOOTGROWTH|RESULT PASS (checks=30 fails=0)

@@ -185,7 +185,7 @@ func _test_short_tier_conversions(duel: DuelController) -> void:
 	_check(conv_power >= 1, "转化覆盖伤害强化（power %d）" % conv_power)
 
 
-# ③ 重复装备 / 满腰带 / 满护符槽 → 金币转化
+# ③ 重复装备 / 满腰带 / 满护符槽 → 熟练或金币转化
 func _test_duplicate_and_overflow(duel: DuelController) -> void:
 	seed(43003)
 	duel._reset_run_state()
@@ -194,9 +194,9 @@ func _test_duplicate_and_overflow(duel: DuelController) -> void:
 	var dup_res: Dictionary = duel._reward_system.build_loot_offer("boss", 1,
 		{"theme": [FLAME_STAFF]}, "epic")
 	var dup_items := _item_options(dup_res["options"])
-	_check(dup_items.size() == 1 and String(dup_items[0]["grant"]) == "gold"
-		and int(dup_items[0]["gold"]) > 0,
-		"已装备武器展示为同层金币转化")
+	_check(dup_items.size() == 1 and String(dup_items[0]["grant"]) == "mastery"
+		and int(dup_items[0]["mastery"]) > 0,
+		"已装备武器展示为同层熟练转化")
 	duel.selected_loadout.clear()
 
 	duel.consumable_slots.clear()

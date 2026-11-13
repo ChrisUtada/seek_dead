@@ -508,8 +508,10 @@ func _weapon_info(p: String) -> String:
 
 
 # G2-01：当前获取上下文（来源记录用）。只读，不触发状态变化。
-func _item_source() -> Dictionary:
+func _item_source(loot_source: String = "") -> Dictionary:
 	var d := {"act": current_act, "mode": "board" if node_mode else "linear"}
+	if loot_source != "":
+		d["loot_source"] = loot_source
 	if node_mode and board != null:
 		var node: Dictionary = board.current_node()
 		d["node_id"] = String(board.current_id)

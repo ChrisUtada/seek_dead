@@ -203,7 +203,7 @@ func _item_option(path: String) -> Dictionary:
 		"icon": _icon_of(cat),
 		"tooltip": _mechanism(res),
 		"grant": state,
-		"gold": 0, "power": 0,
+		"gold": 0, "power": 0, "mastery": 0,
 		"needs_replace": false,
 	}
 	if state == "item" and cat == "weapon" and _ctrl != null \
@@ -214,6 +214,12 @@ func _item_option(path: String) -> Dictionary:
 		opt["gold"] = g
 		opt["title"] = "%s · 已拥有 → 金币 +%d" % [nm, g]
 		opt["desc"] = "本局已拥有 / 槽位已满：按同层转化结算金币 +%d" % g
+	elif state == "mastery":
+		var m := _duplicate_mastery()
+		opt["mastery"] = m
+		opt["title"] = "%s · 已拥有 → 熟练 +%d" % [nm, m]
+		opt["desc"] = "本局已装备：转化为该武器熟练 +%d（R%d · %d/%d）" % [
+			m, _mastery_rank(path), _mastery_points(path), _mastery_next(path)]
 	else:
 		opt["title"] = "%s · %s" % [_category_label(cat), nm]
 		opt["desc"] = _grant_desc(cat)
@@ -255,14 +261,15 @@ func _make_skip() -> Dictionary:
 # 状态判定 / 文案
 # ---------------------------------------------------------------------------
 
-# 该物品在当前状态下的结算方式："item" 正常授予，"gold" 重复/溢出转金币。
+# 该物品在当前状态下的结算方式："item" 正常授予，"mastery" 重复武器转熟练，"gold" 重复/溢出转金币。
 func _grant_state(cat: String, path: String) -> String:
 	if _ctrl == null:
 		return "item"
 	match cat:
 		"weapon":
 			if _ctrl.selected_loadout.has(path):
-				return "gold"
+				# Step 6：重复武器优先进入既有成长通道（熟练）；无熟练系统时才回落金币。
+				return "mastery" if _ctrl.mastery != null else "gold"
 		"passive":
 			if _ctrl.selected_charms.has(path):
 				return "gold"
@@ -273,6 +280,26 @@ func _grant_state(cat: String, path: String) -> String:
 			if _ctrl.consumable_slots.size() >= _ctrl.CONSUMABLE_CAP:
 				return "gold"
 	return "item"
+
+
+func _duplicate_mastery() -> int:
+	return int(BALANCE.loot_duplicate_mastery.get(quality, 0))
+
+
+func _mastery_rank(path: String) -> int:
+	return int(_ctrl.mastery.r_level(path)) if _ctrl != null and _ctrl.mastery != null else 1
+
+
+func _mastery_points(path: String) -> int:
+	if _ctrl == null or _ctrl.mastery == null:
+		return 0
+	return int(_ctrl.mastery.mastery.get(path, 0))
+
+
+func _mastery_next(path: String) -> int:
+	if _ctrl == null or _ctrl.mastery == null:
+		return 0
+	return int(_ctrl.mastery._next_threshold(_mastery_rank(path)))
 
 
 func _conversion_gold() -> int:

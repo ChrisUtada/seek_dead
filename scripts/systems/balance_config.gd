@@ -99,6 +99,8 @@ extends Resource
 @export var loot_conversion_gold: Dictionary = {"common": 6, "uncommon": 10, "rare": 18, "epic": 30}
 @export var loot_conversion_power: Dictionary = {"common": 1, "uncommon": 2, "rare": 3, "epic": 4}
 @export var loot_skip_gold: Dictionary = {"common": 4, "uncommon": 7, "rare": 12, "epic": 20}
+# Step 6：本局已装备的重复武器 → 该武器熟练（既有成长通道），不新增货币。
+@export var loot_duplicate_mastery: Dictionary = {"common": 1, "uncommon": 2, "rare": 3, "epic": 4}
 
 
 # —— 三拍板落地（2026-08-24）——

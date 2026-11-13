@@ -1,0 +1,46 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+WARNING: res://scenes/ui/loadout_scene.tscn:9 - ext_resource, invalid UID: uid://dbrhpr1f4bp17 - using text path instead: res://assets/camp_bg.png
+   at: load (scene/resources/resource_format_text.cpp:501)
+铁砧元进度已载入：点数 0
+已为你预选默认配装（可自由调整后再开战）
+PASS  每组恰好 3 项（360 组，异常 0）
+PASS  物品候选全部同品质（越层 0）
+PASS  同组路径不重复（重复 0）
+PASS  每组至少两种用途（异常 0）
+PASS  每项标题/描述非空（空项 0）
+PASS  每项都有真实可结算效果（空效果 0）
+PASS  同组 unique_group 不重复（重复 0）
+PASS  短层组仍定在 epic
+PASS  短层补齐到 3 项（3）
+PASS  短层只出 1 件真实物品（1）
+PASS  短层用 2 项同层转化补齐（2）
+PASS  转化覆盖伤害强化（power 1）
+PASS  已装备武器展示为同层熟练转化
+PASS  腰带满时 active 候选全部转金币（2/2）
+PASS  护符槽满时 passive 候选全部转金币（3/3）
+PASS  武器槽满时新武器候选冻结 needs_replace
+PASS  空主题池仍定层（rare）
+PASS  空主题池补齐到 3 项（3）
+PASS  空主题池全部为同层转化
+PASS  重抽不改变品质层（越层 0）
+PASS  重抽能换出不同候选
+PASS  重抽不改变冻结的跳过收益
+PASS  跳过收益冻结为 common 同层金币 +4（实测 4）
+PASS  跳过收益有展示文案
+PASS  跳过收益冻结为 uncommon 同层金币 +7（实测 7）
+PASS  跳过收益有展示文案
+PASS  跳过收益冻结为 rare 同层金币 +12（实测 12）
+PASS  跳过收益有展示文案
+PASS  跳过收益冻结为 epic 同层金币 +20（实测 20）
+PASS  跳过收益有展示文案
+PASS  图鉴已解锁但本局未装备 → 仍按物品候选
+PASS  重抽不修改已返回的冻结候选
+PASS  重抽不修改已返回的跳过收益
+PASS  LootOffer 生成不消耗全局 RNG
+---
+LOOTOFFER|RESULT PASS (checks=34 fails=0)
+WARNING: 4 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2535)
+ERROR: 2 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:822)

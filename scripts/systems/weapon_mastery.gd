@@ -107,6 +107,28 @@ func settle_room(kind: String) -> void:
 				_ctrl.hud._log("✦ %s 达 R%d：可选择一项铭印" % [display_name(path), lv])
 
 
+# Step 6：重复武器转化为该武器熟练（战利品结算专用入口）。
+# 只由 RewardSystem.settle_loot_offer 调用一次（幂等由上层保证）；不写 meta / 不改共享资源。
+# 跨过 R2 / R3 时与房间结算走同一欠选通道，不额外发放技艺或铭印候选。
+func grant_points(path: String, amount: int) -> int:
+	if not enabled or amount <= 0 or path == "":
+		return 0
+	if not (load(path) is WeaponData):
+		return 0
+	var before: int = r_level(path)
+	mastery[path] = int(mastery.get(path, 0)) + amount
+	var after: int = r_level(path)
+	if _ctrl.hud != null:
+		_ctrl.hud._log("⚒ 重复转化：%s 熟练 +%d（R%d · %d/%d）" % [
+			display_name(path), amount, after, int(mastery[path]), _next_threshold(after)])
+	for lv in IMPRINT_LEVELS:
+		if lv > before and lv <= after:
+			owed.append(path)
+			if _ctrl.hud != null:
+				_ctrl.hud._log("✦ %s 达 R%d：可选择一项铭印" % [display_name(path), lv])
+	return amount
+
+
 # G2-01：追赶目标 = 本局其他武器达到过的最高基础熟练；开局配装或没有其它武器时为 0。
 # 只读，用于结算与替换预览共用同一口径。
 func catchup_target(path: String) -> int:

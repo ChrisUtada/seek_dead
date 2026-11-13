@@ -45,6 +45,7 @@ loot_shop_categories = {1: ["weapon", "active", "skill", "passive", "active", "w
 loot_conversion_gold = {"common": 6, "uncommon": 10, "rare": 18, "epic": 30}
 loot_conversion_power = {"common": 1, "uncommon": 2, "rare": 3, "epic": 4}
 loot_skip_gold = {"common": 4, "uncommon": 7, "rare": 12, "epic": 20}
+loot_duplicate_mastery = {"common": 1, "uncommon": 2, "rare": 3, "epic": 4}
 anvil_award_normal = 0
 anvil_award_elite = 3
 anvil_award_boss = 5
