@@ -26,13 +26,26 @@ extends RefCounted
 
 enum State { IDLE, SPINNING, STOPPING, STOPPED, FROZEN, LOCKED, EMPTY }
 
-# 方案 §5 的试验区间：主滚动 8–10 格/秒；落地减速 0.12–0.16 秒。
+# 方案 §5 的试验区间：主滚动 8–10 格/秒；落地减速原为 0.12–0.16 秒。
+# 2026-11-13 重标定：图标 16→32px、槽距 19→30px 后，为保持视觉像素速度不变，
+# 巡航由 9.0 降到 5.7 格/秒（每格时间 0.111→0.175s）。但一格变宽 58%，
+# 原 0.16s 内吸附要跑完更长的像素距离，最坏峰值约为滚动速度的 2.2×（停轮先窜一下）。
+# 按 t = 2d/v：高速 7.6 格/秒 → 0.263s，巡航 5.7 → 0.351s。
+# 但 d 用的是名义 1.0 格；ReelSpinView._render_absorb 的实际视觉差值 |diff|
+# 平均仅约 0.5 格（control 预设下 diff ≈ -_frac），名义时长普遍是所需时长的 2 倍，
+# 这正是 0.26–0.35s / 0.23–0.28s 两档实机都反馈「偏慢」的根因。
+# 用户两次拍板要快，优先级定为「响应速度 > 物理对齐」：区间收回 0.16–0.20s，
+# 回到图标放大前的响应量级。代价：巡航段峰值约 1.75× 滚动速度（轻微前窜）。
+# 注：2d/v 最小 0.263s，MIN 不生效、仅未来提速时兜底，当前实际时长恒等于上界。
+# 根治方向（未实施）：把 t 改为按 |diff| 动态计算，可同时做到快与不窜，但需改逻辑层。
+# 注：DEFAULT_* 是方案 §5 原始标定（纯计算层/定向测试用）；运行时速度由
+# ReadabilitySystem 提供，经 ReelSystem._absorb_seconds() 折算，不读这里的默认值。
 const DEFAULT_CELLS_PER_SECOND := 9.0
 const DEFAULT_RAMP_SECONDS := 0.18
 const DEFAULT_DECEL_CELLS := 1.0
 const DEFAULT_START_FACTOR := 0.45     # 起转初速 = 巡航速度 × 该系数
-const MIN_STOP_SECONDS := 0.12
-const MAX_STOP_SECONDS := 0.16
+const MIN_STOP_SECONDS := 0.16
+const MAX_STOP_SECONDS := 0.20
 
 var _sizes: Array[int] = []
 var _position: Array[float] = []

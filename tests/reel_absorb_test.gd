@@ -123,7 +123,7 @@ func _run() -> void:
 	_check(int(duel._telemetry.stop_total) == stop_before, "吸附完成前不记停轮结算")
 
 	# 3. 吸附完成：落子、结算一次
-	await get_tree().create_timer(0.25).timeout
+	await get_tree().create_timer(0.45).timeout
 	_check(rs.reel_stopped[0], "吸附完成后落子")
 	_check(duel.grid[0][0].resource_path == TARGET_PATH, "格子符号 = 吸附目标")
 	_check(int(duel._telemetry.stop_total) == stop_before + 1, "遥测只记录一次停轮")
@@ -140,7 +140,7 @@ func _run() -> void:
 	rs.stop_next_reel(false, "forced")
 	_check(rs.is_absorbing(0), "自动停轮也先进入吸附")
 	_check(rs.absorb_target(0) == 0, "自动停轮按逻辑游标记录落点")
-	await get_tree().create_timer(0.25).timeout
+	await get_tree().create_timer(0.45).timeout
 	_check(rs.reel_stopped[0], "自动停轮吸附后落子")
 	_check(duel.grid[0][0] == duel.TRASH_SYMBOL, "自动停轮落点为逻辑游标符号")
 	_check(int(duel.readability.forced_stops) == forced_before + 1, "自动停轮只结算一次")
@@ -160,16 +160,16 @@ func _run() -> void:
 	rs.stop_next_reel()
 	rs.stop_next_reel()
 	_check(rs.is_absorbing(0) and rs.is_absorbing(1) and rs.is_absorbing(2), "三列同时进入吸附")
-	await get_tree().create_timer(0.25).timeout
+	await get_tree().create_timer(0.45).timeout
 	_check(rs.reel_stopped == [true, true, true], "三列全部落子")
 	_check(finished[0] == 1, "全部吸附完成后只发一次 spin_finished")
 	rs.spin_finished.disconnect(on_finished)
 
 	# 6. 吸附不消耗全局 RNG
-	# 2026-11-12：前面的用例会触发一次真实 spin_finished，可能的结算/敌人回合在 0.25s 窗口外
+	# 2026-11-12：前面的用例会触发一次真实 spin_finished，可能的结算/敌人回合在 0.45s 窗口外
 	# 才收尾（速度曲线变慢后时序改变）。先等后台流程静默，再开始 RNG 取样，避免把结算随机
 	# 误记为吸附消耗。
-	await get_tree().create_timer(0.5).timeout
+	await get_tree().create_timer(0.6).timeout
 	rs.begin_spin()
 	rs._timer.stop()
 	rs.reel_cursor.assign([0, 0, 0])
@@ -184,7 +184,7 @@ func _run() -> void:
 		expected.append(randi())
 	seed(777777)
 	rs.stop_next_reel()
-	await get_tree().create_timer(0.25).timeout
+	await get_tree().create_timer(0.45).timeout
 	var after: Array = []
 	for _i in 16:
 		after.append(randi())

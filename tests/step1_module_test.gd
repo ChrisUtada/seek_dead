@@ -224,15 +224,15 @@ func _run() -> void:
 	_check(not rs.is_absorbing(2) and not rs.reel_stopped[2], "缠绕：越序按停第 3 列被拒绝")
 	rs.lock_reel(0)
 	_check(rs.is_absorbing(0), "缠绕：允许按顺序停第 1 列")
-	await get_tree().create_timer(0.25).timeout
+	await get_tree().create_timer(0.45).timeout
 	_check(rs.reel_stopped[0], "缠绕：第 1 列落子")
 	rs.lock_reel(2)
 	_check(not rs.is_absorbing(2), "缠绕：第 2 列未停时仍拒绝第 3 列")
 	rs.lock_reel(1)
-	await get_tree().create_timer(0.25).timeout
+	await get_tree().create_timer(0.45).timeout
 	_check(rs.reel_stopped[1], "缠绕：第 2 列落子")
 	rs.lock_reel(2)
-	await get_tree().create_timer(0.25).timeout
+	await get_tree().create_timer(0.45).timeout
 	_check(rs.reel_stopped[2], "缠绕：按顺序可依次停完三列（不软锁）")
 	rs.finish_spin()
 	# 自动停轮（forced）绕过顺序限制，避免夺轮/冻结叠加时死锁
@@ -250,10 +250,10 @@ func _run() -> void:
 	rs._timer.stop()
 	rs.stop_next_reel()
 	_check(rs.is_absorbing(2) and not rs.is_absorbing(0), "缠绕 rtl：空格先停第 3 列（不会卡死）")
-	await get_tree().create_timer(0.25).timeout
+	await get_tree().create_timer(0.45).timeout
 	rs.stop_next_reel()
 	_check(rs.is_absorbing(1), "缠绕 rtl：下一次空格停第 2 列")
-	await get_tree().create_timer(0.25).timeout
+	await get_tree().create_timer(0.45).timeout
 	rs.stop_next_reel()
 	_check(rs.is_absorbing(0), "缠绕 rtl：最后一次空格停第 1 列")
 	rs.finish_spin()

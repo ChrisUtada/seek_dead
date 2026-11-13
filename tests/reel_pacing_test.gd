@@ -215,7 +215,7 @@ func _run() -> void:
 	rs.stop_next_reel()
 	rs.stop_next_reel()
 	rs.stop_next_reel()
-	await get_tree().create_timer(0.35).timeout
+	await get_tree().create_timer(0.45).timeout
 	_check(rs.reel_stopped == [true, true, true], "三列吸附完成")
 	var total: float = rs.last_spin_seconds()
 	_check(total >= before_finish, "完整旋转耗时包含前半段旋转（%.2f ≥ %.2f）" % [total, before_finish])

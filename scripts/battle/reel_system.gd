@@ -17,7 +17,8 @@ extends RefCounted
 signal spin_finished
 
 const MISS_SYMBOL = preload("res://resources/symbols/miss.tres")
-# 2026-11-12 Step 2：停轮吸附时长沿用 Step 1 的区间常量；用 preload 而非全局类名，
+# 2026-11-12 Step 2：停轮吸附时长取 ReelClock 的区间常量（2026-11-13 重标定为
+# 0.16–0.20s 实机回调档；t = 2d/v 折算后被上界截断）；用 preload 而非全局类名，
 # 避免 --script / 未打开编辑器的环境读不到 global_script_class_cache。
 const _REEL_CLOCK = preload("res://scripts/battle/reel_clock.gd")
 
@@ -27,7 +28,7 @@ const STARTUP_CPS := 5.0               # 起转初速：给首轮观察留出时
 const STARTUP_RAMP_SECONDS := 0.32     # 二次速度曲线从初速升至巡航，再进入原有逐拍加速
 const _STRIP_MIN_CELLS := 30           # 转轮带最小格数（整份平铺补足，不改变符号占比）
 const _GOLD_CELLS := 2                 # 金币符号常驻格数（经济引擎，与装备频率解耦）
-const ABSORB_DECEL_CELLS := 1.0        # 吸附减速格数（Step 3 再按手感调）
+const ABSORB_DECEL_CELLS := 1.0        # 名义减速格数 d（t = 2d/v 的分子；重标定后真正参与时长计算）
 # 2026-11-12 Step 3：逐列基础停顿（方案 §5）——自动/夺轮停列的基础间隔与递增。
 const AUTO_STOP_BASE_WAIT := 0.25      # 第 1 列自动停下的基础停顿（方案 0.22–0.28）
 const AUTO_STOP_STEP_WAIT := 0.07      # 后续每列递增（方案 0.06–0.08）
@@ -465,7 +466,8 @@ func lock_reel(r: int, use_visual: bool = true, reason: String = "player") -> vo
 	_begin_absorb(r, idx, reason)
 
 
-# Step 2：停轮请求先记录，不立即写格子；0.12–0.16s 减速吸附结束才落子并进入结算。
+# Step 2：停轮请求先记录，不立即写格子；0.16–0.20s 减速吸附结束才落子并进入结算
+# （2026-11-13 按 19→30px 槽距与 9.0→5.7 格/秒重标定，见 ReelClock 常量注释）。
 # 吸附是本列「请求之后唯一允许的动作」：期间拒绝重复停轮，位置不再由节拍器推进。
 func _begin_absorb(r: int, idx: int, reason: String) -> void:
 	if r < 0 or r >= DuelController.REELS or reel_stopped[r] or is_absorbing(r):
@@ -485,7 +487,10 @@ func _begin_absorb(r: int, idx: int, reason: String) -> void:
 	tween.finished.connect(_complete_absorb.bind(r))
 
 
-# 吸附时长：按当前节拍折算速度与减速格数，收敛到 Step 1 的 0.12–0.16s 区间。
+# 吸附时长：t = 2d/v（d = 名义减速格数，v = 当前节拍折算的格/秒），收敛到
+# 实机回调档 0.16–0.20s；用户两次反馈慢，优先响应速度，接受巡航段约 1.75× 的
+# 轻微前窜。因 2d/v 恒 ≥0.263s，当前实际时长恒等于上界 0.20s（与速度脱钩）。
+# 落点仍是按停时的视觉中心，不受时长影响。
 func _absorb_seconds() -> float:
 	var speed: float = 1.0 / maxf(current_spin_wait(), 0.001)
 	return clampf(2.0 * ABSORB_DECEL_CELLS / maxf(speed, 0.001),

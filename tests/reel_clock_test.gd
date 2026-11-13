@@ -111,7 +111,8 @@ func _test_landing_frame_independence() -> void:
 			"%dfps 预测落点与静态公式一致" % fps)
 		_check(float(req["stop_seconds"]) >= ReelClockScript.MIN_STOP_SECONDS
 			and float(req["stop_seconds"]) <= ReelClockScript.MAX_STOP_SECONDS,
-			"%dfps 减速吸附时长在 0.12–0.16s 区间" % fps)
+			"%dfps 减速吸附时长在 %.2f–%.2fs 区间" % [
+				fps, ReelClockScript.MIN_STOP_SECONDS, ReelClockScript.MAX_STOP_SECONDS])
 		landings.append(int(req["landing_index"]))
 		durations.append(float(req["stop_seconds"]))
 		positions.append(float(req["from_position"]))
