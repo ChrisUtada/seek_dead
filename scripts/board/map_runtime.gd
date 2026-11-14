@@ -81,6 +81,9 @@ var pending_choice: Dictionary = {}
 var withdraws: Array = []
 # Step 5B：已结算的战斗（cell_id -> {turn, kind, victory}），保证每场只结算一次。
 var battles: Dictionary = {}
+# 巡逻战单独去重（key = 巡逻 id）：巡逻接触发生时怪不在内容格上，
+# 用 cell 做 key 会把「同一格先后两场巡逻战」误判成重复结算。
+var resolved_patrols: Dictionary = {}
 # 开发入口需要委托现有系统生成奖励卡，故持有 ctrl（可为空，纯数据测试不受影响）。
 var ctrl = null
 # Step 3 巡逻钩子：每次回合推进 +1。
@@ -130,6 +133,7 @@ func setup(board_data: Dictionary, with_patrols: bool = false, owner = null) -> 
 	pending_choice.clear()
 	withdraws.clear()
 	battles.clear()
+	resolved_patrols.clear()
 	if with_patrols:
 		for p in board_data.get("patrols", []):
 			patrols.append({
@@ -241,6 +245,7 @@ func try_move(to_cell: int) -> Dictionary:
 		"to": to_cell,
 		"player_cell": player_cell,
 		"turn": turn,
+		"resolved_patrols": resolved_patrols.duplicate(),
 		"settled": settled,
 		"contact": contact,
 	}
@@ -283,7 +288,7 @@ func patrol_preview() -> Array:
 			"id": String(p["id"]),
 			"order": int(p["order"]),
 			"cell": int(p["cell"]),
-			"next": MAP_PATROL.preview_cell(p),
+			"next": MAP_PATROL.next_cell(p, grid, player_cell),
 			"title": String(p.get("title", "巡逻怪")),
 		})
 	return out
@@ -331,7 +336,7 @@ func trap_preview() -> Array:
 	for p in patrols:
 		if not bool(p.get("active", true)):
 			continue
-		var next_cell: int = MAP_PATROL.preview_cell(p)
+		var next_cell: int = MAP_PATROL.next_cell(p, grid, player_cell)
 		var armor_now: int = MAP_TRAP.armor_of(p.get("room"))
 		var armed: bool = bool(p.get("trap_armed", false))
 		var next_is_trap: bool = MAP_TRAP.is_trap_cell(grid, next_cell)
@@ -447,16 +452,31 @@ func resolve_battle(victory: bool) -> Dictionary:
 		return {"ok": false, "reason": "no_pending_battle"}
 	var node: Dictionary = pending_battle
 	var cell: int = int(node.get("cell_id", -1))
-	if battles.has(cell):
+	var is_patrol := String(node.get("kind", "")) == "patrol"
+	var pid := String(node.get("id", "")).trim_prefix("patrol_")
+	if is_patrol:
+		if resolved_patrols.has(pid):
+			pending_battle = {}
+			return {"ok": false, "reason": "already_resolved"}
+	elif battles.has(cell):
 		# 同一场已经结算过：丢弃重复请求，不二次发奖。
 		pending_battle = {}
 		return {"ok": false, "reason": "already_resolved"}
 	pending_battle = {}
 	var kind := MAP_PROGRESS.kind_of(node)
 	var content_type := String(node.get("type", ""))
-	if cell >= 0 and (content_type == "battle" or content_type == "elite" or content_type == "boss"):
-		consumed[cell] = true
-	battles[cell] = {"turn": turn, "kind": kind, "victory": victory}
+	if is_patrol:
+		resolved_patrols[pid] = victory
+		# 赢下巡逻战后这只怪退场：否则追逐模式下它下一回合又贴上来，
+		# 接触 → 战斗 → 接触 无限循环（固定环时代靠怪自己走开才没有暴露）。
+		if victory:
+			for p in patrols:
+				if String(p["id"]) == pid:
+					p["active"] = false
+	else:
+		if cell >= 0 and (content_type == "battle" or content_type == "elite" or content_type == "boss"):
+			consumed[cell] = true
+		battles[cell] = {"turn": turn, "kind": kind, "victory": victory}
 	var out := {
 		"ok": true, "cell": cell, "kind": kind, "victory": victory,
 		"reward": {}, "applied": {},
@@ -579,6 +599,8 @@ func to_dict() -> Dictionary:
 	for p in patrols:
 		pstate.append({
 			"id": String(p["id"]),
+			# 追逐会让怪离开巡逻环，只存 path_index 无法还原位置，必须存实际格。
+			"cell": int(p["cell"]),
 			"path_index": int(p["path_index"]),
 			"active": bool(p.get("active", true)),
 			"trap_armed": bool(p.get("trap_armed", false)),
@@ -629,7 +651,8 @@ func from_dict(d: Dictionary) -> bool:
 	var raw_enc: Dictionary = d.get("encounters", {})
 	for k in raw_enc.keys():
 		encounters[int(k)] = int(raw_enc[k])
-	# 巡逻恢复：path_index 为权威，cell 由路径推出，保证与冻结环一致。
+	# 巡逻恢复：优先用存档里的实际格（追逐会离开巡逻环）；旧存档没有 cell 时
+	# 才退回用 path_index 从冻结环推出，保证向后兼容。
 	var raw_patrols: Array = d.get("patrols", [])
 	for entry in raw_patrols:
 		var pid: String = String(entry.get("id", ""))
@@ -639,7 +662,8 @@ func from_dict(d: Dictionary) -> bool:
 			var path: Array = p["path"]
 			var idx: int = int(entry.get("path_index", 0)) % maxi(1, path.size())
 			p["path_index"] = idx
-			p["cell"] = int(path[idx])
+			var saved_cell: int = int(entry.get("cell", -1))
+			p["cell"] = saved_cell if is_walkable(saved_cell) else int(path[idx])
 			p["active"] = bool(entry.get("active", true))
 			p["trap_armed"] = bool(entry.get("trap_armed", false))
 			p["trap_used"] = bool(entry.get("trap_used", false))
@@ -651,8 +675,14 @@ func from_dict(d: Dictionary) -> bool:
 	settled_log.clear()
 	pending_battle.clear()
 	contacts.clear()
+	# 巡逻战去重表恢复（不重放奖励）。
+	resolved_patrols.clear()
+	var raw_rp: Dictionary = d.get("resolved_patrols", {})
+	for k in raw_rp.keys():
+		resolved_patrols[String(k)] = bool(raw_rp[k])
 	# 战斗结算恢复：只恢复「哪一场已经打过」，不重放奖励。
 	battles.clear()
+	resolved_patrols.clear()
 	for raw in d.get("battles", []):
 		if not (raw is Dictionary):
 			continue
@@ -682,6 +712,9 @@ func signature() -> String:
 			1 if bool(p.get("trap_used", false)) else 0])
 	parts.append("n=%d" % contacts.size())
 	parts.append("b=%d" % battles.size())
+	var rp: Array = resolved_patrols.keys()
+	rp.sort()
+	parts.append("rp=" + ",".join(rp.map(func(v): return "%s:%d" % [String(v), 1 if bool(resolved_patrols[v]) else 0])))
 	var vkeys: Array = visits.keys()
 	vkeys.sort()
 	for k in vkeys:
@@ -726,7 +759,8 @@ func _advance_turn() -> Dictionary:
 	for p in patrols:
 		if not bool(p.get("active", true)):
 			continue
-		MAP_PATROL.step(p)
+		# 追逐：玩家在警戒范围内就朝玩家走一格，否则沿原巡逻路线。
+		MAP_PATROL.advance(p, grid, player_cell)
 		# §3.4 顺序固定：先移动 → 再记录陷阱触发 → 最后判定接触。
 		_on_patrol_enter(p)
 	return _check_contact()

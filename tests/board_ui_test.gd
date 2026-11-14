@@ -36,14 +36,19 @@ func _run() -> void:
 	_duel.board_config.enabled = true
 	add_child(_duel)
 	await _frames(6)
-	_duel.board.generate(_duel.board_config, 1)
+	# 走真实开战路径（full_reset 里生成地图并置 node_mode）。
+	# 只手动 generate + show_board 会让 node_mode=false，胜利后按线性模式收口，
+	# 与产品行为不一致——之前就是这么漏掉「回不到地图」的。
+	_duel._loadout_system.confirm_loadout()
+	await _frames(4)
 	_bs = _duel.hud.board_screen
 	_check(_bs != null, "地图界面已创建")
+	_check(bool(_duel.node_mode), "开战后进入地图模式")
+	_check(_bs.visible, "开战后地图可见")
 	if _bs == null:
 		_finish()
 		return
-	_bs.show_board(_duel.board)
-	await _frames(4)
+	await _frames(2)
 
 	_test_regions()
 	_test_map_cells()
@@ -242,6 +247,28 @@ func _test_battle_entry() -> void:
 	_check(_duel.current_room != null, "确认后真的进入战斗（%s）" % room_name)
 	_check(not _bs.visible, "进入战斗后地图界面隐藏")
 	_check(int(_duel.enemy_hp_max) > 0, "敌方血量已初始化（%d）" % int(_duel.enemy_hp_max))
+
+	# 胜利结算后必须回到地图。BoardSystem.return_to_board() 曾是空实现（pass），
+	# 导致战斗、宝箱、神龛、商店、休整走完都停在结算界面出不来。
+	_duel.enemy_hp = 0
+	_duel.room_flow.finish_room(Callable(), false)
+	await get_tree().create_timer(0.45).timeout
+	_check(_bs.visible, "战斗胜利后回到地图")
+	_check(not _duel.in_interroom, "回到地图后不在房间歇态")
+	_check(int(_duel.board.current_cell()) >= 0, "回到地图后位置有效（%d）" % int(_duel.board.current_cell()))
+	_check(String(_duel.board.current_id) != "", "回到地图后当前格有 id（%s）" % _duel.board.current_id)
+
+	# 非战斗节点走完同样要回地图：宝箱 / 神龛 / 商店 / 休整 共用同一个 return_to_board 出口。
+	var chest: Dictionary = {}
+	for n in _duel.board.nodes:
+		if String(n.get("type", "")) == "chest":
+			chest = n
+			break
+	_check(not chest.is_empty(), "本图有宝箱节点")
+	if not chest.is_empty():
+		_duel._on_board_node_entered(chest)
+		await get_tree().create_timer(0.35).timeout
+		_check(_bs.visible, "宝箱结算后回到地图")
 
 
 func _touching(outer: Rect2, inner: Rect2) -> bool:

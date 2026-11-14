@@ -122,7 +122,7 @@ func _test_structure() -> void:
 
 	var cells: Array = grid["cells"]
 	var doors: Array = grid["doors"]
-	for cfg in MAP_PATROL.PATROLS:
+	for cfg in MAP_PATROL.for_act(1):
 		var path: Array = cfg["path"]
 		var pid := String(cfg["id"])
 		_check(path.size() >= 3, "%s 路径至少 3 格（%d）" % [pid, path.size()])
@@ -188,14 +188,11 @@ func _test_preview_consistency() -> void:
 	var checked := 0
 	var preview: Array = rt.patrol_preview()
 	_check(preview.size() == 3, "预告覆盖 3 只（%d）" % preview.size())
+	# 只在玩家不动（wait_turn）时比较：追逐模式下怪的目标随玩家位置变化，
+	# 玩家移动后再拿旧预告对照是不公平的（那是换了局面，不是预告失准）。
 	for i in range(12):
 		preview = rt.patrol_preview()
-		var before: Array = rt.patrols_state()
-		if i % 2 == 0:
-			rt.wait_turn()
-		else:
-			var target: int = PATH_DOWN if rt.player_cell == START else START
-			rt.try_move(target)
+		rt.wait_turn()
 		var after: Array = rt.patrols_state()
 		for k in range(preview.size()):
 			var pid := String(preview[k]["id"])
@@ -208,7 +205,7 @@ func _test_preview_consistency() -> void:
 			if actual != expect:
 				mismatch += 1
 				print("  预告不符：%s 预期 %d 实际 %d（第 %d 回合）" % [pid, expect, actual, i])
-	_check(mismatch == 0, "12 回合 %d 次预告全部与实际一致" % checked)
+	_check(mismatch == 0, "12 回合 %d 次预告全部与实际一致（含追逐）" % checked)
 
 	# 预告是纯只读：连续调用不改变任何状态。
 	var rt2 = _rt()
@@ -286,6 +283,9 @@ func _test_chase_contact() -> void:
 func _test_action_order() -> void:
 	var rt = _rt()
 	var before: Array = rt.patrols_state()
+	var expect0: Array = []
+	for q in rt.patrols:
+		expect0.append(MAP_PATROL.next_cell(q, rt.grid, rt.player_cell))
 	rt.wait_turn()
 	var after: Array = rt.patrols_state()
 	_check(after.size() == 3, "行动后仍是 3 只")
@@ -293,17 +293,43 @@ func _test_action_order() -> void:
 		_check(String(after[i]["id"]) == String(before[i]["id"]),
 			"第 %d 位始终是 %s（顺序不随机）" % [i, String(after[i]["id"])])
 		_check(int(after[i]["order"]) == i, "%s order 不变" % String(after[i]["id"]))
-		var path: Array = rt.patrols[i]["path"]
-		var expect: int = int(path[1 % path.size()])
-		_check(int(after[i]["cell"]) == expect,
-			"%s 第一回合前进到路径第 2 格（%d）" % [String(after[i]["id"]), expect])
-	# 再推进一轮，路径索引 +1。
-	rt.wait_turn()
-	var thirds: Array = rt.patrols_state()
-	for i in range(3):
-		var path: Array = rt.patrols[i]["path"]
-		_check(int(thirds[i]["path_index"]) == 2, "%s 索引到 2" % String(thirds[i]["id"]))
-		_check(int(thirds[i]["cell"]) == int(path[2 % path.size()]), "%s 位于路径第 3 格" % String(thirds[i]["id"]))
+		_check(int(after[i]["cell"]) == int(expect0[i]),
+			"%s 实际走向与决策一致（%d）" % [String(after[i]["id"]), int(expect0[i])])
+
+	# 玩家远离到所有怪警戒范围之外时，怪回到巡逻路线（沿环前进）。
+	var idle = _rt()
+	var far := _far_cell_from_all(idle)
+	_check(far >= 0, "存在距所有怪超过警戒范围的格（%d）" % far)
+	if far >= 0:
+		idle.player_cell = far
+		var idx_before: Array = []
+		for q in idle.patrols:
+			idx_before.append(int(q["path_index"]))
+		idle.wait_turn()
+		var ok_ring := true
+		for i in range(3):
+			var path: Array = idle.patrols[i]["path"]
+			var expect: int = int(path[(int(idx_before[i]) + 1) % path.size()])
+			if int(idle.patrols[i]["cell"]) != expect:
+				ok_ring = false
+		_check(ok_ring, "脱离警戒后回到巡逻路线（沿环前进）")
+
+
+# 找一个距所有巡逻怪都超过 ALERT_RANGE 的可行走格。
+func _far_cell_from_all(rt) -> int:
+	for c in range(int(MAP_GRID.CELL_COUNT)):
+		var n: Dictionary = rt.node_at(c)
+		if n.is_empty():
+			continue
+		var ok := true
+		for q in rt.patrols:
+			var d: int = MAP_GRID.reachable(rt.grid, int(q["cell"]), c).size()
+			if d > 0 and d - 1 <= MAP_PATROL.ALERT_RANGE:
+				ok = false
+				break
+		if ok:
+			return c
+	return -1
 
 
 # ---------------------------------------------------------------------------
@@ -381,7 +407,7 @@ func _test_no_block_boss() -> void:
 	_check(not rt.reachable_avoiding_patrols(BOSS).is_empty(), "最终仍存在避开巡逻的 BOSS 路径")
 	# 结构保证：BOSS 格与两道门都不在任何巡逻路径上。
 	var structural := true
-	for cfg in MAP_PATROL.PATROLS:
+	for cfg in MAP_PATROL.for_act(1):
 		if (cfg["path"] as Array).has(BOSS) or (cfg["path"] as Array).has(START):
 			structural = false
 	_check(structural, "结构上巡逻不占用起点 / BOSS 格")

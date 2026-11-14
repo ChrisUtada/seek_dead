@@ -84,8 +84,30 @@ func _run() -> void:
 	get_tree().quit(0 if _fails == 0 else 1)
 
 
-func _rt():
-	return RUNTIME.create(_duel, 1, SEED, 1, true)
+# idle = true：把玩家放到所有怪警戒范围之外，怪物回到「沿巡逻环前进」，
+# 这样才能稳定复现「第 N 回合谁踩哪个陷阱」这类断言。追逐本身在 map_patrol_test 里测。
+func _rt(idle := false):
+	var rt = RUNTIME.create(_duel, 1, SEED, 1, true)
+	if idle:
+		var far := _far_cell(rt)
+		if far >= 0:
+			rt.player_cell = far
+	return rt
+
+
+func _far_cell(rt) -> int:
+	for c in range(int(MAP_GRID.CELL_COUNT)):
+		if not rt.is_walkable(c):
+			continue
+		var ok := true
+		for q in rt.patrols:
+			var n: int = MAP_GRID.reachable(rt.grid, int(q["cell"]), c).size()
+			if n > 0 and n - 1 <= MAP_PATROL.ALERT_RANGE:
+				ok = false
+				break
+		if ok:
+			return c
+	return -1
 
 
 func _patrol(rt, pid: String) -> Dictionary:
@@ -114,7 +136,7 @@ func _test_data() -> void:
 		if String(t["region"]) == "A":
 			in_a += 1
 		var ring := false
-		for cfg in MAP_PATROL.PATROLS:
+		for cfg in MAP_PATROL.for_act(1):
 			if (cfg["path"] as Array).has(cid):
 				ring = true
 		if ring:
@@ -153,7 +175,7 @@ func _test_data() -> void:
 # ---------------------------------------------------------------------------
 
 func _test_trigger_once() -> void:
-	var rt = _rt()
+	var rt = _rt(true)
 	_check(rt.trap_triggers_count() == 0, "初始没有陷阱触发")
 	_check(rt.trap_state.is_empty(), "初始没有陷阱状态")
 
@@ -186,7 +208,7 @@ func _test_trigger_once() -> void:
 # ---------------------------------------------------------------------------
 
 func _test_no_rearm() -> void:
-	var rt = _rt()
+	var rt = _rt(true)
 	for i in range(2):
 		rt.wait_turn()
 	var base: int = rt.trap_triggers_count()
@@ -206,7 +228,7 @@ func _test_no_rearm() -> void:
 # ---------------------------------------------------------------------------
 
 func _test_apply_once() -> void:
-	var rt = _rt()
+	var rt = _rt(true)
 	rt.wait_turn()
 	rt.wait_turn()
 	var p0: Dictionary = _patrol(rt, "p0")
@@ -252,7 +274,7 @@ func _test_apply_once() -> void:
 # ---------------------------------------------------------------------------
 
 func _test_preview_matches() -> void:
-	var rt = _rt()
+	var rt = _rt(true)
 	rt.wait_turn()
 	rt.wait_turn()
 	var preview: Array = rt.trap_preview()
@@ -312,7 +334,7 @@ func _test_no_instakill() -> void:
 # ---------------------------------------------------------------------------
 
 func _test_player_on_trap() -> void:
-	var rt = _rt()
+	var rt = _rt(true)
 	# 推进到 p0 离开 45（3 回合后 p0 在 44）。
 	for i in range(3):
 		rt.wait_turn()
@@ -324,7 +346,12 @@ func _test_player_on_trap() -> void:
 	_check(rt.player_cell == TRAP_A, "玩家位于陷阱格")
 	_check(rt.turn == before_turn + 1, "进陷阱格只推进一个回合")
 	_check(rt.trap_triggers_count() == triggers, "玩家踩陷阱不产生怪物触发")
-	_check(rt.pending_battle.is_empty(), "玩家踩陷阱不进入战斗")
+	# 追逐模式下怪可能正好贴上来，那属于巡逻碰撞；这里只要求「战斗不由陷阱引发」。
+	if rt.pending_battle.is_empty():
+		_check(true, "玩家踩陷阱不进入战斗")
+	else:
+		_check(String(rt.pending_battle.get("source", "")) == "patrol",
+			"若有战斗，来源是巡逻碰撞而非陷阱（%s）" % String(rt.pending_battle.get("source", "")))
 	_check(rt.settled_log.is_empty(), "玩家踩陷阱不产生结算（无伤害、无奖励）")
 	_check(bool(rt.view(TRAP_A)["trap"]), "陷阱位置对玩家始终公开")
 
@@ -359,7 +386,7 @@ func _test_without_trap() -> void:
 # ---------------------------------------------------------------------------
 
 func _test_save_restore() -> void:
-	var rt = _rt()
+	var rt = _rt(true)
 	rt.wait_turn()
 	rt.wait_turn()
 	_check(rt.trap_triggers_count() == 3, "存档前已三次触发")

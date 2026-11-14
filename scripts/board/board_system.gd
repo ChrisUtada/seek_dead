@@ -310,5 +310,12 @@ func set_feedback(text: String) -> void:
 	feedback = text
 
 
+# 从战斗回到地图：走到这里说明当前战斗节点已胜利（战败走局末，不经过这里）。
+# 幂等：重复调用只是再展示一次棋盘。收敛时这里被写成空实现，
+# 导致所有「战斗结束回地图」的调用都打在空函数上，玩家停在结算界面出不来。
 func return_to_board() -> void:
-	pass
+	note_battle_won()
+	_ctrl.game_state = _ctrl.FlowState.PLAYING
+	_ctrl.in_interroom = false
+	_ctrl.hud.set_interroom_enabled(false)
+	_ctrl.hud.show_board_screen(self)
