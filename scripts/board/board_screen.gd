@@ -1,52 +1,50 @@
 extends Control
 
 # ============================================================================
-# BoardScreen — ACT1 棋盘灰盒主视图（M2）
-# 规格：docs/棋盘探索_战后成长与局外生涯_制作执行方案.md §5.3、§9、§11 M2
+# BoardScreen — 14×9 地图主视图（Step 6 收口）
+# 规格：docs/地图巡逻诱导_第一版预算与分步执行计划_2026-11-14.md §4.1–4.3
 #
 # 独立满屏视图：显示时 hud.hide()，进入战斗 / 商店时切回战斗 HUD。
 # 由 BattleHud._build_board_screen 挂到 Duel 根（与整备场景同级），不挤进战斗中央区域。
 #
-# 移动时序：掷 1D3 得到步数预算 → 每次沿一条边前进一格并立即结算 →
-# 有剩余步数时显示「继续」，分支处高亮两条路等待点击。
-# 掷骰是唯一使用 RNG 的步骤；移动动画不消耗 RNG。
+# 布局：480×270，按设计稿（1080×608 等比稿）落地——顶栏 + 左侧地图面板（14×9 整图，
+# 16.6px 格，单字表达）+ 右侧「当前局面」+ 底部说明条。移动靠点击相邻格，等待推进一回合。
 # ============================================================================
 
 const UI_BUTTON = preload("res://scenes/ui/ui_button.tscn")
 const NODE = preload("res://scripts/board/board_node_data.gd")
+const MAP_TYPES = preload("res://scripts/board/map_node_types.gd")
 
-# G3-02：16×16 点阵图标（tools/art_pipeline/make_board_icons.py 生成，≤3 色）
-const ICON := {
-	"start": preload("res://assets/icons/16/board_start.png"),
-	"normal": preload("res://assets/icons/16/board_normal.png"),
-	"elite": preload("res://assets/icons/16/board_elite.png"),
-	"boss": preload("res://assets/icons/16/board_boss.png"),
-	"weapon": preload("res://assets/icons/16/fire_sword.png"),
-	"charm": preload("res://assets/icons/16/board_charm.png"),
-	"shop": preload("res://assets/icons/16/board_shop.png"),
-	"rest": preload("res://assets/icons/16/board_rest.png"),
-	"treasure": preload("res://assets/icons/16/board_treasure.png"),
-	"shrine": preload("res://assets/icons/16/board_shrine.png"),
-	"armory": preload("res://assets/icons/16/board_armory.png"),
-}
+# 设计稿口径：16.6px 格里用统一单字表达概念（普/精/王/宝/图/商/休/事/门），
+# 不再叠加 16px 图标——同一概念只有一种表现，也不依赖点阵字体缺字形的 emoji。
 const PIECE_ICON = preload("res://assets/icons/16/board_piece.png")
 
-const NODE_H := 22.0
+# 480×270，按设计稿（1080×608 等比 2.25 倍）落地：14×9 整图入屏。
+# 顶栏（游戏名 + 预算）/ 地图面板（标题·副标题·区域标注·格阵·图例）/ 右侧「当前局面」/ 底部说明。
+const VIEW := Vector2(480.0, 270.0)
+const TOP_RECT := Rect2(4.0, 3.0, 472.0, 20.0)
+const MAP_PANEL := Rect2(4.0, 26.0, 320.0, 196.0)
+# 14×9 格阵：14×16.6=232.4，9×16.6=149.4，在面板内水平居中。
+const MAP_RECT := Rect2(47.8, 64.0, 232.4, 149.4)
+const INFO_RECT := Rect2(329.0, 26.0, 147.0, 224.0)
+const FOOT_RECT := Rect2(13.0, 251.0, 454.0, 17.0)
+const COLS := 14
+const ROWS := 9
+const CELL := 16.6
+const CELL_GAP := 1.0
+const NODE_H := CELL - CELL_GAP
 const STEP_SEC := 0.12
+# 地图面板内的固定文字基线
+const AREA_LABEL_Y := 61.0
+const LEGEND_Y := 219.0
+# 等待按钮（右栏底部，金色大按钮）
+const WAIT_BTN_RECT := Rect2(334.0, 216.0, 137.0, 22.0)
 
-# 节点位置由 BoardSystem.layout 决定（G4-02 两种骨架：标准 / 长尾）：
-# x = x0 + depth·dx（depth 即列号），y = row_y[node.row]。
-# 标准 25 节点沿用 G3 坐标（x0 6 / dx 36 / 宽 34）；长尾 29 节点压缩到 14 列（x0 4 / dx 34 / 宽 30）。
-const DEFAULT_LAYOUT := {
-	"x0": 6.0, "dx": 36.0, "node_w": 34.0, "row_y": [24.0, 58.0, 92.0, 126.0, 160.0],
-}
-
-# 34 / 30px 宽的节点放不下 emoji + 汉字（点阵字体缺字形会显示成方框），
-# 节点统一用几何图标 + 单字标签；BOSS 例外，显示名字前两字。
+# 单字标签：16.6px 格只放得下一个汉字（点阵字体缺字形会显示成方框）。
+# 用词与设计稿一致：普 / 精 / 王 / 宝 / 图 / 商 / 休 / 事 / 门。
 const SHORT := {
-	"start": "起", "normal": "战", "elite": "精", "boss": "王",
-	"weapon": "武", "charm": "符", "shop": "店", "rest": "营", "treasure": "宝", "shrine": "龛",
-	"armory": "库",
+	"start": "起", "path": "", "battle": "普", "elite": "精", "boss": "王",
+	"chest": "宝", "armory": "图", "shop": "商", "rest": "休", "event": "事",
 }
 
 # 道路 / 节点状态色（与样稿一致；语义仍由 Palette 决定）
@@ -54,6 +52,13 @@ const ROAD_DONE := Color("#4b3b33")
 const ROAD_UNDONE := Color("#3a2b31")
 const NODE_BG := Color("#1d1219")
 const NODE_BG_DONE := Color("#120b11")
+const PATH_BG := Color("#150d12")
+const TRAP_COL := Color("#c8553d")
+const CARD_CYAN := Color("#3fb0a8")
+const CARD_GREEN := Color("#5f9e52")
+const PANEL_FILL := Color("#181016")
+const PANEL_LINE := Color("#4a3a2e")
+const PATROL_COL := Color("#e35b50")
 
 var controller
 var hud                       # BattleHud（不标类型：避免与 battle_hud.gd 的 preload 形成循环依赖）
@@ -67,18 +72,21 @@ var _buttons := {}          # id -> Button（透明热区）
 var _button_sig := ""       # 当前按钮集合对应的节点 id 串（换骨架时重建）
 var _pos := {}              # id -> Vector2（由 BoardSystem.layout 计算）
 var _node_w := 34.0         # 当前骨架的节点宽（标准 34 / 长尾 30）
-var _art: Control = null     # 地图绘制层（道路 / 节点 / 状态框 / 图标）
+var _art: Control = null     # 绘制层：地图面板内的格阵 / 区域标注 / 图例
 var _bg: ColorRect = null
-var _title_label: Label = null
 var _act_theme: Dictionary = Palette.ACT_THEME[1]   # G7-A S3：按幕换配色
-var _piece: TextureRect = null
-var _advance_btn: Button = null
-var _trim_btn: Button = null
-var _dice_label: Label = null
-var _node_title: Label = null
-var _node_desc: Label = null
-var _summary: Label = null
-var _top_right: Label = null
+var _piece: TextureRect = null      # 玩家标记
+var _act_label: Label = null        # 顶栏右侧：ACT + 回合
+var _budget_label: Label = null     # 顶栏副标题：本图预算
+var _map_hint_text := ""            # 地图面板副标题：操作说明 / 选中格真实结果
+var _info_stats: Label = null       # 右栏：HP / 金币 / 探索
+var _card_desc_1: Label = null      # 巡逻怪预告（动态）
+var _card_desc_2: Label = null      # ① 选择等待
+var _card_desc_3: Label = null      # ② 怪物踩陷阱（动态）
+var _card_desc_4: Label = null      # ③ 转轮战斗（动态护甲）
+var _wait_btn: Button = null        # 等待一回合（推进地图回合）
+var _trim_btn: Button = null        # 精简入口（G7-B B3，行内隐藏）
+var _foot: Label = null             # 底部说明条
 
 # 战斗确认层：落到战斗节点后不立刻开打，先展示敌人与属性，由玩家点「进入战斗」。
 var _confirm_layer: Control = null
@@ -89,7 +97,7 @@ var _confirm_btn: Button = null
 var _confirm_alt_btn: Button = null
 var _pending_node: Dictionary = {}
 
-# 扫雷 Step 3：查看构筑（只读）/ 撤回整备（二次确认）。
+# 查看构筑（只读）/ 撤回整备（二次确认）：不读 RNG、不改任何状态。
 var _build_btn: Button = null
 var _retreat_btn: Button = null
 var _build_layer: Control = null
@@ -108,11 +116,6 @@ func configure(ctrl, h) -> void:
 	visible = false
 
 
-# 单一路径（2026-11-14 收敛）：棋盘只有 14×9 一种布局，点击相邻格探索。
-func _is_grid() -> bool:
-	return board != null
-
-
 func _build_ui() -> void:
 	if _built:
 		return
@@ -123,109 +126,115 @@ func _build_ui() -> void:
 	add_child(bg)
 	_bg = bg
 
-	# 道路 / 节点 / 状态框全部画在一层 art 上；节点按钮只做透明热区，负责点击与 tooltip。
-	# art 必须在背景之后、按钮之前：按钮不画内容，避免像旧版那样用按钮底框当节点。
+	# 顶栏：游戏名 + ACT/回合 + 本图预算（设计稿顶部条）。
+	var top := _label("SEEK DEAD · 灰沼回廊", 12, Palette.ACCENT_GOLD)
+	top.position = Vector2(6, 2)
+	top.size = Vector2(300, 15)
+	add_child(top)
+	_act_label = _label("ACT I · 回合 0", 10, Palette.TITLE)
+	_act_label.position = Vector2(300, 4)
+	_act_label.size = Vector2(174, 13)
+	_act_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	add_child(_act_label)
+	_budget_label = _label("14×9 · 61 可走格 · 16 战 · 4 宝箱 · 3 陷阱",
+		8, Palette.MUTED_DIM)
+	_budget_label.position = Vector2(6, 15)
+	_budget_label.size = Vector2(470, 10)
+	_budget_label.clip_text = true
+	add_child(_budget_label)
+
+	# 地图面板：底 + 标题 + 副标题；格阵 / 区域标注 / 图例由 _draw_art 负责。
+	_panel(MAP_PANEL.position, MAP_PANEL.size, false)
+
+	# 绘制层全屏：地图面板内的格阵 / 区域标注 / 图例都在这一层画。
 	_art = Control.new()
 	_art.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_art)
 	_art.draw.connect(_draw_art)
 
-	var title := _label("棋盘 · ACT I", 10, Palette.ACCENT_GOLD)
-	title.position = Vector2(8, 2)
-	title.size = Vector2(220, 18)
-	add_child(title)
-	_title_label = title
+	# 右侧「当前局面」：局面摘要 + 巡逻预告 + 三条链路 + 等待按钮 + 系统入口。
+	var info := _panel(INFO_RECT.position, INFO_RECT.size, true)
+	var iv: VBoxContainer = info.get_node("Margin/VBox")
+	iv.add_theme_constant_override("separation", 2)
+	var head := _label("当前局面", 12, Palette.ACCENT_GOLD)
+	iv.add_child(head)
+	_info_stats = _label("", 9, Palette.PLAYER)
+	_info_stats.clip_text = true
+	_info_stats.custom_minimum_size = Vector2(0, 14)
+	iv.add_child(_info_stats)
 
-	_top_right = _label("", 9, Palette.MUTED)
-	_top_right.position = Vector2(240, 3)
-	_top_right.size = Vector2(232, 16)
-	_top_right.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	add_child(_top_right)
+	_card_desc_1 = _card(iv, "巡逻怪", "预告：—", Palette.ENEMY, 2)
+	_card_desc_2 = _card(iv, "① 选择等待", "原地不动，地图推进一回合", CARD_CYAN, 1)
+	_card_desc_3 = _card(iv, "② 怪物踩陷阱", "触发公开破甲陷阱", Palette.ACCENT_GOLD, 1)
+	_card_desc_4 = _card(iv, "③ 转轮战斗", "敌方护甲降低，仍靠 Build 击败", CARD_GREEN, 1)
 
-	# 节点按钮不在这里建：骨架每局可能不同（25 / 29 个节点、列宽变化），
-	# 由 show_board → _ensure_buttons() 按当前棋盘重建（保持在确认层之下）。
+	_wait_btn = UI_BUTTON.instantiate()
+	_wait_btn.custom_minimum_size = Vector2(0, 20)
+	_wait_btn.size = Vector2(137, 20)
+	_wait_btn.add_theme_font_size_override("font_size", 10)
+	_wait_btn.text = "等待一回合"
+	_wait_btn.pressed.connect(_on_wait)
+	iv.add_child(_wait_btn)
 
+	var sys_row := HBoxContainer.new()
+	sys_row.add_theme_constant_override("separation", 4)
+	iv.add_child(sys_row)
+	_build_btn = UI_BUTTON.instantiate()
+	_build_btn.custom_minimum_size = Vector2(66, 14)
+	_build_btn.size = Vector2(66, 14)
+	_build_btn.add_theme_font_size_override("font_size", 8)
+	_build_btn.text = "查看构筑"
+	_build_btn.pressed.connect(_on_build_pressed)
+	sys_row.add_child(_build_btn)
+	_retreat_btn = UI_BUTTON.instantiate()
+	_retreat_btn.custom_minimum_size = Vector2(66, 14)
+	_retreat_btn.size = Vector2(66, 14)
+	_retreat_btn.add_theme_font_size_override("font_size", 8)
+	_retreat_btn.text = "撤回整备"
+	_retreat_btn.pressed.connect(_on_retreat_pressed)
+	sys_row.add_child(_retreat_btn)
+
+	# 玩家标记叠在地图之上。
 	_piece = TextureRect.new()
 	_piece.texture = PIECE_ICON
 	_piece.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_piece.stretch_mode = TextureRect.STRETCH_SCALE
-	_piece.size = Vector2(12, 12)
-	_piece.position = Vector2(30, 14)
+	_piece.size = Vector2(8, 8)
 	_piece.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_piece)
-
-	# 底栏（G3-01）：地图到 y 198，详情 / 构筑 200–244，掷骰条 246–268。
-	var left := _panel(Vector2(6, 194), Vector2(302, 44))
-	var lv: VBoxContainer = left.get_node("VBox")
-	lv.add_theme_constant_override("separation", 1)
-	_node_title = _label("", 9, Palette.TITLE)
-	lv.add_child(_node_title)
-	_node_desc = _label("", 8, Palette.MUTED)
-	_node_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_node_desc.clip_text = true
-	_node_desc.add_theme_constant_override("line_spacing", 0)
-	_node_desc.max_lines_visible = 2
-	_node_desc.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	lv.add_child(_node_desc)
-
-	var right := _panel(Vector2(312, 194), Vector2(162, 44))
-	var rv: VBoxContainer = right.get_node("VBox")
-	_summary = _label("", 8, Palette.PLAYER)
-	_summary.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_summary.clip_text = true
-	_summary.add_theme_constant_override("line_spacing", 0)
-	_summary.max_lines_visible = 3
-	_summary.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	rv.add_child(_summary)
-
-	_advance_btn = UI_BUTTON.instantiate()
-	_advance_btn.position = Vector2(6, 238)
-	_advance_btn.size = Vector2(126, 22)
-	_advance_btn.custom_minimum_size = Vector2(126, 22)
-	_advance_btn.text = "🎲 前进"
-	_advance_btn.pressed.connect(_on_advance)
-	add_child(_advance_btn)
-
-	_dice_label = _label("", 8, Palette.MUTED)
-	_dice_label.position = Vector2(140, 238)
-	_dice_label.size = Vector2(254, 30)
-	add_child(_dice_label)
-
-	# G7-B B3：主动减带入口（每幕 1 次）。弹层在 battle_hud，这里只放按钮与状态。
-	_trim_btn = UI_BUTTON.instantiate()
-	_trim_btn.position = Vector2(400, 238)
-	_trim_btn.size = Vector2(74, 22)
-	_trim_btn.custom_minimum_size = Vector2(74, 22)
-	_trim_btn.add_theme_font_size_override("font_size", 9)
-	_trim_btn.text = "✂ 精简 1/1"
-	_trim_btn.pressed.connect(_on_trim_pressed)
-	add_child(_trim_btn)
-
-	# 扫雷 Step 3：系统入口与主要探索操作分开——左下角「查看构筑」「撤回整备」只在网格显示。
-	_build_btn = UI_BUTTON.instantiate()
-	_build_btn.position = Vector2(6, 238)
-	_build_btn.size = Vector2(74, 22)
-	_build_btn.custom_minimum_size = Vector2(74, 22)
-	_build_btn.add_theme_font_size_override("font_size", 9)
-	_build_btn.text = "查看构筑"
-	_build_btn.visible = false
-	_build_btn.pressed.connect(_on_build_pressed)
-	add_child(_build_btn)
-
-	_retreat_btn = UI_BUTTON.instantiate()
-	_retreat_btn.position = Vector2(86, 238)
-	_retreat_btn.size = Vector2(74, 22)
-	_retreat_btn.custom_minimum_size = Vector2(74, 22)
-	_retreat_btn.add_theme_font_size_override("font_size", 9)
-	_retreat_btn.text = "撤回整备"
-	_retreat_btn.visible = false
-	_retreat_btn.pressed.connect(_on_retreat_pressed)
-	add_child(_retreat_btn)
 
 	_build_confirm_layer()
 	_build_view_layer()
 	_build_retreat_layer()
+
+
+# 右栏卡片：标题 + 说明（说明返回给调用方，便于按真实状态改写）。
+func _card(parent: VBoxContainer, title: String, desc: String, border: Color,
+		desc_lines: int) -> Label:
+	var p := PanelContainer.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(border.r, border.g, border.b, 0.10)
+	sb.border_color = border
+	sb.set_border_width_all(1)
+	sb.content_margin_left = 4
+	sb.content_margin_right = 4
+	sb.content_margin_top = 2
+	sb.content_margin_bottom = 2
+	p.add_theme_stylebox_override("panel", sb)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 0)
+	p.add_child(v)
+	var t := _label(title, 9, border)
+	v.add_child(t)
+	var d := _label(desc, 8, Palette.PLAYER)
+	d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	d.clip_text = true
+	d.max_lines_visible = desc_lines
+	d.custom_minimum_size = Vector2(0.0, 12.0 * float(desc_lines))
+	v.add_child(d)
+	parent.add_child(p)
+	return d
 
 
 func _build_confirm_layer() -> void:
@@ -288,7 +297,7 @@ func _build_confirm_layer() -> void:
 	row.add_child(_confirm_btn)
 
 
-# 扫雷 Step 3：查看构筑（只读滚屏）。不读 RNG、不改任何状态。
+# 查看构筑（只读滚屏）：不读 RNG、不改任何状态。
 func _build_view_layer() -> void:
 	_build_layer = Control.new()
 	_build_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -343,7 +352,7 @@ func _build_view_layer() -> void:
 	vb.add_child(crow)
 
 
-# 扫雷 Step 3：撤回整备弹层（两次确认；取消不改变任何状态）。
+# 撤回整备弹层：两次确认；取消不改变任何状态。
 func _build_retreat_layer() -> void:
 	_retreat_layer = Control.new()
 	_retreat_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -435,49 +444,57 @@ func _ensure_buttons() -> void:
 
 
 # 14×9 布局：按 row/col 定位，镜头 9×7 跟随角色（§4.1，不整图入屏）。
-const MAP_ORIGIN := Vector2(8.0, 24.0)
-const MAP_AREA := Vector2(464.0, 168.0)
-
 func _apply_layout() -> void:
 	if board == null:
 		return
-	var cols: int = int(board.layout.get("cols", 14))
-	var rows_n: int = int(board.layout.get("rows", 9))
-	var cam_cols: int = int(board.layout.get("cam_cols", 9))
-	var cam_rows: int = int(board.layout.get("cam_rows", 7))
-	var cell: float = minf(MAP_AREA.x / float(cam_cols), MAP_AREA.y / float(cam_rows))
-	_node_w = cell - 2.0
-	var cam := Vector2i(0, 0)
-	if board.runtime != null:
-		cam = board.runtime.camera_origin()
-	var total := Vector2(cell * float(cam_cols), cell * float(cam_rows))
-	var origin := MAP_ORIGIN + (MAP_AREA - total) * 0.5
+	_node_w = CELL - CELL_GAP
+	var pad := Vector2(CELL_GAP * 0.5, CELL_GAP * 0.5)
 	_pos.clear()
 	for n in board.nodes:
-		var col: int = int(n.get("col", 0)) - cam.x
-		var row: int = int(n.get("row", 0)) - cam.y
-		if col < 0 or col >= cam_cols or row < 0 or row >= cam_rows:
+		var col: int = int(n.get("col", -1))
+		var row: int = int(n.get("row", -1))
+		if col < 0 or col >= COLS or row < 0 or row >= ROWS:
 			continue
-		_pos[String(n["id"])] = origin + Vector2(float(col) * cell, float(row) * cell)
+		_pos[String(n["id"])] = MAP_RECT.position + Vector2(float(col) * CELL, float(row) * CELL) + pad
 
 
 func _layout_buttons() -> void:
 	for id in _buttons:
 		var b: Button = _buttons[id]
+		var inside := _pos.has(String(id))
+		b.visible = inside
+		if not inside:
+			continue
 		b.position = _node_pos(String(id))
 		b.custom_minimum_size = Vector2(_node_w, NODE_H)
 		b.size = Vector2(_node_w, NODE_H)
 
 
-func _panel(pos: Vector2, sz: Vector2) -> PanelContainer:
+# 面板：统一内边距，文字不贴边。with_vbox = false 时只作底与边框（地图面板用）。
+func _panel(pos: Vector2, sz: Vector2, with_vbox := true) -> PanelContainer:
 	var p := PanelContainer.new()
 	p.position = pos
 	p.size = sz
 	p.custom_minimum_size = sz
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = PANEL_FILL
+	sb.border_color = PANEL_LINE
+	sb.set_border_width_all(1)
+	p.add_theme_stylebox_override("panel", sb)
+	var m := MarginContainer.new()
+	m.name = "Margin"
+	m.add_theme_constant_override("margin_left", 5)
+	m.add_theme_constant_override("margin_right", 5)
+	m.add_theme_constant_override("margin_top", 4)
+	m.add_theme_constant_override("margin_bottom", 4)
+	p.add_child(m)
+	if not with_vbox:
+		add_child(p)
+		return p
 	var vb := VBoxContainer.new()
 	vb.name = "VBox"
 	vb.add_theme_constant_override("separation", 2)
-	p.add_child(vb)
+	m.add_child(vb)
 	add_child(p)
 	return p
 
@@ -521,8 +538,11 @@ func hide_board(show_hud: bool = false) -> void:
 # G7-A S3：按当前幕取配色；只改颜色与标题，不新增美术资源。
 func _apply_act_theme() -> void:
 	_act_theme = Palette.act_theme(int(board.act))
-	if _title_label != null:
-		_title_label.text = "棋盘 · %s" % String(_act_theme.get("name", "ACT I"))
+	if _act_label != null:
+		var turn := 0
+		if board.runtime != null:
+			turn = int(board.runtime.turn)
+		_act_label.text = "%s · 回合 %d" % [String(_act_theme.get("name", "ACT I")), turn]
 	if _bg != null:
 		_bg.color = _act_theme.get("bg", Palette.BG_MAIN)
 
@@ -534,70 +554,33 @@ func refresh() -> void:
 	queue_redraw()
 	if board.feedback != "":
 		_selected_id = String(board.current_id)
-	var legal := {}
-	for n in board.legal_targets():
-		legal[String(n["id"])] = true
+	# 镜头跟随角色：位置每帧按当前格重算，出镜头的格子不建热区。
+	_apply_layout()
+	_layout_buttons()
 	for id in _buttons:
 		var b: Button = _buttons[id]
 		b.tooltip_text = _tooltip(board.node_by_id(String(id)))
 	if _art != null:
-		_art.queue_redraw()   # 节点外观 / 道路状态统一由 _draw_art 重画
+		_art.queue_redraw()
 	_piece.position = _piece_pos(String(board.current_id))
 	_piece.visible = true
-	var grid := _is_grid()
-	_advance_btn.visible = grid
-	_advance_btn.text = "⏳ 等待"
-	_advance_btn.disabled = _moving or _stepping
-	# 系统入口只在网格出现；主要探索仍是点击格子，避免误触。
-	if _build_btn != null:
-		_build_btn.visible = grid
-		_build_btn.disabled = _moving or _stepping
-	if _retreat_btn != null:
-		_retreat_btn.visible = grid
-		_retreat_btn.disabled = _moving or _stepping
-	if _dice_label != null:
-		_dice_label.position.x = 162.0 if grid else 140.0
-		_dice_label.size.x = 232.0 if grid else 254.0
-	if grid:
-		if not _pending_node.is_empty():
-			_dice_label.text = "确认后进入战斗"
-		elif _moving:
-			_dice_label.text = "移动中…"
-		else:
-			_dice_label.text = "点击相邻格移动 · ⏳ 等待一回合"
-		_top_right.text = "HP %d/%d · 💰 %d · 已探索 %d/%d" % [
-			controller.player_hp, controller.player_hp_max, controller.gold,
-			board.visited_count(), board.node_count()]
-	elif not _pending_node.is_empty():
-		_advance_btn.disabled = true
-		_advance_btn.text = "待确认"
-		_dice_label.text = "确认后进入战斗"
+	# 操作栏只保留当前可用操作：移动靠点击相邻格，等待是唯一推进回合的按钮。
+	var busy: bool = _moving or _stepping or not _pending_node.is_empty()
+	_wait_btn.disabled = busy
+	if not _pending_node.is_empty():
+		_wait_btn.text = "待确认"
 	elif _moving:
-		_advance_btn.disabled = true
-		_advance_btn.text = "…"
-		_dice_label.text = "移动中…"
-	elif board.current_is_boss():
-		_advance_btn.disabled = true
-		_advance_btn.text = "👑 BOSS"
-		_dice_label.text = "抵达 BOSS 节点"
-	elif board.dice > 0:
-		_advance_btn.disabled = false
-		_advance_btn.text = "▶ 继续"
-		if legal.size() > 1:
-			_dice_label.text = "剩 %d 步 · 分支：点击高亮格（%d 个）" % [board.dice, legal.size()]
-		else:
-			_dice_label.text = "剩 %d 步 · 继续前进" % board.dice
+		_wait_btn.text = "移动中"
 	else:
-		_advance_btn.disabled = not board.can_roll()
-		_advance_btn.text = "🎲 前进"
-		_dice_label.text = "掷 1D3：逐格前进，每格结算"
-	if not grid:
-		_top_right.text = "HP %d/%d · 💰 %d · 已走 %d/%d" % [
-			controller.player_hp, controller.player_hp_max, controller.gold,
-			board.visited_count(), board.route_length()]
+		_wait_btn.text = "等待一回合"
+	_build_btn.disabled = busy
+	_retreat_btn.disabled = busy
+	_info_stats.text = "HP %d/%d · 金币 %d · 探索 %d/%d" % [
+		controller.player_hp, controller.player_hp_max, controller.gold,
+		board.visited_count(), board.node_count()]
 	_refresh_trim_btn()
 	_refresh_info()
-	_refresh_summary()
+	_refresh_patrol_info()
 
 
 # G7-B B3：精简入口状态（ready 可点 / used 本幕已用 / none 隐藏）。
@@ -609,7 +592,7 @@ func _refresh_trim_btn() -> void:
 		st = controller._trim.entry_state()
 	_trim_btn.visible = st != "none"
 	_trim_btn.disabled = st != "ready" or _moving or _stepping or not _pending_node.is_empty()
-	_trim_btn.text = "✂ 精简 1/1" if st == "ready" else "✂ 本幕已用"
+	_trim_btn.text = "精简" if st == "ready" else "精简(已用)"
 
 
 func _on_trim_pressed() -> void:
@@ -618,7 +601,7 @@ func _on_trim_pressed() -> void:
 
 
 # ---------------------------------------------------------------------------
-# 扫雷 Step 3：查看构筑（只读）/ 撤回整备（二次确认）
+# 查看构筑（只读）/ 撤回整备（二次确认）
 # ---------------------------------------------------------------------------
 
 func _on_build_pressed() -> void:
@@ -719,24 +702,14 @@ func _on_retreat_cancel() -> void:
 
 
 # 信息栏标题：点阵字体缺 emoji 字形，这里只用文字，不再拼图标。
+# 目标名称：节点自带标题优先（房间名 / BOSS 名），否则用类型标签。
 func _node_heading(n: Dictionary) -> String:
 	if n.is_empty():
 		return ""
-	if _is_grid() and not board.is_revealed(String(n.get("id", ""))):
-		return "未知格"
 	var t := String(n.get("title", ""))
 	if t != "":
 		return t
-	return NODE.label(String(n.get("type", "")))
-
-
-func _node_tag(id: String, type: String, n: Dictionary = {}) -> String:
-	if type == "boss":
-		var r: RoomData = n.get("room")
-		if r != null and String(r.name) != "":
-			return String(r.name).substr(0, 2)
-		return "王"
-	return String(SHORT.get(type, "•"))
+	return MAP_TYPES.label_of(String(n.get("type", "")))
 
 
 func _node_pos(id: String) -> Vector2:
@@ -747,9 +720,9 @@ func _node_center(id: String) -> Vector2:
 	return _node_pos(id) + Vector2(_node_w * 0.5, NODE_H * 0.5)
 
 
-# 棋子放在节点右上角，避免遮挡节点文字与顶栏。
+# 棋子放在格子左上角：16.6px 格里要留出中央的单字。
 func _piece_pos(id: String) -> Vector2:
-	return _node_pos(id) + Vector2(_node_w - 13, -4)
+	return _node_pos(id) + Vector2(1.0, 1.0)
 
 
 # ---------------------------------------------------------------------------
@@ -761,362 +734,444 @@ func _draw_art() -> void:
 	if board == null:
 		return
 	var font := get_theme_default_font()
-	if _is_grid():
-		_draw_grid_art(font)
-		return
-	# 地图底：比整屏略亮的低对比底 + 16px 石砖网格（只作质感，不参与交互）。
-	# G7-A S3：底色按幕取（ACT1 紫褐 / ACT2 青灰 / ACT3 暗红），不新增美术资源。
 	var map_bg: Color = _act_theme.get("map", Color("#1a1016"))
-	var grid_col: Color = _act_theme.get("grid", Color("#1e1319"))
-	var node_line: Color = _act_theme.get("node", Color("#3a2b31"))
-	_art.draw_rect(Rect2(0, 22, 480, 170), map_bg)
-	for gx in range(0, 481, 16):
-		_art.draw_line(Vector2(gx, 22), Vector2(gx, 192), grid_col, 1)
-	for gy in range(22, 193, 16):
-		_art.draw_line(Vector2(0, gy), Vector2(480, gy), grid_col, 1)
-	for n in board.nodes:
-		var from_id := String(n["id"])
-		for nx in n.get("next", []):
-			_draw_road(_node_center(from_id), _node_center(String(nx)),
-				_road_color(from_id, String(nx)))
-	_art_text(font, Vector2(206, 82), "岔路 A", 8, Palette.MUTED_DIM)
-	_art_text(font, Vector2(250, 44), "尾路 → 四座 BOSS", 8, Palette.MUTED_DIM)
-	_art_text(font, Vector2(6, 44), "金框=可达 · 暗色=已走 · 红=敌人", 7, Palette.MUTED_DIM)
-	for n in board.nodes:
-		var id := String(n["id"])
-		_draw_node(id, _node_pos(id), font)
-
-
-func _road_color(a: String, b: String) -> Color:
-	for n in board.legal_targets():
-		if String(n["id"]) == b:
-			return Palette.ACCENT_GOLD
-	if board.is_consumed(a) and board.is_consumed(b):
-		return ROAD_DONE
-	return ROAD_UNDONE
-
-
-# 直角折线：横 → 竖 → 横，3px 方头，避免斜线在点阵画面上发虚。
-func _draw_road(a: Vector2, b: Vector2, col: Color) -> void:
-	if absf(a.y - b.y) < 0.5:
-		_art.draw_rect(Rect2(a.x, a.y - 1.5, b.x - a.x, 3), col)
-		return
-	var mid := (a.x + b.x) * 0.5
-	_art.draw_rect(Rect2(a.x, a.y - 1.5, mid - a.x, 3), col)
-	_art.draw_rect(Rect2(mid - 1.5, minf(a.y, b.y), 3, absf(b.y - a.y)), col)
-	_art.draw_rect(Rect2(mid, b.y - 1.5, b.x - mid, 3), col)
-
-
-# 扫雷 Step 2 地图层：4×4 网格 + 数字 + 悬停相邻高亮。
-# 未揭示格只显示「?」与数字；数字来自 BoardSystem.number_of（已击败普通怪会移除）。
-func _draw_grid_art(font: Font) -> void:
-	var map_bg: Color = _act_theme.get("map", Color("#1a1016"))
-	var grid_col: Color = _act_theme.get("grid", Color("#1e1319"))
-	_art.draw_rect(Rect2(0, 22, 480, 170), map_bg)
-	for gx in range(0, 481, 16):
-		_art.draw_line(Vector2(gx, 22), Vector2(gx, 192), grid_col, 1)
-	for gy in range(22, 193, 16):
-		_art.draw_line(Vector2(0, gy), Vector2(480, gy), grid_col, 1)
-	# 四方向邻接：右 / 下各画一次，避免重复。
+	_art.draw_rect(MAP_RECT, map_bg)
+	# 相邻：右 / 下各画一次；两端都已探索的画暗色。
 	for n in board.nodes:
 		var a := String(n["id"])
+		if not _pos.has(a):
+			continue
 		for nx in n.get("next", []):
-			if a < String(nx):
-				_art.draw_line(_node_center(a), _node_center(String(nx)), ROAD_UNDONE, 1)
-	# 悬停格的四个相邻格同步高亮（数字范围可读）。
-	if _selected_id != "":
-		var sel: Dictionary = board.node_by_id(_selected_id)
-		for nx in sel.get("next", []):
-			var p := _node_pos(String(nx))
-			_art.draw_rect(Rect2(p - Vector2(3, 3), Vector2(_node_w + 6, NODE_H + 6)),
-				Color(0.84, 0.64, 0.24, 0.22))
-	_art_text(font, Vector2(8, 190), "点击相邻格移动 · ⏳ 等待 · 怪物下一步见右侧", 7, Palette.MUTED_DIM)
+			var b := String(nx)
+			if a >= b or not _pos.has(b):
+				continue
+			var road: Color = ROAD_DONE if (board.is_consumed(a) and board.is_consumed(b)) else ROAD_UNDONE
+			_art.draw_line(_node_center(a), _node_center(b), road, 1)
 	for n in board.nodes:
-		_draw_grid_node(String(n["id"]), _node_pos(String(n["id"])), font)
+		var id := String(n["id"])
+		if _pos.has(id):
+			_draw_grid_node(id, _node_pos(id), font)
+	_draw_trap_marks()
+	_draw_patrols(font)
+	_art_text(font, Vector2(MAP_PANEL.position.x + 7, 39.0), "三区巡逻地图", 12, Palette.TITLE)
+	_art_text(font, Vector2(MAP_PANEL.position.x + 7, 51.0), _map_hint_text, 10, Palette.MUTED)
+	_draw_area_labels(font)
+	_draw_legend(font)
+	# 底部说明条（设计稿底栏）：一局的分工，不做操作入口。用绘制避免 Label 行高撑破视口。
+	_art.draw_string(font, Vector2(FOOT_RECT.position.x, FOOT_RECT.position.y + 9.0),
+		"地图负责诱导 · 转轮负责战斗与成长 · BOSS 主动挑战",
+		HORIZONTAL_ALIGNMENT_CENTER, FOOT_RECT.size.x, 8, Palette.MUTED_DIM)
+
+
+# 三区标注（设计稿 A · 入口区 / B · 交汇区 / C · 深层区），按真实分区列居中。
+func _draw_area_labels(font: Font) -> void:
+	var spans := {"A": [99, -1], "B": [99, -1], "C": [99, -1]}
+	for n in board.nodes:
+		var r := String(n.get("region", ""))
+		if not spans.has(r):
+			continue
+		var col := int(n.get("col", 0))
+		spans[r][0] = mini(int(spans[r][0]), col)
+		spans[r][1] = maxi(int(spans[r][1]), col)
+	var names := {"A": "A · 入口区", "B": "B · 交汇区", "C": "C · 深层区"}
+	for key in ["A", "B", "C"]:
+		var lo: int = int(spans[key][0])
+		var hi: int = int(spans[key][1])
+		if hi < lo:
+			continue
+		var cx: float = MAP_RECT.position.x + (float(lo) + float(hi) + 1.0) * CELL * 0.5
+		var text := String(names[key])
+		var w := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x
+		_art_text(font, Vector2(cx - w * 0.5, AREA_LABEL_Y), text, 10, Palette.MUTED)
+
+
+# 图例条：格内单字的含义，常驻在面板底部。
+func _draw_legend(font: Font) -> void:
+	var text := "普战 · 精战 · 宝箱 · 图藏库 · 商店 · 休整 · 事件 · 王BOSS · X陷阱 · 门通道"
+	_art_text(font, Vector2(MAP_PANEL.position.x + 8, LEGEND_Y), text, 8, Palette.MUTED_DIM)
+
+
+func _is_legal(id: String) -> bool:
+	for t in board.legal_targets():
+		if String(t["id"]) == id:
+			return true
+	return false
+
+
+func _id_at_cell(cell: int) -> String:
+	for n in board.nodes:
+		if int(n.get("cell_id", -1)) == cell:
+			return String(n["id"])
+	return ""
+
+
+# 陷阱标记：统一几何 X（陷阱无独立美术资源），未破甲红、已消耗暗。
+func _draw_trap_marks() -> void:
+	var rt = board.runtime
+	if rt == null:
+		return
+	for n in board.nodes:
+		var id := String(n["id"])
+		if not _pos.has(id):
+			continue
+		var cell: int = int(n.get("cell_id", -1))
+		if not rt.is_trap_cell(cell):
+			continue
+		var used: bool = not (rt.trap_state.get(cell, {}) as Dictionary).is_empty()
+		var col: Color = Palette.MUTED_DIM if used else TRAP_COL
+		var box := Rect2(_node_pos(id), Vector2(_node_w, NODE_H))
+		var pad := 3.0
+		_art.draw_line(box.position + Vector2(pad, pad),
+			box.position + Vector2(_node_w - pad, NODE_H - pad), col, 1.5)
+		_art.draw_line(box.position + Vector2(_node_w - pad, pad),
+			box.position + Vector2(pad, NODE_H - pad), col, 1.5)
+
+
+# 巡逻怪：红框 + 从当前格指向下一格的箭头；右侧「当前局面」同时给出方向文字。
+func _draw_patrols(_font: Font) -> void:
+	var rt = board.runtime
+	if rt == null:
+		return
+	for p in rt.patrol_preview():
+		var id := _id_at_cell(int(p["cell"]))
+		if id == "" or not _pos.has(id):
+			continue
+		var pos := _node_pos(id)
+		var box := Rect2(pos, Vector2(_node_w, NODE_H))
+		_art.draw_rect(box, Color(0.89, 0.36, 0.31, 0.22))
+		_art.draw_rect(box, PATROL_COL, false, 1.5)
+		var nid := _id_at_cell(int(p["next"]))
+		if nid != "" and _pos.has(nid):
+			_draw_arrow(_node_center(id), _node_center(nid), PATROL_COL)
+
+
+# 下一步箭头：16.6px 格放不下独立箭头，画一个指向格心的实心三角。
+func _draw_arrow(a: Vector2, b: Vector2, col: Color) -> void:
+	var d := b - a
+	if d.length() < 1.0:
+		return
+	var dir := d.normalized()
+	var tip := b - dir * (_node_w * 0.5 - 3.0)
+	var base := tip - dir * 4.5
+	var side := dir.orthogonal() * 3.2
+	_art.draw_colored_polygon(PackedVector2Array([tip, base + side, base - side]), col)
 
 
 func _draw_grid_node(id: String, pos: Vector2, font: Font) -> void:
 	var n: Dictionary = board.node_by_id(id)
 	if n.is_empty():
 		return
-	var type := String(n.get("type", "normal"))
+	var type := String(n.get("type", "battle"))
+	var terrain := String(n.get("terrain", ""))
 	var consumed: bool = board.is_consumed(id)
 	var is_cur: bool = id == String(board.current_id)
-	var revealed: bool = board.is_revealed(id)
-	var is_adj := false
-	for t in board.legal_targets():
-		if String(t["id"]) == id:
-			is_adj = true
+	var is_adj := _is_legal(id)
 	var hovered := id == _selected_id and not is_cur
 	var box := Rect2(pos, Vector2(_node_w, NODE_H))
 	var c := pos + Vector2(_node_w * 0.5, NODE_H * 0.5)
+	var is_path := type == MAP_TYPES.PATH
+	var is_door := terrain == "door"
 
-	_art.draw_rect(box, NODE_BG_DONE if consumed else NODE_BG)
+	# 格底：通路/门更暗，有内容的格略亮，让地图形状一眼可读。
+	var fill := NODE_BG
+	if is_path or is_door:
+		fill = PATH_BG
+	if consumed:
+		fill = NODE_BG_DONE
+	_art.draw_rect(box, fill)
 	if is_cur:
-		_art.draw_rect(box, Palette.FRAME_MAIN, false, 2.0)
-		_art.draw_rect(Rect2(pos.x, pos.y + NODE_H - 3, _node_w, 3), Palette.ACCENT_GOLD)
+		_art.draw_rect(box, Palette.FRAME_MAIN, false, 1.5)
 	elif is_adj:
-		_art.draw_rect(box, Palette.ACCENT_GOLD, false, 1.5)
+		_art.draw_rect(box, Palette.ACCENT_GOLD, false, 1.0)
 	elif hovered:
 		_art.draw_rect(box, Palette.MUTED, false, 1.0)
-	elif type == "boss" and revealed:
+	elif type == "boss":
 		_art.draw_rect(box, Palette.ACCENT_GOLD, false, 1.0)
-		_art.draw_rect(Rect2(pos.x + 2, pos.y + 2, _node_w - 4, NODE_H - 4), Color("#8c6a24"), false, 1.0)
 	else:
 		_art.draw_rect(box, _act_theme.get("node", Color("#3a2b31")), false, 1.0)
 
-	if revealed:
-		_draw_icon(type, c + Vector2(-4, -4), consumed)
-		var tag := _node_tag(id, type, n)
-		var tw := font.get_string_size(tag, HORIZONTAL_ALIGNMENT_LEFT, -1, 7).x
-		_art_text(font, Vector2(c.x - 4 - tw * 0.5, pos.y + NODE_H - 1), tag, 7,
-			Palette.MUTED_DIM if consumed else Palette.TITLE)
-	else:
-		var q := "?"
-		var qw := font.get_string_size(q, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x
-		_art_text(font, Vector2(c.x - qw * 0.5, c.y + 4), q, 10, Palette.MUTED_DIM)
-
-	# 威胁数字：固定在右上角，0 弱色 / 1–2 金 / 3–4 红；已击败的普通怪已从计数移除。
-	var num := int(board.number_of(id))
-	var ncol := Palette.MUTED_DIM
-	if num >= 3:
-		ncol = Palette.ENEMY
-	elif num >= 1:
-		ncol = Palette.ACCENT_GOLD
-	var num_text := str(num)
-	var nw := font.get_string_size(num_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
-	_art.draw_rect(Rect2(pos.x + _node_w - 11, pos.y + 1, 10, 10), Color(0.06, 0.04, 0.06, 0.85))
-	_art_text(font, Vector2(pos.x + _node_w - 9 - nw * 0.5, pos.y + 9), num_text, 8, ncol)
-
-
-func _draw_node(id: String, pos: Vector2, font: Font) -> void:
-	var n: Dictionary = board.node_by_id(id)
-	if n.is_empty():
+	# 单字：16.6px 格只放得下一个汉字，图标让位给可读性（设计稿口径）。
+	var tag := "门" if is_door else String(SHORT.get(type, ""))
+	if tag == "":
 		return
-	var type := String(n.get("type", "normal"))
-	var consumed: bool = board.is_consumed(id)
-	var is_cur: bool = id == String(board.current_id)
-	var is_legal := false
-	for t in board.legal_targets():
-		if String(t["id"]) == id:
-			is_legal = true
-	var hovered := id == _selected_id and not is_cur and not is_legal
-	var box := Rect2(pos, Vector2(_node_w, NODE_H))
-	var c := pos + Vector2(_node_w * 0.5, NODE_H * 0.5)
-
-	_art.draw_rect(box, NODE_BG_DONE if consumed else NODE_BG)
-	if is_cur:
-		_art.draw_rect(box, Palette.FRAME_MAIN, false, 2.0)
-		_art.draw_rect(Rect2(pos.x, pos.y + NODE_H - 3, _node_w, 3), Palette.ACCENT_GOLD)
-	elif is_legal:
-		_art.draw_rect(box, Palette.ACCENT_GOLD, false, 2.0)
-		_art.draw_circle(c + Vector2(_node_w * 0.5 - 4, -10), 2.0, Palette.ACCENT_GOLD)
-	elif hovered:
-		_art.draw_rect(box, Palette.MUTED, false, 1.0)
-	elif String(type) == "boss":
-		# 祭坛双层金框，和普通节点区分
-		_art.draw_rect(box, Palette.ACCENT_GOLD, false, 1.0)
-		_art.draw_rect(Rect2(pos.x + 2, pos.y + 2, _node_w - 4, NODE_H - 4), Color("#8c6a24"), false, 1.0)
+	var col: Color = Palette.MUTED_DIM
+	if type == "boss":
+		col = Palette.ACCENT_GOLD
+	elif MAP_TYPES.is_battle(type):
+		col = Palette.ENEMY
+	elif consumed:
+		col = Palette.MUTED_DIM
 	else:
-		_art.draw_rect(box, _act_theme.get("node", Color("#3a2b31")), false, 1.0)
-
-	_draw_icon(type, c + Vector2(0, -4), consumed)
-	var tag := _node_tag(id, type, n)
-	var tw := font.get_string_size(tag, HORIZONTAL_ALIGNMENT_LEFT, -1, 7).x
-	_art_text(font, Vector2(c.x - tw * 0.5, pos.y + NODE_H - 1), tag, 7,
-		Palette.MUTED_DIM if consumed else Palette.TITLE)
-
-
-func _draw_icon(type: String, c: Vector2, consumed: bool) -> void:
-	var tex: Texture2D = ICON.get(type)
-	if tex == null:
-		return
-	_art.draw_texture_rect(tex, Rect2(c - Vector2(8, 8), Vector2(16, 16)), false,
-		Color(1, 1, 1, 0.45) if consumed else Color.WHITE)
+		col = Palette.TITLE
+	var w := font.get_string_size(tag, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x
+	_art_text(font, Vector2(c.x - w * 0.5, c.y + 3.5), tag, 10, col)
 
 
 func _art_text(font: Font, pos: Vector2, text: String, size: int, col: Color) -> void:
 	_art.draw_string(font, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, col)
 
 
+# 节点说明：通路 / 起点只写地形，内容节点写「类别 + 真实结算结果 + 陷阱影响」。
 func _tooltip(n: Dictionary) -> String:
 	if n.is_empty():
 		return ""
-	if _is_grid():
-		return _grid_tooltip(n)
-	var status := _node_status(n)
-	var impact := _equip_impact(n)
-	return "%s\n%s\n%s%s%s" % [NODE.display_title(n), NODE.display_desc(n),
-		NODE.hint(String(n["type"])), impact, "\n" + status if status != "" else ""]
-
-
-# 扫雷网格 tooltip：数字始终公开；未揭示的格不泄露敌人 / 奖励身份。
-func _grid_tooltip(n: Dictionary) -> String:
-	var id := String(n.get("id", ""))
-	var num := int(board.number_of(id))
 	var lines: Array[String] = []
-	if board.is_revealed(id):
-		lines.append(NODE.display_title(n))
-		lines.append(NODE.display_desc(n))
-	else:
-		lines.append("未知格")
-		lines.append("进入后揭示具体内容")
-	lines.append("数字 %d：上下左右有 %d 个普通敌人" % [num, num])
-	if num > 0:
-		lines.append("悬停时高亮四个相邻格")
+	var type := String(n.get("type", ""))
+	if type == MAP_TYPES.PATH:
+		return "通路"
+	if type == MAP_TYPES.START:
+		return "本幕起点"
+	lines.append(_node_heading(n))
+	lines.append(MAP_TYPES.label_of(type))
+	var grant := _grant_text(String(n.get("id", "")))
+	if grant != "":
+		lines.append(grant)
+	var trap := _trap_text(int(n.get("cell_id", -1)))
+	if trap != "":
+		lines.append(trap)
 	var status := _node_status(n)
 	if status != "":
 		lines.append(status)
 	return "\n".join(lines)
 
 
-# G4-03：武器格公开「替换影响」——与当前已带武器逐把比较攻击 / 命中（含熟练与铸式修正）。
-# 只读计算，不改变任何状态；护符是效果型，不在节点层伪造量化差异。
-func _equip_impact(n: Dictionary) -> String:
-	if String(n.get("type", "")) != "weapon":
+# 结算预告：写出具体数值或具体结果（§4.2 第 3 项），不出现资源路径与抽象数字。
+func _grant_text(id: String) -> String:
+	var rt = board.runtime
+	if rt == null:
 		return ""
-	var path := String(n.get("item_path", ""))
-	if path == "" or controller == null:
+	var cell := _cell_of(id)
+	if cell < 0:
 		return ""
-	var wd: WeaponData = load(path)
-	if wd == null:
+	var g: Dictionary = rt.grant_preview(cell)
+	if g.is_empty():
 		return ""
 	var lines: Array[String] = []
+	var text := _grant_line(g)
+	if text != "":
+		lines.append(text)
+	lines.append_array(_equip_lines(g))
+	var out := "\n".join(lines)
+	if out == "":
+		return ""
+	if bool(g.get("consumed", false)):
+		out += "（已领取）"
+	return out
+
+
+# G4-03：装备格公开「替换影响」——与当前武器逐把比较攻击 / 命中（含熟练与铸式修正）。
+# 只读计算，不改变任何状态。
+func _equip_lines(g: Dictionary) -> Array[String]:
+	var paths: Array = []
+	var mode := String(g.get("mode", ""))
+	if mode == "item" and String(g.get("category", "")) == "weapon":
+		paths.append(String(g.get("path", "")))
+	elif mode == "choose_one":
+		paths = (g.get("options", []) as Array).duplicate()
+	var out: Array[String] = []
+	for p in paths:
+		if String(p) != "":
+			out.append(_equip_line(String(p)))
+	return out
+
+
+func _equip_line(path: String) -> String:
+	if controller == null:
+		return _item_name(path, "weapon")
+	var wd: WeaponData = load(path)
+	if wd == null:
+		return _item_name(path, "weapon")
+	var line := _item_name(path, "weapon")
 	for old in controller.selected_loadout:
 		var op := String(old)
 		if op == path:
 			continue
-		var owd: WeaponData = load(op)
-		var oname: String = String(owd.weapon_name) if owd != null else op.get_file().get_basename()
 		var dmg: int = int(controller.weapon_power(path)) - int(controller.weapon_power(op))
 		var hit: int = int(round((float(controller.weapon_hit(path)) - float(controller.weapon_hit(op))) * 100.0))
-		lines.append("替换 %s：攻%s / 命中%s%%" % [oname,
-			("+" if dmg >= 0 else "") + str(dmg), ("+" if hit >= 0 else "") + str(hit)])
-	if lines.is_empty():
+		line += " · 替换%s 攻%s 命%s%%" % [_item_name(op, "weapon"),
+			("+" if dmg >= 0 else "") + str(dmg), ("+" if hit >= 0 else "") + str(hit)]
+		break
+	return line
+
+
+func _grant_line(g: Dictionary) -> String:
+	var mode := String(g.get("mode", ""))
+	if mode == "gold":
+		return "金币 +%d" % int(g.get("amount", 0))
+	if mode == "item":
+		return "获得%s %s" % [_cat_label(String(g.get("category", ""))),
+			_item_name(String(g.get("path", "")), "weapon")]
+	if mode == "active":
+		return "获得消耗品 %s" % _item_name(String(g.get("path", "")), "consumable")
+	if mode == "choose_one":
+		return "武器 %d 选 1（放弃 +%d 金）" % [
+			(g.get("options", []) as Array).size(), int(g.get("fallback_gold", 0))]
+	if mode == "purchase":
+		return "在售 %d 件 · 需付费购买" % (g.get("stock", []) as Array).size()
+	if mode == "heal":
+		return "恢复最大 HP %d%%" % int(round(float(g.get("pct", 0.0)) * 100.0))
+	if mode == "shrine":
+		return String(g.get("text", "神龛"))
+	if mode == "battle":
+		var room = g.get("room")
+		return "战斗：%s" % ("未知房间" if room == null else String(room.name))
+	return String(g.get("text", ""))
+
+
+# 长名称截断：信息栏 132 宽放不下完整武器名，只保留可辨识的前若干字。
+func _item_name(path: String, kind: String) -> String:
+	if path == "" or controller == null:
+		return "（空）"
+	var n := String(controller._shop_name(path, kind))
+	return n.substr(0, 10) if n.length() > 10 else n
+
+
+func _cat_label(cat: String) -> String:
+	return String({"weapon": "武器", "charm": "护符", "active": "消耗品"}.get(cat, ""))
+
+
+# 陷阱对该格下一场战斗的真实影响（护甲 X → 0）。
+func _trap_text(cell: int) -> String:
+	var rt = board.runtime
+	if rt == null or cell < 0:
 		return ""
-	return "\n" + "\n".join(lines)
+	if not rt.is_trap_cell(cell):
+		return ""
+	for t in rt.trap_preview():
+		if int(t.get("cell", -1)) == cell and bool(t.get("armed", false)):
+			return String(t.get("text", ""))
+		if int(t.get("next", -1)) == cell and String(t.get("hint", "")) != "":
+			return String(t["hint"])
+	return "破甲陷阱：怪物踩到后护甲归零"
+
+
+func _cell_of(id: String) -> int:
+	var n: Dictionary = board.node_by_id(id)
+	return int(n.get("cell_id", -1))
 
 
 func _node_status(n: Dictionary) -> String:
 	if n.is_empty():
 		return ""
 	var id := String(n["id"])
-	if _is_grid():
-		if id == String(board.current_id):
-			return "当前位置"
-		if board.is_consumed(id):
-			return "已探索（可再次经过）"
-		for t in board.legal_targets():
-			if String(t["id"]) == id:
-				return "可探索（相邻）"
-		return "不相邻 · 点击查看线索"
 	if id == String(board.current_id):
 		return "当前位置"
 	if board.is_consumed(id):
-		return "已探索"
-	for t in board.legal_targets():
-		if String(t["id"]) == id:
-			return "可到达（高亮落点）"
-	var d: int = int(n["depth"]) - board.current_depth()
-	if d > 0:
-		return "前方 %d 格" % d
-	return ""
+		return "已探索（可再次经过）"
+	if _is_legal(id):
+		return "相邻 · 可移动"
+	return "不相邻"
 
 
+# §4.2：目标名称与类别 + 真实结算结果 + 陷阱影响 + 当前可执行操作。
 func _refresh_info() -> void:
 	var n: Dictionary = board.node_by_id(_selected_id)
 	if n.is_empty():
 		n = board.current_node()
-	if _is_grid():
-		var gid := String(n.get("id", ""))
-		_node_title.text = _node_heading(n)
-		var num := int(board.number_of(gid))
-		var text := "数字 %d：上下左右有 %d 个普通敌人" % [num, num]
-		if board.is_revealed(gid):
-			text += "\n" + NODE.display_desc(n)
-		else:
-			text += "\n进入后揭示具体内容"
-		if board.feedback != "" and gid == String(board.current_id):
-			text = board.feedback
-		var gstatus := _node_status(n)
-		if gstatus != "":
-			text += "\n%s" % gstatus
-		_node_desc.text = text
-		return
-	_node_title.text = _node_heading(n)
+	var id := String(n.get("id", ""))
+	var type := String(n.get("type", ""))
+	# 面板副标题：默认操作说明；悬停 / 选中其它格时改写成该格的真实结果。
+	var parts: Array[String] = []
+	var is_cur := id == String(board.current_id)
+	if is_cur:
+		# 站在该格时不重复报格名，直接给结算反馈或操作说明。
+		if board.feedback != "":
+			parts.append(board.feedback)
+	elif type == MAP_TYPES.PATH:
+		parts.append("通路")
+		var ptrap := _trap_text(int(n.get("cell_id", -1)))
+		if ptrap != "":
+			parts.append(ptrap)
+	elif type == MAP_TYPES.START:
+		parts.append("本幕起点")
+	else:
+		parts.append(_node_heading(n))
+		var grant := _grant_text(id)
+		if grant != "":
+			parts.append(grant)
+		var trap := _trap_text(int(n.get("cell_id", -1)))
+		if trap != "":
+			parts.append(trap)
+	if is_cur and board.feedback != "":
+		parts.append(board.feedback)
 	var status := _node_status(n)
-	var text := NODE.display_desc(n)
-	if board.feedback != "" and String(n.get("id", "")) == String(board.current_id):
-		text = board.feedback
-	if status != "":
-		text += "\n%s" % status
-	_node_desc.text = text
+	if status != "" and not is_cur:
+		parts.append(status)
+	if parts.size() <= 1:
+		parts.append("点击相邻格移动，或选择等待 · 每次操作推进一回合")
+	_map_hint_text = " · ".join(parts)
+	if _art != null:
+		_art.queue_redraw()
 
 
-func _refresh_summary() -> void:
-	var names: Array[String] = []
-	for p in controller.selected_loadout:
-		names.append(controller._shop_name(String(p), "weapon"))
-	var growth: String = controller.growth.progress_short()
-	if controller.growth.perk_ids.size() > 0:
-		growth += " · 艺%d" % controller.growth.perk_ids.size()
-	var imp: int = controller.mastery.imprint_total()
-	if imp > 0:
-		growth += " · 铭%d" % imp
-	_summary.text = "武器：%s\n成长：%s\n护符：%d/%d" % [
-		" / ".join(names) if not names.is_empty() else "无",
-		growth,
-		controller.selected_charms.size(), controller._loadout_system.cat_max("passive")]
+# §4.2 第 2/3 项：怪物当前格与下一格（箭头＋文字，不只靠颜色）+ 陷阱真实影响。
+# 下一步方向词：cell 编号是内部标识，玩家只需要「往哪走」。
+func _dir_word(a_cell: int, b_cell: int) -> String:
+	var a := _node_rc(a_cell)
+	var b := _node_rc(b_cell)
+	if b.y < a.y:
+		return "上"
+	if b.y > a.y:
+		return "下"
+	if b.x < a.x:
+		return "左"
+	if b.x > a.x:
+		return "右"
+	return "原地"
+
+
+func _node_rc(cell: int) -> Vector2i:
+	var n: Dictionary = board.node_by_id(_id_at_cell(cell))
+	return Vector2i(int(n.get("col", -1)), int(n.get("row", -1)))
+
+
+func _refresh_patrol_info() -> void:
+	var rt = board.runtime
+	if rt == null or not rt.patrol_enabled:
+		_card_desc_1.text = "本区无巡逻怪"
+		_card_desc_3.text = "本图没有公开陷阱"
+		_card_desc_4.text = "进战斗后按护甲原值结算"
+		return
+	var rows: Array[String] = []
+	var trap_line := ""
+	var battle_line := ""
+	for t in rt.trap_preview():
+		# 只显示地图上看得见的怪物：远处怪物对当前决策无意义。
+		if not _pos.has(_id_at_cell(int(t.get("cell", -1)))) \
+				and not _pos.has(_id_at_cell(int(t.get("next", -1)))):
+			continue
+		if rows.size() >= 1:
+			break
+		var dirw := _dir_word(int(t.get("cell", -1)), int(t.get("next", -1)))
+		if bool(t.get("armed", false)):
+			rows.append("预告：已破甲，与实际一致")
+			trap_line = String(t.get("text", ""))
+			battle_line = "下一战护甲 %d → %d" % [int(t.get("armor", 0)), int(t.get("armor_after", 0))]
+		elif bool(t.get("next_is_trap", false)):
+			rows.append("预告：向%s进入陷阱" % dirw)
+			trap_line = String(t.get("hint", ""))
+			battle_line = "踩中后下一战护甲归零"
+		else:
+			rows.append("预告：向%s移动" % dirw)
+	# 卡片 ① 的说明随状态改写：等待是唯一推进回合的操作。
+	_card_desc_1.text = rows[0] if not rows.is_empty() else "本图没有巡逻怪"
+	_card_desc_3.text = trap_line if trap_line != "" else "触发公开破甲陷阱（护甲归零）"
+	_card_desc_4.text = battle_line if battle_line != "" else "敌方护甲降低，仍靠 Build 击败"
 
 
 # ---------------------------------------------------------------------------
-# 输入：掷骰 / 继续 / 悬停 / 选择落点
+# 输入：等待 / 悬停 / 点击相邻格
 # ---------------------------------------------------------------------------
 
-func _on_advance() -> void:
-	if _is_grid():
-		# 14×9：此按钮即「等待一回合」，怪物按预告行动一次（§2.2）。
-		if board == null or _moving or _stepping or not _pending_node.is_empty():
-			return
-		var waited: Dictionary = board.wait_here()
-		if not waited.is_empty():
-			_pending_node = waited
-			_confirm_layer.visible = true
-		refresh()
-		return
+# 底栏「等待一回合」：原地不动，怪物按预告行动一次，地图推进一个回合（§2.2）。
+func _on_wait() -> void:
 	if board == null or _moving or _stepping or not _pending_node.is_empty():
 		return
-	if board.current_is_boss():
-		return
-	if board.dice == 0:
-		var r: int = board.roll_dice()
-		if r <= 0:
-			return
-		refresh()
-	await _step_once()
-
-
-# 走一格：唯一去路自动前进；分支处只高亮，等玩家点击。
-func _step_once() -> void:
-	if _is_grid():
-		return
-	if board == null or _moving or _stepping or not _pending_node.is_empty():
-		return
-	_stepping = true
-	var legal: Array = board.legal_targets()
-	if legal.is_empty():
-		_stepping = false
-		refresh()
-		return
-	if legal.size() > 1:
-		_stepping = false
-		refresh()
-		return
-	await get_tree().create_timer(STEP_SEC).timeout
-	_stepping = false
-	if not visible or board == null or _moving:
-		return
-	_advance_to(String(legal[0]["id"]))
+	var waited: Dictionary = board.wait_here()
+	if not waited.is_empty():
+		_pending_node = waited
+		_confirm_layer.visible = true
+	refresh()
 
 
 func _on_node_hover(id: String) -> void:
@@ -1137,32 +1192,23 @@ func _on_node_pressed(id: String) -> void:
 		_art.queue_redraw()   # 悬停描边
 	if _moving or _stepping or not _pending_node.is_empty():
 		return
-	if _is_grid():
-		# 只允许进入四方向相邻格；已消耗格可再次经过（BoardSystem 只移动、不重复结算）。
-		if id == String(board.current_id):
-			return
-		for n in board.legal_targets():
-			if String(n["id"]) == id:
-				var target: Dictionary = board.node_by_id(id)
-				var ty := String(target.get("type", ""))
-				# 精英 / BOSS 先打开确认层：不移动、不消耗、不改数字；
-				# 玩家可以「继续探索 / 返回探索」，误点不会强制开战。
-				if (ty == "elite" or ty == "boss") and not board.is_defeated(id):
-					_show_battle_confirm(target)
-					return
-				if controller._journal != null:
-					controller._journal.note_first_pick(id)
-				_advance_to(id)
-				return
-		return
-	if board.dice <= 0:
+	# 只允许进入四方向相邻格；已消耗格可再次经过（BoardSystem 只移动、不重复结算）。
+	if id == String(board.current_id):
 		return
 	for n in board.legal_targets():
-		if String(n["id"]) == id:
-			if controller._journal != null:
-				controller._journal.note_first_pick(id)   # G5 工具：首次手动落点用时
-			_advance_to(id)
+		if String(n["id"]) != id:
+			continue
+		var target: Dictionary = board.node_by_id(id)
+		var ty := String(target.get("type", ""))
+		# 精英 / BOSS 先打开确认层：不移动、不消耗、不改数字；
+		# 玩家可以「继续探索 / 返回探索」，误点不会强制开战。
+		if (ty == "elite" or ty == "boss") and not board.is_defeated(id):
+			_show_battle_confirm(target)
 			return
+		if controller._journal != null:
+			controller._journal.note_first_pick(id)
+		_advance_to(id)
+		return
 
 
 func _advance_to(id: String, start_battle := false) -> void:
@@ -1191,7 +1237,7 @@ func _advance_to(id: String, start_battle := false) -> void:
 	# 普通怪先弹确认；网格精英 / BOSS 在确认层点「挑战」后以 start_battle=true 直接开战。
 	if start_battle:
 		controller._on_board_node_entered(node)
-	elif String(node.get("type", "")) in ["normal", "elite", "boss"]:
+	elif String(node.get("type", "")) in ["battle", "elite", "boss"]:
 		_show_battle_confirm(node)
 	else:
 		controller._on_board_node_entered(node)
@@ -1203,8 +1249,8 @@ func _show_battle_confirm(node: Dictionary) -> void:
 		return
 	_pending_node = node
 	_selected_id = String(node.get("id", ""))
-	var kind := String(node.get("type", "normal"))
-	_confirm_title.text = {"normal": "遭遇战", "elite": "精英战", "boss": "BOSS 战"}.get(kind, "战斗")
+	var kind := String(node.get("type", "battle"))
+	_confirm_title.text = {"battle": "遭遇战", "elite": "精英战", "boss": "BOSS 战"}.get(kind, "战斗")
 	var r: RoomData = node.get("room")
 	_confirm_enemy.text = r.name if r != null else "未知敌人"
 	var bits: Array[String] = []
@@ -1219,34 +1265,31 @@ func _show_battle_confirm(node: Dictionary) -> void:
 			# 普通怪早期特性也走 mechanic_summary：确认层直接读出「它是什么」。
 			var mech := String(r.mechanic_summary)
 			bits.append(mech if mech != "" else "特殊机制")
-		if _is_grid() and kind == "boss":
+		if kind == "boss":
 			# 真实机制预览：BOSS 弱点 + 当前武器元素，不显示伪造胜率或装备门槛。
 			bits.append(_weakness_line(String(r.element)))
 			var elems := _player_weapon_elements()
 			if not elems.is_empty():
 				bits.append("你的武器元素：%s" % "、".join(elems))
-	if _is_grid() and kind == "elite":
+	if kind == "elite":
 		# 既有精英规则：金币囤 + 铁砧点固定，另 1 项高品质奖励来自武器 / 消耗品 / 生命回复。
 		bits.append("战利品：金币囤 + 铁砧点 + 1 项高品质奖励")
 		bits.append("高品质候选：武器 / 消耗品 / 生命回复")
 		var targets := _adjacent_target_names(String(node.get("id", "")))
 		if not targets.is_empty():
 			bits.append("邻近目标：" + "、".join(targets))
-	if not _is_grid() and board != null and board.dice > 0:
-		bits.append("战后剩余 %d 步" % board.dice)
 	_confirm_stats.text = "\n".join(bits)
 	if kind == "boss":
 		_confirm_btn.text = "挑战 BOSS"
-	elif kind == "elite" and _is_grid():
+	elif kind == "elite":
 		_confirm_btn.text = "挑战精英"
 	else:
 		_confirm_btn.text = "进入战斗"
 	var alt := ""
-	if _is_grid():
-		if kind == "boss":
-			alt = "继续探索"
-		elif kind == "elite":
-			alt = "返回探索"
+	if kind == "boss":
+		alt = "继续探索"
+	elif kind == "elite":
+		alt = "返回探索"
 	_confirm_alt_btn.visible = alt != ""
 	_confirm_alt_btn.text = alt
 	_confirm_layer.visible = true
@@ -1260,7 +1303,7 @@ func _on_confirm_battle() -> void:
 	_pending_node = {}
 	_confirm_layer.visible = false
 	# 网格精英 / BOSS 预确认时玩家还没进入该格：先移动并消耗，再直接开战。
-	if _is_grid() and String(board.current_id) != String(node.get("id", "")):
+	if String(board.current_id) != String(node.get("id", "")):
 		_advance_to(String(node.get("id", "")), true)
 		return
 	controller._on_board_node_entered(node)
