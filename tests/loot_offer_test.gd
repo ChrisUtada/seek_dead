@@ -9,7 +9,7 @@ extends Node
 # ② 每项都有真实可结算效果：物品授予 / 重复转金币 / 同层转化（金币或伤害）；
 # ③ 同层不足时用同层转化补齐，不跨品质；空主题池也有 3 项合法出口；
 # ④ 重复装备、满腰带、满护符槽 → 展示为同层金币转化；
-# ⑤ 重抽沿用品质层；跳过收益在 build 时冻结，重抽不变；
+# ⑤ 重抽沿用品质层并递增收费；跳过固定免费且零收益；
 # ⑥ 生成与重抽不消耗全局/地图 RNG。
 # ============================================================================
 
@@ -267,18 +267,21 @@ func _test_empty_theme(duel: DuelController) -> void:
 	_check(all_conv, "空主题池全部为同层转化")
 
 
-# ⑤ 重抽沿用品质；跳过收益冻结
+# ⑤ 重抽沿用品质，并按 5/10/15…收费；跳过保持免费
 func _test_reroll_keeps_quality(duel: DuelController) -> void:
 	seed(43005)
 	duel._reset_run_state()
+	duel.gold = 10000
 	var res: Dictionary = duel._reward_system.build_loot_offer("elite", 2, {}, "rare")
 	var q := String(res["quality"])
 	var skip0: Dictionary = res["skip"]
 	var first := _item_paths(res["options"])
 	var changed := false
 	var bad_q := 0
+	var spent := 0
 	for i in REROLLS:
 		var r: Dictionary = duel._reward_system.reroll_loot_offer()
+		spent += 5 * (i + 1)
 		if String(r["quality"]) != q:
 			bad_q += 1
 		for o in r["options"]:
@@ -288,21 +291,28 @@ func _test_reroll_keeps_quality(duel: DuelController) -> void:
 			changed = true
 	_check(bad_q == 0, "重抽不改变品质层（越层 %d）" % bad_q)
 	_check(changed, "重抽能换出不同候选")
-	_check(duel._reward_system.loot_offer_skip() == skip0, "重抽不改变冻结的跳过收益")
+	_check(duel._reward_system.loot_offer_skip() == skip0, "重抽不改变免费跳过")
+	_check(duel.gold == 10000 - spent, "30 次重抽按递增价格累计扣费 %d" % spent)
+	_check(int(duel._reward_system.loot_offer_view().get("reroll_cost", 0)) == 5 * (REROLLS + 1),
+		"按钮数据展示下一次递增费用（实际 %d / 预期 %d）" % [int(duel._reward_system.loot_offer_view().get("reroll_cost", 0)), 5 * (REROLLS + 1)])
+	duel.gold = 0
+	var denied: Dictionary = duel._reward_system.reroll_loot_offer()
+	_check(not bool(denied.get("ok", true)) and String(denied.get("reason", "")) == "insufficient_gold"
+		and duel.gold == 0, "金币不足时拒绝重抽且不扣费")
 
 
-# ⑥ 跳过收益 = 同层固定金币
+# ⑥ 跳过免费且不发奖励
 func _test_skip_frozen(duel: DuelController) -> void:
 	seed(43006)
 	duel._reset_run_state()
 	for q in LootSourceTable.QUALITIES:
 		var res: Dictionary = duel._reward_system.build_loot_offer("normal", 1, {}, q)
 		var skip: Dictionary = res["skip"]
-		var exp := int(DuelController.BALANCE.loot_skip_gold.get(q, 0))
-		_check(String(skip.get("kind", "")) == "conversion" and int(skip.get("gold", -1)) == exp,
-			"跳过收益冻结为 %s 同层金币 +%d（实测 %d）" % [q, exp, int(skip.get("gold", -1))])
+		_check(String(skip.get("kind", "")) == "skip" and int(skip.get("gold", -1)) == 0
+			and int(skip.get("power", -1)) == 0,
+			"%s 跳过为免费且收益为0" % q)
 		_check(String(skip.get("title", "")) != "" and String(skip.get("desc", "")) != "",
-			"跳过收益有展示文案")
+			"免费跳过有展示文案")
 
 
 # ⑦ 图鉴已解锁 ≠ 本局重复：未装备的已解锁武器仍是正常物品候选
@@ -324,6 +334,7 @@ func _test_owned_not_filtered(duel: DuelController) -> void:
 func _test_freeze_snapshot(duel: DuelController) -> void:
 	seed(43008)
 	duel._reset_run_state()
+	duel.gold = 5
 	var res: Dictionary = duel._reward_system.build_loot_offer("normal", 1, {}, "common")
 	var snap: Array = (res["options"] as Array).duplicate(true)
 	var skip_snap: Dictionary = (res["skip"] as Dictionary).duplicate(true)

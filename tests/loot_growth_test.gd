@@ -7,7 +7,7 @@ extends Node
 # 覆盖（docs/四级品质战利品与大奖池_分步执行计划_2026-11-12.md Step 6）：
 # ① 本局已装备武器的重复候选 → 同层熟练转化（不是金币），展示值 = 结算值；
 # ② 重复转化只执行一次：重复结算 / 重抽 / 回访不会二次加熟练或二次发奖；
-# ③ 成长队列（欠铭印 / 待选技艺）不因重抽丢失或重复；只有真实跨 R 门槛才欠一次铭印；
+# ③ 已选成长只生效一次；未选铭印与待选技艺在结算后清空，重抽不重复发放；
 # ④ 重复护符 / 满腰带 → 既有金币转化；普通授予只发一次；
 # ⑤ 图鉴记录实际获得与来源：owned_* + item_sources 带 loot_source，来源文案一致；
 # ⑥ 最高熟练写入图鉴；已收藏物品仍可作为本局候选。
@@ -140,14 +140,12 @@ func _test_settle_once(duel: DuelController) -> void:
 		"结算重复武器 → 熟练 +%d" % want)
 	_check(int(duel.mastery.mastery.get(FLAME_STAFF, 0)) == points0 + want,
 		"熟练累计 = 展示值（%d → %d）" % [points0, int(duel.mastery.mastery.get(FLAME_STAFF, 0))])
-	_check(duel.mastery.owed.size() == owed0 + 1,
-		"跨 R2 门槛只欠一次铭印（%d → %d）" % [owed0, duel.mastery.owed.size()])
+	_check(duel.mastery.owed.is_empty(), "跨 R2 后未选铭印随结算清空（%d → 0）" % owed0)
 	var again: Dictionary = duel._reward_system.settle_loot_offer(idx)
 	_check(not bool(again.get("ok", true)) and String(again.get("reason", "")) == "already_settled",
 		"重复结算返回 already_settled")
 	_check(int(duel.mastery.mastery.get(FLAME_STAFF, 0)) == points0 + want
-		and duel.mastery.owed.size() == owed0 + 1,
-		"重复结算不二次加熟练 / 不重复欠铭印")
+		and duel.mastery.owed.is_empty(), "重复结算不二次加熟练 / 不重复欠铭印")
 	duel.selected_loadout.clear()
 
 
@@ -158,6 +156,7 @@ func _test_settle_once(duel: DuelController) -> void:
 func _test_reroll_no_growth(duel: DuelController) -> void:
 	seed(46003)
 	duel._reset_run_state()
+	duel.gold = 10000
 	duel.selected_loadout.clear()
 	duel.selected_loadout.assign([FLAME_STAFF])
 	var points0: int = int(duel.mastery.mastery.get(FLAME_STAFF, 0))
@@ -212,10 +211,11 @@ func _test_conversion_and_skip_once(duel: DuelController) -> void:
 	var res3: Dictionary = duel._reward_system.build_loot_offer("boss", 1,
 		{"theme": [FLAME_STAFF], "categories": ["weapon"]}, "epic")
 	var gold1: int = duel.gold
-	var want_skip := int(DuelController.BALANCE.loot_skip_gold.get("epic", 0))
+	var power1: int = int(duel._reward_system.run_power_bonus)
 	var sk: Dictionary = duel._reward_system.settle_loot_skip()
-	_check(bool(sk.get("ok", false)) and duel.gold == gold1 + want_skip,
-		"跳过结算 +%d 同层金币" % want_skip)
+	_check(bool(sk.get("ok", false)) and duel.gold == gold1
+		and int(duel._reward_system.run_power_bonus) == power1,
+		"免费跳过不发放金币、强化或物品")
 	_check(not bool(duel._reward_system.settle_loot_skip().get("ok", true)),
 		"重复跳过被拒绝")
 	duel.selected_loadout.clear()

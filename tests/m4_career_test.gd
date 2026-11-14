@@ -310,6 +310,7 @@ func _test_run_summary(duel: DuelController) -> void:
 	var old_shape = duel.board_config.shape_id
 	duel.node_mode = true
 	duel.board_config.shape_id = "standard"
+	duel.board.clear_summaries()
 	_check(duel.board.generate(duel.board_config), "测试棋盘可生成")
 	var marked := {"normal": false, "elite": false, "shop": false, "rest": false, "special": false}
 	for n in duel.board.nodes:

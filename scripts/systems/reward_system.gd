@@ -3,6 +3,7 @@ extends RefCounted
 
 # T22：平衡常量收敛于 BalanceConfig（balance_config.tres）
 const BALANCE = preload("res://resources/config/balance_config.tres")
+const GROWTH_LOOT_OFFER = preload("res://scripts/systems/growth_loot_offer.gd")
 
 # M4 房奖励 / 精英战前补给 / BOSS 战利品 / 局末元进度三选一——从 duel_controller.gd 抽出。
 #
@@ -26,6 +27,7 @@ var _loot: LootPool                     # Step 3：统一来源品质池（专�
 var _loot_offer: LootOffer              # Step 4：同层三选一（一次定层，重抽不重抽品质）
 var _loot_settled := false              # Step 6：本组三选一是否已结算（同一奖励只发一次）
 var _loot_view: Dictionary = {}         # Step 7：最近一次生成/重抽的展示快照（品质冻结）
+var _loot_rerolls := 0                  # 本组已付费重抽次数，费用 = 5 + 5 × 次数
 
 func _init(ctrl: DuelController) -> void:
 	_ctrl = ctrl
@@ -318,14 +320,23 @@ func roll_shop_ladder(act: int, opts: Dictionary = {}) -> Array:
 # ---------------------------------------------------------------------------
 # Step 4：同层三选一（生成 / 冻结 / 重抽 / 跳过）
 # ---------------------------------------------------------------------------
-# 返回 {ok, reason, quality, options, skip}；options 与 skip 在 build 时冻结。
-# 重抽沿用同一品质层，不重新抽品质；跳过的金币值在 build 时已写死。
+# 重抽沿用同一品质层；每组首次 5 金，之后每次 +5 金。跳过免费且不发奖励。
 func build_loot_offer(source: String, act: int, opts: Dictionary = {}, forced_quality: String = "") -> Dictionary:
-	if _loot_offer == null:
+	if bool(opts.get("growth_only", false)):
+		_loot_offer = GROWTH_LOOT_OFFER.new(_ctrl, _loot)
+	elif _loot_offer == null or _loot_offer is GROWTH_LOOT_OFFER:
 		_loot_offer = LootOffer.new(_ctrl, _loot)
 	_loot_settled = false
+	_loot_rerolls = 0
 	_loot_view = _loot_offer.build(source, act, opts, forced_quality)
+	_loot_view["growth_only"] = bool(opts.get("growth_only", false))
+	_loot_view["reroll_cost"] = loot_reroll_cost()
+	_loot_view["reroll_paid"] = 0
 	return _loot_view
+
+
+func loot_reroll_cost() -> int:
+	return int(BALANCE.loot_reroll_base_cost) + int(BALANCE.loot_reroll_cost_step) * _loot_rerolls
 
 
 func reroll_loot_offer() -> Dictionary:
@@ -333,11 +344,25 @@ func reroll_loot_offer() -> Dictionary:
 		return {"ok": false, "reason": "no_offer", "quality": "", "options": [], "skip": {}}
 	if _loot_settled:
 		return {"ok": false, "reason": "already_settled", "quality": "", "options": [], "skip": {}}
-	_loot_view = _loot_offer.reroll()
+	var cost: int = loot_reroll_cost()
+	if _ctrl.gold < cost:
+		return {"ok": false, "reason": "insufficient_gold", "cost": cost,
+			"quality": _loot_view.get("quality", ""), "options": [], "skip": {}}
+	var next: Dictionary = _loot_offer.reroll()
+	if not bool(next.get("ok", false)):
+		return next
+	_ctrl.gold -= cost
+	_loot_rerolls += 1
+	_loot_view = next
+	_loot_view["growth_only"] = _loot_offer is GROWTH_LOOT_OFFER
+	_loot_view["reroll_cost"] = loot_reroll_cost()
+	_loot_view["reroll_paid"] = cost
+	_ctrl.hud._log("战利品重抽：金币 -%d（剩余 %d，下次 %d）" % [cost, _ctrl.gold, loot_reroll_cost()])
+	_ctrl.invalidate_state()
 	return _loot_view
 
 
-# Step 7：当前展示快照（UI 重抽后原地刷新；品质 / 跳过值随 build 冻结）。
+# Step 7：当前展示快照（UI 重抽后原地刷新；品质不变，显示下一次重抽费用）。
 func loot_offer_view() -> Dictionary:
 	return _loot_view.duplicate(true)
 
@@ -370,10 +395,23 @@ func settle_loot_offer(index: int) -> Dictionary:
 	if not bool(res.get("ok", false)):
 		return res
 	_loot_settled = true
+	_ctrl._post_battle.clear_pending_choices()
 	return res
 
 
-# Step 6：跳过战利品——只结算 build 时冻结的同层金币，同样只发一次。
+func settle_loot_queued_growth(cand: Dictionary) -> Dictionary:
+	if _loot_offer == null:
+		return {"ok": false, "reason": "no_offer"}
+	if _loot_settled:
+		return {"ok": false, "reason": "already_settled"}
+	if _ctrl._post_battle.apply_choice(cand):
+		_loot_settled = true
+		_ctrl._post_battle.clear_pending_choices()
+		return {"ok": true, "kind": "queued_growth"}
+	return {"ok": false, "reason": "growth_unavailable"}
+
+
+# Step 6：免费跳过战利品——不发金币、强化或物品，同样只结算一次。
 func settle_loot_skip() -> Dictionary:
 	if _loot_offer == null:
 		return {"ok": false, "reason": "no_offer"}
@@ -386,6 +424,7 @@ func settle_loot_skip() -> Dictionary:
 	if not bool(res.get("ok", false)):
 		return res
 	_loot_settled = true
+	_ctrl._post_battle.clear_pending_choices()
 	return res
 
 
@@ -416,11 +455,17 @@ func settle_loot_replace(index: int, old_path: String) -> Dictionary:
 	_ctrl.hud._log("战利品替换：%s → %s" % [old_name, _ctrl._shop_name(p, "weapon")])
 	_ctrl.invalidate_state()
 	_loot_settled = true
+	_ctrl._post_battle.clear_pending_choices()
 	return {"ok": true, "kind": "replace", "path": p, "old_path": old_path}
 
 
 func _apply_loot_option(opt: Dictionary) -> Dictionary:
 	match String(opt.get("kind", "")):
+		"skip":
+			_ctrl.hud._log("跳过本次战利品：未获得物品或资源")
+			return {"ok": true, "kind": "skip", "gold": 0, "power": 0}
+		"mastery", "symbol", "perk", "maxhp", "shield", "heal":
+			return _apply_growth_option(opt)
 		"conversion":
 			return _apply_conversion(opt)
 		"item":
@@ -448,6 +493,71 @@ func _apply_loot_option(opt: Dictionary) -> Dictionary:
 				return {"ok": true, "kind": "mastery", "path": path, "mastery": got}
 			return _grant_loot_item(path, String(opt.get("category", "")))
 	return {"ok": false, "reason": "unknown_kind"}
+
+
+func _apply_growth_option(opt: Dictionary) -> Dictionary:
+	var kind := String(opt.get("kind", ""))
+	match kind:
+		"mastery":
+			var path := String(opt.get("path", ""))
+			var amount := int(opt.get("amount", 0))
+			var got: int = _ctrl.mastery.grant_points(path, amount, "武器训练")
+			if got <= 0:
+				return {"ok": false, "reason": "mastery_failed"}
+			_ctrl.invalidate_state()
+			return {"ok": true, "kind": kind, "path": path, "mastery": got}
+		"symbol":
+			var path := String(opt.get("path", ""))
+			var sym: SymbolData = load(path) if path != "" else null
+			var weight := int(opt.get("weight", 0))
+			if sym == null or weight <= 0:
+				return {"ok": false, "reason": "invalid_symbol"}
+			var before: int = _symbol_cells(sym, 0.0)
+			run_symbol_bonus[path] = int(run_symbol_bonus.get(path, 0)) + weight
+			var after: int = _symbol_cells(sym, 0.0)
+			if after <= before:
+				return {"ok": false, "reason": "no_cell_change"}
+			_ctrl._build_pool(_ctrl.selected_loadout)
+			_ctrl.reel_system.build_strips()
+			_ctrl.hud._log("符号灌注：%s 权重 +%d（%d → %d 格）" % [sym.name, weight, before, after])
+			_ctrl.hud._popup("✨%s %d→%d 格" % [sym.label, before, after], Palette.POP_BUFF, _ctrl.hud._player_sprite_anchor())
+			_ctrl.invalidate_state()
+			return {"ok": true, "kind": kind, "path": path, "before": before, "after": after}
+		"perk":
+			var id := String(opt.get("perk_id", opt.get("path", "")))
+			if not _ctrl.growth.grant_perk(id):
+				return {"ok": false, "reason": "perk_unavailable"}
+			_ctrl.invalidate_state()
+			return {"ok": true, "kind": kind, "path": id}
+		"maxhp":
+			var amount := int(opt.get("amount", 0))
+			if amount <= 0:
+				return {"ok": false, "reason": "invalid_maxhp"}
+			_ctrl.player_hp_max += amount
+			_ctrl.player_hp = mini(_ctrl.player_hp_max, _ctrl.player_hp + amount)
+			_ctrl.hud._log("坚韧：最大 HP +%d，并恢复 %d HP" % [amount, amount])
+			_ctrl.hud._popup("❤上限+%d" % amount, Palette.POP_HEAL, _ctrl.hud._player_sprite_anchor())
+			_ctrl.invalidate_state()
+			return {"ok": true, "kind": kind, "amount": amount}
+		"shield":
+			var amount := int(opt.get("amount", 0))
+			if amount <= 0:
+				return {"ok": false, "reason": "invalid_shield"}
+			run_shield_next += amount
+			_ctrl.hud._log("守望：下一房开局护盾 +%d" % amount)
+			_ctrl.hud._popup("🛡下一房+%d" % amount, Palette.POP_SHIELD, _ctrl.hud._player_sprite_anchor())
+			_ctrl.invalidate_state()
+			return {"ok": true, "kind": kind, "amount": amount}
+		"heal":
+			var amount := mini(int(_ctrl.player_hp_max * 0.35), _ctrl.player_hp_max - _ctrl.player_hp)
+			if amount <= 0:
+				return {"ok": false, "reason": "full_hp"}
+			_ctrl.player_hp += amount
+			_ctrl.hud._log("休整：恢复 %d HP" % amount)
+			_ctrl.hud._popup("❤+%d" % amount, Palette.POP_HEAL, _ctrl.hud._player_sprite_anchor())
+			_ctrl.invalidate_state()
+			return {"ok": true, "kind": kind, "amount": amount}
+	return {"ok": false, "reason": "unknown_growth"}
 
 
 func _apply_conversion(opt: Dictionary) -> Dictionary:

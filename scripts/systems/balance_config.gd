@@ -94,11 +94,11 @@ extends Resource
 }
 
 # —— 四级品质战利品 · 同层转化（Step 4，docs/... §4.3）——
-# 同层物品不足 3 项 / 重复 / 满槽时，用同品质的固定转化补齐；跳过也按同层固定值结算。
-# 不新增货币：金币走现有 gold，强化走现有 run_power_bonus。数值为模拟起点，Step 8 再调。
+# 同层物品不足 3 项 / 重复 / 满槽时，用同品质的固定转化补齐；跳过免费且不发奖励。
 @export var loot_conversion_gold: Dictionary = {"common": 6, "uncommon": 10, "rare": 18, "epic": 30}
 @export var loot_conversion_power: Dictionary = {"common": 1, "uncommon": 2, "rare": 3, "epic": 4}
-@export var loot_skip_gold: Dictionary = {"common": 4, "uncommon": 7, "rare": 12, "epic": 20}
+@export var loot_reroll_base_cost: int = 5
+@export var loot_reroll_cost_step: int = 5
 # Step 6：本局已装备的重复武器 → 该武器熟练（既有成长通道），不新增货币。
 @export var loot_duplicate_mastery: Dictionary = {"common": 1, "uncommon": 2, "rare": 3, "epic": 4}
 

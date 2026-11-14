@@ -76,8 +76,14 @@ horizontal_alignment = 1
 text = "购入"
 theme_override_font_sizes/font_size = 10
 
-[node name="ShopGrid" type="GridContainer" parent="Margin/Content/BuyPanel"]
+[node name="ShopScroll" type="ScrollContainer" parent="Margin/Content/BuyPanel"]
 layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="ShopGrid" type="GridContainer" parent="Margin/Content/BuyPanel/ShopScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
 columns = 3
 theme_override_constants/h_separation = 4
 theme_override_constants/v_separation = 4

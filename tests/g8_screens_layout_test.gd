@@ -156,8 +156,8 @@ func _test_reward() -> void:
 	_check_label_fits("奖励屏标题", r.title_label)
 	_check_label_fits("奖励屏副标题", r.sub_label)
 	_check(r.sub_label.autowrap_mode != TextServer.AUTOWRAP_OFF, "奖励副标题开启自动换行")
-	_check(r.title_label.text.find("战利品") >= 0, "战利品屏标题正确（%s）" % r.title_label.text)
-	_check(r.sub_label.text.find("同层三选一") >= 0, "战利品屏副标题说明同层")
+	_check(r.title_label.text.find("成长") >= 0, "成长屏标题正确（%s）" % r.title_label.text)
+	_check(r.sub_label.text.find("成长三选一") >= 0, "成长屏副标题说明成长三选一")
 	_check(r.reward_grid.get_child_count() == 3, "战后战利品固定三张卡（%d）" % r.reward_grid.get_child_count())
 	_check_grid_fits("战后战利品卡组", r.reward_grid)
 	# 卡片内容：文本不裁切 + 高度够

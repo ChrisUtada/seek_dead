@@ -4,7 +4,7 @@
 # 技艺效果在各自落点读取本系统的查询接口（守势 / 精打细算 / 稳定节奏 / 洞察 / 稳手），
 # 只有「坚韧」「备用药剂」「回春」「积蓄」在落点即时结算。整局状态经 reset_run 清零（新一局 / 战败回整备）。
 # 规格见 docs/M0-02_样板范围.md §1（ACT1 样板：Lv.4 / 2 技艺）；
-# 2026-11-08 按 `docs/G7-A_切片拆分与验收清单_2026-11-08.md` S1 拍板扩至 Lv.6 / 3 技艺 / 池 9。
+# 随机技艺池 8；旧技艺「精打细算」仅作存档兼容，不再进入随机候选。
 
 var _ctrl  # DuelController
 
@@ -21,7 +21,6 @@ const FAMILY_ORDER := ["survive", "plan", "aim"]
 const PERKS := [
 	{"id": "tough", "family": "survive", "name": "坚韧", "desc": "最大 HP +10，并立即恢复 10 HP"},
 	{"id": "guard", "family": "survive", "name": "守势", "desc": "每房开局获得 8 护盾"},
-	{"id": "frugal", "family": "plan", "name": "精打细算", "desc": "每个房间间歇首次商店刷新免费"},
 	{"id": "reserve", "family": "plan", "name": "备用药剂", "desc": "获得时，腰带上所有消耗品各 +1 次使用次数"},
 	{"id": "steady", "family": "aim", "name": "稳定节奏", "desc": "每房前 2 回合转轮基础间隔 0.15→0.17s，加速曲线不变"},
 	{"id": "insight", "family": "aim", "name": "洞察", "desc": "旋转时，每列显示下一格符号"},
@@ -254,6 +253,14 @@ func _unowned_in(family: String) -> Array:
 	return out
 
 
+# 战利品直接授予一项未拥有技艺，不改变既有成长队列。
+func grant_perk(id: String) -> bool:
+	if perk_ids.has(id) or perk_name(id) == "":
+		return false
+	pending_picks += 1
+	return pick(id)
+
+
 # 选定技艺：扣减待选次数，瞬时效果在此结算。非法选择返回 false。
 func pick(id: String) -> bool:
 	if pending_picks <= 0 or perk_ids.has(id) or perk_name(id) == "":
@@ -277,21 +284,21 @@ func perk_name(id: String) -> String:
 	for p in PERKS:
 		if p["id"] == id:
 			return p["name"]
-	return ""
+	return "精打细算" if id == "frugal" else ""
 
 
 func perk_desc(id: String) -> String:
 	for p in PERKS:
 		if p["id"] == id:
 			return p["desc"]
-	return ""
+	return "每个房间间歇首次商店刷新免费" if id == "frugal" else ""
 
 
 func perk_family(id: String) -> String:
 	for p in PERKS:
 		if p["id"] == id:
 			return FAMILIES[p["family"]]
-	return ""
+	return "plan" if id == "frugal" else ""
 
 
 # —— 落点查询（守势 / 精打细算 / 稳定节奏 / 洞察）——

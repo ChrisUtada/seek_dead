@@ -228,6 +228,7 @@ func boss_reward_card(cand: Dictionary) -> Button:
 		title_text = "【%s】%s" % [LootSourceTable.quality_label(q), title_text]
 		card.set_title_color(Palette.quality_color(q))
 	card.configure(title_text, cand.get("desc", ""))
+	(card.get_node("Center/VBox/TitleLabel") as Label).autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	card.set_art(cand.get("art", null))
 	card.tooltip_text = String(cand.get("tip", cand.get("desc", "")))
 	card.pressed.connect(_hud.boss_reward_chosen.emit.bind(cand))
@@ -255,7 +256,7 @@ func loot_offer_card(opt: Dictionary, index: int) -> Button:
 	var path := String(opt.get("path", ""))
 	var art: Texture2D = null
 	var elem := ""
-	if path != "":
+	if path.begins_with("res://"):
 		var res: Resource = load(path)
 		if res != null:
 			var wico: Texture2D = WeaponIcons.icon_for_path(path)

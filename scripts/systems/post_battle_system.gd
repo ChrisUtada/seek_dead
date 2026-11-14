@@ -27,6 +27,18 @@ func reset_run() -> void:
 	queue.clear()
 
 
+# 重抽只清展示快照，保留本次触发；重新生成候选，不再承诺冻结保留。
+func reroll_choices() -> void:
+	queue.clear()
+
+
+# 任意战利品结算或跳过后，本次未选成长全部放弃，不留到下一战。
+func clear_pending_choices() -> void:
+	queue.clear()
+	_ctrl.growth.pending_picks = 0
+	_ctrl.mastery.owed.clear()
+
+
 # 生成三槽候选（顺序固定：补给 / 构筑 / 成长），并同步 reward_choices 供既有奖励结算路径读取。
 # Step 7 起玩家界面改走「战利品三选一 + 成长位分开结算」，本方法只保留给旧路径与回归测试。
 func build(kind: String) -> Array:
@@ -42,8 +54,7 @@ func build(kind: String) -> Array:
 	return out
 
 
-# Step 7：只取成长位（技艺 / 铭印）。没有真实成长时返回空字典——不生成「下一房对策」假成长卡，
-# 也不与战利品三选一混作一组（计划 §4.2）。
+# 只取 queued 成长位（技艺 / 铭印）。没有真实成长时返回空字典；由成长战利品生成器并入同屏三选一。
 func build_growth(_kind: String = "") -> Dictionary:
 	_sync_queue()
 	return _growth_view([], false)

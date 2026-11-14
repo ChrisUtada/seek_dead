@@ -453,20 +453,16 @@ func _test_merged_settlement(duel: DuelController) -> void:
 	var first: Dictionary = duel.room_flow.post_battle_growth_candidate()
 	_check(String(first.get("kind", "")) == "perk", "成长队列先给技艺（触发顺序）")
 	_check(not duel.in_interroom, "确认前不进入间歇（只打断一次）")
-	duel.room_flow.auto_pick_post_battle(["growth"])
-	_check(duel.growth.perk_ids.size() == 1 and m.owed.has(FIRE), "本次只应用技艺；铭印留在队列")
+	duel._on_post_battle_growth_chosen(first)
+	_check(duel.growth.perk_ids.size() == 1 and m.owed.is_empty(), "本次只应用技艺，未选铭印随战利品放弃")
 	_check(duel.in_interroom and not duel.room_flow.post_battle_active, "确认后进入间歇且无残留")
 
-	# 下一战斗房：未选的铭印进入成长位（同一候选冻结，不重新随机类型）。
+	# 下一战斗房：未选铭印不再出现；已选技艺只生效一次。
 	duel.in_interroom = false
 	duel.hud.set_interroom_enabled(false)
 	duel.room_flow.begin_post_battle()
-	var second: Dictionary = duel.room_flow.post_battle_growth_candidate()
-	_check(String(second.get("kind", "")) == "imprint", "下一战斗房成长位轮到铭印")
-	duel.room_flow.auto_pick_post_battle(["growth"])
-	_check(int(m.imprints[FIRE]["forge"]) + m._tune_count(FIRE) == 1, "第二次成长位应用一次铭印")
-	_check(m.owed.is_empty(), "铭印队列清空")
-	_check(duel.in_interroom and not duel.room_flow.post_battle_active, "铭印选完进入间歇")
+	_check(m.owed.is_empty(), "未选铭印不保留到下一战斗房")
+	_check(int(m.imprints[FIRE]["forge"]) + m._tune_count(FIRE) == 0, "未选择铭印时不额外生成铭印")
 	duel.hud._refresh_meta()
 	# 2026-10-31 纠偏 C2：武器区改为大图标卡片，R 等级/熟练/铭印按任务书放进 tooltip；
 	# 技艺不再单独占图标行，按任务书并入技能卡 tooltip。断言改为校验新结构的可见信息。

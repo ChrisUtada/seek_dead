@@ -50,7 +50,7 @@ func configure(ctrl, h: BattleHud) -> void:
 	bot.add_child(_skip_btn)
 
 
-# 跳过按钮按当前模式分发：战利品 = 结算冻结金币；成长 = 保留到下次；其余 = 旧跳过。
+# 跳过按钮按当前模式分发：战利品 = 免费且零收益；成长 = 保留到下次；其余 = 旧跳过。
 func _on_skip_pressed() -> void:
 	match _mode:
 		"loot":
@@ -131,23 +131,34 @@ func show_post_battle(offer: Array, summary: String) -> void:
 func show_loot_offer(view: Dictionary) -> void:
 	_mode = "loot"
 	reward_grid.columns = 3
-	title_label.text = "%s · %s战利品" % [
-		String(view.get("source_label", "战利品")), String(view.get("quality_name", ""))]
-	sub_label.text = "同层三选一：三项品质相同，按用途与当前 Build 选择"
-	if _reroll_btn != null:
-		_reroll_btn.visible = true
-		_reroll_btn.text = "重抽 · 同层"
-	if _skip_btn != null:
-		_skip_btn.text = "跳过 · 金币 +%d" % int((view.get("skip", {}) as Dictionary).get("gold", 0))
+	var growth := bool(view.get("growth_only", false))
+	title_label.text = "%s · %s%s" % [
+		String(view.get("source_label", "战利品")), String(view.get("quality_name", "")),
+		"成长" if growth else "战利品"]
+	sub_label.text = "成长三选一：强化当前 Build；装备主要来自探索、商店与BOSS" if growth \
+		else "同层三选一：三项品质相同，按用途与当前 Build 选择"
+	_refresh_loot_actions(view)
 	_fill_loot_options(view)
 	visible = true
 
 
-# 重抽：只换同层候选，标题 / 品质 / 跳过值不变（由 RewardSystem 冻结）。
+# 重抽：只换同层候选，品质不变；按钮展示下一次费用，金币不足时禁用。
 func refresh_loot_offer(view: Dictionary) -> void:
 	if _mode != "loot":
 		return
+	_refresh_loot_actions(view)
 	_fill_loot_options(view)
+
+
+func _refresh_loot_actions(view: Dictionary) -> void:
+	if _reroll_btn != null:
+		var cost := int(view.get("reroll_cost", 5))
+		_reroll_btn.visible = true
+		_reroll_btn.text = "重抽 · %d金" % cost
+		_reroll_btn.disabled = controller.gold < cost
+		_reroll_btn.tooltip_text = "支付 %d 金币，更换同层候选；不会提高品质" % cost
+	if _skip_btn != null:
+		_skip_btn.text = "跳过 · 免费"
 
 
 func _fill_loot_options(view: Dictionary) -> void:

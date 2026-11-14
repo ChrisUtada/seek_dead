@@ -40,7 +40,7 @@ signal loot_offer_chosen(index: int)          # Step 7：同层三选一卡点�
 @warning_ignore("unused_signal")
 signal loot_offer_reroll_requested            # Step 7：重抽（同层，不重抽品质）
 @warning_ignore("unused_signal")
-signal loot_offer_skip_requested              # Step 7：跳过战利品（结算冻结金币）
+signal loot_offer_skip_requested              # Step 7：免费跳过战利品（不发奖励）
 @warning_ignore("unused_signal")
 signal post_battle_defer_requested            # Step 7：成长位「保留到下次战斗」
 signal post_battle_growth_chosen(cand: Dictionary)  # M1 战后成长屏的成长位（技艺 / 铭印 / 下一房对策）

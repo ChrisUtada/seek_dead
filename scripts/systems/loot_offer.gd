@@ -8,7 +8,7 @@ extends RefCounted
 #   - 同层候选：只从该品质层取合法物品，跨类别（武器/护符/消耗品）混合；
 #   - 三项有效：路径不重复、尽量不同 unique_group、至少覆盖两种用途；
 #   - 不跨层补位：同层物品不足时用同层「转化 / 强化」补齐；
-#   - 展示前冻结：物品、转化数值、跳过收益在 build 时写死，确认后不再随机。
+#   - 展示前冻结：物品与转化数值在 build 时写死；跳过固定为免费且无收益。
 #
 # 本类只负责生成与冻结；实际发奖（进槽/替换/腰带/金币/伤害）由 Step 5 接入来源时调用上层结算。
 # 随机数全部来自 LootPool 的专用流，不消耗全局/地图 RNG。
@@ -280,16 +280,15 @@ func _conversion_option(type: String) -> Dictionary:
 
 
 func _make_skip() -> Dictionary:
-	var g := int(BALANCE.loot_skip_gold.get(quality, 0))
 	return {
-		"kind": "conversion", "conversion": "gold", "quality": quality,
+		"kind": "skip", "quality": quality,
 		"quality_name": quality_name(),
-		"role": "resource", "purpose": "resource", "icon": "💰", "gold": g, "power": 0,
-		"title": "跳过 · 金币 +%d" % g,
-		"desc": "不取战利品，直接获得同层转化金币 +%d" % g,
-		"condition": "跳过本次战利品", "result": "金币 +%d" % g,
-		"mechanism": "不取本次战利品，获得 %s 层固定转化。" % quality_name(),
-		"tooltip": "跳过本次战利品，获得 %s 层固定转化：金币 +%d（展示值即结算值）。" % [quality_name(), g],
+		"role": "resource", "purpose": "resource", "icon": "▶", "gold": 0, "power": 0,
+		"title": "跳过 · 免费",
+		"desc": "放弃本次战利品，不支付金币，也不获得物品或资源",
+		"condition": "免费跳过", "result": "不获得战利品",
+		"mechanism": "放弃本次战利品，无额外收益或费用。",
+		"tooltip": "免费跳过本次战利品，不获得金币、强化或物品。",
 	}
 
 

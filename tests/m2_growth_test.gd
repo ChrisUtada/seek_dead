@@ -128,6 +128,7 @@ func _test_perk_choices(duel: DuelController) -> void:
 	for c in choices:
 		ids[c["id"]] = true
 	_check(ids.size() == 3, "三选一候选互不相同")
+	_check(not ids.has("frugal"), "精打细算不再进入随机技艺池")
 	var fams := {}
 	for c in choices:
 		fams[c["family"]] = true
@@ -303,7 +304,7 @@ func _test_room_flow_offers_pick(duel: DuelController) -> void:
 	_check(g.level == 2 and g.pending_picks == 1, "房间胜利升 Lv.2 后待选 1 次")
 	_check(duel.room_flow.post_battle_active, "普通房胜利进入战后结算")
 	_check(duel.room_flow.post_battle_phase() == "loot", "战后先展示同层战利品三选一")
-	_check(screen.visible and screen.title_label.text.find("战利品") >= 0, "战利品界面标题正确")
+	_check(screen.visible and screen.title_label.text.find("成长") >= 0, "成长三选一界面标题正确")
 	_check(screen.reward_grid.get_child_count() == 3, "战利品固定三张同层卡")
 	_check(not duel.in_interroom, "战利品结算前不进入房间间歇")
 	_check(duel.room_flow.post_battle_has_growth(), "有待处理成长时成长队列非空")

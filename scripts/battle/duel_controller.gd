@@ -558,7 +558,7 @@ func _weapon_tooltip_state(path: String) -> Dictionary:
 
 
 func _on_reward_skip_pressed() -> void:
-	# Step 7：战后战利品阶段 → 结算冻结金币并放弃本次成长；其余路径沿用旧跳过。
+	# 战后阶段：免费跳过战利品并放弃本次成长；其余路径沿用旧跳过。
 	if room_flow.post_battle_active:
 		room_flow.skip_post_battle()
 		return
@@ -573,6 +573,13 @@ func _on_reward_skip_pressed() -> void:
 func _on_loot_offer_chosen(index: int) -> void:
 	var opt: Dictionary = _reward_system.loot_offer_option(index)
 	if opt.is_empty():
+		return
+	if String(opt.get("kind", "")) == "queued_growth":
+		var growth_res: Dictionary = _reward_system.settle_loot_queued_growth(opt.get("growth_entry", {}))
+		if not bool(growth_res.get("ok", false)):
+			hud._log("成长结算失败：%s" % String(growth_res.get("reason", "")))
+			return
+		room_flow.after_loot_settled()
 		return
 	if bool(opt.get("needs_replace", false)):
 		var p := String(opt.get("path", ""))
@@ -604,7 +611,7 @@ func _on_loot_offer_reroll() -> void:
 
 
 func _on_loot_offer_skip() -> void:
-	# UI「跳过 · 金币 +X」= 只跳过战利品；成长位照常提供（可再保留到下次）。
+	# UI「跳过 · 免费」= 只跳过战利品，不发奖励；成长位照常提供。
 	room_flow.skip_loot()
 
 

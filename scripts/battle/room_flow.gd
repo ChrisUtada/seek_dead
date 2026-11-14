@@ -11,11 +11,9 @@ func _init(ctrl) -> void:
 	_ctrl = ctrl
 
 
-# 清房推进编排（M1 战后成长 → Step 7 同层三选一）：
-# 普通 / 精英胜利 → begin_post_battle（先结算历练/熟练，再生成战利品三选一）
-#   → 战利品阶段：选一项 / 重抽 / 跳过（同层冻结值）→ 成长阶段（技艺 / 铭印，可保留）
-#   → finish_post_battle（铁砧/金币/掉落 → 间歇或元进度）。
-# BOSS 胜利不走三槽屏：保留专属战利品；未处理的成长留在队列，进入下一战斗房的成长位。
+# 清房推进编排（成长三选一）：
+# 普通 / 精英胜利 → 结算历练/熟练并生成成长三选一；选一项、付费重抽或免费跳过。
+# 任意结算后清空本次未选成长，不进入下一战；BOSS 未选成长采用同一清空规则。
 var post_battle_active := false
 var _post_offer: Array = []       # 本次胜利可用的成长候选（0 或 1 项，展示前冻结）
 var _phase := ""                  # "" | "loot" | "growth"
@@ -42,53 +40,58 @@ func reset_flow() -> void:
 
 func _start_loot_phase() -> void:
 	_phase = "loot"
-	_loot_view = _ctrl._reward_system.build_loot_offer(_current_source(), _current_act())
+	_loot_view = _ctrl._reward_system.build_loot_offer(_current_source(), _current_act(), {"growth_only": true})
 	if not bool(_loot_view.get("ok", false)):
-		# 来源表异常 / 空池：按跳过结算（冻结值），不阻塞收尾。
 		_ctrl._reward_system.settle_loot_skip()
-		_enter_growth_phase()
+		_ctrl._post_battle.clear_pending_choices()
+		_finish_post_battle(Callable())
 		return
 	_ctrl.hud.show_loot_offer(_loot_view)
 
 
-# 战利品结算成功（controller 在 settle_loot_offer / settle_loot_replace 后调用）。
+# 任意战利品结算后，本次未选成长全部放弃，不再保留到下一战。
 func after_loot_settled() -> void:
 	if not post_battle_active or _phase != "loot":
 		return
-	_enter_growth_phase()
+	_ctrl._post_battle.clear_pending_choices()
+	_finish_post_battle(Callable())
 
 
-# 重抽：只换同层候选；品质层与跳过值由 build 冻结。
+# 重抽：支付递增金币，普通战利品与 queued 成长都重新生成，品质层不变。
 func on_loot_reroll() -> void:
 	if not post_battle_active or _phase != "loot":
 		return
+	_ctrl._post_battle.reroll_choices()
 	var v: Dictionary = _ctrl._reward_system.reroll_loot_offer()
 	if bool(v.get("ok", false)):
 		_loot_view = v
 		_ctrl.hud.refresh_loot_offer(v)
 
 
-# 跳过战利品（UI 按钮）：只结算冻结金币，然后照常进入成长阶段（两件事分开结算）。
+# 免费跳过：不发放本次战利品，未选成长同时放弃。
 func skip_loot() -> void:
 	if not post_battle_active or _phase != "loot":
 		return
 	_ctrl._reward_system.settle_loot_skip()
-	_enter_growth_phase()
+	_ctrl._post_battle.clear_pending_choices()
+	_finish_post_battle(Callable())
 
 
-# 整体跳过（旧跳过信号 / bot 路径）：跳过战利品 + 放弃本次成长（成长仍留在队列）。
+# 整体跳过：战利品与未选成长都放弃。
 func skip_post_battle() -> void:
 	if not post_battle_active:
 		return
 	if _phase == "loot":
 		_ctrl._reward_system.settle_loot_skip()
+	_ctrl._post_battle.clear_pending_choices()
 	_finish_post_battle(Callable())
 
 
-# 成长阶段「保留到下次战斗」：不发放任何东西，队列原样保留。
+# 旧成长阶段兼容入口：未选成长不再保留。
 func defer_growth() -> void:
-	if not post_battle_active or _phase != "growth":
+	if not post_battle_active:
 		return
+	_ctrl._post_battle.clear_pending_choices()
 	_finish_post_battle(Callable())
 
 
@@ -124,6 +127,7 @@ func finish_room(apply_fn: Callable, is_boss: bool) -> void:
 		return
 	_ctrl.hud.hide_reward_screen()
 	_settle_victory()
+	_ctrl._post_battle.clear_pending_choices()
 	if apply_fn.is_valid():
 		apply_fn.call()
 	_award_victory(is_boss)
@@ -134,6 +138,7 @@ func _finish_post_battle(apply_fn: Callable) -> void:
 	if not post_battle_active:
 		return
 	post_battle_active = false
+	_ctrl._post_battle.clear_pending_choices()
 	_phase = ""
 	_post_offer = []
 	_loot_view = {}
@@ -215,7 +220,7 @@ func auto_pick_post_battle(prefer: Array = ["growth", "supply", "build"], want_g
 	if not post_battle_active:
 		return false
 	if _phase == "loot":
-		_auto_settle_loot()
+		_auto_settle_loot(prefer, want_growth_id)
 		if not post_battle_active:
 			return true
 	if _phase != "growth":
@@ -228,9 +233,18 @@ func auto_pick_post_battle(prefer: Array = ["growth", "supply", "build"], want_g
 	return true
 
 
-# bot 战利品策略：优先可正常授予的物品（跳过需要替换弹层的项），否则取第一项，再否则跳过。
-func _auto_settle_loot() -> void:
+# bot 策略：优先处理 queued 成长，再取普通战利品；保留无替换与跳过兜底。
+func _auto_settle_loot(prefer: Array = [], want_growth_id: String = "") -> void:
 	var opts: Array = _ctrl._reward_system.loot_offer_view().get("options", [])
+	if prefer.has("growth"):
+		for i in range(opts.size()):
+			var o: Dictionary = opts[i]
+			if String(o.get("kind", "")) != "queued_growth":
+				continue
+			if want_growth_id != "" and String(o.get("growth_entry", {}).get("growth_id", "")) != want_growth_id:
+				continue
+			_ctrl._on_loot_offer_chosen(i)
+			return
 	var pick := -1
 	for i in range(opts.size()):
 		var o: Dictionary = opts[i]
@@ -248,7 +262,7 @@ func _auto_settle_loot() -> void:
 	if pick >= 0:
 		res = _ctrl._reward_system.settle_loot_offer(pick)
 	if not bool(res.get("ok", false)):
-		res = _ctrl._reward_system.settle_loot_skip()   # 兜底：不阻塞 bot / 探针
+		res = _ctrl._reward_system.settle_loot_skip()
 	after_loot_settled()
 
 

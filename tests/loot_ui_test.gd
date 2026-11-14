@@ -8,7 +8,7 @@ extends Node
 # ① 四级品质名称 / 颜色 / 来源名统一（LootSourceTable + Palette 单一来源）；
 # ② 480×270 下战利品三选一卡、按钮、数值都在容器内（卡片文本不裁切）；
 # ③ 三项同层，卡面不带「更高品质」诱导；每项都有品质、机制、条件、结果文本；
-# ④ 重抽只换同层候选：品质层与跳过金币不变，标题不变；
+# ④ 重抽支付递增金币且只换同层候选；跳过免费且零收益；
 # ⑤ 查看 / 确认 / 跳过 / 替换 / 保留 都有明确状态，且只结算一次；
 # ⑥ ESC（ui_cancel）不结算、不发奖；
 # ⑦ 开关奖励屏与重抽不改变地图内容与战利品专用 RNG 种子；
@@ -140,13 +140,15 @@ func _test_loot_screen_layout() -> void:
 	await _frames(6)
 	_check(r.visible, "战利品屏可见")
 	_check(_in_screen(r), "战利品屏根节点在屏内")
-	_check(r.title_label.text.find("战利品") >= 0, "标题写明战利品（%s）" % r.title_label.text)
+	_check(r.title_label.text.find("成长") >= 0, "标题写明成长（%s）" % r.title_label.text)
 	_check(r.title_label.text.find("普通战") >= 0, "标题写明来源（普通战）")
-	_check(r.sub_label.text.find("同层三选一") >= 0, "副标题写明同层三选一")
+	_check(r.sub_label.text.find("成长三选一") >= 0, "副标题写明成长三选一")
 	_check(r.reward_grid.get_child_count() == 3, "固定三张同层候选")
-	_check(r._skip_btn.text.begins_with("跳过 · 金币 +"),
-		"跳过按钮写明冻结金币（%s）" % r._skip_btn.text)
+	_check(r._skip_btn.text == "跳过 · 免费",
+		"跳过按钮免费且不发奖励（%s）" % r._skip_btn.text)
 	_check(r._reroll_btn != null and r._reroll_btn.visible, "战利品阶段提供重抽")
+	_check(r._reroll_btn.text == "重抽 · 5金", "首次重抽显示5金币费用")
+	_check(r._reroll_btn.disabled == (_duel.gold < 5), "金币不足时重抽按钮禁用")
 	_check(_in_screen(r._skip_btn) and _in_screen(r._reroll_btn), "跳过 / 重抽按钮都在屏内")
 	var view: Dictionary = _duel.room_flow.loot_view()
 	var opts: Array = view.get("options", [])
@@ -241,7 +243,8 @@ func _paths(view: Dictionary) -> Array:
 
 func _pick_settleable(opts: Array) -> int:
 	for i in range(opts.size()):
-		if not bool((opts[i] as Dictionary).get("needs_replace", false)):
+		if not bool((opts[i] as Dictionary).get("needs_replace", false)) \
+			and String((opts[i] as Dictionary).get("kind", "")) != "queued_growth":
 			return i
 	return -1
 
@@ -286,12 +289,13 @@ func _test_skip_settles_once() -> void:
 	_fresh()
 	var r := _begin()
 	await _frames(4)
-	var skip_gold := int((_duel.room_flow.loot_view().get("skip", {}) as Dictionary).get("gold", 0))
-	var g0 := int(_duel.gold)
+	var skip_view: Dictionary = _duel.room_flow.loot_view().get("skip", {})
+	var power0 := int(_duel._reward_system.run_power_bonus)
 	_duel._on_loot_offer_skip()
-	# 收尾还会结算清房金币（与战利品无关），这里只断言「至少拿到冻结值」。
-	_check(int(_duel.gold) - g0 >= skip_gold,
-		"跳过至少获得冻结金币（+%d，期望 ≥%d）" % [int(_duel.gold) - g0, skip_gold])
+	_check(String(skip_view.get("kind", "")) == "skip"
+		and int(skip_view.get("gold", 0)) == 0 and int(skip_view.get("power", 0)) == 0
+		and int(_duel._reward_system.run_power_bonus) == power0,
+		"跳过本身免费且零收益；后续清房金币独立结算")
 	_check(_duel._reward_system._loot_settled, "跳过走同一套「已结算」标记")
 	_check(not _duel.room_flow.post_battle_active, "跳过后面板收尾")
 	var g1 := int(_duel.gold)
@@ -321,53 +325,26 @@ func _test_esc_no_settle() -> void:
 
 func _test_replace_flow() -> void:
 	_fresh()
-	# 武器槽满：任一武器候选都必须走替换
-	var cap: int = int(_duel._loadout_system.cat_cap("weapon"))
-	while _duel.selected_loadout.size() < cap:
-		var p := _first_unowned_weapon()
-		if p == "":
-			break
-		_duel.selected_loadout.append(p)
-	_duel._build_pool(_duel.selected_loadout)
-	var view: Dictionary = _duel._reward_system.build_loot_offer(
-		"normal", 1, {"categories": ["weapon"]}, "common")
-	_duel.hud.show_loot_offer(view)
-	_duel.room_flow.post_battle_active = true
-	_duel.room_flow._phase = "loot"
+	_duel.room_flow.begin_post_battle()
 	await _frames(3)
+	var view: Dictionary = _duel.room_flow.loot_view()
 	var opts: Array = view.get("options", [])
-	var idx := -1
-	for i in range(opts.size()):
-		if String((opts[i] as Dictionary).get("kind", "")) == "item" \
-			and String((opts[i] as Dictionary).get("category", "")) == "weapon":
-			idx = i
-			break
-	_check(idx >= 0, "构造出满槽武器候选")
-	if idx < 0:
-		_duel.room_flow.reset_flow()
-		_duel.hud.hide_reward_screen()
-		return
-	_check(bool((opts[idx] as Dictionary).get("needs_replace", false)), "满槽武器候选冻结 needs_replace")
-	var new_p := String((opts[idx] as Dictionary).get("path", ""))
-	var old_p: String = _duel.selected_loadout[0]
-	_duel._on_loot_offer_chosen(idx)
-	_check(_duel.hud._replace_dialog != null and _duel.hud._replace_dialog.visible,
-		"满槽点武器卡弹出替换弹层")
-	_check(_duel.room_flow.post_battle_phase() == "loot", "替换弹层期间未结算")
-	# 取消：不消耗结算机会
-	_duel.hud._on_replace_cancelled()
-	await _frames(1)
-	_check(_duel.room_flow.post_battle_phase() == "loot", "取消替换后仍留在战利品阶段")
-	_check(_duel.selected_loadout.has(old_p) and not _duel.selected_loadout.has(new_p),
-		"取消替换不改配装")
-	# 再次点卡 → 选旧武器 → 结算一次
-	_duel._on_loot_offer_chosen(idx)
-	_duel.hud._on_replace_chosen(old_p)
-	_check(not _duel.selected_loadout.has(old_p), "替换后旧武器移出配装")
-	_check(_duel.selected_loadout.has(new_p), "替换后新武器进入配装")
-	var res: Dictionary = _duel._reward_system.settle_loot_replace(idx, old_p)
-	_check(not bool(res.get("ok", false)) and String(res.get("reason", "")) == "already_settled",
-		"替换结算同样只发一次（%s）" % String(res.get("reason", "")))
+	var has_item := false
+	var needs_replace := false
+	for opt in opts:
+		if String(opt.get("kind", "")) == "item":
+			has_item = true
+		if bool(opt.get("needs_replace", false)):
+			needs_replace = true
+	_check(bool(view.get("growth_only", false)) and not has_item, "成长三选一直接不含装备候选")
+	_check(not needs_replace, "成长候选不要求替换武器")
+	var before: Array = _duel.selected_loadout.duplicate()
+	var idx := _pick_settleable(opts)
+	if idx >= 0:
+		_duel._on_loot_offer_chosen(idx)
+	else:
+		_duel._on_loot_offer_skip()
+	_check(_duel.selected_loadout == before, "成长结算不改变双武器配装")
 	_duel.room_flow.reset_flow()
 	_duel.hud.hide_reward_screen()
 
@@ -395,40 +372,25 @@ func _test_growth_phase() -> void:
 	_check(_duel.room_flow.post_battle_has_growth(), "本房有真实成长")
 	_check(String(_duel.room_flow.post_battle_growth_candidate().get("kind", "")) == "perk",
 		"成长队列为技艺")
-	# 先结算战利品 → 成长阶段
+	# 所有成长同屏结算，未选 queued 项自动保留，不再打开第二成长页。
 	var opts: Array = _duel.room_flow.loot_view().get("options", [])
 	var idx := _pick_settleable(opts)
 	if idx >= 0:
 		_duel._on_loot_offer_chosen(idx)
 	else:
 		_duel._on_loot_offer_skip()
-	_check(_duel.room_flow.post_battle_phase() == "growth", "战利品结算后进入成长阶段")
-	_check(r.title_label.text.begins_with("成长 ·"), "成长阶段标题正确（%s）" % r.title_label.text)
-	_check(r.reward_grid.get_child_count() == 1, "成长阶段只展示真实成长卡")
-	_check(not r._reroll_btn.visible, "成长阶段不提供重抽")
-	_check(r._skip_btn.text == "保留到下次战斗", "成长阶段按钮写明保留")
-	# ESC = 保留（不发放）
-	var ev := InputEventAction.new()
-	ev.action = "ui_cancel"
-	ev.pressed = true
-	r._unhandled_input(ev)
-	_check(_duel.growth.pending_picks == 1, "ESC 保留成长，待选不清零")
-	_check(not _duel.room_flow.post_battle_active, "保留后收尾")
-	# 再来一次：这次真的选成长
+	_check(not _duel.room_flow.post_battle_active, "成长与战利品同屏后直接收尾")
+	_check(_duel.growth.pending_picks == 0, "未选择的 queued 成长随本次战利品放弃")
+	_check(not r.visible, "收尾后不显示第二成长页")
+	# 再来一次： queued 成长也在同屏被选中并清空
 	_fresh()
 	_duel.growth.xp = 2
 	_begin()
 	await _frames(3)
-	var opts2: Array = _duel.room_flow.loot_view().get("options", [])
-	var idx2 := _pick_settleable(opts2)
-	if idx2 >= 0:
-		_duel._on_loot_offer_chosen(idx2)
-	else:
-		_duel._on_loot_offer_skip()
-	_check(_duel.room_flow.post_battle_phase() == "growth", "第二次进入成长阶段")
-	_duel._on_post_battle_growth_chosen(_duel.room_flow.post_battle_growth_candidate())
-	_check(_duel.growth.perk_ids.size() == 1 and _duel.growth.pending_picks == 0,
-		"选择成长后技艺入列、待选清零")
+	_duel.room_flow.auto_pick_post_battle(["growth"])
+	_check(_duel.growth.perk_ids.size() >= 1 and _duel.growth.pending_picks == 0,
+		"queued成长同屏选中后清空队列")
+	_check(not _duel.room_flow.post_battle_active, "queued成长结算后无需第二页面")
 
 
 # ---------------------------------------------------------------------------

@@ -259,7 +259,7 @@ func _test_offer_invariants() -> void:
 		if purposes.size() < 2:
 			few_purposes += 1
 		var skip: Dictionary = view.get("skip", {})
-		if int(skip.get("gold", 0)) != int(DuelController.BALANCE.loot_skip_gold.get(q, 0)):
+		if String(skip.get("kind", "")) != "skip" or int(skip.get("gold", 0)) != 0 or int(skip.get("power", 0)) != 0:
 			bad_skip += 1
 		# 同机制不重复只在「该层确实有 ≥3 个不同分组」时才要求（不足时允许同组补齐）
 		var tier: Dictionary = _pool.tier_items(source, act, q, {})
@@ -281,7 +281,7 @@ func _test_offer_invariants() -> void:
 	_check(few_purposes == 0, "每组至少两种决策用途（违例 %d）" % few_purposes)
 	_check(empty_text == 0, "每项都有品质 / 机制 / 条件 / 结果（缺项 %d）" % empty_text)
 	_check(wrong_rarity == 0, "候选物品 rarity 与本次品质一致（偏差 %d）" % wrong_rarity)
-	_check(bad_skip == 0, "跳过金币 = 同层冻结值（偏差 %d）" % bad_skip)
+	_check(bad_skip == 0, "跳过免费且收益为0（偏差 %d）" % bad_skip)
 	print("LOOTBAL|INVARIANTS offers=%d empty_tier=%d group_checked=%d" % [ok_offers, empty_tier, group_checked])
 
 
