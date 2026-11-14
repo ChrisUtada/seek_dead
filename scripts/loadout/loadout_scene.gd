@@ -31,7 +31,6 @@ var _preview_box: VBoxContainer = null
 
 # ---- M2 棋盘试玩开关（灰盒期免命令行；只改本进程的 board_config，不写存档）----
 var _board_btn: Button = null
-var _grid_btn: Button = null
 
 # ---- G6-01 生涯成就面板（只读 meta，不改配装/存档）----
 var _career_btn: Button = null
@@ -375,62 +374,32 @@ func _build_board_toggle() -> void:
 	var idx: int = _preview_btn.get_index() if _preview_btn != null else confirm_btn.get_index()
 	_board_btn = Button.new()
 	_board_btn.add_theme_font_size_override("font_size", 9)
-	_board_btn.tooltip_text = "旧棋盘（25 节点 / 1D3）：点击开启，再点回到线性"
+	_board_btn.tooltip_text = "14×9 地图探索：点击开启，再点回到线性"
 	_board_btn.pressed.connect(_toggle_board_mode)
 	bar.add_child(_board_btn)
 	bar.move_child(_board_btn, idx)
-	_grid_btn = Button.new()
-	_grid_btn.add_theme_font_size_override("font_size", 9)
-	_grid_btn.tooltip_text = "4×4 扫雷棋盘（16 格 / 数字 / 自主开战）：点击开启，再点回到线性"
-	_grid_btn.pressed.connect(_toggle_grid_mode)
-	bar.add_child(_grid_btn)
-	bar.move_child(_grid_btn, _board_btn.get_index() + 1)
 	_refresh_board_toggle()
 
 
 func _toggle_board_mode() -> void:
 	var cfg = controller.board_config
-	var legacy_on: bool = cfg.is_active() and not cfg.use_grid()
-	if legacy_on:
+	if cfg.is_active():
 		cfg.enabled = false
 	else:
-		cfg.layout_mode = "legacy"
-		cfg.enabled = true
-	_refresh_board_toggle()
-	hud._log("棋盘模式：%s（确认开战后生效）" % _board_mode_name())
-
-
-# Step 7：整备页直接进入 4×4 扫雷棋盘（免命令行 --board --grid）。
-func _toggle_grid_mode() -> void:
-	var cfg = controller.board_config
-	var grid_on: bool = cfg.is_active() and cfg.use_grid()
-	if grid_on:
-		cfg.enabled = false
-	else:
-		cfg.layout_mode = "grid4x4"
 		cfg.enabled = true
 	_refresh_board_toggle()
 	hud._log("棋盘模式：%s（确认开战后生效）" % _board_mode_name())
 
 
 func _board_mode_name() -> String:
-	var cfg = controller.board_config
-	if not cfg.is_active():
-		return "线性"
-	return "4×4 扫雷" if cfg.use_grid() else "旧棋盘"
+	return "14×9 地图" if controller.board_config.is_active() else "线性"
 
 
 func _refresh_board_toggle() -> void:
-	var cfg = controller.board_config
-	var active: bool = cfg.is_active()
-	var grid: bool = active and cfg.use_grid()
-	var legacy: bool = active and not cfg.use_grid()
+	var active: bool = controller.board_config.is_active()
 	if _board_btn != null:
-		_board_btn.text = "🗺 旧棋盘✓" if legacy else "🗺 旧棋盘"
-		_board_btn.modulate = Color(1, 1, 1, 1.0) if legacy else Color(1, 1, 1, 0.65)
-	if _grid_btn != null:
-		_grid_btn.text = "💣 扫雷✓" if grid else "💣 扫雷"
-		_grid_btn.modulate = Color(1, 1, 1, 1.0) if grid else Color(1, 1, 1, 0.65)
+		_board_btn.text = "🗺 地图✓" if active else "🗺 地图"
+		_board_btn.modulate = Color(1, 1, 1, 1.0) if active else Color(1, 1, 1, 0.65)
 
 
 # ---------------------------------------------------------------------------

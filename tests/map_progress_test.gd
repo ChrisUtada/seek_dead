@@ -47,8 +47,6 @@ func _run() -> void:
 	await _frames(3)
 
 	var cfg = _duel.board_config
-	var dev_was: bool = bool(cfg.map_dev_override)
-	cfg.map_dev_override = true
 	var progress = load(PROGRESS)
 	var reward = load(REWARD)
 	var builder = load(BUILDER).new(_duel)
@@ -73,7 +71,6 @@ func _run() -> void:
 	print("=== I 来源记录一致 ===")
 	_test_source_records(progress, reward, data)
 
-	cfg.map_dev_override = dev_was
 	print("---")
 	print("PASSED %d / FAILED %d" % [_checks - _fails, _fails])
 	print("MAPPROG|RESULT %s (checks=%d fails=%d)" % [

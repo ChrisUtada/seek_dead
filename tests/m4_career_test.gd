@@ -307,26 +307,23 @@ func _test_run_summary(duel: DuelController) -> void:
 
 	# 棋盘路线：骨架/模板 + 已走节点分类计数。
 	var old_mode: bool = duel.node_mode
-	var old_shape = duel.board_config.shape_id
 	duel.node_mode = true
-	duel.board_config.shape_id = "standard"
 	duel.board.clear_summaries()
 	_check(duel.board.generate(duel.board_config), "测试棋盘可生成")
-	var marked := {"normal": false, "elite": false, "shop": false, "rest": false, "special": false}
+	var marked := {"battle": false, "elite": false, "shop": false, "rest": false, "special": false}
 	for n in duel.board.nodes:
 		var t := String(n.get("type", ""))
 		if marked.has(t) and not bool(marked[t]):
 			duel.board.consumed[String(n["id"])] = true
 			marked[t] = true
-		elif t in ["weapon", "charm", "treasure", "shrine", "armory"] and not bool(marked["special"]):
+		elif t in ["chest", "event", "armory"] and not bool(marked["special"]):
 			duel.board.consumed[String(n["id"])] = true
 			marked["special"] = true
 	var rl: String = rs.route_line()
-	_check(rl.contains("棋盘") and rl.contains("标准"), "局末总结显示棋盘骨架")
+	_check(rl.contains("棋盘") and rl.contains("14×9"), "局末总结显示 14×9 地图标识")
 	_check(rl.contains("战斗1") and rl.contains("精英1") and rl.contains("特殊1"), "局末总结按节点类型计数")
 	duel.board.reset()
 	duel.node_mode = old_mode
-	duel.board_config.shape_id = old_shape
 
 	# 线性路线：房型计数 + 终局 BOSS。
 	var ll: String = rs.route_line()

@@ -55,8 +55,7 @@ func _run() -> void:
 	await _frames(3)
 
 	var cfg = _duel.board_config
-	var dev_was: bool = bool(cfg.map_dev_override)
-	cfg.map_dev_override = true
+	cfg.enabled = true
 
 	print("=== A 相邻移动与非法输入 ===")
 	_test_move_adjacency()
@@ -75,7 +74,7 @@ func _run() -> void:
 	print("=== H 正式入口关闭与旧开关 ===")
 	_test_entry_gate(cfg)
 
-	cfg.map_dev_override = dev_was
+	cfg.enabled = false
 	print("---")
 	print("PASSED %d / FAILED %d" % [_checks - _fails, _fails])
 	print("MAPMOVE|RESULT %s (checks=%d fails=%d)" % [
@@ -397,21 +396,15 @@ func _test_save_restore() -> void:
 # ---------------------------------------------------------------------------
 
 func _test_entry_gate(cfg) -> void:
-	_check(not bool(cfg.map14x9_enabled), "正式入口 map14x9_enabled 默认关闭")
-	cfg.map_dev_override = false
-	_check(not cfg.map14x9_active(), "无开发标记时正式入口不激活")
-	cfg.map_dev_override = true
-	_check(cfg.map14x9_active(), "开发／AI 测试入口可提前激活")
-	cfg.map_dev_override = false
-
-	# Step 2 任务 6/7：本步不动旧双开关与旧模型入口。
-	_check(cfg.has_method("use_grid"), "layout_mode / use_grid() 双开关保留")
-	_check(String(cfg.layout_mode) == "legacy", "默认 layout_mode 仍是 legacy")
-	_check(not cfg.use_grid(), "默认不走 4×4 扫雷路径")
+	# 2026-11-14 收敛：双开关与开发门闸都已删除，只剩单一地图入口。
+	_check(not cfg.has_method("use_grid"), "use_grid() 双开关已删除")
+	_check(not ("layout_mode" in cfg), "layout_mode 已删除")
 	_check(cfg.has_method("is_active"), "board_config.is_active() 入口保留")
+	_check(int(cfg.map_seed) > 0, "固定地图种子 map_seed 在位")
 	_check(_duel.board != null and _duel.board.has_method("generate"),
-		"旧 BoardSystem 入口仍可用（未收敛）")
-	_check(not cfg.has_method("open_map14x9"), "产品侧没有开放正式入口的接口")
+		"BoardSystem 仍是 14×9 门面")
+	cfg.enabled = false
+	_check(not bool(cfg.enabled), "棋盘默认不在开局启用")
 
 
 # ---------------------------------------------------------------------------

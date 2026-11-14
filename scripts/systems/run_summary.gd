@@ -7,7 +7,8 @@ extends RefCounted
 # - 收藏基线在每局 _reset_run_state 时快照，只存在内存。
 # - 任一行返回空串表示该项没有可展示内容；展示顺序固定。
 
-const SHAPE_LABEL := {"standard": "标准", "long_tail": "长尾", "long_share": "延展"}
+const SHAPE_LABEL := {
+	"map14x9": "14×9 地图","standard": "标准", "long_tail": "长尾", "long_share": "延展"}
 const TEMPLATE_LABEL := {"standard": "常规", "mirror": "镜像", "elite_first": "精英前置",
 	"elite_upper": "上路精英前置", "elite_lower": "下路精英前置"}
 const MAX_NAMES := 3
@@ -185,7 +186,9 @@ func _board_count_text(b) -> String:
 	for id in b.consumed:
 		var n: Dictionary = b.by_id.get(String(id), {})
 		var t := String(n.get("type", ""))
-		if t == "normal":
+		# 14×9 地图的节点类型：battle / elite / boss / chest / armory / shop / rest / event。
+		# 旧类型名保留兼容，避免历史记录解析失败。
+		if t == "normal" or t == "battle":
 			normal += 1
 		elif t == "elite":
 			elite += 1
@@ -193,7 +196,7 @@ func _board_count_text(b) -> String:
 			shop += 1
 		elif t == "rest":
 			rest += 1
-		elif t in ["weapon", "charm", "treasure", "shrine", "armory"]:
+		elif t in ["chest", "event", "armory", "weapon", "charm", "treasure", "shrine"]:
 			special += 1
 	var parts: Array[String] = []
 	if normal > 0:

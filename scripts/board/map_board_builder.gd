@@ -102,7 +102,7 @@ func build(act: int, seed_value: int, total_acts: int = 1) -> Dictionary:
 			ns.append("m%d" % int(nb))
 		n["next"] = ns
 
-	_assign_rooms(nodes, act)
+	_assign_rooms(nodes, act, total_acts)
 	var used: Dictionary = {}
 	for n in nodes:
 		if TYPES.is_registered(String(n["type"])):
@@ -144,12 +144,21 @@ func _first_treasure_cell(contents: Dictionary) -> int:
 # 战斗房冻结：只从现有 resources/rooms/ 池取，不新增平行目录。
 # ---------------------------------------------------------------------------
 
-func _assign_rooms(nodes: Array, act: int) -> void:
+func _assign_rooms(nodes: Array, act: int, total_acts: int = 1) -> void:
 	var used: Dictionary = {}
 	for n in nodes:
 		var t: String = String(n["type"])
 		if t != "boss" and t != "elite":
 			continue
+		# 最后一幕的 BOSS 必须是真·最终房（勇者的阴影），由 (act, total_acts) 决定。
+		if t == "boss" and total_acts > 1 and act >= total_acts:
+			var fin: RoomData = _final_room()
+			if fin != null:
+				n["room"] = fin
+				n["ria"] = 7
+				n["title"] = String(fin.name)
+				used[fin.resource_path] = true
+				continue
 		var room: RoomData = _preferred_room(act, t)
 		if room == null:
 			room = _take(_pool(act, t), used)
@@ -194,6 +203,14 @@ func _assign_rooms(nodes: Array, act: int) -> void:
 		n["ria"] = mini(6, int(n["distance"]))
 		n["title"] = String(room.name)
 		used[room.resource_path] = true
+
+
+# 真·最终房（勇者的阴影）：独立于候选池，只在最后一幕的 BOSS 上使用。
+func _final_room() -> RoomData:
+	for room in _ctrl.ALL_ROOMS:
+		if room != null and bool(room.final_boss):
+			return room
+	return null
 
 
 func _pool(act: int, kind: String) -> Array:

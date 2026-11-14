@@ -31,7 +31,7 @@ const ICON := {
 }
 const PIECE_ICON = preload("res://assets/icons/16/board_piece.png")
 
-const NODE_H := 28.0
+const NODE_H := 22.0
 const STEP_SEC := 0.12
 
 # 节点位置由 BoardSystem.layout 决定（G4-02 两种骨架：标准 / 长尾）：
@@ -108,9 +108,9 @@ func configure(ctrl, h) -> void:
 	visible = false
 
 
-# 扫雷棋盘 Step 2：4×4 网格布局走独立的分支（不掷骰、点击相邻格探索）。
+# 单一路径（2026-11-14 收敛）：棋盘只有 14×9 一种布局，点击相邻格探索。
 func _is_grid() -> bool:
-	return board != null and bool(board.grid_mode)
+	return board != null
 
 
 func _build_ui() -> void:
@@ -434,19 +434,31 @@ func _ensure_buttons() -> void:
 	_layout_buttons()
 
 
-# 从 BoardSystem.layout 计算节点坐标：x = x0 + depth·dx，y = row_y[row]。
+# 14×9 布局：按 row/col 定位，镜头 9×7 跟随角色（§4.1，不整图入屏）。
+const MAP_ORIGIN := Vector2(8.0, 24.0)
+const MAP_AREA := Vector2(464.0, 168.0)
+
 func _apply_layout() -> void:
 	if board == null:
 		return
-	var layout: Dictionary = board.layout if not board.layout.is_empty() else DEFAULT_LAYOUT
-	_node_w = float(layout.get("node_w", DEFAULT_LAYOUT["node_w"]))
-	var x0: float = float(layout.get("x0", DEFAULT_LAYOUT["x0"]))
-	var dx: float = float(layout.get("dx", DEFAULT_LAYOUT["dx"]))
-	var rows: Array = layout.get("row_y", DEFAULT_LAYOUT["row_y"])
+	var cols: int = int(board.layout.get("cols", 14))
+	var rows_n: int = int(board.layout.get("rows", 9))
+	var cam_cols: int = int(board.layout.get("cam_cols", 9))
+	var cam_rows: int = int(board.layout.get("cam_rows", 7))
+	var cell: float = minf(MAP_AREA.x / float(cam_cols), MAP_AREA.y / float(cam_rows))
+	_node_w = cell - 2.0
+	var cam := Vector2i(0, 0)
+	if board.runtime != null:
+		cam = board.runtime.camera_origin()
+	var total := Vector2(cell * float(cam_cols), cell * float(cam_rows))
+	var origin := MAP_ORIGIN + (MAP_AREA - total) * 0.5
 	_pos.clear()
 	for n in board.nodes:
-		var row := clampi(int(n.get("row", 2)), 0, rows.size() - 1)
-		_pos[String(n["id"])] = Vector2(x0 + float(int(n["depth"])) * dx, float(rows[row]))
+		var col: int = int(n.get("col", 0)) - cam.x
+		var row: int = int(n.get("row", 0)) - cam.y
+		if col < 0 or col >= cam_cols or row < 0 or row >= cam_rows:
+			continue
+		_pos[String(n["id"])] = origin + Vector2(float(col) * cell, float(row) * cell)
 
 
 func _layout_buttons() -> void:
@@ -533,7 +545,9 @@ func refresh() -> void:
 	_piece.position = _piece_pos(String(board.current_id))
 	_piece.visible = true
 	var grid := _is_grid()
-	_advance_btn.visible = not grid
+	_advance_btn.visible = grid
+	_advance_btn.text = "⏳ 等待"
+	_advance_btn.disabled = _moving or _stepping
 	# 系统入口只在网格出现；主要探索仍是点击格子，避免误触。
 	if _build_btn != null:
 		_build_btn.visible = grid
@@ -550,7 +564,7 @@ func refresh() -> void:
 		elif _moving:
 			_dice_label.text = "移动中…"
 		else:
-			_dice_label.text = "数字 = 上下左右普通敌人数 · 点击相邻格探索"
+			_dice_label.text = "点击相邻格移动 · ⏳ 等待一回合"
 		_top_right.text = "HP %d/%d · 💰 %d · 已探索 %d/%d" % [
 			controller.player_hp, controller.player_hp_max, controller.gold,
 			board.visited_count(), board.node_count()]
@@ -816,7 +830,7 @@ func _draw_grid_art(font: Font) -> void:
 			var p := _node_pos(String(nx))
 			_art.draw_rect(Rect2(p - Vector2(3, 3), Vector2(_node_w + 6, NODE_H + 6)),
 				Color(0.84, 0.64, 0.24, 0.22))
-	_art_text(font, Vector2(8, 190), "数字 = 上下左右普通敌人数 · 点击相邻格探索", 7, Palette.MUTED_DIM)
+	_art_text(font, Vector2(8, 190), "点击相邻格移动 · ⏳ 等待 · 怪物下一步见右侧", 7, Palette.MUTED_DIM)
 	for n in board.nodes:
 		_draw_grid_node(String(n["id"]), _node_pos(String(n["id"])), font)
 
@@ -1061,7 +1075,15 @@ func _refresh_summary() -> void:
 
 func _on_advance() -> void:
 	if _is_grid():
-		return   # 扫雷棋盘没有「前进」按钮，探索由点击相邻格驱动
+		# 14×9：此按钮即「等待一回合」，怪物按预告行动一次（§2.2）。
+		if board == null or _moving or _stepping or not _pending_node.is_empty():
+			return
+		var waited: Dictionary = board.wait_here()
+		if not waited.is_empty():
+			_pending_node = waited
+			_confirm_layer.visible = true
+		refresh()
+		return
 	if board == null or _moving or _stepping or not _pending_node.is_empty():
 		return
 	if board.current_is_boss():

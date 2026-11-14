@@ -34,7 +34,6 @@ func _run() -> void:
 	await _frames(3)
 	var cfg = duel.board_config
 	var acts_was: int = int(cfg.acts)
-	var dev_was: bool = bool(cfg.map_dev_override)
 	var builder = load(BUILDER).new(duel)
 
 	print("=== A 配置驱动终局 ===")
@@ -47,7 +46,6 @@ func _run() -> void:
 	_test_dev_gate(cfg)
 
 	cfg.acts = acts_was
-	cfg.map_dev_override = dev_was
 	print("---")
 	print("PASSED %d / FAILED %d" % [_checks - _fails, _fails])
 	print("MAPACT|RESULT %s (checks=%d fails=%d)" % [
@@ -103,22 +101,23 @@ func _test_no_act_four(builder, duel: DuelController) -> void:
 func _test_legacy_intact(cfg, duel: DuelController) -> void:
 	# Step 0.5 自动出口：g7_run3_test / loot_explore_test / g8_loadout_layout_test 持续有效。
 	# 本步不收敛 board_system / board_screen / board_config，因此双开关与旧模型入口必须还在。
-	_check(cfg.has_method("use_grid"), "layout_mode / use_grid() 双开关保留")
-	_check(String(cfg.layout_mode) == "legacy", "默认 layout_mode 仍是 legacy")
-	_check(not cfg.use_grid(), "默认不走 4×4 扫雷路径")
+	# 2026-11-14 收敛：14×9 替换两套旧模型，双开关已删除，只保留单一地图入口。
+	_check(not cfg.has_method("use_grid"), "use_grid() 双开关已删除")
+	_check(not cfg.has_method("layout_mode") and not ("layout_mode" in cfg), "layout_mode 已删除")
 	_check(cfg.has_method("is_active"), "board_config.is_active() 入口保留")
-	_check(duel.board != null, "旧 BoardSystem 实例仍在")
-	_check(duel.board.has_method("generate"), "旧 BoardSystem.generate() 入口保留")
+	_check(int(cfg.map_seed) > 0, "固定地图种子 map_seed 在位（%d）" % int(cfg.map_seed))
+	_check(duel.board != null, "BoardSystem 实例仍在（14×9 门面）")
+	_check(duel.board.has_method("generate"), "BoardSystem.generate() 入口保留")
 
 
 func _test_dev_gate(cfg) -> void:
-	_check(not bool(cfg.map14x9_enabled), "正式入口 map14x9_enabled 默认关闭")
-	cfg.map_dev_override = false
-	_check(not cfg.map14x9_active(), "无开发标记时新地图入口不激活")
-	cfg.map_dev_override = true
-	_check(cfg.map14x9_active(), "开发／AI 测试入口可提前激活")
-	cfg.map_dev_override = false
-	_check(not cfg.map14x9_active(), "开发标记可复位，不写存档")
+	# 收敛后不再需要「开发入口」门闸：地图就是唯一路径，由 is_active() 控制开/关。
+	_check(not bool(cfg.enabled), "棋盘默认不在开局启用")
+	_check(not cfg.is_active(), "默认走线性房间")
+	cfg.enabled = true
+	_check(cfg.is_active(), "整备页可开启 14×9 地图")
+	cfg.enabled = false
+	_check(not cfg.is_active(), "可复位回线性，不写存档")
 
 
 func _check(ok: bool, what: String) -> void:

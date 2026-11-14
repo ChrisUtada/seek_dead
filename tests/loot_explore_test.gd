@@ -43,8 +43,7 @@ func _run() -> void:
 		return
 	var cfg = duel.board_config
 	var was_enabled: bool = bool(cfg.enabled)
-	var was_shape := String(cfg.shape_id)
-	var was_special := String(cfg.special_id)
+	var was_seed: int = int(cfg.map_seed)
 	cfg.enabled = true
 
 	_test_tag_coverage()
@@ -57,8 +56,7 @@ func _run() -> void:
 	_test_shop_category_config()
 
 	cfg.enabled = was_enabled
-	cfg.shape_id = was_shape
-	cfg.special_id = was_special
+	cfg.map_seed = was_seed
 
 
 func _boot() -> DuelController:
@@ -226,16 +224,17 @@ func _pick_sequence(duel: DuelController, seed_value: int) -> Array:
 
 
 func _board_item_sig(duel: DuelController) -> String:
+	# 2026-11-14 收敛：14×9 地图的探索节点类型为 chest / armory / shop。
 	var parts: Array[String] = []
 	for n in duel.board.nodes:
 		var t := String(n["type"])
-		if t == "weapon" or t == "charm":
-			parts.append("%s=%s" % [String(n["id"]), String(n.get("item_path", ""))])
-		elif t == "treasure":
+		if t == "chest":
 			parts.append("%s=%s|%s" % [String(n["id"]), String(n.get("treasure_kind", "")),
 				String(n.get("item_path", ""))])
 		elif t == "armory":
 			parts.append("%s=%s" % [String(n["id"]), str(n.get("armory_paths", []))])
+		elif t == "shop":
+			parts.append("%s=%s" % [String(n["id"]), str(n.get("shop_stock", []))])
 	return "|".join(parts)
 
 
@@ -247,15 +246,15 @@ func _test_same_seed_repro(duel: DuelController) -> void:
 	_check(a == b and not a.is_empty(), "探索专用 RNG 同种子可复现（%d 次）" % a.size())
 
 	var cfg = duel.board_config
-	cfg.shape_id = "standard"
-	cfg.special_id = "treasure"
-	seed(44004)
+	cfg.map_seed = 44004
 	duel.board.generate(cfg)
 	var sig1 := _board_item_sig(duel)
-	seed(44004)
 	duel.board.generate(cfg)
 	var sig2 := _board_item_sig(duel)
 	_check(sig1 != "" and sig1 == sig2, "同种子棋盘探索物品完全可复现")
+	cfg.map_seed = 44005
+	duel.board.generate(cfg)
+	_check(_board_item_sig(duel) != sig1, "换种子探索内容随之变化")
 
 
 # ---------------------------------------------------------------------------
@@ -264,8 +263,6 @@ func _test_same_seed_repro(duel: DuelController) -> void:
 
 func _test_frozen_board_content(duel: DuelController) -> void:
 	var cfg = duel.board_config
-	cfg.shape_id = ""
-	cfg.special_id = ""
 	var bad_path := 0
 	var relic_leak := 0
 	var unstable := 0
@@ -273,7 +270,7 @@ func _test_frozen_board_content(duel: DuelController) -> void:
 	var seen_armory := 0
 	for i in BOARD_SEEDS:
 		var s := 45000 + i
-		seed(s)
+		cfg.map_seed = s
 		duel.board.generate(cfg)
 		var sig1 := _board_item_sig(duel)
 		for n in duel.board.nodes:
@@ -281,7 +278,7 @@ func _test_frozen_board_content(duel: DuelController) -> void:
 			var paths: Array = []
 			if t == "weapon" or t == "charm":
 				paths.append(String(n.get("item_path", "")))
-			elif t == "treasure":
+			elif t == "chest":
 				seen_treasure += 1
 				if String(n.get("treasure_kind", "")) != "gold":
 					paths.append(String(n.get("item_path", "")))
@@ -297,7 +294,6 @@ func _test_frozen_board_content(duel: DuelController) -> void:
 					relic_leak += 1
 				if not ("chest" in _tags(sp)):
 					bad_path += 1
-		seed(s)
 		duel.board.generate(cfg)
 		if _board_item_sig(duel) != sig1:
 			unstable += 1

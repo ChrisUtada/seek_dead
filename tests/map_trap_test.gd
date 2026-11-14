@@ -57,8 +57,6 @@ func _run() -> void:
 	await _frames(3)
 
 	var cfg = _duel.board_config
-	var dev_was: bool = bool(cfg.map_dev_override)
-	cfg.map_dev_override = true
 
 	print("=== A 陷阱数据与公开性 ===")
 	_test_data()
@@ -79,7 +77,6 @@ func _run() -> void:
 	print("=== I 存档恢复含陷阱状态 ===")
 	_test_save_restore()
 
-	cfg.map_dev_override = dev_was
 	print("---")
 	print("PASSED %d / FAILED %d" % [_checks - _fails, _fails])
 	print("MAPTRAP|RESULT %s (checks=%d fails=%d)" % [
