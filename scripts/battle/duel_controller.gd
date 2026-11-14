@@ -980,8 +980,10 @@ func _ante_scale(r: RoomData, idx: int, ria_override: int = -1) -> Dictionary:
 func _on_board_node_entered(node: Dictionary) -> void:
 	if node.is_empty():
 		return
+	# 14×9 地图的节点类型是 battle / chest / event；旧名（normal / treasure / shrine）
+	# 保留在同一分支里，历史存档与旧骨架不会走进默认分支被弹回地图。
 	match String(node.get("type", "")):
-		"normal", "elite", "boss":
+		"battle", "normal", "elite", "boss":
 			if String(node.get("type", "")) == "elite" and _career != null:
 				_career.note_elite_route()   # G6-01：高危路线标记（击败 BOSS 时结算）
 			_start_board_battle(node)
@@ -989,9 +991,9 @@ func _on_board_node_entered(node: Dictionary) -> void:
 			_board_shop()
 		"rest":
 			_board_rest()
-		"treasure":
+		"chest", "treasure":
 			_board_treasure(node)
-		"shrine":
+		"event", "shrine":
 			_board_shrine(node)
 		"armory":
 			_board_armory(node)

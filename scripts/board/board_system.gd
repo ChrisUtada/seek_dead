@@ -272,6 +272,10 @@ func advance_to(id: String) -> Dictionary:
 		return {}
 	if not bool(res.get("ok", false)):
 		return {}
+	# 门面同步当前位置：棋子、确认层判断、右侧「当前局面」都以 current_id 为准。
+	# 漏掉这一步会让玩家移动后「当前位置」仍停在起点，确认层再点进入战斗时
+	# 被当成二次移动到同一格（same_cell）直接拒绝。
+	current_id = id
 	# 回访判定看「该格此前是否已访问过」，覆盖通路 / 战斗格等所有类型。
 	last_move_revisit = int(runtime.visits.get(cell, 0)) > 1
 	var node: Dictionary = node_by_id(id)
