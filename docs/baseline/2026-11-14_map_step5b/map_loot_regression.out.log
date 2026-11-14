@@ -1,0 +1,103 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+WARNING: res://scenes/ui/loadout_scene.tscn:9 - ext_resource, invalid UID: uid://dbrhpr1f4bp17 - using text path instead: res://assets/camp_bg.png
+   at: load (scene/resources/resource_format_text.cpp:501)
+铁砧元进度已载入：点数 0
+已为你预选默认配装（可自由调整后再开战）
+=== A 节点类型注册表 ===
+PASS  所有内容节点都在注册表内（越界 0）
+PASS  每个注册类型都有 legacy_type 结算映射（缺 0）
+PASS  battle 12（12）
+PASS  elite 3（3）
+PASS  boss 1（1）
+PASS  chest 3（3）
+PASS  armory 1（1）
+PASS  shop 1（1）
+PASS  rest 2（2）
+PASS  event 4（4）
+PASS  start 1（1）
+PASS  通路 33（33）
+PASS  注册表类型 battle 在地图上真实出现
+PASS  注册表类型 elite 在地图上真实出现
+PASS  注册表类型 boss 在地图上真实出现
+PASS  注册表类型 chest 在地图上真实出现
+PASS  注册表类型 armory 在地图上真实出现
+PASS  注册表类型 shop 在地图上真实出现
+PASS  注册表类型 rest 在地图上真实出现
+PASS  注册表类型 event 在地图上真实出现
+=== B 真实来源映射 ===
+PASS  source 字段与注册表一致（异常 0）
+PASS  shop 不伪装成宝箱、不生成装备（异常 0）
+PASS  rest 不生成装备（异常 0）
+PASS  event 走独立配置、不生成装备（异常 0）
+PASS  chest 来源固定为 chest
+PASS  armory 来源固定为 armory
+PASS  shop 来源不等于 chest
+=== C 探索字段合法 ===
+PASS  treasure_kind 只取真实类别（异常 0）
+PASS  chest 的 item_path 是存在的真实资源（异常 0）
+PASS  chest 不冻结 BOSS 信物（泄漏 0）
+PASS  样本覆盖宝箱与武器藏库（chest 3 / armory 1）
+PASS  armory_paths 是两把互不重复的真实武器（异常 0）
+PASS  event 使用独立 shrine 配置（异常 0）
+=== D 冻结与一次性结算口径 ===
+PASS  同 (seed, act, total_acts) 探索字段完全冻结
+PASS  不同 seed 可区分（探索内容随 seed 变化）
+PASS  地形与节点类型布局不随 seed 变
+PASS  节点不写运行时消耗状态，撤回／回访由上层一次性结算（泄漏 0）
+PASS  内容生成时冻结标记在位
+=== E 冻结的奖励内容（chest / armory / shop / rest / event） ===
+PASS  宝箱 3 项都冻结了内容（金币 0 / 物品 3）
+PASS  金币宝箱冻结 gold_amount、物品宝箱不带金额（异常 0）
+PASS  商店 1 个（1）
+PASS  商店货架冻结且非空（6 件）
+PASS  商店货架无空条目、无重复（异常 0）
+PASS  休整 2 个（2）
+PASS  休整冻结回血比例（异常 0）
+=== F 结算语义分离与无落空奖励 ===
+PASS  所有内容节点都有非空结算文案（缺失 0）
+PASS  chest 为免费授予 item/active/gold（active）
+PASS  armory 为 2 选 1（choose_one）
+PASS  shop 为付费购买（purchase）
+PASS  rest 为回血（heal）
+PASS  event 走独立配置（shrine）
+PASS  battle 为战斗结算
+PASS  shop 与 chest 结算模式不同，未为兼容旧测试统一
+PASS  商店不能免费赠予
+PASS  商店使用现有商店计价
+PASS  奖励合法性校验无错误（[]）
+PASS  商店携带赠予字段时报伪来源
+PASS  商店货架为空时报落空奖励
+PASS  空类型节点被拒
+PASS  错误来源被拒
+=== G 一次性结算 / 回访 / 撤回 / 查看 ===
+PASS  地图上存在宝箱与藏库
+PASS  结算预览给出模式
+PASS  预览与查看不改变状态
+PASS  可沿合法路径走到宝箱
+PASS  首次结算该宝箱记 1 条流水（0 → 1）
+PASS  实际结算模式与预览一致
+PASS  宝箱结算免费
+PASS  回访不新增结算流水
+PASS  宝箱仍标记已消耗
+PASS  可沿合法路径走到藏库
+PASS  藏库结算挂起 2 选 1
+PASS  藏库给出 2 个选项（2）
+PASS  越界选择被拒绝
+PASS  合法选择成功
+PASS  发放的是所选那把武器
+PASS  选择后挂起状态清空
+PASS  选择只记 1 条流水
+PASS  同一藏库不能重复领取
+PASS  撤回整备返回成功
+PASS  撤回不发放未结算奖励
+PASS  撤回不推进回合
+PASS  撤回不回收已结算内容
+PASS  撤回清空待战节点
+---
+PASSED 83 / FAILED 0
+MAPLOOT|RESULT PASS (checks=83 fails=0)
+WARNING: 4 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2535)
+ERROR: 2 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:822)

@@ -1,0 +1,35 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+WARNING: res://scenes/ui/loadout_scene.tscn:9 - ext_resource, invalid UID: uid://dbrhpr1f4bp17 - using text path instead: res://assets/camp_bg.png
+   at: load (scene/resources/resource_format_text.cpp:501)
+铁砧元进度已载入：点数 0
+已为你预选默认配装（可自由调整后再开战）
+PASS  全部武器带 chest 标签（90 件，缺 0）
+PASS  非信物护符带 chest 标签（30 件，缺 0）
+PASS  BOSS 信物不带 chest 标签（泄漏 0）
+PASS  全部消耗品带 chest 标签（25 件，缺 0）
+PASS  技能不进探索来源（误标 0）
+PASS  探索抽取全部合法（2700 次，非法 0 / 空 0）
+PASS  探索武器 common 占比 0.344 ≈ chest 表 0.350
+PASS  探索武器 uncommon 占比 0.403 ≈ chest 表 0.400
+PASS  探索武器 rare 占比 0.223 ≈ chest 表 0.220
+PASS  探索武器 epic 占比 0.030 ≈ chest 表 0.030
+PASS  探索品质不读普通战表（rare 0.223 vs normal 0.050）
+PASS  探索专用 RNG 同种子可复现（36 次）
+PASS  同种子棋盘探索物品完全可复现
+PASS  棋盘探索物品全部来自 chest 来源（异常 0）
+PASS  棋盘探索永不冻结 BOSS 信物（泄漏 0）
+PASS  同种子重生成物品路径不变（不稳定 0 / 60）
+PASS  样本覆盖宝箱与武器藏库（宝箱 25 / 藏库 20）
+PASS  探索抽取不消耗全局 RNG
+PASS  技能类别在探索来源为空 → 明确返回空
+PASS  act1 商店类别序列 6 格且与品质阶梯对齐
+PASS  act2 商店类别序列 6 格且与品质阶梯对齐
+PASS  act3 商店类别序列 6 格且与品质阶梯对齐
+PASS  非法幕次商店类别为空
+---
+LOOTEXPLORE|RESULT PASS (checks=23 fails=0)
+WARNING: 4 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2535)
+ERROR: 2 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:822)

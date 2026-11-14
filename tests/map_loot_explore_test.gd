@@ -14,6 +14,9 @@ extends Node
 const DUEL_SCENE := "res://scenes/duel/duel.tscn"
 const BUILDER := "res://scripts/board/map_board_builder.gd"
 const TYPES := "res://scripts/board/map_node_types.gd"
+const REWARD := "res://scripts/board/map_reward.gd"
+const RUNTIME := "res://scripts/board/map_runtime.gd"
+const MAP_GRID := preload("res://scripts/board/map_grid.gd")
 const SEED := 20261110
 
 var _checks := 0
@@ -46,6 +49,12 @@ func _run() -> void:
 	_test_explore_fields(data)
 	print("=== D 冻结与一次性结算口径 ===")
 	_test_freeze(builder, data)
+	print("=== E 冻结的奖励内容（chest / armory / shop / rest / event） ===")
+	_test_frozen_content(data, types)
+	print("=== F 结算语义分离与无落空奖励 ===")
+	_test_settle_semantics(data)
+	print("=== G 一次性结算 / 回访 / 撤回 / 查看 ===")
+	_test_once_only(duel, data)
 
 	print("---")
 	print("PASSED %d / FAILED %d" % [_checks - _fails, _fails])
@@ -170,15 +179,204 @@ func _test_freeze(builder, data: Dictionary) -> void:
 	_check(bool(data["by_id"][data["boss_id"]]["frozen"]), "内容生成时冻结标记在位")
 
 
+# Step 5A 任务 2：宝箱 / 藏库 / 商店 / 事件的奖励内容必须当场冻结，不留空字段。
+func _test_frozen_content(data: Dictionary, _types) -> void:
+	var chest_gold := 0
+	var chest_item := 0
+	var shop_nodes := 0
+	var rest_nodes := 0
+	var bad_gold := 0
+	var bad_shop := 0
+	var bad_rest := 0
+	var stock_size := 0
+	for n in data["nodes"]:
+		match String(n["type"]):
+			"chest":
+				var kind := String(n.get("treasure_kind", ""))
+				if kind == "gold":
+					chest_gold += 1
+					if int(n.get("gold_amount", 0)) <= 0:
+						bad_gold += 1
+				else:
+					chest_item += 1
+					if int(n.get("gold_amount", 0)) != 0:
+						bad_gold += 1
+			"shop":
+				shop_nodes += 1
+				var seen: Dictionary = {}
+				for entry in n.get("shop_stock", []):
+					var p := String(entry.get("path", ""))
+					stock_size += 1
+					if p == "" or seen.has(p):
+						bad_shop += 1
+					seen[p] = true
+			"rest":
+				rest_nodes += 1
+				if float(n.get("rest_heal_pct", 0.0)) <= 0.0:
+					bad_rest += 1
+	_check(chest_gold + chest_item == 3, "宝箱 3 项都冻结了内容（金币 %d / 物品 %d）" % [chest_gold, chest_item])
+	_check(bad_gold == 0, "金币宝箱冻结 gold_amount、物品宝箱不带金额（异常 %d）" % bad_gold)
+	_check(shop_nodes == 1, "商店 1 个（%d）" % shop_nodes)
+	_check(stock_size > 0, "商店货架冻结且非空（%d 件）" % stock_size)
+	_check(bad_shop == 0, "商店货架无空条目、无重复（异常 %d）" % bad_shop)
+	_check(rest_nodes == 2, "休整 2 个（%d）" % rest_nodes)
+	_check(bad_rest == 0, "休整冻结回血比例（异常 %d）" % bad_rest)
+
+
+# Step 5A 任务 3：chest 与 shop 结算语义必须不同，且不允许出现落空奖励。
+func _test_settle_semantics(data: Dictionary) -> void:
+	var reward = load(REWARD)
+	var modes: Dictionary = {}
+	var blank_text := 0
+	for n in data["nodes"]:
+		var t := String(n["type"])
+		if t == "path" or t == "start":
+			continue
+		var p: Dictionary = reward.plan(n)
+		modes[t] = String(p.get("mode", ""))
+		if String(reward.describe(p)) == "":
+			blank_text += 1
+	_check(blank_text == 0, "所有内容节点都有非空结算文案（缺失 %d）" % blank_text)
+	# 逐类型语义（同一类型取首个节点判定，其余由 validate 全量扫描）。
+	_check(String(modes.get("chest", "")) in ["item", "active", "gold"],
+		"chest 为免费授予 item/active/gold（%s）" % String(modes.get("chest", "")))
+	_check(String(modes.get("armory", "")) == "choose_one", "armory 为 2 选 1（%s）" % String(modes.get("armory", "")))
+	_check(String(modes.get("shop", "")) == "purchase", "shop 为付费购买（%s）" % String(modes.get("shop", "")))
+	_check(String(modes.get("rest", "")) == "heal", "rest 为回血（%s）" % String(modes.get("rest", "")))
+	_check(String(modes.get("event", "")) == "shrine", "event 走独立配置（%s）" % String(modes.get("event", "")))
+	_check(String(modes.get("battle", "")) == "battle", "battle 为战斗结算")
+	_check(String(modes.get("shop", "")) != String(modes.get("chest", "")),
+		"shop 与 chest 结算模式不同，未为兼容旧测试统一")
+	for n in data["nodes"]:
+		if String(n["type"]) != "shop":
+			continue
+		var p: Dictionary = reward.plan(n)
+		_check(not bool(p.get("free", true)), "商店不能免费赠予")
+		_check(String(p.get("pricing", "")) == "shop", "商店使用现有商店计价")
+	var errs: Array = reward.validate(data)
+	_check(errs.is_empty(), "奖励合法性校验无错误（%s）" % str(errs.slice(0, 3)))
+
+	# 三类反例必须被拒：商店伪装宝箱 / 空货架 / 空类型。
+	var shop_node: Dictionary = {}
+	for n in data["nodes"]:
+		if String(n["type"]) == "shop":
+			shop_node = n
+	var fake: Dictionary = shop_node.duplicate(true)
+	fake["item_path"] = "res://resources/weapon_templates/acid_flask.tres"
+	_check(not reward.validate({"nodes": [fake]}).is_empty(), "商店携带赠予字段时报伪来源")
+	var empty_stock: Dictionary = shop_node.duplicate(true)
+	empty_stock["shop_stock"] = []
+	_check(not reward.validate({"nodes": [empty_stock]}).is_empty(), "商店货架为空时报落空奖励")
+	var blank: Dictionary = {"id": "x", "type": "", "source": ""}
+	_check(not reward.validate({"nodes": [blank]}).is_empty(), "空类型节点被拒")
+	var wrong_source: Dictionary = {"id": "y", "type": "chest", "source": "shop",
+		"treasure_kind": "gold", "gold_amount": 15}
+	_check(not reward.validate({"nodes": [wrong_source]}).is_empty(), "错误来源被拒")
+
+
+# Step 5A 出口：查看 / 回访 / 撤回都不重抽、不重复获得。
+func _test_once_only(duel: DuelController, data: Dictionary) -> void:
+	var rt = load(RUNTIME).create(duel, 1, SEED, 3, false)
+	var chest_cell := -1
+	var armory_cell := -1
+	for n in data["nodes"]:
+		var t := String(n["type"])
+		if t == "chest" and chest_cell < 0:
+			chest_cell = int(n["cell_id"])
+		elif t == "armory" and armory_cell < 0:
+			armory_cell = int(n["cell_id"])
+	_check(chest_cell >= 0 and armory_cell >= 0, "地图上存在宝箱与藏库")
+
+	var preview: Dictionary = rt.grant_preview(chest_cell)
+	_check(String(preview.get("mode", "")) != "", "结算预览给出模式")
+	var sig_before: String = rt.signature()
+	rt.grant_preview(chest_cell)
+	rt.view(chest_cell)
+	rt.view(armory_cell)
+	_check(rt.signature() == sig_before, "预览与查看不改变状态")
+
+	var log_before: int = _grants_for(rt, chest_cell)
+	_check(_walk(rt, chest_cell), "可沿合法路径走到宝箱")
+	_check(_grants_for(rt, chest_cell) == log_before + 1,
+		"首次结算该宝箱记 1 条流水（%d → %d）" % [log_before, _grants_for(rt, chest_cell)])
+	var g: Dictionary = _grant_at(rt, chest_cell)
+	_check(String(g.get("mode", "")) == String(preview.get("mode", "")), "实际结算模式与预览一致")
+	_check(bool(g.get("free", false)), "宝箱结算免费")
+
+	var away: Array = MAP_GRID.neighbors(rt.grid, chest_cell)
+	if not away.is_empty():
+		rt.try_move(int(away[0]))
+	var after_first: int = _grants_for(rt, chest_cell)
+	_walk(rt, chest_cell)
+	_check(_grants_for(rt, chest_cell) == after_first, "回访不新增结算流水")
+	_check(rt.is_consumed(chest_cell), "宝箱仍标记已消耗")
+
+	_check(_walk(rt, armory_cell), "可沿合法路径走到藏库")
+	_check(not rt.pending_choice.is_empty(), "藏库结算挂起 2 选 1")
+	var options: Array = rt.pending_choice.get("options", [])
+	_check(options.size() == 2, "藏库给出 2 个选项（%d）" % options.size())
+	var bad_pick: Dictionary = rt.choose_armory(armory_cell, 5)
+	_check(not bool(bad_pick["ok"]), "越界选择被拒绝")
+	var before_choice: int = rt.grants.size()
+	var pick: Dictionary = rt.choose_armory(armory_cell, 0)
+	_check(bool(pick["ok"]), "合法选择成功")
+	_check(String(pick["path"]) == String(options[0]), "发放的是所选那把武器")
+	_check(rt.pending_choice.is_empty(), "选择后挂起状态清空")
+	_check(rt.grants.size() == before_choice + 1, "选择只记 1 条流水")
+	_check(not bool(rt.choose_armory(armory_cell, 1)["ok"]), "同一藏库不能重复领取")
+
+	var turn_before: int = rt.turn
+	var consumed_before: int = rt.consumed.size()
+	var w: Dictionary = rt.withdraw()
+	_check(bool(w["ok"]), "撤回整备返回成功")
+	_check(not bool(w["granted"]), "撤回不发放未结算奖励")
+	_check(rt.turn == turn_before, "撤回不推进回合")
+	_check(rt.consumed.size() == consumed_before, "撤回不回收已结算内容")
+	_check(rt.pending_battle.is_empty(), "撤回清空待战节点")
+
+
+func _grants_for(rt, cell: int) -> int:
+	var n := 0
+	for g in rt.grants:
+		if int(g.get("cell", -1)) != cell:
+			continue
+		var mode := String(g.get("mode", ""))
+		if mode == "chosen" or mode == "declined":
+			continue
+		n += 1
+	return n
+
+
+func _grant_at(rt, cell: int) -> Dictionary:
+	for g in rt.grants:
+		if int(g.get("cell", -1)) == cell:
+			return g
+	return {}
+
+
+func _walk(rt, target: int) -> bool:
+	var path: Array = MAP_GRID.reachable(rt.grid, rt.player_cell, target)
+	if path.is_empty():
+		return false
+	for i in range(1, path.size()):
+		var r: Dictionary = rt.try_move(int(path[i]))
+		if not bool(r["ok"]):
+			return false
+		if String(r["settled"].get("kind", "")) == "battle":
+			rt.take_pending_battle()
+	return rt.player_cell == target
+
+
 func _signature(data: Dictionary) -> String:
 	var parts: Array[String] = []
 	for n in data["nodes"]:
 		var r: RoomData = n.get("room")
-		parts.append("%s:%s:%s:%s:%s:%s:%s" % [
+		parts.append("%s:%s:%s:%s:%s:%s:%s:%s:%s:%s" % [
 			String(n["id"]), String(n["type"]), str(n.get("variant", -1)),
 			r.resource_path if r != null else "",
 			String(n.get("treasure_kind", "")), String(n.get("item_path", "")),
-			str(n.get("armory_paths", []))])
+			str(n.get("armory_paths", [])), str(n.get("shop_stock", [])),
+			str(n.get("rest_heal_pct", "")), str(n.get("gold_amount", ""))])
 	return "|".join(parts)
 
 

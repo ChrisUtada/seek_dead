@@ -11,6 +11,8 @@ extends RefCounted
 # - 所有探索字段都从现有 LootSourceTable / RewardSystem 取真实路径，同 seed 可复现。
 # ============================================================================
 
+const MAP_REWARD = preload("res://scripts/board/map_reward.gd")
+
 # source = 真实奖励来源；settlement = 既有结算函数语义；legacy = 旧类型映射。
 const TYPES := {
 	"battle": {"label": "普通战斗", "source": "room", "settlement": "battle", "legacy": "normal", "icon": "⚔"},
@@ -83,10 +85,12 @@ static func fill_explore_fields(node: Dictionary, ctrl, act: int,
 			var cat: String = String({"weapon": "weapon", "charm": "passive", "active": "active"}[kind])
 			var path := String(ctrl._reward_system.pick_explore_loot(cat, act, rng, used.keys()))
 			if path == "":
+				# 出口要求「没有落空奖励」：抽不到就明确冻结成金币，且金额当场写死。
 				kind = "gold"
 				path = ""
 			node["treasure_kind"] = kind
 			node["item_path"] = path
+			node["gold_amount"] = MAP_REWARD.CHEST_GOLD if kind == "gold" else 0
 			if path != "":
 				used[path] = true
 		"armory":
@@ -101,8 +105,15 @@ static func fill_explore_fields(node: Dictionary, ctrl, act: int,
 			node["armory_paths"] = paths
 			for p in paths:
 				used[String(p)] = true
-		"shop", "rest":
-			# 不伪装成宝箱：不写 treasure_kind / item_path / armory_paths。
+		"shop":
+			# Step 5A 任务 2/3：商店货架在生成时冻结，结算一律付费，绝不伪装成宝箱赠予。
+			node["shop_stock"] = _freeze_shop_stock(ctrl, act, used, rng)
+			node["treasure_kind"] = ""
+			node["item_path"] = ""
+			node["armory_paths"] = []
+		"rest":
+			# 不伪装成宝箱：不写 treasure_kind / item_path / armory_paths，只冻结回血比例。
+			node["rest_heal_pct"] = MAP_REWARD.REST_HEAL_PCT
 			node["treasure_kind"] = ""
 			node["item_path"] = ""
 			node["armory_paths"] = []
@@ -114,3 +125,26 @@ static func fill_explore_fields(node: Dictionary, ctrl, act: int,
 			node["treasure_kind"] = ""
 			node["item_path"] = ""
 			node["armory_paths"] = []
+
+
+# 商店货架冻结：走现有 shop 阶梯（LootSourceTable 的 shop 层级与类别），
+# 排除地图已发放的物品与当前配装；RNG 由地图种子驱动，保证同 seed 完全冻结。
+static func _freeze_shop_stock(ctrl, act: int, used: Dictionary,
+		rng: RandomNumberGenerator) -> Array:
+	var stock: Array = []
+	var excludes: Array = used.keys()
+	excludes.append_array(ctrl.selected_loadout)
+	var ladder: Array = ctrl._reward_system.roll_shop_ladder(
+		act, {"exclude": excludes, "rng": rng})
+	for raw in ladder:
+		if not (raw is Dictionary):
+			continue
+		var entry: Dictionary = raw
+		if not bool(entry.get("ok", false)):
+			continue
+		var p := String(entry.get("path", ""))
+		if p == "" or used.has(p):
+			continue
+		stock.append({"quality": String(entry.get("quality", "")), "path": p})
+		used[p] = true
+	return stock

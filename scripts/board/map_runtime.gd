@@ -21,6 +21,8 @@ const MAP_TYPES = preload("res://scripts/board/map_node_types.gd")
 const MAP_BUILDER = preload("res://scripts/board/map_board_builder.gd")
 const MAP_PATROL = preload("res://scripts/board/map_patrol.gd")
 const MAP_TRAP = preload("res://scripts/board/map_trap.gd")
+const MAP_REWARD = preload("res://scripts/board/map_reward.gd")
+const MAP_PROGRESS = preload("res://scripts/board/map_progress.gd")
 
 const SAVE_VERSION := 1
 
@@ -73,6 +75,14 @@ var contacts: Array = []
 # cell_id -> {"patrol": id, "turn": 回合, "consumed": 是否已被某场战斗结算}
 var trap_state: Dictionary = {}
 var trap_triggers: Array = []
+# Step 5A：结算流水与待选择（藏库 2 选 1）。
+var grants: Array = []
+var pending_choice: Dictionary = {}
+var withdraws: Array = []
+# Step 5B：已结算的战斗（cell_id -> {turn, kind, victory}），保证每场只结算一次。
+var battles: Dictionary = {}
+# 开发入口需要委托现有系统生成奖励卡，故持有 ctrl（可为空，纯数据测试不受影响）。
+var ctrl = null
 # Step 3 巡逻钩子：每次回合推进 +1。
 var patrol_ticks: int = 0
 
@@ -90,11 +100,12 @@ static func create(ctrl, act: int, seed_value: int, total_acts: int = 1,
 		with_patrols: bool = false):
 	var builder = MAP_BUILDER.new(ctrl)
 	var rt = new()
-	rt.setup(builder.build(act, seed_value, total_acts), with_patrols)
+	rt.setup(builder.build(act, seed_value, total_acts), with_patrols, ctrl)
 	return rt
 
 
-func setup(board_data: Dictionary, with_patrols: bool = false) -> void:
+func setup(board_data: Dictionary, with_patrols: bool = false, owner = null) -> void:
+	ctrl = owner
 	board = board_data
 	grid = board_data.get("grid", {})
 	cols = int(board_data.get("cols", MAP_GRID.COLS))
@@ -115,6 +126,10 @@ func setup(board_data: Dictionary, with_patrols: bool = false) -> void:
 	patrol_enabled = with_patrols
 	trap_state.clear()
 	trap_triggers.clear()
+	grants.clear()
+	pending_choice.clear()
+	withdraws.clear()
+	battles.clear()
 	if with_patrols:
 		for p in board_data.get("patrols", []):
 			patrols.append({
@@ -345,6 +360,65 @@ func trap_triggers_count() -> int:
 	return trap_triggers.size()
 
 
+# ---------------------------------------------------------------------------
+# 奖励结算（§6 Step 5A：chest 免费 / shop 付费 / armory 2 选 1 / rest·event 独立配置）
+# ---------------------------------------------------------------------------
+
+# 只读预览：该格若结算会得到什么。不结算、不写状态。
+func grant_preview(cell: int) -> Dictionary:
+	var node: Dictionary = node_at(cell)
+	if node.is_empty():
+		return {}
+	var type := String(node.get("type", ""))
+	if type == "" or type == MAP_TYPES.PATH or type == MAP_TYPES.START:
+		return {}
+	var grant: Dictionary = MAP_REWARD.plan(node)
+	grant["text"] = MAP_REWARD.describe(grant)
+	grant["consumed"] = is_consumed(cell)
+	return grant
+
+
+# 藏库 2 选 1：index 越界或未挂起选择时返回失败，不发放任何东西。
+func choose_armory(cell: int, index: int) -> Dictionary:
+	if pending_choice.is_empty() or int(pending_choice.get("cell", -1)) != cell:
+		return {"ok": false, "reason": "no_pending_choice"}
+	var options: Array = pending_choice.get("options", [])
+	if index < 0 or index >= options.size():
+		return {"ok": false, "reason": "index_out_of_range"}
+	var path := String(options[index])
+	pending_choice = {}
+	grants.append({"turn": turn, "cell": cell, "type": MAP_REWARD.TYPE_ARMORY,
+		"mode": "chosen", "free": true, "path": path})
+	return {"ok": true, "path": path}
+
+
+# 放弃藏库选择：不发放武器（与旧地图「跳过」一致），节点已消耗。
+func decline_choice(cell: int) -> Dictionary:
+	if pending_choice.is_empty() or int(pending_choice.get("cell", -1)) != cell:
+		return {"ok": false, "reason": "no_pending_choice"}
+	pending_choice = {}
+	grants.append({"turn": turn, "cell": cell, "type": MAP_REWARD.TYPE_ARMORY,
+		"mode": "declined", "free": true})
+	return {"ok": true, "declined": true}
+
+
+# 撤回整备（§2.2）：不发放未结算奖励、不推进回合、不回收已结算内容。
+func withdraw() -> Dictionary:
+	var dropped: Dictionary = pending_battle
+	var dropped_choice: Dictionary = pending_choice
+	pending_battle = {}
+	pending_choice = {}
+	withdraws.append({
+		"turn": turn,
+		"battle": String(dropped.get("id", "")),
+		"choice_cell": int(dropped_choice.get("cell", -1)),
+	})
+	return {
+		"ok": true, "turn": turn, "player_cell": player_cell,
+		"granted": false, "consumed_kept": consumed.size(),
+	}
+
+
 # 战斗返回：清除待战节点；击败则巡逻怪退场，地图状态保持可解释。
 func resolve_contact(defeated: bool) -> void:
 	var node: Dictionary = pending_battle
@@ -360,6 +434,40 @@ func resolve_contact(defeated: bool) -> void:
 
 
 # ---------------------------------------------------------------------------
+# 战斗结算（§6 Step 5B：普通 / 精英 / BOSS 分流，且每场只结算一次）
+# ---------------------------------------------------------------------------
+
+func has_pending_battle() -> bool:
+	return not pending_battle.is_empty()
+
+
+# victory=false 表示战败：节点照样消耗，但不发奖励、不发历练。
+func resolve_battle(victory: bool) -> Dictionary:
+	if pending_battle.is_empty():
+		return {"ok": false, "reason": "no_pending_battle"}
+	var node: Dictionary = pending_battle
+	var cell: int = int(node.get("cell_id", -1))
+	if battles.has(cell):
+		# 同一场已经结算过：丢弃重复请求，不二次发奖。
+		pending_battle = {}
+		return {"ok": false, "reason": "already_resolved"}
+	pending_battle = {}
+	var kind := MAP_PROGRESS.kind_of(node)
+	var content_type := String(node.get("type", ""))
+	if cell >= 0 and (content_type == "battle" or content_type == "elite" or content_type == "boss"):
+		consumed[cell] = true
+	battles[cell] = {"turn": turn, "kind": kind, "victory": victory}
+	var out := {
+		"ok": true, "cell": cell, "kind": kind, "victory": victory,
+		"reward": {}, "applied": {},
+	}
+	if victory:
+		out["reward"] = MAP_PROGRESS.build(node, ctrl)
+		out["applied"] = MAP_PROGRESS.apply_victory(node, ctrl)
+	return out
+
+
+# ---------------------------------------------------------------------------
 # 只读操作（§2.2 查看目标 / 查看构筑；不推进回合、不改 RNG、不改内容）
 # ---------------------------------------------------------------------------
 
@@ -372,6 +480,9 @@ func view(cell: int) -> Dictionary:
 		label = "通路"
 	elif type == MAP_TYPES.START:
 		label = "起点"
+	var grant_text := ""
+	if not node.is_empty() and type != MAP_TYPES.PATH and type != MAP_TYPES.START:
+		grant_text = MAP_REWARD.describe(MAP_REWARD.plan(node))
 	return {
 		"cell": cell,
 		"walkable": bool(c.get("walkable", false)),
@@ -386,6 +497,7 @@ func view(cell: int) -> Dictionary:
 		"final": bool(node.get("final", false)),
 		"trap": MAP_TRAP.is_trap_cell(grid, cell),
 		"trap_type": String(MAP_TRAP.trap_at(grid, cell).get("type", "")),
+		"grant_text": grant_text,
 	}
 
 
@@ -482,6 +594,7 @@ func to_dict() -> Dictionary:
 		"patrol_ticks": patrol_ticks,
 		"patrol_enabled": patrol_enabled,
 		"patrols": pstate,
+		"battles": _battle_rows(),
 		"consumed": _sorted_keys(consumed),
 		"visits": _string_keys(visits),
 		"encounters": _string_keys(encounters),
@@ -538,6 +651,20 @@ func from_dict(d: Dictionary) -> bool:
 	settled_log.clear()
 	pending_battle.clear()
 	contacts.clear()
+	# 战斗结算恢复：只恢复「哪一场已经打过」，不重放奖励。
+	battles.clear()
+	for raw in d.get("battles", []):
+		if not (raw is Dictionary):
+			continue
+		var entry: Dictionary = raw
+		var bcell: int = int(entry.get("cell", -1))
+		if bcell < 0:
+			continue
+		battles[bcell] = {
+			"turn": int(entry.get("turn", 0)),
+			"kind": String(entry.get("kind", "")),
+			"victory": bool(entry.get("victory", false)),
+		}
 	return true
 
 
@@ -554,6 +681,7 @@ func signature() -> String:
 			1 if bool(p.get("trap_armed", false)) else 0,
 			1 if bool(p.get("trap_used", false)) else 0])
 	parts.append("n=%d" % contacts.size())
+	parts.append("b=%d" % battles.size())
 	var vkeys: Array = visits.keys()
 	vkeys.sort()
 	for k in vkeys:
@@ -690,14 +818,30 @@ func _settle(cell: int) -> Dictionary:
 		return {"cell": cell, "type": type, "kind": "battle", "node": node}
 	if consumed.has(cell):
 		# 回访：只移动，不发奖、不重复触发。
-		return {"cell": cell, "type": type, "kind": "revisit", "node": node}
+		return {"cell": cell, "type": type, "kind": "revisit", "node": node,
+			"grant": {}, "source": String(node.get("source", ""))}
 	consumed[cell] = true
-	settled_log.append({"turn": turn, "cell": cell, "type": type})
+	var grant: Dictionary = MAP_REWARD.plan(node)
+	var mode := String(grant.get("mode", ""))
+	settled_log.append({"turn": turn, "cell": cell, "type": type, "mode": mode})
+	grants.append({
+		"turn": turn, "cell": cell, "type": type, "mode": mode,
+		"free": MAP_REWARD.is_free(grant),
+	})
+	if mode == MAP_REWARD.MODE_CHOOSE_ONE:
+		# 藏库不自动发放：挂起选择，玩家选 1 或放弃，全程只此一次。
+		pending_choice = {
+			"cell": cell, "mode": mode,
+			"options": (grant.get("options", []) as Array).duplicate(),
+			"fallback_gold": int(grant.get("fallback_gold", 0)),
+		}
 	return {
 		"cell": cell,
 		"type": type,
 		"kind": "settle",
 		"source": String(node.get("source", "")),
+		"grant": grant,
+		"text": MAP_REWARD.describe(grant),
 		"node": node,
 	}
 
@@ -707,6 +851,19 @@ func _cell(cell: int) -> Dictionary:
 	if cell < 0 or cell >= cells.size():
 		return {}
 	return cells[cell]
+
+
+func _battle_rows() -> Array:
+	var keys: Array = battles.keys()
+	keys.sort()
+	var out: Array = []
+	for k in keys:
+		var b: Dictionary = battles[k]
+		out.append({
+			"cell": int(k), "turn": int(b.get("turn", 0)),
+			"kind": String(b.get("kind", "")), "victory": bool(b.get("victory", false)),
+		})
+	return out
 
 
 func _sorted_keys(d: Dictionary) -> Array:
