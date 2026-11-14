@@ -27,6 +27,8 @@ var _ctrl                      # DuelController；可为 null（纯生成测试�
 var _pool: LootPool
 var _opts: Dictionary = {}
 var _last_paths: Array = []
+var _pool_paths: Array = []    # Step 8：本次同层合法候选顺序（换用途时从这里找替代）
+var _chosen_paths := {}        # Step 8：已入选的 item 路径
 
 
 func _init(ctrl, pool: LootPool) -> void:
@@ -115,6 +117,7 @@ func _rebuild(avoid: Array) -> void:
 		if not pool_paths.has(String(p)):
 			pool_paths.append(String(p))
 	_pool.shuffle_in_place(pool_paths)
+	_pool_paths = pool_paths.duplicate()
 
 	# 贪心：优先不同 unique_group，其次不同路径；最多 3 项。
 	var chosen: Array = []
@@ -123,7 +126,7 @@ func _rebuild(avoid: Array) -> void:
 	for p in pool_paths:
 		if chosen.size() >= 3:
 			break
-		var g := String(_pool.entry_of(p).get("unique_group", ""))
+		var g := _pool.group_of(p)
 		if g != "" and groups.has(g):
 			continue
 		chosen.append(p)
@@ -140,18 +143,20 @@ func _rebuild(avoid: Array) -> void:
 			seen[p] = true
 
 	options.clear()
+	_chosen_paths.clear()
 	for p in chosen:
 		options.append(_item_option(String(p)))
+		_chosen_paths[String(p)] = true
+	_ensure_two_roles()
 	_last_paths = []
 	for o in options:
 		if String(o.get("kind", "")) == "item":
 			_last_paths.append(String(o["path"]))
-	_ensure_two_roles()
 	_fill_conversions()
 	skip = _make_skip()
 
 
-# 三项至少两种用途；全同用途时把最后一项换成另一种同层转化。
+# 三项至少两种用途；全同用途时优先换成池里另一种用途的真实物品，池内没有才退化为同层转化。
 # 用途口径：普通物品用 role；同为 damage 时按家族细分（火焰/冰霜/暗影…），避免三把同族换皮。
 func _ensure_two_roles() -> void:
 	if options.size() < 2:
@@ -162,6 +167,20 @@ func _ensure_two_roles() -> void:
 	if roles.size() >= 2:
 		return
 	var only := String(options[0].get("purpose", ""))
+	# Step 8：先换真实物品（不因贪心连续抽到同用途而白送一次转化）。
+	for p in _pool_paths:
+		var path := String(p)
+		if _chosen_paths.has(path):
+			continue
+		var res: Resource = _pool.resource_of(path)
+		var role := String(res.get("role")) if res != null else ""
+		if _purpose_of(res, role) == only:
+			continue
+		var last := options.size() - 1
+		_chosen_paths.erase(String(options[last].get("path", "")))
+		options[last] = _item_option(path)
+		_chosen_paths[path] = true
+		return
 	options.remove_at(options.size() - 1)
 	options.append(_conversion_option("power" if not only.begins_with("damage") else "gold"))
 
@@ -191,7 +210,7 @@ func _fill_conversions() -> void:
 func _item_option(path: String) -> Dictionary:
 	var e := _pool.entry_of(path)
 	var cat := String(e.get("kind", ""))
-	var res: Resource = load(path)
+	var res: Resource = _pool.resource_of(path)
 	var nm := _display_name(res, path)
 	var role := String(res.get("role")) if res != null else ""
 	var state := _grant_state(cat, path)

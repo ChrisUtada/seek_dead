@@ -1,0 +1,1 @@
+SMOKE|LOOT|offers=49|common=22|uncommon=19|rare=8|epic=0|growth=19

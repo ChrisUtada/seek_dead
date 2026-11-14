@@ -26,6 +26,19 @@ var _fails := 0
 var _checks := 0
 var _t0 := 0
 var _report: Array[String] = []
+# Step 8：全流程战利品三选一统计（每次普通/精英胜利都检查一次，汇总后统一断言）。
+var _loot_offers := 0
+var _loot_bad_ok := 0
+var _loot_bad_count := 0
+var _loot_bad_mixed := 0
+var _loot_bad_text := 0
+var _loot_bad_dup := 0
+var _loot_double_settle := 0
+var _loot_settle_missing := 0
+var _growth_offered := 0
+var _growth_flow_broken := 0
+var _loot_check_pending := false
+var _loot_quality := {}
 
 
 func _ready() -> void:
@@ -45,6 +58,7 @@ func _run() -> void:
 	await _run_b_completion(duel)
 	await _run_c_fair_completion(duel)
 	_probe_all_bosses(duel)
+	_check_loot_summary()
 
 	print("---")
 	for line in _report:
@@ -181,11 +195,13 @@ func _drive_run(duel: DuelController, assist: bool, god: bool) -> Dictionary:
 					_check(duel.peaceful_win, "P-审计 P1：真·最终血锁后必以非暴力和解结算（旁路击杀已封死）")
 				out["rooms_won"] = duel.room_index + 1
 				_log("ROOM|won|%d|%s|%dturns|gold=%d%s" % [duel.room_index + 1, duel.enemy_name, int(duel.turn_count), int(duel.gold), "|peaceful" if duel.peaceful_win else ""])
+				_loot_phase_stats(duel)
 				if duel.room_flow.post_battle_active and duel.room_flow.post_battle_has_growth():
 					duel.room_flow.auto_pick_post_battle(["growth"])   # M1：有成长时取成长位
 				else:
 					duel._on_reward_skip_pressed()
 				await get_tree().process_frame
+				_loot_settle_stats(duel)
 				if duel.in_interroom:
 					just_won = true                # 清房 → 房间歇态（商店可选）
 				elif duel._is_run_final(duel.room_index):
@@ -414,6 +430,72 @@ func _probe_boss(duel: DuelController, r: RoomData) -> void:
 
 
 # ---------------------------------------------------------------- 工具
+
+# Step 8：普通/精英胜利后的战利品三选一检查（只在 bot 结算前读，不改任何状态）。
+func _loot_phase_stats(duel: DuelController) -> void:
+	if not duel.room_flow.post_battle_active:
+		return
+	_loot_check_pending = true
+	_loot_offers += 1
+	var view: Dictionary = duel.room_flow.loot_view()
+	if not bool(view.get("ok", false)):
+		_loot_bad_ok += 1
+	var opts: Array = view.get("options", [])
+	if opts.size() != 3:
+		_loot_bad_count += 1
+	var q := String(view.get("quality", ""))
+	_loot_quality[q] = int(_loot_quality.get(q, 0)) + 1
+	var paths := {}
+	for o in opts:
+		var od: Dictionary = o
+		if String(od.get("quality", "")) != q:
+			_loot_bad_mixed += 1
+		if String(od.get("result", "")) == "" or String(od.get("condition", "")) == "":
+			_loot_bad_text += 1
+		if String(od.get("kind", "")) == "item":
+			var p := String(od.get("path", ""))
+			if paths.has(p):
+				_loot_bad_dup += 1
+			paths[p] = true
+	if duel.room_flow.post_battle_has_growth():
+		_growth_offered += 1
+
+
+# bot 结算之后：本房战利品必须已结算且不可重复结算，成长位不能把流程卡住。
+func _loot_settle_stats(duel: DuelController) -> void:
+	if not _loot_check_pending:
+		return
+	_loot_check_pending = false
+	if not duel._reward_system._loot_settled:
+		_loot_settle_missing += 1
+	else:
+		var dup: Dictionary = duel._reward_system.settle_loot_offer(0)
+		if bool(dup.get("ok", false)) or String(dup.get("reason", "")) != "already_settled":
+			_loot_double_settle += 1
+	if duel.room_flow.post_battle_active:
+		_growth_flow_broken += 1
+
+
+func _check_loot_summary() -> void:
+	_check(_loot_offers > 0, "全流程出现战利品三选一（%d 次）" % _loot_offers)
+	_check(_loot_bad_ok == 0, "战利品三选一全部生成成功（失败 %d）" % _loot_bad_ok)
+	_check(_loot_bad_count == 0, "战利品始终恰好三项（违例 %d）" % _loot_bad_count)
+	_check(_loot_bad_mixed == 0, "战利品三项同层（越层 %d）" % _loot_bad_mixed)
+	_check(_loot_bad_text == 0, "战利品每项都有条件与结果文本（缺项 %d）" % _loot_bad_text)
+	_check(_loot_bad_dup == 0, "战利品同组无重复路径（重复 %d）" % _loot_bad_dup)
+	_check(_loot_settle_missing == 0, "每次战利品都已结算（漏结算 %d）" % _loot_settle_missing)
+	_check(_loot_double_settle == 0, "战利品重复结算被拒（漏拒 %d）" % _loot_double_settle)
+	_check(_growth_flow_broken == 0, "成长位出现后流程正常收尾（中断 %d / 触发 %d）"
+		% [_growth_flow_broken, _growth_offered])
+	_log("LOOT|offers=%d|%s|growth=%d" % [_loot_offers, _quality_line(), _growth_offered])
+
+
+func _quality_line() -> String:
+	var bits: Array[String] = []
+	for q in LootSourceTable.QUALITIES:
+		bits.append("%s=%d" % [q, int(_loot_quality.get(q, 0))])
+	return "|".join(bits)
+
 
 func _log(line: String) -> void:
 	_report.append("SMOKE|" + line)

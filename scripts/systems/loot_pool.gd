@@ -23,6 +23,8 @@ const DIRS := {
 
 var _ctrl                        # DuelController；可为 null（纯池测试）
 var _index: Array = []           # [{path, kind, rarity, tags, act_min, act_max, relic}]
+var _by_path := {}               # Step 8：path → 索引项（O(1) 查找；生成一组三选一会查十几次）
+var _res_by_path := {}           # Step 8：path → 已加载资源（避免每次生成都重新解析 .tres）
 var _rng := RandomNumberGenerator.new()
 var _seed := 0
 
@@ -235,6 +237,22 @@ func entry_of(path: String) -> Dictionary:
 	return _entry(path).duplicate(true)
 
 
+# Step 8：生成热路径只读单个字段，不做深拷贝（一组三选一会查上百次）。
+func group_of(path: String) -> String:
+	if _index.is_empty():
+		_build_index()
+	return String(_entry(path).get("unique_group", ""))
+
+
+# Step 8：已加载资源（生成卡面文案要读 role / family_tags / 名称 / 描述）。
+# 资源引用放在池上单独持有，不放进索引项——entry_of() 会 duplicate(true) 索引项。
+# 否则 load() 每次调用都因引用归零而重新解析 .tres（实测约 3ms/次）。
+func resource_of(path: String) -> Resource:
+	if _index.is_empty():
+		_build_index()
+	return _res_by_path.get(path, null)
+
+
 # ---------------------------------------------------------------------------
 # 内部
 # ---------------------------------------------------------------------------
@@ -271,10 +289,7 @@ func _sample(pool: Array, n: int) -> Array:
 
 
 func _entry(path: String) -> Dictionary:
-	for e in _index:
-		if String(e["path"]) == path:
-			return e
-	return {}
+	return _by_path.get(path, {})
 
 
 func _demo_allows(e: Dictionary) -> bool:
@@ -290,6 +305,8 @@ func _demo_allows(e: Dictionary) -> bool:
 
 func _build_index() -> void:
 	_index.clear()
+	_by_path.clear()
+	_res_by_path.clear()
 	for kind in DIRS:
 		var dir := DirAccess.open(String(DIRS[kind]))
 		if dir == null:
@@ -307,12 +324,19 @@ func _build_index() -> void:
 				tags = raw_tags
 			var amin: Variant = res.get("act_min")
 			var amax: Variant = res.get("act_max")
+			var fams: Variant = res.get("family_tags")
 			_index.append({
 				"path": path,
 				"kind": String(kind),
 				"rarity": String(res.get("rarity")) if res.get("rarity") != null else "common",
 				"tags": tags,
+				# Step 8：unique_group 必须进索引——LootOffer 的「同机制不重复」贪心读的是
+				# entry_of(...).unique_group；此前缺字段导致三项可能只是换皮。
+				"unique_group": String(res.get("unique_group")) if res.get("unique_group") != null else "",
+				"family_tags": fams if fams is Array else [],
 				"act_min": int(amin) if amin != null else 1,
 				"act_max": int(amax) if amax != null else 99,
 				"relic": f.contains("_relic"),
 			})
+			_by_path[path] = _index[_index.size() - 1]
+			_res_by_path[path] = res
