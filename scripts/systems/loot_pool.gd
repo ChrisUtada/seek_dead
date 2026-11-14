@@ -107,9 +107,50 @@ func roll(source: String, act: int, opts: Dictionary = {}, forced_quality: Strin
 			return {"ok": false, "reason": "source_not_random:" + source, "quality": "", "path": "", "item": {}}
 	var tier := _tier(pool["items"], quality)
 	if tier.is_empty():
-		return {"ok": false, "reason": "empty_tier", "quality": quality, "path": "", "item": {}}
+		# 该来源在当前类别下没有这一层（例：消耗品没有 epic）。
+		# 与 pick_explore_loot 同口径：改抽「池里真实存在」的品质层，权重仍取来源表，
+		# 不静默返回空奖励。forced_quality 由调用方指定，保持原样失败。
+		if forced_quality != "":
+			return {"ok": false, "reason": "empty_tier", "quality": quality, "path": "", "item": {}}
+		var avail := _available_weights(pool["items"], source, act)
+		var alt := _roll_quality_from(avail, _rng)
+		if alt == "":
+			return {"ok": false, "reason": "empty_tier", "quality": quality, "path": "", "item": {}}
+		quality = alt
+		tier = _tier(pool["items"], quality)
+		if tier.is_empty():
+			return {"ok": false, "reason": "empty_tier", "quality": quality, "path": "", "item": {}}
 	var idx := _rng.randi_range(0, tier.size() - 1)
 	return {"ok": true, "reason": "", "quality": quality, "path": String(tier[idx]), "item": _entry(String(tier[idx]))}
+
+
+# 池内真实存在的品质层 → 来源表权重（供空层改抽，不改变来源）。
+func _available_weights(items: Array, source: String, act: int) -> Dictionary:
+	var present := {}
+	for p in items:
+		var r := String(_entry(String(p)).get("rarity", ""))
+		if r != "":
+			present[r] = true
+	var weights: Dictionary = LootSourceTable.weights_for(source, act).get("weights", {})
+	var out := {}
+	for q in LootSourceTable.QUALITIES:
+		if present.has(q) and int(weights.get(q, 0)) > 0:
+			out[q] = int(weights[q])
+	return out
+
+
+func _roll_quality_from(weights: Dictionary, rng: RandomNumberGenerator) -> String:
+	var total := 0
+	for q in LootSourceTable.QUALITIES:
+		total += int(weights.get(q, 0))
+	if total <= 0:
+		return ""
+	var roll := rng.randf() * float(total)
+	for q in LootSourceTable.QUALITIES:
+		roll -= float(weights.get(q, 0))
+		if roll <= 0.0:
+			return q
+	return ""
 
 
 # 同层无放回抽至多 n 个。pool 非空但该层不足 n 时返回 ok + short_tier（由上层补同层转化）。
@@ -149,6 +190,10 @@ func roll_ladder(act: int, tiers: Array, opts: Dictionary = {}) -> Array:
 	var out: Array = []
 	if tiers.is_empty():
 		return out
+	# 允许调用方传入确定性 RNG（地图固定种子冻结货架）；不传则沿用本池 RNG。
+	var rng: RandomNumberGenerator = _rng
+	if opts.get("rng") is RandomNumberGenerator:
+		rng = opts["rng"]
 	_build_index()
 	var used := {}
 	for p in opts.get("exclude", []):
@@ -163,7 +208,7 @@ func roll_ladder(act: int, tiers: Array, opts: Dictionary = {}) -> Array:
 		if cand.is_empty():
 			out.append({"ok": false, "quality": quality, "path": "", "reason": "empty_tier"})
 			continue
-		var path := String(cand[_rng.randi_range(0, cand.size() - 1)])
+		var path := String(cand[rng.randi_range(0, cand.size() - 1)])
 		used[path] = true
 		out.append({"ok": true, "quality": quality, "path": path, "reason": ""})
 	return out
