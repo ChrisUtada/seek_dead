@@ -1,0 +1,86 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+=== A 结构 ===
+PASS 地图恰好 14×9
+PASS 格数 126（实际 126）
+PASS LAYOUT 有 9 行
+PASS 每行恰好 14 字符
+PASS ASCII 还原与 LAYOUT 一致
+PASS 每格 id / row / col 与行优先下标一致
+PASS cell 未写入 revealed / visible / consumed / defeated / frozen
+PASS 墙 + 可走格 = 126
+PASS 可行走格 61，落在 55–70（实际 61）
+PASS 三区域都有可行走格（A22/B22/C17）
+PASS 区域门恰好 2 道
+PASS 两道门位于 col5 / col10 区域边界
+PASS 门 61 地形为 door
+PASS 门 66 地形为 door
+PASS 内容节点 28 个（实际 28）
+PASS BOSS 节点标记 final
+=== B 预算 ===
+PASS normal 数量 12 在 10–14
+PASS elite 数量 3 在 2–3
+PASS boss 数量 1 在 1–1
+PASS battle 数量 16 在 14–18
+PASS treasure 数量 4 在 3–5
+PASS shop 数量 1 在 1–2
+PASS rest 数量 2 在 1–2
+PASS shrine 数量 4 在 3–5
+PASS trap 数量 3 在 2–4
+PASS battle 合计 = 三类战斗之和（16）
+PASS counts.walkable 与实测一致
+PASS counts.trap 与 traps 数组一致
+PASS 陷阱全部落在可行走格（位置公开）
+PASS 首版陷阱只有 armor_break 一种
+PASS 入口区 A 恰好 1 个陷阱（§3.1）
+PASS 陷阱位置不重叠
+=== C 路线 ===
+PASS validate() 无错误（0 条）[]
+PASS 起点 / BOSS id 合法且不同
+PASS 起点到 BOSS 至少一条合法路径（12 格）
+PASS 主干路径不含精英（精英可绕行）
+PASS 存在显式避开全部精英的路径
+PASS BOSS 无探索率门票（不依赖宝箱/事件/商店/休整）
+PASS 全部可行走格从起点可达（61）
+PASS 起点至少 2 个可走邻格（3）
+PASS 起点相邻无精英 / BOSS，无必败开局
+PASS 全部内容节点可达，无被墙锁死的奖励
+PASS 上分支 / 主干 / 下分支均有内容（11/8/9）
+PASS 逐个屏蔽 3 个精英后 BOSS 仍可达
+PASS 巡逻起点 A=1 / C=2（§3.1 后期区域最多 2 只）
+=== D 固定种子 ===
+PASS 重开界面后同种子逐字段一致
+PASS 揭示状态未写回 cell
+PASS 连续三次生成结果不变
+PASS 运行时状态由外部字典持有（模拟）
+PASS 不同种子不改变地形与内容布局
+PASS 不同种子产生不同内容变体
+PASS 20261111 地图合法
+PASS 20261112 地图合法
+PASS 三个固定种子各自可区分
+PASS 陷阱位置不随种子重抽
+PASS 巡逻起点不随种子重抽
+PASS act 只写进节点，不改布局
+PASS act 变化不改变地形与内容
+=== E validate 防护 ===
+PASS BOSS 被改成墙时 validate 报错
+PASS counts.walkable 被篡改时报错
+PASS 少一个陷阱时报错
+PASS 陷阱放到墙上时报错
+PASS cell 写入运行时状态时报错
+PASS 入口门被堵死时报错
+PASS 出现非破甲陷阱时报错
+PASS 深拷贝的合法地图仍通过
+---
+MAPGRID|ASCII
+##############
+#..T##T.V#..T#
+#N..##..E##.E#
+#V..##P.N##N.#
+#SNXNDNNXNDNB#
+#...##R.N##R.#
+#..N##..E#X.T#
+#V.N##V#.##..#
+##############
+PASSED 66 / FAILED 0
+MAPGRID|RESULT PASS (checks=66 fails=0)

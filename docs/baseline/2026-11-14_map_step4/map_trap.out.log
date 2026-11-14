@@ -1,0 +1,124 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+WARNING: res://scenes/ui/loadout_scene.tscn:9 - ext_resource, invalid UID: uid://dbrhpr1f4bp17 - using text path instead: res://assets/camp_bg.png
+   at: load (scene/resources/resource_format_text.cpp:501)
+铁砧元进度已载入：点数 0
+已为你预选默认配装（可自由调整后再开战）
+=== A 陷阱数据与公开性 ===
+PASS  陷阱 3 个（3）
+PASS  陷阱 39 类型是 armor_break
+PASS  陷阱 39 在可行走格
+PASS  陷阱 39 被占时 BOSS 仍可达
+PASS  陷阱 45 类型是 armor_break
+PASS  陷阱 45 在可行走格
+PASS  陷阱 45 被占时 BOSS 仍可达
+PASS  陷阱 110 类型是 armor_break
+PASS  陷阱 110 在可行走格
+PASS  陷阱 110 被占时 BOSS 仍可达
+PASS  陷阱位置为 45/39/110（[39, 45, 110]）
+PASS  入口区 A 至少 1 个陷阱（1）
+PASS  全部陷阱都在巡逻环上（3/3）
+PASS  view 显示该格是陷阱（公开）
+PASS  view 给出陷阱类型
+PASS  非陷阱格标记为 false
+PASS  起点不是陷阱格
+PASS  trap_at 可取到陷阱记录
+PASS  非陷阱格 trap_at 为空
+PASS  p0 绑定的怪有护甲（12）
+PASS  p1 绑定的怪有护甲（16）
+PASS  p2 绑定的怪有护甲（10）
+PASS  三只巡逻绑定不同房间（3）
+=== B 怪物踩陷阱记录一次 ===
+PASS  初始没有陷阱触发
+PASS  初始没有陷阱状态
+PASS  第 1 回合记录 1 次触发（1）
+PASS  触发者是 p1
+PASS  触发格是 39
+PASS  触发回合是 1
+PASS  p1 已被武装
+PASS  陷阱状态记录到 39
+PASS  39 记录的怪物是 p1
+PASS  尚未被战斗结算
+PASS  第 2 回合累计 3 次触发（3）
+PASS  p0 已被武装
+PASS  p0 的陷阱是 45
+PASS  p2 已被武装
+PASS  p2 的陷阱是 110
+PASS  触发记录含回合/怪物/格
+=== C 同一怪物不重复武装 ===
+PASS  两回合后触发数 3
+PASS  再走 8 回合不新增触发（3 → 3）
+PASS  p0 仍保持武装
+PASS  未被战斗消耗前 trap_used 仍为 false
+PASS  陷阱状态仍是 3 条（3）
+=== D 接触应用破甲且只结算一次 ===
+PASS  p0 在 45 处已武装
+PASS  撞到被占陷阱格返回 patrol
+PASS  接触时应用破甲
+PASS  破甲前护甲 > 0（12）
+PASS  破甲后护甲为 0
+PASS  待战节点标记 armor_break
+PASS  待战节点护甲前值一致
+PASS  待战节点护甲后值为 0
+PASS  文案写出「护甲 X → 0」（下一场战斗：敌方护甲 12 → 0）
+PASS  待战节点记录陷阱格 45
+PASS  陷阱标记为已结算
+PASS  结算后 p0 解除武装
+PASS  结算后 p0 标记已用过
+PASS  战斗返回后待战节点清空
+PASS  第二次接触不再破甲
+PASS  第二次护甲不变
+PASS  第二次接触不新增陷阱触发
+PASS  p1 的武装不受 p0 影响
+PASS  p2 的武装不受 p0 影响
+=== E 预告与实战护甲一致 ===
+PASS  预告覆盖 3 只（3）
+PASS  预告包含 p0
+PASS  预告显示 p0 已武装
+PASS  预告破甲后为 0
+PASS  预告文案含「→ 0」
+PASS  实战护甲前值等于预告值
+PASS  实战护甲后值等于预告值
+PASS  提示对应下一步是陷阱格
+PASS  提示出现在未武装状态
+PASS  未踩陷阱前给出「下一步踩到陷阱」护甲提示
+=== F 不秒杀、不跳过战斗 ===
+PASS  破甲后仍是战斗节点，不跳过转轮
+PASS  战斗对象是巡逻怪
+PASS  战斗仍绑定真实房间
+PASS  破甲不修改房间 HP（90）
+PASS  只把护甲降到 0，不杀怪
+PASS  节点没有即时击杀标记
+PASS  接触本身不发奖、不结算地图内容
+PASS  接触不写探索消耗表
+=== G 玩家踩陷阱不受无预告伤害 ===
+PASS  玩家可以正常走进陷阱格
+PASS  玩家位于陷阱格
+PASS  进陷阱格只推进一个回合
+PASS  玩家踩陷阱不产生怪物触发
+PASS  玩家踩陷阱不进入战斗
+PASS  玩家踩陷阱不产生结算（无伤害、无奖励）
+PASS  陷阱位置对玩家始终公开
+=== H 无陷阱路线也能正常战斗 ===
+PASS  未踩陷阱时接触不破甲
+PASS  未破甲时护甲等于基础值
+PASS  未破甲时护甲不变（不会误降为 0）
+PASS  未破甲不消耗陷阱
+PASS  整条路线都没踩陷阱
+PASS  无陷阱路线照样进入正常战斗
+PASS  无破甲时不显示破甲文案
+PASS  无陷阱也能正常挂起待战节点
+=== I 存档恢复含陷阱状态 ===
+PASS  存档前已三次触发
+PASS  存档记录三只都已武装（[true, true, true]）
+PASS  含陷阱状态的存档可 JSON 往返
+PASS  含陷阱状态的存档可恢复
+PASS  恢复后状态指纹一致
+PASS  恢复后陷阱状态 3 条
+PASS  恢复后 p0 仍武装
+PASS  恢复后 p0 的陷阱格正确
+PASS  恢复后继续推进结果一致
+PASS  恢复后不会重复记录已发生的触发
+---
+PASSED 106 / FAILED 0
+MAPTRAP|RESULT PASS (checks=106 fails=0)

@@ -1,0 +1,163 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+WARNING: res://scenes/ui/loadout_scene.tscn:9 - ext_resource, invalid UID: uid://dbrhpr1f4bp17 - using text path instead: res://assets/camp_bg.png
+   at: load (scene/resources/resource_format_text.cpp:501)
+铁砧元进度已载入：点数 0
+已为你预选默认配装（可自由调整后再开战）
+=== A 相邻移动与非法输入 ===
+PASS  初始位置在起点（57）
+PASS  初始回合为 0
+PASS  网格 ASCII 起点与冻结布局一致
+PASS  北邻格可移动
+PASS  斜向格判定为非相邻
+PASS  远处 BOSS 判定为非相邻
+PASS  墙格判定为不可进入
+PASS  越界格判定为超范围
+PASS  原地判定为同格
+PASS  非法目标 44 被拒绝（not_adjacent）
+PASS  非法目标 68 被拒绝（not_adjacent）
+PASS  非法目标 56 被拒绝（blocked）
+PASS  非法目标 999 被拒绝（out_of_range）
+PASS  非法目标 -1 被拒绝（out_of_range）
+PASS  非法目标 57 被拒绝（same_cell）
+PASS  六次非法移动后状态指纹完全不变
+PASS  非法移动不推进回合
+PASS  非法移动不结算任何内容
+PASS  相邻通路格移动成功
+PASS  位置更新为目标格
+PASS  移动一格只推进一个回合（1）
+PASS  访问计数 +1
+PASS  巡逻钩子与回合推进同步（1）
+=== B 等待 ===
+PASS  等待只推进一个回合（1）
+PASS  等待后回合为 1
+PASS  等待不改变坐标
+PASS  等待不结算内容
+PASS  等待不重抽地图内容
+PASS  连续三次等待推进三回合（3）
+PASS  巡逻钩子次数等于回合推进次数
+PASS  连续等待仍在原地
+=== C 回访不重复结算 ===
+PASS  首次进入事件格触发结算（settle）
+PASS  事件格来源为 event
+PASS  事件格被标记为已消耗
+PASS  结算流水只有 1 条
+PASS  事件格带独立配置（heal）
+PASS  回访判定为 revisit
+PASS  回访不追加结算流水
+PASS  回访仍计入访问次数（2）
+PASS  回访看到的事件内容与首次一致
+PASS  第三次回访仍是 revisit
+PASS  三次进入只结算一次
+PASS  可沿合法路径走到宝箱格（20）
+PASS  宝箱格进入后被标记已消耗
+PASS  宝箱结算流水 1 条（1）
+PASS  宝箱节点类型为 chest
+PASS  宝箱来源为 chest
+PASS  宝箱带 treasure_kind（weapon）
+PASS  宝箱结算流水 1 条（1）
+PASS  宝箱回访不追加结算
+PASS  宝箱回访后仍是已消耗
+PASS  普通战格判定为 battle
+PASS  战斗格挂起待进入战斗
+PASS  待战节点可被取走且只取一次
+PASS  取走的节点类型为 battle
+PASS  战斗遭遇计数为 1
+PASS  战斗格不写入探索消耗表
+PASS  通路格不产生结算
+PASS  起点格不产生结算
+PASS  通路与起点不写结算流水
+PASS  整段回访后内容指纹不变
+=== D 查看与取消无副作用 ===
+PASS  查看返回目标真实类型
+PASS  查看返回真实来源
+PASS  查看返回可行走标记
+PASS  远处目标标记为不可直达
+PASS  查看构筑返回只读快照
+PASS  取消操作返回成功
+PASS  查看与取消后状态指纹不变
+PASS  查看与取消后内容指纹不变（未重抽）
+PASS  查看与取消后布局 ASCII 不变
+PASS  查看与取消不推进回合
+PASS  查看与取消不改变坐标
+PASS  对照序列移动 43 合法
+PASS  对照序列移动 57 合法
+PASS  对照序列移动 71 合法
+PASS  对照序列移动 57 合法
+PASS  对照序列移动 58 合法
+PASS  查看过的运行时与对照运行时状态一致
+PASS  两者内容指纹一致
+PASS  五步移动推进五回合（5）
+=== E 镜头窗口与像素映射 ===
+PASS  视口窗口为 9×7
+PASS  窗口小于 14×9，不整图入屏（14×9）
+PASS  起点格在镜头窗口内（[P: (0, 1), S: (9, 7)]）
+PASS  起点窗口原点不为负
+PASS  起点窗口不越右边界
+PASS  起点窗口不越下边界
+PASS  BOSS格在镜头窗口内（[P: (5, 1), S: (9, 7)]）
+PASS  BOSS窗口原点不为负
+PASS  BOSS窗口不越右边界
+PASS  BOSS窗口不越下边界
+PASS  左上角格在镜头窗口内（[P: (0, 0), S: (9, 7)]）
+PASS  左上角窗口原点不为负
+PASS  左上角窗口不越右边界
+PASS  左上角窗口不越下边界
+PASS  右下角格在镜头窗口内（[P: (5, 2), S: (9, 7)]）
+PASS  右下角窗口原点不为负
+PASS  右下角窗口不越右边界
+PASS  右下角窗口不越下边界
+PASS  左上角镜头钳制到 (0,0)
+PASS  右下角镜头钳制到最大原点
+PASS  镜头像素矩形完全落在地图区内（[P: (21, 4), S: (306, 238)] ⊂ [P: (0, 0), S: (348, 246)]）
+PASS  格子像素 34 ≥ 24，能容纳图标与箭头
+PASS  像素尺寸等于窗口格数 × 格子尺寸
+PASS  玩家所在格像素原点在镜头矩形内
+PASS  镜头矩形不与右侧信息栏重叠
+PASS  信息栏贴齐右边界
+PASS  地图区不进入信息栏
+=== F 底部操作栏布局 ===
+PASS  操作栏 4 个按钮（4）
+PASS  操作顺序为 移动/等待/查看构筑/撤回整备
+PASS  四个按钮都在 480×270 视口内
+PASS  按钮彼此不重叠
+PASS  按钮不与信息栏重叠
+PASS  按钮不越下边界
+PASS  等待文案写明会推进回合
+=== G 存档恢复 ===
+PASS  存档带版本号
+PASS  存档记录坐标
+PASS  存档记录回合（3）
+PASS  存档记录消耗状态
+PASS  存档记录种子
+PASS  存档可 JSON 序列化并解析
+PASS  同种子同幕可恢复
+PASS  恢复后状态指纹一致
+PASS  恢复后事件格仍是已消耗
+PASS  续跑移动 43 合法
+PASS  续跑移动 57 合法
+PASS  续跑移动 71 合法
+PASS  续跑移动 57 合法
+PASS  恢复后继续移动与未中断结果一致
+PASS  恢复后回访仍不结算
+PASS  种子不匹配的存档被拒绝
+PASS  版本不符的存档被拒绝
+PASS  落在墙上的坐标被拒绝
+PASS  幕号不匹配的存档被拒绝
+=== H 正式入口关闭与旧开关 ===
+PASS  正式入口 map14x9_enabled 默认关闭
+PASS  无开发标记时正式入口不激活
+PASS  开发／AI 测试入口可提前激活
+PASS  layout_mode / use_grid() 双开关保留
+PASS  默认 layout_mode 仍是 legacy
+PASS  默认不走 4×4 扫雷路径
+PASS  board_config.is_active() 入口保留
+PASS  旧 BoardSystem 入口仍可用（未收敛）
+PASS  产品侧没有开放正式入口的接口
+---
+PASSED 142 / FAILED 0
+MAPMOVE|RESULT PASS (checks=142 fails=0)
+WARNING: 4 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2535)
+ERROR: 2 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:822)

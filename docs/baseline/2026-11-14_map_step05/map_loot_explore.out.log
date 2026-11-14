@@ -1,0 +1,51 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+WARNING: res://scenes/ui/loadout_scene.tscn:9 - ext_resource, invalid UID: uid://dbrhpr1f4bp17 - using text path instead: res://assets/camp_bg.png
+   at: load (scene/resources/resource_format_text.cpp:501)
+铁砧元进度已载入：点数 0
+已为你预选默认配装（可自由调整后再开战）
+=== A 节点类型注册表 ===
+PASS  所有内容节点都在注册表内（越界 0）
+PASS  每个注册类型都有 legacy_type 结算映射（缺 0）
+PASS  battle 12（12）
+PASS  elite 3（3）
+PASS  boss 1（1）
+PASS  chest 3（3）
+PASS  armory 1（1）
+PASS  shop 1（1）
+PASS  rest 2（2）
+PASS  event 4（4）
+PASS  start 1（1）
+PASS  通路 33（33）
+PASS  注册表类型 battle 在地图上真实出现
+PASS  注册表类型 elite 在地图上真实出现
+PASS  注册表类型 boss 在地图上真实出现
+PASS  注册表类型 chest 在地图上真实出现
+PASS  注册表类型 armory 在地图上真实出现
+PASS  注册表类型 shop 在地图上真实出现
+PASS  注册表类型 rest 在地图上真实出现
+PASS  注册表类型 event 在地图上真实出现
+=== B 真实来源映射 ===
+PASS  source 字段与注册表一致（异常 0）
+PASS  shop 不伪装成宝箱、不生成装备（异常 0）
+PASS  rest 不生成装备（异常 0）
+PASS  event 走独立配置、不生成装备（异常 0）
+PASS  chest 来源固定为 chest
+PASS  armory 来源固定为 armory
+PASS  shop 来源不等于 chest
+=== C 探索字段合法 ===
+PASS  treasure_kind 只取真实类别（异常 0）
+PASS  chest 的 item_path 是存在的真实资源（异常 0）
+PASS  chest 不冻结 BOSS 信物（泄漏 0）
+PASS  样本覆盖宝箱与武器藏库（chest 3 / armory 1）
+PASS  armory_paths 是两把互不重复的真实武器（异常 0）
+PASS  event 使用独立 shrine 配置（异常 0）
+=== D 冻结与一次性结算口径 ===
+PASS  同 (seed, act, total_acts) 探索字段完全冻结
+PASS  不同 seed 可区分（探索内容随 seed 变化）
+PASS  地形与节点类型布局不随 seed 变
+PASS  节点不写运行时消耗状态，撤回／回访由上层一次性结算（泄漏 0）
+PASS  内容生成时冻结标记在位
+---
+PASSED 38 / FAILED 0
+MAPLOOT|RESULT PASS (checks=38 fails=0)

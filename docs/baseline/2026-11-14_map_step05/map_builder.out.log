@@ -1,0 +1,66 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+WARNING: res://scenes/ui/loadout_scene.tscn:9 - ext_resource, invalid UID: uid://dbrhpr1f4bp17 - using text path instead: res://assets/camp_bg.png
+   at: load (scene/resources/resource_format_text.cpp:501)
+铁砧元进度已载入：点数 0
+已为你预选默认配装（可自由调整后再开战）
+=== A 结构 ===
+PASS  可走格全部成节点（61）
+PASS  by_id 与 nodes 一一对应（61）
+PASS  内容节点 28 个（实际 28）
+PASS  战斗节点 16 个（实际 16）
+PASS  battle 12（12）
+PASS  elite 3（3）
+PASS  boss 唯一（1）
+PASS  宝箱 3 + 藏库 1 = 4（4）
+PASS  shop 1（1）
+PASS  rest 2（2）
+PASS  event 4（4）
+PASS  起点唯一（1）
+PASS  通路格 = 61 - 28 = 33（33）
+PASS  start_id 指向真实节点
+PASS  boss_id 指向真实节点
+PASS  boss_id 节点类型为 boss
+PASS  battle_rooms 16 个（16）
+PASS  尺寸冻结 14×9
+PASS  原始 MapGrid 数据通过 validate()
+=== B 邻接与可达 ===
+PASS  所有邻接都指向真实可走格（异常 0）
+PASS  邻接双向对称（异常 0）
+PASS  无孤立格（最小度 1）
+PASS  四方向邻接不越界（最大度 4）
+PASS  全图连通（61 / 61）
+PASS  起点到 BOSS 可达
+=== C 房间绑定 ===
+PASS  16 个战斗节点全部绑定 RoomData（缺 0）
+PASS  房间 kind 与节点 type 一致（异常 0）
+PASS  battle_index 与 battle_rooms 顺序一致（异常 0）
+PASS  节奏样板不误用最终 BOSS 房（泄漏 0）
+PASS  ACT1 精英样板 = 寒铁精英（寒铁精英）
+PASS  ACT1 BOSS 样板 = 冰封铁瓮（冰封铁瓮）
+=== D 固定种子与三幕 ===
+PASS  同 (seed, act) 两次生成完全一致
+PASS  不同 seed 可区分（房间 / 变体）
+PASS  地形与内容布局不随 seed 变
+PASS  陷阱位置不随 seed 变
+PASS  巡逻起点不随 seed 变
+PASS  ACT1 的 16 个战斗节点都有房间（缺 0）
+PASS  ACT1 写进节点
+PASS  ACT2 的 16 个战斗节点都有房间（缺 0）
+PASS  ACT2 写进节点
+PASS  ACT3 的 16 个战斗节点都有房间（缺 0）
+PASS  ACT3 写进节点
+=== E 无旧模型残留 ===
+PASS  节点不含扫雷数字（残留 0）
+PASS  节点不含骰子 / 行动点字段（残留 0）
+PASS  保留 126 格原始数据供 Step 3/4 读取
+PASS  保留 3 个破甲陷阱位
+PASS  保留 3 个巡逻起点
+PASS  适配不破坏 Step 1 冻结校验
+---
+PASSED 48 / FAILED 0
+MAPBUILD|RESULT PASS (checks=48 fails=0)
+WARNING: 4 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2535)
+ERROR: 2 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:822)

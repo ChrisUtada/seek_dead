@@ -35,6 +35,18 @@ extends Resource
 # 4×4 内容冻结种子；同种子房间 / 武器 / 护符完全一致。
 @export var grid_seed: int = 20261110
 
+# Step 0.5 任务 5（2026-11-14）：14×9 新地图的**正式入口默认关闭**。
+# 只有开发／AI 测试入口可提前进入（map_dev_override 或命令行 --map14x9-dev）；
+# 完成 Step 5A 后才允许把 map14x9_enabled 打开。
+# 本阶段不改 layout_mode / use_grid() 双开关，也不收敛旧模型（Step 2 任务 6）。
+@export var map14x9_enabled: bool = false
+var map_dev_override: bool = false
+
+func map14x9_active() -> bool:
+	if map14x9_enabled or map_dev_override:
+		return true
+	return "--map14x9-dev" in OS.get_cmdline_user_args()
+
 
 # 是否使用 4×4 扫雷网格。layout_mode 优先；命令行 --grid 可临时覆盖（需配合 --board）。
 func use_grid() -> bool:

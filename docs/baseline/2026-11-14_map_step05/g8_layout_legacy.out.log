@@ -1,0 +1,16 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+WARNING: res://scenes/ui/loadout_scene.tscn:9 - ext_resource, invalid UID: uid://dbrhpr1f4bp17 - using text path instead: res://assets/camp_bg.png
+   at: load (scene/resources/resource_format_text.cpp:501)
+◆ ACT1 DEMO 模式：武器 14 / 技能 10 / 道具 27 / 房间 20（仅 ACT1，不含真·最终）
+铁砧元进度已载入：点数 0
+已为你预选默认配装（可自由调整后再开战）
+棋盘模式：4×4 扫雷（确认开战后生效）
+棋盘模式：线性（确认开战后生效）
+棋盘模式：旧棋盘（确认开战后生效）
+棋盘模式：线性（确认开战后生效）
+G8_LAYOUT|RESULT PASS (121/121)
+WARNING: 4 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2535)
+ERROR: 2 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:822)

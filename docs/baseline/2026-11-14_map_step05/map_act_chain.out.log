@@ -1,0 +1,45 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+WARNING: res://scenes/ui/loadout_scene.tscn:9 - ext_resource, invalid UID: uid://dbrhpr1f4bp17 - using text path instead: res://assets/camp_bg.png
+   at: load (scene/resources/resource_format_text.cpp:501)
+铁砧元进度已载入：点数 0
+已为你预选默认配装（可自由调整后再开战）
+=== A 配置驱动终局 ===
+PASS  acts=1：唯一一幕的 BOSS 是 final
+PASS  acts=1：total_acts 归一化为 1
+PASS  acts=1：非 BOSS 节点都不标 final
+PASS  ACT1：非 BOSS 节点都不标 final
+PASS  ACT1：幕号写进节点
+PASS  ACT2：非 BOSS 节点都不标 final
+PASS  ACT2：幕号写进节点
+PASS  ACT3：非 BOSS 节点都不标 final
+PASS  ACT3：幕号写进节点
+PASS  acts=3：仅 ACT III 的 BOSS 是 final（[false, false, true]）
+PASS  ACT I / ACT II 可以进入下一幕
+=== B 三幕封顶 ===
+PASS  acts=0 归一化为 1（下限）
+PASS  acts=3 保持 3
+PASS  acts=4 归一化为 3，不产生 ACT IV
+PASS  MAX_ACTS 冻结为 3
+PASS  build(99 幕) 归一化后 total_acts=3
+PASS  归一化后 ACT III BOSS 仍是 final
+PASS  旧 run_act_count() 仍为 3
+=== C 旧入口与旧三幕链不回归 ===
+PASS  layout_mode / use_grid() 双开关保留
+PASS  默认 layout_mode 仍是 legacy
+PASS  默认不走 4×4 扫雷路径
+PASS  board_config.is_active() 入口保留
+PASS  旧 BoardSystem 实例仍在
+PASS  旧 BoardSystem.generate() 入口保留
+=== D 正式入口默认关闭 ===
+PASS  正式入口 map14x9_enabled 默认关闭
+PASS  无开发标记时新地图入口不激活
+PASS  开发／AI 测试入口可提前激活
+PASS  开发标记可复位，不写存档
+---
+PASSED 28 / FAILED 0
+MAPACT|RESULT PASS (checks=28 fails=0)
+WARNING: 4 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2535)
+ERROR: 2 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:822)

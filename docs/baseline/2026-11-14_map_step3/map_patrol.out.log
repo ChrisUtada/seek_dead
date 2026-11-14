@@ -1,0 +1,138 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+WARNING: res://scenes/ui/loadout_scene.tscn:9 - ext_resource, invalid UID: uid://dbrhpr1f4bp17 - using text path instead: res://assets/camp_bg.png
+   at: load (scene/resources/resource_format_text.cpp:501)
+铁砧元进度已载入：点数 0
+已为你预选默认配装（可自由调整后再开战）
+=== A 巡逻结构与冻结路径 ===
+PASS  巡逻在开发入口下启用
+PASS  巡逻共 3 只（3）
+PASS  路径校验无错误（[]）
+PASS  巡逻 order 依次为 0/1/2
+PASS  p0 初始位置等于冻结起点 30
+PASS  p0 落在区域 A
+PASS  p1 初始位置等于冻结起点 25
+PASS  p1 落在区域 C
+PASS  p2 初始位置等于冻结起点 95
+PASS  p2 落在区域 C
+PASS  入口区 A 恰好 1 只（1）
+PASS  深层区 C 恰好 2 只（2）
+PASS  p0 路径至少 3 格（4）
+PASS  p0 路径首格是起点
+PASS  p0 路径全部可行走（不穿墙）
+PASS  p0 路径无重复格（简单环）
+PASS  p0 路径不经过 BOSS 格
+PASS  p0 路径不经过起点格
+PASS  p0 路径不经过区域门
+PASS  p0 路径可闭合循环
+PASS  p0 路径不跨区域
+PASS  p1 路径至少 3 格（4）
+PASS  p1 路径首格是起点
+PASS  p1 路径全部可行走（不穿墙）
+PASS  p1 路径无重复格（简单环）
+PASS  p1 路径不经过 BOSS 格
+PASS  p1 路径不经过起点格
+PASS  p1 路径不经过区域门
+PASS  p1 路径可闭合循环
+PASS  p1 路径不跨区域
+PASS  p2 路径至少 3 格（6）
+PASS  p2 路径首格是起点
+PASS  p2 路径全部可行走（不穿墙）
+PASS  p2 路径无重复格（简单环）
+PASS  p2 路径不经过 BOSS 格
+PASS  p2 路径不经过起点格
+PASS  p2 路径不经过区域门
+PASS  p2 路径可闭合循环
+PASS  p2 路径不跨区域
+PASS  三只巡逻都绑定现有房间（["res://resources/rooms/a1_brute_none.tres", "res://resources/rooms/a1_bulwark_poison.tres", "res://resources/rooms/a1_hexer_none.tres"]）
+PASS  同幕两次构建绑定同一批房间（确定性）
+PASS  三只巡逻绑定不同房间（3）
+=== B 预告与实际行动一致 ===
+PASS  预告覆盖 3 只（3）
+PASS  12 回合 36 次预告全部与实际一致
+PASS  连续 10 次预告不改变状态
+PASS  预告不推进路径索引
+=== C 占格阻挡与撞击接触 ===
+PASS  被巡逻占据的格不可进入
+PASS  阻挡原因是 patrol（patrol）
+PASS  撞击被判定为未移动
+PASS  撞击返回 patrol 原因
+PASS  撞击后玩家仍在原格
+PASS  撞击不推进地图回合
+PASS  撞击不计入目标格访问
+PASS  撞击对象是 p0
+PASS  撞击后挂起待战节点
+PASS  待战节点类型为 patrol
+PASS  待战节点来源为 patrol
+PASS  待战节点带真实房间资源
+PASS  待战房间就是该巡逻怪的房间
+PASS  接触不结算任何地图内容（不额外扣血/发奖）
+PASS  接触记录已写入状态指纹
+PASS  战斗返回后待战节点清空
+PASS  击败后该巡逻怪退场
+PASS  击败后该格可正常进入
+PASS  进入原巡逻格不再报 patrol
+PASS  击败后可以走进该格
+=== D 怪物追上玩家 ===
+PASS  等待后巡逻怪走到玩家格触发接触
+PASS  接触对象为 p0
+PASS  p0 已移动到预告格 31
+PASS  玩家位置不变（怪物撞上来）
+PASS  等待推进一个回合
+PASS  接触回合只推进一次
+PASS  接触流水 1 条
+PASS  接触记录写在第 1 回合
+PASS  追上后挂起待战节点
+=== E 多只行动顺序固定 ===
+PASS  行动后仍是 3 只
+PASS  第 0 位始终是 p0（顺序不随机）
+PASS  p0 order 不变
+PASS  p0 第一回合前进到路径第 2 格（31）
+PASS  第 1 位始终是 p1（顺序不随机）
+PASS  p1 order 不变
+PASS  p1 第一回合前进到路径第 2 格（39）
+PASS  第 2 位始终是 p2（顺序不随机）
+PASS  p2 order 不变
+PASS  p2 第一回合前进到路径第 2 格（109）
+PASS  p0 索引到 2
+PASS  p0 位于路径第 3 格
+PASS  p1 索引到 2
+PASS  p1 位于路径第 3 格
+PASS  p2 索引到 2
+PASS  p2 位于路径第 3 格
+=== F 同种子同输入完全一致 ===
+PASS  同种子同输入后状态指纹完全一致
+PASS  三只巡逻位置与索引完全一致
+PASS  同种子绑定同一批巡逻怪资源
+PASS  换种子不改变巡逻路径与起始位置
+PASS  换种子后路径校验仍无错误
+=== G 不穿墙、不越界、不永久堵死 BOSS ===
+PASS  20 回合内巡逻从不穿墙（0）
+PASS  20 回合内巡逻从不越界（0）
+PASS  20 回合内 BOSS 始终可达（堵死回合 0）
+PASS  最终仍存在避开巡逻的 BOSS 路径
+PASS  结构上巡逻不占用起点 / BOSS 格
+=== H 查看与取消不影响巡逻 ===
+PASS  查看与取消不改变含巡逻的状态指纹
+PASS  查看与取消不改变巡逻位置
+PASS  查看与取消不推进回合
+PASS  查看与取消不产生接触
+PASS  重开界面后巡逻回到同一起点与索引
+=== I 存档恢复含巡逻 ===
+PASS  存档记录巡逻开关
+PASS  存档记录 3 只巡逻
+PASS  存档记录路径索引
+PASS  含巡逻的存档可 JSON 往返
+PASS  含巡逻的存档可恢复
+PASS  恢复后含巡逻的状态指纹一致
+PASS  恢复后巡逻位置一致
+PASS  恢复后继续推进结果一致
+PASS  巡逻关闭的运行时拒绝含巡逻的存档
+PASS  巡逻开启的运行时拒绝不含巡逻的存档
+---
+PASSED 116 / FAILED 0
+MAPPATROL|RESULT PASS (checks=116 fails=0)
+WARNING: 4 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2535)
+ERROR: 2 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:822)
