@@ -36,14 +36,51 @@ const PATROLS := [
 	},
 ]
 
+# 每幕一套巡逻（内容层 2026-11-14）：路径必须落在对应布局的可行走格上。
+# ACT I：A 区 1 只 + C 区 2 只；ACT II / III：A / B / C 各 1 只（交汇区也设守卫）。
+const PATROLS_BY_ACT := {
+	2: [
+		{
+			"id": "p0", "order": 0, "spawn": 16, "region": "A", "kind": "normal",
+			"path": [16, 30, 44, 58, 59, 45, 31, 17],
+		},
+		{
+			"id": "p1", "order": 1, "spawn": 21, "region": "B", "kind": "normal",
+			"path": [21, 35, 49, 50, 36, 22],
+		},
+		{
+			"id": "p2", "order": 2, "spawn": 82, "region": "C", "kind": "normal",
+			"path": [82, 96, 110, 109, 95, 81],
+		},
+	],
+	3: [
+		{
+			"id": "p0", "order": 0, "spawn": 17, "region": "A", "kind": "normal",
+			"path": [17, 31, 45, 44, 30, 16],
+		},
+		{
+			"id": "p1", "order": 1, "spawn": 20, "region": "B", "kind": "normal",
+			"path": [20, 34, 35, 21],
+		},
+		{
+			"id": "p2", "order": 2, "spawn": 25, "region": "C", "kind": "normal",
+			"path": [25, 39, 40, 26],
+		},
+	],
+}
+
 const MIN_PATH := 3
+
+
+static func for_act(act: int) -> Array:
+	return PATROLS_BY_ACT.get(act, PATROLS)
 
 
 # 生成巡逻初始状态。房间从现有 resources/rooms/ 池按路径字典序确定性选，
 # 不新增平行目录，也不受 seed 影响（同幕同顺序永远同一只怪）。
 static func build(grid: Dictionary, ctrl, act: int) -> Array:
 	var out: Array = []
-	for cfg in PATROLS:
+	for cfg in for_act(act):
 		var path: Array = (cfg["path"] as Array).duplicate()
 		var order: int = int(cfg["order"])
 		var room: RoomData = _pick_room(ctrl, act, order)
@@ -62,6 +99,37 @@ static func build(grid: Dictionary, ctrl, act: int) -> Array:
 			"title": "巡逻怪" if room == null else String(room.name),
 		})
 	return out
+
+
+# 警戒范围：玩家进入 5 格内就转为追逐，否则沿原巡逻路线。
+# 选 5 是为了让「把它引到陷阱格再打」成立——距离够短能引，够长能拉脱。
+const ALERT_RANGE := 5
+
+
+# 下一步：玩家在警戒范围内就朝玩家走一格（最短路），否则沿原巡逻路线。
+# 纯只读，不改变任何状态；返回 -1 表示原地不动。
+static func next_cell(patrol: Dictionary, grid: Dictionary, player_cell: int) -> int:
+	var cell: int = int(patrol["cell"])
+	var chase: int = MAP_GRID.pursuit_step(grid, cell, player_cell, ALERT_RANGE)
+	if chase >= 0:
+		return chase
+	var path: Array = patrol["path"]
+	if path.is_empty():
+		return cell
+	return int(path[(int(patrol["path_index"]) + 1) % path.size()])
+
+
+# 推进一格：追逐时可能离开原路线；若走回路线上的格就同步索引，之后能继续巡逻。
+static func advance(patrol: Dictionary, grid: Dictionary, player_cell: int) -> int:
+	var cell: int = int(patrol["cell"])
+	var nxt: int = next_cell(patrol, grid, player_cell)
+	if nxt < 0 or nxt == cell:
+		return cell
+	patrol["cell"] = nxt
+	var idx: int = (patrol["path"] as Array).find(nxt)
+	if idx >= 0:
+		patrol["path_index"] = idx
+	return nxt
 
 
 # 下一步预告：路径下一格。纯只读，不改变任何状态。
@@ -87,17 +155,19 @@ static func validate(grid: Dictionary) -> Array:
 	var cells: Array = grid.get("cells", [])
 	if cells.is_empty():
 		return ["地图数据为空"]
+	var act: int = int(grid.get("act", 1))
+	var table: Array = for_act(act)
 	var start_id: int = int(grid.get("start_id", -1))
 	var boss_id: int = int(grid.get("boss_id", -1))
 	var spawns: Array = grid.get("patrol_spawns", [])
 
-	if PATROLS.size() != spawns.size():
-		errs.append("巡逻数量 %d 与 PATROL_SPAWNS %d 不一致" % [PATROLS.size(), spawns.size()])
+	if table.size() != spawns.size():
+		errs.append("巡逻数量 %d 与 PATROL_SPAWNS %d 不一致（ACT %d）" % [table.size(), spawns.size(), act])
 
 	var region_count := {"A": 0, "C": 0, "B": 0}
 	var seen_ids: Dictionary = {}
-	for i in range(PATROLS.size()):
-		var cfg: Dictionary = PATROLS[i]
+	for i in range(table.size()):
+		var cfg: Dictionary = table[i]
 		var pid: String = String(cfg["id"])
 		var path: Array = cfg["path"]
 		if seen_ids.has(pid):
@@ -149,7 +219,7 @@ static func validate(grid: Dictionary) -> Array:
 		errs.append("入口区 A 巡逻不是 1 只（%d）" % int(region_count.get("A", 0)))
 	if int(region_count.get("C", 0)) > 2:
 		errs.append("深层区 C 巡逻超过 2 只（%d）" % int(region_count.get("C", 0)))
-	if int(region_count.get("B", 0)) != 0:
+	if int(region_count.get("B", 0)) > 1:
 		errs.append("交汇区 B 不应有巡逻起点（%d）" % int(region_count.get("B", 0)))
 	return errs
 

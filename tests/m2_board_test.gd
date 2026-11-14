@@ -162,12 +162,17 @@ func _test_acts(cfg) -> void:
 
 	cfg.acts = 3
 	var finals: Array = []
+	var sizes := []
 	for act in [1, 2, 3]:
 		_duel.board.generate(cfg, act)
-		_check(_duel.board.node_count() == 61, "ACT%d 仍是 14×9 地图" % act)
+		var n: int = int(_duel.board.node_count())
+		sizes.append(n)
+		_check(n >= 55 and n <= 70, "ACT%d 是 14×9 地图（%d 格）" % [act, n])
 		var b: Dictionary = _duel.board.node_by_id(_duel.board.boss_ids[0])
 		finals.append(bool(b.get("final", false)))
 		_check(int(_duel.board.act) == act, "ACT%d 幕号写入棋盘" % act)
+	_check(sizes[0] != sizes[1] or sizes[1] != sizes[2],
+		"三幕地图结构不同（%s）" % str(sizes))
 	_check(finals == [false, false, true], "仅 ACT III 的 BOSS 结束整局（%s）" % str(finals))
 	_check(_duel.run_act_count() == 3, "三幕 run_act_count = 3")
 

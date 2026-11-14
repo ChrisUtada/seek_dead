@@ -195,6 +195,8 @@ var player_shield = 0
 
 # 敌人 / 房间状态
 var room_index = 0
+# 地图破甲陷阱：只作用于紧接着的这一场战斗，进房时消费并复位，不写存档、不跨房。
+var pending_armor_break := false
 var enemy_name = "敌人"
 var enemy_hp = 120
 var enemy_hp_max = 120
@@ -907,6 +909,13 @@ func start_room_data(r: RoomData, idx: int, ria_override: int = -1, is_final: bo
 	var base_armor: int = r.armor if r.armor > 0 else (r.archetype.armor_base if r.archetype != null else 0)
 	enemy_armor_max = int(round(float(base_armor) * s["hp_scale"])) if base_armor > 0 else 0
 	enemy_armor = enemy_armor_max
+	# 地图破甲陷阱：预告写「护甲 X → 0」，这里让它真的归零，并立刻复位保证只作用一场。
+	if pending_armor_break:
+		if enemy_armor_max > 0 and hud != null:
+			hud._log("破甲陷阱：敌方护甲 %d → 0" % enemy_armor_max)
+		enemy_armor_max = 0
+		enemy_armor = 0
+		pending_armor_break = false
 	# 抗干扰（T20）：抗扰护符 降低干扰类意图（purifiable）权重，每级 -12%，最低保留 25%
 	var total_resist = charm_interf_resist
 	_interf_resist_rf = max(0.25, 1.0 - total_resist * 0.12) if total_resist > 0 else 1.0
@@ -1015,6 +1024,8 @@ func _start_board_battle(node: Dictionary) -> void:
 	hud.hide_camp_supply()   # 防御：任何残留营地弹层都不得盖在战斗上
 	hud.hide_board_screen(true)
 	hud.set_interroom_enabled(false)
+	# 巡逻踩过破甲陷阱时，接触节点带 armor_break：本次战斗敌方护甲归零。
+	pending_armor_break = bool(node.get("armor_break", false))
 	start_room_data(r, int(node.get("battle_index", -1)), int(node.get("ria", -1)),
 		bool(node.get("final", false)))
 

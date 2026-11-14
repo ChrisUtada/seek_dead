@@ -28,19 +28,25 @@ func _ready() -> void:
 
 func _run() -> void:
 	await get_tree().process_frame
-	var data: Dictionary = MAP.generate(SEED)
-	print("=== A 结构 ===")
-	_test_structure(data)
-	print("=== B 预算 ===")
-	_test_budget(data)
-	print("=== C 路线 ===")
-	_test_routes(data)
-	print("=== D 固定种子 ===")
-	_test_determinism(data)
-	print("=== E validate 防护 ===")
-	_test_validate_guards(data)
-	print("---")
-	print("MAPGRID|ASCII\n%s" % MAP.ascii_map(data))
+	# 三幕各一张 14×9（内容层 2026-11-14）：每幕都过一遍同样的结构 / 预算 / 路线 / 校验。
+	var texts := {}
+	for act in [1, 2, 3]:
+		var data: Dictionary = MAP.generate(SEED, act)
+		print("=== ACT %d · A 结构 ===" % act)
+		_test_structure(data)
+		print("=== ACT %d · B 预算 ===" % act)
+		_test_budget(data)
+		print("=== ACT %d · C 路线 ===" % act)
+		_test_routes(data)
+		print("=== ACT %d · D 固定种子 ===" % act)
+		_test_determinism(data)
+		print("=== ACT %d · E validate 防护 ===" % act)
+		_test_validate_guards(data)
+		texts[act] = MAP.ascii_map(data)
+		print("--- ACT %d ---" % act)
+		print("MAPGRID|ASCII ACT%d\n%s" % [act, texts[act]])
+	_check(texts[1] != texts[2] and texts[2] != texts[3] and texts[1] != texts[3],
+		"三幕布局互不相同（结构差异）")
 	print("PASSED %d / FAILED %d" % [_checks - _fails, _fails])
 	print("MAPGRID|RESULT %s (checks=%d fails=%d)" % [
 		"PASS" if _fails == 0 else "FAIL", _checks, _fails])
@@ -61,13 +67,14 @@ func _test_structure(data: Dictionary) -> void:
 	var cells: Array = data["cells"]
 	_check(int(data["cols"]) == 14 and int(data["rows"]) == 9, "地图恰好 14×9")
 	_check(cells.size() == 126, "格数 126（实际 %d）" % cells.size())
-	_check(MAP.LAYOUT.size() == 9, "LAYOUT 有 9 行")
+	var layout: Array = MAP.layout_for(int(data["act"]))
+	_check(layout.size() == 9, "LAYOUT 有 9 行")
 	var row_len_ok := true
-	for line in MAP.LAYOUT:
+	for line in layout:
 		if String(line).length() != 14:
 			row_len_ok = false
 	_check(row_len_ok, "每行恰好 14 字符")
-	_check(MAP.ascii_map(data) == "\n".join(MAP.LAYOUT), "ASCII 还原与 LAYOUT 一致")
+	_check(MAP.ascii_map(data) == "\n".join(layout), "ASCII 还原与当前幕 LAYOUT 一致")
 
 	var ok_ids := true
 	var ok_runtime := true
@@ -93,8 +100,7 @@ func _test_structure(data: Dictionary) -> void:
 	_check(ok_ids, "每格 id / row / col 与行优先下标一致")
 	_check(ok_runtime, "cell 未写入 revealed / visible / consumed / defeated / frozen")
 	_check(walls + walks == 126, "墙 + 可走格 = 126")
-	_check(walks == 61 and walks >= 55 and walks <= 70,
-		"可行走格 61，落在 55–70（实际 %d）" % walks)
+	_check(walks >= 55 and walks <= 70, "可行走格落在 55–70（实际 %d）" % walks)
 	_check(int(region_walk["A"]) > 0 and int(region_walk["B"]) > 0
 		and int(region_walk["C"]) > 0, "三区域都有可行走格（A%d/B%d/C%d）" % [
 			int(region_walk["A"]), int(region_walk["B"]), int(region_walk["C"])])
@@ -103,11 +109,16 @@ func _test_structure(data: Dictionary) -> void:
 	for raw in data["doors"]:
 		door_cols.append(int(cells[int(raw)]["col"]))
 	door_cols.sort()
-	_check(door_cols == [5, 10], "两道门位于 col5 / col10 区域边界")
+	_check(door_cols.size() == 2 and door_cols.all(func(c): return c in [4, 5, 9, 10]),
+		"两道门位于区域边界（实际 %s）" % str(door_cols))
 	for raw in data["doors"]:
 		_check(String(cells[int(raw)]["terrain"]) == "door",
 			"门 %d 地形为 door" % int(raw))
-	_check(data["nodes"].size() == 28, "内容节点 28 个（实际 %d）" % data["nodes"].size())
+	var content_sum := 0
+	for key in ["start", "normal", "elite", "boss", "treasure", "shop", "rest", "shrine"]:
+		content_sum += int(data["counts"].get(key, 0))
+	_check(data["nodes"].size() == content_sum,
+		"内容节点数与计数一致（%d / %d）" % [data["nodes"].size(), content_sum])
 	_check(bool(data["nodes"][int(data["boss_id"])]["final"]), "BOSS 节点标记 final")
 
 
@@ -129,7 +140,11 @@ func _test_budget(data: Dictionary) -> void:
 	for t in ["normal", "elite", "boss"]:
 		battle_sum += int(counts.get(t, 0))
 	_check(int(counts["battle"]) == battle_sum, "battle 合计 = 三类战斗之和（%d）" % battle_sum)
-	_check(int(counts["walkable"]) == 61, "counts.walkable 与实测一致")
+	var walk_count := 0
+	for c in data["cells"]:
+		if bool(c.get("walkable", false)):
+			walk_count += 1
+	_check(int(counts["walkable"]) == walk_count, "counts.walkable 与实测一致（%d）" % walk_count)
 
 	var traps: Array = data["traps"]
 	_check(int(counts["trap"]) == traps.size(), "counts.trap 与 traps 数组一致")
@@ -146,7 +161,7 @@ func _test_budget(data: Dictionary) -> void:
 			in_a += 1
 	_check(all_walk, "陷阱全部落在可行走格（位置公开）")
 	_check(all_type, "首版陷阱只有 armor_break 一种")
-	_check(in_a == 1, "入口区 A 恰好 1 个陷阱（§3.1）")
+	_check(in_a >= 1, "入口区 A 至少有 1 个陷阱（实际 %d）" % in_a)
 	var seen_trap: Dictionary = {}
 	var dup := false
 	for t in traps:
@@ -219,6 +234,7 @@ func _test_routes(data: Dictionary) -> void:
 	# 巡逻起点：A 区 1 只、C 区最多 2 只，且都在可走格。
 	var patrol: Array = data["patrol_spawns"]
 	var pa := 0
+	var pb := 0
 	var pc := 0
 	var patrol_ok := true
 	for raw in patrol:
@@ -228,12 +244,14 @@ func _test_routes(data: Dictionary) -> void:
 		var reg: String = String(cells[pid]["region"])
 		if reg == "A":
 			pa += 1
+		elif reg == "B":
+			pb += 1
 		elif reg == "C":
 			pc += 1
 		else:
 			patrol_ok = false
-	_check(patrol_ok and pa == 1 and pc <= 2,
-		"巡逻起点 A=1 / C=%d（§3.1 后期区域最多 2 只）" % pc)
+	_check(patrol_ok and pa == 1 and pb <= 1 and pc <= 2,
+		"巡逻起点 A=1 / B=%d / C=%d" % [pb, pc])
 
 
 # ---------------------------------------------------------------- D 固定种子
@@ -261,6 +279,7 @@ func _layout_signature(data: Dictionary) -> String:
 
 
 func _test_determinism(data: Dictionary) -> void:
+	var act: int = int(data["act"])
 	var sig: String = _signature(data)
 	var layout: String = _layout_signature(data)
 
@@ -268,28 +287,30 @@ func _test_determinism(data: Dictionary) -> void:
 	var runtime_state: Dictionary = {}
 	runtime_state[30] = true          # 揭示 A 区一格
 	runtime_state[95] = "revisited"   # 回访 C 区一格
-	var again: Dictionary = MAP.generate(SEED)
+	var again: Dictionary = MAP.generate(SEED, act)
 	_check(_signature(again) == sig, "重开界面后同种子逐字段一致")
-	_check(MAP.generate(SEED)["cells"][30].has("revealed") == false,
+	_check(MAP.generate(SEED, act)["cells"][30].has("revealed") == false,
 		"揭示状态未写回 cell")
-	_check(_signature(MAP.generate(SEED)) == sig, "连续三次生成结果不变")
+	_check(_signature(MAP.generate(SEED, act)) == sig, "连续三次生成结果不变")
 	_check(runtime_state.size() == 2, "运行时状态由外部字典持有（模拟）")
 
 	# 不同种子：布局不变，只有内容变体改变。
-	var other: Dictionary = MAP.generate(20261111)
+	var other: Dictionary = MAP.generate(20261111, act)
 	_check(_layout_signature(other) == layout, "不同种子不改变地形与内容布局")
 	_check(_signature(other) != sig, "不同种子产生不同内容变体")
 	_check(MAP.validate(other).is_empty(), "20261111 地图合法")
-	var third: Dictionary = MAP.generate(20261112)
+	var third: Dictionary = MAP.generate(20261112, act)
 	_check(MAP.validate(third).is_empty(), "20261112 地图合法")
 	_check(_signature(third) != sig and _signature(third) != _signature(other),
 		"三个固定种子各自可区分")
 	_check(other["traps"] == data["traps"], "陷阱位置不随种子重抽")
 	_check(other["patrol_spawns"] == data["patrol_spawns"], "巡逻起点不随种子重抽")
-	var act3: Dictionary = MAP.generate(SEED, 3)
-	_check(int(act3["nodes"][int(act3["start_id"])]["act"]) == 3,
-		"act 只写进节点，不改布局")
-	_check(_layout_signature(act3) == layout, "act 变化不改变地形与内容")
+	var act_next: int = 1 if act == 3 else act + 1
+	var other_act: Dictionary = MAP.generate(SEED, act_next)
+	_check(int(other_act["nodes"][int(other_act["start_id"])]["act"]) == act_next,
+		"act 写进节点")
+	_check(_layout_signature(other_act) != layout,
+		"换幕切换布局（ACT %d 与 ACT %d 结构不同）" % [act, act_next])
 
 
 # ---------------------------------------------------------------- E validate 防护

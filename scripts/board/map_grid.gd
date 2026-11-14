@@ -47,6 +47,39 @@ const LAYOUT := [
 	"##############",
 ]
 
+# 三幕各一张 14x9（内容层 2026-11-14）：结构不同——区域划分、门位置、内容分布都变，
+# 数量各自落在下面的 BUDGET 内，由 map_grid_test 逐幕校验。
+const LAYOUTS := {
+	1: LAYOUT,
+	2: [
+		"##############",
+		"#.T..#..V#T..#",
+		"#N.P.##N.E##N#",
+		"#V...##.N.##V#",
+		"#SNXNDNNNDXNB#",
+		"#V...##.N.#.N#",
+		"#N.R.##..E#.E#",
+		"#.T..#..V#T..#",
+		"##############",
+	],
+	3: [
+		"##############",
+		"#N.T##..V#..T#",
+		"#...##E..#..N#",
+		"#VX.##...##V.#",
+		"#SNXDNNNNDXNB#",
+		"#VXP##..N##N.#",
+		"#N..##E...##E#",
+		"#.TR##V.#T...#",
+		"##############",
+	],
+}
+
+
+static func layout_for(act: int) -> Array:
+	return LAYOUTS.get(act, LAYOUT)
+
+
 const WALKABLE_MIN := 55
 const WALKABLE_MAX := 70
 
@@ -78,8 +111,14 @@ const BATTLE_TYPES := ["normal", "elite", "boss"]
 const EXPLORE_TYPES := ["treasure", "shrine", "shop", "rest"]
 const TRAP_TYPE := "armor_break"
 
-# 巡逻起点（§3.1：A 区 1 只，C 区最多 2 只）。Step 1 只冻结坐标，不实现巡逻。
-const PATROL_SPAWNS := [30, 25, 95]  # (row2,col2) A / (row1,col11) C / (row6,col11) C
+# 巡逻起点（§3.1）。ACT I 是 A 区 1 只 + C 区 2 只；II/III 改为 A/B/C 各 1 只，
+# 与各自的布局对应（路径见 map_patrol.gd 的 PATROLS_BY_ACT）。
+const PATROL_SPAWNS := [30, 25, 95]  # ACT I：(row2,col2) A / (row1,col11) C / (row6,col11) C
+const PATROL_SPAWNS_BY_ACT := {
+	1: PATROL_SPAWNS,
+	2: [16, 21, 82],
+	3: [17, 20, 25],
+}
 
 const NODE = preload("res://scripts/board/board_node_data.gd")
 
@@ -111,7 +150,7 @@ static func generate(seed_value: int, act: int = 1) -> Dictionary:
 	rng.seed = seed_value
 
 	for row in range(ROWS):
-		var line: String = String(LAYOUT[row])
+		var line: String = String(layout_for(act)[row])
 		for col in range(COLS):
 			var ch: String = line.substr(col, 1)
 			var id: int = cell_id(col, row)
@@ -184,7 +223,7 @@ static func generate(seed_value: int, act: int = 1) -> Dictionary:
 		"nodes": nodes,
 		"traps": traps,
 		"doors": doors,
-		"patrol_spawns": PATROL_SPAWNS.duplicate(),
+		"patrol_spawns": (PATROL_SPAWNS_BY_ACT.get(act, PATROL_SPAWNS) as Array).duplicate(),
 		"counts": counts,
 		"start_id": start_id,
 		"boss_id": boss_id,
@@ -207,6 +246,17 @@ static func neighbors(data: Dictionary, id: int) -> Array:
 		if bool(cells[nid]["walkable"]):
 			out.append(nid)
 	return out
+
+
+# 追逐用：一次 BFS 同时回答「目标是否在 max_dist 步内」与「朝它走的第一步」。
+# 超距或不可达返回 -1；相邻时返回目标格本身（走进玩家格 = 接触）。
+static func pursuit_step(data: Dictionary, from_id: int, to_id: int, max_dist: int) -> int:
+	var path: Array = reachable(data, from_id, to_id)
+	if path.size() < 2:
+		return -1
+	if path.size() - 1 > max_dist:
+		return -1
+	return int(path[1])
 
 
 # 4 邻接 BFS。avoid_types 排除含指定 content 的格，avoid_cells 排除指定格。
@@ -353,6 +403,7 @@ static func validate(data: Dictionary) -> Array:
 
 	var patrol: Array = data.get("patrol_spawns", [])
 	var patrol_a := 0
+	var patrol_b := 0
 	var patrol_c := 0
 	for raw in patrol:
 		var pid: int = int(raw)
@@ -362,12 +413,16 @@ static func validate(data: Dictionary) -> Array:
 		var region: String = String(cells[pid]["region"])
 		if region == REGION_A:
 			patrol_a += 1
+		elif region == REGION_B:
+			patrol_b += 1
 		elif region == REGION_C:
 			patrol_c += 1
 		else:
 			errs.append("巡逻起点 %d 落在区域 %s" % [pid, region])
 	if patrol_a != 1:
 		errs.append("入口区 A 巡逻起点不是 1 只（%d）" % patrol_a)
+	if patrol_b > 1:
+		errs.append("交汇区 B 巡逻起点超过 1 只（%d）" % patrol_b)
 	if patrol_c > 2:
 		errs.append("深层区 C 巡逻起点超过 2 只（%d）" % patrol_c)
 
