@@ -76,6 +76,9 @@ func _run() -> void:
 	print("=== G S01–S06 资源与解锁条件 ===")
 	_test_equipment_patterns()
 
+	print("=== L 签名样板 ===")
+	_test_signatures()
+
 	print("=== K T01/T03 术式 ===")
 	_test_t01_t03()
 
@@ -527,8 +530,24 @@ func _test_pattern_effects() -> void:
 	_check(String(acc.get("pattern_equipment", "")) == "W01",
 		"S01 被判定为生效牌谱（%s）" % String(acc.get("pattern_equipment", "")))
 	_check(dmg_after > dmg_before, "S01 提高本轮伤害（%.1f → %.1f）" % [dmg_before, dmg_after])
-	_check(absf((dmg_after - dmg_before) - fire_before * 0.25) < 1.0,
-		"S01 加成 = 火系伤害 ×25%%（+%.1f，期望 %.1f）" % [dmg_after - dmg_before, fire_before * 0.25])
+	# 火焰剑在场 → SIG_W01_FIRESWORD 生效，倍率从 1.25 提到 1.30
+	_check(String(acc.get("pattern_signature", "")) == "SIG_W01_FIRESWORD",
+		"火焰剑签名生效（%s）" % String(acc.get("pattern_signature", "")))
+	_check(absf((dmg_after - dmg_before) - fire_before * 0.30) < 1.0,
+		"W01 带签名时火系伤害 +30%%（+%.1f，期望 %.1f）" % [dmg_after - dmg_before, fire_before * 0.30])
+	# 换一对无签名的火武器，验证基础 25%
+	_equip(["res://resources/weapon_templates/cinder_cleaver.tres",
+		"res://resources/weapon_templates/cinder_hatchet.tres"])
+	var acc_b: Dictionary = _settle_cards(
+		[SYM_FIRE_SLASH, SYM_BURN, SYM_FIRE_SLASH],
+		["fire", "fire", "fire"],
+		["cinder_cleaver", "cinder_cleaver", "cinder_hatchet"])
+	var fire_b: float = float((acc_b["dmg_by_elem"] as Dictionary).get("fire", 0.0))
+	var dmg_b: float = float(acc_b["dmg"]) + float(acc_b["special"])
+	_duel.combat._apply_patterns(acc_b)
+	_check(String(acc_b.get("pattern_signature", "")) == "", "无高阶火武器时不触发签名")
+	_check(absf(((float(acc_b["dmg"]) + float(acc_b["special"])) - dmg_b) - fire_b * 0.25) < 1.0,
+		"W01 无签名时火系伤害 +25%%（基础值）")
 	# 牌谱新增的状态写在 pattern_status（status_stacks 在 _phase_defense 已落地过）
 	_check(int((acc.get("pattern_status", {}) as Dictionary).get("burn", 0)) > 0,
 		"S01 给燃烧加层（%d）" % int((acc.get("pattern_status", {}) as Dictionary).get("burn", 0)))
@@ -579,6 +598,62 @@ func _test_s04_venom() -> void:
 	# 不消耗毒层：+2 落地后是 6，即时结算没有再扣层（若是「消耗型」会小于 6）
 	_check(int(_duel.enemy_status.get("poison", 0)) == 6,
 		"S04 中毒 +2 落地且即时结算不消耗层数（4 → %d，期望 6）" % int(_duel.enemy_status.get("poison", 0)))
+
+
+# L：四条签名样板——绝对零度 × W02、火焰法杖 × W01、卸下即失效、不要求第三把武器。
+func _test_signatures() -> void:
+	var AZ := "res://resources/weapon_templates/absolute_zero.tres"
+	var ICE_GUN := "res://resources/weapon_templates/ice_gun.tres"
+	var ICE_STAFF := "res://resources/weapon_templates/ice_staff.tres"
+	var FLAME_STAFF := "res://resources/weapon_templates/flame_staff.tres"
+	var SYM_FROST := "res://resources/symbols/frost.tres"
+	var SYM_ICE := "res://resources/symbols/ice_crystal.tres"
+	var SYM_FLAME_SPECIAL := "res://resources/symbols/flame_special.tres"
+
+	# —— 绝对零度 × W02：霜冻 +3、敌方攻击 ×0.7 ——
+	_equip([AZ, ICE_GUN])
+	_duel.enemy_status.clear()
+	_duel.enemy_status["frost"] = 2
+	_duel._pattern_enemy_atk_mult = 1.0
+	var az: Dictionary = _settle_cards([SYM_FROST, SYM_ICE, SYM_ICE],
+		["ice", "ice", "ice"], ["absolute_zero", "absolute_zero", "ice_gun"])
+	_duel.combat._apply_patterns(az)
+	_check(String(az.get("pattern_signature", "")) == "SIG_W02_ZERO",
+		"绝对零度签名生效（%s）" % String(az.get("pattern_signature", "")))
+	_check(int((az.get("pattern_status", {}) as Dictionary).get("frost", 0)) == 3,
+		"签名把霜冻提高到 +3（%d）" % int((az.get("pattern_status", {}) as Dictionary).get("frost", 0)))
+	_check(is_equal_approx(float(_duel._pattern_enemy_atk_mult), 0.7),
+		"签名把敌方攻击削弱提高到 ×0.7（%.2f）" % float(_duel._pattern_enemy_atk_mult))
+	# 只带两把武器，不依赖第三个槽
+	_check(_duel.selected_loadout.size() == 2, "签名只需两把武器（%d）" % _duel.selected_loadout.size())
+
+	# —— 火焰法杖 × W01：需要炎爆出现；且比火焰剑签名优先 ——
+	_equip([FLAME_STAFF, FIRE_SWORD])
+	var fs: Dictionary = _settle_cards([SYM_BURN, SYM_FLAME_SPECIAL, SYM_FIRE_SLASH],
+		["fire", "fire", "none"], ["flame_staff", "flame_staff", "fire_sword"])
+	var fire_before: float = float((fs["dmg_by_elem"] as Dictionary).get("fire", 0.0))
+	var dmg_before_fs: float = float(fs["dmg"]) + float(fs["special"])
+	_duel.combat._apply_patterns(fs)
+	_check(String(fs.get("pattern_signature", "")) == "SIG_W01_FLAMESTAFF",
+		"火焰法杖签名优先于火焰剑签名（%s）" % String(fs.get("pattern_signature", "")))
+	_check(absf(((float(fs["dmg"]) + float(fs["special"])) - dmg_before_fs) - fire_before * 0.40) < 1.5,
+		"火焰法杖签名把火系加成提到 +40%")
+
+	# —— 卸下关键武器 → 签名立即失效 ——
+	_equip([FIRE_SWORD, FLAME_STAFF])
+	var with_key: Dictionary = _settle_cards([SYM_BURN, SYM_FIRE_SLASH, SYM_FIRE_SLASH],
+		["fire", "none", "none"], ["fire_sword", "fire_sword", "flame_staff"])
+	_duel.combat._apply_patterns(with_key)
+	_check(String(with_key.get("pattern_signature", "")) != "", "装备关键武器时签名生效")
+	_equip(["res://resources/weapon_templates/cinder_cleaver.tres",
+		"res://resources/weapon_templates/cinder_hatchet.tres"])
+	var without_key: Dictionary = _settle_cards([SYM_BURN, SYM_FIRE_SLASH, SYM_FIRE_SLASH],
+		["fire", "none", "none"], ["cinder_cleaver", "cinder_cleaver", "cinder_hatchet"])
+	_duel.combat._apply_patterns(without_key)
+	_check(String(without_key.get("pattern_signature", "")) == "",
+		"卸下关键武器后签名立即失效（%s）" % String(without_key.get("pattern_signature", "")))
+	_check(String(without_key.get("pattern_equipment", "")) == "W01",
+		"基础牌谱仍然生效（%s）" % String(without_key.get("pattern_equipment", "")))
 
 
 # K：T01 增伤术式（只强化武器）与 T03 恢复术式（满血不激活）。
@@ -690,8 +765,11 @@ func _test_w02_w05_w06() -> void:
 	_check(String(a5.get("pattern_equipment", "")) == "W05",
 		"W05 被判定生效（%s）" % String(a5.get("pattern_equipment", "")))
 	_check(float(a5["pierce"]) > 0.0, "W05 把暗伤害转成穿透（%.1f）" % float(a5["pierce"]))
-	_check(absf((dmg_before - float(a5["dmg"])) - dark_bucket * 0.2) < 1.0,
-		"W05 常态转移 20%%（移出 %.1f，期望 %.1f）" % [dmg_before - float(a5["dmg"]), dark_bucket * 0.2])
+	# 夜幕镰刀在场 → SIG_W05_NIGHT：比例 30%
+	_check(String(a5.get("pattern_signature", "")) == "SIG_W05_NIGHT",
+		"夜幕镰刀签名生效（%s）" % String(a5.get("pattern_signature", "")))
+	_check(absf((dmg_before - float(a5["dmg"])) - dark_bucket * 0.3) < 1.0,
+		"W05 带签名常态转移 30%%（移出 %.1f，期望 %.1f）" % [dmg_before - float(a5["dmg"]), dark_bucket * 0.3])
 	# HP 低于 35% → 35%
 	_duel.enemy_hp = 100
 	_duel.enemy_hp_max = 1000
@@ -700,8 +778,21 @@ func _test_w02_w05_w06() -> void:
 	var bucket_b: float = float((a5b["dmg_bucket_by_elem"] as Dictionary).get("dark", 0.0))
 	var dmg_b_before: float = float(a5b["dmg"])
 	_duel.combat._apply_patterns(a5b)
-	_check(absf((dmg_b_before - float(a5b["dmg"])) - bucket_b * 0.35) < 1.0,
-		"W05 处决线以下转移 35%%（移出 %.1f，期望 %.1f）" % [dmg_b_before - float(a5b["dmg"]), bucket_b * 0.35])
+	# 签名把处决线从 35% 提到 50%
+	_check(absf((dmg_b_before - float(a5b["dmg"])) - bucket_b * 0.5) < 1.0,
+		"W05 带签名处决线以下转移 50%%（移出 %.1f，期望 %.1f）" % [dmg_b_before - float(a5b["dmg"]), bucket_b * 0.5])
+	# 换一对无签名的暗武器，验证基础 20% / 35%
+	_equip(["res://resources/weapon_templates/abyss_scythe.tres",
+		"res://resources/weapon_templates/gloom_saber.tres"])
+	_duel.enemy_hp = 1000
+	_duel.enemy_hp_max = 1000
+	var a5c: Dictionary = _settle_cards([SYM_SHADOW, SYM_SHADOW, SYM_SHADOW],
+		["dark", "dark", "dark"], ["abyss_scythe", "gloom_saber", "abyss_scythe"])
+	var bucket_c: float = float((a5c["dmg_bucket_by_elem"] as Dictionary).get("dark", 0.0))
+	var dmg_c: float = float(a5c["dmg"])
+	_duel.combat._apply_patterns(a5c)
+	_check(String(a5c.get("pattern_signature", "")) == "", "无高阶暗武器时不触发签名")
+	_check(absf((dmg_c - float(a5c["dmg"])) - bucket_c * 0.2) < 1.0, "W05 无签名时基础 20%")
 
 	# —— W06 无锋磨砺：无元素伤害 +20% ——
 	_equip([DAGGER, IRON])

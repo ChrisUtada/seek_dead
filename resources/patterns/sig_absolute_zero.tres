@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="PatternData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/pattern_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "SIG_W02_ZERO"
+name = "霜封连携·零度领域"
+icon = "🧊"
+desc = "绝对零度签名：两把冰武器时霜冻 +3，敌方攻击削弱提高到 ×0.7；最多两个来源"
+kind = "equipment"
+track = "signature"
+pattern_tier = "epic_signature"
+base_pattern_id = "W02"
+priority = 20
+key_paths = Array[String](["res://resources/weapon_templates/absolute_zero.tres"])
+unlock_paths = Array[String](["res://resources/weapon_templates/absolute_zero.tres"])
+unlock_tags = Array[String]([])
+unlock_count = 0
+match_rule = {"all": [{"sym": "res://resources/symbols/frost.tres"}, {"kind": "damage", "source_element": "ice"}, {"source_kind": "weapon"}]}
+effect_id = "frost_seal"
+effect_params = {"frost_extra": 3, "threshold": 4, "enemy_atk_mult": 0.7}
+assist_allowed = false
+sequence_id = ""

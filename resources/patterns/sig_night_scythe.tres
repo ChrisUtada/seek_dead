@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="PatternData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/pattern_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "SIG_W05_NIGHT"
+name = "暗影处刑·夜幕裁决"
+icon = "🌘"
+desc = "夜幕镰刀签名：处决线提高到 50%，转穿透比例 30%；不回血、不需要暗状态"
+kind = "equipment"
+track = "signature"
+pattern_tier = "epic_signature"
+base_pattern_id = "W05"
+priority = 20
+key_paths = Array[String](["res://resources/weapon_templates/night_scythe.tres"])
+unlock_paths = Array[String](["res://resources/weapon_templates/night_scythe.tres"])
+unlock_tags = Array[String]([])
+unlock_count = 0
+match_rule = {"all": [{"kind": "damage", "source_element": "dark"}, {"kind": "damage", "source_element": "dark"}, {"source_kind": "weapon"}]}
+effect_id = "shadow_execution"
+effect_params = {"pierce_ratio": 0.3, "exec_threshold": 0.5, "exec_ratio": 0.5}
+assist_allowed = false
+sequence_id = ""

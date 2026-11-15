@@ -22,6 +22,13 @@ class_name PatternData
 #   weapon_attack  武器攻击牌谱（W01-W06），只读武器牌
 #   skill_support  技能辅助术式（T01-T03），恰好一张技能牌 + 两张武器牌
 @export var track: String = "weapon_attack"
+# 牌谱层级（2026-11-15 Step 5）：build（基础）| rare_signature | epic_signature | mastery
+# 签名不增加牌型编号，而是修改所属基础牌谱的解锁/组件/效果。
+@export var pattern_tier: String = "build"
+# 签名绑定的关键武器路径：装备里出现任意一把才生效，卸下立即失效
+@export var key_paths: Array[String] = []
+# 签名所属的基础牌谱 id（为空表示它不是签名）
+@export var base_pattern_id: String = ""
 # 同时满足多条装备牌谱时的处理顺序：数值大的先。同优先级按 id 升序。
 @export var priority: int = 0
 # 解锁条件：三选一（路径精确 / 标签 / 数量），任一满足即可

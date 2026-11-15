@@ -93,6 +93,37 @@ func resolve_universal(matched_ids: Array, unlocked: Array) -> Array:
 	return out
 
 
+# 查找某条基础牌谱的生效签名（2026-11-15 Step 5）。
+# 规则：base_pattern_id 匹配 + 关键武器在装备里（卸下立即失效）+ 签名自己的组件条件也满足。
+# 多条同时可用时取 priority 最高；同优先级按 id 升序，保证确定性。
+func find_signature(base_id: String, loadout: Array, cards: Array) -> Variant:
+	if base_id == "":
+		return null
+	var best = null
+	for p in _all:
+		if String(p.track) != "signature":
+			continue
+		if String(p.base_pattern_id) != base_id:
+			continue
+		var has_key := false
+		for k in p.key_paths:
+			if loadout.has(String(k)):
+				has_key = true
+				break
+		if not has_key:
+			continue
+		if not (p.match_rule as Dictionary).is_empty() \
+				and not PATTERN_MATCHER.solve_rule(cards, p.match_rule):
+			continue
+		if best == null:
+			best = p
+		elif int(p.priority) > int(best.priority):
+			best = p
+		elif int(p.priority) == int(best.priority) and String(p.id) < String(best.id):
+			best = p
+	return best
+
+
 # 连携卷轴的候选：当前可用、可被补牌凑成、且尚未命中的装备牌谱。
 func assist_candidates(unlocked: Array, matched_ids: Array) -> Array:
 	var out: Array = []

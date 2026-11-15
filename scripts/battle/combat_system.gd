@@ -327,9 +327,14 @@ func _apply_patterns(acc: Dictionary) -> void:
 	var w_hits: Array = PATTERN_MATCHER.match_rules(weapon_cards, w_pool)
 	var w_pick = _ctrl._pattern_system.resolve_equipment(w_hits, w_pool)
 	if w_pick != null:
+		# 签名：修改所属基础牌谱的效果参数；卸下关键武器立即失效（靠 find_signature 的 loadout 检查）
+		var all_equip: Array = loadout.duplicate()
+		all_equip.append_array(_ctrl.selected_charms)
+		var sig = _ctrl._pattern_system.find_signature(String(w_pick.id), all_equip, weapon_cards)
 		acc["pattern_weapon"] = String(w_pick.id)
 		acc["pattern_equipment"] = String(w_pick.id)   # 兼容既有断言与展示
-		PATTERN_EFFECTS.apply(acc, w_pick, {"ctrl": _ctrl})
+		acc["pattern_signature"] = String(sig.id) if sig != null else ""
+		PATTERN_EFFECTS.apply(acc, sig if sig != null else w_pick, {"ctrl": _ctrl})
 
 	# —— 技能轨：恰好 1 技能 + 2 武器 ——
 	if skill_cards.size() == 1 and weapon_cards.size() == 2:
