@@ -1,6 +1,6 @@
-[gd_resource type="Theme" format=3 load_steps=4 uid="uid://3s703cmqw3d2"]
+[gd_resource type="Theme" format=3 uid="uid://3s703cmqw3d2"]
 
-[ext_resource type="FontFile" path="res://assets/fonts/VonwaonBitmap-12px.tres" id="1_font"]
+[ext_resource type="FontFile" uid="uid://docplpbe6pwy2" path="res://assets/fonts/VonwaonBitmap-12px.tres" id="1_font"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
 content_margin_left = 4.0
@@ -25,26 +25,16 @@ border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
 border_color = Color(0.662745, 0.615686, 0.537255, 1)
-corner_radius_top_left = 0
-corner_radius_top_right = 0
-corner_radius_bottom_right = 0
-corner_radius_bottom_left = 0
 
 [resource]
+Label/colors/font_color = Color(0.886275, 0.843137, 0.741176, 1)
+Label/font_sizes/font_size = 10
+Label/fonts/font = ExtResource("1_font")
 PanelContainer/styles/panel = SubResource("StyleBoxFlat_panel")
 RichTextLabel/colors/default_color = Color(0.886275, 0.843137, 0.741176, 1)
-RichTextLabel/fonts/normal_font = ExtResource("1_font")
 RichTextLabel/font_sizes/normal_font_size = 10
-TooltipPanel/styles/panel = SubResource("StyleBoxFlat_tooltip")
-TooltipLabel/fonts/font = ExtResource("1_font")
-TooltipLabel/font_sizes/font_size = 10
+RichTextLabel/fonts/normal_font = ExtResource("1_font")
 TooltipLabel/colors/font_color = Color(0.886275, 0.843137, 0.741176, 1)
-Label/colors/font_color = Color(0.886275, 0.843137, 0.741176, 1)
-Label/fonts/font = ExtResource("1_font")
-Label/font_sizes/font_size = 10
-Label/types/TitleLabel/font_sizes/font_size = 10
-Label/types/TitleLabel/colors/font_color = Color(0.886275, 0.843137, 0.741176, 1)
-Label/types/SubLabel/font_sizes/font_size = 9
-Label/types/SubLabel/colors/font_color = Color(0.662745, 0.615686, 0.537255, 1)
-Label/types/AnvilSub/font_sizes/font_size = 9
-Label/types/GoldLabel/colors/font_color = Color(0.835294, 0.639216, 0.239216, 1)
+TooltipLabel/font_sizes/font_size = 10
+TooltipLabel/fonts/font = ExtResource("1_font")
+TooltipPanel/styles/panel = SubResource("StyleBoxFlat_tooltip")
