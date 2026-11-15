@@ -561,15 +561,10 @@ func _test_pattern_effects() -> void:
 			if child is Label:
 				texts = String((child as Label).text)
 		_check(texts.find("W01") >= 0, "横幅文本含牌谱 id（%s）" % texts)
-	# 常驻面板（§9.1 两分区）
-	var tray = _duel.hud.get("_pattern_tray_label")
-	_check(tray != null and is_instance_valid(tray), "常驻牌谱面板已创建")
-	if tray != null and is_instance_valid(tray):
-		var tray_text := String((tray as RichTextLabel).text)
-		_check(tray_text.find("武器牌谱") >= 0, "面板含「武器牌谱」分区")
-		_check(tray_text.find("W01") >= 0, "面板列出 W01")
-		_check(tray_text.find("燃") >= 0 or tray_text.find("任意武器牌") >= 0,
-			"面板显示组件标签（%s）" % tray_text.replace("\n", " / "))
+	# 常驻面板暂时关闭显示（实机上字号过大、遮挡左上 UI）。这里钉住「默认不显示」，
+	# 防止以后不小心又打开却没调整表现。实现与数据层保留，开关见 battle_hud.PATTERN_TRAY_ENABLED。
+	var tray = _duel.hud.get("_pattern_tray")
+	_check(tray == null, "常驻面板默认不显示（实机遮挡问题待表现方案）")
 
 	# —— 装备不足时不触发 ——
 	_equip([FIRE_SWORD])

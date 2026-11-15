@@ -1122,7 +1122,18 @@ func _popup(text: String, color: Color, anchor: Control) -> void:
 # entries: [{section, id, name, icon, parts: [{text, ok}], done, active}]
 var _pattern_tray: Control
 var _pattern_tray_label: RichTextLabel
+# 2026-11-15：常驻面板暂时关闭显示。
+# 实机截图显示它在像素字体下字号远超预期（12px 渲染成大字），左上角完全遮挡
+# 治疗术/护符等既有信息。表现方式待定，先把显示关掉，数据层与实现保留：
+# 需要重新启用时把这里改成 true 即可，调用方（combat_system._build_tray_entries）无需改动。
+const PATTERN_TRAY_ENABLED := false
 func update_pattern_tray(entries: Array) -> void:
+	if not PATTERN_TRAY_ENABLED:
+		if _pattern_tray != null and is_instance_valid(_pattern_tray):
+			_pattern_tray.queue_free()
+			_pattern_tray = null
+			_pattern_tray_label = null
+		return
 	if not is_inside_tree():
 		return
 	if _pattern_tray == null or not is_instance_valid(_pattern_tray):
