@@ -60,6 +60,9 @@ func _run() -> void:
 	print("=== G Step 3 真实 BOSS 奖励入口 ===")
 	await _test_real_entry()
 
+	print("=== H Step 4 全品质覆盖后的实际分布 ===")
+	_test_distribution()
+
 	_finish()
 
 
@@ -258,6 +261,37 @@ func _test_real_entry() -> void:
 	_check(total_bad_q == 0, "同组主题武器品质一致（%d 处不符）" % total_bad_q)
 	_check(total_dup == 0, "同组主题武器不重复（%d 处重复）" % total_dup)
 	_check(total_missing == 0, "12 个 BOSS × 20 次都没有空武器（缺 %d 次）" % total_missing)
+
+
+# Step 4 完成标准：全覆盖 BOSS 的 10,000 次抽样应为 uncommon 10% / rare 60% / epic 30%（±2pp）。
+func _test_distribution() -> void:
+	var rooms: Array = _boss_rooms()
+	var bad: Array[String] = []
+	for r in rooms:
+		var opts := {"category": "weapon", "theme": r.boss_reward_weapons}
+		var counts := {"common": 0, "uncommon": 0, "rare": 0, "epic": 0}
+		var total := 0
+		for i in range(10000):
+			var res: Dictionary = _pool.roll_n("boss", int(r.act), 1, opts)
+			if bool(res.get("ok", false)):
+				var q := String(res.get("quality", ""))
+				counts[q] = int(counts.get(q, 0)) + 1
+				total += 1
+		var line := "%s: " % String(r.name)
+		var ok_all := true
+		for q in ["uncommon", "rare", "epic"]:
+			var pct: float = 100.0 * float(counts[q]) / maxf(1.0, float(total))
+			var want: float = {"uncommon": 10.0, "rare": 60.0, "epic": 30.0}[q]
+			line += "%s %.1f%%(期望%.0f) " % [q, pct, want]
+			if absf(pct - want) > 2.0:
+				ok_all = false
+		if int(counts["common"]) != 0:
+			ok_all = false
+			line += "common %d(应为0) " % int(counts["common"])
+		print("  [分布] " + line)
+		if not ok_all:
+			bad.append(String(r.name))
+	_check(bad.is_empty(), "12 个 BOSS 的分布都是 10/60/30（不符：%s）" % str(bad))
 
 
 func _finish() -> void:

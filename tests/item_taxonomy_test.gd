@@ -50,6 +50,7 @@ var _items: Array[Dictionary] = []
 var _relic_act := {}       # path -> act
 var _relic_boss := {}      # path -> boss name
 var _boss_weapons := {}    # path -> true
+var _boss_weapon_acts := {}  # path -> [该武器被哪些 BOSS 的幕引用]
 
 
 func _ready() -> void:
@@ -120,7 +121,12 @@ func _scan_rooms() -> void:
 			_relic_act[String(r.boss_relic_path)] = int(r.act)
 			_relic_boss[String(r.boss_relic_path)] = String(r.name)
 		for wp in r.boss_reward_weapons:
-			_boss_weapons[String(wp)] = true
+			var wkey := String(wp)
+			_boss_weapons[wkey] = true
+			if not _boss_weapon_acts.has(wkey):
+				_boss_weapon_acts[wkey] = []
+			if not (_boss_weapon_acts[wkey] as Array).has(int(r.act)):
+				(_boss_weapon_acts[wkey] as Array).append(int(r.act))
 
 
 # ---------------------------------------------------------------------------
@@ -241,7 +247,18 @@ func _check_boss_sources() -> void:
 			_check(false, "BOSS 池武器可加载 " + path)
 			continue
 		_check((res.get("source_tags") as Array).has("boss"), "%s BOSS 池武器标记 boss 来源" % path.get_file())
-		_check(int(res.get("act_min")) == 1, "%s BOSS 池武器第 1 幕可掉落" % path.get_file())
+		# 2026-11-15：不再强制 act_min == 1。act2/act3 的 BOSS 使用同幕解锁的武器是合理的
+		# （例：暗 BOSS 用 act2 起可用的毒系 rare/epic）。改为要求它至少覆盖
+		# 「配置了它的某个 BOSS」所在幕次，否则那把武器在它的池子里永远抽不到。
+		var amin := int(res.get("act_min"))
+		var amax := int(res.get("act_max"))
+		var acts: Array = _boss_weapon_acts.get(path, [])
+		var covers := false
+		for a in acts:
+			if int(a) >= amin and int(a) <= amax:
+				covers = true
+		_check(covers, "%s BOSS 池武器覆盖其所在 BOSS 的幕次（act%d-%d，引用幕 %s）" % [
+			path.get_file(), amin, amax, str(acts)])
 
 
 # ---------------------------------------------------------------------------
