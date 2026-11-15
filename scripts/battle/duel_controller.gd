@@ -129,6 +129,11 @@ var _item_pierce_map: Dictionary = {}
 var _item_pierce_at: Dictionary = {}
 var _item_status_bonus: Dictionary = {}
 var _source_archetype_map: Dictionary = {} # 武器id -> WeaponData.Archetype，用于同源三连原型效果
+# 2026-11-15 转轮凑牌 Step 2：牌谱判定需要的来源类别与元素。
+# 技能符号段在 pool_items 里没有来源 id（grid_src 为空），所以技能牌改用「符号归属」判断，
+# 不动 build_pool 的既有结构，避免影响同源三连与专精倍率的现有语义。
+var _source_element_map: Dictionary = {}   # 武器id -> 武器元素
+var _skill_sym_kind: Dictionary = {}       # 技能符号 resource_path -> 该符号元素
 var _source_weapon_type_map: Dictionary = {} # 武器id -> WeaponData.WeaponType，用于远程穿透
 var pool_items: Array[Dictionary] = []              # 装备自洽：每件装备一段 [ {name, hit, syms:[[SymbolData, weight, element]]} ]，_build_strips 据此生成各自的转轮子带
 
@@ -434,6 +439,7 @@ func _apply_demo_filters() -> void:
 
 func _build_pool(loadout: Array) -> void:
 	reel_system.build_pool(loadout)   # P2 架构还债（2026-08-24）：池构建迁 ReelSystem（池/带子/落子同域）
+	_sync_pattern_source_meta()       # 转轮凑牌 Step 2：牌谱判定用的来源类别与元素
 
 
 # 符号「有效元素」解析已随池构建迁 reel_system.eff_element（唯一调用方是建池本身）。
@@ -478,6 +484,24 @@ func _apply_reward_weapon_replace(p: String, old_path: String) -> void:
 
 # 新武器摘要（商店替换 / 奖励替换 / BOSS 战利品共用）
 # G0-02：攻击显示锋铸后的真实值；G6-05：再叠加铸式修正。R 等级 / 熟练 / 铭印与转轮带使用同一份运行时状态。
+# 牌谱判定用的来源元数据：武器 id → 元素；技能符号 → 类别。
+# 只在池重建时刷新，结算路径不读它，所以不会改变既有伤害语义。
+func _sync_pattern_source_meta() -> void:
+	_source_element_map.clear()
+	for path in selected_loadout:
+		var wd: WeaponData = load(path)
+		if wd == null:
+			continue
+		var wid: String = str(wd.resource_path).get_file().get_basename()
+		_source_element_map[wid] = String(wd.element)
+	_skill_sym_kind.clear()
+	for path in selected_skills:
+		var sd = load(path)
+		if sd == null or sd.symbol == null:
+			continue
+		_skill_sym_kind[String(sd.symbol.resource_path)] = String(sd.symbol.element)
+
+
 # 载入 resources/patterns 下的全部牌谱（Step 2 起 S01–S06 生效；后续扩展只加资源）。
 func _load_pattern_system():
 	var sys = preload("res://scripts/battle/pattern_system.gd").new()

@@ -76,6 +76,9 @@ func _run() -> void:
 	print("=== G S01–S06 资源与解锁条件 ===")
 	_test_equipment_patterns()
 
+	print("=== I 三轨隔离 ===")
+	_test_tracks()
+
 	print("=== H 牌谱效果真实生效 ===")
 	_test_pattern_effects()
 	_test_s04_venom()
@@ -98,7 +101,13 @@ func _boot():
 	return duel
 
 
-func _equip(paths: Array) -> void:
+const SKILL_AEGIS := "res://resources/skills/aegis.tres"
+
+
+func _equip(paths: Array, skills: Array = []) -> void:
+	_duel.selected_skills.clear()
+	for sk in skills:
+		_duel.selected_skills.append(String(sk))
 	_duel.selected_loadout.clear()
 	for p in paths:
 		_duel.selected_loadout.append(String(p))
@@ -281,7 +290,7 @@ func _test_no_extra_swap_state() -> void:
 
 # 当前实际条数。新增断言时同步上调：
 # 运行时错误会中断函数、静默少检查，只有条数守卫能发现（见 Step 0 记录的假绿问题）。
-const EXPECTED_CHECKS := 75
+const EXPECTED_CHECKS := 81
 
 
 func _ids(patterns: Array) -> Array:
@@ -582,6 +591,61 @@ func _test_s04_venom() -> void:
 	# 不消耗毒层：+2 落地后是 6，即时结算没有再扣层（若是「消耗型」会小于 6）
 	_check(int(_duel.enemy_status.get("poison", 0)) == 6,
 		"S04 中毒 +2 落地且即时结算不消耗层数（4 → %d，期望 6）" % int(_duel.enemy_status.get("poison", 0)))
+
+
+# I：三轨隔离——技能牌不能填武器牌谱，T 恰好 1 技能 + 2 武器，每轨各最多一条。
+func _test_tracks() -> void:
+	var aegis = load(SKILL_AEGIS)
+	var aegis_sym := String(aegis.symbol.resource_path)
+
+	# ① 2 张武器牌 + 1 张技能牌 → W01 不能触发（「任意武器牌」不接受技能牌）
+	_equip([FIRE_SWORD, FLAME_STAFF], [SKILL_AEGIS])
+	var acc: Dictionary = _settle_cards([SYM_FIRE_SLASH, SYM_BURN, aegis_sym],
+		["none", "fire", "none"], ["fire_sword", "fire_sword", ""])
+	_duel.combat._apply_patterns(acc)
+	_check(String(acc.get("pattern_equipment", "")) == "",
+		"技能牌不能充当武器牌谱的组件（实际 %s）" % String(acc.get("pattern_equipment", "")))
+	var kinds := []
+	for c in MATCHER.cards_from_grid(_duel):
+		kinds.append(String(c.get("source_kind", "")))
+	_check(kinds.count("skill") == 1 and kinds.count("weapon") == 2,
+		"来源类别判定正确（%s）" % str(kinds))
+
+	# ② 手工注册一条技能术式：1 技能 + 2 武器才触发
+	var tpd = PATTERN_DATA.new()
+	tpd.id = "T_TEST"; tpd.name = "测试术式"; tpd.kind = "equipment"; tpd.track = "skill_support"
+	tpd.priority = 5
+	tpd.match_rule = {"all": [
+		{"source_kind": "skill", "kind": "shield"},
+		{"source_kind": "weapon"},
+		{"source_kind": "weapon"},
+	]}
+	tpd.effect_id = "shield_bash"
+	tpd.effect_params = {"shield_flat": 8, "damage_ratio": 0.5}
+	_duel._pattern_system.register(tpd)
+
+	var acc2: Dictionary = _settle_cards([aegis_sym, SYM_FIRE_SLASH, SYM_FIRE_SLASH],
+		["none", "none", "none"], ["", "fire_sword", "fire_sword"])
+	_duel.combat._apply_patterns(acc2)
+	_check(String(acc2.get("pattern_skill", "")) == "T_TEST",
+		"1 技能 + 2 武器触发技能术式（实际 %s）" % String(acc2.get("pattern_skill", "")))
+	_check(float(acc2["shield"]) > 0.0, "技能术式效果落地（护盾 %.0f）" % float(acc2["shield"]))
+
+	# ③ 2 张技能牌不触发术式（基础设计只要求 1 个技能槽）
+	var acc3: Dictionary = _settle_cards([aegis_sym, aegis_sym, SYM_FIRE_SLASH],
+		["none", "none", "none"], ["", "", "fire_sword"])
+	_duel.combat._apply_patterns(acc3)
+	_check(String(acc3.get("pattern_skill", "")) == "",
+		"两张技能牌不触发术式（实际 %s）" % String(acc3.get("pattern_skill", "")))
+
+	# ④ 同一回合 W 与 T 可以各触发一条（不同轨互不挤占）
+	var acc4: Dictionary = _settle_cards([SYM_FIRE_SLASH, SYM_BURN, aegis_sym],
+		["none", "fire", "none"], ["fire_sword", "fire_sword", ""])
+	_equip([FIRE_SWORD, FLAME_STAFF], [SKILL_AEGIS])
+	_duel.combat._apply_patterns(acc4)
+	# 这里只有 2 张武器牌，W01 不触发；但 T 需要 shield 技能，aegis 是 shield → 可触发
+	_check(String(acc4.get("pattern_skill", "")) == "T_TEST",
+		"同一回合技能轨独立判定（W 不成立时 T 仍可触发，实际 %s）" % String(acc4.get("pattern_skill", "")))
 
 
 func _finish() -> void:

@@ -135,6 +135,10 @@ static func _card_satisfies(card: Dictionary, cond: Dictionary) -> bool:
 		return false
 	if cond.has("kind") and String(card["sym"].kind) != String(cond["kind"]):
 		return false
+	if cond.has("source_kind") and String(card.get("source_kind", "")) != String(cond["source_kind"]):
+		return false
+	if cond.has("source_element") and String(card.get("source_element", "none")) != String(cond["source_element"]):
+		return false
 	return true
 
 
@@ -157,15 +161,30 @@ static func cards_from_grid(ctrl, reel: int = 0) -> Array:
 	for p in paylines:
 		var col: int = int(p[0])
 		var row: int = int(p[1])
+		var sym = ctrl.grid[col][row]
 		var entry := {
-			"sym": ctrl.grid[col][row],
+			"sym": sym,
 			"element": "none",
 			"source": "",
+			"source_kind": "resource",
+			"source_element": "none",
 			"valid": not (col in ctrl.frozen_cols),
 		}
+		# 先取元素与来源，再判来源类别（顺序错了会永远判成 resource）
 		if ctrl.grid_elem.size() > col and ctrl.grid_elem[col].size() > row:
 			entry["element"] = String(ctrl.grid_elem[col][row])
 		if ctrl.grid_src.size() > col and ctrl.grid_src[col].size() > row:
 			entry["source"] = String(ctrl.grid_src[col][row])
+		# 来源类别：技能牌按「符号归属」判（技能符号段在 pool 里没有来源 id），
+		# 武器牌按 grid_src 的武器 id 判，其余（精华/金币）算 resource。
+		if sym != null:
+			var sp := String(sym.resource_path)
+			if ctrl._skill_sym_kind != null and ctrl._skill_sym_kind.has(sp):
+				entry["source_kind"] = "skill"
+				entry["source_element"] = String(ctrl._skill_sym_kind[sp])
+			elif String(entry["source"]) != "" and ctrl._source_element_map != null \
+					and ctrl._source_element_map.has(String(entry["source"])):
+				entry["source_kind"] = "weapon"
+				entry["source_element"] = String(ctrl._source_element_map[String(entry["source"])])
 		cards.append(entry)
 	return cards

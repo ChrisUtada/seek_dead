@@ -126,6 +126,8 @@ func _card(sym_entry: Dictionary, src_weapon: Dictionary) -> Dictionary:
 		"sym": _fake_sym(sym_entry),
 		"element": String(sym_entry["elem"]),
 		"source": String(src_weapon["path"]),
+		"source_kind": "weapon",
+		"source_element": String(src_weapon["element"]),
 		"valid": true,
 	}
 

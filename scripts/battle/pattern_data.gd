@@ -17,6 +17,11 @@ class_name PatternData
 @export var icon: String = ""
 # universal（通用牌型，玩家总有）| equipment（装备牌谱，需要解锁）
 @export var kind: String = "equipment"
+# 三轨（2026-11-15 转轮凑牌 Step 2）：
+#   weapon_public  公共武器牌型（G01-G03），只读武器牌
+#   weapon_attack  武器攻击牌谱（W01-W06），只读武器牌
+#   skill_support  技能辅助术式（T01-T03），恰好一张技能牌 + 两张武器牌
+@export var track: String = "weapon_attack"
 # 同时满足多条装备牌谱时的处理顺序：数值大的先。同优先级按 id 升序。
 @export var priority: int = 0
 # 解锁条件：三选一（路径精确 / 标签 / 数量），任一满足即可

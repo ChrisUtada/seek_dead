@@ -9,6 +9,7 @@ name = "盾击连携"
 icon = "🛡"
 desc = "两件 shield 家族装备：护盾牌×2＋任意有效牌 → 额外 +8 护盾，随后造成本轮实际护盾获得量 50% 的伤害"
 kind = "equipment"
+track = "skill_support"
 priority = 10
 unlock_paths = Array[String]([])
 unlock_tags = Array[String](["family:shield"])

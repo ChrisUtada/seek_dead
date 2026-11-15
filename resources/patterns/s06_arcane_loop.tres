@@ -9,6 +9,7 @@ name = "奥术回路"
 icon = "✨"
 desc = "两件 charge 家族装备：两张不同充能／增益牌＋任意有效牌 → 充能 +2，若因此充满则元素爆发伤害 +25%"
 kind = "equipment"
+track = "skill_support"
 priority = 10
 unlock_paths = Array[String]([])
 unlock_tags = Array[String](["family:charge"])

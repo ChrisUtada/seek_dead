@@ -30,6 +30,15 @@ func all_patterns() -> Array:
 	return _all
 
 
+# 按轨取牌谱（weapon_public / weapon_attack / skill_support）。
+func by_track(track: String) -> Array:
+	var out: Array = []
+	for p in _all:
+		if String(p.track) == track:
+			out.append(p)
+	return out
+
+
 func get_pattern(id: String):
 	return _by_id.get(id, null)
 

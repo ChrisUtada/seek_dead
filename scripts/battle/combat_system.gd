@@ -293,31 +293,67 @@ func _phase_symbols(acc: Dictionary) -> Dictionary:
 	return counts
 
 
-# 转轮凑牌：判通用牌型与至多一条装备牌谱，把修正写进累计器（不重算符号）。
+# 转轮凑牌：三轨判定（2026-11-15 Step 2）。
+#   weapon_public（G01–G03）+ weapon_attack（W）只读武器牌；
+#   skill_support（T）恰好一张技能牌 + 两张武器牌。
+# 每轨独立，各自每回合最多一条；所有效果写进累计器，不重算符号。
 func _apply_patterns(acc: Dictionary) -> void:
 	if _ctrl == null or _ctrl._pattern_system == null:
 		return
-	var cards: Array = PATTERN_MATCHER.cards_from_grid(_ctrl)
-	var m: Dictionary = PATTERN_MATCHER.match(cards)
+	var all_cards: Array = PATTERN_MATCHER.cards_from_grid(_ctrl)
+	var weapon_cards: Array = []
+	var skill_cards: Array = []
+	for c in all_cards:
+		if not bool(c.get("valid", true)):
+			continue
+		var k := String(c.get("source_kind", "resource"))
+		if k == "weapon":
+			weapon_cards.append(c)
+		elif k == "skill":
+			skill_cards.append(c)
+
+	# —— 武器轨 ——
+	var m: Dictionary = PATTERN_MATCHER.match(weapon_cards)
+	acc["pattern_match"] = m
 	var ids: Array = []
 	for p in m["patterns"]:
 		ids.append(String(p.get("id", "")))
 	var loadout: Array = _ctrl.selected_loadout.duplicate()
-	loadout.append_array(_ctrl.selected_charms)
-	var unlocked: Array = _ctrl._pattern_system.unlocked_patterns(loadout, _ctrl._pattern_tag_of)
-	acc["pattern_match"] = m
-	acc["patterns_universal"] = _ctrl._pattern_system.resolve_universal(ids, unlocked)
-	# 装备牌谱走 match_rule 求解（与通用牌型分开判，互不干扰）
-	var eq_ids: Array = PATTERN_MATCHER.match_rules(cards, unlocked)
-	var eq = _ctrl._pattern_system.resolve_equipment(eq_ids, unlocked)
-	if eq != null:
-		acc["pattern_equipment"] = String(eq.id)
-		PATTERN_EFFECTS.apply(acc, eq, {"ctrl": _ctrl})
+	var unlocked_weapon: Array = _ctrl._pattern_system.unlocked_patterns(loadout, _ctrl._pattern_tag_of)
+	acc["patterns_universal"] = _ctrl._pattern_system.resolve_universal(ids, unlocked_weapon)
+	var w_pool: Array = _pick_track(unlocked_weapon, "weapon_attack")
+	var w_hits: Array = PATTERN_MATCHER.match_rules(weapon_cards, w_pool)
+	var w_pick = _ctrl._pattern_system.resolve_equipment(w_hits, w_pool)
+	if w_pick != null:
+		acc["pattern_weapon"] = String(w_pick.id)
+		acc["pattern_equipment"] = String(w_pick.id)   # 兼容既有断言与展示
+		PATTERN_EFFECTS.apply(acc, w_pick, {"ctrl": _ctrl})
+
+	# —— 技能轨：恰好 1 技能 + 2 武器 ——
+	if skill_cards.size() == 1 and weapon_cards.size() == 2:
+		var skill_load: Array = _ctrl.selected_skills.duplicate()
+		var unlocked_skill: Array = _ctrl._pattern_system.unlocked_patterns(skill_load, _ctrl._pattern_tag_of)
+		var t_pool: Array = _pick_track(unlocked_skill, "skill_support")
+		if not t_pool.is_empty():
+			var t_hits: Array = PATTERN_MATCHER.match_rules(all_cards, t_pool)
+			var t_pick = _ctrl._pattern_system.resolve_equipment(t_hits, t_pool)
+			if t_pick != null:
+				acc["pattern_skill"] = String(t_pick.id)
+				PATTERN_EFFECTS.apply(acc, t_pick, {"ctrl": _ctrl})
+
 	# 牌谱新增的状态层在这里落地（_phase_defense 已经跑过，不能复用 status_stacks）
 	for st in acc.get("pattern_status", {}).keys():
 		var n := int(acc["pattern_status"][st])
 		if n > 0:
 			_ctrl.enemy_status[st] = int(_ctrl.enemy_status.get(st, 0)) + n
+
+
+func _pick_track(patterns: Array, track: String) -> Array:
+	var out: Array = []
+	for p in patterns:
+		if String(p.track) == track:
+			out.append(p)
+	return out
 
 
 # —— 阶段 2：防御 / 增益 / 状态先落地 ——
