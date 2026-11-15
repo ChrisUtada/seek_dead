@@ -397,7 +397,7 @@ func _test_display_state(duel: DuelController) -> void:
 	_check(m.choose(FIRE, "forge"), "显示测试：选择锋铸成功")
 	var info: String = duel._weapon_info(FIRE)
 	_check(info.find("攻20") >= 0, "替换摘要显示锋铸后的真实攻击（18→20）")
-	_check(info.find("锋铸+2") >= 0, "替换摘要标注锋铸加成")
+	_check(info.find("槽位锻造") >= 0 and info.find("锋铸×1") >= 0, "替换摘要把槽位锻造单列（锋铸×1）")
 	_check(info.find("R1") >= 0 and info.find("熟练") >= 0, "替换摘要包含 R 等级与熟练进度")
 	var off: String = duel._weapon_off_info(FIRE)
 	_check(off.find("卸下") >= 0 and off.find("攻20") >= 0 and off.find("保留") >= 0, "替换预览显示旧武器卸下与熟练保留说明")

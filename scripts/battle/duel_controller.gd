@@ -517,54 +517,78 @@ func replace_weapon_at_slot(slot: int, new_path: String) -> bool:
 	return true
 
 
-func weapon_power(path: String) -> int:
+# 假设把 path 放进 slot 之后的攻击 / 命中（只读，不写任何状态）。
+# 替换预览、弹层与真实战斗共用这一个公式，避免「预览一套、战斗一套」。
+# slot < 0 表示不假设任何槽（只算武器基础 + 横向铸式）。
+func weapon_power_in_slot(path: String, slot: int) -> int:
 	var res: WeaponData = load(path)
 	if res == null:
 		return 0
-	# 通用锋铸跟槽位；未装备的武器没有槽，不贡献任何槽位成长。
-	var slot: int = slot_of(path)
-	var forge: int = weapon_slots.forge_bonus(slot) if weapon_slots != null else 0
+	var forge: int = weapon_slots.forge_bonus(slot) if (weapon_slots != null and slot >= 0) else 0
 	var style: int = _forge_styles.power_bonus(path) if _forge_styles != null else 0
 	return int(res.base_power) + forge + style
 
 
-func weapon_hit(path: String) -> float:
+func weapon_hit_in_slot(path: String, slot: int) -> float:
 	var res: WeaponData = load(path)
 	if res == null:
 		return 1.0
 	var delta: float = _forge_styles.hit_delta(path) if _forge_styles != null else 0.0
-	# 通用校准跟槽位（与锋铸同一归属）；并入同一命中通道，不加新乘区。
-	var slot: int = slot_of(path)
-	if weapon_slots != null:
+	if weapon_slots != null and slot >= 0:
 		delta += weapon_slots.hit_bonus(slot)
 	return clampf(float(res.hit_rate) + delta, 0.0, 1.0)
 
 
-func _weapon_info(p: String) -> String:
+func weapon_power(path: String) -> int:
+	return weapon_power_in_slot(path, slot_of(path))
+
+
+func weapon_hit(path: String) -> float:
+	return weapon_hit_in_slot(path, slot_of(path))
+
+
+# 武器摘要：固定拆成「槽位锻造」与「武器专精」两段，避免把所有修正混在一行。
+# assume_slot >= 0 时按「装进该槽」计算（替换弹层用），否则按当前所在槽。
+func _weapon_info(p: String, assume_slot: int = -1) -> String:
 	var res: WeaponData = load(p)
 	if res == null:
 		return "新武器：%s" % _shop_name(p, "weapon")
-	var forge: int = mastery.forge_bonus(p) if mastery != null else 0
-	var atk_txt := "攻%d" % weapon_power(p)
-	if forge > 0:
-		atk_txt += "（锋铸+%d）" % forge
-	var out := "新武器：%s · %s · %s · 命中%d%% · %s" % [
-		res.weapon_name, res.rarity, atk_txt, int(weapon_hit(p) * 100), ElementCounter.label(res.element)]
-	if _forge_styles != null:
-		var style_txt: String = String(_forge_styles.describe(p))
-		if style_txt != "":
-			out += "\n" + style_txt
+	var slot: int = assume_slot if assume_slot >= 0 else slot_of(p)
+	var atk: int = weapon_power_in_slot(p, slot)
+	var hit: float = weapon_hit_in_slot(p, slot)
+	var head := "新武器：%s · %s · 攻%d · 命中%d%% · %s" % [
+		res.weapon_name, res.rarity, atk, int(round(hit * 100.0)), ElementCounter.label(res.element)]
+	# 槽位锻造：通用数值，跟槽位、换装继承
+	var slot_txt: String = ""
+	if weapon_slots != null and slot >= 0:
+		slot_txt = String(weapon_slots.describe(slot))
+	if slot_txt == "":
+		slot_txt = "无（装入后从该槽继承）"
+	elif slot >= 0:
+		slot_txt += "（换装继承）"
+	# 武器专精：熟练 / 调律 / 横向铸式，跟武器
+	var spec: Array[String] = []
 	if mastery != null:
-		for extra in [mastery.progress_text(p), mastery.imprint_text(p)]:
-			if String(extra) != "":
-				out += "\n" + String(extra)
+		var prog: String = mastery.progress_text(p)
+		if prog != "":
+			spec.append(prog)
+		var tune_n: int = mastery._tune_count(p)
+		if tune_n > 0:
+			spec.append("调律×%d" % tune_n)
+	if _forge_styles != null:
+		var st: String = String(_forge_styles.describe(p)).replace("\n", " · ")
+		if st != "":
+			spec.append(st)
+	var spec_txt: String = " · ".join(spec) if not spec.is_empty() else "无"
+	var out := head + "\n槽位锻造：" + slot_txt + "\n武器专精：" + spec_txt
+	if mastery != null:
 		var target: int = mastery.catchup_target(p)
-		if target > int(mastery.mastery.get(p, 0)):
-			out += "\n追赶：熟练 %d → %d（有效清房每房 +1）" % [int(mastery.mastery.get(p, 0)), target]
+		var now: int = int(mastery.mastery.get(p, 0))
+		if target > now:
+			out += "\n追赶：熟练 %d → %d（有效清房每房 +1）" % [now, target]
 	return out
 
 
-# G2-01：当前获取上下文（来源记录用）。只读，不触发状态变化。
 func _item_source(loot_source: String = "") -> Dictionary:
 	var d := {"act": current_act, "mode": "board" if node_mode else "linear"}
 	if loot_source != "":
@@ -582,17 +606,35 @@ func _item_source(loot_source: String = "") -> Dictionary:
 
 
 # G2-01：替换预览的「旧武器卸下」行——只描述本局当前贡献；熟练/铭印按规则保留。
-func _weapon_off_info(p: String) -> String:
+# 本幕 BOSS 的元素（棋盘上 BOSS 位置与信息本来就公开，用于替换弹层的克制对照）。
+# 没有棋盘或取不到房间时返回空串，调用方据此不显示这一行。
+func board_boss_element() -> String:
+	if board == null or not board.generated:
+		return ""
+	var node: Dictionary = {}
+	if board.current_is_boss():
+		node = board.current_node()
+	elif not board.boss_ids.is_empty():
+		node = board.node_by_id(String(board.boss_ids[0]))
+	var r: RoomData = node.get("room")
+	return "" if r == null else String(r.element)
+
+
+func _weapon_off_info(p: String, slot: int = -1) -> String:
 	var res: WeaponData = load(p)
+	var s_now: int = slot if slot >= 0 else slot_of(p)
+	var tag := ""
+	if s_now >= 0:
+		tag = "武器槽 %d ｜ " % (s_now + 1)
 	if res == null:
-		return "卸下：%s（熟练/铭印保留）" % _shop_name(p, "weapon")
-	var atk: int = weapon_power(p)
-	var out := "卸下：%s · 攻%d · %s" % [res.weapon_name, atk, ElementCounter.label(res.element)]
+		return tag + "卸下：%s（熟练/调律保留）" % _shop_name(p, "weapon")
+	var atk: int = weapon_power_in_slot(p, s_now)
+	var out := tag + "卸下：%s · 攻%d · %s" % [res.weapon_name, atk, ElementCounter.label(res.element)]
 	if mastery != null:
 		for extra in [mastery.progress_text(p), mastery.imprint_text(p)]:
 			if String(extra) != "":
 				out += " · " + String(extra)
-	out += "（熟练/铭印保留，重装恢复）"
+	out += "（熟练/调律保留；卸下后暂停贡献）"
 	return out
 
 

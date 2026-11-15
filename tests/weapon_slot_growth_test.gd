@@ -49,6 +49,9 @@ func _run() -> void:
 	print("=== E 共享资源不被修改 ===")
 	_test_resource_immutable()
 
+	print("=== F 替换预览与真实一致 ===")
+	await _test_preview_matches_actual()
+
 	_finish()
 
 
@@ -174,6 +177,32 @@ func _test_resource_immutable() -> void:
 	_check(int(wd2.base_power) == base_before, "共享资源 base_power 未被改写（%d）" % int(wd2.base_power))
 	_check(absf(float(wd2.hit_rate) - hit_before) < 0.0001,
 		"共享资源 hit_rate 未被改写（%.2f）" % float(wd2.hit_rate))
+
+
+# Step 5：弹层里的「假设装入该槽」数值必须与替换完成后的真实面板逐项一致。
+func _test_preview_matches_actual() -> void:
+	_new_run([SLOT_A, SLOT_B])
+	_duel.weapon_slots.choose(0, "forge")
+	_duel.weapon_slots.choose(0, "calibrate")
+	var preview_atk: int = _duel.weapon_power_in_slot(SWAP_C, 0)
+	var preview_hit: float = _duel.weapon_hit_in_slot(SWAP_C, 0)
+	_swap(0, SWAP_C)
+	_check(_duel.weapon_power(SWAP_C) == preview_atk,
+		"预览攻击 = 替换后实际（%d）" % preview_atk)
+	_check(absf(_duel.weapon_hit(SWAP_C) - preview_hit) < 0.0001,
+		"预览命中 = 替换后实际（%.2f）" % preview_hit)
+
+	# 摘要必须分成「槽位锻造 / 武器专精」两段，且槽位段标注换装继承
+	var info: String = _duel._weapon_info(SWAP_C, 0)
+	_check(info.find("槽位锻造") >= 0, "摘要含槽位锻造段")
+	_check(info.find("武器专精") >= 0, "摘要含武器专精段")
+	_check(info.find("换装继承") >= 0, "槽位段标注换装继承")
+	_check(info.find("锋铸×1") >= 0 and info.find("校准×1") >= 0, "槽位段列出锋铸与校准")
+
+	# 卸下说明带槽号，且说明调律/熟练保留、贡献暂停
+	var off: String = _duel._weapon_off_info(SLOT_B, 1)
+	_check(off.find("武器槽 2") >= 0, "卸下说明带槽号（%s）" % off)
+	_check(off.find("暂停贡献") >= 0, "卸下说明写明卸下后暂停贡献")
 
 
 func _finish() -> void:

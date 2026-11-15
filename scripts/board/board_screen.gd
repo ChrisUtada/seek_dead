@@ -975,23 +975,28 @@ func _equip_lines(g: Dictionary) -> Array[String]:
 	return out
 
 
+# 逐槽预告：每个合法替换目标都列出来（不能只比列表第一把，否则玩家看不到槽 2 的差异）。
+# 数值用 weapon_power_in_slot / weapon_hit_in_slot——与替换后的真实面板同一公式。
 func _equip_line(path: String) -> String:
 	if controller == null:
 		return _item_name(path, "weapon")
 	var wd: WeaponData = load(path)
 	if wd == null:
 		return _item_name(path, "weapon")
-	var line := _item_name(path, "weapon")
-	for old in controller.selected_loadout:
-		var op := String(old)
+	var parts: Array[String] = []
+	for i in range(controller.selected_loadout.size()):
+		var op := String(controller.selected_loadout[i])
 		if op == path:
 			continue
-		var dmg: int = int(controller.weapon_power(path)) - int(controller.weapon_power(op))
-		var hit: int = int(round((float(controller.weapon_hit(path)) - float(controller.weapon_hit(op))) * 100.0))
-		line += " · 替换%s 攻%s 命%s%%" % [_item_name(op, "weapon"),
-			("+" if dmg >= 0 else "") + str(dmg), ("+" if hit >= 0 else "") + str(hit)]
-		break
-	return line
+		var old_atk: int = controller.weapon_power_in_slot(op, i)
+		var new_atk: int = controller.weapon_power_in_slot(path, i)
+		var old_hit: int = int(round(controller.weapon_hit_in_slot(op, i) * 100.0))
+		var new_hit: int = int(round(controller.weapon_hit_in_slot(path, i) * 100.0))
+		var d_atk := new_atk - old_atk
+		var d_hit := new_hit - old_hit
+		parts.append("槽%d攻%s%d 命%s%d" % [i + 1,
+			"+" if d_atk >= 0 else "", d_atk, "+" if d_hit >= 0 else "", d_hit])
+	return _item_name(path, "weapon") + (" · " + " ｜ ".join(parts) if not parts.is_empty() else "")
 
 
 func _grant_line(g: Dictionary) -> String:

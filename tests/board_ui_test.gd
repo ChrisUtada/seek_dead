@@ -264,6 +264,16 @@ func _test_battle_entry() -> void:
 		if String(n.get("type", "")) == "chest":
 			chest = n
 			break
+	# Step 5：替换弹层要能拿到本幕 BOSS 元素做克制对照
+	var boss_elem: String = String(_duel.board_boss_element())
+	_check(boss_elem != "", "棋盘模式可读到本幕 BOSS 元素（%s）" % boss_elem)
+
+	# Step 5：棋盘装备预告必须逐槽列出（不能只比列表第一把旧武器）
+	var probe := "res://resources/weapon_templates/frost_dagger.tres"
+	var line: String = String(_bs._equip_line(probe))
+	_check(line.find("槽1") >= 0 and line.find("槽2") >= 0,
+		"棋盘装备预告逐槽列出（%s）" % line)
+
 	_check(not chest.is_empty(), "本图有宝箱节点")
 	if not chest.is_empty():
 		_duel._on_board_node_entered(chest)

@@ -1535,14 +1535,61 @@ func request_weapon_replace(title: String, new_weapon_info: String, on_chosen: C
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_replace_vbox.add_child(hint)
 	for path in controller.selected_loadout:
-		# G2-01：先给「旧武器卸下」行（当前贡献 + 熟练/铭印保留说明），再给带子/共鸣增减。
+		# G2-01：先给「旧武器卸下」行（当前贡献 + 熟练/调律保留说明），再给带子/共鸣增减。
+		# 2026-11-15：逐槽表达——每把旧武器就是这个槽的当前占用者，槽号由 _weapon_off_info 带出。
+		var slot: int = controller.slot_of(path)
 		var off = _label("", TypeScale.TINY)
-		off.text = controller._weapon_off_info(path)
+		off.text = controller._weapon_off_info(path, slot)
 		off.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		off.custom_minimum_size = Vector2(300, 0)
 		off.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		off.add_theme_color_override("font_color", Palette.MUTED)
 		_replace_vbox.add_child(off)
+		if new_path != "":
+			# 继承说明：通用锻造跟槽位，换装不变；熟练与调律留在旧武器上。
+			var inherit: String = ""
+			if controller.weapon_slots != null:
+				inherit = String(controller.weapon_slots.describe(slot))
+			var inh = _label("", TypeScale.TINY)
+			inh.text = ("继承：该槽通用锻造保持不变（%s）" % inherit) if inherit != "" \
+				else "继承：该槽还没有通用锻造，装入后可从这里开始投入"
+			inh.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			inh.custom_minimum_size = Vector2(300, 0)
+			inh.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			inh.add_theme_color_override("font_color", Palette.ACCENT_GOLD)
+			_replace_vbox.add_child(inh)
+			# 数值对照：与真实战斗同一公式（weapon_power_in_slot / weapon_hit_in_slot）
+			var old_atk: int = controller.weapon_power_in_slot(path, slot)
+			var new_atk: int = controller.weapon_power_in_slot(new_path, slot)
+			var old_hit: int = int(round(controller.weapon_hit_in_slot(path, slot) * 100.0))
+			var new_hit: int = int(round(controller.weapon_hit_in_slot(new_path, slot) * 100.0))
+			var d_atk := new_atk - old_atk
+			var d_hit := new_hit - old_hit
+			var cmp = _label("", TypeScale.TINY)
+			cmp.text = "数值：攻 %d → %d（%s%d）· 命中 %d%% → %d%%（%s%d）" % [
+				old_atk, new_atk, "+" if d_atk >= 0 else "", d_atk,
+				old_hit, new_hit, "+" if d_hit >= 0 else "", d_hit]
+			cmp.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			cmp.custom_minimum_size = Vector2(300, 0)
+			cmp.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			_replace_vbox.add_child(cmp)
+			# 对已公开 BOSS 的元素倍率：只显示可准确计算的两项，不合成「胜率」。
+			var boss_elem: String = controller.board_boss_element()
+			var old_wd: WeaponData = load(path)
+			var new_wd: WeaponData = load(new_path)
+			if boss_elem != "" and old_wd != null and new_wd != null:
+				var o_e := String(old_wd.element)
+				var n_e := String(new_wd.element)
+				var el = _label("", TypeScale.TINY)
+				el.text = "对 BOSS（%s）：%s ×%.2f → %s ×%.2f" % [
+					ElementCounter.label(boss_elem),
+					ElementCounter.label(o_e), ElementCounter.multiplier(o_e, boss_elem),
+					ElementCounter.label(n_e), ElementCounter.multiplier(n_e, boss_elem)]
+				el.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+				el.custom_minimum_size = Vector2(300, 0)
+				el.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+				el.add_theme_color_override("font_color", Palette.MUTED)
+				_replace_vbox.add_child(el)
 		# M1-04：替换预览——真实格数增减 + 共鸣得失（口径同 build_strips，纯计算不写入局内状态）
 		if new_path != "":
 			var hypo: Array = controller.selected_loadout.duplicate()
