@@ -73,8 +73,11 @@ func _run() -> void:
 	print("=== F 牌谱优先级 ===")
 	_test_pattern_priority()
 
-	print("=== G S01–S03 资源与解锁条件 ===")
+	print("=== G S01–S06 资源与解锁条件 ===")
 	_test_equipment_patterns()
+
+	print("=== H 牌谱效果真实生效 ===")
+	_test_pattern_effects()
 
 	_finish()
 
@@ -117,6 +120,21 @@ func _settle(sym_path: String, element: String, sources: Array) -> Dictionary:
 		if not sources.is_empty():
 			src = String(sources[mini(r, sources.size() - 1)])
 		_duel.reel_system._set_grid_src(r, 0, src)
+	_duel.enemy_element = "none"
+	_duel.enemy_armor = 0
+	_duel.charge_points = 0
+	var acc: Dictionary = _duel.combat._new_acc()
+	_duel.combat._reset_turn_state()
+	acc["counts"] = _duel.combat._phase_symbols(acc)
+	return acc
+
+
+# 三格分别指定符号/元素/来源（同族、清一色、牌谱判定都要用）。
+func _settle_cards(syms: Array, elems: Array, sources: Array) -> Dictionary:
+	for r in 3:
+		_duel.grid[r][0] = load(String(syms[r]))
+		_duel.grid_elem[r][0] = String(elems[r])
+		_duel.reel_system._set_grid_src(r, 0, String(sources[r]))
 	_duel.enemy_element = "none"
 	_duel.enemy_armor = 0
 	_duel.charge_points = 0
@@ -208,8 +226,9 @@ func _test_flame_resonance() -> void:
 	var sym_burn = load(SYM_BURN)
 	var w_fire: float = _duel._synergy_system.weight_mod(sym_fire)
 	var w_burn: float = _duel._synergy_system.weight_mod(sym_burn)
-	_check(is_equal_approx(w_fire, 2.0) and is_equal_approx(w_burn, 2.0),
-		"烈焰共鸣给火斩/燃烧各 +2 权重（%.1f / %.1f）" % [w_fire, w_burn])
+	# Step 2：旧共鸣的数值效果已移除，权重提升与伤害加成都改由牌谱 S01 接管。
+	_check(is_equal_approx(w_fire, 0.0) and is_equal_approx(w_burn, 0.0),
+		"烈焰共鸣不再加符号权重（%.1f / %.1f）——已由 S01 接管" % [w_fire, w_burn])
 	var on: float = _dmg(_settle(SYM_FIRE_SLASH, "fire", ["fire_sword"]))
 	var backup: Array = _duel._synergy_system._active.duplicate()
 	_duel._synergy_system._active.clear()   # 只关共鸣、其它条件不变
@@ -217,7 +236,7 @@ func _test_flame_resonance() -> void:
 	_duel._synergy_system._active.clear()
 	_duel._synergy_system._active.append_array(backup)
 	_check(is_equal_approx(on, off),
-		"烈焰共鸣当前不影响伤害（%.1f / %.1f）——Step 2 会把它换成伤害型牌谱" % [on, off])
+		"烈焰共鸣不再直接改伤害（%.1f / %.1f）——由 S01 牌谱生效" % [on, off])
 
 
 # B2：冰火二重（冰火各一）→ crit_bonus +0.5，同源三连倍率 2.0 → 2.5。
@@ -229,9 +248,9 @@ func _test_frostfire() -> void:
 	var off: float = _dmg(_settle(SYM_FIRE_SLASH, "fire", ["fire_sword"]))
 	_duel._synergy_system._active.clear()
 	_duel._synergy_system._active.append_array(backup2)
-	_check(on > off, "冰火二重提高暴击倍率（%.1f → %.1f）" % [off, on])
-	_check(absf(on / maxf(1.0, off) - 1.25) < 0.02,
-		"冰火二重 = crit +0.5（倍率比 %.1f×1.25）" % [off])
+	# Step 2：crit_bonus 已清空，旧 ×1.25 不再出现；改由 S02 牌谱（穿透转换）接管。
+	_check(is_equal_approx(on, off),
+		"冰火二重不再改暴击倍率（%.1f / %.1f）——由 S02 接管" % [on, off])
 
 
 # B3：黎明圣辉（圣辉长剑 + 破晓之弓）→ light 元素倍率 ×1.2。
@@ -244,8 +263,9 @@ func _test_holy_pair() -> void:
 	var off: float = _dmg(_settle(SYM_HOLY_SLASH, "light", ["holy_sword"]))
 	_duel._synergy_system._active.clear()
 	_duel._synergy_system._active.append_array(backup3)
-	_check(absf(on / maxf(1.0, off) - 1.2) < 0.02,
-		"黎明圣辉使光伤害 ×1.2（%.1f → %.1f）" % [off, on])
+	# Step 2：element_boost 已清空，旧 ×1.2 不再出现；改由 S03 牌谱（追加齐射）接管。
+	_check(is_equal_approx(on, off),
+		"黎明圣辉不再改光伤害（%.1f / %.1f）——由 S03 接管" % [on, off])
 
 
 # C：守护——停列后直接结算，不允许任何「事后换牌」状态。
@@ -260,7 +280,7 @@ func _test_no_extra_swap_state() -> void:
 
 # 当前实际条数。新增断言时同步上调：
 # 运行时错误会中断函数、静默少检查，只有条数守卫能发现（见 Step 0 记录的假绿问题）。
-const EXPECTED_CHECKS := 63
+const EXPECTED_CHECKS := 71
 
 
 func _ids(patterns: Array) -> Array:
@@ -474,6 +494,63 @@ func _test_equipment_patterns() -> void:
 	# 火+冰各一件：S02（各一件）满足；S01 需要两件火，不满足；S03 需要两把指定武器，不满足
 	_check(ids.has("S02") and not ids.has("S01") and not ids.has("S03"),
 		"火+冰各一件只解锁 S02（%s）" % str(ids))
+
+
+# H：S01 / S05 的效果必须真的写进累计器（Step 2 的核心）。
+func _test_pattern_effects() -> void:
+	# —— S01 烈焰共鸣：火斩 + 燃烧 + 任意火，本轮火系伤害 +25% ——
+	_equip([FIRE_SWORD, FLAME_STAFF])
+	var acc: Dictionary = _settle_cards(
+		[SYM_FIRE_SLASH, SYM_BURN, SYM_FIRE_SLASH],
+		["fire", "fire", "fire"],
+		["fire_sword", "fire_sword", "flame_staff"])
+	var fire_before: float = float((acc["dmg_by_elem"] as Dictionary).get("fire", 0.0))
+	var dmg_before: float = float(acc["dmg"]) + float(acc["special"])
+	_duel.combat._apply_patterns(acc)
+	var dmg_after: float = float(acc["dmg"]) + float(acc["special"])
+	_check(String(acc.get("pattern_equipment", "")) == "S01",
+		"S01 被判定为生效牌谱（%s）" % String(acc.get("pattern_equipment", "")))
+	_check(dmg_after > dmg_before, "S01 提高本轮伤害（%.1f → %.1f）" % [dmg_before, dmg_after])
+	_check(absf((dmg_after - dmg_before) - fire_before * 0.25) < 1.0,
+		"S01 加成 = 火系伤害 ×25%%（+%.1f，期望 %.1f）" % [dmg_after - dmg_before, fire_before * 0.25])
+	_check(int(acc["status_stacks"].get("burn", 0)) > 0, "S01 给燃烧加层（%d）" % int(acc["status_stacks"].get("burn", 0)))
+
+	# —— 装备不足时不触发 ——
+	_equip([FIRE_SWORD])
+	var acc2: Dictionary = _settle_cards(
+		[SYM_FIRE_SLASH, SYM_BURN, SYM_FIRE_SLASH],
+		["fire", "fire", "fire"],
+		["fire_sword", "fire_sword", "fire_sword"])
+	_duel.combat._apply_patterns(acc2)
+	_check(String(acc2.get("pattern_equipment", "")) == "",
+		"单件火装备不触发 S01（%s）" % String(acc2.get("pattern_equipment", "")))
+
+	# —— S05 盾击连携：护盾 ×2 + 任意，+8 护盾并转 50% 伤害 ——
+	var guard_path := "res://resources/symbols/guard.tres"
+	var block_path := "res://resources/symbols/block.tres"
+	# 需要两件 shield 家族装备才能解锁，这里直接手注册一条临时牌谱验证效果层
+	var pd = PATTERN_DATA.new()
+	pd.id = "T_S05"; pd.kind = "equipment"; pd.priority = 1
+	pd.match_rule = {"all": [{"kind": "shield"}, {"kind": "shield"}, {}]}
+	pd.effect_id = "shield_bash"; pd.effect_params = {"shield_flat": 8, "damage_ratio": 0.5}
+	var sys = PATTERN_SYSTEM.new()
+	sys.register(pd)
+	_equip([DAGGER])
+	var acc3: Dictionary = _settle_cards([guard_path, block_path, SYM_FIRE_SLASH],
+		["none", "none", "none"], ["dagger", "dagger", "dagger"])
+	var shield_before: int = int(acc3["shield"])
+	var dmg3_before: float = float(acc3["dmg"])
+	var cards: Array = MATCHER.cards_from_grid(_duel)
+	_check(MATCHER.solve_rule(cards, pd.match_rule), "两张盾牌满足 S05 的 match_rule")
+	var unlocked3: Array = sys.unlocked_patterns([DAGGER], func(_p): return [])
+	var pick = sys.resolve_equipment(MATCHER.match_rules(cards, unlocked3), unlocked3)
+	_check(pick != null and String(pick.id) == "T_S05", "S05 牌谱可被解析选中")
+	if pick != null:
+		var effects = preload("res://scripts/battle/pattern_effects.gd")
+		effects.apply(acc3, pick, {"ctrl": _duel})
+		_check(int(acc3["shield"]) == shield_before + 8,
+			"S05 额外 +8 护盾（%d → %d）" % [shield_before, int(acc3["shield"])])
+		_check(float(acc3["dmg"]) > dmg3_before, "S05 把护盾转成伤害（%.1f → %.1f）" % [dmg3_before, float(acc3["dmg"])])
 
 
 func _finish() -> void:

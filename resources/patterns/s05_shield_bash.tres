@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="PatternData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/pattern_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "S05"
+name = "盾击连携"
+icon = "🛡"
+desc = "两件 shield 家族装备：护盾牌×2＋任意有效牌 → 额外 +8 护盾，随后造成本轮实际护盾获得量 50% 的伤害"
+kind = "equipment"
+priority = 10
+unlock_paths = Array[String]([])
+unlock_tags = Array[String](["family:shield"])
+unlock_count = 2
+match_rule = {"all": [{"kind": "shield"}, {"kind": "shield"}, {}]}
+effect_id = "shield_bash"
+effect_params = {"shield_flat": 8, "damage_ratio": 0.5}
+assist_allowed = true
+sequence_id = ""

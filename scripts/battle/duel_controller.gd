@@ -278,6 +278,8 @@ var growth                             # M2-01 角色历练与技艺（经验/�
 var mastery                            # M2-02 武器熟练 R1–R4 与铭印（锋铸/调律；每局清零）
 # 2026-11-15：双武器槽的通用数值成长（锋铸/校准/暴虐）。换装立即继承，整局不重置。
 var weapon_slots
+# 2026-11-15 转轮凑牌：牌谱系统（装备解锁集 + 优先级）。Step 2 起效果真正生效。
+var _pattern_system
 var readability                        # P1 目押可读性原型（速度/预览/视觉落点/缓冲/反馈；不改数值）
 var _telemetry                         # M1-06 局内遥测（内存计数，不落盘/不吃随机；每局清零）
 var _journal                           # G5 工具：自动记录客观项（只读；导出包/--runlog 才落盘）
@@ -356,6 +358,7 @@ func _ready() -> void:
 	growth = preload("res://scripts/systems/growth_system.gd").new(self)
 	mastery = preload("res://scripts/systems/weapon_mastery.gd").new(self)
 	weapon_slots = preload("res://scripts/systems/weapon_slot_growth.gd").new()
+	_pattern_system = _load_pattern_system()
 	# G0-02：物品 tooltip 读取运行时武器状态（锋铸后的真实攻击 / R 等级 / 铭印），
 	# 静态生成器不持有 controller，由这里注入；共享 .tres 不被修改。
 	ItemTooltip.weapon_state_provider = _weapon_tooltip_state
@@ -475,6 +478,38 @@ func _apply_reward_weapon_replace(p: String, old_path: String) -> void:
 
 # 新武器摘要（商店替换 / 奖励替换 / BOSS 战利品共用）
 # G0-02：攻击显示锋铸后的真实值；G6-05：再叠加铸式修正。R 等级 / 熟练 / 铭印与转轮带使用同一份运行时状态。
+# 载入 resources/patterns 下的全部牌谱（Step 2 起 S01–S06 生效；后续扩展只加资源）。
+func _load_pattern_system():
+	var sys = preload("res://scripts/battle/pattern_system.gd").new()
+	var dir := DirAccess.open("res://resources/patterns")
+	if dir == null:
+		return sys
+	for f in dir.get_files():
+		if not f.ends_with(".tres"):
+			continue
+		var pd = load("res://resources/patterns/" + f)
+		if pd != null:
+			sys.register(pd)
+	return sys
+
+
+# 装备路径 → 解锁标签。family_tags 同时给出原标签与 family: 前缀（S05/S06 用它解锁）。
+func _pattern_tag_of(path: String) -> Array:
+	var tags: Array = []
+	var res = load(path)
+	if res == null:
+		return tags
+	var fam = res.get("family_tags")
+	if fam is Array:
+		for t in fam:
+			tags.append(String(t))
+			tags.append("family:" + String(t))
+	var e = res.get("element")
+	if e != null and String(e) != "" and String(e) != "none":
+		tags.append("element:" + String(e))
+	return tags
+
+
 # 当前装备路径所在的武器槽（0/1）；未装备返回 -1，绝不默认落到槽 0。
 func slot_of(path: String) -> int:
 	if path == "":

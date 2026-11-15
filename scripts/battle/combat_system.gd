@@ -13,6 +13,9 @@ extends RefCounted
 #
 # 唯一 async 入口：evaluate()（内部 await 间隔，供飘字/动画演出）。
 
+const PATTERN_MATCHER = preload("res://scripts/battle/pattern_matcher.gd")
+const PATTERN_EFFECTS = preload("res://scripts/battle/pattern_effects.gd")
+
 var _ctrl  # DuelController
 
 # Step 4（2026-11-11）：本回合结果反馈的分类累计。只供 HUD 文案，不参与结算。
@@ -83,13 +86,19 @@ func contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String, source
 			if combo_raw >= 3:
 				acc["triple"] = true
 			_note_damage_elem(elem)
+			var e_key: String = elem if elem != "" else "none"
+			var s_key: String = source_id if source_id != "" else sym.resource_path
+			acc["dmg_by_elem"][e_key] = float(acc["dmg_by_elem"].get(e_key, 0.0)) + dv
+			acc["source_dmg"][s_key] = float(acc["source_dmg"].get(s_key, 0.0)) + dv
 			if sym.pierce_armor or randf() < pierce_p:
 				acc["pierce"] += dv
 			elif source_triple and weapon_type == WeaponData.WeaponType.RANGED:
 				acc["pierce"] += dv * 0.35
 				acc["dmg"] += dv * 0.65
+				acc["dmg_bucket_by_elem"][e_key] = float(acc["dmg_bucket_by_elem"].get(e_key, 0.0)) + dv * 0.65
 			else:
 				acc["dmg"] += dv
+				acc["dmg_bucket_by_elem"][e_key] = float(acc["dmg_bucket_by_elem"].get(e_key, 0.0)) + dv
 			push_dmg_line(acc, sym, elem, flat, bonus, mult, em, dv, crit_mult_val)
 		# 2026-08-07 重构：shield/heal 不吃武器攻击力/克制/元进度——只 = 符号 base × 连线 × 暴击（治疗/护盾符号保持小值，来自技能/房奖励）
 		"shield":  acc["shield"]  += sym.base * mult * crit_mult_val
@@ -113,13 +122,19 @@ func contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String, source
 			if combo_raw >= 3:
 				acc["triple"] = true
 			_note_damage_elem(elem)
+			var e_key2: String = elem if elem != "" else "none"
+			var s_key2: String = source_id if source_id != "" else sym.resource_path
+			acc["dmg_by_elem"][e_key2] = float(acc["dmg_by_elem"].get(e_key2, 0.0)) + sv
+			acc["source_dmg"][s_key2] = float(acc["source_dmg"].get(s_key2, 0.0)) + sv
 			if sym.pierce_armor or randf() < pierce_p:
 				acc["pierce"] += sv
 			elif source_triple and weapon_type == WeaponData.WeaponType.RANGED:
 				acc["pierce"] += sv * 0.35
 				acc["special"] += sv * 0.65
+				acc["dmg_bucket_by_elem"][e_key2] = float(acc["dmg_bucket_by_elem"].get(e_key2, 0.0)) + sv * 0.65
 			else:
 				acc["special"] += sv
+				acc["dmg_bucket_by_elem"][e_key2] = float(acc["dmg_bucket_by_elem"].get(e_key2, 0.0)) + sv
 			push_dmg_line(acc, sym, elem, flat, bonus, mult, em, sv, crit_mult_val)
 		_: pass
 
@@ -169,6 +184,7 @@ func evaluate() -> void:
 	var counts := _phase_symbols(acc)
 	await _phase_defense(acc)
 	_phase_counter(counts, acc)
+	_apply_patterns(acc)   # 转轮凑牌 Step 2：通用牌型与一条装备牌谱修正累计器
 	await _phase_attack(counts, acc)
 
 
@@ -176,7 +192,11 @@ func evaluate() -> void:
 # 不参与结算；结算仍读 shield / heal 原字段。
 func _new_acc() -> Dictionary:
 	return { "dmg": 0, "shield": 0, "heal": 0, "status_stacks": {}, "special": 0, "lines": [], "pierce": 0.0, "counter_triple": false, "triple": false, "heal_triple": false, "element_resonance": false,
-		"shield_gain": 0, "heal_gain": 0, "heal_overflow_shield": 0 }
+		"shield_gain": 0, "heal_gain": 0, "heal_overflow_shield": 0,
+		# 2026-11-15 转轮凑牌 Step 2：按元素拆分的结构化累计，供牌谱效果运算。
+		# dmg_by_elem      = 该元素本轮造成的总伤害（含穿透），用于「某元素伤害 +X%」
+		# dmg_bucket_by_elem = 其中真正进了 acc["dmg"] 的部分，用于「某元素伤害转穿透」
+		"dmg_by_elem": {}, "dmg_bucket_by_elem": {}, "source_dmg": {} }
 
 
 func _reset_turn_state() -> void:
@@ -271,6 +291,28 @@ func _phase_symbols(acc: Dictionary) -> Dictionary:
 				turn_syms.append(p)
 		_ctrl.debuffs.note_turn_symbols(_ctrl, turn_syms)
 	return counts
+
+
+# 转轮凑牌：判通用牌型与至多一条装备牌谱，把修正写进累计器（不重算符号）。
+func _apply_patterns(acc: Dictionary) -> void:
+	if _ctrl == null or _ctrl._pattern_system == null:
+		return
+	var cards: Array = PATTERN_MATCHER.cards_from_grid(_ctrl)
+	var m: Dictionary = PATTERN_MATCHER.match(cards)
+	var ids: Array = []
+	for p in m["patterns"]:
+		ids.append(String(p.get("id", "")))
+	var loadout: Array = _ctrl.selected_loadout.duplicate()
+	loadout.append_array(_ctrl.selected_charms)
+	var unlocked: Array = _ctrl._pattern_system.unlocked_patterns(loadout, _ctrl._pattern_tag_of)
+	acc["pattern_match"] = m
+	acc["patterns_universal"] = _ctrl._pattern_system.resolve_universal(ids, unlocked)
+	# 装备牌谱走 match_rule 求解（与通用牌型分开判，互不干扰）
+	var eq_ids: Array = PATTERN_MATCHER.match_rules(cards, unlocked)
+	var eq = _ctrl._pattern_system.resolve_equipment(eq_ids, unlocked)
+	if eq != null:
+		acc["pattern_equipment"] = String(eq.id)
+		PATTERN_EFFECTS.apply(acc, eq, {"ctrl": _ctrl})
 
 
 # —— 阶段 2：防御 / 增益 / 状态先落地 ——

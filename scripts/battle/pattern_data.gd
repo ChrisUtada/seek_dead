@@ -48,6 +48,9 @@ func is_universal() -> bool:
 func unlocked(loadout_paths: Array, tag_of: Callable) -> bool:
 	if is_universal():
 		return true
+	# 既没有路径条件也没有标签条件 = 无解锁门槛（测试牌谱、以及未来的「 zawsze 可用」类内容）
+	if unlock_paths.is_empty() and unlock_tags.is_empty():
+		return true
 	if not unlock_paths.is_empty():
 		var all_have := true
 		for p in unlock_paths:

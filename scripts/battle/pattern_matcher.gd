@@ -86,6 +86,69 @@ static func match(cards: Array) -> Dictionary:
 	return out
 
 
+# 按牌谱的 match_rule 求解：match_rule = {"all": [条件, ...]}，每个条件必须分配到
+# 一张「未被其它条件占用」的有效牌。三张牌对三个条件，用回溯匹配即可（规模固定为 3）。
+# 条件形式：
+#   {"sym": "res://...tres"}      精确符号
+#   {"element": "fire"}           指定元素的有效牌
+#   {"any": true}                 任意有效牌
+#   {"source": "武器路径"}        来自指定来源
+static func solve_rule(cards: Array, rule: Dictionary) -> bool:
+	var conds: Array = rule.get("all", [])
+	if conds.is_empty():
+		return false
+	var valid: Array = []
+	for c in cards:
+		if not bool(c.get("valid", true)):
+			continue
+		var sym = c.get("sym")
+		if sym == null or String(sym.kind) in INVALID_KINDS:
+			continue
+		valid.append(c)
+	if valid.size() < conds.size():
+		return false
+	return _solve(valid, conds, 0, {})
+
+
+static func _solve(valid: Array, conds: Array, idx: int, used: Dictionary) -> bool:
+	if idx >= conds.size():
+		return true
+	var cond: Dictionary = conds[idx]
+	for i in range(valid.size()):
+		if used.has(i):
+			continue
+		if not _card_satisfies(valid[i], cond):
+			continue
+		used[i] = true
+		if _solve(valid, conds, idx + 1, used):
+			return true
+		used.erase(i)
+	return false
+
+
+static func _card_satisfies(card: Dictionary, cond: Dictionary) -> bool:
+	if cond.has("sym") and String(card["sym"].resource_path) != String(cond["sym"]):
+		return false
+	if cond.has("element") and String(card.get("element", "none")) != String(cond["element"]):
+		return false
+	if cond.has("source") and String(card.get("source", "")) != String(cond["source"]):
+		return false
+	if cond.has("kind") and String(card["sym"].kind) != String(cond["kind"]):
+		return false
+	return true
+
+
+# 返回命中 match_rule 的牌谱 id 列表（顺序与传入一致）。
+static func match_rules(cards: Array, patterns: Array) -> Array:
+	var out: Array = []
+	for p in patterns:
+		if bool(p.is_universal()):
+			continue
+		if solve_rule(cards, p.match_rule):
+			out.append(String(p.id))
+	return out
+
+
 # 从 DuelController 的 grid 构造输入（供战斗与测试共用同一份口径）。
 # 冻结列按「无效牌」处理：不参与牌型，与 combat_system 跳过 frozen_cols 一致。
 static func cards_from_grid(ctrl, reel: int = 0) -> Array:
