@@ -35,6 +35,8 @@ const ELITE := "res://resources/rooms/a1_elite_brute_ice.tres"
 const BOSS := "res://resources/rooms/brittle_gargoyle.tres"
 
 const ROUNDS := 300
+# 组成率统计要更稳的采样：300 回合下 p≈0.2 的 ±1σ 约 2.3pp，会让「每几回合一次」在 4.5~5.5 之间跳。
+const STATS_ROUNDS := 1000
 const SEED := 20261115
 
 # 双武器槽只能装两把，所以每条牌谱配一个专属构筑（也更贴近「单局解锁 3–6 条」的设计）
@@ -231,7 +233,7 @@ func _test_composition_stats() -> void:
 		var multi := 0           # 多条同时满足（需要优先级裁决）
 		var fired := 0           # 最终真的生效
 		var wc_hist := {}        # 有效武器牌数量分布
-		for i in range(ROUNDS):
+		for i in range(STATS_ROUNDS):
 			_draw_from_strips()
 			_duel.enemy_element = "none"
 			_duel.enemy_armor = 0
@@ -261,11 +263,20 @@ func _test_composition_stats() -> void:
 			int(wc_hist.get(1, 0)), int(wc_hist.get(0, 0))])
 		_report.append("%s：解锁 %d 条 W ｜ 组成率 %.1f%%（每 %.1f 回合一次）｜ 触发率 %.1f%% ｜ 多命中 %d 次" % [
 			String(b["name"]), w_pool.size(), compose_rate, every, fire_rate, multi])
+		# 每场战斗的实际触发次数：按典型战斗回合数估算（普通怪 8 回合 / 精英 10 / BOSS 14）
+		var per_battle := "普通 %.1f 次 / 精英 %.1f 次 / BOSS %.1f 次" % [
+			compose_rate / 100.0 * 8.0, compose_rate / 100.0 * 10.0, compose_rate / 100.0 * 14.0]
+		_report.append("%s：每场预计触发 %s（组成率 %.1f%%）" % [String(b["name"]), per_battle, compose_rate])
+		# 中频高潮定位下，一场战斗至少要有 1 次以上的牌谱时刻
+		_check(compose_rate / 100.0 * 8.0 >= 1.0,
+			"%s：普通怪战斗至少触发 1 次（%.1f 次）" % [String(b["name"]), compose_rate / 100.0 * 8.0])
 		# 组成后必须有触发（每回合至少一条）
 		_check(fired >= composed - 2, "%s：组成后都能生效（组成 %d / 生效 %d）" % [String(b["name"]), composed, fired])
-		# 方案目标：每 2–3 回合一次 → 组成率 ≥ 33%
-		if compose_rate < 33.0:
-			_report.append("⚠ %s 组成率 %.1f%% 低于方案目标（2–3 回合一次 = 33%%）" % [String(b["name"]), compose_rate])
+		# 2026-11-15 拍板：W 定位为「中频高潮牌谱」，目标改为平均 3–5 回合一次（20%–33%）。
+		# 低于 5 回合一次说明太稀，高于 3 回合一次说明太频繁（会变成每回合都有，失去高潮感）。
+		_check(every >= 3.0 and every <= 5.0,
+			"%s：平均 %.1f 回合一次，落在「中频高潮」区间 3–5（组成率 %.1f%%）" % [
+				String(b["name"]), every, compose_rate])
 
 
 # C：三档敌人各跑一次真实 SPIN，确认流程与结算正常。
