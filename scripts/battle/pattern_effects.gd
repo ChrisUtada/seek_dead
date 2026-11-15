@@ -256,14 +256,19 @@ static func _recovery_support(acc: Dictionary, pattern, ctx: Dictionary) -> void
 		if acc.has("lines"):
 			acc["lines"].append("   ✚ 恢复术式：治疗 +%d%%（+%d）" % [
 				int(round((mult - 1.0) * 100.0)), int(round(bonus))])
-	# 净化：当前消耗品系统直接操作 debuff，没有公开的移除接口；本轮只记录触发条件，
-	# 具体移除留给后续把净化抽成 debuff_system 的公开方法时接上。
+	# 低血线净化：走 debuff_system.purify_one（与消耗品共用同一套优先级）
 	var th := float(pattern.effect_params.get("low_hp_threshold", 0.5))
 	if float(ctrl.player_hp_max) > 0.0 and float(ctrl.player_hp) / float(ctrl.player_hp_max) <= th:
-		acc["recovery_purify"] = true
+		var removed := ""
+		if ctrl.debuffs != null:
+			removed = String(ctrl.debuffs.purify_one(ctrl))
+		acc["recovery_purify"] = removed != ""
 		if acc.has("lines"):
-			acc["lines"].append("   ✚ 恢复术式：低血线（≤%d%%），本应有一次净化（待接 debuff 移除接口）" % [
-				int(round(th * 100.0))])
+			if removed != "":
+				acc["lines"].append("   ✚ 恢复术式：低血线（≤%d%%），净化「%s」" % [
+					int(round(th * 100.0)), ctrl.debuffs.name_of(removed)])
+			else:
+				acc["lines"].append("   ✚ 恢复术式：低血线（≤%d%%），但没有可净化的减益" % int(round(th * 100.0)))
 
 
 # 牌谱新增的状态层：写入独立字段，由 CombatSystem 在牌谱结算后统一落地。

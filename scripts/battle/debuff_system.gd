@@ -146,6 +146,35 @@ func tick_turn_end(ctrl) -> void:
 		_after(ctrl)
 
 
+# —— 移除（净化 / 清净的公共出口）——
+# 消耗品与牌谱术式都需要「解除一个减益」，以前这段逻辑只写在消耗品里直接操作 active。
+# 抽成公开方法后，T03 恢复术式也能复用同一套优先级与日志。
+# 优先级：干扰（interference，直接影响转轮操作）先于状态（status）；
+# instant 类不是持续减益，不参与。
+# 返回被移除的 id；没有可净化项返回 ""。
+func purify_one(ctrl) -> String:
+	if active.is_empty():
+		return ""
+	var best := ""
+	var best_rank := 99
+	for id in active.keys():
+		var d: Dictionary = DEFS.get(id, {})
+		var k := String(d.get("kind", "status"))
+		if k == "instant":
+			continue
+		var rank := 0 if k == "interference" else 1
+		if rank < best_rank:
+			best_rank = rank
+			best = String(id)
+	if best == "":
+		return ""
+	active.erase(best)
+	if ctrl != null and ctrl.hud != null:
+		ctrl.hud._log("✨ 净化：%s %s 已解除" % [icon(best), name_of(best)])
+	_after(ctrl)
+	return best
+
+
 # —— 查询 ——
 func has(id: String) -> bool:
 	return active.has(id)

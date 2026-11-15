@@ -296,7 +296,7 @@ func _test_no_extra_swap_state() -> void:
 
 # 当前实际条数。新增断言时同步上调：
 # 运行时错误会中断函数、静默少检查，只有条数守卫能发现（见 Step 0 记录的假绿问题）。
-const EXPECTED_CHECKS := 96
+const EXPECTED_CHECKS := 101
 
 
 func _ids(patterns: Array) -> Array:
@@ -617,7 +617,24 @@ func _test_t01_t03() -> void:
 		"未满血时 heal 技能触发 T03（实际 %s）" % String(a3.get("pattern_skill", "")))
 	_check(heal_before > 0.0 and float(a3["heal"]) > heal_before,
 		"T03 提升本轮治疗（%.1f → %.1f）" % [heal_before, float(a3["heal"])])
-	_check(bool(a3.get("recovery_purify", false)), "HP≤50% 时标记净化（净化接口待接）")
+	_check(bool(a3.get("recovery_purify", false)) == bool(_duel.debuffs.active.size() > 0),
+		"HP≤50% 时标记净化（当前有减益时才算成功）")
+
+	# —— T03 低血线真的移除一个减益（purify_one） ——
+	_duel.debuffs.reset()
+	_duel.debuffs.apply(_duel, "blind", 2)          # 干扰类，优先被净化
+	_duel.debuffs.apply(_duel, "weak", 2)           # 状态类，排在后面
+	_check(_duel.debuffs.has("blind") and _duel.debuffs.has("weak"), "测试前两个减益都在")
+	_duel.player_hp_max = 100
+	_duel.player_hp = 40
+	var a3p: Dictionary = _settle_cards([heal_sym, SYM_FIRE_SLASH, SYM_FIRE_SLASH],
+		["none", "none", "none"], ["", "dagger", "fire_sword"])
+	_duel.combat._apply_patterns(a3p)
+	_check(String(a3p.get("pattern_skill", "")) == "T03", "低血线触发 T03")
+	_check(not _duel.debuffs.has("blind"), "T03 净化掉干扰类减益（优先）")
+	_check(_duel.debuffs.has("weak"), "状态类减益保留（每次只净化一个）")
+	_check(bool(a3p.get("recovery_purify", false)), "T03 记录净化发生在本次结算")
+	_duel.debuffs.reset()
 
 	# —— T03 满血不激活 ——
 	_duel.player_hp = 100
