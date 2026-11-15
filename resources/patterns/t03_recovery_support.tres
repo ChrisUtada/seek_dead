@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="PatternData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/pattern_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "T03"
+name = "恢复术式"
+icon = "✚"
+desc = "一张治疗／再生技能牌＋任意两张武器牌（玩家未满血）→ 本轮治疗 +25%；HP 不高于 50% 时额外净化一个可净化减益"
+kind = "equipment"
+track = "skill_support"
+priority = 10
+unlock_paths = Array[String]([])
+unlock_tags = Array[String]([])
+unlock_count = 0
+match_rule = {"all": [{"source_kind": "skill", "skill_role": "heal"}, {"source_kind": "weapon"}, {"source_kind": "weapon"}]}
+effect_id = "recovery_support"
+effect_params = {"heal_mult": 1.25, "low_hp_threshold": 0.5}
+assist_allowed = false
+sequence_id = ""

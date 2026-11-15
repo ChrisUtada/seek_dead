@@ -20,6 +20,9 @@ const EFFECT_LABELS := {
 	"shadow_execution": "暗影处刑",
 	"plain_grind": "无锋磨砺",
 	"frostfire_dual": "冰火二重（签名候选）",
+	"power_support": "增伤术式",
+	"defense_support": "防御术式",
+	"recovery_support": "恢复术式",
 }
 
 
@@ -40,6 +43,12 @@ static func apply(acc: Dictionary, pattern, ctx: Dictionary) -> void:
 			_shadow_execution(acc, pattern, ctx)
 		"plain_grind":
 			_plain_grind(acc, pattern, ctx)
+		"power_support":
+			_power_support(acc, pattern, ctx)
+		"defense_support":
+			_defense_support(acc, pattern, ctx)
+		"recovery_support":
+			_recovery_support(acc, pattern, ctx)
 		_:
 			return
 	if acc.has("lines"):
@@ -193,6 +202,68 @@ static func _venom_burst(acc: Dictionary, pattern, ctx: Dictionary) -> void:
 		acc["lines"].append("   ☠ 毒爆连携：中毒 +%d 层，立即结算 %d（毒 tick %d ×%d%%，不消耗毒层）" % [
 			extra, int(round(instant)), int(round(full)),
 			int(round(float(pattern.effect_params.get("instant_ratio", 0.5)) * 100.0))])
+
+
+# T01 增伤术式：本轮**武器**伤害 +15%；不强化技能伤害，不复制武器牌谱。
+# 技能伤害从 source_dmg 里按「符号是否属于技能」筛出来扣掉，只对武器部分加成。
+static func _power_support(acc: Dictionary, pattern, ctx: Dictionary) -> void:
+	var ctrl = ctx.get("ctrl")
+	if ctrl == null:
+		return
+	var total := 0.0
+	for e in (acc["dmg_by_elem"] as Dictionary):
+		total += float(acc["dmg_by_elem"][e])
+	var skill_sum := 0.0
+	for k in (acc["source_dmg"] as Dictionary):
+		if ctrl._skill_sym_kind != null and ctrl._skill_sym_kind.has(String(k)):
+			skill_sum += float(acc["source_dmg"][k])
+	var weapon_dmg := maxf(0.0, total - skill_sum)
+	var mult := float(pattern.effect_params.get("weapon_damage_mult", 1.15))
+	if weapon_dmg <= 0.0 or mult <= 1.0:
+		return
+	var bonus := weapon_dmg * (mult - 1.0)
+	acc["dmg"] = float(acc["dmg"]) + bonus
+	if acc.has("lines"):
+		acc["lines"].append("   ✦ 增伤术式：武器伤害 +%d%%（+%d，技能伤害不计入）" % [
+			int(round((mult - 1.0) * 100.0)), int(round(bonus))])
+
+
+# T02 防御术式：额外护盾；敌方当前是蓄力/重击意图时给更高的值。
+static func _defense_support(acc: Dictionary, pattern, ctx: Dictionary) -> void:
+	var ctrl = ctx.get("ctrl")
+	if ctrl == null:
+		return
+	var flat := float(pattern.effect_params.get("shield_flat", 8.0))
+	var heavy := float(pattern.effect_params.get("shield_heavy", 12.0))
+	var t := String(ctrl.enemy_intent.get("type", ""))
+	var gain := heavy if (t == "heavy" or t == "charge") else flat
+	acc["shield"] = float(acc["shield"]) + gain
+	if acc.has("lines"):
+		acc["lines"].append("   🛡 防御术式：护盾 +%d（意图 %s）" % [int(round(gain)), t if t != "" else "无"])
+
+
+# T03 恢复术式：本轮治疗 +25%；HP 不高于 50% 时额外净化一个可净化减益。
+# 满血时不应激活 —— 由 CombatSystem 在选牌阶段排除（见 _apply_patterns）。
+static func _recovery_support(acc: Dictionary, pattern, ctx: Dictionary) -> void:
+	var ctrl = ctx.get("ctrl")
+	if ctrl == null:
+		return
+	var heal := float(acc["heal"])
+	var mult := float(pattern.effect_params.get("heal_mult", 1.25))
+	if heal > 0.0 and mult > 1.0:
+		var bonus := heal * (mult - 1.0)
+		acc["heal"] = heal + bonus
+		if acc.has("lines"):
+			acc["lines"].append("   ✚ 恢复术式：治疗 +%d%%（+%d）" % [
+				int(round((mult - 1.0) * 100.0)), int(round(bonus))])
+	# 净化：当前消耗品系统直接操作 debuff，没有公开的移除接口；本轮只记录触发条件，
+	# 具体移除留给后续把净化抽成 debuff_system 的公开方法时接上。
+	var th := float(pattern.effect_params.get("low_hp_threshold", 0.5))
+	if float(ctrl.player_hp_max) > 0.0 and float(ctrl.player_hp) / float(ctrl.player_hp_max) <= th:
+		acc["recovery_purify"] = true
+		if acc.has("lines"):
+			acc["lines"].append("   ✚ 恢复术式：低血线（≤%d%%），本应有一次净化（待接 debuff 移除接口）" % [
+				int(round(th * 100.0))])
 
 
 # 牌谱新增的状态层：写入独立字段，由 CombatSystem 在牌谱结算后统一落地。

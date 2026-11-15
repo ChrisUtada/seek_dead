@@ -139,6 +139,8 @@ static func _card_satisfies(card: Dictionary, cond: Dictionary) -> bool:
 		return false
 	if cond.has("source_element") and String(card.get("source_element", "none")) != String(cond["source_element"]):
 		return false
+	if cond.has("skill_role") and String(card.get("skill_role", "")) != String(cond["skill_role"]):
+		return false
 	return true
 
 
@@ -168,6 +170,7 @@ static func cards_from_grid(ctrl, reel: int = 0) -> Array:
 			"source": "",
 			"source_kind": "resource",
 			"source_element": "none",
+			"skill_role": "",
 			"valid": not (col in ctrl.frozen_cols),
 		}
 		# 先取元素与来源，再判来源类别（顺序错了会永远判成 resource）
@@ -182,6 +185,15 @@ static func cards_from_grid(ctrl, reel: int = 0) -> Array:
 			if ctrl._skill_sym_kind != null and ctrl._skill_sym_kind.has(sp):
 				entry["source_kind"] = "skill"
 				entry["source_element"] = String(ctrl._skill_sym_kind[sp])
+				# 技能能力角色：三个术式各认一种，避免用「两张增益」这类凑不出的条件
+				var b := String(sym.buff_effect)
+				var k := String(sym.kind)
+				if b == "power" or b == "damage_mult":
+					entry["skill_role"] = "power"
+				elif k == "shield" or b == "shield":
+					entry["skill_role"] = "shield"
+				elif k == "heal" or b == "regen":
+					entry["skill_role"] = "heal"
 			elif String(entry["source"]) != "" and ctrl._source_element_map != null \
 					and ctrl._source_element_map.has(String(entry["source"])):
 				entry["source_kind"] = "weapon"

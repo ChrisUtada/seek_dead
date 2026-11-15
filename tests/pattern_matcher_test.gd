@@ -76,6 +76,9 @@ func _run() -> void:
 	print("=== G S01–S06 资源与解锁条件 ===")
 	_test_equipment_patterns()
 
+	print("=== K T01/T03 术式 ===")
+	_test_t01_t03()
+
 	print("=== J W02/W05/W06 效果 ===")
 	_test_w02_w05_w06()
 
@@ -293,7 +296,7 @@ func _test_no_extra_swap_state() -> void:
 
 # 当前实际条数。新增断言时同步上调：
 # 运行时错误会中断函数、静默少检查，只有条数守卫能发现（见 Step 0 记录的假绿问题）。
-const EXPECTED_CHECKS := 90
+const EXPECTED_CHECKS := 96
 
 
 func _ids(patterns: Array) -> Array:
@@ -578,6 +581,53 @@ func _test_s04_venom() -> void:
 		"S04 中毒 +2 落地且即时结算不消耗层数（4 → %d，期望 6）" % int(_duel.enemy_status.get("poison", 0)))
 
 
+# K：T01 增伤术式（只强化武器）与 T03 恢复术式（满血不激活）。
+func _test_t01_t03() -> void:
+	var SKILL_POWER := "res://resources/skills/focus.tres"       # 蓄势：buff_effect = power
+	var SKILL_HEAL := "res://resources/skills/herbal_tonic.tres"  # 草药汤：kind = heal
+	var power_sym := String((load(SKILL_POWER) as SkillData).symbol.resource_path)
+	var heal_sym := String((load(SKILL_HEAL) as SkillData).symbol.resource_path)
+
+	# —— T01：power 技能 + 武器伤害牌 + 武器牌 ——
+	_equip([FIRE_SWORD, FLAME_STAFF], [SKILL_POWER])
+	_duel.enemy_hp = 1000
+	_duel.enemy_hp_max = 1000
+	var a1: Dictionary = _settle_cards([power_sym, SYM_FIRE_SLASH, SYM_FIRE_SLASH],
+		["none", "none", "none"], ["", "fire_sword", "flame_staff"])
+	var dmg_before1: float = float(a1["dmg"]) + float(a1["special"])
+	var total1 := 0.0
+	for e in (a1["dmg_by_elem"] as Dictionary):
+		total1 += float(a1["dmg_by_elem"][e])
+	_duel.combat._apply_patterns(a1)
+	_check(String(a1.get("pattern_skill", "")) == "T01",
+		"power 技能触发 T01（实际 %s）" % String(a1.get("pattern_skill", "")))
+	var bonus1: float = (float(a1["dmg"]) + float(a1["special"])) - dmg_before1
+	_check(absf(bonus1 - total1 * 0.15) < 1.0,
+		"T01 武器伤害 +15%%（+%.1f，期望 %.1f）" % [bonus1, total1 * 0.15])
+
+	# —— T03：未满血时激活，治疗 +25% ——
+	_equip([DAGGER, FIRE_SWORD], [SKILL_HEAL])
+	_duel.player_hp_max = 100
+	_duel.player_hp = 50
+	var a3: Dictionary = _settle_cards([heal_sym, SYM_FIRE_SLASH, SYM_FIRE_SLASH],
+		["none", "none", "none"], ["", "dagger", "fire_sword"])
+	var heal_before: float = float(a3["heal"])
+	_duel.combat._apply_patterns(a3)
+	_check(String(a3.get("pattern_skill", "")) == "T03",
+		"未满血时 heal 技能触发 T03（实际 %s）" % String(a3.get("pattern_skill", "")))
+	_check(heal_before > 0.0 and float(a3["heal"]) > heal_before,
+		"T03 提升本轮治疗（%.1f → %.1f）" % [heal_before, float(a3["heal"])])
+	_check(bool(a3.get("recovery_purify", false)), "HP≤50% 时标记净化（净化接口待接）")
+
+	# —— T03 满血不激活 ——
+	_duel.player_hp = 100
+	var a3b: Dictionary = _settle_cards([heal_sym, SYM_FIRE_SLASH, SYM_FIRE_SLASH],
+		["none", "none", "none"], ["", "dagger", "fire_sword"])
+	_duel.combat._apply_patterns(a3b)
+	_check(String(a3b.get("pattern_skill", "")) == "",
+		"满血时 T03 不激活（实际 %s）" % String(a3b.get("pattern_skill", "")))
+
+
 # J：W02 霜封 / W05 暗影处刑 / W06 无锋磨砺 的效果与结算口径。
 func _test_w02_w05_w06() -> void:
 	var ICE_GUN := "res://resources/weapon_templates/ice_gun.tres"
@@ -671,25 +721,15 @@ func _test_tracks() -> void:
 	_check(kinds.count("skill") == 1 and kinds.count("weapon") == 2,
 		"来源类别判定正确（%s）" % str(kinds))
 
-	# ② 手工注册一条技能术式：1 技能 + 2 武器才触发
-	var tpd = PATTERN_DATA.new()
-	tpd.id = "T_TEST"; tpd.name = "测试术式"; tpd.kind = "equipment"; tpd.track = "skill_support"
-	tpd.priority = 5
-	tpd.match_rule = {"all": [
-		{"source_kind": "skill", "kind": "shield"},
-		{"source_kind": "weapon"},
-		{"source_kind": "weapon"},
-	]}
-	tpd.effect_id = "plain_grind"
-	tpd.effect_params = {"damage_mult": 1.2, "min_sources": 2}
-	_duel._pattern_system.register(tpd)
-
+	# ② 1 技能 + 2 武器触发真实 T02（aegis 是 shield 技能）
 	var acc2: Dictionary = _settle_cards([aegis_sym, SYM_FIRE_SLASH, SYM_FIRE_SLASH],
 		["none", "none", "none"], ["", "fire_sword", "fire_sword"])
+	var shield_before2: float = float(acc2["shield"])
 	_duel.combat._apply_patterns(acc2)
-	_check(String(acc2.get("pattern_skill", "")) == "T_TEST",
-		"1 技能 + 2 武器触发技能术式（实际 %s）" % String(acc2.get("pattern_skill", "")))
-	_check(float(acc2["shield"]) > 0.0, "技能术式效果落地（护盾 %.0f）" % float(acc2["shield"]))
+	_check(String(acc2.get("pattern_skill", "")) == "T02",
+		"1 技能 + 2 武器触发 T02（实际 %s）" % String(acc2.get("pattern_skill", "")))
+	_check(float(acc2["shield"]) > shield_before2,
+		"防御术式效果落地（护盾 %.0f → %.0f）" % [shield_before2, float(acc2["shield"])])
 
 	# ③ 2 张技能牌不触发术式（基础设计只要求 1 个技能槽）
 	var acc3: Dictionary = _settle_cards([aegis_sym, aegis_sym, SYM_FIRE_SLASH],
@@ -704,8 +744,8 @@ func _test_tracks() -> void:
 	_equip([FIRE_SWORD, FLAME_STAFF], [SKILL_AEGIS])
 	_duel.combat._apply_patterns(acc4)
 	# 这里只有 2 张武器牌，W01 不触发；但 T 需要 shield 技能，aegis 是 shield → 可触发
-	_check(String(acc4.get("pattern_skill", "")) == "T_TEST",
-		"同一回合技能轨独立判定（W 不成立时 T 仍可触发，实际 %s）" % String(acc4.get("pattern_skill", "")))
+	_check(String(acc4.get("pattern_skill", "")) == "T02",
+		"W 不成立时技能轨仍独立触发（实际 %s）" % String(acc4.get("pattern_skill", "")))
 
 
 func _finish() -> void:

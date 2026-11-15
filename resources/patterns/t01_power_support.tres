@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="PatternData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/pattern_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "T01"
+name = "增伤术式"
+icon = "✦"
+desc = "一张增伤增益牌＋一张武器伤害牌＋任意武器牌 → 本轮武器伤害 +15%；不强化技能伤害，不复制武器牌谱"
+kind = "equipment"
+track = "skill_support"
+priority = 10
+unlock_paths = Array[String]([])
+unlock_tags = Array[String]([])
+unlock_count = 0
+match_rule = {"all": [{"source_kind": "skill", "skill_role": "power"}, {"source_kind": "weapon", "kind": "damage"}, {"source_kind": "weapon"}]}
+effect_id = "power_support"
+effect_params = {"weapon_damage_mult": 1.15}
+assist_allowed = false
+sequence_id = ""

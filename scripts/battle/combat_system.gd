@@ -339,6 +339,10 @@ func _apply_patterns(acc: Dictionary) -> void:
 		if not t_pool.is_empty():
 			var t_hits: Array = PATTERN_MATCHER.match_rules(all_cards, t_pool)
 			var t_pick = _ctrl._pattern_system.resolve_equipment(t_hits, t_pool)
+			# T03 满血时不激活，避免出现「治疗 +25% 但没得治」的无效候选
+			if t_pick != null and String(t_pick.effect_id) == "recovery_support" \
+					and int(_ctrl.player_hp) >= int(_ctrl.player_hp_max):
+				t_pick = null
 			if t_pick != null:
 				acc["pattern_skill"] = String(t_pick.id)
 				PATTERN_EFFECTS.apply(acc, t_pick, {"ctrl": _ctrl})
