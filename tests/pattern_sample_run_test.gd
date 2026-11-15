@@ -39,12 +39,12 @@ const SEED := 20261115
 # 双武器槽只能装两把，所以每条牌谱配一个专属构筑（也更贴近「单局解锁 3–6 条」的设计）
 # 2026-11-15 新方案《稀有度牌型整合》：S05 盾击 / S06 奥术已退役（它们要求武器不提供的
 # shield/buff 符号，300 回合实测 2.3% / 0%）。本套只保留迁移范围内的四条：
-# S01→W01、S02（签名候选）、S03→W04、S04→W03。
+# S01→W01、S03→W04、S04→W03。SIG02（原冰火二重）已降级为签名候选，
+# 属于 Step 5 的范围，本套不再统计（它在 signature 轨，武器轨不结算）。
 const BUILDS := [
-	{"name": "烈焰共鸣", "expect": "S01", "weapons": [FIRE_SWORD, FLAME_STAFF], "charms": []},
-	{"name": "冰火二重", "expect": "S02", "weapons": [FIRE_SWORD, ICE_STAFF], "charms": []},
-	{"name": "黎明圣辉", "expect": "S03", "weapons": [HOLY_SWORD, DAWN_BOW], "charms": []},
-	{"name": "毒爆连携", "expect": "S04", "weapons": [BLIGHT_SPEAR, CORROSIVE_BOW], "charms": []},
+	{"name": "烈焰共鸣", "expect": "W01", "weapons": [FIRE_SWORD, FLAME_STAFF], "charms": []},
+	{"name": "黎明圣辉", "expect": "W04", "weapons": [HOLY_SWORD, DAWN_BOW], "charms": []},
+	{"name": "毒爆连携", "expect": "W03", "weapons": [BLIGHT_SPEAR, CORROSIVE_BOW], "charms": []},
 ]
 
 var _checks := 0

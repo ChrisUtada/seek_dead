@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1")
-id = "S03"
+id = "W04"
 name = "黎明圣辉"
 icon = "🌅"
 desc = "圣辉长剑＋破晓之弓：追加一次穿透齐射，伤害为两件来源武器基础攻击之和的 50%"

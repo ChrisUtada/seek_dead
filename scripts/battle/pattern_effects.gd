@@ -14,11 +14,12 @@ extends RefCounted
 
 const EFFECT_LABELS := {
 	"flame_resonance": "烈焰共鸣",
-	"frostfire_dual": "冰火二重",
-	"holy_volley": "黎明圣辉",
+	"frost_seal": "霜封连携",
 	"venom_burst": "毒爆连携",
-	"shield_bash": "盾击连携",
-	"arcane_loop": "奥术回路",
+	"holy_volley": "黎明圣辉",
+	"shadow_execution": "暗影处刑",
+	"plain_grind": "无锋磨砺",
+	"frostfire_dual": "冰火二重（签名候选）",
 }
 
 
@@ -31,12 +32,14 @@ static func apply(acc: Dictionary, pattern, ctx: Dictionary) -> void:
 			_frostfire_dual(acc, pattern, ctx)
 		"holy_volley":
 			_holy_volley(acc, pattern, ctx)
-		"shield_bash":
-			_shield_bash(acc, pattern, ctx)
-		"arcane_loop":
-			_arcane_loop(acc, pattern, ctx)
 		"venom_burst":
 			_venom_burst(acc, pattern, ctx)
+		"frost_seal":
+			_frost_seal(acc, pattern, ctx)
+		"shadow_execution":
+			_shadow_execution(acc, pattern, ctx)
+		"plain_grind":
+			_plain_grind(acc, pattern, ctx)
 		_:
 			return
 	if acc.has("lines"):
@@ -99,39 +102,60 @@ static func _holy_volley(acc: Dictionary, pattern, ctx: Dictionary) -> void:
 			int(round(extra)), int(round(total_atk)), int(round(ratio * 100.0))])
 
 
-# S05：额外 +8 护盾；随后造成本轮实际护盾获得量 50% 的伤害。
-# 「实际护盾获得量」= acc["shield"]（已由 _phase_defense 与盾符号累计）。
-static func _shield_bash(acc: Dictionary, pattern, _ctx: Dictionary) -> void:
-	var flat := float(pattern.effect_params.get("shield_flat", 8.0))
-	var ratio := float(pattern.effect_params.get("damage_ratio", 0.5))
-	acc["shield"] = float(acc["shield"]) + flat
-	var gained := float(acc["shield"])
-	var dmg := gained * ratio
-	if dmg > 0.0:
-		acc["dmg"] = float(acc["dmg"]) + dmg
-	if acc.has("lines"):
-		acc["lines"].append("   🛡 盾击连携：护盾 +%d，转伤害 %d（护盾量 %d ×%d%%）" % [
-			int(round(flat)), int(round(dmg)), int(round(gained)), int(round(ratio * 100.0))])
-
-
-# S06：充能 +2；若因此充满，本次元素爆发伤害 +25%。
-# 爆炸加成标记由元素爆发流程读取（acc["burst_bonus"]），不在本阶段直接结算。
-static func _arcane_loop(acc: Dictionary, pattern, ctx: Dictionary) -> void:
-	var charge := int(pattern.effect_params.get("charge", 2))
+# W02 霜封连携：霜冻 +2；目标已有至少 threshold 层霜冻时，本次敌方攻击 ×mult。
+# 「敌方攻击 ×0.8」写进 controller 的回合乘区，由 enemy_deal_damage 这个唯一闸口读取。
+static func _frost_seal(acc: Dictionary, pattern, ctx: Dictionary) -> void:
+	_add_status(acc, "frost", int(pattern.effect_params.get("frost_extra", 2)))
 	var ctrl = ctx.get("ctrl")
-	if ctrl == null or charge <= 0:
+	if ctrl == null:
 		return
-	var before := int(ctrl.charge_points)
-	ctrl.charge_points = before + charge
-	var cap := int(ctrl.CHARGE_MAX) if ctrl.get("CHARGE_MAX") != null else before + charge
-	if before < cap and int(ctrl.charge_points) >= cap:
-		acc["burst_bonus"] = float(acc.get("burst_bonus", 1.0)) * float(pattern.effect_params.get("burst_mult", 1.25))
-		if acc.has("lines"):
-			acc["lines"].append("   ✨ 奥术回路：充能 +%d 并充满，元素爆发 +%d%%" % [
-				charge, int(round((float(pattern.effect_params.get("burst_mult", 1.25)) - 1.0) * 100.0))])
-	else:
-		if acc.has("lines"):
-			acc["lines"].append("   ✨ 奥术回路：充能 +%d" % charge)
+	var now := int(ctrl.enemy_status.get("frost", 0)) + int(pattern.effect_params.get("frost_extra", 2))
+	var threshold := int(pattern.effect_params.get("threshold", 4))
+	if now < threshold:
+		return
+	var mult := float(pattern.effect_params.get("enemy_atk_mult", 0.8))
+	ctrl._pattern_enemy_atk_mult = float(ctrl._pattern_enemy_atk_mult) * mult
+	if acc.has("lines"):
+		acc["lines"].append("   ❄ 霜封连携：霜冻 %d 层（≥%d），本次敌方攻击 ×%d%%" % [
+			now, threshold, int(round(mult * 100.0))])
+
+
+# W05 暗影处刑：两张暗系伤害的 20% 转穿透；目标 HP 低于 35% 时提高到 35%。
+# 只从「真正进了 acc["dmg"] 的暗伤害」里搬，避免与已在 pierce 的部分重复。
+static func _shadow_execution(acc: Dictionary, pattern, ctx: Dictionary) -> void:
+	var ctrl = ctx.get("ctrl")
+	if ctrl == null:
+		return
+	var bucket: Dictionary = acc["dmg_bucket_by_elem"]
+	var dark := float(bucket.get("dark", 0.0))
+	if dark <= 0.0:
+		return
+	var hp_max := float(ctrl.enemy_hp_max)
+	var ratio := float(pattern.effect_params.get("pierce_ratio", 0.2))
+	var exec_th := float(pattern.effect_params.get("exec_threshold", 0.35))
+	if hp_max > 0.0 and float(ctrl.enemy_hp) / hp_max < exec_th:
+		ratio = float(pattern.effect_params.get("exec_ratio", 0.35))
+	var take := dark * ratio
+	bucket["dark"] = dark - take
+	acc["dmg"] = float(acc["dmg"]) - take
+	acc["pierce"] = float(acc["pierce"]) + take
+	if acc.has("lines"):
+		acc["lines"].append("   🌑 暗影处刑：暗系伤害 %d%% 转穿透（%d）" % [
+			int(round(ratio * 100.0)), int(round(take))])
+
+
+# W06 无锋磨砺：本轮无元素武器伤害 +20%。
+# 「至少两个来源」在条件层暂未强制（solver 只保证不同牌），这里用 source_dmg 记录参与来源数。
+static func _plain_grind(acc: Dictionary, pattern, _ctx: Dictionary) -> void:
+	var mult := float(pattern.effect_params.get("damage_mult", 1.2))
+	var none_dmg := float((acc["dmg_by_elem"] as Dictionary).get("none", 0.0))
+	if none_dmg <= 0.0 or mult <= 1.0:
+		return
+	var bonus := none_dmg * (mult - 1.0)
+	acc["dmg"] = float(acc["dmg"]) + bonus
+	if acc.has("lines"):
+		acc["lines"].append("   ⚔ 无锋磨砺：无元素伤害 +%d%%（+%d）" % [
+			int(round((mult - 1.0) * 100.0)), int(round(bonus))])
 
 
 # S04：中毒 +2 层；立即造成一次相当于标准毒结算 50% 的伤害，不消耗毒层。

@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1")
-id = "S01"
+id = "W01"
 name = "烈焰共鸣"
 icon = "🔥"
 desc = "两件火元素装备：火斩＋燃烧＋任意火 → 本轮火系伤害 +25%，燃烧额外 +1 层"

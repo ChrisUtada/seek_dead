@@ -76,6 +76,9 @@ func _run() -> void:
 	print("=== G S01–S06 资源与解锁条件 ===")
 	_test_equipment_patterns()
 
+	print("=== J W02/W05/W06 效果 ===")
+	_test_w02_w05_w06()
+
 	print("=== I 三轨隔离 ===")
 	_test_tracks()
 
@@ -290,7 +293,7 @@ func _test_no_extra_swap_state() -> void:
 
 # 当前实际条数。新增断言时同步上调：
 # 运行时错误会中断函数、静默少检查，只有条数守卫能发现（见 Step 0 记录的假绿问题）。
-const EXPECTED_CHECKS := 81
+const EXPECTED_CHECKS := 90
 
 
 func _ids(patterns: Array) -> Array:
@@ -462,12 +465,12 @@ func _test_pattern_priority() -> void:
 # 效果实装在 Step 2（本轮故意不动旧共鸣的结算），所以这里只验数据与解锁。
 func _test_equipment_patterns() -> void:
 	var sys = PATTERN_SYSTEM.new()
-	for f in ["s01_flame_resonance", "s02_frostfire_dual", "s03_holy_volley"]:
+	for f in ["w01_flame_resonance", "s02_frostfire_dual", "w04_holy_volley", "w03_venom_burst"]:
 		var pd = load("res://resources/patterns/%s.tres" % f)
 		_check(pd != null, "牌谱资源可加载 %s" % f)
 		if pd != null:
 			sys.register(pd)
-	_check(sys.all_patterns().size() == 3, "注册 S01–S03 三条（%d）" % sys.all_patterns().size())
+	_check(sys.all_patterns().size() == 4, "注册 W01/W03/W04 与签名候选 SIG02（%d）" % sys.all_patterns().size())
 
 	var tag_of := func(path: String) -> Array:
 		var wd = load(path)
@@ -482,19 +485,19 @@ func _test_equipment_patterns() -> void:
 		return out
 
 	# S01 需要两件火装备
-	_check(not bool(sys.get_pattern("S01").unlocked([FIRE_SWORD], tag_of)),
+	_check(not bool(sys.get_pattern("W01").unlocked([FIRE_SWORD], tag_of)),
 		"单件火装备不解锁 S01")
-	_check(bool(sys.get_pattern("S01").unlocked([FIRE_SWORD, FLAME_STAFF], tag_of)),
+	_check(bool(sys.get_pattern("W01").unlocked([FIRE_SWORD, FLAME_STAFF], tag_of)),
 		"两件火装备解锁 S01")
 	# S02 需要冰、火各一
-	_check(bool(sys.get_pattern("S02").unlocked([FIRE_SWORD, ICE_STAFF], tag_of)),
+	_check(bool(sys.get_pattern("SIG02").unlocked([FIRE_SWORD, ICE_STAFF], tag_of)),
 		"冰+火各一件解锁 S02")
-	_check(not bool(sys.get_pattern("S02").unlocked([FIRE_SWORD, FLAME_STAFF], tag_of)),
+	_check(not bool(sys.get_pattern("SIG02").unlocked([FIRE_SWORD, FLAME_STAFF], tag_of)),
 		"两件火不解锁 S02")
 	# S03 按精确路径
-	_check(bool(sys.get_pattern("S03").unlocked([HOLY_SWORD, DAWN_BOW], tag_of)),
+	_check(bool(sys.get_pattern("W04").unlocked([HOLY_SWORD, DAWN_BOW], tag_of)),
 		"圣辉长剑+破晓之弓解锁 S03")
-	_check(not bool(sys.get_pattern("S03").unlocked([HOLY_SWORD, FIRE_SWORD], tag_of)),
+	_check(not bool(sys.get_pattern("W04").unlocked([HOLY_SWORD, FIRE_SWORD], tag_of)),
 		"只有圣辉长剑不解锁 S03")
 	# 解锁集只返回满足条件的
 	var unlocked: Array = sys.unlocked_patterns([FIRE_SWORD, ICE_STAFF], tag_of)
@@ -502,8 +505,8 @@ func _test_equipment_patterns() -> void:
 	for p in unlocked:
 		ids.append(String(p.id))
 	# 火+冰各一件：S02（各一件）满足；S01 需要两件火，不满足；S03 需要两把指定武器，不满足
-	_check(ids.has("S02") and not ids.has("S01") and not ids.has("S03"),
-		"火+冰各一件只解锁 S02（%s）" % str(ids))
+	_check(ids.has("SIG02") and not ids.has("W01") and not ids.has("W04"),
+		"火+冰各一件只解锁 SIG02（%s）" % str(ids))
 
 
 # H：S01 / S05 的效果必须真的写进累计器（Step 2 的核心）。
@@ -518,7 +521,7 @@ func _test_pattern_effects() -> void:
 	var dmg_before: float = float(acc["dmg"]) + float(acc["special"])
 	_duel.combat._apply_patterns(acc)
 	var dmg_after: float = float(acc["dmg"]) + float(acc["special"])
-	_check(String(acc.get("pattern_equipment", "")) == "S01",
+	_check(String(acc.get("pattern_equipment", "")) == "W01",
 		"S01 被判定为生效牌谱（%s）" % String(acc.get("pattern_equipment", "")))
 	_check(dmg_after > dmg_before, "S01 提高本轮伤害（%.1f → %.1f）" % [dmg_before, dmg_after])
 	_check(absf((dmg_after - dmg_before) - fire_before * 0.25) < 1.0,
@@ -537,32 +540,14 @@ func _test_pattern_effects() -> void:
 	_check(String(acc2.get("pattern_equipment", "")) == "",
 		"单件火装备不触发 S01（%s）" % String(acc2.get("pattern_equipment", "")))
 
-	# —— S05 盾击连携：护盾 ×2 + 任意，+8 护盾并转 50% 伤害 ——
-	var guard_path := "res://resources/symbols/guard.tres"
-	var block_path := "res://resources/symbols/block.tres"
-	# 需要两件 shield 家族装备才能解锁，这里直接手注册一条临时牌谱验证效果层
-	var pd = PATTERN_DATA.new()
-	pd.id = "T_S05"; pd.kind = "equipment"; pd.priority = 1
-	pd.match_rule = {"all": [{"kind": "shield"}, {"kind": "shield"}, {}]}
-	pd.effect_id = "shield_bash"; pd.effect_params = {"shield_flat": 8, "damage_ratio": 0.5}
-	var sys = PATTERN_SYSTEM.new()
-	sys.register(pd)
-	_equip([DAGGER])
-	var acc3: Dictionary = _settle_cards([guard_path, block_path, SYM_FIRE_SLASH],
-		["none", "none", "none"], ["dagger", "dagger", "dagger"])
-	var shield_before: int = int(acc3["shield"])
-	var dmg3_before: float = float(acc3["dmg"])
-	var cards: Array = MATCHER.cards_from_grid(_duel)
-	_check(MATCHER.solve_rule(cards, pd.match_rule), "两张盾牌满足 S05 的 match_rule")
-	var unlocked3: Array = sys.unlocked_patterns([DAGGER], func(_p): return [])
-	var pick = sys.resolve_equipment(MATCHER.match_rules(cards, unlocked3), unlocked3)
-	_check(pick != null and String(pick.id) == "T_S05", "S05 牌谱可被解析选中")
-	if pick != null:
-		var effects = preload("res://scripts/battle/pattern_effects.gd")
-		effects.apply(acc3, pick, {"ctrl": _duel})
-		_check(int(acc3["shield"]) == shield_before + 8,
-			"S05 额外 +8 护盾（%d → %d）" % [shield_before, int(acc3["shield"])])
-		_check(float(acc3["dmg"]) > dmg3_before, "S05 把护盾转成伤害（%.1f → %.1f）" % [dmg3_before, float(acc3["dmg"])])
+	# —— S05/S06 已退役：它们的 effect_id 不再被分发，牌谱也不在武器轨 ——
+	var retired := 0
+	for f in DirAccess.get_files_at("res://resources/patterns"):
+		if f.ends_with(".tres"):
+			var pd2 = load("res://resources/patterns/" + f)
+			if pd2 != null and (String(pd2.id) == "S05" or String(pd2.id) == "S06"):
+				retired += 1
+	_check(retired == 0, "S05/S06 资源已删除（残留 %d）" % retired)
 
 
 # H2：S04 毒爆连携——按 StatusSystem 真实口径算「毒 tick 的 50%」，且不消耗毒层。
@@ -577,7 +562,7 @@ func _test_s04_venom() -> void:
 	var acc: Dictionary = _settle_cards([sym_venom, sym_poison, sym_venom],
 		["poison", "poison", "poison"], ["blight_spear", "blight_spear", "blight_spear"])
 	_duel.combat._apply_patterns(acc)
-	_check(String(acc.get("pattern_equipment", "")) == "S04",
+	_check(String(acc.get("pattern_equipment", "")) == "W03",
 		"S04 被判定为生效牌谱（%s）" % String(acc.get("pattern_equipment", "")))
 	# 层数：+2
 	var ps: Dictionary = acc.get("pattern_status", {})
@@ -591,6 +576,81 @@ func _test_s04_venom() -> void:
 	# 不消耗毒层：+2 落地后是 6，即时结算没有再扣层（若是「消耗型」会小于 6）
 	_check(int(_duel.enemy_status.get("poison", 0)) == 6,
 		"S04 中毒 +2 落地且即时结算不消耗层数（4 → %d，期望 6）" % int(_duel.enemy_status.get("poison", 0)))
+
+
+# J：W02 霜封 / W05 暗影处刑 / W06 无锋磨砺 的效果与结算口径。
+func _test_w02_w05_w06() -> void:
+	var ICE_GUN := "res://resources/weapon_templates/ice_gun.tres"
+	var ICE_STAFF := "res://resources/weapon_templates/ice_staff.tres"
+	var SYM_FROST := "res://resources/symbols/frost.tres"
+	var SYM_ICE := "res://resources/symbols/ice_crystal.tres"
+	var NIGHT := "res://resources/weapon_templates/night_scythe.tres"
+	var ABYSS := "res://resources/weapon_templates/abyss_scythe.tres"
+	var SYM_SHADOW := "res://resources/symbols/shadow_slash.tres"
+	var IRON := "res://resources/weapon_templates/iron_sword.tres"
+
+	# —— W02 霜封：霜冻 +2；已有 ≥4 层时敌方攻击 ×0.8 ——
+	_equip([ICE_GUN, ICE_STAFF])
+	_duel.enemy_status.clear()
+	_duel.enemy_status["frost"] = 0
+	var a2: Dictionary = _settle_cards([SYM_FROST, SYM_ICE, SYM_ICE],
+		["ice", "ice", "ice"], ["ice_gun", "ice_gun", "ice_staff"])
+	_duel.combat._apply_patterns(a2)
+	_check(String(a2.get("pattern_equipment", "")) == "W02",
+		"W02 被判定生效（%s）" % String(a2.get("pattern_equipment", "")))
+	_check(int((a2.get("pattern_status", {}) as Dictionary).get("frost", 0)) == 2,
+		"W02 霜冻 +2（%d）" % int((a2.get("pattern_status", {}) as Dictionary).get("frost", 0)))
+	_check(is_equal_approx(float(_duel._pattern_enemy_atk_mult), 1.0),
+		"W02 未达 4 层时不削弱敌方攻击")
+	# 已有 2 层 + 本次 2 层 = 4 → 触发削弱
+	_duel.enemy_status["frost"] = 2
+	_duel._pattern_enemy_atk_mult = 1.0
+	var a2b: Dictionary = _settle_cards([SYM_FROST, SYM_ICE, SYM_ICE],
+		["ice", "ice", "ice"], ["ice_gun", "ice_gun", "ice_staff"])
+	_duel.combat._apply_patterns(a2b)
+	_check(is_equal_approx(float(_duel._pattern_enemy_atk_mult), 0.8),
+		"W02 达到 4 层时敌方攻击 ×0.8（%.2f）" % float(_duel._pattern_enemy_atk_mult))
+
+	# —— W05 暗影处刑：暗伤害按比例转穿透；HP 低于 35% 时比例提高 ——
+	_equip([NIGHT, ABYSS])
+	_duel.enemy_hp = 1000
+	_duel.enemy_hp_max = 1000
+	var a5: Dictionary = _settle_cards([SYM_SHADOW, SYM_SHADOW, SYM_SHADOW],
+		["dark", "dark", "dark"], ["night_scythe", "abyss_scythe", "night_scythe"])
+	var dark_bucket: float = float((a5["dmg_bucket_by_elem"] as Dictionary).get("dark", 0.0))
+	var dmg_before: float = float(a5["dmg"])
+	_duel.combat._apply_patterns(a5)
+	_check(String(a5.get("pattern_equipment", "")) == "W05",
+		"W05 被判定生效（%s）" % String(a5.get("pattern_equipment", "")))
+	_check(float(a5["pierce"]) > 0.0, "W05 把暗伤害转成穿透（%.1f）" % float(a5["pierce"]))
+	_check(absf((dmg_before - float(a5["dmg"])) - dark_bucket * 0.2) < 1.0,
+		"W05 常态转移 20%%（移出 %.1f，期望 %.1f）" % [dmg_before - float(a5["dmg"]), dark_bucket * 0.2])
+	# HP 低于 35% → 35%
+	_duel.enemy_hp = 100
+	_duel.enemy_hp_max = 1000
+	var a5b: Dictionary = _settle_cards([SYM_SHADOW, SYM_SHADOW, SYM_SHADOW],
+		["dark", "dark", "dark"], ["night_scythe", "abyss_scythe", "night_scythe"])
+	var bucket_b: float = float((a5b["dmg_bucket_by_elem"] as Dictionary).get("dark", 0.0))
+	var dmg_b_before: float = float(a5b["dmg"])
+	_duel.combat._apply_patterns(a5b)
+	_check(absf((dmg_b_before - float(a5b["dmg"])) - bucket_b * 0.35) < 1.0,
+		"W05 处决线以下转移 35%%（移出 %.1f，期望 %.1f）" % [dmg_b_before - float(a5b["dmg"]), bucket_b * 0.35])
+
+	# —— W06 无锋磨砺：无元素伤害 +20% ——
+	_equip([DAGGER, IRON])
+	_duel.enemy_hp = 1000
+	_duel.enemy_hp_max = 1000
+	var a6: Dictionary = _settle_cards([SYM_FIRE_SLASH, SYM_FIRE_SLASH, SYM_FIRE_SLASH],
+		["none", "none", "none"], ["dagger", "iron_sword", "dagger"])
+	var none_dmg: float = float((a6["dmg_by_elem"] as Dictionary).get("none", 0.0))
+	var d6_before: float = float(a6["dmg"])
+	_duel.combat._apply_patterns(a6)
+	_check(String(a6.get("pattern_equipment", "")) == "W06",
+		"W06 被判定生效（%s）" % String(a6.get("pattern_equipment", "")))
+	_check(absf((float(a6["dmg"]) - d6_before) - none_dmg * 0.2) < 1.0,
+		"W06 无元素伤害 +20%%（+%.1f，期望 %.1f）" % [float(a6["dmg"]) - d6_before, none_dmg * 0.2])
+	_check(float(a6["dmg"]) > 0.0 and not (a6["status_stacks"] as Dictionary).has("gold"),
+		"W06 不提供金币或其它资源")
 
 
 # I：三轨隔离——技能牌不能填武器牌谱，T 恰好 1 技能 + 2 武器，每轨各最多一条。
@@ -620,8 +680,8 @@ func _test_tracks() -> void:
 		{"source_kind": "weapon"},
 		{"source_kind": "weapon"},
 	]}
-	tpd.effect_id = "shield_bash"
-	tpd.effect_params = {"shield_flat": 8, "damage_ratio": 0.5}
+	tpd.effect_id = "plain_grind"
+	tpd.effect_params = {"damage_mult": 1.2, "min_sources": 2}
 	_duel._pattern_system.register(tpd)
 
 	var acc2: Dictionary = _settle_cards([aegis_sym, SYM_FIRE_SLASH, SYM_FIRE_SLASH],

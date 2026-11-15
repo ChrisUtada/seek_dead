@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="PatternData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/pattern_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "W06"
+name = "无锋磨砺"
+icon = "⚔"
+desc = "两把无元素武器：三张无元素武器牌，至少来自两个不同来源 → 本轮无元素武器伤害 +20%；不提供金币或其它资源"
+kind = "equipment"
+track = "weapon_attack"
+priority = 10
+unlock_paths = Array[String]([])
+unlock_tags = Array[String](["element:none"])
+unlock_count = 2
+match_rule = {"all": [{"kind": "damage", "source_element": "none"}, {"kind": "damage", "source_element": "none"}, {"source_kind": "weapon"}]}
+effect_id = "plain_grind"
+effect_params = {"damage_mult": 1.2, "min_sources": 2}
+assist_allowed = true
+sequence_id = ""

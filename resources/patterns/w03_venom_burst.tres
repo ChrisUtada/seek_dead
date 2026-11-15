@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1")
-id = "S04"
+id = "W03"
 name = "毒爆连携"
 icon = "☠️"
 desc = "两件毒元素装备：毒系伤害牌＋中毒状态牌＋任意毒 → 中毒 +2 层，立即造成标准毒结算 50% 的伤害，不减少毒层"

@@ -208,6 +208,8 @@ func _reset_turn_state() -> void:
 	_turn_armor_cleared = 0
 	_turn_counter_burst = 0
 	_turn_charge_burst = 0
+	if _ctrl != null:
+		_ctrl._pattern_enemy_atk_mult = 1.0   # W02 的敌方攻击乘区每回合重置
 
 
 # —— 阶段 1：符号计数与贡献（含增益/金币符号）——
@@ -614,7 +616,10 @@ func enemy_deal_damage(raw: int) -> void:
 	var atk_down = 1.0 - min(0.5, _ctrl.enemy_status.get("frost", 0) * 0.2 + _ctrl.enemy_status.get("poison", 0) * 0.2)
 	# 2026-11-12 Step 1：易伤在敌人→玩家唯一伤害闸口折算（+25%）。
 	var taken_mult: float = _ctrl.debuffs.taken_mult() if _ctrl.debuffs != null else 1.0
-	var eff = int(round(float(raw) * atk_down * _ctrl.boss_atk_mult * taken_mult))
+	var pattern_mult: float = float(_ctrl._pattern_enemy_atk_mult)
+	var eff = int(round(float(raw) * atk_down * _ctrl.boss_atk_mult * taken_mult * pattern_mult))
+	if pattern_mult < 1.0:
+		_ctrl.hud._log("❄ 霜封：敌人攻击 ×%s" % ElementCounter.fmt_mult(pattern_mult))
 	if taken_mult != 1.0:
 		_ctrl.hud._log("🩸 易伤：承伤 ×%s" % ElementCounter.fmt_mult(taken_mult))
 	if _ctrl.boss_atk_mult != 1.0:

@@ -198,7 +198,9 @@ func _test_public() -> void:
 # B：W01–W06 的资源判定条件在真实双武器下是否有正例
 func _test_weapon_patterns() -> void:
 	var ids := ["W01", "W02", "W03", "W04", "W05", "W06"]
-	var legacy := {"W01": "s01_flame_resonance", "W04": "s03_holy_volley", "W03": "s04_venom_burst"}
+	var legacy := {"W01": "w01_flame_resonance", "W03": "w03_venom_burst",
+		"W04": "w04_holy_volley", "W02": "w02_frost_seal",
+		"W05": "w05_shadow_execution", "W06": "w06_plain_grind"}
 	for wid in ids:
 		var rule: Dictionary = {}
 		if legacy.has(wid):

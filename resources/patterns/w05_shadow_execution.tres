@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="PatternData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/pattern_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "W05"
+name = "暗影处刑"
+icon = "🌑"
+desc = "两把暗元素武器：两张暗系武器伤害牌＋任意武器牌 → 两张暗系伤害的 20% 转穿透；目标 HP 低于 35% 时提高到 35%"
+kind = "equipment"
+track = "weapon_attack"
+priority = 10
+unlock_paths = Array[String]([])
+unlock_tags = Array[String](["element:dark"])
+unlock_count = 2
+match_rule = {"all": [{"kind": "damage", "source_element": "dark"}, {"kind": "damage", "source_element": "dark"}, {"source_kind": "weapon"}]}
+effect_id = "shadow_execution"
+effect_params = {"pierce_ratio": 0.2, "exec_threshold": 0.35, "exec_ratio": 0.35}
+assist_allowed = true
+sequence_id = ""

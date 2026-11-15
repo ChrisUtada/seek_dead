@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="PatternData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/pattern_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "W02"
+name = "霜封连携"
+icon = "❄"
+desc = "两把冰元素武器：霜冻＋冰系武器伤害＋任意武器牌 → 霜冻 +2；目标已有至少 4 层霜冻时，本次敌方攻击 ×0.8"
+kind = "equipment"
+track = "weapon_attack"
+priority = 10
+unlock_paths = Array[String]([])
+unlock_tags = Array[String](["element:ice"])
+unlock_count = 2
+match_rule = {"all": [{"sym": "res://resources/symbols/frost.tres"}, {"kind": "damage", "source_element": "ice"}, {"source_kind": "weapon"}]}
+effect_id = "frost_seal"
+effect_params = {"frost_extra": 2, "threshold": 4, "enemy_atk_mult": 0.8}
+assist_allowed = true
+sequence_id = ""

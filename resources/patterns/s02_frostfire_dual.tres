@@ -4,12 +4,12 @@
 
 [resource]
 script = ExtResource("1")
-id = "S02"
+id = "SIG02"
 name = "冰火二重"
 icon = "❄️"
-desc = "冰、火装备各一件：火斩＋冰霜晶弹＋任意有效牌 → 火冰伤害 20% 转穿透，燃烧与霜冻各 +1 层"
+desc = "（签名候选，不是基础牌谱）冰、火装备各一件：火斩＋冰霜晶弹＋任意有效牌 → 火冰伤害 20% 转穿透，燃烧与霜冻各 +1 层"
 kind = "equipment"
-track = "weapon_attack"
+track = "signature"
 priority = 10
 unlock_paths = Array[String]([])
 unlock_tags = Array[String](["element:ice", "element:fire"])

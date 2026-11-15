@@ -132,6 +132,7 @@ var _source_archetype_map: Dictionary = {} # 武器id -> WeaponData.Archetype，
 # 2026-11-15 转轮凑牌 Step 2：牌谱判定需要的来源类别与元素。
 # 技能符号段在 pool_items 里没有来源 id（grid_src 为空），所以技能牌改用「符号归属」判断，
 # 不动 build_pool 的既有结构，避免影响同源三连与专精倍率的现有语义。
+var _pattern_enemy_atk_mult: float = 1.0   # 牌谱对「本次敌方攻击」的乘区（W02），每回合重置
 var _source_element_map: Dictionary = {}   # 武器id -> 武器元素
 var _skill_sym_kind: Dictionary = {}       # 技能符号 resource_path -> 该符号元素
 var _source_weapon_type_map: Dictionary = {} # 武器id -> WeaponData.WeaponType，用于远程穿透
@@ -529,7 +530,9 @@ func _pattern_tag_of(path: String) -> Array:
 			tags.append(String(t))
 			tags.append("family:" + String(t))
 	var e = res.get("element")
-	if e != null and String(e) != "" and String(e) != "none":
+	# 注意：无元素武器的 element 就是 "none"，它同样是有效标签（W06 靠 element:none 解锁），
+	# 不能像以前那样把 none 一并跳过。
+	if e != null and String(e) != "":
 		tags.append("element:" + String(e))
 	return tags
 
