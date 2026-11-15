@@ -94,6 +94,7 @@ func _equip(duel: DuelController) -> void:
 	duel.selected_loadout.append(DAGGER)
 	duel.mastery.reset_run()
 	duel.mastery.reset_room()
+	duel.weapon_slots.reset_run()   # 2026-11-15：通用成长改挂槽位，配装即开新局
 	duel.reel_system.build_pool(duel.selected_loadout)
 
 
@@ -176,12 +177,12 @@ func _test_catchup(duel: DuelController) -> void:
 	_check(int(m.mastery.get(DAGGER, 0)) == 4, "追赶可跨过 R2 门槛")
 	_check(m.owed.has(DAGGER), "追赶跨过 R2 时进入现有铭印队列（不自动补发铭印）")
 
-	# 卸下再装：熟练与铭印保留
+	# 卸下再装：熟练保留；通用锋铸跟槽位，不再跟随武器路径（2026-11-15 归属迁移）
 	m.mastery[FIRE] = 4
-	m.imprints[FIRE] = {"forge": 1, "tune": {}}
 	duel.selected_loadout.erase(FIRE)
 	duel.selected_loadout.append(FIRE)
-	_check(int(m.mastery.get(FIRE, 0)) == 4 and m.forge_bonus(FIRE) == 2, "卸下再装保留熟练与铭印")
+	_check(int(m.mastery.get(FIRE, 0)) == 4, "卸下再装保留熟练")
+	_check(m.forge_bonus(FIRE) == 0, "通用锋铸不跟随武器路径（该槽无成长）")
 	duel.mastery.reset_run()
 	duel.mastery.reset_room()
 
@@ -229,11 +230,16 @@ func _test_imprint_candidates(duel: DuelController) -> void:
 	for c in m.imprint_choices(FIRE):
 		if c["id"] == "tune":
 			_check(c["desc"].find("格") >= 0, "调律描述包含真实格数变化")
-	m.imprints[FIRE] = {"forge": 2, "tune": {FIRE_SLASH: 2}}
+	duel.selected_loadout.clear()
+	duel.selected_loadout.append(FIRE)
+	duel.weapon_slots.reset_run()
+	duel.weapon_slots.choose(0, "forge")
+	duel.weapon_slots.choose(0, "forge")
 	ids.clear()
 	for c in m.imprint_choices(FIRE):
 		ids.append(c["id"])
-	_check(ids.is_empty(), "同一铭印各 2 次达上限后不再出现候选")
+	_check(not ids.has("forge") and not ids.has("calibrate") and not ids.has("tyrant"),
+		"槽位通用预算用尽后不再出现通用候选（只剩调律：%s）" % str(ids))
 	m.imprints.clear()
 
 
@@ -316,25 +322,30 @@ func _test_archetype_candidates(duel: DuelController) -> void:
 
 	# 暴虐：+0.25 三连暴击倍率，并入既有 _item_crit_map（不新增乘区）
 	m.imprints.clear()
+	duel.selected_loadout.clear()
+	duel.selected_loadout.append(HEAVY_AXE)
+	duel.weapon_slots.reset_run()
 	_check(is_equal_approx(m.crit_bonus(HEAVY_AXE), 0.0), "暴虐加成初始 0")
 	_check(m.choose(HEAVY_AXE, "tyrant"), "选择暴虐成功")
 	_check(is_equal_approx(m.crit_bonus(HEAVY_AXE), 0.25), "暴虐：暴击倍率 +0.25")
-	var backup_loadout: Array = duel.selected_loadout.duplicate()
-	duel.selected_loadout.clear()
-	duel.selected_loadout.append(HEAVY_AXE)
 	duel.reel_system.build_pool(duel.selected_loadout)
 	_check(is_equal_approx(float(duel._item_crit_map.get(AXE_SLASH, 0.0)), 2.25), "暴虐写入暴击映射：2.00 → 2.25")
 	_check(is_equal_approx(float((load(HEAVY_AXE) as WeaponData).crit_mult), 2.0), "共享 .tres 的 crit_mult 未被修改")
-	duel.selected_loadout = backup_loadout
+	duel.selected_loadout.clear()
+	duel.selected_loadout.append(DAGGER)
+	duel.weapon_slots.reset_run()
 	m.imprints.clear()
 	duel.reel_system.build_pool(duel.selected_loadout)
 	_check(is_equal_approx(float(duel._item_crit_map.get(AXE_SLASH, 0.0)), 0.0), "清空铭印后暴击映射回落（重型斧已卸下）")
 
 	# 文案与摘要覆盖新铭印
-	m.imprints[DAGGER] = {"forge": 0, "tune": {}, "calibrate": 1, "tyrant": 0}
-	_check(m.imprint_text(DAGGER).find("校准×1") >= 0, "铭印文案列出校准")
-	_check(m.summary_line().find("校准×1") >= 0, "铭印摘要列出校准")
-	_check(m.imprint_total() == 1, "铭印总数包含校准")
+	duel.selected_loadout.clear()
+	duel.selected_loadout.append(DAGGER)
+	duel.weapon_slots.reset_run()
+	duel.weapon_slots.choose(0, "calibrate")
+	_check(m.imprint_text(DAGGER).find("校准") >= 0, "铭印文案列出槽位校准")
+	_check(m.summary_line().find("校准") >= 0, "铭印摘要列出槽位校准")
+	_check(m.imprint_total() == 1, "铭印总数包含槽位校准")
 	m.imprints.clear()
 
 
@@ -516,7 +527,7 @@ func _test_offer_queue(duel: DuelController) -> void:
 	_check(duel.room_flow.post_battle_active, "战后结算待处理")
 	_check(not duel.in_interroom, "铭印未选完前不进入房间间歇")
 	duel.room_flow.auto_pick_post_battle(["growth"])
-	_check(int(m.imprints[FIRE]["forge"]) + m._tune_count(FIRE) == 1, "选定后写入一次铭印")
+	_check(int(duel.slot_total(duel.slot_of(FIRE))) + m._tune_count(FIRE) == 1, "选定后写入一次铭印（通用进槽位）")
 	_check(m.owed.is_empty(), "欠选队列清空")
 	_check(duel.in_interroom, "选完铭印后进入房间间歇")
 	_check(not duel.room_flow.post_battle_active, "队列结束后无待选")

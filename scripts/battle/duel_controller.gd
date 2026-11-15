@@ -276,6 +276,8 @@ var _loadout_system                    # 整备子系统 LoadoutSystem（步骤5
 var _synergy_system                    # 装备共鸣系统 SynergySystem（方案 B 配套；_ready 实例化并注入 self）
 var growth                             # M2-01 角色历练与技艺（经验/等级/三选一技艺；每局清零）
 var mastery                            # M2-02 武器熟练 R1–R4 与铭印（锋铸/调律；每局清零）
+# 2026-11-15：双武器槽的通用数值成长（锋铸/校准/暴虐）。换装立即继承，整局不重置。
+var weapon_slots
 var readability                        # P1 目押可读性原型（速度/预览/视觉落点/缓冲/反馈；不改数值）
 var _telemetry                         # M1-06 局内遥测（内存计数，不落盘/不吃随机；每局清零）
 var _journal                           # G5 工具：自动记录客观项（只读；导出包/--runlog 才落盘）
@@ -353,6 +355,7 @@ func _ready() -> void:
 	_synergy_system = preload("res://scripts/systems/synergy_system.gd").new(self)
 	growth = preload("res://scripts/systems/growth_system.gd").new(self)
 	mastery = preload("res://scripts/systems/weapon_mastery.gd").new(self)
+	weapon_slots = preload("res://scripts/systems/weapon_slot_growth.gd").new()
 	# G0-02：物品 tooltip 读取运行时武器状态（锋铸后的真实攻击 / R 等级 / 铭印），
 	# 静态生成器不持有 controller，由这里注入；共享 .tres 不被修改。
 	ItemTooltip.weapon_state_provider = _weapon_tooltip_state
@@ -456,8 +459,10 @@ func _apply_reward_weapon_replace(p: String, old_path: String) -> void:
 		room_flow.finish_room(Callable(), reward_is_boss)
 		return
 	var old_name = _shop_name(old_path, "weapon")
-	selected_loadout.erase(old_path)
-	selected_loadout.append(p)
+	var slot: int = selected_loadout.find(old_path)
+	if slot < 0 or not replace_weapon_at_slot(slot, p):
+		room_flow.finish_room(Callable(), reward_is_boss)
+		return
 	_reward_system.remember_weapon(p)
 	if _telemetry != null:
 		_telemetry.on_weapon_swap()
@@ -470,11 +475,55 @@ func _apply_reward_weapon_replace(p: String, old_path: String) -> void:
 
 # 新武器摘要（商店替换 / 奖励替换 / BOSS 战利品共用）
 # G0-02：攻击显示锋铸后的真实值；G6-05：再叠加铸式修正。R 等级 / 熟练 / 铭印与转轮带使用同一份运行时状态。
+# 当前装备路径所在的武器槽（0/1）；未装备返回 -1，绝不默认落到槽 0。
+func slot_of(path: String) -> int:
+	if path == "":
+		return -1
+	return selected_loadout.find(path)
+
+
+func slot_forge(slot: int) -> int:
+	return weapon_slots.count(slot, "forge") if weapon_slots != null else 0
+
+
+func slot_calibrate(slot: int) -> int:
+	return weapon_slots.count(slot, "calibrate") if weapon_slots != null else 0
+
+
+func slot_tyrant(slot: int) -> int:
+	return weapon_slots.count(slot, "tyrant") if weapon_slots != null else 0
+
+
+func slot_total(slot: int) -> int:
+	return weapon_slots.total(slot) if weapon_slots != null else 0
+
+
+# 双武器槽的唯一替换入口：原位替换，槽位成长不变，旧武器的熟练与调律留在旧路径上。
+# 所有来源（商店 / 营地 / 战利品 / 棋盘藏库 / 装备格）都必须走这里，
+# 否则 erase + append 会把被换下的武器挪到数组末尾、导致槽位错乱与成长跟丢。
+func replace_weapon_at_slot(slot: int, new_path: String) -> bool:
+	if slot < 0 or slot >= selected_loadout.size() or new_path == "":
+		return false
+	if not (load(new_path) is WeaponData):
+		return false
+	if selected_loadout.has(new_path) and String(selected_loadout[slot]) != new_path:
+		return false   # 已装备在另一个槽，不能重复装
+	var old_path: String = String(selected_loadout[slot])
+	if old_path == new_path:
+		return true    # 幂等
+	selected_loadout[slot] = new_path
+	_build_pool(selected_loadout)
+	invalidate_state()
+	return true
+
+
 func weapon_power(path: String) -> int:
 	var res: WeaponData = load(path)
 	if res == null:
 		return 0
-	var forge: int = mastery.forge_bonus(path) if mastery != null else 0
+	# 通用锋铸跟槽位；未装备的武器没有槽，不贡献任何槽位成长。
+	var slot: int = slot_of(path)
+	var forge: int = weapon_slots.forge_bonus(slot) if weapon_slots != null else 0
 	var style: int = _forge_styles.power_bonus(path) if _forge_styles != null else 0
 	return int(res.base_power) + forge + style
 
@@ -484,8 +533,10 @@ func weapon_hit(path: String) -> float:
 	if res == null:
 		return 1.0
 	var delta: float = _forge_styles.hit_delta(path) if _forge_styles != null else 0.0
-	if mastery != null:
-		delta += mastery.hit_bonus(path)   # G7-A S2 校准：并入同一命中通道，不加新乘区
+	# 通用校准跟槽位（与锋铸同一归属）；并入同一命中通道，不加新乘区。
+	var slot: int = slot_of(path)
+	if weapon_slots != null:
+		delta += weapon_slots.hit_bonus(slot)
 	return clampf(float(res.hit_rate) + delta, 0.0, 1.0)
 
 
@@ -653,8 +704,10 @@ func _apply_boss_weapon_replace(p: String, old_path: String) -> void:
 		_finish_room(Callable(), true)
 		return
 	var old_name = _shop_name(old_path, "weapon")
-	selected_loadout.erase(old_path)
-	selected_loadout.append(p)
+	var slot: int = selected_loadout.find(old_path)
+	if slot < 0 or not replace_weapon_at_slot(slot, p):
+		room_flow.finish_room(Callable(), reward_is_boss)
+		return
 	_reward_system.remember_weapon(p)
 	if _telemetry != null:
 		_telemetry.on_weapon_swap()
@@ -776,6 +829,8 @@ func _full_reset() -> void:
 # 新一局公共状态重置（不含开战）：已迁至 LoadoutSystem.reset_run_state（P2 架构还债，2026-08-24）——单行转发。
 func _reset_run_state() -> void:
 	_loadout_system.reset_run_state()
+	if weapon_slots != null:
+		weapon_slots.reset_run()   # 只清本局槽位成长，不动图鉴 / 历史最高熟练 / 横向铸式
 	if room_flow != null:
 		room_flow.reset_flow()   # Step 7：清掉上一局未完成的战后结算状态
 	if _career != null:
@@ -1303,8 +1358,10 @@ func _board_weapon_replace(p: String, old_path: String, label: String = "武器�
 		_board_weapon_cancel(p, label)
 		return
 	var old_name := _shop_name(old_path, "weapon")
-	selected_loadout.erase(old_path)
-	selected_loadout.append(p)
+	var slot4: int = selected_loadout.find(old_path)
+	if slot4 < 0 or not replace_weapon_at_slot(slot4, p):
+		_board_weapon_cancel(p, label)
+		return
 	_reward_system.remember_weapon(p)
 	if _career != null:
 		_career.note_board_weapon()   # G6-01：替换获得同样算主动获得武器格

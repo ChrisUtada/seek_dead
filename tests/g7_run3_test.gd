@@ -190,7 +190,9 @@ func _state(duel: DuelController) -> Dictionary:
 		"perks": duel.growth.perk_ids.duplicate(),
 		"perk_picks": duel.growth.pending_picks,
 		"mastery": duel.mastery.mastery.duplicate(true),
-		"imprints": _loadout_imprints(duel),
+		# 2026-11-15：通用铭印已迁到武器槽，这里只比调律（武器归属）与槽位快照。
+		"tune": duel.mastery.tune_map().duplicate(true),
+		"weapon_slots": duel.weapon_slots.snapshot() if duel.weapon_slots != null else [],
 		"shop_paid": duel._shop_system.paid_price.duplicate(true),
 	}
 

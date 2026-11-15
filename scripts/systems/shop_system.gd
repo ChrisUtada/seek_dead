@@ -56,8 +56,11 @@ func on_shop_buy_replace_pressed(offer: Dictionary, old_path: String, source: St
 		return
 	_ctrl.gold -= buy_price
 	var old_name = _ctrl._shop_name(old_path, "weapon")
-	arr.erase(old_path)
-	arr.append(offer["path"])
+	# 唯一替换入口：原位替换，槽位通用成长不变（不能 erase+append，否则旧武器被挪到末尾）。
+	var slot: int = _ctrl.selected_loadout.find(old_path)
+	if slot < 0 or not _ctrl.replace_weapon_at_slot(slot, String(offer["path"])):
+		_ctrl.hud._log("替换失败：目标槽位无效")
+		return
 	if not _ctrl.meta["owned_weapons"].has(offer["path"]):
 		_ctrl.meta["owned_weapons"].append(offer["path"])
 		_ctrl._anvil_system.check_collection_milestones()

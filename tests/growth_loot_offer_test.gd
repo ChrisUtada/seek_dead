@@ -16,6 +16,7 @@ func _ready() -> void:
 	_test_each_growth_effect()
 	_test_queued_growth_inline()
 	_test_reroll_skip_and_sources()
+	_test_r4_no_training()
 	print("---")
 	print("GROWTHLOOT|RESULT %s (checks=%d fails=%d)" % ["PASS" if _fails == 0 else "FAIL", _checks, _fails])
 	get_tree().quit(1 if _fails > 0 else 0)
@@ -33,6 +34,24 @@ func _boot() -> void:
 	_duel._confirm_loadout()
 	_duel.growth.perk_ids.clear()
 	_duel.gold = 10000
+
+
+# 方案 §4.6：R4 满级后再加熟练不产生任何解锁，训练候选不得再出现。
+func _test_r4_no_training() -> void:
+	_offer()   # 确保成长候选实例已建立
+	_duel.mastery.grant_points(FIRE_SWORD, 12)
+	_check(int(_duel.mastery.r_level(FIRE_SWORD)) == 4, "火焰剑已到 R4")
+	var cands: Array = _duel._reward_system._loot_offer._growth_candidates()
+	var has_fire := false
+	for c in cands:
+		if String(c.get("kind", "")) == "mastery" and String(c.get("path", "")) == FIRE_SWORD:
+			has_fire = true
+	_check(not has_fire, "R4 满级武器不再产出训练候选")
+	var has_staff := false
+	for c in cands:
+		if String(c.get("kind", "")) == "mastery" and String(c.get("path", "")) == ICE_STAFF:
+			has_staff = true
+	_check(has_staff, "未满级的另一把仍保留训练候选")
 
 
 func _check(cond: bool, msg: String) -> void:

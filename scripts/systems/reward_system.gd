@@ -444,8 +444,9 @@ func settle_loot_replace(index: int, old_path: String) -> Dictionary:
 	if p == "" or not _ctrl.selected_loadout.has(old_path) or _ctrl.selected_loadout.has(p):
 		return {"ok": false, "reason": "invalid_replace"}
 	var old_name := _ctrl._shop_name(old_path, "weapon")
-	_ctrl.selected_loadout.erase(old_path)
-	_ctrl.selected_loadout.append(p)
+	var slot: int = _ctrl.selected_loadout.find(old_path)
+	if slot < 0 or not _ctrl.replace_weapon_at_slot(slot, p):
+		return {"ok": false, "reason": "invalid_replace"}
 	remember_weapon(p, _loot_offer.source)
 	if _ctrl._telemetry != null:
 		_ctrl._telemetry.on_weapon_swap()

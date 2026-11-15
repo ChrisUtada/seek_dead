@@ -62,6 +62,9 @@ func _growth_candidates() -> Array:
 		var wd: WeaponData = load(path)
 		if wd == null:
 			continue
+		# 方案 §4.6：R4 满级后再加熟练不产生任何解锁，不再占候选位（避免「+熟练但无收益」的死卡）。
+		if int(_ctrl.mastery.r_level(String(path))) >= 4:
+			continue
 		var amount := _mastery_amount()
 		out.append(_option("mastery", "mastery_" + String(path), "damage", {
 			"path": String(path), "amount": amount,
