@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="PatternData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/pattern_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "SIG_W04_HOLYSWORD"
+name = "黎明圣辉·圣裁齐射"
+icon = "⚖"
+desc = "圣辉长剑签名：齐射伤害从两件来源武器攻击和的 50% 提高到 80%；仍要求圣辉长剑＋破晓之弓占满双武器槽"
+kind = "equipment"
+track = "signature"
+pattern_tier = "epic_signature"
+base_pattern_id = "W04"
+priority = 20
+key_paths = Array[String](["res://resources/weapon_templates/holy_sword.tres"])
+unlock_paths = Array[String](["res://resources/weapon_templates/holy_sword.tres"])
+unlock_tags = Array[String]([])
+unlock_count = 0
+match_rule = {"all": [{"sym": "res://resources/symbols/holy_slash.tres"}, {"sym": "res://resources/symbols/dawn_bolt.tres"}, {"source_kind": "weapon", "source_element": "light"}]}
+effect_id = "holy_volley"
+effect_params = {"attack_ratio": 0.8}
+assist_allowed = false
+sequence_id = ""

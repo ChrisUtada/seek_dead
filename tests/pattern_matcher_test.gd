@@ -653,6 +653,18 @@ func _test_signatures() -> void:
 	_check(absf(((float(fs["dmg"]) + float(fs["special"])) - dmg_before_fs) - fire_before * 0.40) < 1.5,
 		"火焰法杖签名把火系加成提到 +40%")
 
+	# —— 圣辉长剑 × W04：齐射 50% → 80%（光系补了 rare 后才有这条签名） ——
+	var DAWN_BOW := "res://resources/weapon_templates/dawn_bow.tres"
+	var HOLY_SWORD := "res://resources/weapon_templates/holy_sword.tres"
+	var SYM_DAWN := "res://resources/symbols/dawn_bolt.tres"
+	_equip([HOLY_SWORD, DAWN_BOW])
+	var hv: Dictionary = _settle_cards([SYM_HOLY_SLASH, SYM_DAWN, SYM_HOLY_SLASH],
+		["light", "light", "light"], ["holy_sword", "dawn_bow", "holy_sword"])
+	_duel.combat._apply_patterns(hv)
+	_check(String(hv.get("pattern_signature", "")) == "SIG_W04_HOLYSWORD",
+		"圣辉长剑 × W04 签名生效（%s）" % String(hv.get("pattern_signature", "")))
+	_check(float(hv["pierce"]) > 0.0, "W04 齐射进入穿透（%.0f）" % float(hv["pierce"]))
+
 	# —— 卸下关键武器 → 签名立即失效 ——
 	_equip([FIRE_SWORD, FLAME_STAFF])
 	var with_key: Dictionary = _settle_cards([SYM_BURN, SYM_FIRE_SLASH, SYM_FIRE_SLASH],

@@ -4,10 +4,10 @@
 
 [resource]
 script = ExtResource("1")
-label = "✨⚖️"
-name = "圣辉审判"
-kind = "damage"
-base = 12.0
+label = "⚖"
+name = "圣裁"
+kind = "special"
+base = 20.0
 element = "light"
 status_type = ""
-color = Color(1.0, 0.92, 0.55, 1)
+color = Color(1, 0.88, 0.55, 1)

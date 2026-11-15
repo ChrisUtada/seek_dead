@@ -1,9 +1,10 @@
-[gd_resource type="Resource" script_class="WeaponData" load_steps=7 format=3]
+[gd_resource type="Resource" script_class="WeaponData" load_steps=9 format=3]
 
 [ext_resource type="Script" uid="uid://rshxw30hg44e" path="res://scripts/equipment/weapon_data.gd" id="1"]
 [ext_resource type="Script" uid="uid://b7ejpof4wrtqt" path="res://scripts/battle/symbol_weight.gd" id="sw"]
 [ext_resource type="Resource" path="res://resources/symbols/holy_slash.tres" id="s0"]
 [ext_resource type="Resource" path="res://resources/symbols/dawn_light.tres" id="s1"]
+[ext_resource type="Resource" path="res://resources/symbols/holy_verdict.tres" id="sv"]
 
 [sub_resource type="Resource" id="sw0"]
 script = ExtResource("sw")
@@ -15,11 +16,16 @@ script = ExtResource("sw")
 symbol = ExtResource("s1")
 weight = 2.0
 
+[sub_resource type="Resource" id="swv"]
+script = ExtResource("sw")
+symbol = ExtResource("sv")
+weight = 2.0
+
 [resource]
 script = ExtResource("1")
 weapon_name = "晨曦之刃"
 category = "weapon"
-rarity = "uncommon"
+rarity = "rare"
 crit_chance = 0.05
 base_power = 19
 hit_rate = 0.84
@@ -31,7 +37,7 @@ attack_speed = 1.0
 attack_range = 80.0
 cleave_angle = 90.0
 knockback_force = 200.0
-symbols = Array[ExtResource("sw")]([SubResource("sw0"), SubResource("sw1")])
+symbols = Array[ExtResource("sw")]([SubResource("sw0"), SubResource("sw1"), SubResource("swv")])
 reel_element = "light"
 element = "light"
 family_tags = Array[String](["light", "combo"])
@@ -39,5 +45,5 @@ role = "damage"
 mechanism_summary = "光系中型近战：圣辉斩（5权重，光伤害） + 晨曦之光（2权重，光伤害）；非三连暴击+5%；命中率84%，基础伤害19。符号需落线触发，未命中为废铁格。"
 act_min = 1
 act_max = 3
-source_tags = Array[String](["normal", "elite", "boss", "shop", "anvil", "chest"])
+source_tags = Array[String](["normal", "elite", "shop", "anvil", "chest"])
 unique_group = "weapon_light_pure_line"

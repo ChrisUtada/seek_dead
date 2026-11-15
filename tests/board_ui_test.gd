@@ -276,6 +276,11 @@ func _test_battle_entry() -> void:
 
 	_check(not chest.is_empty(), "本图有宝箱节点")
 	if not chest.is_empty():
+		# 宝箱内容由掉落池随机决定，可能抽到武器而弹「替换」弹层——那也是合法中间态，
+		# 但不属于本条要验证的东西（本条只验证非战斗节点共用的 return_to_board 出口）。
+		# 固定成金币路径，避免测试依赖掉落池的稀有度构成（2026-11-15 光系升格时就踩过）。
+		chest["treasure_kind"] = "gold"
+		chest["item_path"] = ""
 		_duel._on_board_node_entered(chest)
 		await get_tree().create_timer(0.35).timeout
 		_check(_bs.visible, "宝箱结算后回到地图")
