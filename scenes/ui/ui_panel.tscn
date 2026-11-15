@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://bg6l18yijf0g7"]
+
+[node name="Panel" type="PanelContainer" unique_id=1238060805]
+
+[node name="VBox" type="VBoxContainer" parent="." unique_id=1090108953]
+layout_mode = 2
