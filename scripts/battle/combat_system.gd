@@ -374,11 +374,56 @@ func _apply_patterns(acc: Dictionary) -> void:
 						String(t_pick.icon), String(t_pick.id), String(t_pick.name)], t_color)
 				PATTERN_EFFECTS.apply(acc, t_pick, {"ctrl": _ctrl})
 
+	# 常驻面板：本回合可用牌谱与组件状态（§9.1 两分区）
+	if _ctrl.hud != null:
+		_ctrl.hud.update_pattern_tray(_build_tray_entries(all_cards, weapon_cards, unlocked_weapon, acc))
+
 	# 牌谱新增的状态层在这里落地（_phase_defense 已经跑过，不能复用 status_stacks）
 	for st in acc.get("pattern_status", {}).keys():
 		var n := int(acc["pattern_status"][st])
 		if n > 0:
 			_ctrl.enemy_status[st] = int(_ctrl.enemy_status.get(st, 0)) + n
+
+
+# 常驻面板的数据：武器牌谱最多 2 条（避免面板过长），技能术式只显示与当前技能匹配的那条。
+func _build_tray_entries(all_cards: Array, weapon_cards: Array, unlocked_weapon: Array, acc: Dictionary) -> Array:
+	var out: Array = []
+	var shown := 0
+	for p in unlocked_weapon:
+		if String(p.track) != "weapon_attack":
+			continue
+		if shown >= 2:
+			break
+		out.append(_tray_entry(p, weapon_cards, acc, "武器牌谱"))
+		shown += 1
+	var skill_load: Array = _ctrl.selected_skills.duplicate()
+	if not skill_load.is_empty():
+		var unlocked_skill: Array = _ctrl._pattern_system.unlocked_patterns(skill_load, _ctrl._pattern_tag_of)
+		for p in unlocked_skill:
+			if String(p.track) != "skill_support":
+				continue
+			var entry := _tray_entry(p, all_cards, acc, "技能术式")
+			# 技能牌不在手牌时也显示，但组件会标成「未满足」，玩家能看出「差一张技能牌」
+			out.append(entry)
+			break
+	return out
+
+
+func _tray_entry(p, cards: Array, acc: Dictionary, section: String) -> Dictionary:
+	var d: Dictionary = PATTERN_MATCHER.diagnose(cards, p.match_rule)
+	var conds: Array = (p.match_rule as Dictionary).get("all", [])
+	var parts: Array = []
+	for i in range(conds.size()):
+		parts.append({
+			"text": PATTERN_MATCHER.describe_condition(conds[i]),
+			"ok": (d["satisfied"] as Array).has(i),
+		})
+	var pid := String(p.id)
+	var active := String(acc.get("pattern_weapon", "")) == pid or String(acc.get("pattern_skill", "")) == pid
+	return {
+		"section": section, "id": pid, "name": String(p.name), "icon": String(p.icon),
+		"parts": parts, "done": bool(d["done"]), "active": active,
+	}
 
 
 func _pick_track(patterns: Array, track: String) -> Array:

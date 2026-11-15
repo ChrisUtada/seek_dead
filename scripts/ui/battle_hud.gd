@@ -1116,6 +1116,67 @@ func _popup(text: String, color: Color, anchor: Control) -> void:
 	popup_layer.popup(text, color, anchor)
 
 
+# 2026-11-15 转轮凑牌 §9.1：常驻牌谱面板。
+# 两个分区（武器牌谱 / 技能术式），每条显示 id、名称与组件；
+# 已满足的组件正常色，缺的组件暗淡 —— 玩家随时知道「我在凑什么、还差什么」。
+# entries: [{section, id, name, icon, parts: [{text, ok}], done, active}]
+var _pattern_tray: Control
+var _pattern_tray_label: RichTextLabel
+func update_pattern_tray(entries: Array) -> void:
+	if not is_inside_tree():
+		return
+	if _pattern_tray == null or not is_instance_valid(_pattern_tray):
+		_pattern_tray = PanelContainer.new()
+		_pattern_tray.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = Color(0.06, 0.07, 0.09, 0.78)
+		sb.set_corner_radius_all(4)
+		sb.content_margin_left = 10
+		sb.content_margin_right = 10
+		sb.content_margin_top = 8
+		sb.content_margin_bottom = 8
+		_pattern_tray.add_theme_stylebox_override("panel", sb)
+		_pattern_tray_label = RichTextLabel.new()
+		_pattern_tray_label.bbcode_enabled = true
+		_pattern_tray_label.fit_content = true
+		_pattern_tray_label.scroll_active = false
+		_pattern_tray_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_pattern_tray_label.add_theme_font_size_override("normal_font_size", 12)
+		_pattern_tray_label.custom_minimum_size = Vector2(196, 0)
+		_pattern_tray.add_child(_pattern_tray_label)
+		add_child(_pattern_tray)
+		_pattern_tray.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		_pattern_tray.position = Vector2(12, 96)
+	var lines: Array[String] = []
+	var cur_section := ""
+	for e in entries:
+		var sec := String(e.get("section", ""))
+		if sec != cur_section:
+			if cur_section != "":
+				lines.append("")
+			lines.append("[color=#8fa3b8]%s[/color]" % sec)
+			cur_section = sec
+		var icon := String(e.get("icon", ""))
+		var head_color := "#d9e2ec"
+		if bool(e.get("active", false)):
+			head_color = "#d5a33d"          # 本回合生效：金色
+		elif bool(e.get("done", false)):
+			head_color = "#8fbf6a"          # 已凑齐但没触发（被更高优先级占用等）
+		lines.append("[color=%s]%s %s %s[/color]" % [
+			head_color, icon, String(e.get("id", "")), String(e.get("name", ""))])
+		var parts: Array = e.get("parts", [])
+		var chips: Array[String] = []
+		for part in parts:
+			var ok := bool(part.get("ok", false))
+			var col := "#79b8d6" if ok else "#4a5563"
+			chips.append("[color=%s]%s[/color]" % [col, String(part.get("text", ""))])
+		if not chips.is_empty():
+			lines.append("  " + " · ".join(chips))
+	if lines.is_empty():
+		lines.append("[color=#4a5563]（当前构筑没有可用牌谱）[/color]")
+	_pattern_tray_label.text = "\n".join(lines)
+
+
 # 2026-11-15 转轮凑牌 Step 6：牌谱触发横幅。
 # W 定位为「中频高潮」——频率固定后，爽感只能靠那一下的分量，所以给它一个明确的视觉时刻：
 # 淡入 → 停留 0.55s → 淡出，同时保留日志与飘字。headless 下 is_inside_tree() 为 false 直接跳过。

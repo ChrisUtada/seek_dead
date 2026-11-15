@@ -144,6 +144,73 @@ static func _card_satisfies(card: Dictionary, cond: Dictionary) -> bool:
 	return true
 
 
+# 诊断一条 match_rule：哪些条件被满足、哪些没有（供常驻面板显示「缺什么」）。
+# 用贪心分配：按条件顺序各取一张未占用的牌，与 solve_rule 的回溯结果可能略有差异，
+# 但只在「无解」时才用于展示缺失项，不影响判定本身。
+# 返回 {"done": bool, "satisfied": Array[int], "missing": Array[int]}
+static func diagnose(cards: Array, rule: Dictionary) -> Dictionary:
+	var conds: Array = rule.get("all", [])
+	var out := {"done": false, "satisfied": [], "missing": []}
+	if conds.is_empty():
+		return out
+	var valid: Array = []
+	for c in cards:
+		if not bool(c.get("valid", true)):
+			continue
+		var sym = c.get("sym")
+		if sym == null or String(sym.kind) in INVALID_KINDS:
+			continue
+		valid.append(c)
+	var used := {}
+	for i in range(conds.size()):
+		var cond: Dictionary = conds[i]
+		var hit := false
+		for j in range(valid.size()):
+			if used.has(j):
+				continue
+			if _card_satisfies(valid[j], cond):
+				used[j] = true
+				hit = true
+				break
+		if hit:
+			(out["satisfied"] as Array).append(i)
+		else:
+			(out["missing"] as Array).append(i)
+	out["done"] = (out["missing"] as Array).is_empty()
+	return out
+
+
+# 把一条结构化条件翻成玩家看得懂的短标签（常驻面板用）。
+static func describe_condition(cond: Dictionary) -> String:
+	if cond.has("sym"):
+		var path := String(cond["sym"])
+		var res = load(path)
+		if res != null and String(res.get("name")) != "":
+			return String(res.get("name"))
+		return path.get_file().get_basename()
+	if cond.has("skill_role"):
+		match String(cond["skill_role"]):
+			"power": return "增伤技能"
+			"shield": return "护盾技能"
+			"heal": return "治疗技能"
+		return "技能牌"
+	if cond.has("source_kind") and String(cond["source_kind"]) == "skill":
+		return "技能牌"
+	if cond.has("kind") and String(cond["kind"]) == "shield":
+		return "护盾牌"
+	if cond.has("kind") and String(cond["kind"]) == "buff":
+		return "增益牌"
+	if cond.has("source_element"):
+		var el := String(cond["source_element"])
+		var label := ElementCounter.label(el) if el != "none" else "无"
+		if cond.has("kind") and String(cond["kind"]) == "damage":
+			return "%s系伤害" % label
+		return "%s系武器牌" % label
+	if cond.has("source_kind") and String(cond["source_kind"]) == "weapon":
+		return "任意武器牌"
+	return "任意牌"
+
+
 # 返回命中 match_rule 的牌谱 id 列表（顺序与传入一致）。
 static func match_rules(cards: Array, patterns: Array) -> Array:
 	var out: Array = []
