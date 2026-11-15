@@ -13,6 +13,7 @@ extends Node
 # 固定种子、300 回合/构筑。不使用 _phase_symbols 之外的捷径。
 # ============================================================================
 
+const MATCHER := preload("res://scripts/battle/pattern_matcher.gd")
 const FIRE_SWORD := "res://resources/weapon_templates/fire_sword.tres"
 const FLAME_STAFF := "res://resources/weapon_templates/flame_staff.tres"
 const ICE_STAFF := "res://resources/weapon_templates/ice_staff.tres"
@@ -72,6 +73,9 @@ func _run() -> void:
 
 	print("=== B 空转率（整回合没有任何牌型）===")
 	_test_empty_turn_rate()
+
+	print("=== D 组成率 / 优先级覆盖率 / 每几回合一次 ===")
+	_test_composition_stats()
 
 	print("=== C 三档敌人真实 SPIN 流程 ===")
 	await _test_three_enemies()
@@ -208,6 +212,60 @@ func _test_empty_turn_rate() -> void:
 	_report.append("空转率（火系双持，%d 回合）：%.1f%%" % [total, rate])
 	# 单牌每回合都有效是设计铁律，但「半数以上回合完全凑不出任何牌型」说明牌面太难凑
 	_check(rate < 70.0, "空转率不超过 70%%（实际 %.1f%%）" % rate)
+
+
+# D：真实带子上的「组成率」与「每几回合一次」——方案要求普通 Build 平均每 2–3 回合
+# 形成一次有价值的武器组合（即 ≥33%）。
+func _test_composition_stats() -> void:
+	for b in BUILDS:
+		_equip(b["weapons"], b["charms"], b.get("skills", []))
+		var loadout: Array = _duel.selected_loadout.duplicate()
+		loadout.append_array(_duel.selected_charms)
+		var unlocked: Array = _duel._pattern_system.unlocked_patterns(loadout, _duel._pattern_tag_of)
+		var w_pool: Array = []
+		for p in unlocked:
+			if String(p.track) == "weapon_attack":
+				w_pool.append(p)
+		var total := 0
+		var composed := 0        # 至少有一条 W 的条件被满足
+		var multi := 0           # 多条同时满足（需要优先级裁决）
+		var fired := 0           # 最终真的生效
+		var wc_hist := {}        # 有效武器牌数量分布
+		for i in range(ROUNDS):
+			_draw_from_strips()
+			_duel.enemy_element = "none"
+			_duel.enemy_armor = 0
+			var acc: Dictionary = _duel.combat._new_acc()
+			_duel.combat._reset_turn_state()
+			acc["counts"] = _duel.combat._phase_symbols(acc)
+			_duel.combat._apply_patterns(acc)
+			total += 1
+			var cards: Array = MATCHER.cards_from_grid(_duel)
+			var weapon_cards: Array = []
+			for c in cards:
+				if String(c.get("source_kind", "")) == "weapon":
+					weapon_cards.append(c)
+			wc_hist[weapon_cards.size()] = int(wc_hist.get(weapon_cards.size(), 0)) + 1
+			var hits: Array = MATCHER.match_rules(weapon_cards, w_pool)
+			if hits.size() >= 1:
+				composed += 1
+			if hits.size() >= 2:
+				multi += 1
+			if String(acc.get("pattern_equipment", "")) != "":
+				fired += 1
+		var compose_rate := 100.0 * float(composed) / maxf(1.0, float(total))
+		var fire_rate := 100.0 * float(fired) / maxf(1.0, float(total))
+		var every := (float(total) / maxf(1.0, float(composed)))
+		_report.append("%s：有效武器牌 3/2/1/0 = %d/%d/%d/%d 回合" % [
+			String(b["name"]), int(wc_hist.get(3, 0)), int(wc_hist.get(2, 0)),
+			int(wc_hist.get(1, 0)), int(wc_hist.get(0, 0))])
+		_report.append("%s：解锁 %d 条 W ｜ 组成率 %.1f%%（每 %.1f 回合一次）｜ 触发率 %.1f%% ｜ 多命中 %d 次" % [
+			String(b["name"]), w_pool.size(), compose_rate, every, fire_rate, multi])
+		# 组成后必须有触发（每回合至少一条）
+		_check(fired >= composed - 2, "%s：组成后都能生效（组成 %d / 生效 %d）" % [String(b["name"]), composed, fired])
+		# 方案目标：每 2–3 回合一次 → 组成率 ≥ 33%
+		if compose_rate < 33.0:
+			_report.append("⚠ %s 组成率 %.1f%% 低于方案目标（2–3 回合一次 = 33%%）" % [String(b["name"]), compose_rate])
 
 
 # C：三档敌人各跑一次真实 SPIN，确认流程与结算正常。

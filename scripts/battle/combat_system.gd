@@ -334,6 +334,12 @@ func _apply_patterns(acc: Dictionary) -> void:
 		acc["pattern_weapon"] = String(w_pick.id)
 		acc["pattern_equipment"] = String(w_pick.id)   # 兼容既有断言与展示
 		acc["pattern_signature"] = String(sig.id) if sig != null else ""
+		if _ctrl.hud != null:
+			var sig_txt := ""
+			if sig != null:
+				sig_txt = "·%s" % String(sig.name)
+			_ctrl.hud._log("🗂 武器牌谱 %s %s%s" % [
+				String(w_pick.id), String(w_pick.name), sig_txt])
 		PATTERN_EFFECTS.apply(acc, sig if sig != null else w_pick, {"ctrl": _ctrl})
 
 	# —— 技能轨：恰好 1 技能 + 2 武器 ——
@@ -350,6 +356,8 @@ func _apply_patterns(acc: Dictionary) -> void:
 				t_pick = null
 			if t_pick != null:
 				acc["pattern_skill"] = String(t_pick.id)
+				if _ctrl.hud != null:
+					_ctrl.hud._log("🗂 技能术式 %s %s" % [String(t_pick.id), String(t_pick.name)])
 				PATTERN_EFFECTS.apply(acc, t_pick, {"ctrl": _ctrl})
 
 	# 牌谱新增的状态层在这里落地（_phase_defense 已经跑过，不能复用 status_stacks）
