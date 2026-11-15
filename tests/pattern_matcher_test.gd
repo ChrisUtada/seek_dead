@@ -551,6 +551,16 @@ func _test_pattern_effects() -> void:
 	# 牌谱新增的状态写在 pattern_status（status_stacks 在 _phase_defense 已落地过）
 	_check(int((acc.get("pattern_status", {}) as Dictionary).get("burn", 0)) > 0,
 		"S01 给燃烧加层（%d）" % int((acc.get("pattern_status", {}) as Dictionary).get("burn", 0)))
+	# 演出：牌谱触发时应有横幅（中频高潮的「那一下」）
+	var banner = _duel.hud.get("_pattern_banner")
+	_check(banner != null and is_instance_valid(banner),
+		"牌谱触发时有横幅演出")
+	if banner != null and is_instance_valid(banner):
+		var texts := ""
+		for child in banner.get_children():
+			if child is Label:
+				texts = String((child as Label).text)
+		_check(texts.find("W01") >= 0, "横幅文本含牌谱 id（%s）" % texts)
 
 	# —— 装备不足时不触发 ——
 	_equip([FIRE_SWORD])

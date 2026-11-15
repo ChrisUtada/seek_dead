@@ -340,6 +340,13 @@ func _apply_patterns(acc: Dictionary) -> void:
 				sig_txt = "·%s" % String(sig.name)
 			_ctrl.hud._log("🗂 武器牌谱 %s %s%s" % [
 				String(w_pick.id), String(w_pick.name), sig_txt])
+			# 中频高潮：频率固定后靠这一下撑分量，签名用金色区分
+			var icon := String(sig.icon) if sig != null else String(w_pick.icon)
+			var banner_color := Palette.POP_DAMAGE if sig == null else Palette.POP_GOLD
+			_ctrl.hud.show_pattern_banner("%s %s %s%s" % [
+				icon, String(w_pick.id), String(w_pick.name), sig_txt], banner_color)
+			_ctrl.hud._popup("%s%s" % [icon, String(w_pick.name)],
+				Palette.POP_DAMAGE, _ctrl.hud._enemy_sprite_anchor())
 		PATTERN_EFFECTS.apply(acc, sig if sig != null else w_pick, {"ctrl": _ctrl})
 
 	# —— 技能轨：恰好 1 技能 + 2 武器 ——
@@ -358,6 +365,13 @@ func _apply_patterns(acc: Dictionary) -> void:
 				acc["pattern_skill"] = String(t_pick.id)
 				if _ctrl.hud != null:
 					_ctrl.hud._log("🗂 技能术式 %s %s" % [String(t_pick.id), String(t_pick.name)])
+					var t_color: Color = Palette.POP_SHIELD
+					if String(t_pick.effect_id) == "recovery_support":
+						t_color = Palette.POP_HEAL
+					elif String(t_pick.effect_id) == "power_support":
+						t_color = Palette.POP_BUFF
+					_ctrl.hud.show_pattern_banner("%s %s %s" % [
+						String(t_pick.icon), String(t_pick.id), String(t_pick.name)], t_color)
 				PATTERN_EFFECTS.apply(acc, t_pick, {"ctrl": _ctrl})
 
 	# 牌谱新增的状态层在这里落地（_phase_defense 已经跑过，不能复用 status_stacks）

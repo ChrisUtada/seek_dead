@@ -1116,6 +1116,48 @@ func _popup(text: String, color: Color, anchor: Control) -> void:
 	popup_layer.popup(text, color, anchor)
 
 
+# 2026-11-15 转轮凑牌 Step 6：牌谱触发横幅。
+# W 定位为「中频高潮」——频率固定后，爽感只能靠那一下的分量，所以给它一个明确的视觉时刻：
+# 淡入 → 停留 0.55s → 淡出，同时保留日志与飘字。headless 下 is_inside_tree() 为 false 直接跳过。
+var _pattern_banner: Control
+func show_pattern_banner(text: String, color: Color) -> void:
+	if not is_inside_tree():
+		return
+	if _pattern_banner != null and is_instance_valid(_pattern_banner):
+		_pattern_banner.queue_free()
+	_pattern_banner = PanelContainer.new()
+	_pattern_banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(color.r, color.g, color.b, 0.92)
+	sb.set_corner_radius_all(6)
+	sb.content_margin_left = 18
+	sb.content_margin_right = 18
+	sb.content_margin_top = 8
+	sb.content_margin_bottom = 8
+	_pattern_banner.add_theme_stylebox_override("panel", sb)
+	var lbl := Label.new()
+	lbl.text = text
+	lbl.add_theme_font_size_override("font_size", 22)
+	lbl.add_theme_color_override("font_color", Color.WHITE)
+	lbl.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.55))
+	lbl.add_theme_constant_override("shadow_offset_x", 1)
+	lbl.add_theme_constant_override("shadow_offset_y", 2)
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_pattern_banner.add_child(lbl)
+	add_child(_pattern_banner)
+	_pattern_banner.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_pattern_banner.position = Vector2(0, size.y * 0.22)
+	_pattern_banner.modulate.a = 0.0
+	var tw := create_tween()
+	tw.tween_property(_pattern_banner, "modulate:a", 1.0, 0.14)
+	tw.tween_interval(0.55)
+	tw.tween_property(_pattern_banner, "modulate:a", 0.0, 0.30)
+	tw.tween_callback(func():
+		if _pattern_banner != null and is_instance_valid(_pattern_banner):
+			_pattern_banner.queue_free()
+			_pattern_banner = null)
+
+
 func _player_sprite_anchor() -> Control:
 	return player_sprite if player_sprite != null else player_panel
 
