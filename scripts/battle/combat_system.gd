@@ -313,6 +313,11 @@ func _apply_patterns(acc: Dictionary) -> void:
 	if eq != null:
 		acc["pattern_equipment"] = String(eq.id)
 		PATTERN_EFFECTS.apply(acc, eq, {"ctrl": _ctrl})
+	# 牌谱新增的状态层在这里落地（_phase_defense 已经跑过，不能复用 status_stacks）
+	for st in acc.get("pattern_status", {}).keys():
+		var n := int(acc["pattern_status"][st])
+		if n > 0:
+			_ctrl.enemy_status[st] = int(_ctrl.enemy_status.get(st, 0)) + n
 
 
 # —— 阶段 2：防御 / 增益 / 状态先落地 ——

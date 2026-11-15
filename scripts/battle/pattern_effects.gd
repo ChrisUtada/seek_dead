@@ -54,10 +54,7 @@ static func _flame_resonance(acc: Dictionary, pattern, _ctx: Dictionary) -> void
 		if acc.has("lines"):
 			acc["lines"].append("   🔥 烈焰共鸣：火系伤害 +%d%%（+%d）" % [
 				int(round((mult - 1.0) * 100.0)), int(round(bonus))])
-	var burn_extra := int(pattern.effect_params.get("burn_extra", 0))
-	if burn_extra > 0:
-		var stacks: Dictionary = acc["status_stacks"]
-		stacks["burn"] = int(stacks.get("burn", 0)) + burn_extra
+	_add_status(acc, "burn", int(pattern.effect_params.get("burn_extra", 0)))
 
 
 # S02：火、冰伤害的 20% 转穿透；燃烧与霜冻各 +1 层。
@@ -79,11 +76,8 @@ static func _frostfire_dual(acc: Dictionary, pattern, _ctx: Dictionary) -> void:
 		if acc.has("lines"):
 			acc["lines"].append("   ❄️ 冰火二重：火冰伤害 %d%% 转穿透（%d）" % [
 				int(round(ratio * 100.0)), int(round(moved))])
-	for entry in [["burn", "burn_extra"], ["frost", "frost_extra"]]:
-		var n := int(pattern.effect_params.get(entry[1], 0))
-		if n > 0:
-			var stacks: Dictionary = acc["status_stacks"]
-			stacks[entry[0]] = int(stacks.get(entry[0], 0)) + n
+	_add_status(acc, "burn", int(pattern.effect_params.get("burn_extra", 0)))
+	_add_status(acc, "frost", int(pattern.effect_params.get("frost_extra", 0)))
 
 
 # S03：追加一次穿透齐射 = 两件来源武器「当前基础攻击」之和 × 50%。
@@ -140,21 +134,50 @@ static func _arcane_loop(acc: Dictionary, pattern, ctx: Dictionary) -> void:
 			acc["lines"].append("   ✨ 奥术回路：充能 +%d" % charge)
 
 
-# S04：中毒 +2 层；立即造成一次相当于标准毒结算 50% 的伤害，不减少毒层。
-# TODO(Step 2 后续)：需要先确认「标准毒结算」的每层伤害口径（StatusSystem 里按层数与
-# 敌人最大 HP 计算），本函数暂按 effect_params 的 per_stack 读表，缺省则只叠层不结算。
+# S04：中毒 +2 层；立即造成一次相当于标准毒结算 50% 的伤害，不消耗毒层。
+#
+# 「标准毒结算」的真实口径在 CombatSystem.tick_status()：
+#     每跳 = 层数 × status_base("poison") × 元素倍率 × 状态护符乘区
+# 这里按同一公式算「这次如果 tick 会打多少」，取 50% 作为即时伤害。
+# 与 tick 的一处差别必须写明：tick 是 enemy_hp -= dot（完全裸伤害），而本效果走
+# acc["pierce"]，会照常吃本轮强袭/增益/虚弱乘区——它是一次「穿透伤害」，
+# 不是绕过结算的直扣。
 static func _venom_burst(acc: Dictionary, pattern, ctx: Dictionary) -> void:
 	var extra := int(pattern.effect_params.get("poison_extra", 2))
-	var stacks: Dictionary = acc["status_stacks"]
-	stacks["poison"] = int(stacks.get("poison", 0)) + extra
-	var per_stack := float(pattern.effect_params.get("per_stack_damage", 0.0))
+	_add_status(acc, "poison", extra)
 	var ctrl = ctx.get("ctrl")
-	if per_stack > 0.0:
-		var cur := 0
-		if ctrl != null:
-			cur = int(ctrl.enemy_status.get("poison", 0))
-		var dmg := float(cur) * per_stack * 0.5
-		if dmg > 0.0:
-			acc["dmg"] = float(acc["dmg"]) + dmg
-			if acc.has("lines"):
-				acc["lines"].append("   ☠ 毒爆连携：中毒 +%d 层，立即结算 %d（不消耗毒层）" % [extra, int(round(dmg))])
+	if ctrl == null or ctrl.status_system == null:
+		return
+	var base := float(ctrl.status_system.status_base("poison"))
+	if base <= 0.0:
+		return
+	# 结算时的层数 = 敌人现有毒层 + 本次新增（与 tick 读的 enemy_status 同源）
+	var cur := int(ctrl.enemy_status.get("poison", 0))
+	var total_stacks := cur + extra
+	if total_stacks <= 0:
+		return
+	var mult: float = ElementCounter.multiplier("poison", String(ctrl.enemy_element))
+	var boost := 1.0
+	if int(ctrl.deprived_level) < 1:
+		boost = float(ctrl.charm_status_boost)
+	var full := float(total_stacks) * base * mult * boost
+	var instant := full * float(pattern.effect_params.get("instant_ratio", 0.5))
+	if instant <= 0.0:
+		return
+	acc["pierce"] = float(acc["pierce"]) + instant
+	if acc.has("lines"):
+		acc["lines"].append("   ☠ 毒爆连携：中毒 +%d 层，立即结算 %d（毒 tick %d ×%d%%，不消耗毒层）" % [
+			extra, int(round(instant)), int(round(full)),
+			int(round(float(pattern.effect_params.get("instant_ratio", 0.5)) * 100.0))])
+
+
+# 牌谱新增的状态层：写入独立字段，由 CombatSystem 在牌谱结算后统一落地。
+# 不能直接写 acc["status_stacks"]——那一份在 _phase_defense 已经落地过了，
+# 牌谱阶段再改它不会进入 enemy_status（Step 2 曾因此静默失效）。
+static func _add_status(acc: Dictionary, status: String, n: int) -> void:
+	if n <= 0:
+		return
+	if not acc.has("pattern_status"):
+		acc["pattern_status"] = {}
+	var ps: Dictionary = acc["pattern_status"]
+	ps[status] = int(ps.get(status, 0)) + n

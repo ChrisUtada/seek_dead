@@ -78,6 +78,7 @@ func _run() -> void:
 
 	print("=== H 牌谱效果真实生效 ===")
 	_test_pattern_effects()
+	_test_s04_venom()
 
 	_finish()
 
@@ -280,7 +281,7 @@ func _test_no_extra_swap_state() -> void:
 
 # 当前实际条数。新增断言时同步上调：
 # 运行时错误会中断函数、静默少检查，只有条数守卫能发现（见 Step 0 记录的假绿问题）。
-const EXPECTED_CHECKS := 71
+const EXPECTED_CHECKS := 75
 
 
 func _ids(patterns: Array) -> Array:
@@ -513,7 +514,9 @@ func _test_pattern_effects() -> void:
 	_check(dmg_after > dmg_before, "S01 提高本轮伤害（%.1f → %.1f）" % [dmg_before, dmg_after])
 	_check(absf((dmg_after - dmg_before) - fire_before * 0.25) < 1.0,
 		"S01 加成 = 火系伤害 ×25%%（+%.1f，期望 %.1f）" % [dmg_after - dmg_before, fire_before * 0.25])
-	_check(int(acc["status_stacks"].get("burn", 0)) > 0, "S01 给燃烧加层（%d）" % int(acc["status_stacks"].get("burn", 0)))
+	# 牌谱新增的状态写在 pattern_status（status_stacks 在 _phase_defense 已落地过）
+	_check(int((acc.get("pattern_status", {}) as Dictionary).get("burn", 0)) > 0,
+		"S01 给燃烧加层（%d）" % int((acc.get("pattern_status", {}) as Dictionary).get("burn", 0)))
 
 	# —— 装备不足时不触发 ——
 	_equip([FIRE_SWORD])
@@ -551,6 +554,34 @@ func _test_pattern_effects() -> void:
 		_check(int(acc3["shield"]) == shield_before + 8,
 			"S05 额外 +8 护盾（%d → %d）" % [shield_before, int(acc3["shield"])])
 		_check(float(acc3["dmg"]) > dmg3_before, "S05 把护盾转成伤害（%.1f → %.1f）" % [dmg3_before, float(acc3["dmg"])])
+
+
+# H2：S04 毒爆连携——按 StatusSystem 真实口径算「毒 tick 的 50%」，且不消耗毒层。
+func _test_s04_venom() -> void:
+	var poison_weapon := "res://resources/weapon_templates/blight_spear.tres"
+	var poison_weapon2 := "res://resources/weapon_templates/corrosive_bow.tres"
+	var sym_venom := "res://resources/symbols/venom_bite.tres"
+	var sym_poison := "res://resources/symbols/poison.tres"
+	_equip([poison_weapon, poison_weapon2])
+	_duel.enemy_status.clear()
+	_duel.enemy_status["poison"] = 4          # 先有 4 层
+	var acc: Dictionary = _settle_cards([sym_venom, sym_poison, sym_venom],
+		["poison", "poison", "poison"], ["blight_spear", "blight_spear", "blight_spear"])
+	_duel.combat._apply_patterns(acc)
+	_check(String(acc.get("pattern_equipment", "")) == "S04",
+		"S04 被判定为生效牌谱（%s）" % String(acc.get("pattern_equipment", "")))
+	# 层数：+2
+	var ps: Dictionary = acc.get("pattern_status", {})
+	_check(int(ps.get("poison", 0)) == 2, "S04 中毒 +2 层（%d）" % int(ps.get("poison", 0)))
+	# 即时伤害 = (现有4 + 新增2) × base × 元素倍率 × 护符 × 50%
+	var base := float(_duel.status_system.status_base("poison"))
+	var mult: float = ElementCounter.multiplier("poison", String(_duel.enemy_element))
+	var expect := 6.0 * base * mult * 0.5
+	_check(float(acc["pierce"]) >= expect - 0.5,
+		"S04 立即结算毒 tick 的 50%%（穿透 %.1f，期望 ≥%.1f）" % [float(acc["pierce"]), expect])
+	# 不消耗毒层：+2 落地后是 6，即时结算没有再扣层（若是「消耗型」会小于 6）
+	_check(int(_duel.enemy_status.get("poison", 0)) == 6,
+		"S04 中毒 +2 落地且即时结算不消耗层数（4 → %d，期望 6）" % int(_duel.enemy_status.get("poison", 0)))
 
 
 func _finish() -> void:
