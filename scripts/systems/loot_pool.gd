@@ -172,8 +172,23 @@ func roll_n(source: String, act: int, n: int, opts: Dictionary = {}, forced_qual
 	result["quality"] = quality
 	var tier := _tier(pool["items"], quality)
 	if tier.is_empty():
-		result["reason"] = "empty_tier"
-		return result
+		# 与 roll() 同口径：只在「当前合法池里真实存在、且来源权重大于 0」的品质中
+		# 按原权重重新归一化抽取。主题池缺某一档时不能再让整组武器消失（P0）。
+		# forced_quality 由调用方指定，保持原样失败，不静默改层。
+		if forced_quality != "":
+			result["reason"] = "empty_tier"
+			return result
+		var avail := _available_weights(pool["items"], source, act)
+		var alt := _roll_quality_from(avail, _rng)
+		if alt == "":
+			result["reason"] = "empty_tier"
+			return result
+		quality = alt
+		result["quality"] = quality
+		tier = _tier(pool["items"], quality)
+		if tier.is_empty():
+			result["reason"] = "empty_tier"
+			return result
 	var picked := _sample(tier, mini(n, tier.size()))
 	result["ok"] = true
 	result["paths"] = picked
