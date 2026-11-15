@@ -117,11 +117,31 @@ func find_signature(base_id: String, loadout: Array, cards: Array) -> Variant:
 			continue
 		if best == null:
 			best = p
-		elif int(p.priority) > int(best.priority):
-			best = p
-		elif int(p.priority) == int(best.priority) and String(p.id) < String(best.id):
+			continue
+		if int(p.priority) != int(best.priority):
+			if int(p.priority) > int(best.priority):
+				best = p
+			continue
+		# 同优先级：先比签名层级（epic > rare > 其它），再比 id 保证确定性。
+		# 方案「传说品质不自动获得更高优先级」指的是不能凭品质压低别人的 priority，
+		# 而同 priority 的 tiebreak 用层级是合理的——否则两把武器都带签名时，
+		# 谁的 id 字典序靠前纯属偶然。
+		var rp := _tier_rank(p)
+		var rb := _tier_rank(best)
+		if rp != rb:
+			if rp > rb:
+				best = p
+		elif String(p.id) < String(best.id):
 			best = p
 	return best
+
+
+static func _tier_rank(p) -> int:
+	match String(p.pattern_tier):
+		"mastery": return 3
+		"epic_signature": return 2
+		"rare_signature": return 1
+	return 0
 
 
 # 连携卷轴的候选：当前可用、可被补牌凑成、且尚未命中的装备牌谱。

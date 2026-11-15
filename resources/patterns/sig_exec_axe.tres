@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="PatternData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/pattern_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "SIG_W06_EXECAXE"
+name = "无锋磨砺·处刑重斩"
+icon = "⚔"
+desc = "处刑巨斧签名：无元素伤害 +35%（单符号无元素武器的成长终点）"
+kind = "equipment"
+track = "signature"
+pattern_tier = "rare_signature"
+base_pattern_id = "W06"
+priority = 20
+key_paths = Array[String](["res://resources/weapon_templates/executioner_axe.tres"])
+unlock_paths = Array[String](["res://resources/weapon_templates/executioner_axe.tres"])
+unlock_tags = Array[String]([])
+unlock_count = 0
+match_rule = {"all": [{"kind": "damage", "source_element": "none"}, {"kind": "damage", "source_element": "none"}, {"source_kind": "weapon"}]}
+effect_id = "plain_grind"
+effect_params = {"damage_mult": 1.35, "min_sources": 2}
+assist_allowed = false
+sequence_id = ""

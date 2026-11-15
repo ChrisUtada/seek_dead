@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="PatternData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/pattern_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "SIG_W05_ECLIPSE"
+name = "暗影处刑·蚀日"
+icon = "🌘"
+desc = "蚀日之刃签名：转穿透 35%，处决线提高到 60%（单符号暗武器的成长终点）"
+kind = "equipment"
+track = "signature"
+pattern_tier = "epic_signature"
+base_pattern_id = "W05"
+priority = 20
+key_paths = Array[String](["res://resources/weapon_templates/eclipse_blade.tres"])
+unlock_paths = Array[String](["res://resources/weapon_templates/eclipse_blade.tres"])
+unlock_tags = Array[String]([])
+unlock_count = 0
+match_rule = {"all": [{"kind": "damage", "source_element": "dark"}, {"kind": "damage", "source_element": "dark"}, {"source_kind": "weapon"}]}
+effect_id = "shadow_execution"
+effect_params = {"pierce_ratio": 0.35, "exec_threshold": 0.6, "exec_ratio": 0.6}
+assist_allowed = false
+sequence_id = ""

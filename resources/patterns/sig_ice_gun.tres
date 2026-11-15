@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="PatternData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/pattern_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "SIG_W02_ICEGUN"
+name = "霜封连携·稳态霜冻"
+icon = "❄"
+desc = "冰霜枪签名：霜冻 +3，且阈值降到 3 层就更早削弱敌方攻击（×0.85）"
+kind = "equipment"
+track = "signature"
+pattern_tier = "rare_signature"
+base_pattern_id = "W02"
+priority = 20
+key_paths = Array[String](["res://resources/weapon_templates/ice_gun.tres"])
+unlock_paths = Array[String](["res://resources/weapon_templates/ice_gun.tres"])
+unlock_tags = Array[String]([])
+unlock_count = 0
+match_rule = {"all": [{"sym": "res://resources/symbols/frost.tres"}, {"kind": "damage", "source_element": "ice"}, {"source_kind": "weapon"}]}
+effect_id = "frost_seal"
+effect_params = {"frost_extra": 3, "threshold": 3, "enemy_atk_mult": 0.85}
+assist_allowed = false
+sequence_id = ""

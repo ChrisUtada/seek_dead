@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="PatternData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/pattern_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "SIG_W01_EMBER"
+name = "烈焰共鸣·余烬蓄燃"
+icon = "🔥"
+desc = "余烬长剑签名：火伤 +35%，燃烧额外 +2 层（不稳定单件解锁——签名只改写效果，不改基础解锁）"
+kind = "equipment"
+track = "signature"
+pattern_tier = "rare_signature"
+base_pattern_id = "W01"
+priority = 20
+key_paths = Array[String](["res://resources/weapon_templates/ember_sword.tres"])
+unlock_paths = Array[String](["res://resources/weapon_templates/ember_sword.tres"])
+unlock_tags = Array[String]([])
+unlock_count = 0
+match_rule = {"all": [{"sym": "res://resources/symbols/burn.tres"}, {"kind": "damage", "source_element": "fire"}, {"source_kind": "weapon"}]}
+effect_id = "flame_resonance"
+effect_params = {"damage_mult": 1.35, "burn_extra": 2}
+assist_allowed = false
+sequence_id = ""

@@ -76,6 +76,9 @@ func _run() -> void:
 	print("=== G S01–S06 资源与解锁条件 ===")
 	_test_equipment_patterns()
 
+	print("=== M 六条参数签名 ===")
+	_test_param_signatures()
+
 	print("=== L 签名样板 ===")
 	_test_signatures()
 
@@ -614,10 +617,107 @@ func _test_s04_venom() -> void:
 		"S04 中毒 +2 落地且即时结算不消耗层数（4 → %d，期望 6）" % int(_duel.enemy_status.get("poison", 0)))
 
 
+# M：六条纯参数签名——效果值必须真的被改写，且两把武器各带签名时有确定的裁决。
+func _test_param_signatures() -> void:
+	var W := "res://resources/weapon_templates/"
+	var SYM_SHADOW := "res://resources/symbols/shadow_slash.tres"
+	# 先确认这些签名真的被注册（tres 解析失败会静默跳过）
+	var sig_ids: Array = []
+	for pd in _duel._pattern_system.by_track("signature"):
+		sig_ids.append(String(pd.id))
+	_check(sig_ids.size() >= 11, "签名资源全部注册（%d 个：%s）" % [sig_ids.size(), str(sig_ids)])
+	# —— 余烬长剑 × W01：火伤 25% → 35%，燃烧 +2 ——
+	_equip([W+"ember_sword.tres", W+"fire_sword.tres"])
+	var a: Dictionary = _settle_cards([SYM_BURN, SYM_FIRE_SLASH, SYM_FIRE_SLASH],
+		["fire", "none", "none"], ["ember_sword", "ember_sword", "fire_sword"])
+	var fire_a: float = float((a["dmg_by_elem"] as Dictionary).get("fire", 0.0))
+	var d_a: float = float(a["dmg"]) + float(a["special"])
+	_duel.combat._apply_patterns(a)
+	_check(String(a.get("pattern_signature", "")) == "SIG_W01_EMBER",
+		"余烬长剑签名生效（%s）" % String(a.get("pattern_signature", "")))
+	_check(absf(((float(a["dmg"]) + float(a["special"])) - d_a) - fire_a * 0.35) < 1.0,
+		"余烬长剑把火伤加成提到 +35%%")
+	_check(int((a.get("pattern_status", {}) as Dictionary).get("burn", 0)) == 2, "燃烧 +2")
+
+	# —— 冰霜枪 × W02：霜冻 +3，阈值 3 ——
+	_equip([W+"ice_gun.tres", W+"ice_staff.tres"])
+	_duel.enemy_status.clear()
+	_duel.enemy_status["frost"] = 0
+	_duel._pattern_enemy_atk_mult = 1.0
+	var b: Dictionary = _settle_cards(["res://resources/symbols/frost.tres", "res://resources/symbols/ice_crystal.tres", "res://resources/symbols/ice_crystal.tres"],
+		["ice", "ice", "ice"], ["ice_gun", "ice_gun", "ice_staff"])
+	_duel.combat._apply_patterns(b)
+	_check(String(b.get("pattern_signature", "")) == "SIG_W02_ICEGUN",
+		"冰霜枪签名生效（%s）" % String(b.get("pattern_signature", "")))
+	_check(int((b.get("pattern_status", {}) as Dictionary).get("frost", 0)) == 3, "霜冻 +3")
+	_check(is_equal_approx(float(_duel._pattern_enemy_atk_mult), 0.85), "冰霜枪阈值 3 层即削弱到 ×0.85")
+
+	# —— 冰川巨剑 × W02：×0.6 ——
+	_equip([W+"glacier_greatsword.tres", W+"ice_staff.tres"])
+	_duel.enemy_status.clear()
+	_duel.enemy_status["frost"] = 4
+	_duel._pattern_enemy_atk_mult = 1.0
+	var c: Dictionary = _settle_cards(["res://resources/symbols/frost.tres", "res://resources/symbols/ice_crystal.tres", "res://resources/symbols/ice_crystal.tres"],
+		["ice", "ice", "ice"], ["glacier_greatsword", "glacier_greatsword", "ice_staff"])
+	_duel.combat._apply_patterns(c)
+	_check(String(c.get("pattern_signature", "")) == "SIG_W02_GLACIER",
+		"冰川巨剑签名生效（%s）" % String(c.get("pattern_signature", "")))
+	_check(is_equal_approx(float(_duel._pattern_enemy_atk_mult), 0.6), "冰川巨剑把敌方攻击压到 ×0.6")
+
+	# —— 瘟疫收割者 × W03：中毒 +3、即时 60% ——
+	_equip([W+"plague_reaper.tres", W+"corrosive_bow.tres"])
+	_duel.enemy_status.clear()
+	_duel.enemy_status["poison"] = 4
+	var d: Dictionary = _settle_cards(["res://resources/symbols/venom_bite.tres", "res://resources/symbols/poison.tres", "res://resources/symbols/venom_bite.tres"],
+		["poison", "poison", "poison"], ["plague_reaper", "plague_reaper", "corrosive_bow"])
+	_duel.combat._apply_patterns(d)
+	_check(String(d.get("pattern_signature", "")) == "SIG_W03_REAPER",
+		"瘟疫收割者签名生效（%s）" % String(d.get("pattern_signature", "")))
+	_check(int((d.get("pattern_status", {}) as Dictionary).get("poison", 0)) == 3, "中毒 +3")
+
+	# —— 蚀日之刃 × W05：35% / 处决线 60% ——
+	_equip([W+"eclipse_blade.tres", W+"night_scythe.tres"])
+	_duel.enemy_hp = 800          # 80%：高于签名的处决线 60% → 走 pierce_ratio 0.35
+	_duel.enemy_hp_max = 1000
+	var e: Dictionary = _settle_cards(["res://resources/symbols/shadow_slash.tres", "res://resources/symbols/shadow_slash.tres", "res://resources/symbols/shadow_slash.tres"],
+		["dark", "dark", "dark"], ["eclipse_blade", "night_scythe", "eclipse_blade"])
+	var bucket_e: float = float((e["dmg_bucket_by_elem"] as Dictionary).get("dark", 0.0))
+	var dmg_e: float = float(e["dmg"])
+	_duel.combat._apply_patterns(e)
+	# 两把武器各带签名（蚀日之刃 epic / 夜幕镰刀 rare），同 prio 20 → 按 id 升序 ECLIPSE 胜，裁决必须确定
+	_check(String(e.get("pattern_signature", "")) == "SIG_W05_ECLIPSE",
+		"两把暗武器都有签名时裁决确定（%s）" % String(e.get("pattern_signature", "")))
+	_check(absf((dmg_e - float(e["dmg"])) - bucket_e * 0.35) < 1.0,
+		"蚀日之刃常态转移 35%" )
+	# 处决线以下（签名把阈值提到 60%）→ 走 exec_ratio 0.6
+	_duel.enemy_hp = 500
+	var e2: Dictionary = _settle_cards([SYM_SHADOW, SYM_SHADOW, SYM_SHADOW],
+		["dark", "dark", "dark"], ["eclipse_blade", "night_scythe", "eclipse_blade"])
+	var bucket_e2: float = float((e2["dmg_bucket_by_elem"] as Dictionary).get("dark", 0.0))
+	var dmg_e2: float = float(e2["dmg"])
+	_duel.combat._apply_patterns(e2)
+	_check(absf((dmg_e2 - float(e2["dmg"])) - bucket_e2 * 0.6) < 1.0,
+		"蚀日之刃处决线（HP 50%% < 阈值 60%%）转移 60%%")
+
+	# —— 处刑巨斧 × W06：+35% ——
+	_equip([W+"executioner_axe.tres", W+"iron_sword.tres"])
+	_duel.enemy_hp = 1000
+	_duel.enemy_hp_max = 1000
+	var f: Dictionary = _settle_cards([SYM_FIRE_SLASH, SYM_FIRE_SLASH, SYM_FIRE_SLASH],
+		["none", "none", "none"], ["executioner_axe", "iron_sword", "executioner_axe"])
+	var none_f: float = float((f["dmg_by_elem"] as Dictionary).get("none", 0.0))
+	var dmg_f: float = float(f["dmg"])
+	_duel.combat._apply_patterns(f)
+	_check(String(f.get("pattern_signature", "")) == "SIG_W06_EXECAXE",
+		"处刑巨斧签名生效（%s）" % String(f.get("pattern_signature", "")))
+	_check(absf((float(f["dmg"]) - dmg_f) - none_f * 0.35) < 1.0, "处刑巨斧无元素伤害 +35%")
+
+
 # L：四条签名样板——绝对零度 × W02、火焰法杖 × W01、卸下即失效、不要求第三把武器。
 func _test_signatures() -> void:
 	var AZ := "res://resources/weapon_templates/absolute_zero.tres"
 	var ICE_GUN := "res://resources/weapon_templates/ice_gun.tres"
+	var FROST_BLADE := "res://resources/weapon_templates/frost_blade.tres"
 	var ICE_STAFF := "res://resources/weapon_templates/ice_staff.tres"
 	var FLAME_STAFF := "res://resources/weapon_templates/flame_staff.tres"
 	var SYM_FROST := "res://resources/symbols/frost.tres"
@@ -749,6 +849,7 @@ func _test_t01_t03() -> void:
 # J：W02 霜封 / W05 暗影处刑 / W06 无锋磨砺 的效果与结算口径。
 func _test_w02_w05_w06() -> void:
 	var ICE_GUN := "res://resources/weapon_templates/ice_gun.tres"
+	var FROST_BLADE := "res://resources/weapon_templates/frost_blade.tres"
 	var ICE_STAFF := "res://resources/weapon_templates/ice_staff.tres"
 	var SYM_FROST := "res://resources/symbols/frost.tres"
 	var SYM_ICE := "res://resources/symbols/ice_crystal.tres"
@@ -758,11 +859,12 @@ func _test_w02_w05_w06() -> void:
 	var IRON := "res://resources/weapon_templates/iron_sword.tres"
 
 	# —— W02 霜封：霜冻 +2；已有 ≥4 层时敌方攻击 ×0.8 ——
-	_equip([ICE_GUN, ICE_STAFF])
+	# 用一对「没有签名」的冰武器，测 W02 的基础数值（ice_gun 已有签名，会盖掉基础值）
+	_equip([ICE_STAFF, FROST_BLADE])
 	_duel.enemy_status.clear()
 	_duel.enemy_status["frost"] = 0
 	var a2: Dictionary = _settle_cards([SYM_FROST, SYM_ICE, SYM_ICE],
-		["ice", "ice", "ice"], ["ice_gun", "ice_gun", "ice_staff"])
+		["ice", "ice", "ice"], ["ice_staff", "ice_staff", "frost_blade"])
 	_duel.combat._apply_patterns(a2)
 	_check(String(a2.get("pattern_equipment", "")) == "W02",
 		"W02 被判定生效（%s）" % String(a2.get("pattern_equipment", "")))
@@ -774,7 +876,7 @@ func _test_w02_w05_w06() -> void:
 	_duel.enemy_status["frost"] = 2
 	_duel._pattern_enemy_atk_mult = 1.0
 	var a2b: Dictionary = _settle_cards([SYM_FROST, SYM_ICE, SYM_ICE],
-		["ice", "ice", "ice"], ["ice_gun", "ice_gun", "ice_staff"])
+		["ice", "ice", "ice"], ["ice_staff", "ice_staff", "frost_blade"])
 	_duel.combat._apply_patterns(a2b)
 	_check(is_equal_approx(float(_duel._pattern_enemy_atk_mult), 0.8),
 		"W02 达到 4 层时敌方攻击 ×0.8（%.2f）" % float(_duel._pattern_enemy_atk_mult))
@@ -783,7 +885,7 @@ func _test_w02_w05_w06() -> void:
 	_equip([NIGHT, ABYSS])
 	_duel.enemy_hp = 1000
 	_duel.enemy_hp_max = 1000
-	var a5: Dictionary = _settle_cards([SYM_SHADOW, SYM_SHADOW, SYM_SHADOW],
+	var a5: Dictionary = _settle_cards(["res://resources/symbols/shadow_slash.tres", "res://resources/symbols/shadow_slash.tres", "res://resources/symbols/shadow_slash.tres"],
 		["dark", "dark", "dark"], ["night_scythe", "abyss_scythe", "night_scythe"])
 	var dark_bucket: float = float((a5["dmg_bucket_by_elem"] as Dictionary).get("dark", 0.0))
 	var dmg_before: float = float(a5["dmg"])
@@ -799,7 +901,7 @@ func _test_w02_w05_w06() -> void:
 	# HP 低于 35% → 35%
 	_duel.enemy_hp = 100
 	_duel.enemy_hp_max = 1000
-	var a5b: Dictionary = _settle_cards([SYM_SHADOW, SYM_SHADOW, SYM_SHADOW],
+	var a5b: Dictionary = _settle_cards(["res://resources/symbols/shadow_slash.tres", "res://resources/symbols/shadow_slash.tres", "res://resources/symbols/shadow_slash.tres"],
 		["dark", "dark", "dark"], ["night_scythe", "abyss_scythe", "night_scythe"])
 	var bucket_b: float = float((a5b["dmg_bucket_by_elem"] as Dictionary).get("dark", 0.0))
 	var dmg_b_before: float = float(a5b["dmg"])
@@ -812,7 +914,7 @@ func _test_w02_w05_w06() -> void:
 		"res://resources/weapon_templates/gloom_saber.tres"])
 	_duel.enemy_hp = 1000
 	_duel.enemy_hp_max = 1000
-	var a5c: Dictionary = _settle_cards([SYM_SHADOW, SYM_SHADOW, SYM_SHADOW],
+	var a5c: Dictionary = _settle_cards(["res://resources/symbols/shadow_slash.tres", "res://resources/symbols/shadow_slash.tres", "res://resources/symbols/shadow_slash.tres"],
 		["dark", "dark", "dark"], ["abyss_scythe", "gloom_saber", "abyss_scythe"])
 	var bucket_c: float = float((a5c["dmg_bucket_by_elem"] as Dictionary).get("dark", 0.0))
 	var dmg_c: float = float(a5c["dmg"])
