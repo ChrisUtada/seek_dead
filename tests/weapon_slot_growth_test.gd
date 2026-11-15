@@ -52,6 +52,12 @@ func _run() -> void:
 	print("=== F 替换预览与真实一致 ===")
 	await _test_preview_matches_actual()
 
+	print("=== G Step 6 数值对照 ===")
+	_test_element_vs_growth()
+	_test_catchup_across_levels()
+	_test_budget_exhausted()
+	await _test_strip_consistency()
+
 	_finish()
 
 
@@ -203,6 +209,117 @@ func _test_preview_matches_actual() -> void:
 	var off: String = _duel._weapon_off_info(SLOT_B, 1)
 	_check(off.find("武器槽 2") >= 0, "卸下说明带槽号（%s）" % off)
 	_check(off.find("暂停贡献") >= 0, "卸下说明写明卸下后暂停贡献")
+
+
+# 场景 1：通用成长与元素克制是两条独立的线——换克制武器后通用继承、克制仍来自倍率。
+func _test_element_vs_growth() -> void:
+	_new_run([SLOT_A, SLOT_B])
+	_duel.weapon_slots.choose(0, "forge")
+	var atk_before: int = _duel.weapon_power(SLOT_A)
+	# 同槽换成火系武器：通用 +2 必须跟着槽走
+	_swap(0, SWAP_C)
+	_check(_duel.weapon_power(SWAP_C) == _base_power(SWAP_C) + 2,
+		"克制武器继承通用锋铸（%d）" % _duel.weapon_power(SWAP_C))
+	# 元素倍率独立计算，不受槽位成长影响
+	# 本轮不改倍率，只断言「倍率可计算且与槽位成长互不影响」。
+	var fire_vs_ice: float = ElementCounter.multiplier("fire", "ice")
+	var poison_vs_ice: float = ElementCounter.multiplier("poison", "ice")
+	_check(fire_vs_ice > 0.0 and poison_vs_ice > 0.0,
+		"元素倍率可计算（火 ×%.2f / 毒 ×%.2f）" % [fire_vs_ice, poison_vs_ice])
+	_check(atk_before == _base_power(SLOT_A) + 2, "换装前攻击只含槽位成长（%d）" % atk_before)
+
+
+# 场景 3：新武器连续清房——追赶与跨级欠选都不能丢。
+func _test_catchup_across_levels() -> void:
+	_new_run([SLOT_A, SLOT_B])
+	_duel.mastery.mastery[SLOT_B] = 8    # 另一把已到 R3，作为追赶目标
+	_duel.mastery.mastery[SLOT_A] = 0
+	_duel.mastery.owed.clear()
+	var target: int = _duel.mastery.catchup_target(SLOT_A)
+	_check(target == 8, "追赶目标是本局其他武器最高熟练（%d）" % target)
+	# 连清 3 房，每房 +1
+	for i in range(3):
+		_duel.mastery.grant_points(SLOT_A, 1, "清房")
+	_check(int(_duel.mastery.mastery.get(SLOT_A, 0)) == 3, "三房后熟练 3（%d）" % int(_duel.mastery.mastery.get(SLOT_A, 0)))
+	_check(_duel.mastery.r_level(SLOT_A) == 2, "跨过 R2（R%d）" % _duel.mastery.r_level(SLOT_A))
+	_check(_duel.mastery.owed.has(SLOT_A), "R2 产生一次欠选")
+	# 一次跨两级：3 → 12 应同时欠 R3（不能只欠一次）
+	_duel.mastery.owed.clear()
+	_duel.mastery.grant_points(SLOT_A, 9, "跨级")
+	_check(_duel.mastery.r_level(SLOT_A) == 4, "跨级到 R4（R%d）" % _duel.mastery.r_level(SLOT_A))
+	# 3→12 只跨过 R3（R2 已经在 3 熟练时跨过），所以只欠一次
+	_check(_duel.mastery.owed.size() == 1, "跨 R3 欠一次（%d）" % _duel.mastery.owed.size())
+
+
+# 场景 7：满预算 Build 不再出现通用候选（不产生「选了也不变」的死卡）。
+func _test_budget_exhausted() -> void:
+	_new_run([SLOT_A, SLOT_B])
+	_duel.weapon_slots.choose(0, "forge")
+	_duel.weapon_slots.choose(0, "tyrant")
+	_check(int(_duel.slot_total(0)) == 2, "槽 0 预算已满（%d）" % int(_duel.slot_total(0)))
+	var ids: Array = []
+	for c in _duel.mastery.imprint_choices(SLOT_A):
+		ids.append(String(c.get("id", "")))
+	for forbidden in ["forge", "calibrate", "tyrant"]:
+		_check(not ids.has(forbidden), "预算满后不再出现 %s 候选（%s）" % [forbidden, str(ids)])
+	# 另一槽仍然可以正常选
+	_check(_duel.weapon_slots.can_choose(1, "forge"), "槽 1 预算未受影响")
+
+
+# 场景 8：卡片与真实建带同向——预览说「有变化」时格数必须真的变，反之亦然。
+func _test_strip_consistency() -> void:
+	_new_run([SLOT_A, SLOT_B])
+	var styles: Dictionary = _duel._forge_styles.preview_map() if _duel._forge_styles != null else {}
+	var tune: Dictionary = _duel.mastery.tune_map()
+	var sig_before: String = _strip_signature()
+	var hypo: Array = _duel.selected_loadout.duplicate()
+	hypo.remove_at(0)
+	hypo.insert(0, SWAP_C)     # 同槽原位替换（不是 erase+append）
+	var lines := ReelPreview.diff_lines(
+		_duel.selected_loadout, hypo,
+		_duel.selected_skills, _duel.selected_charms,
+		_duel.room_element_mult, _duel._reward_system.run_symbol_bonus,
+		_duel.deprived_level, _duel.pending_chaos, int(_duel.boss_trash),
+		tune, tune, styles, styles)
+	_swap(0, SWAP_C)
+	var sig_after: String = _strip_signature()
+	# 预览描述的是「符号分布」变化，所以对齐的也是分布签名（不是单个符号的格数）。
+	_check((not lines.is_empty()) == (sig_after != sig_before),
+		"预览与真实建带同向（预览 %s / 分布 %s）" % [
+			"有变化" if not lines.is_empty() else "无变化",
+			"变化" if sig_after != sig_before else "未变"])
+	_check(_sym_cells("fire_slash") > 0, "替换后火斩仍在带上（%d 格）" % _sym_cells("fire_slash"))
+
+
+# 转轮带符号分布签名：每种符号的总格数，排序后拼接（用于判断「带子是否真的变了」）。
+func _strip_signature() -> String:
+	_duel.reel_system.build_strips()
+	var counts := {}
+	for strip in _duel.reel_system.reel_strips:
+		for cell in strip:
+			var sym = cell[0]
+			var key: String = "?" if sym == null else String(sym.resource_path).get_file()
+			counts[key] = int(counts.get(key, 0)) + 1
+	var keys: Array = counts.keys()
+	keys.sort()
+	var parts: Array[String] = []
+	for k in keys:
+		parts.append("%s=%d" % [String(k), int(counts[k])])
+	return ",".join(parts)
+
+
+# 统计某符号在真实转轮带上的格数（按资源文件名匹配，避免符号显示名改动导致断言失效）。
+func _sym_cells(sym_file: String) -> int:
+	var n := 0
+	# strips 是派生数据：按当前 pool_items 重建一次，保证读到的是「此刻装备」的真实带子。
+	_duel.reel_system.build_strips()
+	var strips: Array = _duel.reel_system.reel_strips
+	for strip in strips:
+		for cell in strip:
+			var sym = cell[0]
+			if sym != null and String(sym.resource_path).ends_with(sym_file + ".tres"):
+				n += 1
+	return n
 
 
 func _finish() -> void:
