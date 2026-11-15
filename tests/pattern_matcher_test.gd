@@ -30,6 +30,10 @@ const SYM_BURN := "res://resources/symbols/burn.tres"
 const SYM_HOLY_SLASH := "res://resources/symbols/holy_slash.tres"
 const SYM_ICE_CRYSTAL := "res://resources/symbols/ice_crystal.tres"
 
+const MATCHER := preload("res://scripts/battle/pattern_matcher.gd")
+const PATTERN_SYSTEM := preload("res://scripts/battle/pattern_system.gd")
+const PATTERN_DATA := preload("res://scripts/battle/pattern_data.gd")
+
 var _checks := 0
 var _fails := 0
 var _duel
@@ -59,6 +63,18 @@ func _run() -> void:
 
 	print("=== C 守护：结算入口的既有语义 ===")
 	_test_no_extra_swap_state()
+
+	print("=== D Matcher 与现有结算一致 ===")
+	_test_matcher_matches_settle()
+
+	print("=== E Matcher 边界 ===")
+	_test_matcher_edges()
+
+	print("=== F 牌谱优先级 ===")
+	_test_pattern_priority()
+
+	print("=== G S01–S03 资源与解锁条件 ===")
+	_test_equipment_patterns()
 
 	_finish()
 
@@ -242,7 +258,222 @@ func _test_no_extra_swap_state() -> void:
 	_check(_duel.combat.has_method("evaluate"), "结算入口是 CombatSystem.evaluate")
 
 
-const EXPECTED_CHECKS := 22
+# 当前实际条数。新增断言时同步上调：
+# 运行时错误会中断函数、静默少检查，只有条数守卫能发现（见 Step 0 记录的假绿问题）。
+const EXPECTED_CHECKS := 63
+
+
+func _ids(patterns: Array) -> Array:
+	var out: Array = []
+	for p in patterns:
+		out.append(String(p.get("id", "")))
+	return out
+
+
+# D：同一手牌，Matcher 的分类必须与现有结算一致（Step 1 的核心验收）。
+func _test_matcher_matches_settle() -> void:
+	# ① 同源三连
+	_equip([FIRE_SWORD])
+	var acc: Dictionary = _settle(SYM_FIRE_SLASH, "fire", ["fire_sword"])
+	var m: Dictionary = MATCHER.match(MATCHER.cards_from_grid(_duel))
+	_check(String(m["triple_kind"]) == "source",
+		"同源三连：Matcher 判 source（实际 %s）" % String(m["triple_kind"]))
+	_check(_ids(m["patterns"]).has("G01") and _ids(m["patterns"]).has("G02"),
+		"同源同时命中 G01（同源刻）与 G02（同族刻）")
+	_check(bool(acc["triple"]) == (String(m["triple_kind"]) != ""), "triple 标记与 Matcher 一致")
+
+	# ② 同族三连（三来源各一格）
+	_equip([FIRE_SWORD, EMBER_SWORD])
+	var acc2: Dictionary = _settle(SYM_FIRE_SLASH, "fire", ["fire_sword", "ember_sword", "flame_staff"])
+	var m2: Dictionary = MATCHER.match(MATCHER.cards_from_grid(_duel))
+	_check(String(m2["triple_kind"]) == "family",
+		"同族三连：Matcher 判 family（实际 %s，有效 %d，牌型 %s）" % [
+			String(m2["triple_kind"]), int(m2["valid_count"]), str(_ids(m2["patterns"]))])
+	_check(not _ids(m2["patterns"]).has("G01"), "多来源不命中 G01")
+	_check(bool(acc2["triple"]), "现有结算也把同族算作 triple")
+
+	# ③ 清一色（三个不同符号同元素）
+	_equip([FIRE_SWORD])
+	var syms := [SYM_FIRE_SLASH, SYM_BURN, SYM_FIRE_SLASH]
+	for r in 3:
+		_duel.grid[r][0] = load(String(syms[r]))
+		_duel.grid_elem[r][0] = "fire"
+		_duel.reel_system._set_grid_src(r, 0, "fire_sword" if r != 1 else "")
+	_duel.enemy_element = "none"
+	_duel.charge_points = 0
+	var acc3: Dictionary = _duel.combat._new_acc()
+	_duel.combat._reset_turn_state()
+	acc3["counts"] = _duel.combat._phase_symbols(acc3)
+	var m3: Dictionary = MATCHER.match(MATCHER.cards_from_grid(_duel))
+	_check(_ids(m3["patterns"]).has("G03") == bool(acc3["element_resonance"]),
+		"G03（清一色）与现有 element_resonance 一致")
+	_check(String(m3["triple_kind"]) == "", "不同符号不构成三连（实际 %s）" % String(m3["triple_kind"]))
+
+
+# E：无序 / 重复牌 / 冻结列 / MISS / 无元素 / 来源去重
+func _test_matcher_edges() -> void:
+	var sym_fire = load(SYM_FIRE_SLASH)
+	var sym_burn = load(SYM_BURN)
+	var trash = DuelController.TRASH_SYMBOL
+
+	# 无序：三种排列结果一致
+	var base := [
+		{"sym": sym_fire, "element": "fire", "source": "w", "valid": true},
+		{"sym": sym_fire, "element": "fire", "source": "w", "valid": true},
+		{"sym": sym_fire, "element": "fire", "source": "w", "valid": true},
+	]
+	var p1: Dictionary = MATCHER.match(base)
+	var p2: Dictionary = MATCHER.match([base[2], base[0], base[1]])
+	var p3: Dictionary = MATCHER.match([base[1], base[2], base[0]])
+	_check(p1["triple_kind"] == p2["triple_kind"] and p1["triple_kind"] == p3["triple_kind"],
+		"无序：三种排列判定一致")
+	_check(_ids(p1["patterns"]).size() == _ids(p2["patterns"]).size(),
+		"无序：命中牌型数量一致")
+
+	# 重复牌（只有 2 张同族）：不算三连，但两张仍然有效
+	var dup := [
+		{"sym": sym_fire, "element": "fire", "source": "w", "valid": true},
+		{"sym": sym_fire, "element": "fire", "source": "w", "valid": true},
+		{"sym": sym_burn, "element": "fire", "source": "w", "valid": true},
+	]
+	var d: Dictionary = MATCHER.match(dup)
+	_check(d["triple_kind"] == "", "两张同族不算三连")
+	_check(d["valid_count"] == 3, "三张都算有效牌（%d）" % int(d["valid_count"]))
+	_check(_ids(d["patterns"]).has("G03"), "同元素仍命中清一色")
+
+	# 冻结列：那一格不参与，三格变两格 → 没有三连
+	var frozen := [
+		{"sym": sym_fire, "element": "fire", "source": "w", "valid": false},
+		{"sym": sym_fire, "element": "fire", "source": "w", "valid": true},
+		{"sym": sym_fire, "element": "fire", "source": "w", "valid": true},
+	]
+	var f: Dictionary = MATCHER.match(frozen)
+	_check(f["valid_count"] == 2, "冻结列算无效牌（有效 %d）" % int(f["valid_count"]))
+	_check(f["triple_kind"] == "", "冻结列后不构成三连")
+	_check(String(f["reason"]) == "not_enough_valid", "冻结后给出 not_enough_valid")
+
+	# MISS / 废铁：trash 不算有效牌
+	var miss := [
+		{"sym": trash, "element": "none", "source": "", "valid": true},
+		{"sym": sym_fire, "element": "fire", "source": "w", "valid": true},
+		{"sym": sym_fire, "element": "fire", "source": "w", "valid": true},
+	]
+	var mi: Dictionary = MATCHER.match(miss)
+	_check(mi["valid_count"] == 2, "MISS/废铁不算有效牌（%d）" % int(mi["valid_count"]))
+	_check(mi["triple_kind"] == "", "含废铁不构成三连")
+
+	# 无元素：三格同符号 none → 三连成立，但不命中清一色
+	var none_cards := [
+		{"sym": sym_fire, "element": "none", "source": "w", "valid": true},
+		{"sym": sym_fire, "element": "none", "source": "w", "valid": true},
+		{"sym": sym_fire, "element": "none", "source": "w", "valid": true},
+	]
+	var nc: Dictionary = MATCHER.match(none_cards)
+	_check(nc["triple_kind"] == "source", "无元素仍可构成三连")
+	_check(not _ids(nc["patterns"]).has("G03"), "none 不构成清一色")
+
+	# 来源去重：同符号同来源 = 同源；同符号多来源 = 同族
+	var one_src: Dictionary = MATCHER.match(base)
+	_check(one_src["triple_kind"] == "source", "单一来源 = 同源刻")
+	var multi_src := [
+		{"sym": sym_fire, "element": "fire", "source": "a", "valid": true},
+		{"sym": sym_fire, "element": "fire", "source": "b", "valid": true},
+		{"sym": sym_fire, "element": "fire", "source": "c", "valid": true},
+	]
+	var ms: Dictionary = MATCHER.match(multi_src)
+	_check(ms["triple_kind"] == "family", "三个不同来源 = 同族刻（实际 %s）" % String(ms["triple_kind"]))
+	# 空来源（技能符号）不能算同源刻
+	var no_src := [
+		{"sym": sym_fire, "element": "fire", "source": "", "valid": true},
+		{"sym": sym_fire, "element": "fire", "source": "", "valid": true},
+		{"sym": sym_fire, "element": "fire", "source": "", "valid": true},
+	]
+	_check(String(MATCHER.match(no_src)["triple_kind"]) == "family", "空来源只算同族，不算同源")
+
+
+# F：装备牌谱每回合至多一条；priority 降序、同优先级 id 升序；连携优先
+func _test_pattern_priority() -> void:
+	var sys = PATTERN_SYSTEM.new()
+	var p_low = PATTERN_DATA.new()
+	p_low.id = "S_LOW"; p_low.priority = 1; p_low.kind = "equipment"; p_low.assist_allowed = true
+	var p_hi_a = PATTERN_DATA.new()
+	p_hi_a.id = "S_HI_A"; p_hi_a.priority = 9; p_hi_a.kind = "equipment"; p_hi_a.assist_allowed = true
+	var p_hi_b = PATTERN_DATA.new()
+	p_hi_b.id = "S_HI_B"; p_hi_b.priority = 9; p_hi_b.kind = "equipment"; p_hi_b.assist_allowed = true
+	var p_g = PATTERN_DATA.new()
+	p_g.id = "G01"; p_g.priority = 100; p_g.kind = "universal"
+	for p in [p_low, p_hi_a, p_hi_b, p_g]:
+		sys.register(p)
+	_check(sys.all_patterns().size() == 4, "注册 4 条牌谱")
+
+	var matched := ["S_LOW", "S_HI_A", "S_HI_B", "G01"]
+	var unlocked: Array = sys.all_patterns()
+	var pick = sys.resolve_equipment(matched, unlocked)
+	_check(pick != null and String(pick.id) == "S_HI_A",
+		"同优先级按 id 升序取第一条（%s）" % ("null" if pick == null else String(pick.id)))
+	# 通用牌型即使 priority 更高，也不参与「装备一条」的竞争
+	_check(pick != null and not bool(pick.is_universal()), "通用牌型不进装备选择")
+	var uni: Array = sys.resolve_universal(matched, unlocked)
+	_check(uni.size() == 1 and String(uni[0].id) == "G01", "通用牌型独立返回")
+	# 连携指定的牌谱优先
+	var assisted = sys.resolve_equipment(matched, unlocked, "S_LOW")
+	_check(assisted != null and String(assisted.id) == "S_LOW", "连携已确定的牌谱优先")
+	# 没有命中时不挑任何装备牌谱
+	_check(sys.resolve_equipment([], unlocked) == null, "无命中时返回 null（不硬塞）")
+	# 补牌候选：排除已命中的
+	var cands: Array = sys.assist_candidates(unlocked, ["S_HI_A"])
+	var cand_ids: Array = []
+	for c in cands:
+		cand_ids.append(String(c.id))
+	_check(not cand_ids.has("S_HI_A") and cand_ids.has("S_LOW"), "补牌候选排除已命中的牌谱")
+
+
+# G：Step 1 第 5 点——S01–S03 的资源就位、解锁条件正确。
+# 效果实装在 Step 2（本轮故意不动旧共鸣的结算），所以这里只验数据与解锁。
+func _test_equipment_patterns() -> void:
+	var sys = PATTERN_SYSTEM.new()
+	for f in ["s01_flame_resonance", "s02_frostfire_dual", "s03_holy_volley"]:
+		var pd = load("res://resources/patterns/%s.tres" % f)
+		_check(pd != null, "牌谱资源可加载 %s" % f)
+		if pd != null:
+			sys.register(pd)
+	_check(sys.all_patterns().size() == 3, "注册 S01–S03 三条（%d）" % sys.all_patterns().size())
+
+	var tag_of := func(path: String) -> Array:
+		var wd = load(path)
+		if wd == null:
+			return []
+		var out: Array = []
+		for t in (wd.family_tags as Array):
+			out.append(String(t))
+		var e := String(wd.element)
+		if e != "" and e != "none":
+			out.append("element:" + e)
+		return out
+
+	# S01 需要两件火装备
+	_check(not bool(sys.get_pattern("S01").unlocked([FIRE_SWORD], tag_of)),
+		"单件火装备不解锁 S01")
+	_check(bool(sys.get_pattern("S01").unlocked([FIRE_SWORD, FLAME_STAFF], tag_of)),
+		"两件火装备解锁 S01")
+	# S02 需要冰、火各一
+	_check(bool(sys.get_pattern("S02").unlocked([FIRE_SWORD, ICE_STAFF], tag_of)),
+		"冰+火各一件解锁 S02")
+	_check(not bool(sys.get_pattern("S02").unlocked([FIRE_SWORD, FLAME_STAFF], tag_of)),
+		"两件火不解锁 S02")
+	# S03 按精确路径
+	_check(bool(sys.get_pattern("S03").unlocked([HOLY_SWORD, DAWN_BOW], tag_of)),
+		"圣辉长剑+破晓之弓解锁 S03")
+	_check(not bool(sys.get_pattern("S03").unlocked([HOLY_SWORD, FIRE_SWORD], tag_of)),
+		"只有圣辉长剑不解锁 S03")
+	# 解锁集只返回满足条件的
+	var unlocked: Array = sys.unlocked_patterns([FIRE_SWORD, ICE_STAFF], tag_of)
+	var ids: Array = []
+	for p in unlocked:
+		ids.append(String(p.id))
+	# 火+冰各一件：S02（各一件）满足；S01 需要两件火，不满足；S03 需要两把指定武器，不满足
+	_check(ids.has("S02") and not ids.has("S01") and not ids.has("S03"),
+		"火+冰各一件只解锁 S02（%s）" % str(ids))
 
 
 func _finish() -> void:

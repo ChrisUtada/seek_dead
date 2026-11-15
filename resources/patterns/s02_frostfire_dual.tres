@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="PatternData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/pattern_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "S02"
+name = "冰火二重"
+icon = "❄️"
+desc = "冰、火装备各一件：火斩＋冰霜晶弹＋任意有效牌 → 火冰伤害 20% 转穿透，燃烧与霜冻各 +1 层"
+kind = "equipment"
+priority = 10
+unlock_paths = Array[String]([])
+unlock_tags = Array[String](["element:ice", "element:fire"])
+unlock_count = 1
+match_rule = {"all": [{"sym": "res://resources/symbols/fire_slash.tres"}, {"sym": "res://resources/symbols/ice_crystal.tres"}]}
+effect_id = "frostfire_dual"
+effect_params = {"pierce_ratio": 0.2, "burn_extra": 1, "frost_extra": 1}
+assist_allowed = true
+sequence_id = ""
