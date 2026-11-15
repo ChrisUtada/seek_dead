@@ -558,7 +558,7 @@ if errorlevel 1 (
   echo   ok
 )
 
-echo [60/63] Pattern matcher baseline: source/family triple / element resonance / single card / three equipment synergies ...
+echo [60/63] Pattern system: G01-G03 / W01-W06 / T01-T03 / signatures / banner / tray / effect settlement ...
 "%GODOT%" --headless --fixed-fps 60 --path . res://tests/pattern_matcher_test.tscn > "%TEMP%\smoke_patternmatch.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
@@ -576,7 +576,7 @@ if errorlevel 1 (
   echo   ok
 )
 
-echo [62/63] Pattern sample run: 6 builds x 300 rounds trigger rate / empty-turn rate / three enemy tiers ...
+echo [62/63] Pattern sample run: builds x 300 rounds trigger rate / 1000-round composition rate / three enemy tiers ...
 "%GODOT%" --headless --fixed-fps 60 --path . res://tests/pattern_sample_run_test.tscn > "%TEMP%\smoke_patternsample.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
