@@ -163,10 +163,19 @@ func apply_charms() -> void:
 	_ctrl.charm_free_reroll = 0
 	_ctrl.charm_charge_start = 0
 	_ctrl.charm_first_hit = 1.0
+	_ctrl.charm_breakdown = []   # 明细只做归因，不参与结算
 	for path in _ctrl.selected_charms:
 		var cd: Resource = load(path)
 		if cd == null:
 			continue
+		# 表现归因：记录「这个护符提供哪种效果」，供战斗时高亮对应卡片
+		_ctrl.charm_breakdown.append({
+			"path": String(path),
+			"effect": String(cd.effect),
+			"value": int(cd.value),
+			"mult": float(cd.mult_value),
+			"downside_effect": String(cd.downside_effect),
+		})
 		match cd.effect:
 			"damage_bonus":         _ctrl.charm_power_bonus += cd.value
 			"room_shield":          _ctrl.charm_room_shield += cd.value

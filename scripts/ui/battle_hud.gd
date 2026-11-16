@@ -417,6 +417,9 @@ func _build_ui() -> void:
 	_build_symbol_tooltip()
 	_build_popup_layer()
 	_build_cell_sweep()
+	_build_vitals()
+	_build_charm_row()
+	_hide_panel_vitals()
 
 	# 房间歇态按钮（opt-in 商店 + 下一房）：静态节点已在 battle_hud.tscn，这里只接信号
 	interroom_shop_btn.connect("pressed", shop_requested.emit)
@@ -944,8 +947,9 @@ func _build_popup_layer() -> void:
 var cell_sweep_flashes: Array = []   # [reel] -> Panel
 var cell_sweep_tweens: Array = []    # [reel] -> Tween
 
-const CELL_SWEEP_STEP := 0.07        # 格与格之间的间隔
-const CELL_SWEEP_DECAY := 0.18       # 单格亮起后的衰减（下一格亮起时上一格还在淡出，形成扫过感）
+const CELL_SWEEP_STEP := 0.20        # 格与格之间的间隔（0.07 太快，看不清是哪一格）
+const CELL_SWEEP_DECAY := 0.38       # 单格亮起后的衰减（下一格亮起时上一格还在淡出，形成扫过感）
+const CELL_SWEEP_TRIPLE_DECAY := 0.50   # 三连收尾：三格一起再亮，衰减更慢，读作「这条线成立」
 
 
 func _build_cell_sweep() -> void:
@@ -967,6 +971,17 @@ func _build_cell_sweep() -> void:
 			flash.modulate.a = 0.0
 			cells[reel][row].add_child(flash)
 			cell_sweep_flashes[reel].append(flash)
+
+
+# 单格亮起（供 _present_turn 按格子顺序调用）
+func sweep_light_cell(reel: int) -> void:
+	_light_sweep_cell(reel, CELL_SWEEP_DECAY)
+
+
+# 多格同时亮起（攻击格合并成一次攻击时用，视觉上区别于逐格扫）
+func sweep_light_cells_together(reels: Array) -> void:
+	for r in reels:
+		_light_sweep_cell(int(r), CELL_SWEEP_TRIPLE_DECAY)
 
 
 # 左→右逐格亮起。返回时最后一格已亮起，调用方 await 它即可控制节奏。
@@ -1003,7 +1018,7 @@ func settle_cell_sweep(is_triple: bool) -> void:
 	if not is_triple or cell_sweep_flashes.is_empty():
 		return
 	for reel in cell_sweep_flashes.size():
-		_light_sweep_cell(reel, 0.22)
+		_light_sweep_cell(reel, CELL_SWEEP_TRIPLE_DECAY)
 
 
 # ---------------------------------------------------------------------------
@@ -1303,6 +1318,292 @@ func show_pattern_banner(text: String, color: Color) -> void:
 			_pattern_banner = null)
 
 
+# ---------------------------------------------------------------------------
+# 头顶血条（含尾部盾段）（2026-11-16，第五版）
+#
+# 演进：平涂 → _draw() 复刻 pixelfx 明暗 → 盾改图标（否决）→ 盾改独立蓝条（否决）
+#       → v5 盾段并入同一条血条：**同一个外框**，红段是真血，蓝段接在其后。
+#
+# 为什么必须是同一条：独立的小蓝条看起来像第二根条，玩家要额外理解「这是盾」。
+# 并进去之后它天然读作「血条被接长了」——而机制上盾本来就是先于血量被打掉的缓冲，
+# 语义与表现一致，不需要图标或数字来解释。
+# ---------------------------------------------------------------------------
+const VITAL_W := 46.0           # 血条（红段）宽度
+const VITAL_HP_H := 8.0
+const VITAL_CELLS := 6
+const VITAL_FLASH := 0.34
+const SHIELD_MAX_LEN := 24.0    # 盾段最大延伸长度（盾量 = 生命上限时）
+
+
+class VitalBar:
+	extends Control
+
+	const INK := Color("#0d0a14")
+	const EMPTY_TOP := Color("#2a2338")
+	const EMPTY_BODY := Color("#191424")
+	const WHITE := Color("#ffffff")
+	const PALE_HINT := Color("#ffe9a8")
+
+	var cells := 6
+	var bar_w := 46.0
+	var bar_h := 8.0
+	var base := Color("#e35b50")
+	var shield_color := Color("#62a1c2")
+	var shield_len := 0.0        # 盾段长度（像素），0 = 无盾
+	var ratio := 1.0
+	var prev_ratio := 1.0
+	var ghost_alpha := 0.0
+	var ghost_from := 0.0
+	var ghost_to := 0.0
+	var frame_flash := 0.0
+	var spark_t := 0.0
+	var spark_at := 0.0
+
+	func _ramp(row: int, h: float, c0: Color) -> Color:
+		var r := float(row) / maxf(1.0, h - 1.0)
+		if r < 0.15:
+			return c0.lightened(0.50)
+		if r < 0.32:
+			return c0.lightened(0.24)
+		if r < 0.66:
+			return c0
+		if r < 0.90:
+			return c0.darkened(0.26)
+		return c0.darkened(0.46)
+
+	func _ghost_ramp(row: int, h: float) -> Color:
+		var r := float(row) / maxf(1.0, h - 1.0)
+		if r < 0.15:
+			return WHITE
+		if r < 0.75:
+			return base.lightened(0.62).lerp(PALE_HINT, 0.45)
+		return base.lightened(0.15)
+
+	func set_ghost_alpha(a: float) -> void:
+		ghost_alpha = a
+		queue_redraw()
+
+	func set_frame_flash(a: float) -> void:
+		frame_flash = a
+		queue_redraw()
+
+	func set_spark(v: float) -> void:
+		spark_t = v
+		queue_redraw()
+
+	# r = 血量比例；sl = 盾段长度（像素）
+	# 盾紧贴当前血量末端；只有「血量末端 + 盾长」超出满血内宽时才把外框撑长
+	func refresh(r: float, pr: float, sl: float = 0.0) -> void:
+		ratio = clampf(r, 0.0, 1.0)
+		prev_ratio = clampf(pr, 0.0, 1.0)
+		shield_len = maxf(0.0, sl)
+		var iw_hp: float = bar_w - 2.0
+		var fw: float = iw_hp * ratio
+		var inner: float = maxf(iw_hp, fw + shield_len)
+		size = Vector2(inner + 2.0, bar_h)
+		queue_redraw()
+
+	func _draw() -> void:
+		var h := bar_h
+		var total_w: float = size.x
+
+		# 受击辉光：整条（含盾段）外围描一圈亮边
+		if ghost_alpha > 0.02:
+			var gc: Color = base.lightened(0.55)
+			gc.a = ghost_alpha * 0.55
+			draw_rect(Rect2(-1, 0, total_w + 2, h), gc, false, 1.0)
+
+		# 一个外框包住血段与盾段 → 读作同一条血条被接长
+		var frame_col: Color = INK.lerp(base.lightened(0.55), clampf(frame_flash, 0.0, 1.0))
+		draw_rect(Rect2(0, 0, total_w, h), frame_col, true)
+
+		var ix := 1.0
+		var iy := 1.0
+		var ih := h - 2.0
+		var iw_hp: float = bar_w - 2.0
+		var iw_all: float = total_w - 2.0
+
+		# 内轨
+		draw_rect(Rect2(ix, iy, iw_all, ih), EMPTY_BODY, true)
+		draw_rect(Rect2(ix, iy, iw_all, 1), EMPTY_TOP, true)
+
+		# 血段填充
+		var filled_w: float = iw_hp * ratio
+		if filled_w > 0.0:
+			for row in int(ih):
+				draw_rect(Rect2(ix, iy + row, filled_w, 1), _ramp(row, ih, base), true)
+
+		# 盾段：紧贴当前血量末端（不在满血位置后），同一高度、同一明暗处理
+		if shield_len > 0.0 and filled_w > 0.0:
+			var sx: float = ix + filled_w
+			for row in int(ih):
+				draw_rect(Rect2(sx, iy + row, shield_len, 1), _ramp(row, ih, shield_color), true)
+			# 不再画交界分隔线：颜色变化本身就是边界，画线会让盾段变成独立小方块
+			# 盾段右端高光（整条血条的收口）
+			draw_rect(Rect2(sx + shield_len - 1.0, iy, 1, ih), shield_color.lightened(0.6), true)
+		elif shield_len > 0.0:
+			# 空血（0%）也有盾：盾从内区左端起画
+			var sx0: float = ix
+			for row in int(ih):
+				draw_rect(Rect2(sx0, iy + row, shield_len, 1), _ramp(row, ih, shield_color), true)
+			draw_rect(Rect2(sx0 + shield_len - 1.0, iy, 1, ih), shield_color.lightened(0.6), true)
+
+		# 丢失区间白闪（只作用于血段）
+		if ghost_alpha > 0.01 and ghost_to > ghost_from:
+			var gx: float = ix + iw_hp * ghost_from
+			var gw: float = iw_hp * (ghost_to - ghost_from)
+			for row in int(ih):
+				var c: Color = _ghost_ramp(row, ih)
+				c.a = ghost_alpha
+				draw_rect(Rect2(gx, iy + row, gw, 1), c, true)
+
+		# 格分隔线：以血段的格宽为准，**贯穿整条**（含盾段），
+		# 这样血与盾是同一套节奏，不会读成两块不同性质的东西
+		if cells > 1:
+			var cell_w: float = iw_hp / float(cells)
+			var k: int = 1
+			while true:
+				var dx: float = ix + round(cell_w * float(k))
+				if dx >= ix + iw_all - 1.0:
+					break
+				draw_rect(Rect2(dx, iy, 1, ih), INK, true)
+				k += 1
+
+		# 血量边缘高光：只在「血量末端后面没有盾」时画，
+		# 否则会和盾段右端高光连成一个亮边，看起来像分层
+		if filled_w > 1.0 and shield_len <= 0.0:
+			draw_rect(Rect2(ix + filled_w - 1.0, iy, 1, ih), base.lightened(0.6), true)
+
+		# 火星迸射
+		if spark_t > 0.01 and spark_t < 1.0:
+			var sxx: float = ix + iw_hp * clampf(spark_at, 0.0, 1.0)
+			for i in 4:
+				var dir: float = (float(i) - 1.5) * 0.9
+				var px: float = sxx + dir * 26.0 * spark_t
+				var py: float = iy + ih * 0.5 - 16.0 * spark_t + 34.0 * spark_t * spark_t
+				var c2: Color = WHITE if i % 2 == 0 else base.lightened(0.45)
+				c2.a = 1.0 - spark_t
+				draw_rect(Rect2(round(px), round(py), 1, 1), c2, true)
+
+
+var player_vitals: Control
+var enemy_vitals: Control
+var player_hp_bar: VitalBar
+var enemy_hp_bar: VitalBar
+var _pv_hp_prev := 1.0
+var _ev_hp_prev := 1.0
+
+
+# 面板里的 HP / 盾 / 护甲文字行全部收起：数值已改为角色头顶的血条（含盾段）。
+func _hide_panel_vitals() -> void:
+	for row_path in [
+		"Margin/Content/MainRow/PlayerPanel/VBox/HpRow",
+		"Margin/Content/MainRow/PlayerPanel/VBox/ShieldRow",
+		"Margin/Content/MainRow/EnemyPanel/VBox/HpRow",
+		"Margin/Content/MainRow/EnemyPanel/VBox/ArmorRow",
+		"Margin/Content/MainRow/PlayerPanel/VBox/GearBox/GearCards/CharmsRow",
+	]:
+		var row := get_node_or_null(row_path)
+		if row is Control:
+			(row as Control).visible = false
+
+
+func _build_vitals() -> void:
+	if player_sprite != null:
+		var pv := _make_vitals(player_sprite, Palette.POP_DAMAGE)
+		player_vitals = pv["root"]
+		player_hp_bar = pv["hp"]
+	if enemy_sprite != null:
+		var ev := _make_vitals(enemy_sprite, Palette.POP_DAMAGE)
+		enemy_vitals = ev["root"]
+		enemy_hp_bar = ev["hp"]
+	_refresh_vitals()
+
+
+func _make_vitals(host: Control, hp_color: Color) -> Dictionary:
+	var root := Control.new()
+	root.name = "Vitals"
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.anchor_left = 0.5
+	root.anchor_right = 0.5
+	root.offset_top = -(VITAL_HP_H + 4.0)
+	root.offset_bottom = -4.0
+	host.add_child(root)
+
+	var hp := VitalBar.new()
+	hp.cells = VITAL_CELLS
+	hp.bar_w = VITAL_W
+	hp.bar_h = VITAL_HP_H
+	hp.base = hp_color
+	hp.shield_color = Palette.ARMOR
+	hp.position = Vector2(0, 0)
+	hp.size = Vector2(VITAL_W, VITAL_HP_H)
+	hp.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(hp)
+
+	return {"root": root, "hp": hp}
+
+
+# 整条（血段 + 盾段）按实际宽度重新居中
+func _recenter_vitals(root: Control, bar: VitalBar) -> void:
+	if root == null or not is_instance_valid(root):
+		return
+	var total: float = VITAL_W
+	if bar != null and is_instance_valid(bar):
+		total = bar.size.x
+	root.offset_left = -total * 0.5
+	root.offset_right = total * 0.5
+
+
+func _apply_hp_bar(bar: VitalBar, root: Control, new_ratio: float, prev_ratio: float, shield_len: float) -> void:
+	if bar == null or not is_instance_valid(bar):
+		return
+	if new_ratio < prev_ratio - 0.001:
+		bar.ghost_from = clampf(new_ratio, 0.0, 1.0)
+		bar.ghost_to = clampf(prev_ratio, 0.0, 1.0)
+		bar.set_ghost_alpha(0.95)
+		bar.set_frame_flash(1.0)
+		var tw := bar.create_tween()
+		tw.set_parallel(true)
+		tw.tween_method(bar.set_ghost_alpha, 0.95, 0.0, VITAL_FLASH)
+		tw.tween_method(bar.set_frame_flash, 1.0, 0.0, 0.20)
+		bar.spark_at = clampf(new_ratio, 0.0, 1.0)
+		bar.set_spark(0.0)
+		var sp := bar.create_tween()
+		sp.tween_method(bar.set_spark, 0.0, 1.0, 0.42)
+		if root != null:
+			var base_y: float = root.position.y
+			var jolt := root.create_tween()
+			jolt.tween_property(root, "position:y", base_y + 1.0, 0.06)
+			jolt.tween_property(root, "position:y", base_y, 0.10)
+	bar.refresh(new_ratio, prev_ratio, shield_len)
+
+
+# 盾段长度：盾量 / 生命上限 × SHIELD_MAX_LEN；有一点盾就至少 4px，否则看不见
+func _shield_len_of(value: int, hp_max: int) -> float:
+	if value <= 0:
+		return 0.0
+	var r: float = clampf(float(value) / float(max(1, hp_max)), 0.0, 1.0)
+	return maxf(4.0, round(r * SHIELD_MAX_LEN))
+
+
+func _refresh_vitals() -> void:
+	var hp_max: int = max(1, controller.state.player_hp_max)
+	var pv_r: float = float(controller.state.player_hp) / float(hp_max)
+	var pv_sl: float = _shield_len_of(int(controller.state.player_shield), hp_max)
+	_apply_hp_bar(player_hp_bar, player_vitals, pv_r, _pv_hp_prev, pv_sl)
+	_pv_hp_prev = pv_r
+	_recenter_vitals(player_vitals, player_hp_bar)
+
+	var ev_max: int = max(1, controller.state.enemy_hp_max)
+	var ev_r: float = float(controller.state.enemy_hp) / float(ev_max)
+	var ev_sl: float = _shield_len_of(int(controller.state.enemy_armor), ev_max)
+	_apply_hp_bar(enemy_hp_bar, enemy_vitals, ev_r, _ev_hp_prev, ev_sl)
+	_ev_hp_prev = ev_r
+	_recenter_vitals(enemy_vitals, enemy_hp_bar)
+
+
+
 func _player_sprite_anchor() -> Control:
 	return player_sprite if player_sprite != null else player_panel
 
@@ -1469,8 +1770,8 @@ func _refresh_meta() -> void:
 	player_hp_label.add_theme_color_override("font_color", hp_color)
 	player_hp_label.tooltip_text = "生命 %d/%d" % [hp_now, controller.state.player_hp_max]
 	player_hp_icon.modulate = hp_color
-	player_shield_row.visible = controller.state.player_shield > 0
 	player_shield_label.text = "盾 %d" % controller.state.player_shield
+	_refresh_vitals()   # 头顶血条/盾条同步刷新
 	# 等级并入玩家标题；P0-2：常驻一行「历练进度 · 艺N 铭N」，让本局成长随时可见（明细进 tooltip）
 	var growth_progress: String = controller.growth.progress_text()
 	player_title.text = "玩家 · Lv.%d" % controller.growth.level
@@ -1529,7 +1830,7 @@ func _refresh_meta() -> void:
 	var ehp_color: Color = Palette.POP_DAMAGE if float(ehp_now) / float(ehp_max) <= 0.35 else Palette.POP_HEAL
 	enemy_hp_label.add_theme_color_override("font_color", ehp_color)
 	# 护甲（扁平池）：有护甲才显示；破甲后剩 0 也显示（提示已破甲窗口），仅无护甲敌人隐藏
-	enemy_armor_row.visible = controller.state.enemy_armor_max > 0
+	# 护甲条已改为敌人头顶的蓝色条，面板行保持隐藏（见 _hide_panel_vitals）
 	enemy_armor_label.text = "%d/%d" % [max(controller.state.enemy_armor, 0), controller.state.enemy_armor_max]
 	enemy_armor_label.tooltip_text = "护甲 %d/%d" % [max(controller.state.enemy_armor, 0), controller.state.enemy_armor_max]
 	enemy_status_label.text = "状态: " + ("无" if controller.state.enemy_status.is_empty() else controller.status_system.status_summary(controller.state.enemy_status))
@@ -2179,6 +2480,120 @@ func _log(msg: String) -> void:
 # 2026-08-14 玩家属性行已整体移除——变强可见性由战斗日志（伤害分解）与飘字承担。
 func _refresh_gear_icons() -> void:
 	panel_view.refresh_gear_icons()
+	_refresh_charm_row()
+
+
+# ---------------------------------------------------------------------------
+# 头顶护符行（2026-11-16）
+# 护符是唯一不进转轮的装备，原先放在左栏最边缘：生效时那里一亮，视线要从角色
+# 横跨到屏幕左端。挪到血条正上方后，「护符闪 → 它的盾/治疗数字」都发生在角色身上。
+# 图标 12px（16px 会让头部占 38px，对比 48px 角色头重脚轻）。
+# 平时低亮度剪影，生效时亮起——常驻全亮会一直抢戏。
+# ---------------------------------------------------------------------------
+const CHARM_ICON := 12.0          # 图标本体
+const CHARM_SLOT := 14.0          # 槽位（图标 12 + 左右各 1px 边框）
+const CHARM_GAP := 2.0            # 槽位间距
+# 槽位底与 HUD 背景几乎同色，分隔完全靠边框；边框必须比背景亮，
+# 否则图标变暗时会跟着一起消失（这正是加框要解决的问题）。
+const CHARM_FRAME := Color("#6e5f57")
+const CHARM_DIM := Color(0.58, 0.58, 0.64, 1.0)   # 太暗会看不清装了哪些护符，0.58 仍明显低于点亮态
+const CHARM_HI := Color(1.70, 1.45, 0.85, 1.0)
+
+var charm_row: Control
+var charm_icons: Array = []   # [{path: String, node: TextureRect}]
+var _charm_slot_sb: StyleBoxFlat
+
+
+func _charm_slot_style() -> StyleBoxFlat:
+	if _charm_slot_sb == null:
+		_charm_slot_sb = StyleBoxFlat.new()
+		_charm_slot_sb.bg_color = Palette.CARD_BG
+		_charm_slot_sb.border_color = CHARM_FRAME
+		_charm_slot_sb.set_border_width_all(1)
+	return _charm_slot_sb
+
+
+func _build_charm_row() -> void:
+	if player_sprite == null:
+		return
+	charm_row = Control.new()
+	charm_row.name = "CharmRow"
+	charm_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	charm_row.anchor_left = 0.5
+	charm_row.anchor_right = 0.5
+	charm_row.visible = false
+	player_sprite.add_child(charm_row)
+	_refresh_charm_row()
+
+
+func _refresh_charm_row() -> void:
+	if charm_row == null or not is_instance_valid(charm_row):
+		return
+	var paths: Array = controller.state.selected_charms
+	# 签名一致就不重建——_refresh_meta 调用很频繁，重建会把正在播的脉冲杀掉
+	var sig := "|".join(paths)
+	if String(charm_row.get_meta("sig", "")) == sig:
+		return
+	charm_row.set_meta("sig", sig)
+	for c in charm_row.get_children():
+		charm_row.remove_child(c)
+		c.queue_free()
+	charm_icons.clear()
+
+	var n: int = paths.size()
+	charm_row.visible = n > 0
+	if n == 0:
+		return
+	var total: float = n * CHARM_SLOT + float(n - 1) * CHARM_GAP
+	charm_row.offset_left = -total * 0.5
+	charm_row.offset_right = total * 0.5
+	# 血条块占 -12..-4，护符行贴在其上方 2px
+	charm_row.offset_bottom = -(VITAL_HP_H + 4.0 + 2.0)
+	charm_row.offset_top = charm_row.offset_bottom - CHARM_SLOT
+	for i in n:
+		var cpath := String(paths[i])
+		var d = load(cpath)
+		var tex: Texture2D = d.get("icon_tex") if d != null else null
+		var slot := Panel.new()
+		slot.name = "CharmSlot_%d" % i
+		slot.custom_minimum_size = Vector2(CHARM_SLOT, CHARM_SLOT)
+		slot.size = Vector2(CHARM_SLOT, CHARM_SLOT)
+		slot.position = Vector2(float(i) * (CHARM_SLOT + CHARM_GAP), 0.0)
+		slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		slot.add_theme_stylebox_override("panel", _charm_slot_style())
+		charm_row.add_child(slot)
+
+		var tr := TextureRect.new()
+		tr.texture = tex
+		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		tr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		tr.custom_minimum_size = Vector2(CHARM_ICON, CHARM_ICON)
+		tr.size = Vector2(CHARM_ICON, CHARM_ICON)
+		tr.position = Vector2(1, 1)   # 边框内缩 1px
+		tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tr.modulate = CHARM_DIM
+		slot.add_child(tr)
+		charm_icons.append({"path": cpath, "node": tr})
+
+
+# 护符生效脉冲：点亮头顶对应的护符图标（paths 由 ctrl.charm_breakdown 归因得出）
+func pulse_charm_card(paths: Array = []) -> void:
+	if charm_row == null or not is_instance_valid(charm_row) or not charm_row.visible:
+		return
+	for e in charm_icons:
+		if not paths.is_empty() and not paths.has(String(e["path"])):
+			continue
+		var tr: TextureRect = e["node"]
+		if tr == null or not is_instance_valid(tr):
+			continue
+		var old = tr.get_meta("tw", null)
+		if old != null and is_instance_valid(old):
+			old.kill()
+		tr.modulate = CHARM_HI
+		var tw := tr.create_tween()
+		tw.tween_property(tr, "modulate", CHARM_DIM, 0.45)
+		tr.set_meta("tw", tw)
 
 
 # 4 格子刷新：按 consumable_slots 顺序填，缺位留空占位文案

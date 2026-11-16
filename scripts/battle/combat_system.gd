@@ -19,7 +19,11 @@ const PATTERN_EFFECTS = preload("res://scripts/battle/pattern_effects.gd")
 # 飘字节奏（2026-11-16）：同一回合内金币/护盾/治疗/状态会在不同阶段各自弹字，
 # 原先它们在同一帧出生，即使有堆叠偏移也像一次性刷屏。这里在「连续第二条及以后」的
 # 弹字前插入短间隔，让玩家能逐个读到。单条飘字不加延迟，空转回合不受影响。
-const POPUP_BEAT := 0.12
+const POPUP_BEAT := 0.36
+# 护符图标闪起后、对应数值弹出前的停顿（实现「闪一下 → 数值出现」的顺序）
+const CHARM_FLASH_HOLD := 0.30
+# 三格扫描结束到开始出数值之间的停顿
+const SWEEP_TO_NUMBERS_HOLD := 0.25
 
 var _ctrl  # DuelController
 
@@ -27,6 +31,15 @@ var _ctrl  # DuelController
 # 用于给第二条及以后的飘字插入 POPUP_BEAT 间隔；伤害飘字不参与（它在攻击阶段、
 # 且必须紧跟扣血，延迟反而会加剧「血条先变、数字后到」）。
 var _popup_fired_this_turn: bool = false
+# 护符本回合是否已经脉冲过（一回合最多闪一次，避免刷屏）
+var _charm_pulsed_this_turn: bool = false
+# 本回合待播报的护符（结算阶段只记账，播报阶段才闪）
+var _pending_defense_charms: Array = []
+var _pending_damage_charms: Array = []
+# 播报节奏
+const CELL_PRESENT_STEP := 0.42      # 逐格播报：每格亮起 + 出数后的停留
+const ATTACK_FLASH_HOLD := 0.36     # 攻击格齐亮后、总伤害数字出现前的停顿
+const TURN_TAIL_HOLD := 0.85        # 播报结束到敌方回合之间的留白
 
 
 # 收益类飘字：本回合第一条立刻弹，之后每条前插一个短间隔。
@@ -119,12 +132,20 @@ func contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String, source
 				acc["dmg_bucket_by_elem"][e_key] = float(acc["dmg_bucket_by_elem"].get(e_key, 0.0)) + dv
 			push_dmg_line(acc, sym, elem, flat, bonus, mult, em, dv, crit_mult_val)
 		# 2026-08-07 重构：shield/heal 不吃武器攻击力/克制/元进度——只 = 符号 base × 连线 × 暴击（治疗/护盾符号保持小值，来自技能/房奖励）
-		"shield":  acc["shield"]  += sym.base * mult * crit_mult_val
+		"shield":
+			var sh: float = sym.base * mult * crit_mult_val
+			acc["shield"] += sh
+			# 按来源记账（表现层按格分配用；同一来源的格子公式相同，均分是精确的）
+			var sh_key: String = source_id if source_id != "" else sym.resource_path
+			acc["source_shield"][sh_key] = float(acc["source_shield"].get(sh_key, 0.0)) + sh
 		# 治疗倍率由 BalanceConfig.heal_line_mults 配置，当前三连为 4.5 倍；
 		# 2026-11-11 Step 1：倍率表移入配置，三连倍率可独立复测
 		# 不吃暴击/连线精通/克制——治疗规则简单可预期；3连标记 heal_triple 供溢出转护盾
 		"heal":
-			acc["heal"] += sym.base * float(DuelController.BALANCE.heal_line_mults[mini(raw - 1, 2)])
+			var hv: float = sym.base * float(DuelController.BALANCE.heal_line_mults[mini(raw - 1, 2)])
+			acc["heal"] += hv
+			var hl_key: String = source_id if source_id != "" else sym.resource_path
+			acc["source_heal"][hl_key] = float(acc["source_heal"].get(hl_key, 0.0)) + hv
 			if combo_raw >= 3:
 				acc["heal_triple"] = true
 		"status":  acc["status_stacks"][sym.status_type] = acc["status_stacks"].get(sym.status_type, 0) + mult * crit_mult_val + (int(_ctrl.charm_dot_amp) if _ctrl.deprived_level < 1 else 0) + int(_ctrl._item_status_bonus.get(sk, 0) if source_id != "" else _ctrl._item_status_bonus.get(sym.resource_path, 0)) + (1 if magic_triple else 0)
@@ -199,16 +220,15 @@ func evaluate() -> void:
 	_ctrl.turn_resolved = true   # 2026-11-12 Step 3：转轮已结束，此后施加的 debuff 从下一回合起计时
 	var acc := _new_acc()
 	_reset_turn_state()
-	# 结算扫描：三列停完后按 左→中→右 逐格亮起边框，让玩家先看清这一行是哪三格，
-	# 再进入数值结算。纯展示，不参与任何计算。
-	await _ctrl.hud.play_cell_sweep()
+	# 2026-11-16 顺序优化：结算与表现彻底分离。
+	# 先跑完全部结算（不产生任何飘字/等待），再交给 _present_turn 按「读格 → 攻击齐亮」回放。
+	# 三连/连线倍率依赖整行，必须先算完才知道每格的分量，所以只能「先算后放」。
 	var counts := _phase_symbols(acc)
-	# 三连（同符号同族 3 格）或元素共鸣 → 三格一起再亮一次；否则静默。
-	_ctrl.hud.settle_cell_sweep(bool(acc.get("triple", false)) or _ctrl._elem_triple)
-	await _phase_defense(acc)
+	_phase_defense(acc)
 	_phase_counter(counts, acc)
-	_apply_patterns(acc)   # 转轮凑牌 Step 2：通用牌型与一条装备牌谱修正累计器
-	await _phase_attack(counts, acc)
+	_apply_patterns(acc)
+	_phase_attack(counts, acc)
+	await _present_turn(acc, counts)
 
 
 # G7-D Step 5：shield_gain / heal_gain / heal_overflow_shield 只供底部反馈报「真实落地」数值，
@@ -219,11 +239,22 @@ func _new_acc() -> Dictionary:
 		# 2026-11-15 转轮凑牌 Step 2：按元素拆分的结构化累计，供牌谱效果运算。
 		# dmg_by_elem      = 该元素本轮造成的总伤害（含穿透），用于「某元素伤害 +X%」
 		# dmg_bucket_by_elem = 其中真正进了 acc["dmg"] 的部分，用于「某元素伤害转穿透」
-		"dmg_by_elem": {}, "dmg_bucket_by_elem": {}, "source_dmg": {} }
+		"dmg_by_elem": {}, "dmg_bucket_by_elem": {}, "source_dmg": {},
+		# 2026-11-16 顺序优化：按来源记账，供「按格子从左到右」逐格播报。
+		# 只用于表现分配，不参与任何结算；聚合字段（shield/heal/dmg）仍是唯一口径。
+		"source_heal": {}, "source_shield": {},
+		"gold_gain": 0, "total_damage": 0, "elem_tag": "",
+		"charm_shield": 0, "charm_heal": 0,
+		# 无格子归属的飘字（增益授予 / 元素爆发）：结算时入队，播报时按阵营统一发出，
+		# 避免它们在"读格"之前就弹出来打乱顺序。
+		"pending_player_pops": [], "pending_enemy_pops": [], "pending_banners": [] }
 
 
 func _reset_turn_state() -> void:
 	_popup_fired_this_turn = false
+	_pending_defense_charms = []
+	_pending_damage_charms = []
+	_charm_pulsed_this_turn = false
 	_ctrl._eval_adv = false
 	_ctrl._eval_dis = false
 	_ctrl._turn_hit_used = false   # 碎片王冠（信物）：每回合首击标记重置
@@ -276,7 +307,7 @@ func _phase_symbols(acc: Dictionary) -> Dictionary:
 		var s: SymbolData = counts[key][0]
 		if s.kind != "buff":   # trash/MISS(同为 kind=trash) 一律跳过
 			continue
-		grant_buff(s, counts[key][2])
+		grant_buff(s, counts[key][2], acc)
 	# 金币符号（常驻）：落在线上的金币直接转化为金币资源，不造成任何伤害
 	for key in counts:
 		var s: SymbolData = counts[key][0]
@@ -285,11 +316,8 @@ func _phase_symbols(acc: Dictionary) -> Dictionary:
 			if g > 0:
 				_ctrl.gold += g
 				_ctrl.hud._log("💰 金币 +%d" % g)
-				# _phase_symbols 是同步调用（evaluate 里没有 await），此处不能引入等待，
-				# 否则会把符号结算中途挂起、打乱后续贡献顺序。
-				# 这里只打标记，让后面护盾/治疗/状态的飘字自动带上间隔。
-				_ctrl.hud._popup("💰+%d" % g, Palette.POP_GOLD, _ctrl.hud._player_sprite_anchor())
-				_popup_fired_this_turn = true
+				# 只记账，飘字留给 _present_turn 按格子顺序播报
+				acc["gold_gain"] = int(acc.get("gold_gain", 0)) + g
 	# 每个来源分别结算自身格数，同族总数只负责连线、三连和充能判定。
 	for key in counts:
 		var s: SymbolData = counts[key][0]
@@ -371,10 +399,9 @@ func _apply_patterns(acc: Dictionary) -> void:
 			# 中频高潮：频率固定后靠这一下撑分量，签名用金色区分
 			var icon := String(sig.icon) if sig != null else String(w_pick.icon)
 			var banner_color := Palette.POP_DAMAGE if sig == null else Palette.POP_GOLD
-			_ctrl.hud.show_pattern_banner("%s %s %s%s" % [
-				icon, String(w_pick.id), String(w_pick.name), sig_txt], banner_color)
-			_ctrl.hud._popup("%s%s" % [icon, String(w_pick.name)],
-				Palette.POP_DAMAGE, _ctrl.hud._enemy_sprite_anchor())
+			# 入队，播报最开始统一放出（避免在"读格"之前抢跑）
+			acc["pending_banners"].append({"text": "%s %s %s%s" % [
+				icon, String(w_pick.id), String(w_pick.name), sig_txt], "color": banner_color})
 		PATTERN_EFFECTS.apply(acc, sig if sig != null else w_pick, {"ctrl": _ctrl})
 
 	# —— 技能轨：恰好 1 技能 + 2 武器 ——
@@ -398,8 +425,8 @@ func _apply_patterns(acc: Dictionary) -> void:
 						t_color = Palette.POP_HEAL
 					elif String(t_pick.effect_id) == "power_support":
 						t_color = Palette.POP_BUFF
-					_ctrl.hud.show_pattern_banner("%s %s %s" % [
-						String(t_pick.icon), String(t_pick.id), String(t_pick.name)], t_color)
+					acc["pending_banners"].append({"text": "%s %s %s" % [
+						String(t_pick.icon), String(t_pick.id), String(t_pick.name)], "color": t_color})
 				PATTERN_EFFECTS.apply(acc, t_pick, {"ctrl": _ctrl})
 
 	# 常驻面板：本回合可用牌谱与组件状态（§9.1 两分区）
@@ -467,6 +494,9 @@ func _phase_defense(acc: Dictionary) -> void:
 	# Phase C：铁壁(shield)/回春(regen) 按回合生效，并入本回合护盾与治疗（F-0 聚合层）
 	acc["shield"] += int(agg_shield())
 	acc["heal"] += int(agg_regen())
+	# 护符分量（守备/回春涓流）：聚合值里已包含，这里单独记出来供播报时「护符闪 → 它的数」
+	acc["charm_shield"] = int(_ctrl.charm_shield_trickle) if _ctrl.deprived_level < 1 else 0
+	acc["charm_heal"] = int(_ctrl.charm_heal_trickle) if _ctrl.deprived_level < 1 else 0
 	# 2026-11-12 Step 1：腐蚀 / 禁疗在「全部来源聚合之后、落地之前」统一折算，
 	# 覆盖符号、铁壁/回春等所有护盾/治疗来源，避免只砍符号的漏算。
 	if _ctrl.debuffs != null:
@@ -483,10 +513,14 @@ func _phase_defense(acc: Dictionary) -> void:
 			acc["status_stacks"][st] += 1
 	for st in acc["status_stacks"].keys():
 		_ctrl.enemy_status[st] = _ctrl.enemy_status.get(st, 0) + acc["status_stacks"][st]
+	if not _charm_pulsed_this_turn and _ctrl.deprived_level < 1:
+		var defense_charms: Array = _ctrl.charm_paths_for_signal("defense")
+		if not defense_charms.is_empty():
+			_charm_pulsed_this_turn = true
+			_pending_defense_charms = defense_charms
 	if acc["shield"] > 0:
 		_ctrl.player_shield += acc["shield"]
 		acc["shield_gain"] = int(acc["shield"])
-		await _popup_gain("🛡+%d" % acc["shield"], Palette.POP_SHIELD, _ctrl.hud._player_sprite_anchor())
 		_ctrl.hud._log("获得 %d 护盾" % acc["shield"])
 	if acc["heal"] > 0:
 		var missing: int = _ctrl.player_hp_max - _ctrl.player_hp
@@ -495,7 +529,6 @@ func _phase_defense(acc: Dictionary) -> void:
 		acc["heal_gain"] = hp_gain
 		var overflow_shield := 0
 		if hp_gain > 0:
-			await _popup_gain("❤+%d" % hp_gain, Palette.POP_HEAL, _ctrl.hud._player_sprite_anchor())
 			_ctrl.hud._log("回复 %d HP" % hp_gain)
 		# 2026-08-07 方案 A：治疗三连溢出转护盾（满血不浪费，三连独有奖励）
 		# 三拍板②（2026-08-24）：单次溢出转盾 ≤ maxHP × heal_overflow_shield_cap_pct（20%）——
@@ -512,11 +545,7 @@ func _phase_defense(acc: Dictionary) -> void:
 			_ctrl._telemetry.on_heal(hp_gain, overflow_shield)   # Step 1 复测：治疗/转盾只统计，不改结算
 	if not acc["status_stacks"].is_empty():
 		_ctrl.hud._log("敌人获得状态: " + _ctrl.status_system.status_summary(acc["status_stacks"]))
-		await _popup_gain(_ctrl.status_system.status_summary(acc["status_stacks"]), Palette.POP_STATUS, _ctrl.hud._enemy_sprite_anchor())
-
-	_ctrl.hud._refresh_meta()
-	# 2026-11-16：原本 0.25s，抵扣逐格扫描演出的 0.21s，净增约 0.06s。
-	await _ctrl.get_tree().create_timer(0.10).timeout
+	# 状态飘字、血条刷新与收尾等待全部移到 _present_turn（敌方侧结算统一在攻击齐亮之后播报）
 
 
 # —— 阶段 3：反制（三连钩子 / 破甲 / 核爆）——
@@ -548,9 +577,9 @@ func _phase_counter(counts: Dictionary, acc: Dictionary) -> void:
 		if triple_pierce:
 			break
 	if acc.get("counter_triple", false):
-		on_counter("element")
+		on_counter("element", 3, acc)
 	elif triple_pierce:
-		on_counter("special", pierce_need)
+		on_counter("special", pierce_need, acc)
 
 
 # —— 阶段 4：攻击结算与回合收口 ——
@@ -558,6 +587,12 @@ func _phase_attack(counts: Dictionary, acc: Dictionary) -> void:
 	# —— 攻击结算（先破甲后掉血；穿透符号直接扣 HP）——
 	# Phase C：迅捷(damage_mult) 对本回合总伤害做乘算（F-0 聚合层，含护符乘区）
 	var buff_mult = agg_damage_mult()
+	# 攻击侧同理：只有「提供伤害类效果」的护符才闪。
+	if not _charm_pulsed_this_turn and _ctrl.deprived_level < 1:
+		var damage_charms: Array = _ctrl.charm_paths_for_signal("damage")
+		if not damage_charms.is_empty():
+			_charm_pulsed_this_turn = true
+			_pending_damage_charms = damage_charms
 	# 2026-11-12 Step 1：虚弱对「连线+穿透」总伤害乘算；核爆/充能爆发按 maxHP 比例，不受虚弱影响。
 	var debuff_mult: float = _ctrl.debuffs.damage_mult() if _ctrl.debuffs != null else 1.0
 	var assault = _ctrl.assault_next_spin
@@ -606,23 +641,19 @@ func _phase_attack(counts: Dictionary, acc: Dictionary) -> void:
 			elem_tag += " [抵抗]"
 		if buff_mult != 1.0:
 			elem_tag += "⚡"
-		_ctrl.hud._popup("-%d%s" % [total, elem_tag], Palette.POP_DAMAGE, _ctrl.hud._enemy_sprite_anchor())
+		# 只记账，飘字与攻击动画留到 _present_turn 的「攻击齐亮」步骤
+		acc["total_damage"] = total
+		acc["elem_tag"] = elem_tag
 		_ctrl.hud._log("连线造成 %d 伤害%s（护甲剩 %d）" % [total, elem_tag, int(_ctrl.enemy_armor)])
-		if _ctrl.hud.animator != null:
-			_ctrl.hud.animator.play_attack("player", "enemy")
 	# Step 5：底部单行短反馈（连击/克制/总伤害）。纯展示：读本回合结算结果，不改数值、不加时序等待。
 	# G7-D Step 5：护盾/治疗只报真实入账值（满血无回血时不显示「恢复」）。
 	# Step 4：破甲/核爆/充能爆发在充能爆发结算之后再统一上报（见下方 apply_enemy_hp_floor 后）。
 	# T21 元素充能：克制命中满额 → 释放元素爆发（穿透核爆 + 清甲，覆盖流爆发赛道）
 	if _ctrl.charge_points >= DuelController.BALANCE.charge_max:
 		_ctrl.charge_points = 0
-		release_element_burst()
+		release_element_burst(acc)
 	_ctrl.apply_enemy_hp_floor()   # P-审计 P1：爆发/穿透等一切扣血后统一收口（血锁防旁路）
-	_ctrl.hud._show_turn_feedback(counts, total, bool(acc.get("triple", false)), _ctrl._elem_triple,
-		int(acc.get("shield_gain", 0)), int(acc.get("heal_gain", 0)), int(acc.get("heal_overflow_shield", 0)),
-		_turn_armor_cleared, _turn_counter_burst, _turn_charge_burst)
-	_ctrl.hud._refresh_meta()   # 伤害落地后立即刷新：HP/护甲即时变化（破甲窗口需即时可见）
-	await _ctrl.get_tree().create_timer(0.35).timeout
+	# 底部短反馈 / 血条刷新 / 前摇动画全部移到 _present_turn，按「读格 → 攻击齐亮」的顺序播报
 	# 天平审判官：玩家转轮结算完成通知（空转/MISS 回合也触发，规则判定读 ctrl.grid 停轮结果）
 	if _ctrl.current_gimmick != null:
 		_ctrl.current_gimmick.on_turn_resolved(_ctrl)
@@ -634,6 +665,159 @@ func _phase_attack(counts: Dictionary, acc: Dictionary) -> void:
 	if _ctrl._telemetry != null:
 		_ctrl._telemetry.on_turn(bool(acc.get("triple", false)))   # M1-06：回合与三连率
 	_ctrl.invalidate_state()   # 伤害/护盾/充能/状态与 gimmick 钩子写入（on_special_triple/on_damaged/on_turn_resolved）统一在此覆盖
+
+
+# ---------------------------------------------------------------------------
+# 回合播报（2026-11-16）：结算与表现分离——先全部算完，再按「读格 → 攻击齐亮」回放。
+# 纯展示：只读 acc / grid，不写战斗状态、不改数值、不消耗 RNG。
+# 分组依据是「接收方」而不是「效果类型」：
+#   玩家侧收益（治疗/护盾/金币/增益）→ 按格子左到右逐个亮起并出数
+#   敌人侧结算（攻击/状态）          → 所有攻击格一起亮，只出一次总伤害
+# ---------------------------------------------------------------------------
+
+func _cell_kind(reel: int) -> String:
+	if reel < 0 or reel >= _ctrl.grid.size() or _ctrl.grid[reel].is_empty():
+		return ""
+	var sym = _ctrl.grid[reel][0]
+	return String(sym.kind) if sym != null else ""
+
+
+func _cell_source(reel: int) -> String:
+	if reel < 0 or reel >= _ctrl.grid_src.size() or _ctrl.grid_src[reel].is_empty():
+		return ""
+	return String(_ctrl.grid_src[reel][0])
+
+
+func _cell_is_gold(reel: int) -> bool:
+	if reel < 0 or reel >= _ctrl.grid.size() or _ctrl.grid[reel].is_empty():
+		return false
+	return _ctrl.grid[reel][0] == DuelController.GOLD_SYMBOL
+
+
+# 玩家侧收益格：按格读出数；其余（攻击/状态/MISS）归入「攻击齐亮」
+func _cell_is_player_gain(reel: int) -> bool:
+	if _cell_is_gold(reel):
+		return true
+	var k := _cell_kind(reel)
+	return k == "heal" or k == "shield" or k == "buff"
+
+
+func _reels_of_source(src: String) -> Array:
+	var out: Array = []
+	for reel in DuelController.REELS:
+		if _cell_source(reel) == src:
+			out.append(reel)
+	return out
+
+
+# 把某来源的总量均分到它的各格，余数给最后一格 → 各格之和必然等于总量（不会出现对不上）
+func _alloc_by_reels(total: float, reels: Array) -> Dictionary:
+	var out := {}
+	var n: int = reels.size()
+	if n <= 0:
+		return out
+	var rounded: int = int(round(total))
+	var per: int = int(floor(float(rounded) / float(n)))
+	for i in n:
+		out[int(reels[i])] = per if i < n - 1 else rounded - per * (n - 1)
+	return out
+
+
+# 该格的收益文本（治疗/护盾/金币）；无收益返回空字典
+func _gain_text_of_reel(reel: int, acc: Dictionary) -> Dictionary:
+	if _cell_is_gold(reel):
+		return {"text": "💰+%d" % int(DuelController.BALANCE.gold_per_coin), "color": Palette.POP_GOLD}
+	var src := _cell_source(reel)
+	var k := _cell_kind(reel)
+	var reels := _reels_of_source(src)
+	if k == "heal":
+		# 治疗有满血上限：按「真实入账 / 总治疗」缩放，保证各格数字之和 == 血条实际回血量
+		var scale := 0.0
+		if float(acc["heal"]) > 0.0:
+			scale = float(int(acc.get("heal_gain", 0))) / float(acc["heal"])
+		var v: int = int(_alloc_by_reels(float(acc["source_heal"].get(src, 0.0)) * scale, reels).get(reel, 0))
+		if v > 0:
+			return {"text": "❤+%d" % v, "color": Palette.POP_HEAL}
+	elif k == "shield":
+		var v2: int = int(_alloc_by_reels(float(acc["source_shield"].get(src, 0.0)), reels).get(reel, 0))
+		if v2 > 0:
+			return {"text": "🛡+%d" % v2, "color": Palette.POP_SHIELD}
+	return {}
+
+
+func _present_turn(acc: Dictionary, counts: Dictionary) -> void:
+	var tree: SceneTree = _ctrl.get_tree()
+
+	# ⓪ 牌型横幅：结算时只入队，这里统一放出，保证它是本回合演出的第一个元素
+	for b in acc.get("pending_banners", []):
+		_ctrl.hud.show_pattern_banner(String(b["text"]), b["color"])
+	if not (acc.get("pending_banners", []) as Array).is_empty():
+		await tree.create_timer(POPUP_BEAT).timeout
+
+	# ① 护符（玩家侧）先闪 → 报它的分量（守备/回春涓流不由任何格子提供，必须早于读格）
+	if not _pending_defense_charms.is_empty():
+		_ctrl.hud.pulse_charm_card(_pending_defense_charms)
+		await tree.create_timer(CHARM_FLASH_HOLD).timeout
+		var cs: int = int(acc.get("charm_shield", 0))
+		var ch: int = int(acc.get("charm_heal", 0))
+		if cs > 0:
+			_ctrl.hud._popup("🛡+%d" % cs, Palette.POP_SHIELD, _ctrl.hud._player_sprite_anchor())
+		if ch > 0:
+			_ctrl.hud._popup("❤+%d" % ch, Palette.POP_HEAL, _ctrl.hud._player_sprite_anchor())
+		if cs > 0 or ch > 0:
+			_ctrl.hud._refresh_meta()
+			await tree.create_timer(POPUP_BEAT).timeout
+
+	# ② 读格：左 → 右，逐个亮起并出数；攻击格跳过（留给 ④）
+	var attack_reels: Array = []
+	for reel in DuelController.REELS:
+		if not _cell_is_player_gain(reel):
+			attack_reels.append(reel)
+			continue
+		_ctrl.hud.sweep_light_cell(reel)
+		var g := _gain_text_of_reel(reel, acc)
+		if not g.is_empty():
+			_ctrl.hud._popup(String(g["text"]), g["color"], _ctrl.hud._player_sprite_anchor())
+			_ctrl.hud._refresh_meta()
+		await tree.create_timer(CELL_PRESENT_STEP).timeout
+
+	# ②b 无格子归属的玩家侧飘字（增益授予）——放在读格之后，避免抢在转轮前面
+	for pp in acc["pending_player_pops"]:
+		_ctrl.hud._popup(String(pp["text"]), pp["color"], _ctrl.hud._player_sprite_anchor())
+	if not (acc["pending_player_pops"] as Array).is_empty():
+		_ctrl.hud._refresh_meta()
+		await tree.create_timer(POPUP_BEAT).timeout
+
+	# ③ 护符（伤害侧）
+	if not _pending_damage_charms.is_empty():
+		_ctrl.hud.pulse_charm_card(_pending_damage_charms)
+		await tree.create_timer(CHARM_FLASH_HOLD).timeout
+
+	# ④ 攻击格齐亮 → 总伤害（数字在敌人身上，只出一次）
+	var total: int = int(acc.get("total_damage", 0))
+	if not attack_reels.is_empty():
+		_ctrl.hud.sweep_light_cells_together(attack_reels)
+		await tree.create_timer(ATTACK_FLASH_HOLD).timeout
+	if total > 0:
+		if _ctrl.hud.animator != null:
+			_ctrl.hud.animator.play_attack("player", "enemy")
+		_ctrl.hud._popup("-%d%s" % [total, String(acc.get("elem_tag", ""))], Palette.POP_DAMAGE, _ctrl.hud._enemy_sprite_anchor())
+		_ctrl.hud._refresh_meta()
+		await tree.create_timer(CELL_PRESENT_STEP).timeout
+	# ④b 敌人侧后续飘字（元素爆发 / 克制核爆）——跟在总伤害之后
+	for ep in acc["pending_enemy_pops"]:
+		_ctrl.hud._popup(String(ep["text"]), ep["color"], _ctrl.hud._enemy_sprite_anchor())
+	if not (acc["pending_enemy_pops"] as Array).is_empty():
+		await tree.create_timer(POPUP_BEAT).timeout
+	if not (acc["status_stacks"] as Dictionary).is_empty():
+		_ctrl.hud._popup(_ctrl.status_system.status_summary(acc["status_stacks"]), Palette.POP_STATUS, _ctrl.hud._enemy_sprite_anchor())
+
+	# ⑤ 收尾：底部短反馈 → 留出阅读时间
+	_ctrl.hud._show_turn_feedback(counts, total, bool(acc.get("triple", false)), _ctrl._elem_triple,
+		int(acc.get("shield_gain", 0)), int(acc.get("heal_gain", 0)), int(acc.get("heal_overflow_shield", 0)),
+		_turn_armor_cleared, _turn_counter_burst, _turn_charge_burst)
+	await tree.create_timer(TURN_TAIL_HOLD).timeout
+
 
 
 # ---------------------------------------------------------------------------
@@ -670,10 +854,14 @@ func agg_symbol_weight_mod(sym: SymbolData) -> float:
 # Phase C 主动增益：符号自描述（sym.buff_effect / buff_value / buff_turns），零查表
 # player_buffs: SymbolData -> 剩余回合数
 # ---------------------------------------------------------------------------
-func grant_buff(sym: SymbolData, mult: int) -> void:
+func grant_buff(sym: SymbolData, mult: int, acc: Dictionary = {}) -> void:
 	var add = max(1, sym.buff_turns) * mult
 	_ctrl.player_buffs[sym] = int(_ctrl.player_buffs.get(sym, 0)) + add
-	_ctrl.hud._popup("%s+%d" % [sym.label, add], Palette.POP_BUFF, _ctrl.hud._player_sprite_anchor())
+	# 入队，由 _present_turn 在读格之后统一发出（避免早于转轮读格）
+	if not acc.is_empty():
+		acc["pending_player_pops"].append({"text": "%s+%d" % [sym.label, add], "color": Palette.POP_BUFF})
+	else:
+		_ctrl.hud._popup("%s+%d" % [sym.label, add], Palette.POP_BUFF, _ctrl.hud._player_sprite_anchor())
 	_ctrl.hud._log("技能：%s %s（剩余 %d 回合）" % [sym.label, sym.name, _ctrl.player_buffs[sym]])
 
 
@@ -769,7 +957,7 @@ func apply_enemy_damage(amount: float, pierce: bool) -> float:
 # 反制即爆发（Plan C）：
 # · "special" = 通用破甲：清空敌人护甲，开启「伤害直击 HP」的爆发窗口（所有敌人通用破绽）。
 # · "element" = 进阶核爆：同族符号的克制连线，除破甲外再追加一次直接打血（穿透）的核爆伤害。
-func on_counter(kind: String, pierce_need: int = 3) -> void:
+func on_counter(kind: String, pierce_need: int = 3, acc: Dictionary = {}) -> void:
 	if _ctrl.enemy_armor > 0:
 		var cleared := int(_ctrl.enemy_armor)
 		_turn_armor_cleared += cleared   # Step 4：结果反馈报真实破甲量
@@ -786,7 +974,10 @@ func on_counter(kind: String, pierce_need: int = 3) -> void:
 			apply_enemy_damage(burst, true)
 			if _ctrl._telemetry != null:
 				_ctrl._telemetry.on_counter_burst(burst)
-			_ctrl.hud._popup("💥克制核爆!-%d" % burst, Palette.POP_DAMAGE, _ctrl.hud._enemy_sprite_anchor())
+			if not acc.is_empty():
+				acc["pending_enemy_pops"].append({"text": "💥克制核爆!-%d" % burst, "color": Palette.POP_DAMAGE})
+			else:
+				_ctrl.hud._popup("💥克制核爆!-%d" % burst, Palette.POP_DAMAGE, _ctrl.hud._enemy_sprite_anchor())
 			_ctrl.hud._log("⚡ 克制同族连线触发核爆：%d 伤害（穿透护甲）" % burst)
 	if _ctrl.hud.animator != null:
 		_ctrl.hud.animator.play_counter(kind)
@@ -817,7 +1008,7 @@ func tick_status() -> void:
 # 清甲 + 穿透核爆（无视护甲直击 HP），与三连破甲/核爆互补（分散积累 vs 单次高概率）。
 # 2026-08-14 主导元素：按本回合克制命中最多的元素，追加一次元素附伤（吃克制 ×1.5/×0.85）——
 # 「元素身份感」回归（爆发记住你主要用哪个元素），池子不拆、HUD 不变、混合构筑不惩罚。
-func release_element_burst() -> void:
+func release_element_burst(acc: Dictionary = {}) -> void:
 	var burst := int(_ctrl.enemy_hp_max * DuelController.BALANCE.charge_burst_pct)
 	if _ctrl.enemy_armor > 0:
 		_turn_armor_cleared += int(_ctrl.enemy_armor)   # Step 4：结果反馈报真实破甲量
@@ -827,7 +1018,7 @@ func release_element_burst() -> void:
 	if burst > 0:
 		_turn_charge_burst += burst   # Step 4：充能爆发与连线伤害分开报
 		apply_enemy_damage(burst, true)
-		_ctrl.hud._popup("⚡元素爆发!-%d" % burst, Palette.POP_DAMAGE, _ctrl.hud._enemy_sprite_anchor())
+		acc["pending_enemy_pops"].append({"text": "⚡元素爆发!-%d" % burst, "color": Palette.POP_DAMAGE})
 		_ctrl.hud._log("⚡ 元素充能爆发：%d 穿透伤害（直击 HP，无视护甲）" % burst)
 	var lead := ""
 	var lead_max := 0
@@ -841,7 +1032,7 @@ func release_element_burst() -> void:
 		if extra > 0:
 			_turn_charge_burst += extra
 			apply_enemy_damage(float(extra), false)
-			_ctrl.hud._popup("%s爆发!-%d" % [ElementCounter.label(lead), extra], ElementCounter.color(lead), _ctrl.hud._enemy_sprite_anchor())
+			acc["pending_enemy_pops"].append({"text": "%s爆发!-%d" % [ElementCounter.label(lead), extra], "color": ElementCounter.color(lead)})
 			_ctrl.hud._log("⚡ %s系爆发附伤：%d（×%s）" % [ElementCounter.label(lead), extra, ElementCounter.fmt_mult(em)])
 	if _ctrl.hud.animator != null:
 		_ctrl.hud.animator.play_counter("element")

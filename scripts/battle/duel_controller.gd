@@ -267,6 +267,29 @@ var charm_charge_start: int = 0         # 深渊凝视：每回合开始元素�
 var charm_first_hit: float = 1.0        # 碎片王冠：每回合首个伤害符号倍率（1.5 = ×1.5）
 var _turn_hit_used := false             # 碎片王冠：本回合是否已吃过首击加成（evaluate 重置）
 
+# 护符明细（2026-11-16 第二步）：整备时每个护符一条，供战斗表现按「是哪个护符在起作用」高亮。
+# 聚合字段（charm_damage_mult 等）仍是结算唯一口径；这里只做归因，不参与任何计算。
+var charm_breakdown: Array = []   # [{path, effect, value, mult, downside_effect}]
+
+# 表现信号 → 会响应该信号的护符效果类型。
+const CHARM_SIGNAL_EFFECTS := {
+	"defense": ["shield", "heal", "room_shield"],
+	"damage": ["damage_mult", "damage_bonus", "element_boost", "armor_pierce", "first_hit"],
+	"status": ["status_boost", "dot_amp"],
+	"thorns": ["thorns"],
+}
+
+
+func charm_paths_for_signal(signal_key: String) -> Array:
+	var want: Array = CHARM_SIGNAL_EFFECTS.get(signal_key, [])
+	var out: Array = []
+	if want.is_empty():
+		return out
+	for e in charm_breakdown:
+		if want.has(String(e.get("effect", ""))):
+			out.append(String(e.get("path", "")))
+	return out
+
 # 流程状态（enum 化：原字符串字面量易拼错且无编译期检查）
 enum FlowState { PLAYING, WON, LOST }
 var game_state: FlowState = FlowState.PLAYING

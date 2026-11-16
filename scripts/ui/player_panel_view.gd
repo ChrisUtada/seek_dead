@@ -43,7 +43,7 @@ const CARD_NAME_W := 36.0
 
 # 单张大图标卡片：PanelContainer（1px 细框）+ [24/16 图标 或 emoji] + 单行短名。
 # 文案一律 clip，不撑宽；完整信息由调用方放进 tooltip。
-func _make_gear_card(art: Texture2D, art_size: Vector2, emoji: String, short_name: String, tip: String) -> PanelContainer:
+func _make_gear_card(art: Texture2D, art_size: Vector2, emoji: String, short_name: String, tip: String, compact: bool = false) -> PanelContainer:
 	if _card_style == null:
 		_card_style = StyleBoxFlat.new()
 		_card_style.bg_color = Palette.CARD_BG
@@ -51,7 +51,8 @@ func _make_gear_card(art: Texture2D, art_size: Vector2, emoji: String, short_nam
 		_card_style.set_border_width_all(Palette.BORDER_WIDTH)
 		_card_style.set_content_margin_all(1)
 	var card := PanelContainer.new()
-	card.custom_minimum_size = CARD_MIN
+	# compact：多护符并排时用（左栏只有 88px，3 张 38px 卡放不下），只保留图标、名字交给 tooltip
+	card.custom_minimum_size = Vector2(26, 32) if compact else CARD_MIN
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	card.tooltip_text = tip
 	card.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -83,6 +84,8 @@ func _make_gear_card(art: Texture2D, art_size: Vector2, emoji: String, short_nam
 		el.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		el.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		vb.add_child(el)
+	if compact:
+		return card   # 紧凑卡不放名字，避免卡片被文字撑宽、并在 26px 里挤成省略号
 	var nl := Label.new()
 	nl.text = short_name
 	nl.custom_minimum_size = Vector2(CARD_NAME_W, 0)
@@ -98,6 +101,43 @@ func _make_gear_card(art: Texture2D, art_size: Vector2, emoji: String, short_nam
 # 装备图标刷新（C2）：双武器 → 两列大卡片；技能 / 护符 → 并排大卡片。
 # 武器取 24×24 art，无 art 才回落 16 icon_tex / emoji；完整名、元素、R 熟练、铭印进 tooltip。
 # 技能/护符只占一张主卡，其余条目与技艺全部并入 tooltip（避免把卡片挤成多行小字）。
+# 护符生效脉冲（2026-11-16）：护符不进转轮，无法靠格子高亮表达「它在起作用」，
+# 因此在左栏护符卡上做一次金色脉冲。用 modulate + scale 而不是改 StyleBox
+# —— _card_style 是所有卡片共享的同一个 StyleBoxFlat 实例，改它会波及全部卡片。
+var _charm_pulse_tweens: Array = []
+
+
+func pulse_charm_card(paths: Array = []) -> void:
+	if charms_row == null:
+		return
+	# 护符可能是「CCard」（单个）或「CCard_i_xxx」（多个紧凑卡）——
+	# 因为整备时护符已被压成总账（charm_damage_mult / *_trickle 等），
+	# 调用方通过 paths 传入本回合真正响应的护符路径（来自 ctrl.charm_breakdown），
+	# 因此能精确亮到「是哪一个护符在起作用」；空数组时退化为全部脉冲。
+	for t in _charm_pulse_tweens:
+		if t != null and is_instance_valid(t) and t.is_valid():
+			t.kill()
+	_charm_pulse_tweens.clear()
+	for child in charms_row.get_children():
+		var card := child as Control
+		if card == null or not card.name.begins_with("CCard"):
+			continue
+		# 传了 paths 就只脉冲命中的那张卡（来自 ctrl.charm_breakdown 归因）；空数组 = 全部（兜底）
+		if not paths.is_empty() and not paths.has(String(card.get_meta("charm_path", ""))):
+			continue
+		card.modulate = Color.WHITE
+		card.pivot_offset = card.size * 0.5
+		# 本类不是 Node（无 create_tween），由卡片节点自己创建 tween。
+		var tw := card.create_tween()
+		tw.set_parallel(true)
+		tw.tween_property(card, "modulate", Color(2.2, 1.85, 0.85, 1.0), 0.14)
+		tw.tween_property(card, "scale", Vector2(1.10, 1.10), 0.14)
+		tw.set_parallel(false)
+		tw.tween_property(card, "modulate", Color.WHITE, 0.40)
+		tw.parallel().tween_property(card, "scale", Vector2.ONE, 0.40)
+		_charm_pulse_tweens.append(tw)
+
+
 func refresh_gear_icons() -> void:
 	if weapons_row == null or charms_row == null or skills_row == null:
 		return
@@ -175,22 +215,31 @@ func refresh_gear_icons() -> void:
 	if charm_paths.is_empty():
 		charms_row.add_child(_make_gear_card(null, Vector2(16, 16), "🛡", "无护符", "未装备护符"))
 	else:
-		var cd = load(charm_paths[0])
-		var c_name: String = String(cd.get("item_name")) if cd != null and cd.get("item_name") != null else charm_paths[0].get_file().get_basename()
-		var c_desc: String = String(cd.get("description")) if cd != null and cd.get("description") != null else ""
-		var c_tip := c_name + (" · " + c_desc if c_desc != "" else "")
-		if charm_paths.size() > 1:
-			var c_others: Array[String] = []
-			for cp in charm_paths.slice(1):
-				var od2 = load(cp)
-				c_others.append(String(od2.get("item_name")) if od2 != null and od2.get("item_name") != null else cp.get_file().get_basename())
-			c_tip += "\n其他护符: " + "、".join(c_others)
-		var c_icon_tex: Texture2D = cd.get("icon_tex") if cd != null else null
-		var c_emoji: String = ""
-		var c_label: String = c_name if charm_paths.size() == 1 else "%s+%d" % [c_name, charm_paths.size() - 1]
-		var ccard := _make_gear_card(c_icon_tex, Vector2(16, 16), "", c_label, c_tip)
-		ccard.name = "CCard"
-		charms_row.add_child(ccard)
+		# 2026-11-16：护符逐个成卡。原先只显示「主护符+N」一张合并卡，
+		# 多护符时玩家分不出个体，也无法在生效时对应高亮。
+		# 左栏仅 88px 宽：1 张走常规卡（带名字），2~3 张改紧凑卡（只显示图标、名字进 tooltip）。
+		if charm_paths.size() == 1:
+			var cd = load(charm_paths[0])
+			var c_name: String = String(cd.get("item_name")) if cd != null and cd.get("item_name") != null else charm_paths[0].get_file().get_basename()
+			var c_desc: String = String(cd.get("description")) if cd != null and cd.get("description") != null else ""
+			var c_tip := c_name + (" · " + c_desc if c_desc != "" else "")
+			var c_icon_tex: Texture2D = cd.get("icon_tex") if cd != null else null
+			var ccard := _make_gear_card(c_icon_tex, Vector2(16, 16), "", c_name, c_tip)
+			ccard.name = "CCard"
+			ccard.set_meta("charm_path", String(charm_paths[0]))
+			charms_row.add_child(ccard)
+		else:
+			for i in charm_paths.size():
+				var cp: String = String(charm_paths[i])
+				var cdo = load(cp)
+				var nm := String(cdo.get("item_name")) if cdo != null and cdo.get("item_name") != null else cp.get_file().get_basename()
+				var ds := String(cdo.get("description")) if cdo != null and cdo.get("description") != null else ""
+				var tip := nm + (" · " + ds if ds != "" else "")
+				var ctex: Texture2D = cdo.get("icon_tex") if cdo != null else null
+				var cc := _make_gear_card(ctex, Vector2(16, 16), "", "", tip, true)
+				cc.name = "CCard_%d_%s" % [i, cp.get_file().get_basename()]
+				cc.set_meta("charm_path", cp)
+				charms_row.add_child(cc)
 
 
 # 腰带 4 格刷新（C2-3）：方格内「居中图标 + 剩余次数」；名称与详情进 tooltip。

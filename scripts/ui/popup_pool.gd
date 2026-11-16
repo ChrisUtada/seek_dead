@@ -8,7 +8,7 @@ extends Control
 
 const POOL_SIZE := 16
 const RISE_PX := 14.0
-const DURATION := 0.8
+const DURATION := 1.1
 # 🔴 同锚点堆叠：一回合内金币/护盾/治疗会在同一帧各自弹字，原来全部从同一个 y 起跳、
 # 上浮路径完全重合 → 数字叠死读不出来。这里按「该锚点当前活跃飘字条数」逐条上移，
 # 让同时出现的数字垂直错开。上限 STACK_MAX 防止堆太高压出屏幕。
