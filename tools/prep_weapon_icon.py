@@ -144,7 +144,11 @@ def de_green(im: Image.Image, keep: int = 4):
 
     2026-11-13：AI 反复把 "dark charcoal iron / soot-black steel" 出成暗橄榄绿
     （实测 5 张火系重出图主体 G 通道普遍高于 R），与已接入的暗铁体系不协调。
-    只压 G：G > R 的像素把 G 拉到 R+keep，火焰橙红本就 R > G 不受影响，alpha 全保留。
+
+    2026-11-16 修正判据：原条件只有 G > R，会把**冰蓝色**也误判成偏绿 ——
+    冰蓝典型值 (111,183,201) 同样是 G > R，但它的 B 更高。压缩 G 会直接毁掉冰系配色。
+    因此追加 `g > b` 条件：只有「绿大于红、且绿也大于蓝」的黄绿/橄榄才处理。
+    火焰橙红（R > G）与冰蓝（B > G）都不受影响，alpha 全保留。
     """
     out = im.copy()
     dst = out.load()
@@ -152,11 +156,76 @@ def de_green(im: Image.Image, keep: int = 4):
     for y in range(im.height):
         for x in range(im.width):
             r, g, b, a = im.getpixel((x, y))
-            if a == 0 or g <= r:
+            if a == 0 or g <= r or g < b:
                 continue
             dst[x, y] = (r, min(g, r + keep), b, a)
             n += 1
     return out, n
+
+
+def drop_islands(im: Image.Image, min_px: int = 16):
+    """删除小于 min_px 的孤立连通块（原图残留在裁边后剩下的碎片）。
+
+    2026-11-16：`ice_gun` 出图后右上角残留一块 13 像素的碎块，缩到 48px 后仍可见，
+    在转轮格子里特别扎眼。这里按 8-邻接做连通域分析，只保留面积 >= min_px 的块。
+    96px 尺度上 16 像素 ≈ 4×4，正常武器部件都远大于此，不会误删。
+    """
+    from collections import deque
+
+    w, h = im.size
+    alpha = im.getchannel("A")
+    seen = [[False] * w for _ in range(h)]
+    keep = Image.new("L", (w, h), 0)
+    kp = keep.load()
+    removed = 0
+    for y in range(h):
+        for x in range(w):
+            if seen[y][x] or alpha.getpixel((x, y)) <= 8:
+                continue
+            q = deque([(x, y)])
+            seen[y][x] = True
+            pts = []
+            while q:
+                cx, cy = q.popleft()
+                pts.append((cx, cy))
+                for dx in (-1, 0, 1):
+                    for dy in (-1, 0, 1):
+                        if dx == 0 and dy == 0:
+                            continue
+                        nx, ny = cx + dx, cy + dy
+                        if 0 <= nx < w and 0 <= ny < h and not seen[ny][nx] \
+                                and alpha.getpixel((nx, ny)) > 8:
+                            seen[ny][nx] = True
+                            q.append((nx, ny))
+            if len(pts) >= min_px:
+                for px_, py_ in pts:
+                    kp[px_, py_] = 255
+            else:
+                removed += len(pts)
+    out = im.copy()
+    out.putalpha(Image.composite(im.getchannel("A"), Image.new("L", (w, h), 0), keep))
+    return out, removed
+
+
+def apply_gamma(im: Image.Image, g: float):
+    """整体提亮 / 压暗（g > 1 提亮，g < 1 压暗，1.0 = 不处理），alpha 全保留。
+
+    2026-11-16：AI 对同一提示词给出的明暗差异很大 —— 战斧两版分别是 meanL 35.6 与 97.1，
+    差将近 3 倍，靠重出收敛不了。与其反复出图，不如把亮度过高/过低的那版用 gamma 拉回
+    目标区间（武器图标锚点 42–88）。
+    """
+    if abs(g - 1.0) < 1e-4:
+        return im
+    out = im.copy()
+    dst = out.load()
+    tab = [min(255, round(((i / 255.0) ** (1.0 / g)) * 255)) for i in range(256)]
+    for y in range(im.height):
+        for x in range(im.width):
+            r, gg, b, a = im.getpixel((x, y))
+            if a == 0:
+                continue
+            dst[x, y] = (tab[r], tab[gg], tab[b], a)
+    return out
 
 
 def main():
@@ -171,6 +240,10 @@ def main():
                      help="把偏绿的暗铁色调压回中性（AI 把 charcoal iron 出成橄榄绿时用）")
     ap.add_argument("--degreen-keep", type=int, default=4,
                      help="degreen 后允许 G 超出 R 的余量")
+    ap.add_argument("--gamma", type=float, default=1.0,
+                     help=">1 提亮 / <1 压暗（武器锚点 meanL 42–88），1 = 不处理")
+    ap.add_argument("--drop-islands", type=int, default=60,
+                     help="删除小于该像素数的孤立碎块（0 = 关闭）；裁边后残留的原图碎片")
     args = ap.parse_args()
 
     os.makedirs(args.out, exist_ok=True)
@@ -187,6 +260,9 @@ def main():
     if args.degreen:
         content, dg = de_green(content, args.degreen_keep)
         print(f"de-green: {dg} px 压回中性")
+    if abs(args.gamma - 1.0) > 1e-4:
+        content = apply_gamma(content, args.gamma)
+        print(f"gamma: {args.gamma}")
     cw, ch = content.size
     side = max(cw, ch)
     pad = int(side * 0.06)
@@ -194,8 +270,14 @@ def main():
     canvas.alpha_composite(content, ((canvas.width - cw) // 2, (canvas.height - ch) // 2))
 
     i96 = canvas.resize((96, 96), Image.LANCZOS)
+    # 碎块清理放在 96 尺度：阈值语义才和最终图标同量级（96px 上 60 ≈ 8×8）。
+    # 在原始 1024 尺度上判断会因为同一块被放大十几倍而从不触发 —— ice_gun 实测碎片
+    # 在 48px 是 13px、96px 是 35px、原图是上千 px，阈值只有放在 96 才准。
+    if args.drop_islands > 0:
+        i96, dropped = drop_islands(i96, args.drop_islands)
+        if dropped:
+            print(f"drop-islands: 删除 {dropped} px 碎片")
     i48 = i96.resize((48, 48), Image.BOX)
-
     p96 = os.path.join(args.out, f"icon_{args.wid}_96.png")
     p48 = os.path.join(args.out, f"icon_{args.wid}.png")
     i96.save(p96)
