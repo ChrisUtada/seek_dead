@@ -522,13 +522,10 @@ func _sync_pattern_source_meta() -> void:
 # 载入 resources/patterns 下的全部牌谱（Step 2 起 S01–S06 生效；后续扩展只加资源）。
 func _load_pattern_system():
 	var sys = preload("res://scripts/battle/pattern_system.gd").new()
-	var dir := DirAccess.open("res://resources/patterns")
-	if dir == null:
-		return sys
-	for f in dir.get_files():
-		if not f.ends_with(".tres"):
-			continue
-		var pd = load("res://resources/patterns/" + f)
+	# 🔴 必须走 ResourceScan（ResourceLoader.list_directory）：导出构建中 DirAccess 对 res://
+	# 只返回 .gd/.import，用 DirAccess + ends_with(".tres") 会让牌谱在导出包里全部丢失。
+	for p in ResourceScan.scan_paths("res://resources/patterns"):
+		var pd = load(p)
 		if pd != null:
 			sys.register(pd)
 	return sys

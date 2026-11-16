@@ -368,13 +368,12 @@ func _build_index() -> void:
 	_by_path.clear()
 	_res_by_path.clear()
 	for kind in DIRS:
-		var dir := DirAccess.open(String(DIRS[kind]))
-		if dir == null:
-			continue
-		for f in dir.get_files():
-			if not f.ends_with(".tres"):
-				continue
-			var path := String(DIRS[kind]) + "/" + f
+		# 🔴 必须走 ResourceScan（= ResourceLoader.list_directory），不能用 DirAccess。
+		# 导出构建中 DirAccess.get_files() 对 res:// 只返回 .gd/.import，.tres 已转二进制存于 PCK
+		# 且带 `.tres.remap` 中转文件，原实现 `f.ends_with(".tres")` 一个也匹配不上
+		# → _index 为空 → 商店货架 / 奖励三选一 / 战利品 全部没有内容。编辑器里是明文 .tres 所以不复现。
+		# 同类修复见 scripts/utils/resource_scan.gd 的注释（2026-08-10）。
+		for path in ResourceScan.scan_paths(String(DIRS[kind])):
 			var res: Resource = load(path)
 			if res == null:
 				continue
@@ -396,7 +395,7 @@ func _build_index() -> void:
 				"family_tags": fams if fams is Array else [],
 				"act_min": int(amin) if amin != null else 1,
 				"act_max": int(amax) if amax != null else 99,
-				"relic": f.contains("_relic"),
+				"relic": path.contains("_relic"),
 			})
 			_by_path[path] = _index[_index.size() - 1]
 			_res_by_path[path] = res
