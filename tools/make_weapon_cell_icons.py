@@ -49,6 +49,63 @@ def read_element(weapon_id: str) -> str:
     return m.group(1) if m else "none"
 
 
+def outline_color(weapon_id: str) -> tuple:
+    """描边色 = 武器元素色的 60% 暗版。
+
+    2026-11-16 实测两轮调整：
+      ① 直接用元素色（光系 #E8D89A，亮度 214）—— 1px 描边在 32px 图标上占比很大，
+         把格子平均亮度从 78 拉到 153，描边盖过了图标本身；
+      ② 只加亮度上限（cap 150）—— 仍偏亮，金黄描边比暗铁剑身更抢眼。
+    最终用 60% 暗版：轮廓清楚、颜色属同一族、不抢主体。毒系的荧光绿框也变成
+    暗橄榄框，(127,163,58) -> (76,97,34)。
+    """
+    col = ELEMENT_COLORS.get(read_element(weapon_id), ELEMENT_COLORS["none"])
+    return tuple(int(c * 0.6) for c in col)
+
+
+def mean_l(im: Image.Image) -> float:
+    px = [(r, g, b) for r, g, b, a in im.getdata() if a > 128]
+    if not px:
+        return 0.0
+    return sum((r * 299 + g * 587 + b * 114) // 1000 for r, g, b in px) / len(px)
+
+
+def gamma_up(im: Image.Image, g: float) -> Image.Image:
+    """提亮（与 prep_weapon_icon.py 的 --gamma 同式），alpha 保留。"""
+    out = im.copy()
+    dst = out.load()
+    tab = [min(255, round(((i / 255.0) ** (1.0 / g)) * 255)) for i in range(256)]
+    for y in range(im.height):
+        for x in range(im.width):
+            r, gg, b, a = im.getpixel((x, y))
+            if a == 0:
+                continue
+            dst[x, y] = (tab[r], tab[gg], tab[b], a)
+    return out
+
+
+def ensure_visible(im: Image.Image, floor_l: float = 50.0) -> Image.Image:
+    """32px 图标在深色格底（约 RGB 29,18,25 / 亮度 21）上要有最低可见度。
+
+    2026-11-16：去掉描边后 `dawn_bow` 只有 meanL 37 —— 弓弦这类细线在 96→32 的
+    BOX 缩放下被抗锯齿稀释，主体只剩暗部，在格底上几乎看不见。这里用 gamma 把
+    低于下限的图标提亮到 floor_l 附近（只提亮，不压暗，避免破坏原有暗调设计）。
+    """
+    cur = mean_l(im)
+    if cur <= 0 or cur >= floor_l:
+        return im
+    best = im
+    best_gap = abs(cur - floor_l)
+    for g in (1.2, 1.4, 1.6, 1.8, 2.0, 2.3):
+        t = gamma_up(im, g)
+        gap = abs(mean_l(t) - floor_l)
+        if gap < best_gap:
+            best, best_gap = t, gap
+        if mean_l(t) >= floor_l:
+            break
+    return best
+
+
 def add_outline(im: Image.Image, color, dilate: int = 1, alpha: int = 255) -> Image.Image:
     """在图标非透明区外侧描一圈元素色（1px），让暗色武器在深色格子底上跳出来。"""
     a = im.getchannel("A")
@@ -80,8 +137,9 @@ def add_outline(im: Image.Image, color, dilate: int = 1, alpha: int = 255) -> Im
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--only", default="", help="逗号分隔的武器 id；留空 = 全量")
-    ap.add_argument("--no-outline", action="store_true", help="不描元素色（纯降采样）")
-    ap.add_argument("--outline-alpha", type=int, default=255, help="描边不透明度，150 更柔和")
+    ap.add_argument("--no-outline", action="store_true", help="不描元素色（默认即不描边，保留此参数兼容旧调用）")
+    ap.add_argument("--outline-alpha", type=int, default=0,
+                     help="描边不透明度；0 = 不描边（默认）。🔴 描边会填死细缝，见 outline_color 注释")
     args = ap.parse_args()
     only = {s.strip() for s in args.only.split(",") if s.strip()}
 
@@ -98,14 +156,14 @@ def main() -> None:
             skipped += 1
             continue
         small = im.resize((SIDE, SIDE), Image.BOX)
-        if not args.no_outline:
-            elem = read_element(wid)
-            small = add_outline(small, ELEMENT_COLORS.get(elem, ELEMENT_COLORS["none"]),
+        if not args.no_outline and args.outline_alpha > 0:
+            small = add_outline(small, outline_color(wid),
                                 dilate=1, alpha=args.outline_alpha)
+        small = ensure_visible(small)
         small.save(os.path.join(DST, f"icon_{wid}_{SIDE}.png"))
         made += 1
     print(f"生成 {made} 个 {SIDE}px 格子图标 -> {DST}"
-          + ("（无描边）" if args.no_outline else "（含元素色描边）")
+          + ("（无描边）" if args.no_outline else "（无描边 + 可见度下限）")
           + (f"（跳过 {skipped}）" if skipped else ""))
     if only:
         missing = only - {f[len('icon_'):-len('_96.png')] for f in names}

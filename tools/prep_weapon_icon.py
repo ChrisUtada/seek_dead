@@ -139,16 +139,19 @@ def principal_axis(im: Image.Image) -> float:
     return math.degrees(0.5 * math.atan2(2 * sxy, sxx - syy))
 
 
-def de_green(im: Image.Image, keep: int = 4):
+def de_green(im: Image.Image, keep: int = 0):
     """把偏绿的暗铁色调压回中性/暖调。
 
     2026-11-13：AI 反复把 "dark charcoal iron / soot-black steel" 出成暗橄榄绿
     （实测 5 张火系重出图主体 G 通道普遍高于 R），与已接入的暗铁体系不协调。
 
-    2026-11-16 修正判据：原条件只有 G > R，会把**冰蓝色**也误判成偏绿 ——
-    冰蓝典型值 (111,183,201) 同样是 G > R，但它的 B 更高。压缩 G 会直接毁掉冰系配色。
-    因此追加 `g > b` 条件：只有「绿大于红、且绿也大于蓝」的黄绿/橄榄才处理。
-    火焰橙红（R > G）与冰蓝（B > G）都不受影响，alpha 全保留。
+    2026-11-16 重写判据。原实现是「G > R 就把 G 压到 R+4」，有两个缺陷：
+      ① 冰蓝 (111,183,201) 同样 G > R，会被压成紫灰，毁掉冰系配色；
+      ② 只压到 R+4，对 B 很低的黄绿（如 (52,56,44)）压完仍是黄绿。
+    新判据 = 绿通道同时高于红和蓝才算黄绿/橄榄，把 G 压到 max(R, B) + keep：
+      · 冰蓝（B 最高）与火橙/旧金（R 最高）天然不受影响，无需特判；
+      · 暗铁 (52,56,44) -> (52,52,44)，真正回到中性。
+    keep 是允许的余量，默认 0（最中性）；想保留一丝暖调可给 2–4。
     """
     out = im.copy()
     dst = out.load()
@@ -156,9 +159,14 @@ def de_green(im: Image.Image, keep: int = 4):
     for y in range(im.height):
         for x in range(im.width):
             r, g, b, a = im.getpixel((x, y))
-            if a == 0 or g <= r or g < b:
+            if a == 0:
                 continue
-            dst[x, y] = (r, min(g, r + keep), b, a)
+            if g <= max(r, b) + keep:
+                continue
+            # 绿色主导：直接灰度化。只压 G 不够 —— (90,95,60) 这类像素压到 cap 后
+            # 仍是黄绿（因为 B 太低），必须把三通道统一到亮度才真正回到中性铁。
+            lum = (r * 299 + g * 587 + b * 114) // 1000
+            dst[x, y] = (lum, lum, lum, a)
             n += 1
     return out, n
 
@@ -238,7 +246,7 @@ def main():
     ap.add_argument("--tol", type=int, default=35, help="dark 模式色距阈值")
     ap.add_argument("--degreen", action="store_true",
                      help="把偏绿的暗铁色调压回中性（AI 把 charcoal iron 出成橄榄绿时用）")
-    ap.add_argument("--degreen-keep", type=int, default=4,
+    ap.add_argument("--degreen-keep", type=int, default=0,
                      help="degreen 后允许 G 超出 R 的余量")
     ap.add_argument("--gamma", type=float, default=1.0,
                      help=">1 提亮 / <1 压暗（武器锚点 meanL 42–88），1 = 不处理")
