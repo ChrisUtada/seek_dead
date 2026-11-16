@@ -1,8 +1,9 @@
-[gd_resource type="Resource" script_class="SkillData" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="SkillData" load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/items/skill_data.gd" id="1"]
 [ext_resource type="Resource" path="res://resources/symbols/ember.tres" id="2"]
 
+[ext_resource type="Texture2D" path="res://assets/icons/items/icon_ember.png" id="ico"]
 [resource]
 script = ExtResource("1")
 buff_id = "ember"
@@ -11,7 +12,8 @@ rarity = "uncommon"
 base_power = 6.0
 hit_rate = 0.86
 buff_name = "余烬"
-icon = "🔥"
+icon = ""
+icon_tex = ExtResource("ico")
 description = "余烬落线：挂灼烧 DoT——burn 无视护甲，碎裂魔王 P2 叠盾期跨阶段削血（草案克制解）。"
 symbol = ExtResource("2")
 weight = 1.0

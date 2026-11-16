@@ -2,14 +2,16 @@
 
 [ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
 
+[ext_resource type="Texture2D" path="res://assets/icons/items/icon_purify_potion.png" id="ico"]
 [resource]
 script = ExtResource("1")
 rarity = "uncommon"
 category = "active"
 item_id = "purify_potion"
+icon_tex = ExtResource("ico")
 item_name = "净化药剂"
 description = "清除敌人的干扰意图。"
-icon = "🧪"
+icon = ""
 effect = "purify"
 value = 0
 charges = 1

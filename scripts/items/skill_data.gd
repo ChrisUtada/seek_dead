@@ -18,7 +18,8 @@ extends LoadoutItem
 
 @export var buff_id: String = ""
 @export var buff_name: String = ""
-@export var icon: String = "✦"            # 展示用字符
+@export var icon: String = "✦"            # 展示用字符（icon_tex 为空时的回落）
+# icon_tex 由父类 LoadoutItem 提供（scripts/battle/loadout_item.gd），不要在这里重复声明。
 @export var description: String = ""
 @export var symbol: SymbolData            # 该技能在转轮上的符号（自带效果字段）
 @export var weight: float = 3.0           # 注入转轮池的权重

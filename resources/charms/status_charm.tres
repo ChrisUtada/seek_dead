@@ -2,14 +2,16 @@
 
 [ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
 
+[ext_resource type="Texture2D" path="res://assets/icons/items/icon_status_charm.png" id="ico"]
 [resource]
 script = ExtResource("1")
 rarity = "rare"
 category = "passive"
 item_id = "status_charm"
+icon_tex = ExtResource("ico")
 item_name = "疫病祭符"
 description = "灼烧/霜冻/毒伤害 ×1.5，状态叠加轴投资（T2）。"
-icon = "☠️"
+icon = ""
 effect = "status_boost"
 mult_value = 1.5
 family_tags = Array[String](["fire", "ice", "poison"])

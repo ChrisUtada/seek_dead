@@ -64,9 +64,13 @@ func _make_gear_card(art: Texture2D, art_size: Vector2, emoji: String, short_nam
 	if art != null:
 		var tr := TextureRect.new()
 		tr.texture = art
+		# 🔴 TextureRect 默认 expand_mode = EXPAND_KEEP_SIZE（最小尺寸跟着纹理走），
+		# 且 STRETCH_KEEP_CENTERED 不缩放 —— 48px 物品图标会按原尺寸撑大整行卡片。
+		# 必须 EXPAND_IGNORE_SIZE + KEEP_ASPECT_CENTERED 才会缩到 art_size。
+		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		tr.custom_minimum_size = art_size
 		tr.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-		tr.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		vb.add_child(tr)
 	else:
@@ -160,9 +164,9 @@ func refresh_gear_icons() -> void:
 		if not perk_lines.is_empty():
 			s_tip += "\n技艺: " + " / ".join(perk_lines)
 		var s_icon_tex: Texture2D = sd.get("icon_tex") if sd != null else null
-		var s_emoji: String = String(sd.get("icon")) if sd != null and sd.get("icon") != null else "✦"
+		var s_emoji: String = ""
 		var s_label: String = s_name if skill_paths.size() == 1 else "%s+%d" % [s_name, skill_paths.size() - 1]
-		var scard := _make_gear_card(s_icon_tex, Vector2(16, 16), s_emoji, s_label, s_tip)
+		var scard := _make_gear_card(s_icon_tex, Vector2(16, 16), "", s_label, s_tip)
 		scard.name = "SCard"
 		skills_row.add_child(scard)
 
@@ -182,9 +186,9 @@ func refresh_gear_icons() -> void:
 				c_others.append(String(od2.get("item_name")) if od2 != null and od2.get("item_name") != null else cp.get_file().get_basename())
 			c_tip += "\n其他护符: " + "、".join(c_others)
 		var c_icon_tex: Texture2D = cd.get("icon_tex") if cd != null else null
-		var c_emoji: String = String(cd.get("icon")) if cd != null and cd.get("icon") != null else "🛡"
+		var c_emoji: String = ""
 		var c_label: String = c_name if charm_paths.size() == 1 else "%s+%d" % [c_name, charm_paths.size() - 1]
-		var ccard := _make_gear_card(c_icon_tex, Vector2(16, 16), c_emoji, c_label, c_tip)
+		var ccard := _make_gear_card(c_icon_tex, Vector2(16, 16), "", c_label, c_tip)
 		ccard.name = "CCard"
 		charms_row.add_child(ccard)
 
@@ -202,8 +206,14 @@ func refresh_consumable_panel() -> void:
 			var cd: Resource = load(slot["path"])
 			var charges: int = int(slot["charges"])
 			if cd != null:
-				# 有 icon_tex 用 16px 图标 + ×N；无图回落 emoji + ×N（两者总宽都 ≤ 32px 内容区）
+				# 有 icon_tex 用图标 + ×N；无图回落 emoji + ×N（两者总宽都 ≤ 32px 内容区）
+				# 🔴 腰带格是 34×30（tscn custom_minimum_size），物品图标是 48px —— 不限制宽度
+				# 会顶满整格并盖住 ×N 计数。这里按注释原本的 16px 口径限制。
 				cell.icon = cd.get("icon_tex")
+				# 🔴 icon_max_width 是 theme constant（不是属性），须用 add_theme_constant_override
+				if cell.icon != null:
+					cell.expand_icon = true
+					cell.add_theme_constant_override("icon_max_width", 16)
 				if cell.icon == null:
 					cell.text = "%s×%d" % [cd.icon, charges]
 				else:

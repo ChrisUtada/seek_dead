@@ -2,14 +2,16 @@
 
 [ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
 
+[ext_resource type="Texture2D" path="res://assets/icons/items/icon_holy_grail.png" id="ico"]
 [resource]
 script = ExtResource("1")
 rarity = "rare"
 category = "active"
 item_id = "holy_grail"
+icon_tex = ExtResource("ico")
 item_name = "圣光圣杯"
 description = "立即回复 30 HP，可用 2 次（合计 60）——无名虚空护符禁期的多次恢复来源，覆盖治疗药剂 30 的单次档。"
-icon = "🏆"
+icon = ""
 effect = "heal"
 value = 30
 charges = 2

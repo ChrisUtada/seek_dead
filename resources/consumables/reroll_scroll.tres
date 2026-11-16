@@ -2,14 +2,16 @@
 
 [ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
 
+[ext_resource type="Texture2D" path="res://assets/icons/items/icon_reroll_scroll.png" id="ico"]
 [resource]
 script = ExtResource("1")
 rarity = "common"
 category = "active"
 item_id = "reroll_scroll"
+icon_tex = ExtResource("ico")
 item_name = "重转卷轴"
 description = "立刻免费重转一次（不触发敌人回合）。"
-icon = "🌀"
+icon = ""
 effect = "reroll"
 value = 1
 charges = 1

@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 label = "❄"
-name = "冰霜碎片"
+name = "霜裂"
 kind = "damage"
 base = 9.0
 element = "ice"

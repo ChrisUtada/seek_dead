@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 label = "🟢"
-name = "疫病球"
+name = "疫病瘴"
 kind = "damage"
 base = 11.0
 element = "poison"

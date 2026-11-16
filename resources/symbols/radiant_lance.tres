@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 label = "✨"
-name = "光辉长枪"
+name = "辉耀裁决"
 kind = "damage"
 base = 9.0
 element = "light"

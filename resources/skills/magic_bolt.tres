@@ -1,8 +1,9 @@
-[gd_resource type="Resource" script_class="SkillData" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="SkillData" load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/items/skill_data.gd" id="1"]
 [ext_resource type="Resource" path="res://resources/symbols/arcane_bolt.tres" id="2"]
 
+[ext_resource type="Texture2D" path="res://assets/icons/items/icon_magic_bolt.png" id="ico"]
 [resource]
 script = ExtResource("1")
 buff_id = ""
@@ -10,14 +11,15 @@ category = "skill"
 rarity = "uncommon"
 base_power = 28.0
 hit_rate = 0.88
-buff_name = "奥术飞弹"
-icon = "✦"
-description = "远程奥术弹：落线时造成 light 属性伤害（命中率随技能）"
+buff_name = "奥术迸流"
+icon = ""
+icon_tex = ExtResource("ico")
+description = "奥术迸流：落线时造成 light 属性伤害（命中率随技能）"
 symbol = ExtResource("2")
 weight = 1.0
 family_tags = Array[String](["light", "combo"])
 role = "damage"
-mechanism_summary = "落线触发：远程奥术弹：落线时造成 light 属性伤害（命中率随技能）。"
+mechanism_summary = "落线触发：奥术迸流：落线时造成 light 属性伤害（命中率随技能）。"
 act_min = 1
 act_max = 3
 source_tags = Array[String](["shop", "anvil", "start"])

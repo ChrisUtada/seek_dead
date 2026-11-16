@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 label = "🧱"
-name = "铁壁"
+name = "铁誓"
 kind = "shield"
 base = 6.0
 element = "none"

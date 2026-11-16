@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 label = "🪨"
-name = "碎石弹"
+name = "碎岩坠"
 kind = "damage"
 base = 8.0
 element = "none"

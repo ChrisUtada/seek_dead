@@ -1,8 +1,9 @@
-[gd_resource type="Resource" script_class="SkillData" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="SkillData" load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/items/skill_data.gd" id="1"]
 [ext_resource type="Resource" path="res://resources/symbols/buff_calm.tres" id="2"]
 
+[ext_resource type="Texture2D" path="res://assets/icons/items/icon_calm.png" id="ico"]
 [resource]
 script = ExtResource("1")
 buff_id = "calm"
@@ -11,13 +12,14 @@ rarity = "uncommon"
 base_power = 8.0
 hit_rate = 0.90
 buff_name = "定心"
-icon = "🕊"
-description = "定心符入轮：本回合起护盾 +8（持续 2 回合）——P2 高攻窗口容错，与守备/铁壁叠加稳字流"
+icon = ""
+icon_tex = ExtResource("ico")
+description = "定心符入轮：本回合起护盾 +8（持续 2 回合）——P2 高攻窗口容错，与守备/铁誓叠加稳字流"
 symbol = ExtResource("2")
 weight = 1.0
 family_tags = Array[String](["shield", "charge"])
 role = "defense"
-mechanism_summary = "落线触发：定心符入轮：本回合起护盾 +8（持续 2 回合）——P2 高攻窗口容错，与守备/铁壁叠加稳字流。"
+mechanism_summary = "落线触发：定心符入轮：本回合起护盾 +8（持续 2 回合）——P2 高攻窗口容错，与守备/铁誓叠加稳字流。"
 act_min = 1
 act_max = 3
 source_tags = Array[String](["shop", "anvil"])

@@ -2,14 +2,16 @@
 
 [ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
 
+[ext_resource type="Texture2D" path="res://assets/icons/items/icon_resist_charm.png" id="ico"]
 [resource]
 script = ExtResource("1")
 rarity = "common"
 category = "passive"
 item_id = "resist_charm"
+icon_tex = ExtResource("ico")
 item_name = "抗扰护符"
 description = "本局敌人干扰概率降低（约相当于 1 级铁砧抗扰）。"
-icon = "🚫"
+icon = ""
 effect = "interference_resist"
 value = 1
 family_tags = Array[String](["shield", "reel"])

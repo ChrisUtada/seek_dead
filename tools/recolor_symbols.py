@@ -62,6 +62,16 @@ FIRE_RAMPS = {
 }
 FIRE_RAMP_JOBS = {"burn", "flame_special", "fire_slash"}
 
+# 非火系的自定义色带（2026-11-16）：solid 模式默认把主色向白混 40% 当亮面，
+# 低饱和主色（如哑红 (168,64,64)）混完会变成粉 (203,140,140)，整块发灰粉。
+# 需要「高明度仍然饱和」的符号在这里给显式色带，走与火系同一套 ramp 逻辑。
+CUSTOM_RAMPS = {
+    "miss":  [(0, (68, 16, 16)), (60, (116, 26, 26)), (110, (170, 40, 38)),
+              (160, (204, 62, 58)), (205, (228, 96, 90)), (255, (248, 146, 138))],
+    "trash": [(0, (38, 40, 44)), (60, (78, 80, 86)), (110, (120, 122, 128)),
+              (160, (158, 160, 166)), (205, (190, 192, 198)), (255, (220, 222, 228))],
+}
+
 # name -> (主色覆盖 or 元素键, mode)。覆盖用于保持物件固有色（骨白獠牙等）。
 JOBS = {
     # --- 斩击剑族：沿用已验收的 blade 规则，重跑结果须与落盘资源逐像素一致 ---
@@ -102,6 +112,9 @@ JOBS = {
     # 旧 16px 图标迁入 symbols 体系（axe_slash / gold）
     "axe_slash":                ((200, 140, 90), "solid"),
     "gold":                     ((248, 200, 72), "solid"),
+    # 2026-11-16 系统符号：trash 类两个原来只有 label（MISS 文字 / 🗑️ emoji），转轮里没有图标
+    "miss":                     ((168, 64, 64), "solid"),     # 压暗加饱和：太浅会发粉、和同族斩击符号脱节
+    "trash":                    ((118, 120, 128), "solid"),   # 压暗中性灰：母版是两色平涂，主色浅了整个格会发白
 }
 
 # 少数 AI 母版造型失败时的复用映射（沿用「复用直刃 / 复用獠牙」的口径）。
@@ -345,7 +358,7 @@ def main() -> None:
     for n, (spec, mode) in JOBS.items():
         if only and n not in only:
             continue
-        r = FIRE_RAMPS[ramp_key] if n in FIRE_RAMP_JOBS else None
+        r = FIRE_RAMPS[ramp_key] if n in FIRE_RAMP_JOBS else CUSTOM_RAMPS.get(n)
         all_new[n] = build(n, spec, mode, r)
     if check:
         do_check(all_new)

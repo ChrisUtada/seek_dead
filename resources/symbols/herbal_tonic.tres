@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 label = "🌿"
-name = "草药汤"
+name = "草药敷疗"
 kind = "heal"
 base = 8.0
 element = "none"

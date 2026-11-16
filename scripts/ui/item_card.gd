@@ -97,6 +97,9 @@ func _apply_fit() -> bool:
 func set_art(tex: Texture2D, min_size: Vector2 = Vector2(48, 48), fx_color := Color(0, 0, 0, 0)) -> void:
 	_resolve()
 	_icon_rect.texture = tex
+	# 🔴 默认 expand_mode = EXPAND_KEEP_SIZE 会让控件最小尺寸跟着纹理走，
+	# 传 min_size 24 时 48px 的物品图标仍会撑成 48 —— 必须忽略纹理尺寸。
+	_icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_icon_rect.custom_minimum_size = min_size
 	_icon_rect.visible = tex != null
 	if tex == null:

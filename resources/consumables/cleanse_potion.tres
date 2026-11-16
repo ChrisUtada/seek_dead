@@ -2,14 +2,16 @@
 
 [ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
 
+[ext_resource type="Texture2D" path="res://assets/icons/items/icon_cleanse_potion.png" id="ico"]
 [resource]
 script = ExtResource("1")
 rarity = "uncommon"
 category = "active"
 item_id = "cleanse_potion"
+icon_tex = ExtResource("ico")
 item_name = "清净药剂"
 description = "解除自身负面状态：驱散寒霜（冻结转轮恢复）+ 清零酸蚀毒层。与净化药剂（抵消敌人意图）分工。"
-icon = "🌿"
+icon = ""
 effect = "cleanse"
 value = 0
 charges = 1

@@ -2,14 +2,16 @@
 
 [ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
 
+[ext_resource type="Texture2D" path="res://assets/icons/items/icon_poison_ward.png" id="ico"]
 [resource]
 script = ExtResource("1")
 rarity = "uncommon"
 category = "passive"
 item_id = "poison_ward"
+icon_tex = ExtResource("ico")
 item_name = "蚀毒壁垒"
 description = "本局玩家受挂毒量每回合 -1（如酸蚀恶鬼 2 层/回合 → 1 层/回合）：爆炸窗口 5→10 回合拉宽，压力保留但可规划。"
-icon = "☣"
+icon = ""
 effect = "dot_reduce"
 value = 1
 family_tags = Array[String](["shield", "poison"])

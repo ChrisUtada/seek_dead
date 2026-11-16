@@ -2,14 +2,16 @@
 
 [ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
 
+[ext_resource type="Texture2D" path="res://assets/icons/items/icon_poison_essence.png" id="ico"]
 [resource]
 script = ExtResource("1")
 rarity = "uncommon"
 category = "active"
 item_id = "poison_essence"
+icon_tex = ExtResource("ico")
 item_name = "毒之精华"
 description = "本房间内转轮注入☠️毒系攻击符号（伤害 25），离房失效。"
-icon = "☠️"
+icon = ""
 effect = "element"
 element = "poison"
 mult_value = 1.5

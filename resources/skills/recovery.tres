@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://scripts/items/skill_data.gd" id="1"]
 [ext_resource type="Resource" path="res://resources/symbols/heal.tres" id="2"]
-[ext_resource type="Texture2D" path="res://assets/icons/16/star.png" id="3_icon"]
+[ext_resource type="Texture2D" path="res://assets/icons/items/icon_recovery.png" id="3_icon"]
 
 [resource]
 script = ExtResource("1")
@@ -12,7 +12,7 @@ rarity = "common"
 base_power = 32.0
 hit_rate = 0.90
 buff_name = "治疗术"
-icon = "✚"
+icon = ""
 description = "回复术：落线恢复生命——1/2/3连 10/25/50 HP，三连溢出转护盾"
 symbol = ExtResource("2")
 weight = 1.0

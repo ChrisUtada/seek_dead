@@ -121,6 +121,9 @@ func item_card(data: Resource, path: String, kind: String) -> Dictionary:
 	# M3-03：通用图标绑定（武器 / 技能 / 消耗品 / 护符）；无图保持 emoji 文本。
 	if data != null and data.get("icon_tex") != null:
 		btn.icon = data.icon_tex
+		# 🔴 物品图标是 48px，而整备行按钮只有 26px 高 —— 不限制会把整行撑高并挤压文字。
+		# icon_max_width 是 theme constant（不是属性）。20px 与右栏元素小图标体量接近。
+		btn.add_theme_constant_override("icon_max_width", 20)
 	if data != null:
 		btn.tooltip_text = ItemTooltip.for_resource(data, kind)
 	var card := {"path": path, "btn": btn, "selected": false, "kind": kind}

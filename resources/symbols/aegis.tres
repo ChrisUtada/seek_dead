@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 label = "⚜"
-name = "神盾"
+name = "守护祷言"
 kind = "shield"
 base = 10.0
 element = "light"

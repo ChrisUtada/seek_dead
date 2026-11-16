@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 label = "☠"
-name = "毒液弹"
+name = "毒液侵蚀"
 kind = "damage"
 base = 9.0
 element = "poison"

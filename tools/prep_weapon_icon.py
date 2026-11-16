@@ -215,6 +215,84 @@ def drop_islands(im: Image.Image, min_px: int = 16):
     return out, removed
 
 
+def mean_l(im: Image.Image) -> float:
+    px = [(r, g, b) for r, g, b, a in im.getdata() if a > 200]
+    if not px:
+        return 0.0
+    return sum((r * 299 + g * 587 + b * 114) // 1000 for r, g, b in px) / len(px)
+
+
+def auto_level(im: Image.Image, target: float, tol: float = 1.5):
+    """自动调 gamma 把平均亮度拉到 target 附近。
+
+    2026-11-16：同一批物品图标实测 meanL 跨度 33.8–134.8（玻璃瓶暗、羊皮纸亮），
+    手工试 gamma 太慢。mean_l 随 gamma 单调递增，直接二分即可。
+    """
+    cur = mean_l(im)
+    if cur <= 0 or abs(cur - target) <= tol:
+        return im, 1.0
+    lo, hi = 0.35, 3.0
+    best, best_gap, best_g = im, abs(cur - target), 1.0
+    for _ in range(16):
+        g = (lo + hi) * 0.5
+        t = apply_gamma(im, g)
+        diff = mean_l(t) - target
+        if abs(diff) < best_gap:
+            best, best_gap, best_g = t, abs(diff), g
+        if diff < 0:
+            lo = g
+        else:
+            hi = g
+    return best, best_g
+
+
+def boost_warm(im: Image.Image, percent: int = 150, squash: float = 0.0):
+    """把暖色（R 主导）像素按同一比例提亮 —— 只提亮度，不改色相。
+
+    2026-11-16：用户反馈「红色和代表熔岩的色彩偏暗」。实测 heal_potion 的"红液体"
+    平均只有 (109,67,31)、亮度 75 —— 是暗棕橙，不是红色；火系武器图标的橙是
+    (232,118,42)。原因是全图 meanL 归一为照顾大面积暗玻璃，把仅占 16% 的暖色也压平了。
+
+    第一版把 R 直接顶到固定值、G/B 增幅递减，结果红色被推成橙色而且丢层次
+    （v3 的药剂变成橙水）。改成**等比提亮**：R/G/B 乘同一系数，色相与层次
+    都不变，只是变亮。percent 是百分比，150 = ×1.5。
+
+    squash > 0 时先压 G/B 到 R 的比例（强制橙红），再提亮 —— 用于 AI 把"熔岩"
+    画成暗黄的情况：lava_burst 实测暖色 (113,95,32)，G/R=0.84 整体发黄，
+    等比提亮只会更黄。squash=0.55 → (113,62,34)。
+    """
+    k = percent / 100.0
+    out = im.copy()
+    dst = out.load()
+    n = 0
+    for y in range(im.height):
+        for x in range(im.width):
+            r, g, b, a = im.getpixel((x, y))
+            if a == 0 or r < 45:
+                continue
+            if squash > 0.0:
+                # 强制橙红模式：只要求 R 明显高于 B，**不要求 R 高于 G** ——
+                # 要救的正是 "亮黄" (255,230,60) 这种 R≈G 的熔岩，
+                # 用默认的 r > g*1.15 会把它整个跳过（实测第一版就是这么失效的）。
+                if not (r > b * 1.25 and r > 60):
+                    continue
+            else:
+                if not (r > g * 1.15 and r > b * 1.25):
+                    continue
+            nr, ng, nb = r, g, b
+            # 先等比提亮，再压 G/B —— 顺序不能反：先压后乘会把压下去的 G 又乘回来
+            # （实测第一版 lava 的裂缝 (255,215,0) 压到 132 后 ×1.7 又回到 224，仍是黄）
+            nr = min(255, round(nr * k))
+            ng = min(255, round(ng * k))
+            nb = min(255, round(nb * k))
+            if squash > 0.0:
+                ng = min(ng, round(nr * squash))
+                nb = min(nb, round(nr * squash * 0.55))
+            dst[x, y] = (nr, ng, nb, a)
+            n += 1
+    return out, n
+
+
 def apply_gamma(im: Image.Image, g: float):
     """整体提亮 / 压暗（g > 1 提亮，g < 1 压暗，1.0 = 不处理），alpha 全保留。
 
@@ -250,6 +328,12 @@ def main():
                      help="degreen 后允许 G 超出 R 的余量")
     ap.add_argument("--gamma", type=float, default=1.0,
                      help=">1 提亮 / <1 压暗（武器锚点 meanL 42–88），1 = 不处理")
+    ap.add_argument("--target-l", type=float, default=0.0,
+                     help="自动把平均亮度拉到该值（0 = 关闭）；优先于 --gamma")
+    ap.add_argument("--warm-boost", type=int, default=0,
+                     help="暖色(R主导)等比提亮百分比（0 = 关闭）；150 = ×1.5，红/熔岩类物品用 145–170")
+    ap.add_argument("--warm-squash", type=float, default=0.0,
+                     help="先把暖色 G 通道压到 R×该比例（强制橙红，救 AI 画成暗黄的熔岩）；0.55 常用")
     ap.add_argument("--drop-islands", type=int, default=60,
                      help="删除小于该像素数的孤立碎块（0 = 关闭）；裁边后残留的原图碎片")
     args = ap.parse_args()
@@ -268,9 +352,15 @@ def main():
     if args.degreen:
         content, dg = de_green(content, args.degreen_keep)
         print(f"de-green: {dg} px 压回中性")
-    if abs(args.gamma - 1.0) > 1e-4:
+    if args.target_l > 0.0:
+        content, g_used = auto_level(content, args.target_l)
+        print(f"auto-level: target {args.target_l} -> gamma {g_used:.2f}, meanL {mean_l(content):.1f}")
+    elif abs(args.gamma - 1.0) > 1e-4:
         content = apply_gamma(content, args.gamma)
         print(f"gamma: {args.gamma}")
+    if args.warm_boost > 0:
+        content, wb = boost_warm(content, args.warm_boost, args.warm_squash)
+        print(f"warm-boost: {wb} px 暖色提到 R={args.warm_boost}")
     cw, ch = content.size
     side = max(cw, ch)
     pad = int(side * 0.06)

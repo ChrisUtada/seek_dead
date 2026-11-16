@@ -2,14 +2,16 @@
 
 [ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
 
+[ext_resource type="Texture2D" path="res://assets/icons/items/icon_regen_charm.png" id="ico"]
 [resource]
 script = ExtResource("1")
 rarity = "common"
 category = "passive"
 item_id = "regen_charm"
+icon_tex = ExtResource("ico")
 item_name = "回春护符"
 description = "本局每回合回复 6 HP，提供稳定常驻续航（与瞬回药剂互补）。"
-icon = "🌿"
+icon = ""
 effect = "heal"
 value = 6
 family_tags = Array[String](["light"])
