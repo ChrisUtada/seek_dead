@@ -1,4 +1,4 @@
-﻿extends BossGimmick
+extends BossGimmick
 
 const ICON := "🌀"   # 呓语锁轮/迷宫低语者（battle_hud 经 get_script_constant_map 读取）
 

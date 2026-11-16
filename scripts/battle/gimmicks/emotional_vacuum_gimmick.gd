@@ -1,4 +1,4 @@
-﻿extends BossGimmick
+extends BossGimmick
 
 const ICON := "⚫"   # 下一房预告横幅的机制图标（battle_hud 经 get_script_constant_map 读取）
 const IntentData = preload("res://scripts/battle/intent_data.gd")
