@@ -190,7 +190,7 @@ func use_attack(data: Resource) -> void:
 	var st: String = data.status_type
 	var stacks: int = data.status_value
 	if st != "" and stacks > 0:
-		_ctrl.enemy_status[st] = _ctrl.enemy_status.get(st, 0) + stacks
+		_ctrl.add_enemy_status(st, stacks)
 	_ctrl.hud._log("%s：%d 伤害%s%s" % [data.item_name, dmg, " [克制]" if em > 1.0 else "", ("，敌人获得状态: " + _ctrl.status_system.status_summary({st: stacks})) if stacks > 0 else ""])
 	_ctrl.hud._show_action_feedback(("伤害-%d" % dmg) if dmg > 0 else "伤害：0")
 	if dmg > 0:

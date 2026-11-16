@@ -17,9 +17,24 @@ func _init(ctrl) -> void:
 	_ctrl = ctrl
 
 
-# 敌人回合主入口（玩家结算后调用）：执行预告的意图 → 清理 → 状态 DoT 结算。
-func take_turn() -> void:
-	# 2026-11-12 Step 2：行动失效（裂石像破甲窗口）——消耗一次，跳过本次意图但照常结算 DoT。
+# 敌人回合主入口（玩家结算后调用）：状态 DoT 结算 → 致死跳过行动 → 执行意图 → 清理。
+# 2026-11-16 P0：DoT 结算点从回合末移到回合开始，对齐经典回合制——
+# 持续伤害先于行动结算，毒/灼烧致死可打断敌人本次意图（上回合 pending 层索引起作用）。
+# P2：tick_dotdmg=true 时先结算 DoT（测试/常规调用默认行为）；
+# turn_flow 会自行先结算 DoT 并错峰，再传 false 跳过这里的重复结算。
+func take_turn(tick_dotdmg: bool = true) -> void:
+	if tick_dotdmg:
+		_ctrl.combat.tick_status()
+	_ctrl.invalidate_state()
+	if _ctrl.enemy_hp <= 0:
+		_ctrl.hud._log("☠ %s 被状态伤害击倒，本回合行动中断" % _ctrl.enemy_name)
+		_ctrl.enemy_intent = {}
+		_ctrl.enemy_extra_attacks.clear()
+		_ctrl.enemy_attack_poison = 0
+		_ctrl.enemy_attack_pierce_pct = 0.0
+		_ctrl.enemy_self_damage_after = 0
+		return
+	# 2026-11-12 Step 2：行动失效（裂石像破甲窗口）——消耗一次，跳过本次意图。
 	if int(_ctrl.enemy_stunned) > 0:
 		_ctrl.enemy_stunned -= 1
 		_ctrl.hud._log("🪨 崩解：本回合无法行动（破甲输出窗口）")
@@ -28,7 +43,6 @@ func take_turn() -> void:
 		_ctrl.enemy_attack_poison = 0
 		_ctrl.enemy_attack_pierce_pct = 0.0
 		_ctrl.enemy_self_damage_after = 0
-		_ctrl.combat.tick_status()
 		_ctrl.invalidate_state()
 		return
 	var it: Dictionary = _ctrl.enemy_intent
@@ -43,8 +57,7 @@ func take_turn() -> void:
 	_resolve_extra_attacks()
 	_resolve_self_damage_after()
 	_ctrl.enemy_intent = {}
-	_ctrl.combat.tick_status()
-	_ctrl.invalidate_state()   # 敌人攻击扣血/意图清空/DoT 结算
+	_ctrl.invalidate_state()   # 敌人攻击扣血/意图清空（DoT 已在回合开始结算）
 
 
 func _do_attack(it: Dictionary) -> void:
@@ -58,7 +71,7 @@ func _do_attack(it: Dictionary) -> void:
 			_ctrl.player_hp = maxi(0, int(_ctrl.player_hp) - pierce)
 			_ctrl.hud._popup("🗡穿透 -%d" % pierce, Palette.POP_DAMAGE, _ctrl.hud._player_sprite_anchor())
 			_ctrl.hud._log("🗡 穿透护盾：%d 点直接命中（本次攻击 %d 的 %d%%）" % [pierce, raw, int(round(pct * 100.0))])
-	_ctrl.combat.enemy_deal_damage(raw)
+	_ctrl.combat.enemy_deal_damage(raw, "attack")
 	# 毒针群蝠：主攻击附带毒层
 	if int(_ctrl.enemy_attack_poison) > 0:
 		var stacks: int = int(_ctrl.enemy_attack_poison)
@@ -76,7 +89,7 @@ func _resolve_extra_attacks() -> void:
 		var value: int = int(d.get("value", 0))
 		if value <= 0:
 			continue
-		_ctrl.combat.enemy_deal_damage(value)
+		_ctrl.combat.enemy_deal_damage(value, "attack")
 		var poison: int = int(d.get("poison", 0))
 		if poison > 0:
 			_ctrl.player_status["poison"] = int(_ctrl.player_status.get("poison", 0)) + poison

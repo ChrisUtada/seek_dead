@@ -1,7 +1,7 @@
 # GrowthSystem — 角色历练与技艺（M2-01 建立，G7-A S1 扩至三幕）
 # 运行时经 duel_controller preload 实例化（不注册全局 class_name——headless 测试环境不刷新类缓存）。
 # 职责：房间胜利发放历练经验 → 升级（最大 HP +5 并恢复）→ 在 Lv.2 / Lv.4 / Lv.6 各给一次技艺三选一。
-# 技艺效果在各自落点读取本系统的查询接口（守势 / 精打细算 / 稳定节奏 / 洞察 / 稳手），
+# 技艺效果在各自落点读取本系统的查询接口（守势 / 精打细算 / 落点吸附 / 宽判窗口 / 废铁豁免），
 # 只有「坚韧」「备用药剂」「回春」「积蓄」在落点即时结算。整局状态经 reset_run 清零（新一局 / 战败回整备）。
 # 规格见 docs/M0-02_样板范围.md §1（ACT1 样板：Lv.4 / 2 技艺）；
 # 随机技艺池 8；旧技艺「精打细算」仅作存档兼容，不再进入随机候选。
@@ -22,20 +22,24 @@ const PERKS := [
 	{"id": "tough", "family": "survive", "name": "坚韧", "desc": "最大 HP +10，并立即恢复 10 HP"},
 	{"id": "guard", "family": "survive", "name": "守势", "desc": "每房开局获得 8 护盾"},
 	{"id": "reserve", "family": "plan", "name": "备用药剂", "desc": "获得时，腰带上所有消耗品各 +1 次使用次数"},
-	{"id": "steady", "family": "aim", "name": "稳定节奏", "desc": "每房前 2 回合转轮基础间隔 0.15→0.17s，加速曲线不变"},
-	{"id": "insight", "family": "aim", "name": "洞察", "desc": "旋转时，每列显示下一格符号"},
 	# G7-A S1（2026-11-08 拍板）：每家族 +1，池 6→9，支撑 Lv.6 的第三次选择。
 	{"id": "regen", "family": "survive", "name": "回春", "desc": "每次房间胜利恢复 4 HP（BOSS 房 8 HP）"},
 	{"id": "hoard", "family": "plan", "name": "积蓄", "desc": "每次房间胜利获得 2 金（BOSS 房 5 金）"},
-	{"id": "steady_hand", "family": "aim", "name": "稳手", "desc": "每回合首次按停可多缓冲一拍，等视觉中心到下一格"},
+	# 2026-11-17：原「稳定节奏 / 洞察 / 稳手」三个目押技艺效果隐性且洞察会误导判定，整体替换为命中确定性向。
+	{"id": "snap", "family": "aim", "name": "落点吸附", "desc": "按停时若目标符号在视觉中心 ±1 格内，自动吸附停中该格（每回合 2 次）"},
+	{"id": "wide", "family": "aim", "name": "宽判窗口", "desc": "视觉落点判定容差从 ±1 放宽到 ±2 格，所见即所得更容易对齐"},
+	{"id": "mercy", "family": "aim", "name": "废铁豁免", "desc": "按停结果若落在废铁（MISS）上，自动改判为相邻的非废铁格（每回合 1 次）"},
 ]
 # 回春 / 积蓄的数值（只在这里改，测试与文档都引用这两组常量）。
 const REGEN_HP := 4
 const REGEN_HP_BOSS := 8
 const HOARD_GOLD := 2
 const HOARD_GOLD_BOSS := 5
-const STEADY_WAIT := 0.17        # 稳定节奏：每房前 2 回合的基础每跳间隔
-const STEADY_TURNS := 2
+# 2026-11-17 命中确定性向三技艺的数值常量（只在这里改，测试与文档都引用）。
+const SNAP_PER_TURN := 2        # 落点吸附：每回合最多吸附次数
+const SNAP_RANGE := 1           # 落点吸附：目标符号距视觉中心的格数容差（±1）
+const WIDE_RANGE := 2           # 宽判窗口：视觉落点判定容差（±2，原为 ±1）
+const MERCY_PER_TURN := 1       # 废铁豁免：每回合最多改判次数
 const GUARD_SHIELD := 8
 # G7-A S5 后续（2026-11-09）：幕间锻魂——进入 ACT II / ACT III 时自动发放一次。
 # 只改本局运行时状态（本局符号伤害 + 最大 HP），不改敌人 / ante / 存档；ACT I 不发放。
@@ -221,16 +225,16 @@ func _choice_view(p: Dictionary) -> Dictionary:
 				charges_now += int(slot["charges"])
 			var slot_n: int = _ctrl.consumable_slots.size()
 			desc += "（腰带 %d 格合计次数 %d → %d）" % [slot_n, charges_now, charges_now + slot_n]
-		"steady":
-			desc += "（前 2 回合间隔 0.15 → 0.17s）"
-		"insight":
-			desc += "（提前 1 格可见）"
+		"snap":
+			desc += "（停中目标 0 → 每回合 2 次自动吸附）"
+		"wide":
+			desc += "（判定容差 ±1 → ±2 格）"
+		"mercy":
+			desc += "（废铁 MISS 1 → 每回合 1 次改判有效格）"
 		"regen":
 			desc += "（房胜利 HP +%d → BOSS 房 +%d）" % [REGEN_HP, REGEN_HP_BOSS]
 		"hoard":
 			desc += "（房胜利 金 +%d → BOSS 房 +%d）" % [HOARD_GOLD, HOARD_GOLD_BOSS]
-		"steady_hand":
-			desc += "（每回合 1 次，提前 1 拍锁定）"
 	return {"id": p["id"], "family": FAMILIES[p["family"]],
 		"hint": String(FAMILY_HINT.get(p["family"], "")), "name": p["name"], "desc": desc}
 
@@ -301,7 +305,7 @@ func perk_family(id: String) -> String:
 	return "plan" if id == "frugal" else ""
 
 
-# —— 落点查询（守势 / 精打细算 / 稳定节奏 / 洞察）——
+# —— 落点查询（守势 / 精打细算 / 三个命中确定性技艺）——
 
 # 守势：每房开局护盾（RoomFlow / _start_room 叠加到 player_shield）
 func room_shield() -> int:
@@ -313,8 +317,21 @@ func free_reroll_bonus() -> int:
 	return 1 if has_perk("frugal") else 0
 
 
-# 稳定节奏：每跳基础间隔。仅前 STEADY_TURNS 回合放慢，之后回落到 base。
-func spin_wait_base(base: float) -> float:
-	if has_perk("steady") and _ctrl.turn_count <= STEADY_TURNS:
-		return maxf(base, STEADY_WAIT)
-	return base
+# 落点吸附：每回合可用次数（0 = 未拥有）
+func snap_per_turn() -> int:
+	return SNAP_PER_TURN if has_perk("snap") else 0
+
+
+# 落点吸附：目标符号距视觉中心的格数容差
+func snap_range() -> int:
+	return SNAP_RANGE
+
+
+# 宽判窗口：视觉落点判定容差（未拥有时回落到原 ±1）
+func wide_range() -> int:
+	return WIDE_RANGE if has_perk("wide") else 1
+
+
+# 废铁豁免：每回合可用次数（0 = 未拥有）
+func mercy_per_turn() -> int:
+	return MERCY_PER_TURN if has_perk("mercy") else 0

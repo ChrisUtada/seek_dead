@@ -22,7 +22,7 @@ var _textures: Array[TextureRect] = []
 var _index := 0
 var _frac := 0.0
 var _active := false
-var _preview: Label = null   # M2-01 洞察：旋转中在格底显示下一格（滚动把格子文字清空后的替代展示）
+var _preview: Label = null   # 格底预览 Label（已弃用，恒隐藏；预览统一由 P1 预览行承担）
 # 2026-11-12 Step 2：停轮吸附。进度由 ReelSystem 的 tween 提供，本层只负责把视觉
 # 从请求时的位置缓出到记录的落点；不写 grid、不改逻辑游标、不参与结算。
 var _absorb_active := false
@@ -55,7 +55,7 @@ func configure(ctrl, r: int) -> void:
 		_entries.append(e)
 		_labels.append(lbl)
 		_textures.append(tex)
-	# 洞察预览：贴格子底边的小字（有洞察技艺时才显示）
+	# 格底预览 Label（弃用保留，恒隐藏）
 	_preview = Label.new()
 	_preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_preview.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -231,27 +231,10 @@ func _layout_entries() -> void:
 		e.size = Vector2(size.x, SPACING)
 
 
-# M2-01 洞察：旋转中格子文字被滚动视觉清空，下一格预览改由本层贴在格底显示。
-func _sync_preview(rs) -> void:
-	# 2026-11-12 Step 1：目盲隐藏格底预览（当前中心符号不受影响）。
-	if controller.debuffs != null and controller.debuffs.preview_hidden():
-		_preview.visible = false
-		return
-	# P1 预览行开启时，下一格由 ReelDock 右侧独立行显示（洞察会在该行 +1 格），
-	# 避免格底小字与预览行重复；control（预览 0）保持原洞察行为。
-	if controller.readability != null and int(controller.readability.preview_slots) > 0:
-		_preview.visible = false
-		return
-	if controller.growth == null or not controller.growth.has_perk("insight"):
-		_preview.visible = false
-		return
-	var nxt = rs.next_symbol(reel)
-	if nxt == null:
-		_preview.visible = false
-		return
-	_preview.text = "▸" + nxt.label
-	_preview.add_theme_color_override("font_color", nxt.color if nxt.icon_tex == null else Palette.ACCENT_GOLD)
-	_preview.visible = true
+# 2026-11-17：原「洞察」技艺（格底下一格预览）已移除。
+# 当前预览统一由 P1 预览行（battle_hud.update_p1_preview_row）承担，格底小字不再显示。
+func _sync_preview(_rs) -> void:
+	_preview.visible = false
 
 
 func _strip(rs) -> Array:

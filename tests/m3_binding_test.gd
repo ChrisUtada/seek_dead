@@ -79,7 +79,10 @@ func _test_fields() -> void:
 func _test_reel_cell(duel: DuelController) -> void:
 	var sym := SymbolData.new()
 	sym.label = "▲"
-	sym.kind = "damage"
+	# M3-03 验证的是「符号自身 icon_tex 绑定」。2026-11-16 远端新增「斩击/单伤害符号
+	# 跟随武器完整图标」规则（_symbol_follows_weapon），damage 符号在格子里会被换成
+	# 武器图，覆盖自身 icon_tex。用 special（不跟随武器）隔离该规则，只测绑定本身。
+	sym.kind = "special"
 	duel.grid[0][0] = sym
 	duel.grid_elem[0][0] = "none"
 	duel.invalidate_state()

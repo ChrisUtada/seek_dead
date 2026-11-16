@@ -57,11 +57,11 @@ func on_turn_begin(ctrl) -> void:
 	var bombed := false
 	if stacks > 0:
 		var dot_dmg: int = stacks * _dot_base
-		ctrl.combat.enemy_deal_damage(dot_dmg)   # 唯一闸口：护盾可挡、飘字/受击动画/日志自动
+		ctrl.combat.enemy_deal_damage(dot_dmg, "dot", "☣ 酸蚀")   # 唯一闸口：护盾可挡、飘字/日志（DoT 不播攻击演出）
 		ctrl.hud._log("☣ 酸蚀侵蚀：%d 层毒伤 -%d（护盾可挡）" % [stacks, dot_dmg])
 		if stacks >= _bomb_stacks:
 			ctrl.player_status["poison"] = 0
-			ctrl.combat.enemy_deal_damage(_bomb_dmg)
+			ctrl.combat.enemy_deal_damage(_bomb_dmg, "dot", "☣ 毒层爆炸")
 			ctrl.hud._log("☣ 毒层爆炸！-%d 伤害，层数清零" % _bomb_dmg)
 			bombed = true
 	# 剥增益（腐殖巨蠕）：触发后下一回合停止挂毒

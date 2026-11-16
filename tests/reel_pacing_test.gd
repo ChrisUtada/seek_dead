@@ -70,7 +70,7 @@ func _setup(duel: DuelController) -> void:
 	duel.selected_charms.clear()
 	duel.selected_skills.clear()
 	duel._confirm_loadout()
-	duel.growth.perk_ids.clear()          # 排除「稳定节奏」对基础间隔的影响
+	duel.growth.perk_ids.clear()          # 排除技艺对基础间隔的潜在影响
 	duel.readability.apply_preset("control")
 	duel.reel_system._timer.stop()
 	duel.pending_jam_reel = -1

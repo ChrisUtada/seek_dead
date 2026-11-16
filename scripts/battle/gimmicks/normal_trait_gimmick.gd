@@ -321,7 +321,7 @@ func on_damaged(ctrl, dmg: int) -> void:
 			else:
 				ctrl.hud._log("🔥 余烬：火系伤害被吸收，但已满血（每回合一次）")
 		"frost_hit":
-			ctrl.enemy_status["frost"] = int(ctrl.enemy_status.get("frost", 0)) + 1
+			ctrl.add_enemy_status("frost", 1)
 			ctrl.hud._log("❄ 寒鳞：自身获得 1 层霜（现 %d 层，下一次攻击降低）" % int(ctrl.enemy_status["frost"]))
 		"spore":
 			if _done:
@@ -474,7 +474,7 @@ func _tick_player_poison(ctrl) -> void:
 	if stacks <= 0:
 		return
 	var dmg: int = stacks * maxi(1, _poison_base)
-	ctrl.combat.enemy_deal_damage(dmg)   # 唯一闸口：护盾可挡、飘字/受击动画/日志自动
+	ctrl.combat.enemy_deal_damage(dmg, "dot", "☣ 中毒")   # 唯一闸口：护盾可挡、飘字/日志（DoT 不播攻击演出）
 	ctrl.hud._log("☣ 中毒：%d 层造成 %d 伤害（每回合 -1 层，清净可解）" % [stacks, dmg])
 	ctrl.player_status["poison"] = maxi(0, stacks - 1)
 
@@ -484,7 +484,7 @@ func _tick_player_burn(ctrl) -> void:
 	if stacks <= 0:
 		return
 	var dmg: int = stacks * maxi(1, _burn_base)
-	ctrl.combat.enemy_deal_damage(dmg)
+	ctrl.combat.enemy_deal_damage(dmg, "dot", "🔥 灼烧")
 	ctrl.hud._log("🔥 灼烧：%d 层造成 %d 伤害（每回合 -1 层，清净可解）" % [stacks, dmg])
 	ctrl.player_status["burn"] = maxi(0, stacks - 1)
 

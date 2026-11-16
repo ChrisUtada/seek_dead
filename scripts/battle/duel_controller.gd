@@ -227,6 +227,9 @@ var enemy_armor = 0                    # 当前护甲：伤害先破甲后掉血
 var enemy_atk = 14
 var _interf_resist_rf := 1.0             # T20：抗扰减免系数（干扰类意图权重 × 此值，_start_room 计算）
 var enemy_status: Dictionary = {}      # status_type(str) -> 叠加层数(int)
+# 2026-11-16 DoT 相位：结算中/敌人回合新挂的层，本回合敌人回合末不 tick，下一回合起才结算。
+# 与玩家侧 debuff 的 turn_resolved/before_spin 规则对称；层数本身立即落在 enemy_status 供减攻/牌谱/HUD 当轮读取。
+var enemy_status_pending: Dictionary = {}
 var enemy_intent: Dictionary = {}      # 当前敌人意图 {"data": IntentData, "type": id, "value": N}（SPIN 后执行），空字典表示已执行/未定
 var enemy_element: String = "none"     # 敌人属性元素（用于单向克制：玩家符号元素 → 敌人元素）
 var pending_jam_reel = -1              # 敌人注废 → 下一轮强制废铁列索引（-1 无）
@@ -1079,6 +1082,8 @@ func start_room_data(r: RoomData, idx: int, ria_override: int = -1, is_final: bo
 		return
 	room_element_mult = {}                # 元素精华：新房间失效（须在 _build_pool 之前清，否则旧房精华注入新房池）
 	peaceful_win = false                  # 勇者的阴影：和解标志每房复位
+	if hud != null:
+		hud.reset_enemy_hit_hold()        # 2026-11-16 P0：清掉上一房未释放的掉血影子值
 	_apply_charms()                         # S7：每次开房重算护符被动（含商店购入的护符）
 	_build_pool(selected_loadout)           # S7：重建符号池（含商店购入的武器）
 	room_index = idx
@@ -1115,6 +1120,7 @@ func start_room_data(r: RoomData, idx: int, ria_override: int = -1, is_final: bo
 	var total_resist = charm_interf_resist
 	_interf_resist_rf = max(0.25, 1.0 - total_resist * 0.12) if total_resist > 0 else 1.0
 	enemy_status = {}
+	enemy_status_pending = {}             # 2026-11-16：DoT 相位层每房清零
 	charge_points = 0                     # T21：元素充能每房清零
 	_charge_elem_counts = {}              # 主导元素统计随充能清零
 	player_frost = 0                      # T30：寒霜侵蚀每房清零（BOSS 战状态，不跨房）
@@ -1694,6 +1700,18 @@ func apply_debuff(id: String, turns: int = -1, stacks: int = 1, extra: Dictionar
 	if debuffs == null:
 		return false
 	return debuffs.apply(self, id, turns, stacks, extra)
+
+
+# 2026-11-16 DoT 相位：对敌挂层的统一入口。层数立即落地（减攻/牌谱即时结算/HUD 当轮读取不受影响），
+# 但若处于结算后相位（turn_resolved=true，转轮符号/牌谱/敌人回合钩子），本回合先记入 pending，
+# enemy_system.tick_status() 结算时摘出这些层，下一回合 begin_player_turn 清空 pending 后才开始跳伤害。
+# 转轮前施加（道具在行动阶段用，turn_resolved=false）不记 pending，当回合就跳，与玩家 debuff 规则对称。
+func add_enemy_status(st: String, layers: int) -> void:
+	if layers <= 0 or st == "":
+		return
+	enemy_status[st] = int(enemy_status.get(st, 0)) + layers
+	if turn_resolved:
+		enemy_status_pending[st] = int(enemy_status_pending.get(st, 0)) + layers
 
 
 func debuff_summary() -> String:

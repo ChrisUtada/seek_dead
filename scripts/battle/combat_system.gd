@@ -437,7 +437,7 @@ func _apply_patterns(acc: Dictionary) -> void:
 	for st in acc.get("pattern_status", {}).keys():
 		var n := int(acc["pattern_status"][st])
 		if n > 0:
-			_ctrl.enemy_status[st] = int(_ctrl.enemy_status.get(st, 0)) + n
+			_ctrl.add_enemy_status(st, n)
 
 
 # 常驻面板的数据：武器牌谱最多 2 条（避免面板过长），技能术式只显示与当前技能匹配的那条。
@@ -512,7 +512,7 @@ func _phase_defense(acc: Dictionary) -> void:
 		for st in acc["status_stacks"].keys():
 			acc["status_stacks"][st] += 1
 	for st in acc["status_stacks"].keys():
-		_ctrl.enemy_status[st] = _ctrl.enemy_status.get(st, 0) + acc["status_stacks"][st]
+		_ctrl.add_enemy_status(st, int(acc["status_stacks"][st]))
 	if not _charm_pulsed_this_turn and _ctrl.deprived_level < 1:
 		var defense_charms: Array = _ctrl.charm_paths_for_signal("defense")
 		if not defense_charms.is_empty():
@@ -748,11 +748,9 @@ func _gain_text_of_reel(reel: int, acc: Dictionary) -> Dictionary:
 func _present_turn(acc: Dictionary, counts: Dictionary) -> void:
 	var tree: SceneTree = _ctrl.get_tree()
 
-	# ⓪ 牌型横幅：结算时只入队，这里统一放出，保证它是本回合演出的第一个元素
-	for b in acc.get("pending_banners", []):
-		_ctrl.hud.show_pattern_banner(String(b["text"]), b["color"])
-	if not (acc.get("pending_banners", []) as Array).is_empty():
-		await tree.create_timer(POPUP_BEAT).timeout
+	# ⓪ 牌型横幅结算时已入队；按「合并表现」口径推迟到 ④，与挥砍、伤害数字同帧出现，
+	# 让牌型身份读作「这一次攻击的名号」，而不是先弹横幅、再单独来一次攻击。
+	var banners: Array = acc.get("pending_banners", [])
 
 	# ① 护符（玩家侧）先闪 → 报它的分量（守备/回春涓流不由任何格子提供，必须早于读格）
 	if not _pending_defense_charms.is_empty():
@@ -793,17 +791,26 @@ func _present_turn(acc: Dictionary, counts: Dictionary) -> void:
 		_ctrl.hud.pulse_charm_card(_pending_damage_charms)
 		await tree.create_timer(CHARM_FLASH_HOLD).timeout
 
-	# ④ 攻击格齐亮 → 总伤害（数字在敌人身上，只出一次）
+	# ④ 攻击格齐亮 → 牌型横幅 + 挥砍 + 总伤害同帧（一次组合攻击，不再先弹牌型再单独攻击）
 	var total: int = int(acc.get("total_damage", 0))
 	if not attack_reels.is_empty():
 		_ctrl.hud.sweep_light_cells_together(attack_reels)
 		await tree.create_timer(ATTACK_FLASH_HOLD).timeout
 	if total > 0:
+		# 牌型横幅并入攻击帧：名字与伤害数字同时出现，读作「这一下是什么牌型打出来的」
+		for b in banners:
+			_ctrl.hud.show_pattern_banner(String(b["text"]), b["color"])
 		if _ctrl.hud.animator != null:
-			_ctrl.hud.animator.play_attack("player", "enemy")
+			# 仅玩家武器攻击播斩击粒子；敌人掉血闸口的 play_enemy_attack 不播（with_slash 默认 false）
+			_ctrl.hud.animator.play_attack("player", "enemy", true)
 		_ctrl.hud._popup("-%d%s" % [total, String(acc.get("elem_tag", ""))], Palette.POP_DAMAGE, _ctrl.hud._enemy_sprite_anchor())
 		_ctrl.hud._refresh_meta()
 		await tree.create_timer(CELL_PRESENT_STEP).timeout
+	elif not banners.is_empty():
+		# 纯增益/防御牌谱（本回合无攻击伤害）：横幅仍要出现，否则牌型触发零反馈
+		for b in banners:
+			_ctrl.hud.show_pattern_banner(String(b["text"]), b["color"])
+		await tree.create_timer(POPUP_BEAT).timeout
 	# ④b 敌人侧后续飘字（元素爆发 / 克制核爆）——跟在总伤害之后
 	for ep in acc["pending_enemy_pops"]:
 		_ctrl.hud._popup(String(ep["text"]), ep["color"], _ctrl.hud._enemy_sprite_anchor())
@@ -904,8 +911,21 @@ func tick_buffs() -> void:
 		_ctrl.hud._log("增益结束：%s %s" % [sym.label, sym.name])
 
 
+# P2：玩家侧 DoT 飘字按来源标签取元素色（与敌人侧 StatusDef.element 上色口径一致）。
+# 反弹无对应元素，保留状态橙；未识别的 DoT 标签退回状态橙，避免误上成攻击红。
+func _dot_pop_color(tag: String) -> Color:
+	if tag.contains("灼烧") or tag.contains("🔥"):
+		return ElementCounter.color("fire")
+	if tag.contains("毒") or tag.contains("酸蚀") or tag.contains("悲伤") or tag.contains("☣"):
+		return ElementCounter.color("poison")
+	return Palette.POP_STATUS
+
+
 # 敌人攻击玩家（debuff 减益由元素驱动：frost/poison = 敌人减攻）。本函数是对玩家伤害的唯一闸口。
-func enemy_deal_damage(raw: int) -> void:
+# reason: attack = 敌人真实出手（播前冲+红闪+屏震）；dot / reflect = 持续伤害或反弹，
+# 只走同一结算闸口（护盾/飘字/日志/反弹），不播攻击演出——否则玩家掉血就误读成「敌人又打了一次」。
+# src_tag: 来源标签（如 "☣ 中毒" / "🔥 灼烧"），由调用方传入，用于 DoT/反弹飘字与日志的具体分类；留空则用 reason 默认文案。
+func enemy_deal_damage(raw: int, reason: String = "attack", src_tag: String = "") -> void:
 	var atk_down = 1.0 - min(0.5, _ctrl.enemy_status.get("frost", 0) * 0.2 + _ctrl.enemy_status.get("poison", 0) * 0.2)
 	# 2026-11-12 Step 1：易伤在敌人→玩家唯一伤害闸口折算（+25%）。
 	var taken_mult: float = _ctrl.debuffs.taken_mult() if _ctrl.debuffs != null else 1.0
@@ -922,14 +942,25 @@ func enemy_deal_damage(raw: int) -> void:
 	var blocked = min(_ctrl.player_shield, eff)
 	_ctrl.player_shield -= blocked
 	var dealt = max(0, eff - blocked)
+	var hp_before_hit := int(_ctrl.player_hp)   # P0：扣血前 HP，供 HUD 显示影子值（不反推，避免乘区误差）
 	_ctrl.player_hp -= dealt
 	if _ctrl._telemetry != null:
 		_ctrl._telemetry.on_player_hit(eff, blocked, dealt)   # M1-06：意图出手/承伤/格挡
 	if dealt > 0:
-		_ctrl.hud._popup("-%d" % dealt, Palette.POP_DAMAGE, _ctrl.hud._player_sprite_anchor())
-		if _ctrl.hud.animator != null:
-			_ctrl.hud.animator.play_enemy_attack()
-	_ctrl.hud._log("敌人攻击 %d（盾挡 %d，受 %d）" % [eff, blocked, dealt])
+		# 2026-11-16 P0：敌人真实出手时，数值同步结算，但掉血表现（血条/飘字/屏震）
+		# 延后到命中帧才释放——先看到前摇动作，命中瞬间才掉血，消除「突然掉血」。
+		# 冰系用 T_HIT 对齐喷气命中帧，其余用前摇末 ACT_WINDUP。
+		if reason == "attack":
+			if _ctrl.hud.animator != null:
+				_ctrl.hud.animator.play_enemy_attack()   # t=0 前摇动作（前冲+玩家红闪）
+			_ctrl.hud.hold_enemy_hit(dealt, String(_ctrl.enemy_element), hp_before_hit)   # 命中帧才掉血+飘字+屏震
+		else:
+			# P0/P1/P2：DoT/反弹用元素色 + 来源标签 + 慢速档，与敌人攻击红字快弹分离（不播攻击动作，避免误读「敌人又打一次」）
+			var tag: String = src_tag if src_tag != "" else ("↩ 反弹" if reason == "reflect" else "☣ 持续")
+			_ctrl.hud._popup("%s -%d" % [tag, dealt], _dot_pop_color(tag), _ctrl.hud._player_sprite_anchor(), true)
+	# P1：日志按来源分类——原来所有 reason 都写「敌人攻击」，DoT/反弹也被误记成敌人出手
+	var log_tag: String = src_tag if src_tag != "" else ("敌人攻击" if reason == "attack" else ("↩ 反弹" if reason == "reflect" else "☣ 状态侵蚀"))
+	_ctrl.hud._log("%s %d（盾挡 %d，受 %d）" % [log_tag, eff, blocked, dealt])
 	# 石屑之心（信物）：反弹 thorns×原始攻击 给敌人（穿透护甲直击 HP；被剥夺时失效）
 	var thorns: float = _ctrl.charm_thorns if _ctrl.deprived_level < 1 else 0.0
 	if thorns > 0.0 and dealt > 0:
@@ -984,24 +1015,53 @@ func on_counter(kind: String, pierce_need: int = 3, acc: Dictionary = {}) -> voi
 
 
 # 敌人 DoT 状态结算（灼烧/毒/霜冻…，含元素克制与状态护符乘区；衰减由 StatusDef.decay 定义）
-func tick_status() -> void:
+# 2026-11-16 DoT 相位：结算时先把「本回合新挂、尚未到期」的 pending 层从 enemy_status 摘出，
+# 只用可结算层算伤害与衰减，结算后再放回。这样结算中/敌人回合挂的层从下一回合起才跳伤害，
+# 与玩家 debuff 的 turn_resolved 规则对称；而减攻/牌谱即时结算/HUD 全程读的是完整 enemy_status。
+func tick_status() -> int:
+	var restored: Dictionary = {}   # st -> 摘出的 pending 层数（结算后放回）
+	for st in _ctrl.enemy_status_pending.keys():
+		var hold: int = int(_ctrl.enemy_status_pending[st])
+		if hold > 0 and _ctrl.enemy_status.has(st):
+			var cur: int = int(_ctrl.enemy_status[st])
+			var taken: int = mini(hold, cur)
+			restored[st] = taken
+			_ctrl.enemy_status[st] = cur - taken
+			if _ctrl.enemy_status[st] <= 0:
+				_ctrl.enemy_status.erase(st)
 	var dot = 0
+	# P0：按状态类型分别记标签+伤害，供分类飘字；总扣血仍是各行之和，数值口径完全不变。
+	var dot_pops: Array = []
 	for st in _ctrl.enemy_status.keys():
 		var base = _ctrl.status_system.status_base(st)
 		var mult = ElementCounter.multiplier(_ctrl.status_system.status_element(st), _ctrl.enemy_element)
 		# T2 状态护符：DoT 伤害乘倍率（状态叠加轴投资；无名虚空剥夺时 ×1.0）；T23：衰减率由 StatusDef.decay 定义
 		# 2026-09-29：原全局 status_dmg_mult=3.0 已等值折入 StatusDef.base（burn 12 / poison 9），base 即实跳伤害
 		var status_boost: float = _ctrl.charm_status_boost if _ctrl.deprived_level < 1 else 1.0
-		dot += int(round(_ctrl.enemy_status[st] * base * mult * status_boost))
 		var sd: StatusDef = _ctrl.status_system.status_def(st)
+		var one: int = int(round(_ctrl.enemy_status[st] * base * mult * status_boost))
+		dot += one
+		if one > 0:
+			var tag: String = ("%s %s" % [sd.icon, sd.name]) if sd != null else "☣ 状态"
+			var elem: String = sd.element if sd != null else "none"
+			dot_pops.append([tag, one, elem])
 		_ctrl.enemy_status[st] = max(0, _ctrl.enemy_status[st] - (sd.decay if sd != null else 1))
 		if _ctrl.enemy_status[st] <= 0:
 			_ctrl.enemy_status.erase(st)
+	# 放回未到期层：它们本回合不跳伤害、不衰减，从下一回合起进入结算
+	for st in restored.keys():
+		_ctrl.enemy_status[st] = int(_ctrl.enemy_status.get(st, 0)) + int(restored[st])
 	if dot > 0:
 		_ctrl.enemy_hp -= dot
 		if _ctrl._career != null:
 			_ctrl._career.note_status_damage(dot)   # G6-01：仅记录 BOSS 房状态伤害（不改结算）
+		# P0/P2：敌人侧 DoT 每类状态一条飘字——元素色（火橙/毒绿/冰蓝）+ 慢速档，与攻击红字快弹分开
+		for pop in dot_pops:
+			var pop_elem: String = String(pop[2])
+			var pop_color: Color = ElementCounter.color(pop_elem) if pop_elem != "none" else Palette.POP_STATUS
+			_ctrl.hud._popup("%s -%d" % [String(pop[0]), int(pop[1])], pop_color, _ctrl.hud._enemy_sprite_anchor(), true)
 		_ctrl.hud._log("状态结算 %d 伤害（灼烧/毒·含克制）" % dot)
+	return dot
 
 
 # T21 元素充能爆发（覆盖流赛道）：克制命中满 charge_max 次后自动释放——

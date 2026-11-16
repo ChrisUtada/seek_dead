@@ -30,19 +30,26 @@ const BREATH_FLIP := true
 ## ice-spikes 原图就是「左 → 右」推进（= 玩家身前 → 身后），**不要翻转**。
 const SPIKES_FLIP := false
 
-## 帧速缩放：1.0 = 按导出的 30fps 播放。像素特效 30fps 偏快，整体压到 0.8。
-const FX_SPEED := 0.8
+## 帧速缩放：1.0 = 按导出的 30fps 播放。
+## 2026-11-16：原 0.8 会把 97 帧的爆发拉到 4.0s、91 帧的冰锥拉到 3.8s，远超 2s 的
+## 演出窗口，被 T_CLEANUP 硬掐断（特效从未播完）。提到 2.4 后两款约 1.3s，能播完。
+## 2.4 与 battle_animator.SLASH_SPEED_SCALE 相同，两套 pixelfx 特效统一速度口径。
+const FX_SPEED := 2.4
 
-## 时序（秒，相对敌人攻击判定时刻）。整体 2s，给演出留足阅读时间。
+## 时序（秒，相对敌人攻击判定时刻）。整体约 2.35s，给演出留足阅读时间。
+## 2026-11-16：FX_SPEED 提到 2.4 后，爆发 1.35s（0.95→2.30）、冰锥 1.26s（1.05→2.31），
+## T_TOTAL 必须覆盖两者的结束点（≈2.31s），否则调用方提前推进回合、粒子被下一轮清掉。
 const T_RISE_END := 0.30        ## 抬身
 const T_BREATH_START := 0.55    ## 俯冲途中开始喷气
 const T_DIVE_END := 0.75        ## 俯冲到位
-const T_HIT := 0.95             ## 命中：爆发 + 玩家受击
+const T_HIT := 0.95             ## 命中：爆发
 const T_SPIKES := 1.05          ## 地面冰锥
 const T_RETURN_START := 1.30    ## 退回
-const T_BREATH_STOP := 1.55
+## 2026-11-17：吐息收尾提前到回位之前。原 1.55 落在回位途中，
+## stop() 只停播放不隐藏，定格帧会跟着敌人飘回原位、站定后才被清掉 → 观感「卡一下」。
+const T_BREATH_STOP := 1.20
 const T_RETURN_END := 1.95
-const T_TOTAL := 1.95           ## 调用方需要等待的完整时长
+const T_TOTAL := 2.35           ## 调用方需要等待的完整时长（覆盖最晚的冰锥结束 2.31s）
 const T_CLEANUP := T_TOTAL + 0.25
 
 ## 俯冲位移（相对立绘初始位置）
@@ -102,11 +109,12 @@ func _play_ice_attack() -> float:
 		breath.play(&"default"))
 	_delay(T_BREATH_STOP, token, func() -> void:
 		if is_instance_valid(breath):
-			breath.stop())
-	_delay(T_HIT, token, func() -> void:
-		# 命中瞬间才闪红/屏震——否则攻击一开始就抖，和喷气对不上
-		if hud.animator != null:
-			hud.animator.play_enemy_attack())
+			breath.stop()
+			breath.visible = false
+			_unfollow(breath))
+	# 2026-11-16：受击演出（前冲/红闪/屏震）统一由伤害闸口 enemy_deal_damage 触发。
+	# 这里不再在命中帧调 animator.play_enemy_attack——否则与闸口那次叠加成双重播放。
+	# 特效层只负责自己的粒子（爆发/冰锥），命中帧只播 burst。
 	_delay(T_HIT, token, func() -> void:
 		_spawn(FRAMES["burst"], _sprite_center(hud.player_sprite) + BURST_OFFSET).play(&"default"))
 	_delay(T_SPIKES, token, func() -> void:
@@ -175,6 +183,14 @@ func _clear() -> void:
 	if _enemy_moved and hud != null and is_instance_valid(hud.enemy_sprite):
 		hud.enemy_sprite.position = _enemy_home
 	_enemy_moved = false
+
+
+## 把特效节点从跟随列表移除（收尾时先移出，避免隐藏后仍被 _process 每帧搬位置）
+func _unfollow(node: Node) -> void:
+	for i in range(_follow.size() - 1, -1, -1):
+		if _follow[i]["node"] == node:
+			_follow.remove_at(i)
+			break
 
 
 ## 延时执行；token 变了说明有更新的一次演出，旧的协程直接作废

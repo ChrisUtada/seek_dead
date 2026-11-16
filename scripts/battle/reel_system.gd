@@ -100,7 +100,7 @@ func _startup_wait(base: float, progress: float) -> float:
 
 
 func _spin_wait_at(elapsed: float, spin_ticks: int, startup_ticks: int) -> float:
-	var base: float = _ctrl.growth.spin_wait_base(_base_wait())
+	var base: float = _base_wait()
 	if elapsed < STARTUP_RAMP_SECONDS:
 		return _startup_wait(base, elapsed / STARTUP_RAMP_SECONDS)
 	var accel_ticks: int = maxi(0, spin_ticks - startup_ticks)
@@ -110,7 +110,7 @@ func _spin_wait_at(elapsed: float, spin_ticks: int, startup_ticks: int) -> float
 func _set_startup_progress(progress: float) -> void:
 	if not _spinning or _timer == null:
 		return
-	var base: float = _ctrl.growth.spin_wait_base(_base_wait())
+	var base: float = _base_wait()
 	_timer.wait_time = _startup_wait(base, progress)
 
 
@@ -447,7 +447,7 @@ func write_reel_cell(r: int) -> void:
 	_ctrl.hud._refresh_cell(r, 0)
 
 
-# M2-01 洞察：某列当前带子位置的下一格符号（只读，供 HUD 旋转中预览）。无带子返回 null。
+# 当前带子位置的下一格符号（只读，供 HUD 预览/遥测使用）。无带子返回 null。
 func next_symbol(r: int) -> SymbolData:
 	var arr := next_symbols(r, 1)
 	return arr[0] if not arr.is_empty() else null
@@ -497,20 +497,56 @@ func lock_reel(r: int, use_visual: bool = true, reason: String = "player") -> vo
 				vi %= n
 				if vi == cur:
 					idx = vi
-				elif vi == (cur + 1) % n and (_ctrl.readability.buffer_enabled or _ctrl.readability.steady_hand_ready()):
-					# 视觉中心已经到下一格、逻辑尚未推进：等到下一拍（最多一拍）。
-					# G7-A S1「稳手」：即使预设未开缓冲，每回合也允许这样一次。
+				elif vi == (cur + 1) % n and _ctrl.readability.buffer_enabled:
+					# 视觉中心已到下一格、逻辑尚未推进：等一拍（最多一拍）。
 					if not has_pending_stop(r):
 						_pending_stops[r] = true
 						_ctrl.readability.on_buffer_queued()
-						if not _ctrl.readability.buffer_enabled:
-							_ctrl.readability.consume_steady_hand()
 						_ctrl.hud._log("⏳ 第 %d 列进入输入缓冲：下一拍锁定视觉中心符号" % (r + 1))
-					return
-				elif _ctrl.readability.visual_stop and (vi == (cur + 1) % n or vi == (cur - 1 + n) % n):
-					# 视觉对齐但不开缓冲：立即锁定玩家看到的那一格（最多前后一格，不跨多格）。
-					idx = vi
+						return
+				# 宽判窗口技艺独立生效：即使 preset 未开 visual_stop，也按放宽后的容差锁定所见格。
+				var wide_tol: int = _ctrl.growth.wide_range() if _ctrl.growth != null else 1
+				var do_align: bool = _ctrl.readability.visual_stop or wide_tol > 1
+				if do_align:
+					var delta: int = absi(vi - cur)
+					delta = mini(delta, n - delta)   # 环形距离
+					if delta <= wide_tol:
+						idx = vi
+		# 2026-11-17 命中确定性三技艺：只改玩家按停的落点，不动伤害与速度。
+		if reason == "player" and strip != null and not strip.is_empty() and _ctrl.readability != null:
+			var n2: int = strip.size()
+			var vi2: int = _ctrl.hud.visual_center_index(r)
+			if vi2 < 0:
+				vi2 = int(reel_cursor[r]) % n2
+			vi2 %= n2
+			# 落点吸附：目标符号就在视觉中心 ±1 格内，自动吸附到最近的目标格（每回合限次）。
+			if _ctrl.readability.snap_ready():
+				var ti: int = _ctrl.readability.snap_target_index(vi2, strip)
+				if ti >= 0:
+					idx = ti
+					_ctrl.readability.consume_snap()
+					_ctrl.hud._log("🧲 落点吸附：第 %d 列锁定目标符号" % (r + 1))
+			# 废铁豁免：若落点是废铁（trash / MISS），改判为相邻最近的非废铁格（每回合限次）。
+			var sym_now = strip[idx][0] if strip[idx] is Array else strip[idx]
+			if sym_now != null and String(sym_now.kind) == "trash" and _ctrl.readability.mercy_ready():
+				var good: int = _nearest_non_trash(strip, idx)
+				if good >= 0:
+					idx = good
+					_ctrl.readability.consume_mercy()
+					_ctrl.hud._log("🛡 废铁豁免：第 %d 列改判为有效符号" % (r + 1))
 	_begin_absorb(r, idx, reason)
+
+
+# 从 idx 向两侧找最近的非废铁格（含 idx 自身之外的相邻格）；全废铁返回 -1。
+func _nearest_non_trash(strip: Array, idx: int) -> int:
+	var n: int = strip.size()
+	for d in range(1, n):
+		for off in [d, -d]:
+			var i: int = (idx + off + n) % n
+			var sym = strip[i][0] if strip[i] is Array else strip[i]
+			if sym != null and String(sym.kind) != "trash" and sym is Resource:
+				return i
+	return -1
 
 
 # Step 2：停轮请求先记录，不立即写格子；0.16–0.20s 减速吸附结束才落子并进入结算

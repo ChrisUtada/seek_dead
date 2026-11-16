@@ -73,7 +73,7 @@ func on_turn_begin(ctrl) -> void:
 		var stacks: int = int(ctrl.player_status.get("poison", 0))
 		if stacks > 0:
 			var dot_dmg: int = stacks * _grief_dot_base
-			ctrl.combat.enemy_deal_damage(dot_dmg)
+			ctrl.combat.enemy_deal_damage(dot_dmg, "dot", "☣ 悲伤侵蚀")
 			ctrl.hud._log("☣ 悲伤侵蚀：%d 层毒伤 -%d（护盾可挡）" % [stacks, dot_dmg])
 		if _recovering:
 			ctrl.hud._log("💔 人格僵直：本回合不挂新毒（旧毒照常结算）")

@@ -37,7 +37,7 @@ func on_damaged(ctrl, dmg: int) -> void:
 	var reflect: int = mini(_reflect_cap, roundi(dmg * _reflect_ratio))
 	if reflect <= 0:
 		return
-	ctrl.combat.enemy_deal_damage(reflect)   # 唯一闸口：护盾可挡、飘字/受击动画/日志自动
+	ctrl.combat.enemy_deal_damage(reflect, "reflect", "🪨 石屑反弹")   # 唯一闸口：护盾可挡、飘字/日志（反弹不播攻击演出）
 	ctrl.hud._log("🪨 石屑反弹 -%d（护盾可挡）" % reflect)
 
 func recovery_window(_ctrl) -> bool:

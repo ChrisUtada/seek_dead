@@ -49,7 +49,9 @@ var preview_slots := 0
 var visual_stop := false
 var buffer_enabled := false
 var feedback_enabled := false
-var steady_hand_used := false    # G7-A S1「稳手」：本回合那一次额外缓冲是否已用掉
+# 2026-11-17：命中确定性三技艺的每回合次数计数（替换原「稳手」）。
+var snap_used := 0      # 落点吸附：本回合已用次数
+var mercy_used := 0     # 废铁豁免：本回合已用次数
 
 var target_symbol_path := ""
 var target_reason := "输出窗口"
@@ -125,7 +127,8 @@ func reset_run() -> void:
 	target_hits = 0
 	forced_stops = 0
 	buffer_queues = 0
-	steady_hand_used = false
+	snap_used = 0
+	mercy_used = 0
 	situation = ""
 	situation_detail = ""
 	counters = []
@@ -136,21 +139,52 @@ func reset_run() -> void:
 
 func begin_spin() -> void:
 	stop_results.clear()
-	steady_hand_used = false   # 稳手按回合刷新
+	snap_used = 0
+	mercy_used = 0
 	if _ctrl.hud != null and _ctrl.hud.has_method("_clear_stop_feedback"):
 		_ctrl.hud._clear_stop_feedback()
 
 
-# G7-A S1「稳手」：每回合一次额外的一拍缓冲，与 P1 预设的 buffer_enabled 独立。
-# 只影响玩家按停的落点解析，不改速度、预览格数或任何伤害。
-func steady_hand_ready() -> bool:
-	if steady_hand_used or _ctrl == null or _ctrl.growth == null:
+# 2026-11-17 命中确定性三技艺：只影响玩家按停的落点解析，不改速度、预览格数或任何伤害。
+# 落点吸附：本回合次数是否未用完（目标是否在容差内由 snap_target_index 判定）。
+func snap_ready() -> bool:
+	if _ctrl == null or _ctrl.growth == null:
 		return false
-	return _ctrl.growth.has_perk("steady_hand")
+	return snap_used < _ctrl.growth.snap_per_turn()
 
 
-func consume_steady_hand() -> void:
-	steady_hand_used = true
+# 返回视觉中心 ±rng 内目标符号所在的列索引；无则 -1。
+func snap_target_index(center: int, strip: Array) -> int:
+	if _ctrl == null or _ctrl.growth == null or strip.is_empty():
+		return -1
+	var target: String = target_symbol_path
+	if target == "":
+		return -1
+	var n: int = strip.size()
+	var rng: int = _ctrl.growth.snap_range()
+	# 先近后远，吸附到最近的目标格
+	for d in range(1, rng + 1):
+		for off in [d, -d]:
+			var i: int = (center + off + n) % n
+			var sym = strip[i][0] if strip[i] is Array else strip[i]
+			if sym != null and String(sym.resource_path) == target:
+				return i
+	return -1
+
+
+func consume_snap() -> void:
+	snap_used += 1
+
+
+# 废铁豁免：本回合次数未用完时可用（实际是否改判在 lock_reel 判定落点后）
+func mercy_ready() -> bool:
+	if _ctrl == null or _ctrl.growth == null:
+		return false
+	return mercy_used < _ctrl.growth.mercy_per_turn()
+
+
+func consume_mercy() -> void:
+	mercy_used += 1
 
 
 func finish_spin() -> void:

@@ -35,7 +35,7 @@ func _run() -> void:
 		duel._journal.note_battle_start(room)
 		duel.turn_count = 4
 		duel._journal.note_battle_end("win")
-		duel._journal.note_growth("insight", "洞察")
+		duel._journal.note_growth("snap", "落点吸附")
 		duel._journal.note_weapon_change("火焰剑", "匕首", "测试")
 		duel._journal.note_shop("治疗药水", "active", 5)
 		duel._journal.note_camp("圣盾护符", "passive", 9)

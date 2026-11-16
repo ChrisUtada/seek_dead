@@ -370,15 +370,17 @@ func _test_feedback_consistency(duel: DuelController) -> void:
 		"治疗药剂反馈显示真实入账值（实际 %s）" % String(duel.hud.feedback_label.text))
 	duel.hud.feedback_label.text = ""
 
+	# 2026-11-16 远端把面板 HP/盾/护甲文字行收起，数值改到角色头顶血条（含盾段）。
+	# 断言从被隐藏的 player_shield_row 移到稳定的盾段数据接口 player_hp_bar.shield_len。
 	duel.player_shield = 0
 	duel.invalidate_state()
 	duel.hud._refresh_meta()
-	_check(not duel.hud.player_shield_row.visible, "无护盾时护盾行隐藏")
+	_check(duel.hud.player_hp_bar.shield_len == 0.0, "无护盾时头顶盾段长度为 0（实际 %s）" % duel.hud.player_hp_bar.shield_len)
 	duel.player_shield = 7
 	duel.invalidate_state()
 	duel.hud._refresh_meta()
-	_check(duel.hud.player_shield_row.visible, "有护盾时护盾行显示")
-	_check(String(duel.hud.player_shield_label.text) == "盾 7", "护盾行数值与状态一致（实际 %s）" % duel.hud.player_shield_label.text)
+	_check(duel.hud.player_hp_bar.shield_len > 0.0, "有护盾时头顶盾段显示（实际 %s）" % duel.hud.player_hp_bar.shield_len)
+	_check(String(duel.hud.player_shield_label.text) == "盾 7", "护盾数值与状态一致（实际 %s）" % duel.hud.player_shield_label.text)
 	duel.player_shield = 0
 	duel.enemy_hp = 100
 	duel.enemy_hp_max = 100

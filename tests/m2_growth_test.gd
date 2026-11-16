@@ -10,11 +10,13 @@ extends Node
 # ② 技艺次数：Lv.2 / Lv.4 / Lv.6 各给 1 次待选；Lv.6 封顶，之后经验照常累计但不再升级
 # ③ 三选一候选：3 个、互不相同、均未拥有、覆盖不同家族
 # ④ 选定：非法选择拒绝；同一技艺不可重复；坚韧 +10 HP 并恢复；备用药剂 腰带各 +1
-# ⑤ 落点：守势每房 +8 护盾；精打细算 +1 免费刷新；稳定节奏 前 2 回合间隔 0.17s
-# ⑥ 洞察：转轮 next_symbol 取当前位置的下一格，带子空时为 null
+# ⑤ 落点：守势每房 +8 护盾；精打细算 +1 免费刷新
+# ⑥ next_symbol：取当前位置的下一格，带子空时为 null
 # ⑦ 流程：房间胜利且有待选 → 弹出三选一，选完才进入房间间歇
 # ⑧ 新一局：reset_run 清零经验 / 等级 / 技艺
-# ⑨ G7-A S1 新技艺：回春房胜利回血（BOSS 房更多、不超上限）；积蓄房胜利给金；稳手每回合一次缓冲
+# ⑨ 回春房胜利回血（BOSS 房更多、不超上限）；积蓄房胜利给金
+# ⑩ 2026-11-17 命中确定性三技艺：落点吸附（每回合 2 次）、宽判窗口（容差 ±2）、
+#    废铁豁免（每回合 1 次）；旧的稳定节奏 / 洞察 / 稳手已移除。
 # 测试结束还原 meta（不污染玩家真实存档）。
 # ============================================================================
 
@@ -174,14 +176,17 @@ func _test_hooks(duel: DuelController) -> void:
 	_check(g.free_reroll_bonus() == 1, "精打细算：+1 免费刷新")
 	duel.charm_free_reroll = 0
 	_check(duel._shop_system.free_reroll_count() == 1, "商店免费刷新计数叠加精打细算（+1）")
-	_check(is_equal_approx(g.spin_wait_base(0.15), 0.15), "未选稳定节奏：间隔保持 0.15")
-	g.perk_ids.append("steady")
-	duel.turn_count = 1
-	_check(is_equal_approx(g.spin_wait_base(0.15), 0.17), "稳定节奏：第 1 回合间隔 0.17")
-	duel.turn_count = 2
-	_check(is_equal_approx(g.spin_wait_base(0.15), 0.17), "稳定节奏：第 2 回合间隔 0.17")
-	duel.turn_count = 3
-	_check(is_equal_approx(g.spin_wait_base(0.15), 0.15), "稳定节奏：第 3 回合起回落 0.15")
+	# 命中确定性三技艺的落点查询接口（未选中时均回落默认值）
+	_check(g.snap_per_turn() == 0, "未选落点吸附：每回合次数 0")
+	_check(g.mercy_per_turn() == 0, "未选废铁豁免：每回合次数 0")
+	_check(g.wide_range() == 1, "未选宽判窗口：容差回落 ±1")
+	_check(g.snap_range() == 1, "落点吸附容差常量 ±1")
+	g.perk_ids.append("snap")
+	g.perk_ids.append("mercy")
+	g.perk_ids.append("wide")
+	_check(g.snap_per_turn() == 2, "落点吸附：每回合 2 次")
+	_check(g.mercy_per_turn() == 1, "废铁豁免：每回合 1 次")
+	_check(g.wide_range() == 2, "宽判窗口：容差 ±2")
 	g.perk_ids.clear()
 
 
@@ -216,58 +221,60 @@ func _test_new_perks(duel: DuelController) -> void:
 	g.enabled = true
 	g.perk_ids.clear()
 
-	# 稳手：视觉中心在下一格时，每回合可用一次一拍缓冲；用掉后本回合不再缓冲
+	# 2026-11-17 命中确定性三技艺的落点（替换原「稳手」缓冲测试）
 	var rs = duel.reel_system
 	var rd = duel.readability
-	var a = duel.TRASH_SYMBOL
-	var b = duel.GOLD_SYMBOL
+	var trash = duel.TRASH_SYMBOL
+	var gold = duel.GOLD_SYMBOL
+	var gold_path: String = gold.resource_path
 	var backup_strips = rs.reel_strips.duplicate(true)
 	var backup_cursor = rs.reel_cursor.duplicate()
 	var backup_stopped = rs.reel_stopped.duplicate()
-	g.perk_ids.append("steady_hand")
+	var backup_target: String = rd.target_symbol_path
+
+	# —— 落点吸附：目标符号在视觉中心 ±1 内，吸附到最近目标格，每回合 2 次 ——
+	g.perk_ids.append("snap")
 	rd.buffer_enabled = false
 	rd.visual_stop = false
 	rd.begin_spin()
-	_check(rd.steady_hand_ready(), "稳手：预设未开缓冲时仍可用（每回合一次）")
-	rs.reel_strips = [[[a, "none"], [b, "none"]]]
+	rd.target_symbol_path = gold_path
+	var strip_ag: Array = [[gold, "none"], [trash, "none"], [trash, "none"]]
+	_check(rd.snap_ready(), "落点吸附：本回合次数未用完")
+	_check(rd.snap_target_index(1, strip_ag) == 0, "落点吸附：视觉中心 1 时目标 gold 在相邻索引 0")
+	var strip_far: Array = [[gold, "none"], [trash, "none"], [trash, "none"], [trash, "none"]]
+	_check(rd.snap_target_index(2, strip_far) == -1, "落点吸附：目标距视觉中心超过 ±1 时不吸附")
+	rd.consume_snap()
+	rd.consume_snap()
+	_check(not rd.snap_ready(), "落点吸附：每回合 2 次用尽")
+	rd.begin_spin()
+	_check(rd.snap_ready(), "落点吸附：下一回合次数重置")
+
+	# —— 废铁豁免：落点是废铁时改判相邻非废铁格，每回合 1 次 ——
+	# 先移除落点吸附，避免它把目标 gold 提前吸附走、干扰废铁判定。
+	g.perk_ids.erase("snap")
+	g.perk_ids.append("mercy")
+	rd.begin_spin()
+	rd.target_symbol_path = ""   # 豁免不依赖目标符号
+	_check(rd.mercy_ready(), "废铁豁免：本回合可用")
+	var strip_tr: Array = [[trash, "none"], [gold, "none"]]
+	rs.reel_strips = [strip_tr]
 	rs.reel_cursor.clear()
-	for i in DuelController.REELS:
-		rs.reel_cursor.append(0)
+	rs.reel_cursor.append(0)
 	rs.reel_stopped.clear()
-	for i in DuelController.REELS:
-		rs.reel_stopped.append(false)
+	rs.reel_stopped.append(false)
 	rs._pending_stops.clear()
-	# 视觉中心由 ReelSpinView 计算：非旋转态直接等于 cursor，测不出「下一格」。
-	# 这里把视图置为旋转态（_index=0、_frac=1.0、带子 2 格），视觉中心固定为索引 1，
-	# 逻辑游标停在 0 → 正好是「视觉中心在下一格」。
-	var view = duel.hud.cell_spin_views[0][0]
-	var backup_active = view._active
-	var backup_frac = view._frac
-	var backup_index = view._index
-	view._index = 0
-	view._frac = 1.0
-	view._active = true
-	var vi: int = duel.hud.visual_center_index(0)
-	_check(vi == 1, "稳手测试前提：视觉中心为索引 1（实测 %d）" % vi)
-	rs.reel_cursor[0] = 0
-	# Step 4：普通怪可能带「首轮注废」特性（窃语咒师），注废列会跳过视觉缓冲。
-	# 本子测只验证稳手缓冲，先清掉本房干扰列，避免测试依赖随机抽到的房间。
 	duel.pending_jam_reel = -1
 	duel.pending_lock_reel = -1
+	# 视觉中心置 0（非旋转态默认 = cursor），落点为废铁 → 豁免改判到 gold(1)
 	rs.lock_reel(0)
-	_check(rs.has_pending_stop(0) and not rs.reel_stopped[0], "稳手：进入一拍缓冲而不是立即落子")
-	_check(not rd.steady_hand_ready(), "稳手：本回合的缓冲已用掉")
-	rs._pending_stops.clear()
-	rs.reel_stopped[0] = false
-	rs.lock_reel(0)
-	_check(rs.is_absorbing(0), "稳手：本回合第二次按停不再缓冲，直接进入吸附")
+	_check(rd.mercy_used == 1, "废铁豁免：废铁落点触发改判并用掉 1 次")
+	_check(not rd.mercy_ready(), "废铁豁免：每回合 1 次用尽")
 	await get_tree().create_timer(0.45).timeout
-	_check(rs.reel_stopped[0], "稳手：吸附完成后落子")
+	_check(rs.reel_stopped[0], "废铁豁免：吸附完成后落子")
+
 	rd.begin_spin()
-	_check(rd.steady_hand_ready(), "稳手：下一回合重新可用")
-	view._active = backup_active
-	view._frac = backup_frac
-	view._index = backup_index
+	_check(rd.mercy_ready(), "废铁豁免：下一回合次数重置")
+	rd.target_symbol_path = backup_target
 	rs.reel_strips = backup_strips
 	rs.reel_cursor = backup_cursor
 	rs.reel_stopped = backup_stopped
@@ -284,11 +291,11 @@ func _test_next_symbol(duel: DuelController) -> void:
 	rs.reel_strips = [[[a, "none"], [b, "none"]]]
 	rs.reel_cursor.clear()
 	rs.reel_cursor.append(0)
-	_check(rs.next_symbol(0) == b, "洞察：下一格为带子位置 +1 的符号")
+	_check(rs.next_symbol(0) == b, "next_symbol：下一格为带子位置 +1 的符号")
 	rs.reel_cursor[0] = 1
-	_check(rs.next_symbol(0) == a, "洞察：末格后循环回到首格")
+	_check(rs.next_symbol(0) == a, "next_symbol：末格后循环回到首格")
 	rs.reel_strips = [[]]
-	_check(rs.next_symbol(0) == null, "洞察：空带子返回 null")
+	_check(rs.next_symbol(0) == null, "next_symbol：空带子返回 null")
 	rs.reel_strips = backup_strips
 	rs.reel_cursor = backup_cursor
 

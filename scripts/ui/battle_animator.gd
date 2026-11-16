@@ -94,8 +94,10 @@ func _sprite(which: String) -> Control:
 
 # 攻击者蓄力 → 命中定格 → 恢复；目标闪白对齐命中点。
 # 时长来自 pixelfx-godot 的 act 时序（见文件头常量），只借时间不借像素；玩家不旋转、不切帧。
-# 特效层固定在玩家侧：玩家攻击时读作剑尖弧光，敌人攻击时读作落在该处的受击弧光。
-func play_attack(attacker: String, target: String) -> void:
+# 2026-11-16：斩击粒子改为「仅玩家武器攻击」播放（with_slash=true）。
+# 敌人攻击 / 状态 DoT / 反伤等掉血只走立绘前冲 + 闪白 + 屏震，不再复用玩家侧斩击弧光——
+# 否则任何掉血都会闪一次玩家挥砍，看起来像玩家攻击了两次。
+func play_attack(attacker: String, target: String, with_slash: bool = false) -> void:
 	var atk = _sprite(attacker)
 	var tgt = _sprite(target)
 	if atk == null or tgt == null:
@@ -103,8 +105,9 @@ func play_attack(attacker: String, target: String) -> void:
 	_center_pivot(atk)
 	var home_scale = atk.scale
 
-	# 特效 ~0.33s 与下面演出 ~0.34s 等长：起手帧对齐前摇、弧光峰值对齐命中。
-	_play_slash_fx()
+	# 斩击粒子只在玩家武器攻击时播；~0.33s 与演出 ~0.34s 等长，弧光峰值对齐命中。
+	if with_slash:
+		_play_slash_fx()
 
 	# 前摇：官方 WIND→CUT，略收身再前冲；只用 scale，不动 VBoxContainer 布局。
 	var tw = create_tween()
@@ -119,16 +122,25 @@ func play_attack(attacker: String, target: String) -> void:
 		twr.tween_property(atk, "rotation", 0.0, ACT_FREEZE + ACT_RECOVER)
 
 	# 目标受击暖白闪延迟到命中点才起，不再从攻击一开始就亮。
+	# 2026-11-16：闪白总长压进调用方的等待窗口——interval ACT_WINDUP(0.231) + 0.06 + 0.12
+	# ≈ 0.41s，与攻击者 tween(~0.34s) 同步收尾，不再拖到 0.54s 被后续飘字/收尾 tween 覆盖
+	# 掉 modulate（表现为受击白闪被截断）。
 	var base = tgt.modulate
 	var tw2 = create_tween()
 	tw2.tween_interval(ACT_WINDUP)
-	tw2.tween_property(tgt, "modulate", Color(1.75, 1.70, 1.55), 0.07)
-	tw2.tween_property(tgt, "modulate", base, 0.24)
+	tw2.tween_property(tgt, "modulate", Color(1.75, 1.70, 1.55), 0.06)
+	tw2.tween_property(tgt, "modulate", base, 0.12)
 
 
-# P1：敌人反击（前冲 + 玩家红闪 + 屏震）
+# P1：敌人反击动作（前冲 + 玩家红闪）。
+# 2026-11-16 P0：屏震从此处拆出为 enemy_hit_shake()，由 HUD 在「命中帧」单独触发。
+# 这样 t=0 只播前摇动作，命中瞬间才屏震+飘字+血条掉，消除「血先掉动作后到」。
 func play_enemy_attack() -> void:
 	play_attack("enemy", "player")
+
+
+# 命中帧屏震：与飘字/血条刷新同一拍触发（普通元素前摇末 0.231s / 冰系 T_HIT 0.95s）。
+func enemy_hit_shake() -> void:
 	_shake(6.0)
 
 

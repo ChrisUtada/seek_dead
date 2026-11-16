@@ -26,6 +26,8 @@ func begin_player_turn() -> void:
 		return
 	_ctrl.turn_count += 1
 	_ctrl.turn_resolved = false   # 2026-11-12 Step 3：进入转轮前相位（debuff 计时用）
+	# 2026-11-16 DoT 相位：上回合结算中/敌人回合新挂的层，从本回合起允许 tick
+	_ctrl.enemy_status_pending.clear()
 	# 深渊凝视（信物）：每回合开始元素充能 +N（不触发爆发，爆发仍由克制命中驱动）
 	if _ctrl.charm_charge_start > 0 and _ctrl.deprived_level < 1:
 		_ctrl.charge_points += _ctrl.charm_charge_start
@@ -41,6 +43,19 @@ func begin_player_turn() -> void:
 	_ctrl.boss_atk_mult = 1.0
 	if _ctrl.current_gimmick != null:
 		_ctrl.current_gimmick.on_turn_begin(_ctrl)
+	# 2026-11-16 P2：玩家 DoT 在 on_turn_begin 结算（酸液/中毒/灼烧）。
+	# 若致死立即判负——否则玩家已经死了还能完整转一轮，敌人照常出手。
+	if _ctrl.player_hp <= 0:
+		_ctrl.hud._log("✖ 你被状态伤害击倒。")
+		_ctrl.game_state = _ctrl.FlowState.LOST
+		if _ctrl._telemetry != null:
+			_ctrl.room_flow.log_telemetry()
+		if _ctrl._codex != null:
+			_ctrl._codex.record_run(_ctrl.mastery)
+		_ctrl.invalidate_state()
+		_ctrl.hud._show_overlay("✖ 失败\n你倒在了 %s 面前" % _ctrl.enemy_name, "返回整备 ▶")
+		_ctrl.hud._refresh_meta()
+		return
 	if _ctrl.readability != null:
 		_ctrl.readability.update_turn_target()
 	# T30 寒霜侵蚀：回合一开始敌人即冻结（frost 挂上后立即声明冻结列，spin 前玩家可见蓝框提示）
@@ -89,27 +104,34 @@ func on_spin_pressed() -> void:
 
 	# 阶段 3：敌人行动（先让玩家看清敌人刚掉的血）
 	await _ctrl.get_tree().create_timer(0.20).timeout
+	# P2：DoT 先在敌人回合开始独立结算并弹字，留短窗口让玩家看清状态伤害，
+	# 再让敌人执行意图——否则 DoT 飘字与敌人攻击前摇同帧冒出，会被误读成攻击伤害。
+	const DOT_LEAD := 0.16
+	var dot_dmg: int = _ctrl.combat.tick_status()
+	_ctrl.invalidate_state()
+	if dot_dmg > 0 and _ctrl.enemy_hp > 0:
+		await _ctrl.get_tree().create_timer(DOT_LEAD).timeout
 	var intent_type := String(_ctrl.enemy_intent.get("type", ""))
-	_ctrl.enemy_system.take_turn()
+	_ctrl.enemy_system.take_turn(false)   # DoT 已在上方结算，跳过 take_turn 内的重复 tick
 	_ctrl.apply_enemy_hp_floor()   # P-审计 P1：DoT/爆炸等敌人回合内扣血的旁路收口
 	_ctrl.hud._refresh_meta()
-	# 属性攻击演出：喷出 → 命中爆发 → 地面冰锥。不播完就推进回合会「一秒糊过去」，
-	# 所以在这里等足时长（0 = 该元素暂无素材，直接过）。
-	if intent_type == "attack" or intent_type == "heavy":
-		var fx_time: float = _ctrl.hud.play_enemy_attack_fx(_ctrl.enemy_element)
-		if fx_time > 0.0:
-			# 有专属特效：闪红/屏震由 BattleFx 在命中帧触发，这里只等演出播完
-			await _ctrl.get_tree().create_timer(fx_time).timeout
-		elif _ctrl.hud.animator != null:
-			_ctrl.hud.animator.play_enemy_attack()   # 无素材时退回旧的轻演出
+	# 2026-11-16 P0：DoT 已前置到敌人回合开始。若敌人被状态伤害击倒，
+	# 先判胜利再播演出——否则会出现「尸体还在放攻击特效」。
 	if _ctrl.enemy_hp <= 0:
-		# 敌人可能在自身回合被状态 DoT 结算致死
 		_ctrl.hud._log("★ 击败 %s！（状态结算）" % _ctrl.enemy_name)
 		_ctrl.game_state = _ctrl.FlowState.WON
 		_ctrl.invalidate_state()
 		_ctrl.hud._show_reward_screen(_ctrl._is_boss_room(_ctrl.room_index))
 		_ctrl._busy = false
 		return
+	# 属性攻击演出：喷出 → 命中爆发 → 地面冰锥。不播完就推进回合会「一秒糊过去」，
+	# 所以在这里等足时长（0 = 该元素暂无素材，直接过）。
+	# 2026-11-16：受击演出（前冲/红闪/屏震）统一由伤害闸口 enemy_deal_damage 触发，
+	# 这里不再兜底调 animator——否则与闸口那次叠加成双重播放（怪攻击时间紊乱主因）。
+	if intent_type == "attack" or intent_type == "heavy":
+		var fx_time: float = _ctrl.hud.play_enemy_attack_fx(_ctrl.enemy_element)
+		if fx_time > 0.0:
+			await _ctrl.get_tree().create_timer(fx_time).timeout
 	if _ctrl.player_hp <= 0:
 		_ctrl.hud._log("✖ 你被 %s 击倒。" % _ctrl.enemy_name)
 		_ctrl.game_state = _ctrl.FlowState.LOST

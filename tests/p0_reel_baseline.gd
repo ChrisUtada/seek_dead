@@ -16,7 +16,7 @@ const STRIP_MIN := 30          # ReelSystem._STRIP_MIN_CELLS 的只读快照
 const BASE_WAIT := 0.15        # ReelSystem._SPIN_BASE_WAIT
 const MIN_WAIT := 0.06         # ReelSystem._SPIN_MIN_WAIT
 const ACCEL := 0.0010          # ReelSystem.on_spin_tick 每跳减速
-const STEADY_WAIT := 0.17      # GrowthSystem.STEADY_WAIT（稳定节奏前 2 回合）
+const STEADY_WAIT := 0.17      # 历史基线参考间隔（原「稳定节奏」技艺值；该技艺已于 2026-11-17 移除，仅保留作对照输出）
 const VISIBLE_AHEAD := 2       # ReelSpinView SLOTS=5、当前格居中 → 前向可见 2 槽
 const TARGET_SYMBOL := "res://resources/symbols/fire_slash.tres"   # 主武器最高权重攻击符号
 

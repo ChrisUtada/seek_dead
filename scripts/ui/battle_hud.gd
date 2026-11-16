@@ -34,6 +34,7 @@ signal reel_clicked(col: int)                # 点击某一列转轮
 signal buy_requested(offer: Dictionary)      # 商店购入
 @warning_ignore("unused_signal")
 signal sell_requested(uid_or_path: String, kind: String)  # 卖出（消耗品按 uid，其余按 path）
+@warning_ignore("unused_signal")
 signal reward_chosen(id: String, index: int)  # 房奖励三选一（index 对齐 reward_payloads，M1-01）
 @warning_ignore("unused_signal")
 signal loot_offer_chosen(index: int)          # Step 7：同层三选一卡点击（冻结 payload 下标）
@@ -43,21 +44,28 @@ signal loot_offer_reroll_requested            # Step 7：重抽（同层，不�
 signal loot_offer_skip_requested              # Step 7：免费跳过战利品（不发奖励）
 @warning_ignore("unused_signal")
 signal post_battle_defer_requested            # Step 7：成长位「保留到下次战斗」
+@warning_ignore("unused_signal")
 signal post_battle_growth_chosen(cand: Dictionary)  # M1 战后成长屏的成长位（技艺 / 铭印 / 下一房对策）
+@warning_ignore("unused_signal")
 signal boss_reward_chosen(cand: Dictionary)  # BOSS 战利品三选一
 @warning_ignore("unused_signal")
 signal reward_skip_requested                 # 跳过房奖励
 signal shop_requested                          # 🛒 打开商店（房间歇态 opt-in）
 signal next_room_requested                     # ▶ 下一房（房间歇态）
+@warning_ignore("unused_signal")
 signal card_toggled(card: Dictionary)         # 整备卡片勾选
+@warning_ignore("unused_signal")
 signal meta_choice_chosen(opt: Dictionary)    # 局末元进度结算（当前仅铁砧点单结果，GAME+ 后恢复多选）
+@warning_ignore("unused_signal")
 signal career_unlock_chosen(path: String)     # G6-02：生涯定向解锁三选一
 signal overlay_button_pressed                 # 失败弹层按钮（回整备）
+@warning_ignore("unused_signal")
 signal consumable_used(uid: String)           # 使用腰带消耗品
 @warning_ignore("unused_signal")
 signal shop_leave_requested                   # 离开商店（回房间歇态）
 @warning_ignore("unused_signal")
 signal anvil_back_requested                   # 铁砧返回整备
+@warning_ignore("unused_signal")
 signal shop_card_pressed(offer: Dictionary)   # 商店卡片点击（shop_screen 拦截：武器满 2 弹替换）
 @warning_ignore("unused_signal")
 signal buy_replace_requested(offer: Dictionary, old_path: String)   # 替换购买（2026-08-07：武器槽上限 2 后的换装）
@@ -230,6 +238,13 @@ var p1_stop_labels: Array = []          # [reel] -> Label（每列停轮结果�
 var animator = null   # P4 战斗动画器（tween 驱动立绘演出），_build_ui 末尾创建
 var fx = null         # 战斗特效层（属性攻击的像素特效），_build_ui 末尾创建
 
+# 2026-11-16 P0：敌人攻击的「掉血表现延后到命中帧」。
+# 数值在闸口同步结算（判定/测试不变），但血条与 HP 数字暂时显示扣血前的影子值，
+# 等前摇命中帧（普通 0.231s / 冰系 0.95s）才释放：血条掉 + 飘字 + 屏震同拍发生。
+var _hp_display_hold: int = -1   # >=0 时血条/数字显示此值；-1 = 跟随真实 player_hp
+var _hit_release_token: int = 0  # 多段伤害聚合 + 防止旧 timer 误释放
+var _hit_pending_text: String = ""
+
 var panel_view                       # P2（2026-08-24）：左栏玩家面板视图逻辑（player_panel_view.gd）
 var overlay
 var overlay_label
@@ -322,6 +337,7 @@ func _build_ui() -> void:
 			cell.move_child(icon_layer, 0)      # 放到 Badge 之下，避免盖住匹配角标
 			cell_icon_layers[reel].append(icon_layer)
 			# 图标粒子：1px 火花贴着图标往上飘（元素色），比"呼吸上下动"更符合像素画的动感
+			@warning_ignore("shadowed_variable")
 			var fx := CPUParticles2D.new()
 			fx.name = "IconFx"
 			fx.texture = PX1_TEX
@@ -549,10 +565,7 @@ func _refresh_p1_previews() -> void:
 	if controller.debuffs != null and controller.debuffs.preview_hidden():
 		p1_preview_row.visible = false
 		return
-	# 洞察在 P1 预览行里额外 +1 格；control（预览 0）仍走原来的格内预览，不改变对照。
 	var slots: int = int(rd.preview_slots)
-	if controller.growth != null and controller.growth.has_perk("insight"):
-		slots += 1
 	slots = mini(slots, 3)
 	p1_preview_row.visible = true
 	for reel in controller.state.REELS:
@@ -649,6 +662,7 @@ func _pulse_stop_cell(reel: int, outcome: String) -> void:
 	cell_stop_tweens[reel][0] = tw
 	# 按停爆裂：整列 3 个格子同时炸一次粒子（元素色在 _refresh_cell 里已上色）
 	if cell_icon_fx.size() > reel:
+		@warning_ignore("shadowed_variable")
 		for fx in cell_icon_fx[reel]:
 			if fx is CPUParticles2D:
 				# 2026-11-12 Step 0 基线：CPUParticles2D.restart() 会消耗 1 次全局 RNG，
@@ -1198,10 +1212,11 @@ func _update_enemy_element() -> void:
 
 
 # 飘字：在 anchor 面板顶部中央弹出并上浮淡出（对象池实现见 scripts/ui/popup_pool.gd）
-func _popup(text: String, color: Color, anchor: Control) -> void:
+# slow=true 走 DoT 慢速档（上浮更慢、驻留更久），与攻击红字快弹区分。
+func _popup(text: String, color: Color, anchor: Control, slow: bool = false) -> void:
 	if popup_layer == null:
 		return
-	popup_layer.popup(text, color, anchor)
+	popup_layer.popup(text, color, anchor, slow)
 
 
 # 2026-11-15 转轮凑牌 §9.1：常驻牌谱面板。
@@ -1332,7 +1347,11 @@ const VITAL_W := 46.0           # 血条（红段）宽度
 const VITAL_HP_H := 8.0
 const VITAL_CELLS := 6
 const VITAL_FLASH := 0.34
-const SHIELD_MAX_LEN := 24.0    # 盾段最大延伸长度（盾量 = 生命上限时）
+# 盾段与血条同尺：满盾（盾量 = 生命上限）延伸一段「与血段等长」的宽度。
+# 血段内宽 = VITAL_W - 2 = 44px，于是 1 点盾 = 44/hp_max px，和 1 点血用同一把尺量，
+# 蓝段多长就直接读作「能挡多少血」。旧实现用 24px 上限 + 4px 下限，常见盾 6~15 全被
+# 压成 4px，看起来像固定长度（2026-11-16 用户反馈）。
+const SHIELD_MAX_LEN := VITAL_W - 2.0
 
 
 class VitalBar:
@@ -1579,17 +1598,18 @@ func _apply_hp_bar(bar: VitalBar, root: Control, new_ratio: float, prev_ratio: f
 	bar.refresh(new_ratio, prev_ratio, shield_len)
 
 
-# 盾段长度：盾量 / 生命上限 × SHIELD_MAX_LEN；有一点盾就至少 4px，否则看不见
+# 盾段长度：盾量 / 生命上限 × 血段满宽（与红段同尺）；有一点盾就至少 2px 可见
 func _shield_len_of(value: int, hp_max: int) -> float:
 	if value <= 0:
 		return 0.0
 	var r: float = clampf(float(value) / float(max(1, hp_max)), 0.0, 1.0)
-	return maxf(4.0, round(r * SHIELD_MAX_LEN))
+	return maxf(2.0, round(r * SHIELD_MAX_LEN))
 
 
 func _refresh_vitals() -> void:
 	var hp_max: int = max(1, controller.state.player_hp_max)
-	var pv_r: float = float(controller.state.player_hp) / float(hp_max)
+	var shown_hp: int = _hp_display_hold if _hp_display_hold >= 0 else int(controller.state.player_hp)
+	var pv_r: float = float(shown_hp) / float(hp_max)
 	var pv_sl: float = _shield_len_of(int(controller.state.player_shield), hp_max)
 	_apply_hp_bar(player_hp_bar, player_vitals, pv_r, _pv_hp_prev, pv_sl)
 	_pv_hp_prev = pv_r
@@ -1618,6 +1638,52 @@ func play_enemy_attack_fx(elem: String) -> float:
 	if fx == null:
 		return 0.0
 	return fx.play_enemy_attack(elem)
+
+
+# ---------------------------------------------------------------------------
+# 2026-11-16 P0：敌人攻击的掉血表现延迟到命中帧。
+# 闸口 enemy_deal_damage 数值已同步结算；这里只管表现：
+# 血条/HP 数字先压在扣血前的值，命中帧一到才掉血 + 飘字 + 屏震同拍发生。
+# ---------------------------------------------------------------------------
+
+# 闸口调用。dealt = 本次实际掉血，elem = 敌人元素（决定命中帧延迟），
+# hp_before = 闸口扣血前的真实 HP（显式传入，不用 player_hp+dealt 反推，避免乘区/护盾误差）。
+# 多段伤害在窗口内聚合：只刷新 timer，不重复设影子值（影子值始终是第一段扣血前 HP）。
+func hold_enemy_hit(dealt: int, elem: String, hp_before: int) -> void:
+	if dealt <= 0:
+		return
+	if _hp_display_hold < 0:
+		_hp_display_hold = hp_before
+	_hit_pending_text += "-%d" % dealt
+	_hit_release_token += 1
+	var token := _hit_release_token
+	# 命中帧：冰系对齐喷气命中 T_HIT(0.95s)，其余对齐前摇末 ACT_WINDUP(0.231s)。
+	var delay: float = BattleFx.T_HIT if elem == "ice" else BattleAnimator.ACT_WINDUP
+	get_tree().create_timer(delay).timeout.connect(func() -> void:
+		if token != _hit_release_token:
+			return   # 被后续段覆盖，由最后一次统一释放
+		_release_enemy_hit(), CONNECT_ONE_SHOT)
+
+
+# 命中帧释放：清影子值 → 血条/数字掉到真实值 → 飘字 + 屏震同拍。
+func _release_enemy_hit() -> void:
+	if _hp_display_hold < 0:
+		return
+	_hp_display_hold = -1
+	_refresh_meta()
+	var anchor := _player_sprite_anchor()
+	if _hit_pending_text != "":
+		_popup(_hit_pending_text, Palette.POP_DAMAGE, anchor)
+		_hit_pending_text = ""
+	if animator != null:
+		animator.enemy_hit_shake()
+
+
+# 房间重置/读档时清空影子值，避免跨房残留旧 HP 显示。
+func reset_enemy_hit_hold() -> void:
+	_hit_release_token += 1
+	_hp_display_hold = -1
+	_hit_pending_text = ""
 
 
 # 敌人立绘切换（RoomData.art 数据驱动）：旧图退场（淡出+缩小）→ 换图 → 新图入场（淡入复位）。
@@ -1693,8 +1759,7 @@ func _refresh_cell(reel: int, row: int) -> void:
 		b.icon = null
 		_cell_want_icon[reel][row] = null
 		_cell_want_text[reel][row] = s.label
-	# M2-01 洞察：旋转中下一格预览由 ReelSpinView 贴在格底显示（见 reel_spin_view._sync_preview）——
-	# 滚动视觉会盖住格子自身文字，这里不再写 b.text。
+	# 旋转中滚动视觉会盖住格子自身文字，这里不再写 b.text；预览统一由 P1 预览行承担。
 	var fc: Color = s.color if elem == "none" else s.color.lerp(ElementCounter.color(elem), 0.55)
 	# T30 冻结格（失效格）：蓝色边框框住作为 frost 提示（❄ 前缀/冰色文字不需要，边框即提示）
 	var frozen: bool = controller.state.frozen_cols.has(reel)
@@ -1763,7 +1828,7 @@ func _refresh_meta() -> void:
 	gold_label.tooltip_text = "金币"
 	weapons_title.text = "武器 %d/%d" % [controller.state.selected_loadout.size(), controller._loadout_system.cat_cap("weapon")]
 	# Step 5 信息层级：HP 是左栏第一重点（生命绿；≤35% 转危险红）；护盾有值才单独占一行（护盾蓝）
-	var hp_now: int = controller.state.player_hp
+	var hp_now: int = _hp_display_hold if _hp_display_hold >= 0 else int(controller.state.player_hp)
 	var hp_max: int = max(1, controller.state.player_hp_max)
 	var hp_color: Color = Palette.POP_DAMAGE if float(hp_now) / float(hp_max) <= 0.35 else Palette.POP_HEAL
 	player_hp_label.text = "%d/%d" % [hp_now, controller.state.player_hp_max]
@@ -2563,6 +2628,7 @@ func _refresh_charm_row() -> void:
 		slot.add_theme_stylebox_override("panel", _charm_slot_style())
 		charm_row.add_child(slot)
 
+		@warning_ignore("shadowed_variable_base_class")
 		var tr := TextureRect.new()
 		tr.texture = tex
 		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
@@ -2584,12 +2650,16 @@ func pulse_charm_card(paths: Array = []) -> void:
 	for e in charm_icons:
 		if not paths.is_empty() and not paths.has(String(e["path"])):
 			continue
+		@warning_ignore("shadowed_variable_base_class")
 		var tr: TextureRect = e["node"]
 		if tr == null or not is_instance_valid(tr):
 			continue
-		var old = tr.get_meta("tw", null)
-		if old != null and is_instance_valid(old):
-			old.kill()
+		# Godot 4：get_meta(key, null) 的 null default 等同未提供，key 不存在时会报 C++ 错误。
+		# 护符图标首次创建时无 "tw" meta，必须先用 has_meta 守卫。
+		if tr.has_meta("tw"):
+			var old = tr.get_meta("tw")
+			if old != null and is_instance_valid(old):
+				old.kill()
 		tr.modulate = CHARM_HI
 		var tw := tr.create_tween()
 		tw.tween_property(tr, "modulate", CHARM_DIM, 0.45)
