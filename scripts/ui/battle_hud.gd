@@ -416,7 +416,7 @@ func _build_ui() -> void:
 	# Phase 3：悬停 tooltip 与飘字对象池浮层
 	_build_symbol_tooltip()
 	_build_popup_layer()
-	_build_connect_line()
+	_build_cell_sweep()
 
 	# 房间歇态按钮（opt-in 商店 + 下一房）：静态节点已在 battle_hud.tscn，这里只接信号
 	interroom_shop_btn.connect("pressed", shop_requested.emit)
@@ -935,110 +935,75 @@ func _build_popup_layer() -> void:
 
 
 # ---------------------------------------------------------------------------
-# 连线点亮（2026-11-16）：三列停完后在格间空隙里依次点亮连接条，最后三连时整条闪一下。
-# 纯展示：只读格子坐标，不读写战斗状态、不消耗 RNG。
-# 画在 gap 里而不是格子中心上方，避免 3px 细线横穿 32px 图标。
+# 结算扫描（2026-11-16）：三列停完后按 左→中→右 逐格亮起边框，
+# 让玩家先看清「这一行是哪三格」，再进入数值结算。三连时三格一起再亮一次。
+# 纯展示：只读格子节点，不读写战斗状态、不消耗 RNG。
+# 样式与停轮闪光（StopFlash）保持一致：全透明底 + 2px 金边 + 同一弹缩曲线，
+# 但用独立 Panel 与独立 Tween，避免和停轮闪光争用 cell_stop_tweens。
 # ---------------------------------------------------------------------------
-var line_overlay: Control          # 挂在 HUD 根上的连接条容器（插在 $Margin 之后 → 压住格子、不盖弹窗）
-var line_segs: Array = []          # 两段连接条：seg0 连接 0-1 列，seg1 连接 1-2 列
-var _line_tweens: Array = []
+var cell_sweep_flashes: Array = []   # [reel] -> Panel
+var cell_sweep_tweens: Array = []    # [reel] -> Tween
 
-const LINE_SWEEP_STEP := 0.05      # 每段点亮时长（两段共 0.10s）
-const LINE_HOLD := 0.05            # 点亮后停留（合计 0.15s，与方案 B 对齐）
-const LINE_THICK := 5.0            # 连接条粗细（gap 只有 10px，5px 能读成「焊上」又不糊）
-const LINE_BLEED := 2.0            # 两端各向格子内延伸 2px，让连接条贴住边框而不是悬在空隙中
+const CELL_SWEEP_STEP := 0.07        # 格与格之间的间隔
+const CELL_SWEEP_DECAY := 0.18       # 单格亮起后的衰减（下一格亮起时上一格还在淡出，形成扫过感）
 
 
-func _build_connect_line() -> void:
-	if grid_container == null:
+func _build_cell_sweep() -> void:
+	for reel in controller.state.REELS:
+		cell_sweep_flashes.append([])
+		cell_sweep_tweens.append(null)
+		for row in controller.state.ROWS:
+			var flash := Panel.new()
+			flash.name = "SweepFlash"
+			flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			flash.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			var fsb := StyleBoxFlat.new()
+			fsb.bg_color = Color(0, 0, 0, 0)
+			fsb.draw_center = false
+			fsb.border_color = Palette.ACCENT_GOLD
+			for side in ["left", "top", "right", "bottom"]:
+				fsb.set("border_width_" + side, 2)
+			flash.add_theme_stylebox_override("panel", fsb)
+			flash.modulate.a = 0.0
+			cells[reel][row].add_child(flash)
+			cell_sweep_flashes[reel].append(flash)
+
+
+# 左→右逐格亮起。返回时最后一格已亮起，调用方 await 它即可控制节奏。
+func play_cell_sweep() -> void:
+	if cell_sweep_flashes.is_empty():
 		return
-	# 🔴 不能挂在 GridContainer 的父节点 ReelCenter 上：它是 CenterContainer，
-	# 容器会强制接管子节点的位置与尺寸，FULL_RECT 覆盖层会被压成 0×0、坐标全错。
-	# 因此挂到 HUD 根（普通 Control），坐标一律用格子全局矩形换算，
-	# 并插到 $Margin 之后、各类覆盖层之前，保证压住格子但不盖住弹窗。
-	line_overlay = Control.new()
-	line_overlay.name = "ConnectLine"
-	line_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	line_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(line_overlay)
-	var margin_node := get_node_or_null("Margin")
-	if margin_node != null:
-		move_child(line_overlay, margin_node.get_index() + 1)
-	for i in 2:
-		var seg := ColorRect.new()
-		seg.color = Palette.ACCENT_GOLD
-		seg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		seg.visible = false
-		line_overlay.add_child(seg)
-		line_segs.append(seg)
-		_line_tweens.append(null)
+	for reel in cell_sweep_flashes.size():
+		_light_sweep_cell(reel, CELL_SWEEP_DECAY)
+		await get_tree().create_timer(CELL_SWEEP_STEP).timeout
 
 
-# 按当前格子实际坐标重算两段连接条（布局可能因窗口/缩放变化，每次播放前都重算）。
-func _layout_line_segs() -> void:
-	if line_overlay == null or cells.size() < 2:
+# 单格亮起：边框瞬间不透明 + 弹缩一下，然后按 decay 淡出。
+func _light_sweep_cell(reel: int, decay: float) -> void:
+	if cell_sweep_flashes.size() <= reel or cell_sweep_flashes[reel].is_empty():
 		return
-	var base: Vector2 = line_overlay.get_global_rect().position
-	for i in line_segs.size():
-		if cells.size() <= i + 1:
-			continue
-		if cells[i].is_empty() or cells[i + 1].is_empty():
-			continue
-		var ra: Rect2 = (cells[i][0] as Control).get_global_rect()
-		var rb: Rect2 = (cells[i + 1][0] as Control).get_global_rect()
-		var gap_x0: float = ra.position.x + ra.size.x - base.x - LINE_BLEED
-		var gap_x1: float = rb.position.x - base.x + LINE_BLEED
-		var cy: float = ra.position.y + ra.size.y * 0.5 - base.y
-		var seg: ColorRect = line_segs[i]
-		seg.position = Vector2(gap_x0, cy - LINE_THICK * 0.5)
-		seg.size = Vector2(maxf(gap_x1 - gap_x0, 4.0), LINE_THICK)
-		seg.pivot_offset = seg.size * 0.5
-
-
-# 依次点亮两段连接条（左 → 右）。返回前已点亮完毕，调用方 await 它即可控制节奏。
-func play_line_sweep() -> void:
-	if line_overlay == null or line_segs.is_empty():
+	if cells.size() <= reel or cells[reel].is_empty():
 		return
-	_layout_line_segs()
-	for i in line_segs.size():
-		var seg: ColorRect = line_segs[i]
-		seg.visible = true
-		seg.modulate.a = 0.0
-		seg.scale = Vector2(0.6, 1.0)
-		var old = _line_tweens[i]
-		if old != null and is_instance_valid(old):
-			old.kill()
-		var tw := create_tween()
-		tw.set_parallel(true)
-		tw.tween_property(seg, "modulate:a", 1.0, LINE_SWEEP_STEP)
-		tw.tween_property(seg, "scale", Vector2(1.0, 1.0), LINE_SWEEP_STEP)
-		_line_tweens[i] = tw
-		await get_tree().create_timer(LINE_SWEEP_STEP).timeout
-	await get_tree().create_timer(LINE_HOLD).timeout
+	var cell: Control = cells[reel][0]
+	var flash: Panel = cell_sweep_flashes[reel][0]
+	var old = cell_sweep_tweens[reel]
+	if old != null and is_instance_valid(old):
+		old.kill()
+	flash.modulate.a = 1.0
+	var tw := create_tween()
+	tw.tween_property(flash, "modulate:a", 0.0, decay)
+	cell_sweep_tweens[reel] = tw
+	cell.pivot_offset = cell.size * 0.5
+	var pop := create_tween()
+	pop.tween_method(_set_cell_pop.bind(cell), 0.0, 1.0, 0.16)
 
 
-# 结算开始前的收尾：三连 → 整条线闪一下再淡出；非三连 → 直接淡出。
-# 不阻塞（闪完自己收），因为紧接着要弹收益飘字。
-func settle_line(is_triple: bool) -> void:
-	if line_segs.is_empty():
+# 三连 / 元素共鸣：三格一起再亮一次（衰减更慢，读作「这条线成立」）；否则静默。
+func settle_cell_sweep(is_triple: bool) -> void:
+	if not is_triple or cell_sweep_flashes.is_empty():
 		return
-	for i in line_segs.size():
-		var seg: ColorRect = line_segs[i]
-		if not seg.visible:
-			continue
-		var old = _line_tweens[i]
-		if old != null and is_instance_valid(old):
-			old.kill()
-		var tw := create_tween()
-		if is_triple:
-			tw.tween_property(seg, "scale", Vector2(1.0, 2.0), 0.07)
-			tw.parallel().tween_property(seg, "modulate:a", 1.0, 0.07)
-			tw.tween_property(seg, "modulate:a", 0.0, 0.18)
-			tw.parallel().tween_property(seg, "scale", Vector2(1.0, 1.0), 0.18)
-		else:
-			tw.tween_property(seg, "modulate:a", 0.0, 0.14)
-		tw.tween_callback(func(): seg.visible = false)
-		_line_tweens[i] = tw
+	for reel in cell_sweep_flashes.size():
+		_light_sweep_cell(reel, 0.22)
 
 
 # ---------------------------------------------------------------------------
