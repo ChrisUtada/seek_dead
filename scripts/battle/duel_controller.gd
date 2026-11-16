@@ -117,6 +117,22 @@ var grid_elem = []
 var grid_src: Array = []
 # 单源或无来源格子的图标兜底；多源格必须读 grid_src / 带子 entry[2]，不能再只显示最高攻来源。
 var _sym_src_map: Dictionary = {}
+# 每把武器的「伤害符号个数」。用于决定非斩击的伤害符号是否也跟随武器图标：
+# 规则（2026-11-16 定）—— *_slash 永远跟随；其余伤害符号只在该武器只有它一个 damage 时才跟随。
+# 依据：90 把武器里有 16 把带 2 个伤害符号（dawn_blade 的 holy_slash+dawn_light、
+# rune_repeater 的 pistol_shot+arrow_shot 等），若一律跟随，这两格会显示同一张武器图，
+# 但两格伤害不同 —— 等于抹掉符号区分度，比不显示武器图标更糟。
+var _weapon_damage_count: Dictionary = {}
+
+## 该符号在该来源武器下是否要用「武器图标」代替自己的符号图标。
+func _symbol_follows_weapon(s: SymbolData, wid: String) -> bool:
+	if s == null:
+		return false
+	if s.resource_path.ends_with("_slash.tres"):
+		return true
+	if wid == "" or String(s.kind) != "damage":
+		return false
+	return int(_weapon_damage_count.get(wid, 99)) == 1
 
 # 合并后的加权符号池：元素为 [SymbolData, weight, element]（element = 有效元素）
 var pool: Array[Array] = []

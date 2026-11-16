@@ -283,10 +283,6 @@ func build_strips() -> void:
 		var hit: float = clamp(it.get("hit", 1.0), 0.0, 1.0)
 		if hit < 1.0:
 			miss_w += it_total_w * (1.0 - hit)
-	_ctrl._sym_src_map.clear()
-	for k in agg:
-		if String(agg[k]["src"]) != "":
-			_ctrl._sym_src_map[k] = String(agg[k]["src"])
 	var wsum: float = 0.0
 	for k in agg:
 		wsum += agg[k]["w"]
@@ -705,8 +701,39 @@ func build_pool(loadout: Array) -> void:
 	var flat: Array = flatten_pool(_ctrl.pool_items, DuelController.GOLD_SYMBOL, _ctrl.BALANCE.gold_pool_weight)
 	_ctrl.pool.clear()
 	_ctrl.pool.append_array(flat)
+	_build_sym_src_maps()
 	_ctrl.hud._update_enemy_element()
 	_ctrl.invalidate_state()
+
+
+# 2026-11-16：建立两张供 UI 用的旁路表（零结算影响）。
+# 🔴 必须在这里（build_pool）建，不能放在 build_strips：整备界面/商店换装只调 _build_pool、
+# 不调 build_strips，建在后者会让换完武器后的兜底表一直是空的。
+#   ① _sym_src_map： (符号路径|有效元素) → 武器 id，多把共用取 base_power 最高者
+#   ② _weapon_damage_count：武器 id → 该武器的伤害符号个数，供 _symbol_follows_weapon 判定
+func _build_sym_src_maps() -> void:
+	_ctrl._sym_src_map.clear()
+	_ctrl._weapon_damage_count.clear()
+	var best: Dictionary = {}
+	for it in _ctrl.pool_items:
+		var wid := ""
+		var dmg := 0
+		for s in it["syms"]:
+			if s.size() <= 4:
+				continue   # 技能 / 精华段没有来源武器
+			var w := String(s[3])
+			if w == "":
+				continue
+			wid = w
+			if String(s[0].kind) == "damage":
+				dmg += 1
+			var key: String = s[0].resource_path + "|" + s[2]
+			var pw := float(s[4])
+			if pw > float(best.get(key, -1.0)):
+				best[key] = pw
+				_ctrl._sym_src_map[key] = w
+		if wid != "":
+			_ctrl._weapon_damage_count[wid] = dmg
 
 
 func _reset_pool_state() -> void:
@@ -722,6 +749,7 @@ func _reset_pool_state() -> void:
 	_ctrl._source_archetype_map = {}
 	_ctrl._source_weapon_type_map = {}
 	_ctrl._sym_src_map = {}
+	_ctrl._weapon_damage_count = {}
 
 
 static func source_key(symbol_path: String, source_id: String) -> String:

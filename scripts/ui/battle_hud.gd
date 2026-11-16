@@ -2156,17 +2156,24 @@ func _cell_icon(base: Texture2D) -> Texture2D:
 func _cell_symbol_tex(reel: int, row: int, s: SymbolData) -> Texture2D:
 	if s == null:
 		return null
-	if s.resource_path.ends_with("_slash.tres") and controller != null:
-		var wid := ""
-		var gs = controller.grid_src
-		if gs.size() > reel and gs[reel].size() > row:
-			wid = String(gs[reel][row])
-		if wid == "":
-			var ge = controller.grid_elem
-			var elem: String = "none"
-			if ge.size() > reel and ge[reel].size() > row:
-				elem = String(ge[reel][row])
-			wid = String(controller._sym_src_map.get(s.resource_path + "|" + elem, ""))
+	if controller == null:
+		return _cell_icon(s.icon_tex)
+	# 快速返回：状态 / buff / 技能 / 精华 / 金币一律用自身图标
+	if String(s.kind) != "damage" and not s.resource_path.ends_with("_slash.tres"):
+		return _cell_icon(s.icon_tex)
+	# 来源：优先格子级 grid_src（多源按权重分格后逐格记），否则用旁路表兜底
+	var wid := ""
+	var gs = controller.grid_src
+	if gs.size() > reel and gs[reel].size() > row:
+		wid = String(gs[reel][row])
+	if wid == "":
+		var ge = controller.grid_elem
+		var elem: String = "none"
+		if ge.size() > reel and ge[reel].size() > row:
+			elem = String(ge[reel][row])
+		wid = String(controller._sym_src_map.get(s.resource_path + "|" + elem, ""))
+	# 2026-11-16 规则：斩击永远跟随；其余伤害符号只在该武器只有它一个 damage 时才跟随
+	if wid != "" and controller._symbol_follows_weapon(s, wid):
 		var wtex := WeaponIcons.cell_icon_for_id(wid)
 		if wtex != null:
 			return wtex

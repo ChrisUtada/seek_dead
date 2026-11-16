@@ -203,13 +203,16 @@ func _fill(rs) -> void:
 
 ## 滚动流与静止格使用同一份来源，旋转中和停下后都显示该格的完整武器图标。
 func _reel_icon(base: Texture2D, s: SymbolData = null, elem: String = "none", source_id: String = "") -> Texture2D:
-	if s != null and s.resource_path.ends_with("_slash.tres") and controller != null:
+	# 与静止格同一套判定（斩击永远跟随；其余伤害符号看是否该武器唯一伤害），
+	# 否则旋转中显示通用图、停下瞬间才跳成武器图标。
+	if s != null and controller != null and (String(s.kind) == "damage" or s.resource_path.ends_with("_slash.tres")):
 		var wid: String = source_id
 		if wid == "":
 			wid = String(controller._sym_src_map.get(s.resource_path + "|" + elem, ""))
-		var wtex := WeaponIcons.cell_icon_for_id(wid)
-		if wtex != null:
-			return wtex
+		if wid != "" and controller._symbol_follows_weapon(s, wid):
+			var wtex := WeaponIcons.cell_icon_for_id(wid)
+			if wtex != null:
+				return wtex
 	if base == null:
 		return null
 	var p := base.resource_path
