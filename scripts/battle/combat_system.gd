@@ -199,7 +199,12 @@ func evaluate() -> void:
 	_ctrl.turn_resolved = true   # 2026-11-12 Step 3：转轮已结束，此后施加的 debuff 从下一回合起计时
 	var acc := _new_acc()
 	_reset_turn_state()
+	# 连线点亮（方案 B）：三列停完后先在格间空隙里左→右依次点亮两段连接条，
+	# 让玩家先看清「这三格连成一条线」，再进入数值结算。纯展示，不参与任何计算。
+	await _ctrl.hud.play_line_sweep()
 	var counts := _phase_symbols(acc)
+	# 三连（同符号同族 3 格）或元素共鸣 → 整条线闪一下；否则直接淡出。
+	_ctrl.hud.settle_line(bool(acc.get("triple", false)) or _ctrl._elem_triple)
 	await _phase_defense(acc)
 	_phase_counter(counts, acc)
 	_apply_patterns(acc)   # 转轮凑牌 Step 2：通用牌型与一条装备牌谱修正累计器
@@ -510,7 +515,8 @@ func _phase_defense(acc: Dictionary) -> void:
 		await _popup_gain(_ctrl.status_system.status_summary(acc["status_stacks"]), Palette.POP_STATUS, _ctrl.hud._enemy_sprite_anchor())
 
 	_ctrl.hud._refresh_meta()
-	await _ctrl.get_tree().create_timer(0.25).timeout
+	# 2026-11-16：原本 0.25s，抵扣连线点亮演出的 0.15s，净增约 0.02s。
+	await _ctrl.get_tree().create_timer(0.12).timeout
 
 
 # —— 阶段 3：反制（三连钩子 / 破甲 / 核爆）——
