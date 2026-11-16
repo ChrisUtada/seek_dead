@@ -16,7 +16,25 @@ extends RefCounted
 const PATTERN_MATCHER = preload("res://scripts/battle/pattern_matcher.gd")
 const PATTERN_EFFECTS = preload("res://scripts/battle/pattern_effects.gd")
 
+# 飘字节奏（2026-11-16）：同一回合内金币/护盾/治疗/状态会在不同阶段各自弹字，
+# 原先它们在同一帧出生，即使有堆叠偏移也像一次性刷屏。这里在「连续第二条及以后」的
+# 弹字前插入短间隔，让玩家能逐个读到。单条飘字不加延迟，空转回合不受影响。
+const POPUP_BEAT := 0.12
+
 var _ctrl  # DuelController
+
+# 本回合是否已经弹过「收益类」飘字（金币/护盾/治疗/状态）。
+# 用于给第二条及以后的飘字插入 POPUP_BEAT 间隔；伤害飘字不参与（它在攻击阶段、
+# 且必须紧跟扣血，延迟反而会加剧「血条先变、数字后到」）。
+var _popup_fired_this_turn: bool = false
+
+
+# 收益类飘字：本回合第一条立刻弹，之后每条前插一个短间隔。
+func _popup_gain(text: String, color: Color, anchor: Control) -> void:
+	if _popup_fired_this_turn:
+		await _ctrl.get_tree().create_timer(POPUP_BEAT).timeout
+	_popup_fired_this_turn = true
+	_ctrl.hud._popup(text, color, anchor)
 
 # Step 4（2026-11-11）：本回合结果反馈的分类累计。只供 HUD 文案，不参与结算。
 # 破甲量 = 特殊三连/充能爆发真正清掉的护甲；核爆/充能爆发 = 对应的穿透伤害。
@@ -200,6 +218,7 @@ func _new_acc() -> Dictionary:
 
 
 func _reset_turn_state() -> void:
+	_popup_fired_this_turn = false
 	_ctrl._eval_adv = false
 	_ctrl._eval_dis = false
 	_ctrl._turn_hit_used = false   # 碎片王冠（信物）：每回合首击标记重置
@@ -261,7 +280,11 @@ func _phase_symbols(acc: Dictionary) -> Dictionary:
 			if g > 0:
 				_ctrl.gold += g
 				_ctrl.hud._log("💰 金币 +%d" % g)
+				# _phase_symbols 是同步调用（evaluate 里没有 await），此处不能引入等待，
+				# 否则会把符号结算中途挂起、打乱后续贡献顺序。
+				# 这里只打标记，让后面护盾/治疗/状态的飘字自动带上间隔。
 				_ctrl.hud._popup("💰+%d" % g, Palette.POP_GOLD, _ctrl.hud._player_sprite_anchor())
+				_popup_fired_this_turn = true
 	# 每个来源分别结算自身格数，同族总数只负责连线、三连和充能判定。
 	for key in counts:
 		var s: SymbolData = counts[key][0]
@@ -458,7 +481,7 @@ func _phase_defense(acc: Dictionary) -> void:
 	if acc["shield"] > 0:
 		_ctrl.player_shield += acc["shield"]
 		acc["shield_gain"] = int(acc["shield"])
-		_ctrl.hud._popup("🛡+%d" % acc["shield"], Palette.POP_SHIELD, _ctrl.hud._player_sprite_anchor())
+		await _popup_gain("🛡+%d" % acc["shield"], Palette.POP_SHIELD, _ctrl.hud._player_sprite_anchor())
 		_ctrl.hud._log("获得 %d 护盾" % acc["shield"])
 	if acc["heal"] > 0:
 		var missing: int = _ctrl.player_hp_max - _ctrl.player_hp
@@ -467,7 +490,7 @@ func _phase_defense(acc: Dictionary) -> void:
 		acc["heal_gain"] = hp_gain
 		var overflow_shield := 0
 		if hp_gain > 0:
-			_ctrl.hud._popup("❤+%d" % hp_gain, Palette.POP_HEAL, _ctrl.hud._player_sprite_anchor())
+			await _popup_gain("❤+%d" % hp_gain, Palette.POP_HEAL, _ctrl.hud._player_sprite_anchor())
 			_ctrl.hud._log("回复 %d HP" % hp_gain)
 		# 2026-08-07 方案 A：治疗三连溢出转护盾（满血不浪费，三连独有奖励）
 		# 三拍板②（2026-08-24）：单次溢出转盾 ≤ maxHP × heal_overflow_shield_cap_pct（20%）——
@@ -484,7 +507,7 @@ func _phase_defense(acc: Dictionary) -> void:
 			_ctrl._telemetry.on_heal(hp_gain, overflow_shield)   # Step 1 复测：治疗/转盾只统计，不改结算
 	if not acc["status_stacks"].is_empty():
 		_ctrl.hud._log("敌人获得状态: " + _ctrl.status_system.status_summary(acc["status_stacks"]))
-		_ctrl.hud._popup(_ctrl.status_system.status_summary(acc["status_stacks"]), Palette.POP_STATUS, _ctrl.hud._enemy_sprite_anchor())
+		await _popup_gain(_ctrl.status_system.status_summary(acc["status_stacks"]), Palette.POP_STATUS, _ctrl.hud._enemy_sprite_anchor())
 
 	_ctrl.hud._refresh_meta()
 	await _ctrl.get_tree().create_timer(0.25).timeout
