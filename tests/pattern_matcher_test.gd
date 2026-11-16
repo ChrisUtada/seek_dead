@@ -554,16 +554,13 @@ func _test_pattern_effects() -> void:
 	# 牌谱新增的状态写在 pattern_status（status_stacks 在 _phase_defense 已落地过）
 	_check(int((acc.get("pattern_status", {}) as Dictionary).get("burn", 0)) > 0,
 		"S01 给燃烧加层（%d）" % int((acc.get("pattern_status", {}) as Dictionary).get("burn", 0)))
-	# 演出：牌谱触发时应有横幅（中频高潮的「那一下」）
-	var banner = _duel.hud.get("_pattern_banner")
-	_check(banner != null and is_instance_valid(banner),
-		"牌谱触发时有横幅演出")
-	if banner != null and is_instance_valid(banner):
-		var texts := ""
-		for child in banner.get_children():
-			if child is Label:
-				texts = String((child as Label).text)
-		_check(texts.find("W01") >= 0, "横幅文本含牌谱 id（%s）" % texts)
+	# 演出：牌谱触发时横幅入队（2026-11-16 远端改为「结算入队、表现时统一播放」，
+	# 配合「回合结算与表现分离」的重构；这里断言队列内容，不断言即时创建节点）
+	var banners: Array = acc.get("pending_banners", [])
+	_check(banners.size() > 0, "牌谱触发时横幅已入队（%d 条）" % banners.size())
+	if banners.size() > 0:
+		var btext := String((banners[0] as Dictionary).get("text", ""))
+		_check(btext.find("W01") >= 0, "横幅文本含牌谱 id（%s）" % btext)
 	# 常驻面板暂时关闭显示（实机上字号过大、遮挡左上 UI）。这里钉住「默认不显示」，
 	# 防止以后不小心又打开却没调整表现。实现与数据层保留，开关见 battle_hud.PATTERN_TRAY_ENABLED。
 	var tray = _duel.hud.get("_pattern_tray")
