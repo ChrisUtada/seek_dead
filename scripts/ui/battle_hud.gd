@@ -92,48 +92,22 @@ func set_reel_enabled(reel: int, enabled: bool) -> void:
 
 
 func set_interroom_enabled(on: bool) -> void:
+	# 2026-11-17：商店/下一房改为「间歇期才出现」（原为常驻灰化，长期占位）
 	if interroom_shop_btn != null:
+		interroom_shop_btn.visible = on
 		interroom_shop_btn.disabled = not on
 	if interroom_next_btn != null:
+		interroom_next_btn.visible = on
 		interroom_next_btn.disabled = not on
 	_interroom_on = on
 	_refresh_trim_entry()
-	# 间歇时战斗已结束，隐藏中央 BOSS 名称/意图，避免与下一房浮层重叠
+	# 间歇时战斗已结束，隐藏中央 BOSS 名称/意图
 	if on:
 		enemy_stage_intent.visible = false
 		enemy_stage_name.visible = false
-		_refresh_next_room_bar()
-	elif next_room_bar != null:
-		next_room_bar.visible = false
+	else:
 		_refresh_meta()
 
-
-# 2026-08-09 下一房预告（L2 分级）：房型 + 敌人名 + 元素 + BOSS 机制图标。
-# 隐秘 BOSS（boss_role=hidden）幕内全清前不剧透 → ？？？；最后一房（通关整局）无下一房 → 隐藏。
-func _refresh_next_room_bar() -> void:
-	if next_room_bar == null or controller == null:
-		return
-	if controller.node_mode:
-		next_room_bar.visible = false   # M2：棋盘模式由可见棋盘替代下一房预告
-		return
-	var rooms: Array = controller.state.ROOMS
-	var idx: int = controller.state.room_index
-	if idx + 1 >= rooms.size():
-		next_room_bar.visible = false
-		return
-	var r: RoomData = rooms[idx + 1]
-	if r.boss_role == "hidden":
-		# 隐秘 BOSS：不剧透名字/机制，但给元素信号（玩家可针对性换武器/备克制）
-		var hidden_elem: String = ElementCounter.label(r.element) if r.element != "none" else "无属性"
-		next_room_bar.text = "▶ 下一房：？？？· %s（隐秘 BOSS · 幕末强敌）" % hidden_elem
-		next_room_bar.visible = true
-		return
-	var kind_txt: String = {"normal": "普通", "elite": "精英", "boss": "★BOSS"}.get(r.kind, r.kind)
-	var icon := ""
-	if r.kind == "boss" and r.gimmick_script != null:
-		icon = String(r.gimmick_script.get_script_constant_map().get("ICON", ""))
-	next_room_bar.text = "▶ 下一房：%s（%s · %s%s）" % [r.name, ElementCounter.label(r.element), kind_txt, " " + icon if icon != "" else ""]
-	next_room_bar.visible = true
 
 func hide_reward_screen() -> void: reward_screen.hide_screen()
 func hide_meta_screen() -> void: meta_screen.hide_screen()
@@ -168,10 +142,10 @@ var board_screen                       # M2 棋盘主视图（scripts/board/boar
 # 位置：左栏 PlayerPanel/VBox（GearBox 之后、PlayerBuffLabel 之前），保持 4 格子 2x2 形态
 # 与 CONSUMABLE_CAP=4 对齐，玩家一眼能数清剩余消耗品。
 @onready var consumable_cells: Array = [
-	$Margin/Content/MainRow/PlayerPanel/VBox/ConsumablePanel/Cell1,
-	$Margin/Content/MainRow/PlayerPanel/VBox/ConsumablePanel/Cell2,
-	$Margin/Content/MainRow/PlayerPanel/VBox/ConsumablePanel/Cell3,
-	$Margin/Content/MainRow/PlayerPanel/VBox/ConsumablePanel/Cell4,
+	$Margin/Content/Middle/PlayerPanel/VBox/ConsumablePanel/Cell1,
+	$Margin/Content/Middle/PlayerPanel/VBox/ConsumablePanel/Cell2,
+	$Margin/Content/Middle/PlayerPanel/VBox/ConsumablePanel/Cell3,
+	$Margin/Content/Middle/PlayerPanel/VBox/ConsumablePanel/Cell4,
 ]
 var reward_screen                       # 奖励三选一覆盖层（reward_screen.tscn 实例）
 var meta_screen                         # 每局结束元进度三选一覆盖层（meta_screen.tscn 实例）
@@ -179,61 +153,60 @@ var meta_screen                         # 每局结束元进度三选一覆盖�
 var shop_screen                         # 商店覆盖层（shop_screen.tscn 实例）
 var anvil_screen                        # 铁砧锻造覆盖层（anvil_screen.tscn 实例）
 
-# 房间歇态按钮（opt-in 商店 + 下一房）：静态节点在 battle_hud.tscn InfoBar，默认禁用，间歇态由 controller 点亮
-@onready var interroom_shop_btn = $Margin/Content/InfoBar/ShopBtn
-@onready var interroom_next_btn = $Margin/Content/InfoBar/NextRoomBtn
-# G7-B B3：主动减带入口（线性间歇态）。代码内建在 InfoBar 上，与棋盘屏按钮共用同一弹层。
+# 房间歇态按钮（opt-in 商店 + 下一房）：静态节点在 battle_hud.tscn TopBar，默认禁用，间歇态由 controller 点亮
+@onready var interroom_shop_btn = $Margin/Content/TopBar/ShopBtn
+@onready var interroom_next_btn = $Margin/Content/TopBar/NextRoomBtn
+# G7-B B3：主动减带入口（线性间歇态）。代码内建在 TopBar 上，与棋盘屏按钮共用同一弹层。
 var interroom_trim_btn = null
 var _interroom_on := false
 # 下一房预告为根节点浮层：不参与 Content 高度计算，避免间歇态把 HUD 顶出 480×270
-@onready var next_room_bar = $NextRoomBar
 
 # ---- 主 HUD 静态节点（P3b-1）：battle_hud.tscn 编辑器提供，脚本按节点路径引用 ----
 # 注：手写 .tscn 的 %Name 唯一名在含 instance= 覆盖节点的场景里注册不可靠，
 #     故改用确定性 $节点路径（.tscn 结构改动时同步更新此处路径）。
-@onready var grid_container = $Margin/Content/MainRow/CenterStage/ReelDock/TopRow/ReelCenter/GridContainer
-@onready var player_title = $Margin/Content/MainRow/PlayerPanel/VBox/PlayerTitle
-@onready var player_hp_label = $Margin/Content/MainRow/PlayerPanel/VBox/HpRow/PlayerHpLabel
-@onready var player_hp_icon = $Margin/Content/MainRow/PlayerPanel/VBox/HpRow/HpIcon
-@onready var player_shield_row = $Margin/Content/MainRow/PlayerPanel/VBox/ShieldRow
-@onready var player_shield_label = $Margin/Content/MainRow/PlayerPanel/VBox/ShieldRow/PlayerShieldLabel
-@onready var player_level_label = $Margin/Content/MainRow/PlayerPanel/VBox/PlayerLevelLabel
-@onready var weapons_title = $Margin/Content/MainRow/PlayerPanel/VBox/GearBox/WeaponsTitle
-@onready var weapons_row = $Margin/Content/MainRow/PlayerPanel/VBox/GearBox/WeaponsRow
-@onready var charms_row = $Margin/Content/MainRow/PlayerPanel/VBox/GearBox/GearCards/CharmsRow
-@onready var skills_row = $Margin/Content/MainRow/PlayerPanel/VBox/GearBox/GearCards/SkillsRow
-@onready var player_buff_label = $Margin/Content/MainRow/PlayerPanel/VBox/PlayerBuffLabel
-@onready var enemy_name_label = $Margin/Content/MainRow/EnemyPanel/VBox/NameRow/EnemyNameLabel
-@onready var boss_badge = $Margin/Content/MainRow/EnemyPanel/VBox/BossBadge
-@onready var enemy_hp_label = $Margin/Content/MainRow/EnemyPanel/VBox/HpRow/EnemyHpLabel
-@onready var enemy_armor_row = $Margin/Content/MainRow/EnemyPanel/VBox/ArmorRow
-@onready var enemy_armor_label = $Margin/Content/MainRow/EnemyPanel/VBox/ArmorRow/EnemyArmorLabel
-@onready var enemy_intent_icon = $Margin/Content/MainRow/EnemyPanel/VBox/IntentRow/EnemyIntentIcon
-@onready var enemy_intent_label = $Margin/Content/MainRow/EnemyPanel/VBox/IntentRow/EnemyIntentLabel
-@onready var enemy_status_label = $Margin/Content/MainRow/EnemyPanel/VBox/EnemyStatusLabel
-@onready var enemy_charge_row = $Margin/Content/MainRow/EnemyPanel/VBox/ChargeRow
-@onready var enemy_charge_label = $Margin/Content/MainRow/EnemyPanel/VBox/ChargeRow/EnemyChargeLabel
-@onready var enemy_element_label = $Margin/Content/MainRow/EnemyPanel/VBox/NameRow/EnemyElementLabel
-@onready var enemy_weak_label = $Margin/Content/MainRow/EnemyPanel/VBox/EnemyWeakLabel
-@onready var enemy_resist_label = $Margin/Content/MainRow/EnemyPanel/VBox/EnemyResistLabel
-@onready var enemy_mechanic_label = $Margin/Content/MainRow/EnemyPanel/VBox/EnemyMechanicLabel
-@onready var player_sprite = $Margin/Content/MainRow/CenterStage/StageRow/PlayerCenter/PlayerSprite
-@onready var enemy_sprite = $Margin/Content/MainRow/CenterStage/StageRow/EnemyCenter/EnemySprite
-@onready var enemy_stage_intent = $Margin/Content/MainRow/CenterStage/StageRow/EnemyCenter/EnemySprite/EnemyStageIntent
-@onready var enemy_stage_intent_label = $Margin/Content/MainRow/CenterStage/StageRow/EnemyCenter/EnemySprite/EnemyStageIntent/Row/Label
-@onready var enemy_stage_name = $Margin/Content/MainRow/CenterStage/StageRow/EnemyCenter/EnemySprite/EnemyStageName
-@onready var feedback_label = $Margin/Content/MainRow/CenterStage/ReelDock/FeedbackLabel
+@onready var grid_container = $Margin/Content/Middle/CenterStage/ReelDock/TopRow/ReelCenter/GridContainer
+@onready var player_title = $Margin/Content/Middle/PlayerPanel/VBox/PlayerTitle
+@onready var player_hp_label = $Margin/Content/Middle/PlayerPanel/VBox/HpRow/PlayerHpLabel
+@onready var player_hp_icon = $Margin/Content/Middle/PlayerPanel/VBox/HpRow/HpIcon
+@onready var player_shield_row = $Margin/Content/Middle/PlayerPanel/VBox/ShieldRow
+@onready var player_shield_label = $Margin/Content/Middle/PlayerPanel/VBox/ShieldRow/PlayerShieldLabel
+@onready var player_level_label = $Margin/Content/Middle/PlayerPanel/VBox/PlayerLevelLabel
+@onready var weapons_title = $Margin/Content/Middle/PlayerPanel/VBox/GearBox/WeaponsTitle
+@onready var weapons_row = $Margin/Content/Middle/PlayerPanel/VBox/GearBox/WeaponsRow
+@onready var charms_row = $Margin/Content/Middle/PlayerPanel/VBox/GearBox/GearCards/CharmsRow
+@onready var skills_row = $Margin/Content/Middle/PlayerPanel/VBox/GearBox/GearCards/SkillsRow
+@onready var player_buff_label = $Margin/Content/Middle/PlayerPanel/VBox/PlayerBuffLabel
+@onready var enemy_name_label = $Margin/Content/Middle/EnemyPanel/VBox/NameRow/EnemyNameLabel
+@onready var boss_badge = $Margin/Content/Middle/EnemyPanel/VBox/BossBadge
+@onready var enemy_hp_label = $Margin/Content/Middle/EnemyPanel/VBox/HpRow/EnemyHpLabel
+@onready var enemy_armor_row = $Margin/Content/Middle/EnemyPanel/VBox/ArmorRow
+@onready var enemy_armor_label = $Margin/Content/Middle/EnemyPanel/VBox/ArmorRow/EnemyArmorLabel
+@onready var enemy_intent_icon = $Margin/Content/Middle/EnemyPanel/VBox/IntentRow/EnemyIntentIcon
+@onready var enemy_intent_label = $Margin/Content/Middle/EnemyPanel/VBox/IntentRow/EnemyIntentLabel
+@onready var enemy_status_label = $Margin/Content/Middle/EnemyPanel/VBox/EnemyStatusLabel
+@onready var enemy_charge_row = $Margin/Content/Middle/EnemyPanel/VBox/ChargeRow
+@onready var enemy_charge_label = $Margin/Content/Middle/EnemyPanel/VBox/ChargeRow/EnemyChargeLabel
+@onready var enemy_element_label = $Margin/Content/Middle/EnemyPanel/VBox/NameRow/EnemyElementLabel
+@onready var enemy_weak_label = $Margin/Content/Middle/EnemyPanel/VBox/EnemyWeakLabel
+@onready var enemy_resist_label = $Margin/Content/Middle/EnemyPanel/VBox/EnemyResistLabel
+@onready var enemy_mechanic_label = $Margin/Content/Middle/EnemyPanel/VBox/EnemyMechanicLabel
+@onready var player_sprite = $Margin/Content/Middle/CenterStage/StageRow/PlayerCenter/PlayerSprite
+@onready var enemy_sprite = $Margin/Content/Middle/CenterStage/StageRow/EnemyCenter/EnemySprite
+@onready var enemy_stage_intent = $Margin/Content/Middle/CenterStage/StageRow/EnemyCenter/EnemySprite/EnemyStageIntent
+@onready var enemy_stage_intent_label = $Margin/Content/Middle/CenterStage/StageRow/EnemyCenter/EnemySprite/EnemyStageIntent/Row/Label
+@onready var enemy_stage_name = $Margin/Content/Middle/CenterStage/StageRow/EnemyCenter/EnemySprite/EnemyStageName
+@onready var feedback_label = $Margin/Content/Middle/CenterStage/ReelDock/FeedbackLabel
 # P1 可读性原型：目标声明 + 换拍预览 + 每列停轮结果（纯展示，不参与结算）
 var p1_preview_row: VBoxContainer = null
 var p1_preview_labels: Array = []       # [reel][slot] -> Label
 var p1_status_row: HBoxContainer = null
 var p1_target_label: Label = null
 var p1_stop_labels: Array = []          # [reel] -> Label（每列停轮结果，颜色区分目标/普通/MISS）
-@onready var player_panel = $Margin/Content/MainRow/PlayerPanel
-@onready var enemy_panel = $Margin/Content/MainRow/EnemyPanel
-@onready var room_label = $Margin/Content/InfoBar/RoomLabel
-@onready var turn_label = $Margin/Content/InfoBar/TurnLabel
-@onready var gold_label = $Margin/Content/InfoBar/GoldLabel
+@onready var player_panel = $Margin/Content/Middle/PlayerPanel
+@onready var enemy_panel = $Margin/Content/Middle/EnemyPanel
+@onready var room_label = $Margin/Content/TopBar/RoomLabel
+@onready var turn_label = $Margin/Content/TopBar/TurnLabel
+@onready var gold_label = $Margin/Content/BottomBar/GoldLabel
 
 var animator = null   # P4 战斗动画器（tween 驱动立绘演出），_build_ui 末尾创建
 var fx = null         # 战斗特效层（属性攻击的像素特效），_build_ui 末尾创建
@@ -417,7 +390,7 @@ func _build_ui() -> void:
 	# 底部操作栏按钮（SpinBar 在转轮下方居中）：由 .tscn 提供，这里连信号与快捷键。
 	# 注：原"重置"按钮（Ctrl+R → _full_reset 放弃整局重开）已删除——其为无确认的一键自毁本局陷阱，
 	# 失败/通关均有正统出口：失败弹层→返回整备（重选装备开新 run）/ 通关弹层→开新 run，无需常驻按钮。
-	var spin_btn = $Margin/Content/MainRow/CenterStage/ReelDock/SpinBar/SpinButton
+	var spin_btn = $Margin/Content/Middle/CenterStage/ReelDock/SpinBar/SpinButton
 	spin_btn.pressed.connect(spin_requested.emit)
 	# 消耗品 4 格子：连信号（点击格子=使用该格消耗品）
 	for i in range(consumable_cells.size()):
@@ -449,7 +422,7 @@ func _build_ui() -> void:
 	interroom_trim_btn.disabled = true
 	interroom_trim_btn.visible = false
 	interroom_trim_btn.pressed.connect(show_trim_dialog)
-	var info_bar = $Margin/Content/InfoBar
+	var info_bar = $Margin/Content/TopBar
 	info_bar.add_child(interroom_trim_btn)
 	info_bar.move_child(interroom_trim_btn, interroom_shop_btn.get_index())
 
@@ -464,14 +437,14 @@ func _build_ui() -> void:
 	fx.setup(self)
 
 func _build_p1_ui() -> void:
-	var dock = $Margin/Content/MainRow/CenterStage/ReelDock
+	var dock = $Margin/Content/Middle/CenterStage/ReelDock
 	# 下一格预览：放在转轮右侧，复用 TopRow 的高度，避免 480×270 下把底部顶出画面。
 	# 每列一行「列号 + 最多 3 个符号」，3 行合计 33px，仍小于 38px 的转轮高度。
 	p1_preview_row = VBoxContainer.new()
 	p1_preview_row.name = "P1PreviewRow"
 	p1_preview_row.add_theme_constant_override("separation", 0)
 	p1_preview_row.custom_minimum_size = Vector2(96, 0)
-	var top_row = $Margin/Content/MainRow/CenterStage/ReelDock/TopRow
+	var top_row = $Margin/Content/Middle/CenterStage/ReelDock/TopRow
 	top_row.add_child(p1_preview_row)
 	top_row.move_child(p1_preview_row, 1)
 	for reel in controller.state.REELS:
@@ -1516,11 +1489,11 @@ var _ev_hp_prev := 1.0
 # 面板里的 HP / 盾 / 护甲文字行全部收起：数值已改为角色头顶的血条（含盾段）。
 func _hide_panel_vitals() -> void:
 	for row_path in [
-		"Margin/Content/MainRow/PlayerPanel/VBox/HpRow",
-		"Margin/Content/MainRow/PlayerPanel/VBox/ShieldRow",
-		"Margin/Content/MainRow/EnemyPanel/VBox/HpRow",
-		"Margin/Content/MainRow/EnemyPanel/VBox/ArmorRow",
-		"Margin/Content/MainRow/PlayerPanel/VBox/GearBox/GearCards/CharmsRow",
+		"Margin/Content/Middle/PlayerPanel/VBox/HpRow",
+		"Margin/Content/Middle/PlayerPanel/VBox/ShieldRow",
+		"Margin/Content/Middle/EnemyPanel/VBox/HpRow",
+		"Margin/Content/Middle/EnemyPanel/VBox/ArmorRow",
+		"Margin/Content/Middle/PlayerPanel/VBox/GearBox/GearCards/CharmsRow",
 	]:
 		var row := get_node_or_null(row_path)
 		if row is Control:
@@ -2432,16 +2405,17 @@ func _on_trim_confirm_pressed() -> void:
 	_refresh_trim_entry()
 
 
-# 间歇态入口的状态：ready=可点 / used=本幕已用（显示但禁用）/ none=无合法候选（隐藏）。
+# 间歇态精简入口（2026-11-17：精简已改为消耗品「精简剪」授予次数）
+# 没有次数时**完全不出现**——不再有「每幕 1 次」配额，也就不存在「本幕已用」这种状态。
 func _refresh_trim_entry() -> void:
 	if interroom_trim_btn == null:
 		return
-	var st := "none"
+	var left := 0
 	if controller != null and controller._trim != null:
-		st = controller._trim.entry_state()
-	interroom_trim_btn.visible = st != "none" and _interroom_on
-	interroom_trim_btn.disabled = st != "ready" or not _interroom_on
-	interroom_trim_btn.text = "✂ 精简 1/1" if st == "ready" else "✂ 本幕已用"
+		left = controller._trim.trims_left()
+	interroom_trim_btn.visible = left > 0 and _interroom_on
+	interroom_trim_btn.disabled = left <= 0 or not _interroom_on
+	interroom_trim_btn.text = "✂ 精简 ×%d" % left
 
 
 # G4-04 武器藏库：两把公开武器二选一（或跳过）；满槽的替换弹层由 controller 接续。

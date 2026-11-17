@@ -288,5 +288,11 @@ func refresh_consumable_panel() -> void:
 func on_consumable_cell_pressed(cell_index: int) -> void:
 	if cell_index < 0 or cell_index >= controller().state.consumable_slots.size():
 		return
-	var uid = controller().state.consumable_slots[cell_index]["uid"]
+	var slot: Dictionary = controller().state.consumable_slots[cell_index]
+	# 精简剪（2026-11-17）：改带子只能在棋盘/间歇期做，战斗中拒绝且不扣次数
+	var d = load(String(slot.get("path", "")))
+	if d is ItemData and String(d.effect) == "trim_belt" and not _hud._interroom_on:
+		_hud._log("✂ 精简剪：只能在棋盘 / 间歇期使用，战斗中用不了")
+		return
+	var uid = slot["uid"]
 	_hud.consumable_used.emit(uid)

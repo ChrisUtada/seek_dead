@@ -41,8 +41,8 @@ var _rng := RandomNumberGenerator.new()   # 动画专用随机源（见 _shake �
 
 func setup(p_hud) -> void:
 	hud = p_hud
-	player_sprite = hud.get_node("Margin/Content/MainRow/CenterStage/StageRow/PlayerCenter/PlayerSprite")
-	enemy_sprite = hud.get_node("Margin/Content/MainRow/CenterStage/StageRow/EnemyCenter/EnemySprite")
+	player_sprite = hud.get_node("Margin/Content/Middle/CenterStage/StageRow/PlayerCenter/PlayerSprite")
+	enemy_sprite = hud.get_node("Margin/Content/Middle/CenterStage/StageRow/EnemyCenter/EnemySprite")
 	_idle_timer = Timer.new()
 	_idle_timer.one_shot = false
 	_idle_timer.wait_time = PLAYER_IDLE_FRAME_TIME

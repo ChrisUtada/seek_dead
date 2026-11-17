@@ -22,6 +22,7 @@ config/features=PackedStringArray("4.7")
 [autoload]
 
 SaveSystem="*res://autoload/save_system.gd"
+WindowPolicy="*res://autoload/window_policy.gd"
 
 [display]
 

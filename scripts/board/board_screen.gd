@@ -583,7 +583,7 @@ func refresh() -> void:
 	_refresh_patrol_info()
 
 
-# G7-B B3：精简入口状态（ready 可点 / used 本幕已用 / none 隐藏）。
+# G7-B B3：精简入口（2026-11-17 起供给由消耗品「精简剪」决定，无次数时隐藏）。
 func _refresh_trim_btn() -> void:
 	if _trim_btn == null:
 		return
