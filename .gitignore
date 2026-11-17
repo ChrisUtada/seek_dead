@@ -54,3 +54,6 @@ __pycache__/
 assets/ui/dark_ages/
 assets/ui/third_party/
 assets/ui/questwood/
+
+# UI preview scratch images (not shipped)
+assets/ui/_preview/
