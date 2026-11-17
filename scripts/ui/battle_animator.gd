@@ -3,12 +3,13 @@ extends Node
 # P4 战斗动画骨架：tween 驱动玩家/敌人立绘的攻击 / 受击 / 暴击 / 核爆演出。
 # 只读结算结果演出，绝不修改 BattleMath / duel_controller 的结算逻辑（解耦原则）。
 # 浮空伤害数字由 BattleHud._popup 负责，本脚本专注立绘 sprite 动效。
-# 玩家使用 48×48 正面持盾骑士静态立绘（knight_v1/hero_48.png），不做帧动画。
+# 玩家使用正面持盾骑士静态立绘（knight_v1/hero_hd_80.png，高精度重绘版），不做帧动画。
+# 2026-11-17：从 48×48 旧版升级到 80×80 高精度版（保留形态，精度对齐背景）。
 # 2026-11-09：原 viking_ash/idle_01~04 四帧呼吸改为单帧静态；旧帧素材保留未删，可随时切回。
 
 # 静态立绘（单帧）。_on_idle_tick() 对 size=1 取模安全，仅重复赋同一张图、视觉静止。
 const PLAYER_IDLE_FRAMES := [
-	preload("res://assets/characters/knight_v1/hero_48.png"),
+	preload("res://assets/characters/knight_v1/hero_hd_80.png"),
 ]
 const PLAYER_IDLE_FRAME_TIME := 0.18
 

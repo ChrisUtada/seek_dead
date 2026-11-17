@@ -2,9 +2,9 @@ extends BossGimmick
 
 const ICON := "🐚"   # 下一房预告横幅的机制图标（battle_hud 经 get_script_constant_map 读取）
 # 开合相立绘：纯展示层，让玩家一眼看到脆弱窗口；不参与护甲/回血/意图结算。
-const ART_CLOSED = preload("res://assets/characters/cocoon_sentinel/closed.png")
-const ART_OPEN = preload("res://assets/characters/cocoon_sentinel/open.png")
-const ART_SCALE := 2.0
+const ART_CLOSED = preload("res://assets/characters/cocoon_sentinel/closed_hd.png")
+const ART_OPEN = preload("res://assets/characters/cocoon_sentinel/open_hd.png")
+const ART_SCALE := 3.125
 
 # 幕一 BOSS·茧居石雕「开合节律」（cocoon_cycle · v2，2026-08-10 定稿）：
 # 周期重置甲 = 动态窗口——闭合×3（厚甲 shell_armor + 回血 + jam 注废骚扰）→ 开合×1（甲 0 + 强制重击）。

@@ -129,7 +129,6 @@ func hide_anvil_screen() -> void: anvil_screen.hide_screen()
 var cells = []   # 展示用 Button 引用 [reel][row]
 var cell_spin_views = []   # P1：每格 ReelSpinView 引用 [reel][row]（视觉中心/预览查询）
 var cell_badges = []   # 每格右上角匹配角标 Label 引用 [reel][row]
-var cell_elem_strips = []   # 每格底部元素色条（Step 4：图标模式下替代文字染色）[reel][row]
 var cell_icon_layers = []   # 每格图标覆盖层（TextureRect）：符号图标独立于 Button.icon，便于叠粒子
 var cell_icon_fx = []       # 每格图标粒子（1px 火花，元素色）
 var _cell_want_icon = []    # [reel][row] -> Texture2D / null（滚轮遮挡时暂不显示）
@@ -198,6 +197,8 @@ var _interroom_on := false
 @onready var enemy_mechanic_label = $Margin/Content/Middle/EnemyPanel/VBox/EnemyMechanicLabel
 @onready var player_sprite = $Margin/Content/Middle/CenterStage/StageRow/PlayerCenter/PlayerSprite
 @onready var enemy_sprite = $Margin/Content/Middle/CenterStage/StageRow/EnemyCenter/EnemySprite
+@onready var player_shadow = $ShadowLayer/PlayerShadow
+@onready var enemy_shadow = $ShadowLayer/EnemyShadow
 @onready var enemy_stage_intent = $Margin/Content/Middle/CenterStage/StageRow/EnemyCenter/EnemySprite/EnemyStageIntent
 @onready var enemy_stage_intent_label = $Margin/Content/Middle/CenterStage/StageRow/EnemyCenter/EnemySprite/EnemyStageIntent/Row/Label
 @onready var enemy_stage_name = $Margin/Content/Middle/CenterStage/StageRow/EnemyCenter/EnemySprite/EnemyStageName
@@ -277,7 +278,6 @@ func _build_ui() -> void:
 		controller.grid.append([])
 		cell_spin_views.append([])
 		cell_badges.append([])
-		cell_elem_strips.append([])
 		cell_icon_layers.append([])
 		cell_icon_fx.append([])
 		_cell_want_icon.append([])
@@ -306,12 +306,12 @@ func _build_ui() -> void:
 			icon_layer.name = "IconLayer"
 			icon_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			icon_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
-			# 内缩 3px：格子变大后 FULL_RECT 会把 32px 图放大到 38px（像素被拉糊），
-			# 留出 32px 的居中区域，图标保持原尺寸、四周露出边框。
-			icon_layer.offset_left = 5.0
-			icon_layer.offset_top = 5.0
-			icon_layer.offset_right = -5.0
-			icon_layer.offset_bottom = -5.0
+			# 内缩 7px：42px 格留出 28px 居中区，32px 图标等比缩到 28px，
+			# 四周露出 7px 边框（原来内缩 5px 时图标正好铺满 32px 内腔、盖住边框）。
+			icon_layer.offset_left = 7.0
+			icon_layer.offset_top = 7.0
+			icon_layer.offset_right = -7.0
+			icon_layer.offset_bottom = -7.0
 			# 32px 符号图塞进 26px 格子：不缩放会溢出盖住边框，这里等比缩进格内
 			icon_layer.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			icon_layer.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
@@ -358,22 +358,7 @@ func _build_ui() -> void:
 			_cell_want_text[reel].append("")
 			var badge = cell.get_node("Badge")
 			cell_badges[reel].append(badge)
-			# Step 4：图标模式不再用文字染色表达元素，改格底 2px 元素色条（元素=none 时隐藏）
-			var strip := ColorRect.new()
-			strip.name = "ElemStrip"
-			strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			strip.color = Color(0, 0, 0, 0)
-			strip.anchor_left = 0.0
-			strip.anchor_top = 1.0
-			strip.anchor_right = 1.0
-			strip.anchor_bottom = 1.0
-			strip.offset_left = 4.0
-			strip.offset_top = -2.0
-			strip.offset_right = -4.0
-			strip.offset_bottom = 0.0
-			strip.visible = false
-			cell.add_child(strip)
-			cell_elem_strips[reel].append(strip)
+			# 2026-11-17：格底元素色条已去掉（用户嫌它盖住底框），元素色改由图标粒子+文字染色表达。
 			# 2026-10-30：旋转时覆盖纵向滚动视觉（纯展示层，停止后隐藏）
 			var spin_view = REEL_SPIN_VIEW.new()
 			cell.add_child(spin_view)
@@ -418,6 +403,7 @@ func _build_ui() -> void:
 	_build_symbol_tooltip()
 	_build_popup_layer()
 	_build_cell_sweep()
+	_build_snow()
 	_build_vitals()
 	_build_charm_row()
 	_hide_panel_vitals()
@@ -442,6 +428,14 @@ func _build_ui() -> void:
 	animator = BattleAnimator.new()
 	add_child(animator)
 	animator.setup(self)
+
+	# 2026-11-17 P0：给立绘加 1px 暗色描边，把角色从复杂背景（雪地石砖明暗交错）里分离出来。
+	# 复用转轮图标的描边 shader（TEXTURE_PIXEL_SIZE=1px 外扩），玩家/敌人 sprite 共用一份材质。
+	var outline_mat := _icon_outline_material()
+	if player_sprite != null:
+		player_sprite.material = outline_mat
+	if enemy_sprite != null:
+		enemy_sprite.material = outline_mat
 
 	# 特效层：属性攻击的像素特效（冰风/爆发/冰锥），同样由 setup 缓存立绘引用
 	fx = BattleFx.new()
@@ -886,8 +880,8 @@ func _cell_element(reel: int, row: int) -> String:
 	if controller == null:
 		return "none"
 	# 读活数据（controller.grid_elem）而非只读快照：写方（reset_grid / lock_reel）都是先写 grid_elem
-	# 再调 _refresh_cell，而快照要到 invalidate_state() 才更新——读快照会让元素色/元素条落后一步
-	# （Step 4 实测：房间开场格子有图标却无元素色条，正是快照未失效导致）。
+	# 再调 _refresh_cell，而快照要到 invalidate_state() 才更新——读快照会让元素色落后一步
+	# （房间开场格子图标元素色不对，正是快照未失效导致）。
 	var ge = controller.grid_elem
 	if ge.size() <= reel or ge[reel].size() <= row:
 		return "none"
@@ -965,6 +959,47 @@ func _build_cell_sweep() -> void:
 			flash.modulate.a = 0.0
 			cells[reel][row].add_child(flash)
 			cell_sweep_flashes[reel].append(flash)
+
+
+# 飘雪：两层速度不同的雪花，靠运动视差制造纵深（固定镜头下真视差无效，用这个替代）。
+# 位于 SnowLayer(Node2D, 背景之上/立绘之下)，不遮挡玩家手动调整的立绘与阴影。
+# 远雪：小、慢、暗；近雪：稍大、快、亮。都在逻辑画布 480×270 内循环。
+const SNOW_TEX = preload("res://assets/fx/fx_snow.png")
+
+
+func _build_snow() -> void:
+	var layer := get_node_or_null("SnowLayer") as Node2D
+	if layer == null:
+		return
+	_make_snow_stream(layer, "SnowFar", 26, 1.0, 10.0, 16.0, Color(1, 1, 1, 0.35), 15.0)
+	_make_snow_stream(layer, "SnowNear", 14, 1.6, 16.0, 24.0, Color(1, 1, 1, 0.6), 25.0)
+
+
+func _make_snow_stream(layer: Node2D, name: String, amount: int, scale: float,
+		vel_min: float, vel_max: float, color: Color, spread_h: float) -> void:
+	var p := CPUParticles2D.new()
+	p.name = name
+	p.texture = SNOW_TEX
+	p.amount = amount
+	p.lifetime = 12.0
+	p.one_shot = false
+	p.preprocess = 9.0            # 预模拟9秒，开局雪花就铺满画面（否则要等12秒才布满）
+	p.emitting = true
+	p.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+	p.emission_rect_extents = Vector2(250, 4)
+	p.position = Vector2(240, -4)
+	p.direction = Vector2(0.12, 1.0)          # 略向右下飘
+	p.gravity = Vector2(0, 0)
+	p.initial_velocity_min = vel_min
+	p.initial_velocity_max = vel_max
+	p.scale_amount_min = scale * 0.7
+	p.scale_amount_max = scale
+	p.color = color
+	p.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	# CPUParticles2D 无 turbulence；横向散开靠 spread + emission_rect 宽度，
+	# 纵深由两层不同速度/尺寸产生（远雪慢小、近雪快大）。
+	p.spread = spread_h
+	layer.add_child(p)
 
 
 # 单格亮起（供 _present_turn 按格子顺序调用）
@@ -1692,9 +1727,10 @@ func set_enemy_art(tex: Texture2D, art_scale: float = 1.0) -> void:
 var _cell_style_cache := {}
 
 
-func _cell_style(elem: String) -> StyleBoxTexture:
-	# 转轮格底框改用素材图（2026-11-17）：与左栏槽位同一套 32px 槽位框，
-	# 九宫格 8px 保证 42px 格子上四角不变形。元素色仍由格底 2px 色条表达。
+func _cell_style(elem: String) -> StyleBox:
+	# 2026-11-17：转轮格统一用 slot_blue.png 金框（与普通武器/技能/消耗品格相同的样式，
+	# 含四角 L 角装饰）。此前透明化露出底图框，导致转轮格缺四角装饰、与其他槽位不一致。
+	# 冻结/干扰/锁轮警告框在 _refresh_cell 里用独立 StyleBoxFlat 覆盖，不受此处影响。
 	if _cell_style_cache.has(elem):
 		return _cell_style_cache[elem]
 	var sb := StyleBoxTexture.new()
@@ -1711,12 +1747,7 @@ func _refresh_cell(reel: int, row: int) -> void:
 	# S4：按「有效元素」着色。同一个共享符号（如 special.tres）在火剑下是火、在铁剑下是无属性，
 	# 靠边框/底色一眼分辨谁吃 ×1.5；元素为 none 时回落符号自身配色。
 	var elem = _cell_element(reel, row)
-	# Step 4：图标模式下元素色改由格底 2px 色条表达（文字染色在图标模式无文字可染）
-	if cell_elem_strips.size() > reel and cell_elem_strips[reel].size() > row:
-		var strip: ColorRect = cell_elem_strips[reel][row]
-		strip.visible = elem != "none"
-		if elem != "none":
-			strip.color = ElementCounter.color(elem)
+	# 2026-11-17：格底元素色条已移除；元素色由图标粒子(fx2.color)与文字染色(fc)表达。
 	var rs = controller.reel_system
 	# 2026-10-30：旋转中的未停列由 ReelSpinView 显示纵向滚动，格子自身清空文字避免重影。
 	var scrolling: bool = rs != null and rs.spinning and not rs.reel_stopped[reel]
@@ -2673,14 +2704,17 @@ func _sync_cell_occlusion() -> void:
 # 2026-11-17：底栏改为「整张美术图 + 图标绝对定位」。
 # 框线全部烘焙进 assets/ui/bar_full.png，代码只负责把格子摆到图里对应的空位上。
 # 下列坐标是从底栏图上逐格量出的内腔中心。
-const BAR_TOP := 200.0
+const BAR_TOP := 197.0   # 底图 bar_full.png 的屏幕 y（480×74，覆盖 y197..271）
 const SLOT_CELL := 30.0
 
+# 2026-11-17 中轴校正：以画面真正中心 x=240 为基准（原用 237，整体偏左 3px）。
+# 左侧（武器/技能）保持不动；中央转轮右移 3px、右侧消耗品右移 2px、金币右移 5px。
+# 注意：bar_full.png 里的槽位框线必须同步移动，否则图标与框线错位。
 const WEAPON_SLOT_X := [20.0, 52.0]
 const SKILL_SLOT_X := [84.0, 116.0, 148.0]
-const REEL_SLOT_X := [191.0, 237.0, 283.0]
-const BELT_SLOT_X := [330.0, 362.0, 394.0, 426.0]
-const GOLD_SLOT_X := 455.0
+const REEL_SLOT_X := [194.0, 240.0, 286.0]
+const BELT_SLOT_X := [332.0, 364.0, 396.0, 428.0]
+const GOLD_SLOT_X := 460.0
 const SLOT_CENTER_Y := 221.0
 const REEL_CENTER_Y := 219.0
 
@@ -2732,16 +2766,22 @@ func _layout_bottom_zones() -> void:
 	# SPIN 槽：压在底栏红色横幅的空位上
 	var spin_bar := get_node_or_null("ReelDock/SpinBar")
 	if spin_bar != null:
-		spin_bar.position = Vector2(190, 252)
+		spin_bar.position = Vector2(190, 246)
 		spin_bar.size = Vector2(100, 18)
-	# 金币：图标 + 数字对准底栏最右的金框
+	# 金币：外框 + 图标 + 数字作为整体右移 5px（中轴校正），与底图金币框中心 460 对齐。
+	# 注意 GoldFrame(Panel) 场景原始 offset 是 440..470（中心455），必须在这里重定位，
+	# 否则 Panel 框(455)与底图框(460)错位 5px，出现双线/暗边。
+	var gf := get_node_or_null("GoldFrame")
+	if gf != null:
+		gf.position = Vector2(445, 206)
+		gf.size = Vector2(30, 30)
 	var gi := get_node_or_null("GoldIcon")
 	if gi != null:
-		gi.position = Vector2(444, 211)
+		gi.position = Vector2(449, 211)
 		gi.size = Vector2(12, 12)
 	var gl := get_node_or_null("GoldLabel")
 	if gl != null:
-		gl.position = Vector2(456, 211)
+		gl.position = Vector2(461, 211)
 		gl.size = Vector2(12, 14)
 
 func _layout_slot_rows() -> void:
@@ -2758,6 +2798,34 @@ func _process(_delta: float) -> void:
 	if not cells.is_empty():
 		_sync_cell_occlusion()
 	_layout_slot_rows()
+	_place_foot_shadows()
+
+
+# 2026-11-17：远景层微动已去掉（用户要求）。BattleBgFar 节点与遮罩图保留但静止，画面不变。
+
+# 脚下阴影：按立绘在世界中的脚底位置动态对齐，给角色"落地感"与前后纵深。
+# 阴影层在 BattleBg 之后、Margin 之前渲染 → 位于背景之上、立绘之下。
+# 幂等，可在 _process 每帧调用；立绘 scale 动画不影响 global_rect（pivot 居中），
+# 但敌人 art_scale 切换会改尺寸，故每帧对齐最稳。
+func _place_foot_shadows() -> void:
+	_place_one_shadow(player_shadow, player_sprite, 32.0, 11.0)
+	_place_one_shadow(enemy_shadow, enemy_sprite, 56.0, 16.0)
+
+
+func _place_one_shadow(shadow: Control, sprite: Control, base_w: float, h: float) -> void:
+	if shadow == null or sprite == null or not sprite.visible:
+		if shadow != null:
+			shadow.visible = false
+		return
+	var r: Rect2 = sprite.get_global_rect()
+	# 立绘可能被动画 scale（受击放大/死亡缩小），按实际可见宽度缩放阴影，但设下限避免消失
+	var scale_factor: float = clampf(absf(sprite.scale.x), 0.3, 2.0)
+	var w: float = base_w * scale_factor
+	var cx: float = r.position.x + r.size.x * 0.5
+	var foot_y: float = r.position.y + r.size.y
+	shadow.visible = sprite.modulate.a > 0.15
+	shadow.position = Vector2(cx - w * 0.5, foot_y - h * 0.5)
+	shadow.size = Vector2(w, h)
 
 
 ## 格子约 38px：符号图标 16px 太小，优先换用 /16/ → /32/ 的同名版本（1:1 不缩放）

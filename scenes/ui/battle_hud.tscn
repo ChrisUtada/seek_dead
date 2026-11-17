@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://ddxuthgtam243" path="res://scripts/ui/battle_hud.gd" id="1_hud"]
 [ext_resource type="PackedScene" path="res://scenes/ui/ui_button.tscn" id="3_btn"]
-[ext_resource type="Texture2D" path="res://assets/characters/knight_v1/hero_48.png" id="4_knight"]
+[ext_resource type="Texture2D" path="res://assets/characters/knight_v1/hero_hd_80.png" id="4_knight"]
 [ext_resource type="Texture2D" path="res://assets/enemy_ember.png" id="5_enemy"]
 [ext_resource type="Texture2D" path="res://assets/icons/16/gold.png" id="6_gold"]
 [ext_resource type="Texture2D" path="res://assets/icons/16/hp.png" id="7_hp"]
@@ -12,6 +12,10 @@
 [ext_resource type="Texture2D" path="res://assets/icons/16/fire_slash.png" id="11_intent"]
 
 [ext_resource type="Texture2D" path="res://assets/ui/bar_full.png" id="tex_barfull"]
+[ext_resource type="Texture2D" path="res://assets/bg/act1_bg.png" id="tex_act1_bg"]
+[ext_resource type="Texture2D" path="res://assets/bg/act1_bg_far.png" id="tex_act1_bg_far"]
+[ext_resource type="Texture2D" path="res://assets/ui/shadow_ellipse.png" id="tex_shadow"]
+[ext_resource type="Texture2D" path="res://assets/fx/fx_snow.png" id="tex_snow"]
 [ext_resource type="Texture2D" path="res://assets/ui/dark_ages/frames/slot_blue.png" id="tex_slot"]
 [ext_resource type="Texture2D" path="res://assets/ui/bar_band.png" id="tex_bar"]
 [ext_resource type="Texture2D" path="res://assets/ui/reel_panel.png" id="tex_reel"]
@@ -258,7 +262,7 @@ texture_margin_bottom = 6.0
 [sub_resource type="StyleBoxEmpty" id="sb_empty"]
 
 [sub_resource type="StyleBoxFlat" id="sb_spin_press_overlay"]
-bg_color = Color(0, 0, 0, 0.28)
+bg_color = Color(0, 0, 0, 0)
 corner_radius_top_left = 2
 corner_radius_top_right = 2
 corner_radius_bottom_right = 2
@@ -318,6 +322,63 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.086275, 0.05098, 0.07451, 1)
+
+[node name="BattleBg" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("tex_act1_bg")
+stretch_mode = 5
+expand_mode = 1
+
+[node name="BattleBgFar" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("tex_act1_bg_far")
+stretch_mode = 5
+expand_mode = 1
+
+[node name="SnowLayer" type="Node2D" parent="."]
+
+[node name="ShadowLayer" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="PlayerShadow" type="TextureRect" parent="ShadowLayer"]
+layout_mode = 0
+mouse_filter = 2
+texture = ExtResource("tex_shadow")
+stretch_mode = 5
+
+[node name="EnemyShadow" type="TextureRect" parent="ShadowLayer"]
+layout_mode = 0
+mouse_filter = 2
+texture = ExtResource("tex_shadow")
+stretch_mode = 5
+
+[node name="BarBackground" type="TextureRect" parent="."]
+offset_left = 0.0
+offset_top = 197.0
+offset_right = 480.0
+offset_bottom = 271.0
+mouse_filter = 2
+texture = ExtResource("tex_barfull")
+expand_mode = 1
+stretch_mode = 0
 
 [node name="Frame" type="Panel" parent="."]
 layout_mode = 1
@@ -527,7 +588,7 @@ theme_override_constants/separation = 1
 alignment = 2
 
 [node name="PlayerSprite" type="TextureRect" parent="Margin/Content/Middle/CenterStage/StageRow/PlayerCenter" unique_id=1571310140]
-custom_minimum_size = Vector2(48, 48)
+custom_minimum_size = Vector2(80, 80)
 layout_mode = 2
 size_flags_horizontal = 4
 texture = ExtResource("4_knight")
@@ -590,7 +651,7 @@ theme_override_font_sizes/font_size = 9
 horizontal_alignment = 1
 
 [node name="EnemyLift" type="Control" parent="Margin/Content/Middle/CenterStage/StageRow/EnemyCenter"]
-custom_minimum_size = Vector2(0, 32)
+custom_minimum_size = Vector2(0, 24)
 layout_mode = 2
 
 [node name="EnemyPanel" type="PanelContainer" parent="Margin/Content/Middle" unique_id=2000227142]
@@ -742,22 +803,6 @@ theme_override_colors/font_color = Color(0.662745, 0.615686, 0.537255, 1)
 theme_override_font_sizes/font_size = 9
 text = ""
 autowrap_mode = 3
-
-[node name="ReelPanel" type="Panel" parent="."]
-offset_left = 160
-offset_top = 182
-offset_right = 314
-offset_bottom = 254
-mouse_filter = 2
-theme_override_styles/panel = SubResource("sb_panel")
-
-[node name="SpinBanner" type="Panel" parent="."]
-offset_left = 184
-offset_top = 250
-offset_right = 296
-offset_bottom = 272
-mouse_filter = 2
-theme_override_styles/panel = SubResource("sb_banner")
 
 [node name="GearBox" type="Control" parent="." unique_id=108381182]
 offset_bottom = 236

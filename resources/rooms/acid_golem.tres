@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://scripts/battle/room_data.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/battle/gimmicks/rust_armor_gimmick.gd" id="2"]
-[ext_resource type="Texture2D" path="res://assets/characters/acid_golem/idle_01.png" id="3_art"]
+[ext_resource type="Texture2D" path="res://assets/characters/acid_golem/idle_01_hd.png" id="3_art"]
 
 [resource]
 script = ExtResource("1")

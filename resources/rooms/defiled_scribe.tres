@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="RoomData" load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/battle/room_data.gd" id="1"]
-[ext_resource type="Texture2D" path="res://assets/characters/defiled_scribe/idle_01.png" id="art_room"]
+[ext_resource type="Texture2D" path="res://assets/characters/defiled_scribe/idle_01_hd.png" id="art_room"]
 [ext_resource type="Script" path="res://scripts/battle/gimmicks/normal_trait_gimmick.gd" id="3"]
 
 [resource]

@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://scripts/battle/room_data.gd" id="1"]
 [ext_resource type="Resource" path="res://resources/archetypes/heavy_brawler.tres" id="2"]
 [ext_resource type="Script" path="res://scripts/battle/gimmicks/normal_trait_gimmick.gd" id="3"]
-[ext_resource type="Texture2D" path="res://assets/characters/a1_brute_none/idle_01.png" id="art_room"]
+[ext_resource type="Texture2D" path="res://assets/characters/a1_brute_none/idle_01_hd.png" id="art_room"]
 
 [resource]
 script = ExtResource("1")
