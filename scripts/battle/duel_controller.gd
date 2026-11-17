@@ -224,6 +224,7 @@ var enemy_hp = 120
 var enemy_hp_max = 120
 var enemy_armor_max = 0                # 护甲上限（扁平池；来自 RoomData.armor × ante，BOSS 机制可成长）
 var enemy_armor = 0                    # 当前护甲：伤害先破甲后掉血；0 = 无护甲
+var mirror_dmg_mult: float = 1.0       # 迷面诡匠镜面夺盾的无盾兜底：下回合伤害乘区（一次性）
 var enemy_atk = 14
 var _interf_resist_rf := 1.0             # T20：抗扰减免系数（干扰类意图权重 × 此值，_start_room 计算）
 var enemy_status: Dictionary = {}      # status_type(str) -> 叠加层数(int)
@@ -1084,6 +1085,7 @@ func start_room_data(r: RoomData, idx: int, ria_override: int = -1, is_final: bo
 	peaceful_win = false                  # 勇者的阴影：和解标志每房复位
 	if hud != null:
 		hud.reset_enemy_hit_hold()        # 2026-11-16 P0：清掉上一房未释放的掉血影子值
+	mirror_dmg_mult = 1.0                   # 迷面诡匠的伤害削弱不跨房残留
 	_apply_charms()                         # S7：每次开房重算护符被动（含商店购入的护符）
 	_build_pool(selected_loadout)           # S7：重建符号池（含商店购入的武器）
 	room_index = idx

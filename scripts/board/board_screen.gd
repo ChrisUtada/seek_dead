@@ -587,12 +587,13 @@ func refresh() -> void:
 func _refresh_trim_btn() -> void:
 	if _trim_btn == null:
 		return
-	var st := "none"
+	# B 方案：不再有「每幕免费 1 次」，入口只在持有「精简剪」授予的次数时出现
+	var left := 0
 	if controller != null and controller._trim != null:
-		st = controller._trim.entry_state()
-	_trim_btn.visible = st != "none"
-	_trim_btn.disabled = st != "ready" or _moving or _stepping or not _pending_node.is_empty()
-	_trim_btn.text = "精简" if st == "ready" else "精简(已用)"
+		left = controller._trim.trims_left()
+	_trim_btn.visible = left > 0
+	_trim_btn.disabled = left <= 0 or _moving or _stepping or not _pending_node.is_empty()
+	_trim_btn.text = "精简 ×%d" % left
 
 
 func _on_trim_pressed() -> void:

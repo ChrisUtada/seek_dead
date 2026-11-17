@@ -279,19 +279,23 @@ func _behavior(duel: DuelController, g, monster: String, trait_id: String) -> vo
 				"双段：追加一次同数值攻击")
 			duel.enemy_extra_attacks.clear()
 		"shift_hit":
-			var syms: Array = []
-			for i in 3:
-				var s := SymbolData.new()
-				s.label = ["A", "B", "C"][i]
-				s.name = "测试%d" % i
-				duel.grid[i][0] = s
-				duel.grid_elem[i][0] = "none"
-				syms.append(s)
+			# 有盾：夺走一半护盾转为自身护甲
+			duel.player_shield = 20
+			duel.enemy_armor = 0
+			duel.mirror_dmg_mult = 1.0
 			g.on_damaged(duel, 5)
-			_check(duel.grid[0][0] == syms[2] and duel.grid[1][0] == syms[0] and duel.grid[2][0] == syms[1],
-				"迷面诡匠：三列符号位序平移一位（内容不变）")
+			_check(duel.player_shield == 10 and duel.enemy_armor == 10,
+				"迷面诡匠：夺走一半护盾转为自身护甲")
 			g.on_damaged(duel, 5)
-			_check(duel.grid[0][0] == syms[2], "位序平移只触发一次")
+			_check(duel.player_shield == 10 and duel.enemy_armor == 10,
+				"镜面夺盾只触发一次")
+			# 无盾：兜底为下回合伤害打折（重置一次性标记后重测）
+			g._done = false
+			duel.player_shield = 0
+			duel.mirror_dmg_mult = 1.0
+			g.on_damaged(duel, 5)
+			_check(is_equal_approx(duel.mirror_dmg_mult, 0.7),
+				"镜面夺盾无盾兜底：下回合伤害 ×0.7")
 		"auto_stop_cycle":
 			duel.pending_auto_stop = false
 			_set_turn(duel, 3)

@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rarity = "rare"
+category = "active"
+item_id = "trim_scissors"
+item_name = "精简剪"
+description = "立刻获得 1 次精简：符号 -1 格，或卸除 1 个技能。不可撤销。带子越长命中越低，这是唯一的瘦身手段。"
+icon = "✂"
+effect = "trim_belt"
+value = 1
+charges = 1
+family_tags = Array[String](["resource", "reel"])
+role = "utility"
+mechanism_summary = "主动使用（1 次）：获得 1 次精简（符号 -1 格 / 卸除 1 个技能），不可撤销。"
+act_min = 1
+act_max = 3
+source_tags = Array[String](["elite", "shop"])
+unique_group = "consumable_trim"

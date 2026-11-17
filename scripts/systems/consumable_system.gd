@@ -52,6 +52,7 @@ func use(uid: String) -> void:
 		"element": use_element(data)
 		"attack":  use_attack(data)
 		"armor_shred": use_armor_shred(data)
+		"trim_belt": use_trim_belt(data)
 	# 勇者的阴影 P3 和解检测（heal/purify/cleanse 消耗品使用通知；显式判空）
 	if _ctrl.current_gimmick != null:
 		_ctrl.current_gimmick.on_consumable_used(_ctrl, str(data.effect))
@@ -66,6 +67,18 @@ func use(uid: String) -> void:
 
 # 净化药剂（2026-08-09 职责收敛）：只抵消敌人干扰意图（T20：IntentData.purifiable）。
 # 玩家侧状态（frost 冻结 / DoT 毒层）改由清净药剂（cleanse）解——净化不再跨「BOSS 侧 / 玩家侧」双职责。
+# 精简剪：授予 1 次精简（符号 -1 格 / 卸除技能）。
+# 具体减哪一格在棋盘「精简」入口选择；次数记在本局账上，取消对话框不损失次数。
+func use_trim_belt(data: Resource) -> void:
+	if _ctrl._trim == null:
+		return
+	var n: int = maxi(1, int(data.value))
+	_ctrl._trim.grant(n)
+	_ctrl.hud._log("✂ 精简剪：获得 %d 次精简（在棋盘点「精简」使用）" % n)
+	if _ctrl.board != null:
+		_ctrl.board._refresh_trim_btn()
+
+
 func use_purify(data: Resource) -> void:
 	var it_data: IntentData = _ctrl.enemy_intent.get("data")
 	var purifiable: bool = it_data.purifiable if it_data != null else _ctrl.enemy_intent.get("type") in ["jam", "lock", "chaos", "auto_stop"]

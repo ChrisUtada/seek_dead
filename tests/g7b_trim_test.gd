@@ -84,7 +84,9 @@ func _check(cond: bool, msg: String) -> void:
 func _test_candidates(duel: DuelController) -> void:
 	var trim = duel._trim
 	_check(trim != null, "精简系统已注入")
-	_check(trim.trims_left() == trim.TRIMS_PER_ACT, "初始本幕还有 %d 次" % trim.TRIMS_PER_ACT)
+	_check(trim.trims_left() == 0, "初始无精简次数（需「精简剪」授予）")
+	trim.grant(1)
+	_check(trim.trims_left() == 1, "授予 1 次后可用")
 	_check(trim.entry_state() == "ready", "有候选时入口状态 ready")
 	var cands: Array = trim.candidates()
 	_check(not cands.is_empty(), "默认整备有合法候选（%d 个）" % cands.size())
@@ -158,12 +160,11 @@ func _test_act_reset(duel: DuelController) -> void:
 	duel.board.act = 2
 	_check(trim.current_act() == 2, "棋盘模式读棋盘幕号（ACT II）")
 	_check(trim.trims_left() == 1, "换幕后次数重置为 1")
-	duel.board.act = 2
-	trim.used_by_act[2] = 1
-	_check(trim.trims_left() == 0, "ACT II 用掉后为 0")
+	trim.used = trim.granted
+	_check(trim.trims_left() == 0, "用尽后为 0")
 	duel.board.act = 3
-	_check(trim.trims_left() == 1, "ACT III 重新有 1 次")
-	trim.used_by_act.erase(2)
+	_check(trim.trims_left() == 0, "换幕不再自动重置（供给完全由道具决定）")
+	trim.used = 0
 	duel.node_mode = false
 	duel.board.act = 1
 
@@ -230,7 +231,7 @@ func _test_determinism_and_floor(duel: DuelController) -> void:
 	var cand := _symbol_cand(duel)
 	if not cand.is_empty():
 		trim.trimmed[String(cand["key"])] = 99
-		trim.used_by_act.clear()
+		trim.used = 0
 		var comp: Dictionary = trim._compose(trim.trimmed, duel.selected_skills)
 		var cells := -1
 		for r in comp["rows"]:
@@ -254,7 +255,7 @@ func _test_state_boundary(duel: DuelController, meta_backup: Dictionary, mtime_b
 			duel.selected_skills.append(SKILL_PATH)
 	trim.reset_run()
 	_check(trim.trimmed.is_empty(), "reset_run 后精简状态为空")
-	_check(trim.used_by_act.is_empty(), "reset_run 后次数记账为空")
+	_check(trim.granted == 0 and trim.used == 0, "reset_run 后次数记账归零")
 
 	var meta_same := true
 	for k in meta_backup:

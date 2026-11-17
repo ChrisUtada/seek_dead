@@ -33,7 +33,7 @@ extends BossGimmick
 #   chaos_open       入场乱权（转轮带注入 20% 废铁，整房）                 毒雾术士
 #   blind_open       入场目盲 2 回合                                      暗行游侠
 #   double_light     每 3 回合两次 60% 攻击                               炎锋群蝠
-#   shift_hit        首次受击：三列符号位序平移一位（内容不变）             迷面诡匠
+#   shift_hit        首次受击：镜面夺盾（夺走玩家 50% 护盾转为自身护甲）   迷面诡匠
 #   auto_stop_cycle  每 3 回合下轮自动停轮                                迷魂灯笼
 #   backlash_triple  玩家首次三连：下回合反噬                             亵渎书吏
 #   sacrifice_heavy  每 4 回合自损 4% maxHP 后重击                        暗影信徒
@@ -140,7 +140,7 @@ func on_room_start(ctrl) -> void:
 		"double_light":
 			ctrl.hud._log("🦇 炎锋：每 3 回合改为两次较低攻击（每段约 60%）")
 		"shift_hit":
-			ctrl.hud._log("🎭 迷面：首次受击后三列符号位序平移一位（内容不变，需重新读格）")
+			ctrl.hud._log("🎭 迷面：首次受击时夺走你一半护盾转为自身护甲")
 		"auto_stop_cycle":
 			ctrl.hud._log("🏮 迷魂：每 3 回合夺轮，下轮转轮自动停止（无法目押）")
 		"backlash_triple":
@@ -343,7 +343,7 @@ func on_damaged(ctrl, dmg: int) -> void:
 			if _done:
 				return
 			_done = true
-			_shift_symbols(ctrl)
+			_mirror_steal(ctrl)
 		# —— ACT3 ——
 		"burn_on_hit":
 			if _burn_turn == int(ctrl.turn_count):
@@ -441,32 +441,28 @@ func _every(ctrl, n: int) -> bool:
 	return int(ctrl.turn_count) % maxi(1, n) == 0
 
 
-# —— 迷面诡匠：三列符号位序平移一位（内容不变）——
-# 同时平移「已停住的当前行」与「后续转轮带」，让玩家必须重新读格而不是背位置。
-func _shift_symbols(ctrl) -> void:
-	var sym0: Array = []
-	var elem0: Array[String] = []
-	var source0: Array[String] = []
-	for r in DuelController.REELS:
-		if ctrl.grid.size() > r and ctrl.grid[r].size() > 0:
-			sym0.append(ctrl.grid[r][0])
-			elem0.append(String(ctrl.grid_elem[r][0]))
-			source0.append(String(ctrl.grid_src[r][0]) if ctrl.grid_src.size() > r and ctrl.grid_src[r].size() > 0 else "")
-	if sym0.size() == 3:
-		for r in DuelController.REELS:
-			var src := (r + 2) % 3   # 向右平移一位
-			ctrl.grid[r][0] = sym0[src]
-			ctrl.grid_elem[r][0] = elem0[src]
-			ctrl.reel_system._set_grid_src(r, 0, source0[src])
-			ctrl.hud._refresh_cell(r, 0)
-	for r in DuelController.REELS:
-		var strips: Array = ctrl.reel_system.reel_strips
-		if strips.size() <= r or strips[r].size() < 2:
-			continue
-		var strip: Array = strips[r]
-		var first = strip.pop_front()
-		strip.push_back(first)
-	ctrl.hud._log("🎭 迷面：三列符号位序平移一位（内容不变，下一轮按新位序判读）")
+# —— 迷面诡匠：镜面夺盾 ——
+# 原实现是「三列符号位序平移一位」，但对玩家没有任何影响，原因有三：
+#   1. 触发点在 on_damaged，此时本回合伤害/牌型/三连全部算完，改 grid 无效；
+#   2. 停位是 randi() % strip_len 均匀随机，旋转符号带后分布不变（恒等变换）；
+#   3. 最根本：本作判定全部基于 counts（有哪些符号、各几个），不看「在第几列」，
+#      所以三列的任意排列对三连/同族连线/克制都等价。
+# 改为有真实后果的效果：夺走玩家当前护盾的一半转为自身护甲；
+# 无盾时兜底为「玩家下回合伤害 ×MIRROR_DMG_DOWN」，保证任何情况下都不是空操作。
+const MIRROR_STEAL_PCT := 0.5
+const MIRROR_DMG_DOWN := 0.7
+
+
+func _mirror_steal(ctrl) -> void:
+	var sh: int = int(round(float(ctrl.player_shield)))
+	if sh > 0:
+		var steal: int = maxi(1, int(round(float(sh) * MIRROR_STEAL_PCT)))
+		ctrl.player_shield = maxi(0, sh - steal)
+		ctrl.enemy_armor += steal
+		ctrl.hud._log("🎭 迷面：镜面夺走你 %d 点护盾，转为自身护甲（你剩 %d）" % [steal, ctrl.player_shield])
+	else:
+		ctrl.mirror_dmg_mult = MIRROR_DMG_DOWN
+		ctrl.hud._log("🎭 迷面：无盾可夺，你下回合伤害 ×%s" % ElementCounter.fmt_mult(MIRROR_DMG_DOWN))
 
 
 func _tick_player_poison(ctrl) -> void:

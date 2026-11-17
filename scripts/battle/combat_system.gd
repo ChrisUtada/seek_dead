@@ -595,11 +595,14 @@ func _phase_attack(counts: Dictionary, acc: Dictionary) -> void:
 			_pending_damage_charms = damage_charms
 	# 2026-11-12 Step 1：虚弱对「连线+穿透」总伤害乘算；核爆/充能爆发按 maxHP 比例，不受虚弱影响。
 	var debuff_mult: float = _ctrl.debuffs.damage_mult() if _ctrl.debuffs != null else 1.0
+	# 迷面诡匠「镜面夺盾」的无盾兜底：下回合伤害打折，用掉即清（一次性）
+	var mirror_mult: float = float(_ctrl.mirror_dmg_mult)
+	_ctrl.mirror_dmg_mult = 1.0
 	var assault = _ctrl.assault_next_spin
 	var normal_subtotal = acc["dmg"] + acc["special"]
 	var pierce_subtotal = acc.get("pierce", 0.0)
-	var normal_total = int(normal_subtotal * assault * buff_mult * DuelController.BALANCE.player_dmg_mult * debuff_mult)
-	var pierce_total = int(pierce_subtotal * assault * buff_mult * DuelController.BALANCE.player_dmg_mult * debuff_mult)
+	var normal_total = int(normal_subtotal * assault * buff_mult * DuelController.BALANCE.player_dmg_mult * debuff_mult * mirror_mult)
+	var pierce_total = int(pierce_subtotal * assault * buff_mult * DuelController.BALANCE.player_dmg_mult * debuff_mult * mirror_mult)
 	_ctrl.assault_next_spin = 1
 	var total = normal_total + pierce_total
 	# S2：伤害分解只进调试日志（Debug.log），屏幕仅保留总伤害飘字（见下方 _popup）

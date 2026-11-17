@@ -2327,11 +2327,11 @@ func show_trim_dialog() -> void:
 		c.queue_free()
 	var trim = controller._trim
 	var title_lbl = _label("", TypeScale.OVERLAY)
-	title_lbl.text = "✂ 精简带子 · 本幕 %d/%d" % [trim.trims_left(), trim.TRIMS_PER_ACT]
+	title_lbl.text = "✂ 精简带子 · 剩余 %d 次" % trim.trims_left()
 	title_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_trim_vbox.add_child(title_lbl)
 	var hint = _label("", TypeScale.TINY)
-	hint.text = "符号减 1 格，或卸除 1 个技能。不可撤销；每幕 1 次（两者共享）。"
+	hint.text = "符号减 1 格，或卸除 1 个技能。不可撤销；次数由「精简剪」提供（两者共享）。"
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hint.custom_minimum_size = Vector2(320, 0)
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

@@ -18,4 +18,4 @@ art = ExtResource("art_room")
 art_scale = 2.0
 gimmick_script = ExtResource("3")
 gimmick_params = {"trait": "shift_hit"}
-mechanic_summary = "首次受击后三列符号位序平移一位。"
+mechanic_summary = "首次受击时夺走你一半护盾，转为自身护甲；无盾则你下回合伤害降低。"

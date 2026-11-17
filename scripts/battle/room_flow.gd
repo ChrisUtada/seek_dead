@@ -20,11 +20,32 @@ var _phase := ""                  # "" | "loot" | "growth"
 var _loot_view: Dictionary = {}
 
 
+# B 方案：精英战必掉「精简剪」，保证每幕至少一次瘦身机会。
+const TRIM_ITEM_PATH := "res://resources/consumables/trim_scissors.tres"
+
+
+func _grant_elite_trim() -> void:
+	if _ctrl.current_room == null or String(_ctrl.current_room.kind) != "elite":
+		return
+	var cap: int = int(_ctrl.CONSUMABLE_CAP)
+	if _ctrl.consumable_slots.size() >= cap:
+		_ctrl.hud._log("✂ 精英战利品：精简剪（腰带已满，未拾取）")
+		return
+	var cd = load(TRIM_ITEM_PATH)
+	if cd == null:
+		return
+	_ctrl._consumable_uid += 1
+	_ctrl.consumable_slots.append({"path": TRIM_ITEM_PATH, "item_id": cd.item_id,
+		"charges": cd.charges, "uid": "c%d" % _ctrl._consumable_uid})
+	_ctrl.hud._log("✂ 精英战利品：获得「%s」" % cd.item_name)
+
+
 func begin_post_battle() -> void:
 	if post_battle_active:
 		return
 	post_battle_active = true
 	_settle_victory()
+	_grant_elite_trim()
 	# 成长候选先冻结：战利品阶段的 post_battle_has_growth() 仍要能回答「本房有没有真实成长」。
 	_post_offer = _growth_candidates()
 	_start_loot_phase()

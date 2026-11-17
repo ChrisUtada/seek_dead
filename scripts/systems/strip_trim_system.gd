@@ -15,12 +15,12 @@ extends RefCounted
 #     damage 符号；每把已装备武器至少保留 1 个仍有格的符号；
 #   - 次数：符号精简与技能卸除共享「每幕 1 次」，按幕记账，随幕重置，不跨局累计。
 
-const TRIMS_PER_ACT := 1
 const PER_SYMBOL_MAX := 1
 
 var _ctrl: DuelController
 var trimmed: Dictionary = {}          # "sym_path|elem" -> 已精简次数（本局）
-var used_by_act: Dictionary = {}      # act -> 已用次数（本局）
+var granted: int = 0                  # 由「精简剪」消耗品授予的可用次数（本局累计）
+var used: int = 0                     # 已使用次数（本局）
 
 
 func _init(ctrl: DuelController) -> void:
@@ -29,7 +29,13 @@ func _init(ctrl: DuelController) -> void:
 
 func reset_run() -> void:
 	trimmed.clear()
-	used_by_act.clear()
+	granted = 0
+	used = 0
+
+
+# 消耗品「精简剪」授予次数。原「每幕免费 1 次」已取消：供给完全由道具决定。
+func grant(n: int = 1) -> void:
+	granted += maxi(0, n)
 
 
 # 当前幕（棋盘模式读棋盘幕号，线性模式恒为 1）。
@@ -40,7 +46,7 @@ func current_act() -> int:
 
 
 func trims_left() -> int:
-	return maxi(0, TRIMS_PER_ACT - int(used_by_act.get(current_act(), 0)))
+	return maxi(0, granted - used)
 
 
 # 入口状态（B3 灰盒按钮）："ready" = 本幕还有次数且有合法候选；
@@ -118,7 +124,7 @@ func apply(cand: Dictionary) -> String:
 		trimmed[key] = int(trimmed.get(key, 0)) + 1
 		_use_trim()
 		_ctrl._build_pool(_ctrl.selected_loadout)
-		return "✂ 精简：%s %d→%d 格（本幕精简次数已用尽）" % [String(cand.get("name", "")), was, maxi(1, was - 1)]
+		return "✂ 精简：%s %d→%d 格（精简次数不足，需使用「精简剪」）" % [String(cand.get("name", "")), was, maxi(1, was - 1)]
 	if kind == "skill":
 		var path := String(cand.get("path", ""))
 		if not _skill_allowed(path):
@@ -131,8 +137,7 @@ func apply(cand: Dictionary) -> String:
 
 
 func _use_trim() -> void:
-	var a := current_act()
-	used_by_act[a] = int(used_by_act.get(a, 0)) + 1
+	used += 1
 
 
 # ---------------------------------------------------------------------------
