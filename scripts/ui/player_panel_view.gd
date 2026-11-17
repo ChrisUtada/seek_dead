@@ -35,6 +35,7 @@ func element_icon(elem: String) -> String:
 
 
 var _card_style: StyleBoxFlat = null
+var _gear_sig := ""   # 装备签名：内容没变就不重建卡片，避免每次刷新把图标闪一下
 
 # C2：左栏大图标卡片统一规格（左栏内宽 80 → 两列各 39px；高度 38 与 24 主图 + 9px 名对齐）
 const CARD_MIN := Vector2(38, 38)
@@ -141,6 +142,14 @@ func pulse_charm_card(paths: Array = []) -> void:
 func refresh_gear_icons() -> void:
 	if weapons_row == null or charms_row == null or skills_row == null:
 		return
+	# 🔴 每次 _refresh_meta 都会走到这里；无脑重建会让底栏武器/技能图标肉眼可见地「闪」一下。
+	# 只有装备内容真的变了才重建，其余情况直接返回。
+	var _st0 = controller().state
+	var _sig := "%s|%s|%s|%s" % [str(_st0.selected_loadout), str(_st0.selected_skills),
+		str(_st0.selected_charms), str(controller().growth.perk_ids)]
+	if _sig == _gear_sig:
+		return
+	_gear_sig = _sig
 	for row in [weapons_row, charms_row, skills_row]:
 		for child in row.get_children():
 			row.remove_child(child)
@@ -167,48 +176,76 @@ func refresh_gear_icons() -> void:
 			var style_txt: String = controller()._forge_styles.describe(path)
 			if style_txt != "":
 				tip += "\n" + style_txt
+		# 🔴 WeaponData 没有 art / icon_tex 字段（只有 weapon_name 等），
+		# 武器图标一律走 WeaponIcons 的 icon_<id>.png；原代码走 emoji 兜底所以永远不是真图。
+		var wico: Texture2D = WeaponIcons.icon_for_path(String(path))
 		var art: Texture2D = wd.get("art") if wd != null else null
 		var icon_tex: Texture2D = wd.get("icon_tex") if wd != null else null
 		var card: Control
-		if art != null:
-			card = _make_gear_card(art, Vector2(24, 24), "", name_txt, tip)
+		if wico != null:
+			card = _make_gear_card(wico, Vector2(24, 24), "", name_txt, tip, true)
+		elif art != null:
+			card = _make_gear_card(art, Vector2(24, 24), "", name_txt, tip, true)
 		elif icon_tex != null:
-			card = _make_gear_card(icon_tex, Vector2(16, 16), "", name_txt, tip)
+			card = _make_gear_card(icon_tex, Vector2(24, 24), "", name_txt, tip, true)
 		else:
-			card = _make_gear_card(null, Vector2(16, 16), "🗡️" + element_icon(elem), name_txt, tip)
+			card = _make_gear_card(null, Vector2(24, 24), "🗡️" + element_icon(elem), name_txt, tip, true)
 		card.name = "WCard_%d_%s" % [idx, path.get_file().get_basename()]
 		weapons_row.add_child(card)
 		idx += 1
 
-	# 技能：主技能一张卡，其余技能并入 tooltip；技艺（M2-03）只进 tooltip
+	# 未装备的武器槽也留格（上限 cat_cap("weapon") = 2），否则看不出还有位置
+	var weapon_cap: int = controller()._loadout_system.cat_cap("weapon")
+	while idx < weapon_cap:
+		var blank := _make_gear_card(null, Vector2(16, 16), "", "", "空武器槽（未装备）", true)
+		blank.name = "WCard_%d_empty" % idx
+		weapons_row.add_child(blank)
+		idx += 1
+
+	# 技能：每个技能占一格，未装备的留空槽（上限 cat_cap("skill") = 3）；
+	# 技艺（M2-03）只进 tooltip，不占格子。
 	var skill_paths: Array = st.selected_skills
 	var perk_lines: Array[String] = []
 	for pid in controller().growth.perk_ids:
 		perk_lines.append("%s · %s" % [controller().growth.perk_name(pid), controller().growth.perk_desc(pid)])
-	if skill_paths.is_empty():
-		var empty_tip := "未装备技能"
-		if not perk_lines.is_empty():
-			empty_tip += "\n技艺: " + " / ".join(perk_lines)
-		skills_row.add_child(_make_gear_card(null, Vector2(16, 16), "✦", "无技能", empty_tip))
-	else:
-		var sd = load(skill_paths[0])
-		var s_name: String = String(sd.get("buff_name")) if sd != null and sd.get("buff_name") != null else skill_paths[0].get_file().get_basename()
-		var s_desc: String = String(sd.get("description")) if sd != null and sd.get("description") != null else ""
-		var s_tip := s_name + (" · " + s_desc if s_desc != "" else "")
-		if skill_paths.size() > 1:
-			var others: Array[String] = []
-			for sp in skill_paths.slice(1):
-				var od = load(sp)
-				others.append(String(od.get("buff_name")) if od != null and od.get("buff_name") != null else sp.get_file().get_basename())
-			s_tip += "\n其他技能: " + "、".join(others)
-		if not perk_lines.is_empty():
-			s_tip += "\n技艺: " + " / ".join(perk_lines)
-		var s_icon_tex: Texture2D = sd.get("icon_tex") if sd != null else null
-		var s_emoji: String = ""
-		var s_label: String = s_name if skill_paths.size() == 1 else "%s+%d" % [s_name, skill_paths.size() - 1]
-		var scard := _make_gear_card(s_icon_tex, Vector2(16, 16), "", s_label, s_tip)
-		scard.name = "SCard"
-		skills_row.add_child(scard)
+	var perk_tip: String = ("技艺: " + " / ".join(perk_lines)) if not perk_lines.is_empty() else ""
+	var skill_cap: int = controller()._loadout_system.cat_cap("skill")
+	for si in skill_cap:
+		if si < skill_paths.size():
+			var sp: String = String(skill_paths[si])
+			var sd = load(sp)
+			var s_name: String = String(sd.get("buff_name")) if sd != null and sd.get("buff_name") != null else sp.get_file().get_basename()
+			var s_desc: String = String(sd.get("description")) if sd != null and sd.get("description") != null else ""
+			var s_tip: String = s_name + (" · " + s_desc if s_desc != "" else "")
+			if si == 0 and perk_tip != "":
+				s_tip += "\n" + perk_tip
+			# SkillData 继承 ItemData，自带 icon_tex（48px，与武器同规格）→ 显示 24 = 0.5× 清晰。
+			# 之前误取 symbol 的图标（32px 转轮符号图），缩到 24 是 0.75×，所以技能格外糊。
+			var s_icon_tex: Texture2D = sd.get("icon_tex") if sd != null else null
+			if s_icon_tex == null:
+				var sym = sd.get("symbol") if sd != null else null
+				s_icon_tex = sym.get("icon_tex") if sym != null else null
+			var s_emoji: String = String(sd.get("icon")) if sd != null else ""
+			if s_emoji == "":
+				s_emoji = "✦"
+			var scard := _make_gear_card(s_icon_tex, Vector2(24, 24), s_emoji, s_name, s_tip, true)
+			scard.name = "SCard_%d" % si
+			skills_row.add_child(scard)
+		elif si - skill_paths.size() < controller().growth.perk_ids.size():
+			# 技艺（2026-11-17）：习得后没有独立槽位，改为占用技能行的空槽，
+			# 否则玩家选完技艺在底栏看不到任何变化。
+			var pid: String = String(controller().growth.perk_ids[si - skill_paths.size()])
+			var p_name: String = controller().growth.perk_name(pid)
+			var p_desc: String = controller().growth.perk_desc(pid)
+			var pcard := _make_gear_card(null, Vector2(24, 24), "✦", p_name,
+				"技艺 · %s\n%s" % [p_name, p_desc], true)
+			pcard.name = "PCard_%d" % si
+			pcard.modulate = Color(1.0, 0.93, 0.74, 1.0)   # 淡金色，与技能区分
+			skills_row.add_child(pcard)
+		else:
+			var blank_s := _make_gear_card(null, Vector2(24, 24), "", "", "空技能槽（未装备）" + ("\n" + perk_tip if perk_tip != "" else ""), true)
+			blank_s.name = "SCard_%d_empty" % si
+			skills_row.add_child(blank_s)
 
 	# 护符：主护符一张卡，其余护符并入 tooltip
 	var charm_paths: Array = st.selected_charms
@@ -224,7 +261,7 @@ func refresh_gear_icons() -> void:
 			var c_desc: String = String(cd.get("description")) if cd != null and cd.get("description") != null else ""
 			var c_tip := c_name + (" · " + c_desc if c_desc != "" else "")
 			var c_icon_tex: Texture2D = cd.get("icon_tex") if cd != null else null
-			var ccard := _make_gear_card(c_icon_tex, Vector2(16, 16), "", c_name, c_tip)
+			var ccard := _make_gear_card(c_icon_tex, Vector2(16, 16), "", c_name, c_tip, true)
 			ccard.name = "CCard"
 			ccard.set_meta("charm_path", String(charm_paths[0]))
 			charms_row.add_child(ccard)

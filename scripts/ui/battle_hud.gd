@@ -78,6 +78,7 @@ func build_all() -> void:
 	panel_view = preload("res://scripts/ui/player_panel_view.gd").new()
 	panel_view.configure(self, weapons_row, charms_row, skills_row, consumable_cells)   # P2：左栏刷新逻辑外迁（须先于 _build_ui——其内会首次刷腰带）
 	_build_ui()
+	_layout_bottom_zones()
 	_build_loadout_screen()
 	_build_board_screen()      # M2：棋盘主视图（hud 兄弟节点，显示时 hud.hide()）
 	_build_reward_screen()
@@ -141,11 +142,13 @@ var board_screen                       # M2 棋盘主视图（scripts/board/boar
 # consumable_panel 字段（controller 持有）已废弃，HUD 内聚管理 cell。
 # 位置：左栏 PlayerPanel/VBox（GearBox 之后、PlayerBuffLabel 之前），保持 4 格子 2x2 形态
 # 与 CONSUMABLE_CAP=4 对齐，玩家一眼能数清剩余消耗品。
+var feedback_label: Control = null
+# 2026-11-17：转轮下方文字提示已移除（用户要求）；所有调用点均有判空，恒 null 即自动跳过
 @onready var consumable_cells: Array = [
-	$Margin/Content/Middle/PlayerPanel/VBox/ConsumablePanel/Cell1,
-	$Margin/Content/Middle/PlayerPanel/VBox/ConsumablePanel/Cell2,
-	$Margin/Content/Middle/PlayerPanel/VBox/ConsumablePanel/Cell3,
-	$Margin/Content/Middle/PlayerPanel/VBox/ConsumablePanel/Cell4,
+	$ConsumablePanel/Cell1,
+	$ConsumablePanel/Cell2,
+	$ConsumablePanel/Cell3,
+	$ConsumablePanel/Cell4,
 ]
 var reward_screen                       # 奖励三选一覆盖层（reward_screen.tscn 实例）
 var meta_screen                         # 每局结束元进度三选一覆盖层（meta_screen.tscn 实例）
@@ -164,17 +167,17 @@ var _interroom_on := false
 # ---- 主 HUD 静态节点（P3b-1）：battle_hud.tscn 编辑器提供，脚本按节点路径引用 ----
 # 注：手写 .tscn 的 %Name 唯一名在含 instance= 覆盖节点的场景里注册不可靠，
 #     故改用确定性 $节点路径（.tscn 结构改动时同步更新此处路径）。
-@onready var grid_container = $Margin/Content/Middle/CenterStage/ReelDock/TopRow/ReelCenter/GridContainer
+@onready var grid_container = $ReelDock/TopRow/ReelCenter/GridContainer
 @onready var player_title = $Margin/Content/Middle/PlayerPanel/VBox/PlayerTitle
 @onready var player_hp_label = $Margin/Content/Middle/PlayerPanel/VBox/HpRow/PlayerHpLabel
 @onready var player_hp_icon = $Margin/Content/Middle/PlayerPanel/VBox/HpRow/HpIcon
 @onready var player_shield_row = $Margin/Content/Middle/PlayerPanel/VBox/ShieldRow
 @onready var player_shield_label = $Margin/Content/Middle/PlayerPanel/VBox/ShieldRow/PlayerShieldLabel
 @onready var player_level_label = $Margin/Content/Middle/PlayerPanel/VBox/PlayerLevelLabel
-@onready var weapons_title = $Margin/Content/Middle/PlayerPanel/VBox/GearBox/WeaponsTitle
-@onready var weapons_row = $Margin/Content/Middle/PlayerPanel/VBox/GearBox/WeaponsRow
-@onready var charms_row = $Margin/Content/Middle/PlayerPanel/VBox/GearBox/GearCards/CharmsRow
-@onready var skills_row = $Margin/Content/Middle/PlayerPanel/VBox/GearBox/GearCards/SkillsRow
+@onready var weapons_title = $GearBox/WeaponsTitle
+@onready var weapons_row = $GearBox/WeaponsRow
+@onready var charms_row = $GearBox/GearCards/CharmsRow
+@onready var skills_row = $GearBox/GearCards/SkillsRow
 @onready var player_buff_label = $Margin/Content/Middle/PlayerPanel/VBox/PlayerBuffLabel
 @onready var enemy_name_label = $Margin/Content/Middle/EnemyPanel/VBox/NameRow/EnemyNameLabel
 @onready var boss_badge = $Margin/Content/Middle/EnemyPanel/VBox/BossBadge
@@ -195,7 +198,6 @@ var _interroom_on := false
 @onready var enemy_stage_intent = $Margin/Content/Middle/CenterStage/StageRow/EnemyCenter/EnemySprite/EnemyStageIntent
 @onready var enemy_stage_intent_label = $Margin/Content/Middle/CenterStage/StageRow/EnemyCenter/EnemySprite/EnemyStageIntent/Row/Label
 @onready var enemy_stage_name = $Margin/Content/Middle/CenterStage/StageRow/EnemyCenter/EnemySprite/EnemyStageName
-@onready var feedback_label = $Margin/Content/Middle/CenterStage/ReelDock/FeedbackLabel
 # P1 可读性原型：目标声明 + 换拍预览 + 每列停轮结果（纯展示，不参与结算）
 var p1_preview_row: VBoxContainer = null
 var p1_preview_labels: Array = []       # [reel][slot] -> Label
@@ -206,7 +208,7 @@ var p1_stop_labels: Array = []          # [reel] -> Label（每列停轮结果�
 @onready var enemy_panel = $Margin/Content/Middle/EnemyPanel
 @onready var room_label = $Margin/Content/TopBar/RoomLabel
 @onready var turn_label = $Margin/Content/TopBar/TurnLabel
-@onready var gold_label = $Margin/Content/BottomBar/GoldLabel
+@onready var gold_label = $GoldLabel
 
 var animator = null   # P4 战斗动画器（tween 驱动立绘演出），_build_ui 末尾创建
 var fx = null         # 战斗特效层（属性攻击的像素特效），_build_ui 末尾创建
@@ -265,12 +267,8 @@ func _build_ui() -> void:
 	# 主 HUD 静态骨架（背景/标题/信息栏/三栏/底部栏）已由 battle_hud.tscn 编辑器提供，
 	# 这里仅做动态内容：转轮格子创建 + 底部按钮信号连接 + 飘字/tooltip 浮层。
 
-	# 转轮格子：GridContainer 由 .tscn 提供，按 REELS×ROWS 实例化 symbol_cell。
-	grid_container.columns = controller.state.REELS
-	# 符号图标 32px 塞在 38px 格子里，默认 4px 格间距会让相邻图标只隔 10px，视觉上黏在一起。
-	# 拉开到 10px，图标边缘留出 16px 呼吸。
-	grid_container.add_theme_constant_override("h_separation", 10)
-	grid_container.add_theme_constant_override("v_separation", 10)
+	# 转轮格子：容器已改为普通 Control（2026-11-17），格子位置由 _layout_row 统一摆放，
+	# 不再依赖 GridContainer 的 columns / separation（容器会按最小尺寸拉伸格子，造成大小不一）。
 	for reel in controller.state.REELS:
 		cells.append([])
 		controller.grid.append([])
@@ -390,7 +388,7 @@ func _build_ui() -> void:
 	# 底部操作栏按钮（SpinBar 在转轮下方居中）：由 .tscn 提供，这里连信号与快捷键。
 	# 注：原"重置"按钮（Ctrl+R → _full_reset 放弃整局重开）已删除——其为无确认的一键自毁本局陷阱，
 	# 失败/通关均有正统出口：失败弹层→返回整备（重选装备开新 run）/ 通关弹层→开新 run，无需常驻按钮。
-	var spin_btn = $Margin/Content/Middle/CenterStage/ReelDock/SpinBar/SpinButton
+	var spin_btn = $ReelDock/SpinBar/SpinButton
 	spin_btn.pressed.connect(spin_requested.emit)
 	# 消耗品 4 格子：连信号（点击格子=使用该格消耗品）
 	for i in range(consumable_cells.size()):
@@ -437,14 +435,14 @@ func _build_ui() -> void:
 	fx.setup(self)
 
 func _build_p1_ui() -> void:
-	var dock = $Margin/Content/Middle/CenterStage/ReelDock
+	var dock = $ReelDock
 	# 下一格预览：放在转轮右侧，复用 TopRow 的高度，避免 480×270 下把底部顶出画面。
 	# 每列一行「列号 + 最多 3 个符号」，3 行合计 33px，仍小于 38px 的转轮高度。
 	p1_preview_row = VBoxContainer.new()
 	p1_preview_row.name = "P1PreviewRow"
 	p1_preview_row.add_theme_constant_override("separation", 0)
 	p1_preview_row.custom_minimum_size = Vector2(96, 0)
-	var top_row = $Margin/Content/Middle/CenterStage/ReelDock/TopRow
+	var top_row = $ReelDock/TopRow
 	top_row.add_child(p1_preview_row)
 	top_row.move_child(p1_preview_row, 1)
 	for reel in controller.state.REELS:
@@ -468,8 +466,8 @@ func _build_p1_ui() -> void:
 	p1_status_row.name = "P1StatusRow"
 	p1_status_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	p1_status_row.add_theme_constant_override("separation", 8)
-	dock.add_child(p1_status_row)
-	dock.move_child(p1_status_row, 1)
+	# 2026-11-17：转轮下方不再显示文字行（用户要求）。对象保留、写入逻辑照常，只是不挂到场景树。
+	# dock.add_child(p1_status_row)
 	p1_target_label = _label("", TypeScale.REEL)
 	p1_target_label.add_theme_color_override("font_color", Palette.ACCENT_GOLD)
 	# G7-D 修复：局势行可长可短，必须裁切而不是撑宽整行（960×540 / 480×270 均不越界）。
@@ -482,10 +480,6 @@ func _build_p1_ui() -> void:
 		l.add_theme_color_override("font_color", Palette.MUTED)
 		p1_status_row.add_child(l)
 		p1_stop_labels.append(l)
-	# 结算反馈同样只占一行，超长裁切，避免撑宽 ReelDock。
-	if feedback_label != null:
-		feedback_label.clip_text = true
-		feedback_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	_refresh_p1_ui()
 	_refresh_p1_previews()
 
@@ -663,10 +657,9 @@ func _stop_feedback_color(outcome: String) -> Color:
 
 
 # 回合级停轮摘要写到底部反馈行（随后会被战斗结算反馈覆盖，属于预期）。
-func _show_spin_summary(text: String) -> void:
-	if feedback_label != null and text != "":
-		feedback_label.text = text
-		feedback_label.add_theme_color_override("font_color", Palette.MUTED)
+func _show_spin_summary(_text: String) -> void:
+	# 2026-11-17：转轮下方不再显示文字提示（用户要求），保留空实现供 readability_system 调用
+	pass
 
 
 func _build_loadout_screen() -> void:
@@ -1493,7 +1486,7 @@ func _hide_panel_vitals() -> void:
 		"Margin/Content/Middle/PlayerPanel/VBox/ShieldRow",
 		"Margin/Content/Middle/EnemyPanel/VBox/HpRow",
 		"Margin/Content/Middle/EnemyPanel/VBox/ArmorRow",
-		"Margin/Content/Middle/PlayerPanel/VBox/GearBox/GearCards/CharmsRow",
+		"GearBox/GearCards/CharmsRow",
 	]:
 		var row := get_node_or_null(row_path)
 		if row is Control:
@@ -2667,9 +2660,81 @@ func _sync_cell_occlusion() -> void:
 			cells[reel][row].text = "" if busy else String(_cell_want_text[reel][row])
 
 
+# 2026-11-17：底栏四区固定矩形。
+# 容器/锚点在这套 480×270 画布上反复被 Godot 重算，这里直接写死 position+size 兜底。
+func _layout_bottom_zones() -> void:
+	var rects := {
+		# 🔴 Rect2(x, y, w, h)：后两个参数是宽高，不是右/下边界。
+		# 之前写成「右边界/下边界」导致每个区都被撑到屏幕外，是布局错乱的根因。
+		# 画布 480 宽；左右各留 16px，转轮中心 = 480/2 = 240
+		# 全条统一 2px 间距（与槽内间距一致），整条居中：左 20 / 右 22
+		"GearBox": Rect2(20, 198, 158, 30),
+		"ReelDock": Rect2(180, 194, 118, 62),
+		"ConsumablePanel": Rect2(300, 198, 126, 30),
+		"GoldFrame": Rect2(428, 198, 30, 30),
+		"GoldIcon": Rect2(431, 204, 12, 12),
+		"GoldLabel": Rect2(444, 204, 14, 12),
+	}
+	for nm in rects:
+		var n := get_node_or_null(nm)
+		if n == null:
+			continue
+		var r: Rect2 = rects[nm]
+		n.position = r.position
+		n.size = r.size
+	# 转轮区内部也绝对定位：TopRow(转轮行) 在上、SpinBar 在下，避免 VBox 互相挤压
+	var top_row := get_node_or_null("ReelDock/TopRow")
+	if top_row != null:
+		top_row.position = Vector2(0, 0)
+		top_row.size = Vector2(118, 38)
+	var spin_bar := get_node_or_null("ReelDock/SpinBar")
+	if spin_bar != null:
+		spin_bar.position = Vector2(11, 40)
+		spin_bar.size = Vector2(96, 22)
+
+
+# 2026-11-17：底栏槽位统一由代码摆放。
+# 原来各槽位挂在 GridContainer / HBoxContainer 里，容器会按最小尺寸把它们拉成不同大小，
+# 消耗品区还会越界压到转轮上。改成普通 Control + 固定 32px 步进后完全可控。
+const SLOT_PX := 30.0
+const SLOT_GAP := 2.0
+const REEL_PX := 38.0
+
+func _layout_row(container: Node, cell: float) -> void:
+	if container == null:
+		return
+	var i := 0
+	for ch in container.get_children():
+		if not (ch is Control) or not ch.visible:
+			continue
+		var c := ch as Control
+		var pos := Vector2(i * (cell + SLOT_GAP), 0.0)
+		if c.position != pos:
+			c.position = pos
+		# 🔴 格子创建时写了 custom_minimum_size = 38，它是 size 的下限；
+		# 不改它的话，下面设的 32 会被夹回 38，转轮因此向右溢出去压住腰带。
+		if c.custom_minimum_size != Vector2(cell, cell):
+			c.custom_minimum_size = Vector2(cell, cell)
+		if c.size != Vector2(cell, cell):
+			c.size = Vector2(cell, cell)
+		i += 1
+	# 让外层容器（HBox 等）按真实槽数分配宽度；值不变就不写，避免每帧触发重排
+	var want := Vector2(maxf(0.0, i * (cell + SLOT_GAP) - SLOT_GAP), cell)
+	if container.custom_minimum_size != want:
+		container.custom_minimum_size = want
+
+
+func _layout_slot_rows() -> void:
+	_layout_row(get_node_or_null("GearBox/WeaponsRow"), SLOT_PX)
+	_layout_row(get_node_or_null("GearBox/GearCards/SkillsRow"), SLOT_PX)
+	_layout_row(get_node_or_null("ConsumablePanel"), SLOT_PX)
+	_layout_row(get_node_or_null("ReelDock/TopRow/ReelCenter/GridContainer"), REEL_PX)
+
+
 func _process(_delta: float) -> void:
 	if not cells.is_empty():
 		_sync_cell_occlusion()
+	_layout_slot_rows()
 
 
 ## 格子约 38px：符号图标 16px 太小，优先换用 /16/ → /32/ 的同名版本（1:1 不缩放）
