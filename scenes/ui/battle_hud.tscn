@@ -11,6 +11,18 @@
 [ext_resource type="Texture2D" path="res://assets/icons/16/charge.png" id="10_charge"]
 [ext_resource type="Texture2D" path="res://assets/icons/16/fire_slash.png" id="11_intent"]
 
+[ext_resource type="Texture2D" path="res://assets/ui/bar_full.png" id="tex_barfull"]
+[ext_resource type="Texture2D" path="res://assets/ui/dark_ages/frames/slot_blue.png" id="tex_slot"]
+[ext_resource type="Texture2D" path="res://assets/ui/bar_band.png" id="tex_bar"]
+[ext_resource type="Texture2D" path="res://assets/ui/reel_panel.png" id="tex_reel"]
+[ext_resource type="Texture2D" path="res://assets/ui/spin_banner.png" id="tex_spin"]
+
+[ext_resource type="Texture2D" path="res://assets/ui/dark_ages/frames/thin_frame_a.png" id="tex_group"]
+[ext_resource type="Texture2D" path="res://assets/ui/dark_ages/frames/gold_frame_plum.png" id="tex_panel"]
+[ext_resource type="Texture2D" path="res://assets/ui/dark_ages/frames/parchment.png" id="tex_paper"]
+[ext_resource type="Texture2D" path="res://assets/ui/banner_red.png" id="tex_banner"]
+[ext_resource type="Texture2D" path="res://assets/ui/rail.png" id="tex_rail"]
+[ext_resource type="Texture2D" path="res://assets/ui/gem.png" id="tex_gem"]
 [sub_resource type="StyleBoxFlat" id="sb_panel_compact"]
 content_margin_left = 4.0
 content_margin_top = 4.0
@@ -114,6 +126,180 @@ border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
 border_color = Color(0.54902, 0.203922, 0.219608, 1)
+
+[sub_resource type="StyleBoxFlat" id="sb_bar_band"]
+bg_color = Color(0.054902, 0.043137, 0.058824, 0.92)
+border_width_left = 1
+border_width_top = 2
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.886275, 0.843137, 0.741176, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[sub_resource type="StyleBoxFlat" id="sb_reel_frame"]
+bg_color = Color(0.14902, 0.113725, 0.129412, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.886275, 0.843137, 0.741176, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="sb_spin_normal"]
+content_margin_left = 4.0
+content_margin_top = 1.0
+content_margin_right = 4.0
+content_margin_bottom = 1.0
+bg_color = Color(0.588235, 0.196078, 0.180392, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.886275, 0.843137, 0.741176, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="sb_spin_hover"]
+content_margin_left = 4.0
+content_margin_top = 1.0
+content_margin_right = 4.0
+content_margin_bottom = 1.0
+bg_color = Color(0.760784, 0.270588, 0.239216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(1, 0.960784, 0.870588, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="sb_spin_pressed"]
+content_margin_left = 4.0
+content_margin_top = 1.0
+content_margin_right = 4.0
+content_margin_bottom = 1.0
+bg_color = Color(0.419608, 0.129412, 0.117647, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.662745, 0.615686, 0.537255, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="sb_spin_disabled"]
+content_margin_left = 4.0
+content_margin_top = 1.0
+content_margin_right = 4.0
+content_margin_bottom = 1.0
+bg_color = Color(0.176471, 0.152941, 0.156863, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.376471, 0.341176, 0.313726, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxTexture" id="sb_tex_slot"]
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+texture = ExtResource("tex_slot")
+texture_margin_left = 8.0
+texture_margin_top = 8.0
+texture_margin_right = 8.0
+texture_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxTexture" id="sb_tex_bar"]
+texture = ExtResource("tex_bar")
+texture_margin_left = 16.0
+texture_margin_top = 14.0
+texture_margin_right = 16.0
+texture_margin_bottom = 14.0
+
+[sub_resource type="StyleBoxTexture" id="sb_tex_reel"]
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+texture = ExtResource("tex_reel")
+texture_margin_left = 12.0
+texture_margin_top = 12.0
+texture_margin_right = 12.0
+texture_margin_bottom = 12.0
+
+[sub_resource type="StyleBoxTexture" id="sb_tex_spin"]
+content_margin_left = 2.0
+content_margin_top = 1.0
+content_margin_right = 2.0
+content_margin_bottom = 1.0
+texture = ExtResource("tex_spin")
+texture_margin_left = 8.0
+texture_margin_top = 6.0
+texture_margin_right = 8.0
+texture_margin_bottom = 6.0
+
+[sub_resource type="StyleBoxEmpty" id="sb_empty"]
+
+[sub_resource type="StyleBoxFlat" id="sb_spin_press_overlay"]
+bg_color = Color(0, 0, 0, 0.28)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxTexture" id="sb_slot"]
+texture = ExtResource("tex_slot")
+texture_margin_left = 8.0
+texture_margin_top = 8.0
+texture_margin_right = 8.0
+texture_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxTexture" id="sb_group"]
+texture = ExtResource("tex_group")
+texture_margin_left = 32.0
+texture_margin_top = 32.0
+texture_margin_right = 32.0
+texture_margin_bottom = 32.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
+
+[sub_resource type="StyleBoxTexture" id="sb_panel"]
+texture = ExtResource("tex_panel")
+texture_margin_left = 10.0
+texture_margin_top = 10.0
+texture_margin_right = 10.0
+texture_margin_bottom = 10.0
+
+[sub_resource type="StyleBoxTexture" id="sb_paper"]
+texture = ExtResource("tex_paper")
+texture_margin_left = 8.0
+texture_margin_top = 8.0
+texture_margin_right = 8.0
+texture_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxTexture" id="sb_banner"]
+texture = ExtResource("tex_banner")
+texture_margin_left = 14.0
+texture_margin_top = 14.0
+texture_margin_right = 14.0
+texture_margin_bottom = 14.0
 
 [node name="BattleHud" type="Control" unique_id=359964419]
 layout_mode = 3
@@ -557,14 +743,27 @@ theme_override_font_sizes/font_size = 9
 text = ""
 autowrap_mode = 3
 
-[node name="GearBox" type="HBoxContainer" parent="." unique_id=108381182]
-offset_bottom = 228
-offset_right = 178
-offset_top = 198
-offset_left = 20
-size_flags_vertical = 4
-custom_minimum_size = Vector2(140, 0)
-theme_override_constants/separation = 2
+[node name="ReelPanel" type="Panel" parent="."]
+offset_left = 160
+offset_top = 182
+offset_right = 314
+offset_bottom = 254
+mouse_filter = 2
+theme_override_styles/panel = SubResource("sb_panel")
+
+[node name="SpinBanner" type="Panel" parent="."]
+offset_left = 184
+offset_top = 250
+offset_right = 296
+offset_bottom = 272
+mouse_filter = 2
+theme_override_styles/panel = SubResource("sb_banner")
+
+[node name="GearBox" type="Control" parent="." unique_id=108381182]
+offset_bottom = 236
+offset_right = 174
+offset_top = 206
+offset_left = 16
 
 [node name="WeaponsTitle" type="Label" parent="GearBox"]
 visible = false
@@ -583,9 +782,8 @@ theme_override_colors/font_color = Color(0.662745, 0.615686, 0.537255, 1)
 theme_override_font_sizes/font_size = 8
 text = "技能 / 护符"
 
-[node name="GearCards" type="HBoxContainer" parent="GearBox"]
+[node name="GearCards" type="Control" parent="GearBox"]
 layout_mode = 2
-theme_override_constants/separation = 2
 
 [node name="SkillsRow" type="Control" parent="GearBox/GearCards" unique_id=227886405]
 layout_mode = 2
@@ -599,20 +797,15 @@ theme_override_constants/separation = 2
 
 
 [node name="ReelDock" type="Control" parent="." unique_id=878859411]
-offset_bottom = 256
-offset_right = 298
-offset_top = 194
-offset_left = 180
+offset_bottom = 0
+offset_right = 0
+offset_top = 0
+offset_left = 0
 custom_minimum_size = Vector2(118, 0)
 
-[node name="TopRow" type="HBoxContainer" parent="ReelDock" unique_id=661951653]
-layout_mode = 2
-theme_override_constants/separation = 4
-alignment = 1
+[node name="TopRow" type="Control" parent="ReelDock" unique_id=661951653]
 
-[node name="ReelCenter" type="CenterContainer" parent="ReelDock/TopRow" unique_id=1409314361]
-layout_mode = 2
-size_flags_horizontal = 3
+[node name="ReelCenter" type="Control" parent="ReelDock/TopRow" unique_id=1409314361]
 
 [node name="GridContainer" type="Control" parent="ReelDock/TopRow/ReelCenter" unique_id=753079757]
 layout_mode = 2
@@ -623,77 +816,77 @@ theme_override_constants/separation = 4
 alignment = 1
 
 [node name="SpinButton" parent="ReelDock/SpinBar" unique_id=1202759145 instance=ExtResource("3_btn")]
-custom_minimum_size = Vector2(96, 22)
+custom_minimum_size = Vector2(88, 18)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.835294, 0.639216, 0.239216, 1)
 theme_override_colors/font_color_hover = Color(0.886275, 0.843137, 0.741176, 1)
 theme_override_colors/font_color_pressed = Color(0.662745, 0.615686, 0.537255, 1)
 theme_override_colors/font_color_disabled = Color(0.431373, 0.372549, 0.341176, 1)
 theme_override_font_sizes/font_size = 10
-theme_override_styles/normal = SubResource("sb_spin_normal")
-theme_override_styles/hover = SubResource("sb_spin_hover")
-theme_override_styles/pressed = SubResource("sb_spin_pressed")
-theme_override_styles/disabled = SubResource("sb_spin_disabled")
-text = "SPIN (空格)"
+theme_override_styles/normal = SubResource("sb_empty")
+theme_override_styles/hover = SubResource("sb_empty")
+theme_override_styles/pressed = SubResource("sb_spin_press_overlay")
+theme_override_styles/disabled = SubResource("sb_empty")
+text = "SPIN"
 
 
 
 [node name="ConsumablePanel" type="Control" parent="." unique_id=938518459]
-offset_bottom = 228
-offset_right = 426
-offset_top = 198
-offset_left = 300
+offset_bottom = 236
+offset_right = 430
+offset_top = 206
+offset_left = 304
 size_flags_vertical = 4
 custom_minimum_size = Vector2(140, 0)
 
 [node name="Cell1" parent="ConsumablePanel" unique_id=2097403575 instance=ExtResource("3_btn")]
-custom_minimum_size = Vector2(32, 32)
+custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
 theme_override_constants/h_separation = 0
 theme_override_font_sizes/font_size = 9
-theme_override_styles/normal = SubResource("sb_cell")
-theme_override_styles/hover = SubResource("sb_cell")
-theme_override_styles/pressed = SubResource("sb_cell")
-theme_override_styles/disabled = SubResource("sb_cell_disabled")
+theme_override_styles/normal = SubResource("sb_slot")
+theme_override_styles/hover = SubResource("sb_slot")
+theme_override_styles/pressed = SubResource("sb_slot")
+theme_override_styles/disabled = SubResource("sb_slot")
 icon_alignment = 1
 text = "—"
 clip_text = true
 
 [node name="Cell2" parent="ConsumablePanel" unique_id=764738953 instance=ExtResource("3_btn")]
-custom_minimum_size = Vector2(32, 32)
+custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
 theme_override_constants/h_separation = 0
 theme_override_font_sizes/font_size = 9
-theme_override_styles/normal = SubResource("sb_cell")
-theme_override_styles/hover = SubResource("sb_cell")
-theme_override_styles/pressed = SubResource("sb_cell")
-theme_override_styles/disabled = SubResource("sb_cell_disabled")
+theme_override_styles/normal = SubResource("sb_slot")
+theme_override_styles/hover = SubResource("sb_slot")
+theme_override_styles/pressed = SubResource("sb_slot")
+theme_override_styles/disabled = SubResource("sb_slot")
 icon_alignment = 1
 text = "—"
 clip_text = true
 
 [node name="Cell3" parent="ConsumablePanel" unique_id=1271823786 instance=ExtResource("3_btn")]
-custom_minimum_size = Vector2(32, 32)
+custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
 theme_override_constants/h_separation = 0
 theme_override_font_sizes/font_size = 9
-theme_override_styles/normal = SubResource("sb_cell")
-theme_override_styles/hover = SubResource("sb_cell")
-theme_override_styles/pressed = SubResource("sb_cell")
-theme_override_styles/disabled = SubResource("sb_cell_disabled")
+theme_override_styles/normal = SubResource("sb_slot")
+theme_override_styles/hover = SubResource("sb_slot")
+theme_override_styles/pressed = SubResource("sb_slot")
+theme_override_styles/disabled = SubResource("sb_slot")
 icon_alignment = 1
 text = "—"
 clip_text = true
 
 [node name="Cell4" parent="ConsumablePanel" unique_id=341833789 instance=ExtResource("3_btn")]
-custom_minimum_size = Vector2(32, 32)
+custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
 theme_override_constants/h_separation = 0
 theme_override_font_sizes/font_size = 9
-theme_override_styles/normal = SubResource("sb_cell")
-theme_override_styles/hover = SubResource("sb_cell")
-theme_override_styles/pressed = SubResource("sb_cell")
-theme_override_styles/disabled = SubResource("sb_cell_disabled")
+theme_override_styles/normal = SubResource("sb_slot")
+theme_override_styles/hover = SubResource("sb_slot")
+theme_override_styles/pressed = SubResource("sb_slot")
+theme_override_styles/disabled = SubResource("sb_slot")
 icon_alignment = 1
 text = "—"
 clip_text = true
@@ -701,17 +894,18 @@ clip_text = true
 
 
 [node name="GoldFrame" type="Panel" parent="."]
-offset_left = 428
-offset_top = 198
-offset_right = 458
-offset_bottom = 228
+offset_left = 440
+offset_top = 206
+offset_right = 470
+offset_bottom = 236
 mouse_filter = 2
-theme_override_styles/panel = SubResource("sb_cell")
+theme_override_styles/panel = SubResource("sb_slot")
+
 [node name="GoldIcon" type="TextureRect" parent="."]
-offset_left = 431
-offset_top = 204
-offset_right = 443
-offset_bottom = 216
+offset_left = 434
+offset_top = 210
+offset_right = 446
+offset_bottom = 222
 texture = ExtResource("6_gold")
 custom_minimum_size = Vector2(12, 12)
 stretch_mode = 5
@@ -719,10 +913,10 @@ expand_mode = 1
 
 
 [node name="GoldLabel" type="Label" parent="." unique_id=818987730]
-offset_left = 444
-offset_top = 204
-offset_right = 456
-offset_bottom = 216
+offset_left = 447
+offset_top = 210
+offset_right = 460
+offset_bottom = 222
 theme_override_colors/font_color = Color(0.886275, 0.843137, 0.741176, 1)
 theme_override_font_sizes/font_size = 9
 custom_minimum_size = Vector2(0, 12)

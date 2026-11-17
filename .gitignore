@@ -49,3 +49,8 @@ __pycache__/
 
 # Temp APPDATA used by export/probe runs
 .tmp_export_appdata/
+
+# Third-party art assets: licence forbids redistribution, keep local only
+assets/ui/dark_ages/
+assets/ui/third_party/
+assets/ui/questwood/

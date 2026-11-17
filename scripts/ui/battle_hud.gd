@@ -10,6 +10,8 @@ const ENEMY_SPRITE_SIZE := Vector2(48, 48)    # 敌人立绘基准尺寸（1× =
 const UI_BUTTON = preload("res://scenes/ui/ui_button.tscn")
 const GROWTH_PICKER = preload("res://scripts/ui/growth_picker.gd")
 const SYMBOL_CELL = preload("res://scenes/ui/symbol_cell.tscn")
+# 转轮格底框素材（与左栏槽位同一套；32px 九宫格 8px）
+const SLOT_FRAME_TEX = preload("res://assets/ui/dark_ages/frames/slot_blue.png")
 const REEL_SPIN_VIEW = preload("res://scripts/ui/reel_spin_view.gd")
 const POPUP_POOL = preload("res://scripts/ui/popup_pool.gd")
 const SYMBOL_TOOLTIP = preload("res://scripts/ui/symbol_tooltip.gd")
@@ -79,6 +81,7 @@ func build_all() -> void:
 	panel_view.configure(self, weapons_row, charms_row, skills_row, consumable_cells)   # P2：左栏刷新逻辑外迁（须先于 _build_ui——其内会首次刷腰带）
 	_build_ui()
 	_layout_bottom_zones()
+	_wire_spin_feedback()
 	_build_loadout_screen()
 	_build_board_screen()      # M2：棋盘主视图（hud 兄弟节点，显示时 hud.hide()）
 	_build_reward_screen()
@@ -283,7 +286,9 @@ func _build_ui() -> void:
 		cell_stop_tweens.append([])
 		for row in controller.state.ROWS:
 			var cell = SYMBOL_CELL.instantiate()
-			cell.custom_minimum_size = Vector2(38, 38)
+			# 转轮格：42 格 / 32 图标，四周各留 5px 让外框完整露出
+			# （32 格时图标正好铺满，会把边框整条吃掉 —— 「图标超出框」就是这么来的）
+			cell.custom_minimum_size = Vector2(42, 42)
 			cell.clip_text = true
 			cell.add_theme_font_size_override("font_size", TypeScale.SYMBOL)
 			cell.disabled = true   # 无锁定，格子仅作展示
@@ -301,8 +306,17 @@ func _build_ui() -> void:
 			icon_layer.name = "IconLayer"
 			icon_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			icon_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
-			icon_layer.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+			# 内缩 3px：格子变大后 FULL_RECT 会把 32px 图放大到 38px（像素被拉糊），
+			# 留出 32px 的居中区域，图标保持原尺寸、四周露出边框。
+			icon_layer.offset_left = 5.0
+			icon_layer.offset_top = 5.0
+			icon_layer.offset_right = -5.0
+			icon_layer.offset_bottom = -5.0
+			# 32px 符号图塞进 26px 格子：不缩放会溢出盖住边框，这里等比缩进格内
+			icon_layer.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			icon_layer.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 			icon_layer.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			icon_layer.material = _icon_outline_material()
 			icon_layer.visible = false
 			cell.add_child(icon_layer)
 			cell.move_child(icon_layer, 0)      # 放到 Badge 之下，避免盖住匹配角标
@@ -1678,15 +1692,14 @@ func set_enemy_art(tex: Texture2D, art_scale: float = 1.0) -> void:
 var _cell_style_cache := {}
 
 
-func _cell_style(elem: String) -> StyleBoxFlat:
-	# 统一基础样式：灰边框 + 底色（2026-08-07 用户拍板：去掉元素色边框，仅冻结格保留彩色边框提示）
+func _cell_style(elem: String) -> StyleBoxTexture:
+	# 转轮格底框改用素材图（2026-11-17）：与左栏槽位同一套 32px 槽位框，
+	# 九宫格 8px 保证 42px 格子上四角不变形。元素色仍由格底 2px 色条表达。
 	if _cell_style_cache.has(elem):
 		return _cell_style_cache[elem]
-	var sb = StyleBoxFlat.new()
-	sb.set_corner_radius_all(Palette.PANEL_RADIUS)
-	sb.bg_color = Palette.CELL_BG
-	sb.border_color = Palette.PANEL_BORDER
-	sb.set_border_width_all(Palette.BORDER_WIDTH)
+	var sb := StyleBoxTexture.new()
+	sb.texture = SLOT_FRAME_TEX
+	sb.set_texture_margin_all(8.0)
 	_cell_style_cache[elem] = sb
 	return sb
 
@@ -1738,25 +1751,22 @@ func _refresh_cell(reel: int, row: int) -> void:
 		b.add_theme_color_override("font_disabled_color", fc)
 		b.add_theme_color_override("font_hover_color", fc)
 		b.add_theme_color_override("font_pressed_color", fc)
-	var sb = _cell_style(elem)
+	# 状态警告框用纯色 StyleBoxFlat 覆盖（纹理框没有 border_color，不能 duplicate 后改色）
+	var warn: Color = Color(0, 0, 0, 0)
 	if frozen:
-		# 冻结格：蓝色边框（3px）框住，作为 frost 触发提示
-		var fsb: StyleBoxFlat = sb.duplicate()
-		fsb.set_border_width_all(3)
-		fsb.border_color = ElementCounter.color("ice")
-		sb = fsb
+		warn = ElementCounter.color("ice")      # 冻结格：蓝框，frost 触发提示
 	elif jammed:
-		# 干扰列：红色边框（按停即废铁，勿停）
-		var jsb: StyleBoxFlat = sb.duplicate()
-		jsb.set_border_width_all(3)
-		jsb.border_color = Palette.POP_DAMAGE
-		sb = jsb
+		warn = Palette.POP_DAMAGE               # 干扰列：红框，按停即废铁
 	elif locked:
-		# 锁轮列：金色边框（按停保留旋转前符号）
-		var lsb: StyleBoxFlat = sb.duplicate()
-		lsb.set_border_width_all(3)
-		lsb.border_color = Palette.ACCENT_GOLD
-		sb = lsb
+		warn = Palette.ACCENT_GOLD              # 锁轮列：金框，按停保留旋转前符号
+	var sb: StyleBox = _cell_style(elem)
+	if warn.a > 0.0:
+		var wsb := StyleBoxFlat.new()
+		wsb.set_corner_radius_all(Palette.PANEL_RADIUS)
+		wsb.bg_color = Palette.CELL_BG
+		wsb.set_border_width_all(3)
+		wsb.border_color = warn
+		sb = wsb
 	b.add_theme_stylebox_override("normal", sb)
 	b.add_theme_stylebox_override("hover", sb)
 	b.add_theme_stylebox_override("pressed", sb)
@@ -2660,75 +2670,88 @@ func _sync_cell_occlusion() -> void:
 			cells[reel][row].text = "" if busy else String(_cell_want_text[reel][row])
 
 
-# 2026-11-17：底栏四区固定矩形。
-# 容器/锚点在这套 480×270 画布上反复被 Godot 重算，这里直接写死 position+size 兜底。
-func _layout_bottom_zones() -> void:
-	var rects := {
-		# 🔴 Rect2(x, y, w, h)：后两个参数是宽高，不是右/下边界。
-		# 之前写成「右边界/下边界」导致每个区都被撑到屏幕外，是布局错乱的根因。
-		# 画布 480 宽；左右各留 16px，转轮中心 = 480/2 = 240
-		# 全条统一 2px 间距（与槽内间距一致），整条居中：左 20 / 右 22
-		"GearBox": Rect2(20, 198, 158, 30),
-		"ReelDock": Rect2(180, 194, 118, 62),
-		"ConsumablePanel": Rect2(300, 198, 126, 30),
-		"GoldFrame": Rect2(428, 198, 30, 30),
-		"GoldIcon": Rect2(431, 204, 12, 12),
-		"GoldLabel": Rect2(444, 204, 14, 12),
-	}
-	for nm in rects:
-		var n := get_node_or_null(nm)
-		if n == null:
-			continue
-		var r: Rect2 = rects[nm]
-		n.position = r.position
-		n.size = r.size
-	# 转轮区内部也绝对定位：TopRow(转轮行) 在上、SpinBar 在下，避免 VBox 互相挤压
-	var top_row := get_node_or_null("ReelDock/TopRow")
-	if top_row != null:
-		top_row.position = Vector2(0, 0)
-		top_row.size = Vector2(118, 38)
-	var spin_bar := get_node_or_null("ReelDock/SpinBar")
-	if spin_bar != null:
-		spin_bar.position = Vector2(11, 40)
-		spin_bar.size = Vector2(96, 22)
+# 2026-11-17：底栏改为「整张美术图 + 图标绝对定位」。
+# 框线全部烘焙进 assets/ui/bar_full.png，代码只负责把格子摆到图里对应的空位上。
+# 下列坐标是从底栏图上逐格量出的内腔中心。
+const BAR_TOP := 200.0
+const SLOT_CELL := 30.0
+
+const WEAPON_SLOT_X := [20.0, 52.0]
+const SKILL_SLOT_X := [84.0, 116.0, 148.0]
+const REEL_SLOT_X := [191.0, 237.0, 283.0]
+const BELT_SLOT_X := [330.0, 362.0, 394.0, 426.0]
+const GOLD_SLOT_X := 455.0
+const SLOT_CENTER_Y := 221.0
+const REEL_CENTER_Y := 219.0
 
 
-# 2026-11-17：底栏槽位统一由代码摆放。
-# 原来各槽位挂在 GridContainer / HBoxContainer 里，容器会按最小尺寸把它们拉成不同大小，
-# 消耗品区还会越界压到转轮上。改成普通 Control + 固定 32px 步进后完全可控。
-const SLOT_PX := 30.0
-const SLOT_GAP := 2.0
-const REEL_PX := 38.0
-
-func _layout_row(container: Node, cell: float) -> void:
+# 按给定的中心点横向摆放 container 的子节点
+func _place_row(container: Node, xs: Array, cell: float, cy: float = SLOT_CENTER_Y) -> void:
 	if container == null:
 		return
 	var i := 0
 	for ch in container.get_children():
 		if not (ch is Control) or not ch.visible:
 			continue
+		if i >= xs.size():
+			break
 		var c := ch as Control
-		var pos := Vector2(i * (cell + SLOT_GAP), 0.0)
+		var pos := Vector2(float(xs[i]) - cell * 0.5, cy - cell * 0.5)
 		if c.position != pos:
 			c.position = pos
-		# 🔴 格子创建时写了 custom_minimum_size = 38，它是 size 的下限；
-		# 不改它的话，下面设的 32 会被夹回 38，转轮因此向右溢出去压住腰带。
 		if c.custom_minimum_size != Vector2(cell, cell):
 			c.custom_minimum_size = Vector2(cell, cell)
 		if c.size != Vector2(cell, cell):
 			c.size = Vector2(cell, cell)
+		# 图标上限 24px：48px 物品图正好减半、像素干净；30px 格子两侧各留 3px 露框。
+		# 不设上限时 48px 图会整块盖住槽位框，看起来就是「图标超出框」。
+		if c is Button:
+			c.add_theme_constant_override("icon_max_width", 24)
 		i += 1
-	# 让外层容器（HBox 等）按真实槽数分配宽度；值不变就不写，避免每帧触发重排
-	var want := Vector2(maxf(0.0, i * (cell + SLOT_GAP) - SLOT_GAP), cell)
-	if container.custom_minimum_size != want:
-		container.custom_minimum_size = want
 
+
+# SPIN 按下反馈：红色横幅来自背景图，按钮本身透明，靠 1px 下沉 + 半透明黑覆盖给出触感。
+func _wire_spin_feedback() -> void:
+	var btn := get_node_or_null("ReelDock/SpinBar/SpinButton")
+	if btn == null:
+		return
+	var base_y: float = btn.position.y
+	btn.button_down.connect(func() -> void: btn.position.y = base_y + 1.0)
+	btn.button_up.connect(func() -> void: btn.position.y = base_y)
+	btn.mouse_exited.connect(func() -> void: btn.position.y = base_y)
+
+
+func _layout_bottom_zones() -> void:
+	# 容器本身不再参与排版，位置归零后子节点坐标即屏幕坐标
+	for path in ["GearBox", "GearBox/GearCards", "GearBox/WeaponsRow",
+			"GearBox/GearCards/SkillsRow", "GearBox/GearCards/CharmsRow", "ConsumablePanel",
+			"ReelDock", "ReelDock/TopRow"]:
+		var n := get_node_or_null(path)
+		if n is Control:
+			(n as Control).position = Vector2.ZERO
+	# SPIN 槽：压在底栏红色横幅的空位上
+	var spin_bar := get_node_or_null("ReelDock/SpinBar")
+	if spin_bar != null:
+		spin_bar.position = Vector2(190, 252)
+		spin_bar.size = Vector2(100, 18)
+	# 金币：图标 + 数字对准底栏最右的金框
+	var gi := get_node_or_null("GoldIcon")
+	if gi != null:
+		gi.position = Vector2(444, 211)
+		gi.size = Vector2(12, 12)
+	var gl := get_node_or_null("GoldLabel")
+	if gl != null:
+		gl.position = Vector2(456, 211)
+		gl.size = Vector2(12, 14)
 
 func _layout_slot_rows() -> void:
-	_layout_row(get_node_or_null("GearBox/WeaponsRow"), SLOT_PX)
-	_layout_row(get_node_or_null("GearBox/GearCards/SkillsRow"), SLOT_PX)
-	_layout_row(get_node_or_null("ConsumablePanel"), SLOT_PX)
-	_layout_row(get_node_or_null("ReelDock/TopRow/ReelCenter/GridContainer"), REEL_PX)
+	var grid := get_node_or_null("ReelDock/TopRow/ReelCenter/GridContainer")
+	if grid is Control:
+		(grid as Control).position = Vector2.ZERO
+	_place_row(get_node_or_null("GearBox/WeaponsRow"), WEAPON_SLOT_X, SLOT_CELL)
+	_place_row(get_node_or_null("GearBox/GearCards/SkillsRow"), SKILL_SLOT_X, SLOT_CELL)
+	_place_row(get_node_or_null("ConsumablePanel"), BELT_SLOT_X, SLOT_CELL)
+	_place_row(get_node_or_null("ReelDock/TopRow/ReelCenter/GridContainer"), REEL_SLOT_X, 42.0, 218.0)
 
 
 func _process(_delta: float) -> void:
@@ -2774,4 +2797,32 @@ func _cell_symbol_tex(reel: int, row: int, s: SymbolData) -> Texture2D:
 		var wtex := WeaponIcons.cell_icon_for_id(wid)
 		if wtex != null:
 			return wtex
-	return _cell_icon(s.icon_tex)
+	return _cell_icon(s.icon_tex)# 转轮图标描边：在图标四周外扩一圈暗色，让它"压"在奶油色底面上而不是浮着。
+# 2026-11-17：底栏改为整图烘焙后，奶油格与图标缺少融合感，靠这层描边补上。
+const ICON_OUTLINE_SHADER := """
+shader_type canvas_item;
+uniform vec4 outline_color : source_color = vec4(0.05, 0.03, 0.05, 0.85);
+void fragment() {
+	vec2 px = TEXTURE_PIXEL_SIZE;
+	vec4 c = texture(TEXTURE, UV);
+	float a = 0.0;
+	a = max(a, texture(TEXTURE, UV + vec2(px.x, 0.0)).a);
+	a = max(a, texture(TEXTURE, UV - vec2(px.x, 0.0)).a);
+	a = max(a, texture(TEXTURE, UV + vec2(0.0, px.y)).a);
+	a = max(a, texture(TEXTURE, UV - vec2(0.0, px.y)).a);
+	a = max(a, texture(TEXTURE, UV + px * 0.7).a);
+	vec4 edge = vec4(outline_color.rgb, outline_color.a * a);
+	COLOR = mix(edge, c, c.a);
+}
+"""
+var _icon_shader: Shader = null
+var _icon_material: ShaderMaterial = null
+
+
+func _icon_outline_material() -> ShaderMaterial:
+	if _icon_material == null:
+		_icon_shader = Shader.new()
+		_icon_shader.code = ICON_OUTLINE_SHADER
+		_icon_material = ShaderMaterial.new()
+		_icon_material.shader = _icon_shader
+	return _icon_material

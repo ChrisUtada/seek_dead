@@ -34,7 +34,7 @@ func element_icon(elem: String) -> String:
 		_:        return ""   # 无属性：仅保留武器本体符号（⚔），避免 ⚔️ 变体在像素字体里成豆腐块
 
 
-var _card_style: StyleBoxFlat = null
+var _card_style: StyleBox = null
 var _gear_sig := ""   # 装备签名：内容没变就不重建卡片，避免每次刷新把图标闪一下
 
 # C2：左栏大图标卡片统一规格（左栏内宽 80 → 两列各 39px；高度 38 与 24 主图 + 9px 名对齐）
@@ -46,14 +46,15 @@ const CARD_NAME_W := 36.0
 # 文案一律 clip，不撑宽；完整信息由调用方放进 tooltip。
 func _make_gear_card(art: Texture2D, art_size: Vector2, emoji: String, short_name: String, tip: String, compact: bool = false) -> PanelContainer:
 	if _card_style == null:
-		_card_style = StyleBoxFlat.new()
-		_card_style.bg_color = Palette.CARD_BG
-		_card_style.border_color = Palette.CARD_NORM_BORDER
-		_card_style.set_border_width_all(Palette.BORDER_WIDTH)
-		_card_style.set_content_margin_all(1)
+		# 2026-11-17：卡片底改用美术槽位图（九宫格），不再用代码画边框
+		var st := StyleBoxTexture.new()
+		st.texture = preload("res://assets/ui/dark_ages/frames/slot_blue.png")
+		st.set_texture_margin_all(8)
+		st.set_content_margin_all(2)
+		_card_style = st
 	var card := PanelContainer.new()
 	# compact：多护符并排时用（左栏只有 88px，3 张 38px 卡放不下），只保留图标、名字交给 tooltip
-	card.custom_minimum_size = Vector2(26, 32) if compact else CARD_MIN
+	card.custom_minimum_size = Vector2(30, 30) if compact else CARD_MIN
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	card.tooltip_text = tip
 	card.mouse_filter = Control.MOUSE_FILTER_STOP
