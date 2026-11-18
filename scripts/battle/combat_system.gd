@@ -27,6 +27,12 @@ const SWEEP_TO_NUMBERS_HOLD := 0.25
 
 var _ctrl  # DuelController
 
+# L3 §6.1 意图系统：敌人蓄力重击(heavy)时，本回合防御/治疗符号收益倍率。
+# 在 evaluate 开头按 enemy_intent 计算一次，contribute 的 shield/heal 分支读取；只作用于符号，
+# 不动护符/铁壁/回春等聚合来源——聚焦"看意图改按停目标"的决策。
+const HEAVY_INTENT_DEFENSE_MULT := 1.5
+var _intent_defense_mult: float = 1.0
+
 # 本回合是否已经弹过「收益类」飘字（金币/护盾/治疗/状态）。
 # 用于给第二条及以后的飘字插入 POPUP_BEAT 间隔；伤害飘字不参与（它在攻击阶段、
 # 且必须紧跟扣血，延迟反而会加剧「血条先变、数字后到」）。
@@ -133,7 +139,7 @@ func contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String, source
 			push_dmg_line(acc, sym, elem, flat, bonus, mult, em, dv, crit_mult_val)
 		# 2026-08-07 重构：shield/heal 不吃武器攻击力/克制/元进度——只 = 符号 base × 连线 × 暴击（治疗/护盾符号保持小值，来自技能/房奖励）
 		"shield":
-			var sh: float = sym.base * mult * crit_mult_val
+			var sh: float = sym.base * mult * crit_mult_val * _intent_defense_mult
 			acc["shield"] += sh
 			# 按来源记账（表现层按格分配用；同一来源的格子公式相同，均分是精确的）
 			var sh_key: String = source_id if source_id != "" else sym.resource_path
@@ -142,7 +148,7 @@ func contribute(sym: SymbolData, raw: int, acc: Dictionary, elem: String, source
 		# 2026-11-11 Step 1：倍率表移入配置，三连倍率可独立复测
 		# 不吃暴击/连线精通/克制——治疗规则简单可预期；3连标记 heal_triple 供溢出转护盾
 		"heal":
-			var hv: float = sym.base * float(DuelController.BALANCE.heal_line_mults[mini(raw - 1, 2)])
+			var hv: float = sym.base * float(DuelController.BALANCE.heal_line_mults[mini(raw - 1, 2)]) * _intent_defense_mult
 			acc["heal"] += hv
 			var hl_key: String = source_id if source_id != "" else sym.resource_path
 			acc["source_heal"][hl_key] = float(acc["source_heal"].get(hl_key, 0.0)) + hv
@@ -218,6 +224,8 @@ func push_dmg_line(acc: Dictionary, sym: SymbolData, elem: String, flat, bonus, 
 # 2026-11-08（G8）：原单函数按阶段拆分；执行顺序、RNG 调用与 await 时序与拆分前逐行一致。
 func evaluate() -> void:
 	_ctrl.turn_resolved = true   # 2026-11-12 Step 3：转轮已结束，此后施加的 debuff 从下一回合起计时
+	# L3 §6.1：敌人蓄力重击时，本回合防御/治疗符号收益提升（看意图改按停目标）。
+	_intent_defense_mult = HEAVY_INTENT_DEFENSE_MULT if String(_ctrl.enemy_intent.get("type", "")) == "heavy" else 1.0
 	var acc := _new_acc()
 	_reset_turn_state()
 	# 2026-11-16 顺序优化：结算与表现彻底分离。

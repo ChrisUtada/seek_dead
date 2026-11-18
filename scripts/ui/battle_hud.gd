@@ -2016,7 +2016,12 @@ func _refresh_meta() -> void:
 				enemy_intent_label.text = "%s%s" % [icon if icon != "" else "☣", name_txt]
 			"none":   enemy_intent_label.text = "—"
 			_:        enemy_intent_label.text = "%s%s" % [icon if icon != "" else "", name_txt]
-		enemy_intent_label.tooltip_text = "可用净化药剂解除" if String(t) in ["jam", "lock", "chaos", "auto_stop"] else ""
+		# L3 §6.1：重击预警提示——本回合防御/治疗符号收益 ×1.5，引导玩家改按停目标。
+		if String(t) == "heavy":
+			enemy_intent_label.tooltip_text = "⚠ 重击预警：本回合防御/治疗符号收益 ×1.5（改按停目标抓盾/治疗）"
+			enemy_intent_label.text += " 💊"
+		else:
+			enemy_intent_label.tooltip_text = "可用净化药剂解除" if String(t) in ["jam", "lock", "chaos", "auto_stop"] else ""
 	# Step 5 层级：下一意图是右栏第一重点——伤害类意图用危险红，干扰类（可用净化解除）用交互金，
 	# 无意图回落弱信息；字号升到正文档，避免与状态/充能同等亮度。
 	var has_intent: bool = not controller.state.enemy_intent.is_empty() and String(controller.state.enemy_intent.get("type", "none")) != "none"
