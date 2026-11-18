@@ -33,6 +33,14 @@ func is_active() -> bool:
 	if enabled:
 		return true
 	var args := OS.get_cmdline_user_args()
-	if "--board" in args:
+	if "--board" in args or "--branch" in args:
 		return true
-	return "--board" in OS.get_cmdline_args()
+	return "--board" in OS.get_cmdline_args() or "--branch" in OS.get_cmdline_args()
+
+
+# L2：是否启用分岔路线图。命令行 --branch 或资源 branch_mode=true。
+func use_branch() -> bool:
+	if branch_mode:
+		return true
+	var args := OS.get_cmdline_user_args()
+	return "--branch" in args or "--branch" in OS.get_cmdline_args()

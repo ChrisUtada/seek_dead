@@ -141,6 +141,19 @@ func _run() -> void:
 	# 分岔图不能回访：起点不可再进
 	var back: Dictionary = _duel.board.advance_to("b0_0")
 	_check(back.is_empty(), "cannot go back to start")
+
+	# L2-C UI smoke：branch_screen 能挂载并显示分岔图
+	var BranchScreen = load("res://scripts/board/branch_screen.gd")
+	var screen = BranchScreen.new()
+	get_parent().add_child(screen)
+	screen.configure(_duel, _duel.hud)
+	_duel.board.generate(_duel.board_config)   # 重新生成（path 已在上面走完）
+	screen.show_board(_duel.board)
+	_check(screen.visible, "branch_screen visible after show_board")
+	_check(screen.get_child_count() > 0, "branch_screen has UI children")
+	screen.hide_board(false)
+	_check(not screen.visible, "branch_screen hidden after hide_board")
+	screen.queue_free()
 	_duel.board_config.branch_mode = false
 
 	_duel.free()

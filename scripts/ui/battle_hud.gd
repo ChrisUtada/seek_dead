@@ -21,6 +21,7 @@ const ANVIL_SCENE = preload("res://scenes/ui/anvil_screen.tscn")
 const SHOP_SCENE = preload("res://scenes/ui/shop_screen.tscn")
 const LOADOUT_SCENE = preload("res://scenes/ui/loadout_scene.tscn")
 const BOARD_SCREEN = preload("res://scripts/board/board_screen.gd")
+const BRANCH_SCREEN = preload("res://scripts/board/branch_screen.gd")   # L2 分岔路线图 UI
 const CARD_FACTORY = preload("res://scripts/ui/card_factory.gd")   # G8 第二切片：卡片构造外迁
 
 var controller   # DuelController 引用（运行时由 _ready 设置）
@@ -84,6 +85,7 @@ func build_all() -> void:
 	_wire_spin_feedback()
 	_build_loadout_screen()
 	_build_board_screen()      # M2：棋盘主视图（hud 兄弟节点，显示时 hud.hide()）
+	_build_branch_screen()     # L2：分岔路线图 UI（与棋盘视图并列，按 branch_mode 切换）
 	_build_reward_screen()
 	_build_anvil_screen()
 	_build_shop_screen()
@@ -140,6 +142,7 @@ var cell_stop_tweens = []    # [reel][row] -> Tween（复用前先 kill，避免
 var _feedback_tween: Tween = null   # 底部短反馈的缩放脉冲（纯视觉）
 var loadout_screen                     # 整备场景（scenes/ui/loadout_scene.tscn 实例，hud 兄弟节点）
 var board_screen                       # M2 棋盘主视图（scripts/board/board_screen.gd，hud 兄弟节点）
+var branch_screen                      # L2 分岔路线图 UI（board.branch_mode=true 时显示）
 # 消耗品腰带 4 个固定格子（2x2），由 hud._refresh_consumable_panel 同步状态；
 # consumable_panel 字段（controller 持有）已废弃，HUD 内聚管理 cell。
 # 位置：左栏 PlayerPanel/VBox（GearBox 之后、PlayerBuffLabel 之前），保持 4 格子 2x2 形态
@@ -687,16 +690,34 @@ func _build_board_screen() -> void:
 	board_screen.hide_board(false)
 
 
+func _build_branch_screen() -> void:
+	branch_screen = BRANCH_SCREEN.new()
+	get_parent().add_child(branch_screen)
+	branch_screen.configure(controller, self)
+	branch_screen.hide_board(false)
+
+
 func show_board_screen(board_sys) -> void:
+	# L2：分岔图与旧网格按 board.branch_mode 切换，二者互斥
+	var is_branch: bool = board_sys != null and bool(board_sys.branch_mode)
+	if is_branch:
+		if board_screen != null:
+			board_screen.hide_board(false)
+		if branch_screen != null:
+			branch_screen.show_board(board_sys)
+		return
+	if branch_screen != null:
+		branch_screen.hide_board(false)
 	if board_screen == null:
 		return
 	board_screen.show_board(board_sys)
 
 
 func hide_board_screen(show_hud: bool = false) -> void:
-	if board_screen == null:
-		return
-	board_screen.hide_board(show_hud)
+	if board_screen != null:
+		board_screen.hide_board(false)
+	if branch_screen != null:
+		branch_screen.hide_board(show_hud)
 
 
 # 卡片构造已外迁 scripts/ui/card_factory.gd（G8 第二切片）；这里保留同名薄包装，

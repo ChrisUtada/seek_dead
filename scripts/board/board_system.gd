@@ -85,7 +85,8 @@ func generate(cfg, act_override: int = -1) -> bool:
 	act = int(cfg.act) if act_override < 0 else int(act_override)
 	var seed_value: int = int(cfg.map_seed) if cfg != null and "map_seed" in cfg else 20261110
 	var total_acts: int = int(cfg.acts) if cfg != null else 1
-	branch_mode = bool(cfg.branch_mode) if cfg != null and "branch_mode" in cfg else false
+	# L2：资源开关 branch_mode 或命令行 --branch（board_config.use_branch()）
+	branch_mode = cfg.use_branch() if cfg != null and cfg.has_method("use_branch") else (bool(cfg.branch_mode) if cfg != null and "branch_mode" in cfg else false)
 	var builder = MAP_BUILDER.new(_ctrl)
 	var data: Dictionary
 	if branch_mode:
