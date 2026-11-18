@@ -1,7 +1,8 @@
 extends Node
 
-# L2-G 签名接入定向探针（2026-11-18）
+# L2-G 签名接入定向探针（2026-11-18；2026-11-19 加 ①b）
 # 验证：① 未携带关键武器、未习得 → 签名不生效
+#       ①b 携带关键武器但未习得 → 签名不生效（2026-11-19 移除自动解锁）
 #       ② 三选一习得卡写入 learned_signatures
 #       ③ 习得后（即使没关键武器）签名生效
 #       ④ 每局 learned_signatures 清零
@@ -57,6 +58,10 @@ func _ready() -> void:
 	_duel.learned_signatures.clear()
 	var sig0 = ps.find_signature("W01", [], cards, _duel.learned_signatures)
 	_check(sig0 == null, "未携带关键武器且未习得时签名不生效")
+	# ①b 2026-11-19：携带关键武器但未习得 → 签名仍不生效（移除自动解锁后）
+	var key_loadout := ["res://resources/weapon_templates/fire_sword.tres"]
+	var sig_key_only = ps.find_signature("W01", key_loadout, cards, _duel.learned_signatures)
+	_check(sig_key_only == null, "携带关键武器但未习得时签名不生效（不得自动解锁）")
 
 	# 校验 cards 本身能满足 match_rule（排除探针构造问题导致的假阴性）
 	var sigdef = ps.get_pattern(SIG_ID)

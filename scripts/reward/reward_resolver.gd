@@ -140,8 +140,8 @@ func _apply_flame_affinity(reward_id: String, params: Dictionary) -> DraftResult
 
 
 func _apply_learn_signature(reward_id: String, params: Dictionary) -> DraftResult.RewardApplyResult:
-	# L2-G：三选一习得签名牌谱——写入本局 learned_signatures，战斗时 find_signature 的 OR 来源。
-	# 只有签名层受影响，通用牌型/基础装备牌谱永不锁。
+	# L2-G：三选一习得签名牌谱——写入本局 learned_signatures，作为签名生效的唯一来源。
+	# 2026-11-19：签名不再因携带关键武器自动解锁，必须先在此习得；基础牌谱不受影响。
 	var sid := String(params.get("signature_id", ""))
 	if sid.is_empty():
 		return DraftResult.RewardApplyResult.failure(reward_id, "learn_signature", "invalid_signature_id")

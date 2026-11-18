@@ -94,7 +94,9 @@ func resolve_universal(matched_ids: Array, unlocked: Array) -> Array:
 
 
 # 查找某条基础牌谱的生效签名（2026-11-15 Step 5）。
-# 规则：base_pattern_id 匹配 + 关键武器在装备里（卸下立即失效）+ 签名自己的组件条件也满足。
+# 规则：base_pattern_id 匹配 + 签名已被三选一习得（learned）+ 签名自己的组件条件满足。
+# 2026-11-19：移除「携带关键武器即自动解锁」路径——签名必须先习得才生效；
+# 关键武器 key_paths 仅用于描述签名的主题归属，不再是解锁条件。
 # 多条同时可用时取 priority 最高；同优先级按 id 升序，保证确定性。
 func find_signature(base_id: String, loadout: Array, cards: Array, learned: Array = []) -> Variant:
 	if base_id == "":
@@ -105,16 +107,9 @@ func find_signature(base_id: String, loadout: Array, cards: Array, learned: Arra
 			continue
 		if String(p.base_pattern_id) != base_id:
 			continue
-		# L2-G：签名解锁第二个来源——携带关键武器 OR 通过三选一习得（learned）。
-		# 只影响签名层；通用牌型/基础装备牌谱不受此参数影响（避免双重门槛）。
-		var has_key := false
-		for k in p.key_paths:
-			if loadout.has(String(k)):
-				has_key = true
-				break
-		if not has_key and learned.has(String(p.id)):
-			has_key = true
-		if not has_key:
+		# 2026-11-19：签名唯一解锁来源 = 三选一习得（learned）。
+		# 不再因携带关键武器自动解锁；loadout 参数保留仅为兼容调用方签名。
+		if not learned.has(String(p.id)):
 			continue
 		if not (p.match_rule as Dictionary).is_empty() \
 				and not PATTERN_MATCHER.solve_rule(cards, p.match_rule):

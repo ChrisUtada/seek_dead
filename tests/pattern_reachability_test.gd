@@ -302,13 +302,17 @@ func _test_negatives() -> void:
 	_check(dagger.is_empty() or not _combo_can(dagger, dagger, guard_rule),
 		"单把武器无法凑出「护盾牌×2」（旧 S05 的假可达条件）")
 
-	# 暗状态不存在
-	var dark_status := 0
+	# W05 不能要求暗状态符号（6.2 后暗系 DoT 符号已存在，改测牌谱规则本身而非符号声明）
+	var w05: Resource = load("res://resources/patterns/w05_shadow_execution.tres")
+	var w05_rule_txt := JSON.stringify(w05.match_rule) if w05 != null else ""
+	_check(not w05_rule_txt.contains("status"), "W05 牌谱规则不要求状态符号——只看暗系伤害牌")
+	# 6.2 新增暗系 DoT 符号后，W05 可达性由暗系伤害符号保证（ WITNESS 暗武器存在）
+	var dark_dmg := 0
 	for w in _weapons:
 		for s in (w["symbols"] as Array):
-			if String(s["kind"]) == "status" and String(s["elem"]) == "dark":
-				dark_status += 1
-	_check(dark_status == 0, "不存在暗系状态符号（%d）——W05 不能要求暗状态" % dark_status)
+			if String(s["kind"]) == "damage" and String(s["elem"]) == "dark":
+				dark_dmg += 1
+	_check(dark_dmg > 0, "暗系伤害符号存在（%d）——W05 可达" % dark_dmg)
 
 	# 金币不是牌面组件
 	var gold_cond := false

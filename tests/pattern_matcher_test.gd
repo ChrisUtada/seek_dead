@@ -123,6 +123,14 @@ func _equip(paths: Array, skills: Array = []) -> void:
 	_duel.selected_loadout.clear()
 	for p in paths:
 		_duel.selected_loadout.append(String(p))
+	# 2026-11-19：签名改为「必须先习得」。本套测签名效果数值，故装备关键武器时
+	# 视同已习得该签名（解锁条件本身由 l2g_signature_probe 专测）。
+	_duel.learned_signatures.clear()
+	for sig in _duel._pattern_system.by_track("signature"):
+		for k in sig.key_paths:
+			if _duel.selected_loadout.has(String(k)):
+				_duel.learned_signatures.append(String(sig.id))
+				break
 	_duel._build_pool(_duel.selected_loadout)
 	_duel.frozen_cols.clear()
 	_duel.pending_jam_reel = -1
@@ -762,19 +770,22 @@ func _test_signatures() -> void:
 		"圣辉长剑 × W04 签名生效（%s）" % String(hv.get("pattern_signature", "")))
 	_check(float(hv["pierce"]) > 0.0, "W04 齐射进入穿透（%.0f）" % float(hv["pierce"]))
 
-	# —— 卸下关键武器 → 签名立即失效 ——
+	# —— 2026-11-19：签名习得后与携带武器无关 ——
 	_equip([FIRE_SWORD, FLAME_STAFF])
 	var with_key: Dictionary = _settle_cards([SYM_BURN, SYM_FIRE_SLASH, SYM_FIRE_SLASH],
 		["fire", "none", "none"], ["fire_sword", "fire_sword", "flame_staff"])
 	_duel.combat._apply_patterns(with_key)
-	_check(String(with_key.get("pattern_signature", "")) != "", "装备关键武器时签名生效")
+	_check(String(with_key.get("pattern_signature", "")) == "SIG_W01_FIRESWORD",
+		"携带关键武器时签名生效（%s）" % String(with_key.get("pattern_signature", "")))
+	# 换一对不带关键签名的火武器：签名仍因已习得而生效（不再依赖携带武器）
 	_equip(["res://resources/weapon_templates/cinder_cleaver.tres",
 		"res://resources/weapon_templates/cinder_hatchet.tres"])
+	_duel.learned_signatures.append("SIG_W01_FIRESWORD")   # 模拟玩家此前已习得
 	var without_key: Dictionary = _settle_cards([SYM_BURN, SYM_FIRE_SLASH, SYM_FIRE_SLASH],
 		["fire", "none", "none"], ["cinder_cleaver", "cinder_cleaver", "cinder_hatchet"])
 	_duel.combat._apply_patterns(without_key)
-	_check(String(without_key.get("pattern_signature", "")) == "",
-		"卸下关键武器后签名立即失效（%s）" % String(without_key.get("pattern_signature", "")))
+	_check(String(without_key.get("pattern_signature", "")) != "",
+		"习得后卸下关键武器签名仍生效（%s）" % String(without_key.get("pattern_signature", "")))
 	_check(String(without_key.get("pattern_equipment", "")) == "W01",
 		"基础牌谱仍然生效（%s）" % String(without_key.get("pattern_equipment", "")))
 

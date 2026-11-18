@@ -391,7 +391,7 @@ func _apply_patterns(acc: Dictionary) -> void:
 	var w_hits: Array = PATTERN_MATCHER.match_rules(weapon_cards, w_pool)
 	var w_pick = _ctrl._pattern_system.resolve_equipment(w_hits, w_pool)
 	if w_pick != null:
-		# 签名：修改所属基础牌谱的效果参数；卸下关键武器立即失效（靠 find_signature 的 loadout 检查）
+		# 签名：修改所属基础牌谱的效果参数；必须先经三选一习得才生效（2026-11-19 移除携带武器自动解锁）
 		var all_equip: Array = loadout.duplicate()
 		all_equip.append_array(_ctrl.selected_charms)
 		all_equip.append_array(_ctrl.run_relics)   # L2-E：遗物也参与签名牌谱解锁判定（拥有即生效）
