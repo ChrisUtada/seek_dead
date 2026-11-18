@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="SymbolData" load_steps=3 format=3]
+
+[ext_resource type="Script" uid="uid://dlg6m5ycp5oc2" path="res://scripts/battle/symbol_data.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/icons/symbols/16/dawn_light.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1")
+icon_tex = ExtResource("2_icon")
+label = "☣✨"
+name = "圣灼"
+kind = "status"
+base = 4.0
+element = "light"
+status_type = "holy_burn"
+color = Color(1.0, 0.95, 0.60, 1)

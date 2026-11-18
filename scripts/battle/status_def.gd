@@ -5,7 +5,7 @@ extends Resource
 # 状态符号（symbols/*.tres，kind=="status"）负责「触发」，状态数值/显示以本定义为唯一来源——
 # 后续 status_bomb 等 BOSS 新状态直接加 .tres，不再依赖符号属性。
 
-@export var id: String = ""           # burn|frost|poison（符号 status_type 与之对应）
+@export var id: String = ""           # burn|frost|poison|holy_burn|shadow_blight（符号 status_type 与之对应）
 @export var name: String = ""         # 显示名（燃|霜|毒，替代原 STATUS_NAMES 硬编码）
 @export var icon: String = ""         # 状态图标（转轮符号旁/状态栏显示）
 @export var base: float = 0.0         # 每层每回合基础伤害（DoT）

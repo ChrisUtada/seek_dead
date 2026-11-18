@@ -22,6 +22,10 @@ extends Resource
 # —— 伤害基准 ——
 @export var player_dmg_mult: float = 1.0      # 玩家直击总伤害全局倍率（2026-11-18 标定：1.5 时小怪77%一回合秒；降至1.0 后普通怪1.8回合/精英2.8/BOSS7.3，通关率6/6→4/6）
 # 状态 DoT 无全局倍率：原 status_dmg_mult=3.0 已于 2026-09-29 等值折入 StatusDef.base（burn 4→12 / poison 3→9），数值所见即所得
+# L3 §6.2：DoT 层数阈值爆发（四元素伤害型状态通用；frost base=0 是控制不参与）
+@export var dot_burst_threshold: int = 8       # 状态层数达此值触发爆发
+@export var dot_burst_mult: float = 2.0        # 爆发伤害 = 层数 × base × 克制 × 此倍率
+@export var dot_burst_consume: int = 4         # 爆发后消耗层数
 
 # —— 转轮频率 ——
 # 2026-08-09 恢复 MISS：带子按装备 hit_rate 聚合 MISS 格（高 base 低命中武器付出命中代价）；

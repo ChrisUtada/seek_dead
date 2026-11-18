@@ -19,14 +19,14 @@ const CONSUMABLE_DIR := "res://resources/consumables"
 const SKILL_DIR := "res://resources/skills"
 const ROOM_DIR := "res://resources/rooms"
 
-const EXPECT_COUNTS := {"weapon": 90, "charm": 45, "consumable": 25, "skill": 40}
+const EXPECT_COUNTS := {"weapon": 90, "charm": 43, "consumable": 26, "skill": 42}
 
 const CONDITIONAL_CHARM_EFFECTS: Array[String] = [
 	"armor_pierce", "element_boost", "status_boost", "first_hit",
 	"thorns", "dot_amp", "free_reroll", "charge_start", "dot_reduce",
 ]
 const MECHANIC_CONSUMABLE_EFFECTS: Array[String] = [
-	"reroll", "assault", "cleanse", "purify", "element", "armor_shred",
+	"reroll", "assault", "cleanse", "purify", "element", "armor_shred", "trim_belt",
 ]
 
 const STARTER_PATHS: Array[String] = [

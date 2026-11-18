@@ -10,7 +10,7 @@ extends Resource
 @export var kind: String = "damage"        # damage | shield | heal | status | special | buff | trash（结算行为由 kind 决定）
 @export var base: float = 0.0
 @export var element: String = "none"        # fire | ice | poison | light | dark | none（单向克制）
-@export var status_type: String = ""        # 仅 kind=="status"：burn | frost | poison
+@export var status_type: String = ""        # 仅 kind=="status"：burn | frost | poison | holy_burn | shadow_blight
 # M3-03：转轮符号专用 16×16 图标；为空时回落 label 文字。
 @export var icon_tex: Texture2D = null
 @export var color: Color = Color(0.7, 0.7, 0.75, 1)

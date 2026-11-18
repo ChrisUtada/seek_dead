@@ -53,6 +53,9 @@ const STATUS_DEFS := {
 	"frost": preload("res://resources/statuses/frost.tres"),
 	"poison": preload("res://resources/statuses/poison.tres"),
 	"frozen": preload("res://resources/statuses/frozen.tres"),
+	# L3 §6.2 四元素DoT：光/暗伤害型状态（冰 frost 是减攻控制，不属 DoT）
+	"holy_burn": preload("res://resources/statuses/holy_burn.tres"),
+	"shadow_blight": preload("res://resources/statuses/shadow_blight.tres"),
 }
 
 var _ctrl  # DuelController

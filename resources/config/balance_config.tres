@@ -53,3 +53,6 @@ anvil_award_elite = 3
 anvil_award_boss = 5
 anvil_award_final = 8
 heal_overflow_shield_cap_pct = 0.2
+dot_burst_threshold = 8
+dot_burst_mult = 2.0
+dot_burst_consume = 4

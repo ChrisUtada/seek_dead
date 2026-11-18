@@ -1051,14 +1051,29 @@ func tick_status() -> int:
 		# 2026-09-29：原全局 status_dmg_mult=3.0 已等值折入 StatusDef.base（burn 12 / poison 9），base 即实跳伤害
 		var status_boost: float = _ctrl.charm_status_boost if _ctrl.deprived_level < 1 else 1.0
 		var sd: StatusDef = _ctrl.status_system.status_def(st)
-		var one: int = int(round(_ctrl.enemy_status[st] * base * mult * status_boost))
+		var stacks: int = int(_ctrl.enemy_status[st])
+		var one: int = int(round(stacks * base * mult * status_boost))
 		dot += one
+		var tag: String = ("%s %s" % [sd.icon, sd.name]) if sd != null else "☣ 状态"
+		var elem: String = sd.element if sd != null else "none"
 		if one > 0:
-			var tag: String = ("%s %s" % [sd.icon, sd.name]) if sd != null else "☣ 状态"
-			var elem: String = sd.element if sd != null else "none"
 			dot_pops.append([tag, one, elem])
-		_ctrl.enemy_status[st] = max(0, _ctrl.enemy_status[st] - (sd.decay if sd != null else 1))
-		if _ctrl.enemy_status[st] <= 0:
+		# L3 §6.2：层数阈值爆发——伤害型状态(base>0)叠到阈值时一次性爆发并消耗层数。
+		# 只对 DoT 生效（frost base=0 是减攻控制，不参与）。爆发吃同一克制倍率，独立于本回合普通 tick。
+		# L3 §6.3 遗物联动：毒腺囊(dot_amp)每层降阈值1（下限4，更快爆发）；锋锐/霜核(damage_bonus)
+		# 给爆发加 flat（power_bonus×2）；虚空回响(status_boost)已乘进爆发公式，天然强化。
+		var effective_threshold: int = maxi(4, int(DuelController.BALANCE.dot_burst_threshold) - int(_ctrl.charm_dot_amp))
+		if base > 0.0 and stacks >= effective_threshold:
+			var burst_flat: int = int(_ctrl.charm_power_bonus) * 2 if _ctrl.deprived_level < 1 else 0
+			var burst: int = int(round(stacks * base * mult * status_boost * DuelController.BALANCE.dot_burst_mult)) + burst_flat
+			dot += burst
+			dot_pops.append([("💥 %s 爆发" % (sd.name if sd != null else st)), burst, elem])
+			_ctrl.hud._log("💥 %s 爆发！%d 层 → %d 伤害" % [sd.name if sd != null else st, stacks, burst])
+			stacks = max(0, stacks - int(DuelController.BALANCE.dot_burst_consume))
+		# 衰减（爆发消耗已计入 stacks）
+		stacks = max(0, stacks - (sd.decay if sd != null else 1))
+		_ctrl.enemy_status[st] = stacks
+		if stacks <= 0:
 			_ctrl.enemy_status.erase(st)
 	# 放回未到期层：它们本回合不跳伤害、不衰减，从下一回合起进入结算
 	for st in restored.keys():

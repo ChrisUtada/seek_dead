@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="StatusDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/status_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "holy_burn"
+name = "圣灼"
+icon = "☣✨"
+base = 10.0
+element = "light"
+decay = 1
+desc = "圣灼：每回合光属性伤害（L3 §6.2 四元素DoT）"

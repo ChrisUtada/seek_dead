@@ -22,7 +22,7 @@ const SYMBOL_KIND_LABEL := {
 	"damage": "伤害", "shield": "护盾", "heal": "回复", "status": "状态",
 	"special": "特殊", "buff": "增益", "trash": "废铁",
 }
-const STATUS_LABEL := {"burn": "灼烧", "frost": "霜冻", "poison": "中毒"}
+const STATUS_LABEL := {"burn": "灼烧", "frost": "霜冻", "poison": "中毒", "holy_burn": "圣灼", "shadow_blight": "蚀影"}
 const RARITY_LABEL := {"common": "普通", "uncommon": "精良", "rare": "稀有", "epic": "史诗"}
 # Step 6：战利品来源与普通房间 / 棋盘节点来源分开显示，保证图鉴来源与实际获得通道一致。
 const LOOT_SOURCE_LABEL := {

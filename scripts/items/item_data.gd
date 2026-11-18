@@ -27,7 +27,7 @@ extends Resource
 @export var element: String = ""         # 元素类效果指定元素（如 effect="element" 的精华消耗品 / effect="attack" 的攻击元素）
 @export var value: int = 0               # 效果数值（加成型；attack = 立即伤害，armor_shred = 清除护甲量）
 @export var mult_value: float = 1.0      # 乘区类效果数值（被动 damage_mult：如 1.5 = 全局 ×1.5）
-@export var status_type: String = ""     # 攻击型消耗品（effect="attack"）：对敌挂的状态（burn/frost/poison）
+@export var status_type: String = ""     # 攻击型消耗品（effect="attack"）：对敌挂的状态（burn/frost/poison/holy_burn/shadow_blight）
 @export var status_value: int = 0        # 攻击型消耗品（effect="attack"）：挂层数
 @export var downside_effect: String = "" # 混合护符负面效果（与 effect 同枚举，M6-C4 首次启用）；空 = 无负面
 @export var downside_value: int = 0      # 负面加成型数值，结算时取反（如 -3 攻击）

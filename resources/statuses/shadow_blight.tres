@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="StatusDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/status_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "shadow_blight"
+name = "蚀影"
+icon = "☣🌑"
+base = 11.0
+element = "dark"
+decay = 1
+desc = "蚀影：每回合暗属性伤害（L3 §6.2 四元素DoT）"
