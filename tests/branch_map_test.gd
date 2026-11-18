@@ -159,6 +159,17 @@ func _run() -> void:
 	screen.show_board(_duel.board)
 	_check(screen.visible, "branch_screen visible after show_board")
 	_check(screen.get_child_count() > 0, "branch_screen has UI children")
+	# 滚动视口：初始定位当前层、BOSS 跳转、滚动范围钳制
+	_check(screen._max_scroll() > 0.0, "scroll range positive (got %s)" % screen._max_scroll())
+	var top_before: float = screen._scroll_top
+	screen._on_scroll(1.0)
+	_check(screen._scroll_top > top_before, "scroll down increases offset")
+	screen._on_scroll(-100.0)
+	_check(screen._scroll_top >= 0.0, "scroll clamped to top")
+	screen._on_scroll(100.0)
+	_check(screen._scroll_top <= screen._max_scroll(), "scroll clamped to bottom")
+	screen._on_jump_boss()
+	_check(screen._scroll_top >= screen._max_scroll() - 0.01, "jump to BOSS scrolls to bottom")
 	screen.hide_board(false)
 	_check(not screen.visible, "branch_screen hidden after hide_board")
 	screen.queue_free()

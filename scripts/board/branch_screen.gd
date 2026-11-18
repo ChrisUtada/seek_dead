@@ -27,8 +27,10 @@ const ICONS := {
 	"battle": "⚔", "elite": "★", "boss": "👑", "chest": "🎁",
 	"armory": "🏛", "shop": "🛒", "rest": "🔥", "event": "⛩", "start": "🚩",
 }
-const NODE_W := 66.0
-const NODE_H := 14.0   # 15 层密排：层距约 14px，节点高需 ≤ 层距避免重叠
+const NODE_W := 92.0
+const NODE_H := 22.0        # 滚动视口：节点恢复正常尺寸（不再压缩塞进一屏）
+const LAYER_STEP := 30.0    # 每层行距（节点高 22 + 8 间距）
+const VISIBLE_LAYERS := 7.0 # 视口可见层数（220px / 30px ≈ 7.3，取整 7）
 
 var controller
 var hud
@@ -37,6 +39,11 @@ var _art: Control = null
 var _buttons: Array[Button] = []
 var _confirm_layer: Control = null
 var _pending_node: Dictionary = {}
+var _scroll_top: float = 0.0            # 视口顶部对应的层号（float，支持平滑滚动）
+var _dragging: bool = false
+var _drag_start_y: float = 0.0
+var _drag_start_scroll: float = 0.0
+var _jump_btn: Button = null            # 顶栏「跳到 BOSS」按钮
 
 
 func _ready() -> void:
@@ -47,6 +54,20 @@ func _ready() -> void:
 	_art.draw.connect(_draw_screen)
 	add_child(_art)
 	_layout_art()
+	# 顶栏「跳到 BOSS」快速跳转按钮（滚动视口下方便直接看幕底）
+	_jump_btn = Button.new()
+	_jump_btn.text = "👑 BOSS"
+	_jump_btn.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	_jump_btn.position = Vector2(TOP_RECT.position.x + TOP_RECT.size.x - 62.0, TOP_RECT.position.y + 1.0)
+	_jump_btn.size = Vector2(58.0, 18.0)
+	_jump_btn.add_theme_font_size_override("font_size", 9)
+	_jump_btn.pressed.connect(_on_jump_boss)
+	add_child(_jump_btn)
+
+
+func _on_jump_boss() -> void:
+	_center_on_layer(_total_layers() - 1)
+	_apply_scroll()
 
 
 func configure(ctrl, h: BattleHud) -> void:
@@ -67,6 +88,9 @@ func show_board(board_sys) -> void:
 	_pending_node = {}
 	_selected_id = ""
 	_apply_act_theme()
+	# 首次打开：视口定位到当前层（玩家一进来就看到自己所在位置 + 后续路径）
+	var cur_layer: int = _parse_layer(String(board.current_id))
+	_center_on_layer(cur_layer)
 	_rebuild_buttons()
 	visible = true
 	if hud != null:
@@ -86,6 +110,11 @@ func hide_board(show_hud: bool = false) -> void:
 
 
 func refresh() -> void:
+	# 若当前层已滚出视口，自动跟随（只在前进一步跨出视口时触发，不打断手动浏览）
+	if board != null:
+		var cur_layer: int = _parse_layer(String(board.current_id))
+		if float(cur_layer) < _scroll_top or float(cur_layer) > _scroll_top + VISIBLE_LAYERS:
+			_center_on_layer(cur_layer)
 	_rebuild_buttons()
 	if _art != null:
 		_art.queue_redraw()
@@ -119,11 +148,9 @@ func _total_layers() -> int:
 	return 15
 
 
-# 层 y：从地图面板顶部往下均分（层数动态）
-func _layer_y(layer: int, total_layers: int) -> float:
-	var usable: float = MAP_RECT.size.y - NODE_H - 4.0
-	var step: float = usable / float(maxi(1, total_layers - 1))
-	return MAP_RECT.position.y + 2.0 + float(layer) * step
+# 层 y：基于滚动视口（只显示 VISIBLE_LAYERS 层，其余通过滚动查看）
+func _layer_y(layer: int, _total_layers: int) -> float:
+	return MAP_RECT.position.y + 4.0 + (float(layer) - _scroll_top) * LAYER_STEP
 
 
 # 节点 x：同层节点水平均分居中
@@ -151,6 +178,70 @@ func _node_layer(n: Dictionary) -> int:
 	return _parse_layer(String(n["id"]))
 
 
+# ---------- 滚动视口 ----------
+
+func _max_scroll() -> float:
+	var total: float = float(_total_layers())
+	return maxf(0.0, total - VISIBLE_LAYERS)
+
+
+func _clamp_scroll() -> void:
+	_scroll_top = clampf(_scroll_top, 0.0, _max_scroll())
+
+
+# 把某层定位到视口中间偏上（玩家看到"当前 + 后续路径"）
+func _center_on_layer(layer: int) -> void:
+	_scroll_top = float(layer) - VISIBLE_LAYERS * 0.4
+	_clamp_scroll()
+
+
+func _apply_scroll() -> void:
+	_clamp_scroll()
+	# 重新定位按钮（_draw_screen 由 queue_redraw 触发）
+	for b in _buttons:
+		var layer: int = int(b.get_meta("layer", 0))
+		var idx: int = int(b.get_meta("idx", 0))
+		var cnt: int = int(b.get_meta("cnt", 1))
+		b.position = _node_rect({"id": "b%d_%d" % [layer, idx]}, layer, cnt, idx).position
+	if _art != null:
+		_art.queue_redraw()
+
+
+# 滚轮滚动（地图区域内）
+func _on_scroll(amount: float) -> void:
+	_scroll_top += amount
+	_apply_scroll()
+
+
+# 输入：滚轮滚动 + 拖拽平移。按钮点击由 Button 自身处理（未拖动时不干扰）。
+func _input(event: InputEvent) -> void:
+	if not visible or (_confirm_layer != null and _confirm_layer.visible):
+		return
+	if event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		if mb.button_index == MOUSE_BUTTON_WHEEL_UP and mb.pressed:
+			if MAP_RECT.has_point(mb.position):
+				_on_scroll(-1.0)
+				get_viewport().set_input_as_handled()
+		elif mb.button_index == MOUSE_BUTTON_WHEEL_DOWN and mb.pressed:
+			if MAP_RECT.has_point(mb.position):
+				_on_scroll(1.0)
+				get_viewport().set_input_as_handled()
+		elif mb.button_index == MOUSE_BUTTON_LEFT:
+			if mb.pressed and MAP_RECT.has_point(mb.position):
+				_dragging = true
+				_drag_start_y = mb.position.y
+				_drag_start_scroll = _scroll_top
+			elif not mb.pressed and _dragging:
+				_dragging = false
+	elif event is InputEventMouseMotion and _dragging:
+		var mm := event as InputEventMouseMotion
+		var dy: float = mm.position.y - _drag_start_y
+		_scroll_top = _drag_start_scroll - dy / LAYER_STEP
+		_apply_scroll()
+		get_viewport().set_input_as_handled()
+
+
 # ---------- 绘制 ----------
 
 func _draw_screen() -> void:
@@ -161,7 +252,7 @@ func _draw_screen() -> void:
 	_art.draw_rect(FOOT_RECT, Color(0.10, 0.11, 0.14))
 	var font: Font = _font()
 	_art.draw_string(font, Vector2(TOP_RECT.position.x + 6, TOP_RECT.position.y + 14),
-		"第 %d 幕 · 分岔路线（%d 层）" % [board.act if board != null else 1, 7], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.95, 0.88, 0.60))
+		"第 %d 幕 · 分岔路线（%d 层）" % [board.act if board != null else 1, _total_layers()], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.95, 0.88, 0.60))
 	if board == null or not visible:
 		return
 
@@ -193,11 +284,16 @@ func _draw_screen() -> void:
 		y += 18.0
 	# 底部提示
 	_art.draw_string(font, Vector2(FOOT_RECT.position.x + 6, FOOT_RECT.position.y + 12),
-		"点击高亮节点前进 · 只能沿连线走向下一层 · 不可回头", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(0.70, 0.72, 0.75))
+		"滚轮/拖拽切屏 · 点击高亮节点前进 · 沿连线走向下一层 · 不可回头", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(0.70, 0.72, 0.75))
 
 	var layers: Dictionary = _nodes_by_layer()
-	# 先画连线（节点中心 → 下一层节点中心）
+	# 视口裁剪范围（层号）
+	var vlo: float = _scroll_top - 1.0
+	var vhi: float = _scroll_top + VISIBLE_LAYERS + 1.0
+	# 先画连线（节点中心 → 下一层节点中心），只画视口附近
 	for layer in layers:
+		if float(layer) < vlo or float(layer) > vhi:
+			continue
 		for n in layers[layer]:
 			var from: Vector2 = _node_center(n, layers)
 			for nid in n.get("next", []):
@@ -205,19 +301,32 @@ func _draw_screen() -> void:
 				if target == null:
 					continue
 				var to: Vector2 = _node_center(target, layers)
-				var col: Color = Color(0.55, 0.55, 0.55, 0.6)
-				_art.draw_line(from, to, col, 1.0)
-	# 再画节点底色块（文本由 Button 负责，避免字体重复）
+				_art.draw_line(from, to, Color(0.55, 0.55, 0.55, 0.6), 1.0)
+	# 再画节点底色块（文本由 Button 负责），视口外跳过
 	for layer in layers:
+		if float(layer) < vlo or float(layer) > vhi:
+			continue
 		var arr: Array = layers[layer]
 		for i in range(arr.size()):
 			var n: Dictionary = arr[i]
 			var r: Rect2 = _node_rect(n, int(layer), arr.size(), i)
+			if not MAP_RECT.intersects(r):
+				continue
 			var t: String = String(n.get("type", ""))
 			var col: Color = COLORS.get(t, Color(0.9, 0.9, 0.9))
 			if String(board.current_id) == String(n["id"]):
 				col = col.darkened(0.25)
 			_art.draw_rect(r, col)
+
+	# 视口右侧滚动条（指示当前看到整条路线的哪一段）
+	var total: float = float(_total_layers())
+	if total > VISIBLE_LAYERS:
+		var bar_x: float = MAP_RECT.position.x + MAP_RECT.size.x + 3.0
+		var bar_h: float = MAP_RECT.size.y
+		_art.draw_rect(Rect2(bar_x, MAP_RECT.position.y, 3.0, bar_h), Color(0.25, 0.27, 0.30))
+		var thumb_h: float = bar_h * (VISIBLE_LAYERS / total)
+		var thumb_y: float = MAP_RECT.position.y + (_scroll_top / maxf(1.0, _max_scroll())) * (bar_h - thumb_h)
+		_art.draw_rect(Rect2(bar_x, thumb_y, 3.0, thumb_h), Color(0.85, 0.78, 0.50))
 
 
 func _node_center(n: Dictionary, layers: Dictionary) -> Vector2:
@@ -255,7 +364,10 @@ func _rebuild_buttons() -> void:
 			b.position = r.position
 			b.size = r.size
 			b.flat = true
-			b.add_theme_font_size_override("font_size", 8)
+			b.add_theme_font_size_override("font_size", 10)
+			b.set_meta("layer", int(layer))
+			b.set_meta("idx", i)
+			b.set_meta("cnt", arr.size())
 			var t: String = String(n.get("type", ""))
 			b.text = "%s %s" % [ICONS.get(t, "•"), String(n.get("title", t))]
 			b.tooltip_text = "%s · %s" % [String(n.get("title", t)), String(n.get("desc", ""))]

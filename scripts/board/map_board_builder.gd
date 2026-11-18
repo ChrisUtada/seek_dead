@@ -18,6 +18,7 @@ const NODE = preload("res://scripts/board/board_node_data.gd")
 const MAP_GRID = preload("res://scripts/board/map_grid.gd")
 const TYPES = preload("res://scripts/board/map_node_types.gd")
 const PATROL = preload("res://scripts/board/map_patrol.gd")
+const BRANCH_CFG = preload("res://resources/config/branch_map_config.tres")   # 分岔图可配置布局（L2）
 
 # 节奏样板（沿用冻结的 ACT1 样板，避免首战手感漂移）。
 const RHYTHM_SAMPLE := {
@@ -134,37 +135,20 @@ func build(act: int, seed_value: int, total_acts: int = 1) -> Dictionary:
 # ---------------------------------------------------------------------------
 # 分岔路线图（经典 roguelike DAG）：替代 14×9 网格拓扑。
 # 只换拓扑层；节点内容生成 / 房间分配 / 结算字段全部复用本文件既有辅助函数。
-# 结构：15 层（起点 → 13 中间层 × 2-3 候选 → BOSS 汇聚），连线只连相邻层。
-# 层数参数化：BRANCH_LAYER_COUNT = 总层数，BOSS 在最后一层（索引 = COUNT-1）。
+# 结构：N 层（起点 → N-2 中间层 × 2-3 候选 → BOSS 汇聚），连线只连相邻层。
+# 层数、每层候选类型池、候选数全部来自 BranchMapConfig（resources/config/branch_map_config.tres）。
+# 改布局只改资源文件，不碰本文件——这是 L2 可维护性改造的核心。
 # ---------------------------------------------------------------------------
-
-# 总层数（含起点与 BOSS）。经典 roguelike 每幕约 15 层，单局路径有分量。
-const BRANCH_LAYER_COUNT := 15
-const BOSS_LAYER := BRANCH_LAYER_COUNT - 1   # BOSS 所在层索引（14）
-
-# 13 个中间层的候选类型池（经典风险收益节奏）：前段战斗/宝箱、中段精英/商店/休整、
-# 后段精英强化、BOSS 前休整。每层 3 个候选类型，按 seed 洗牌取用。
-const BRANCH_LAYERS := {
-	1: ["battle", "chest", "battle"],
-	2: ["battle", "event", "chest"],
-	3: ["elite", "battle", "shop"],
-	4: ["battle", "rest", "event"],
-	5: ["shop", "armory", "battle"],
-	6: ["battle", "elite", "chest"],
-	7: ["rest", "event", "battle"],
-	8: ["battle", "elite", "shop"],
-	9: ["armory", "chest", "battle"],
-	10: ["elite", "event", "rest"],
-	11: ["battle", "shop", "battle"],
-	12: ["elite", "armory", "event"],
-	13: ["rest", "chest", "battle"],
-}
 
 
 # 生成一张分岔图。返回结构对齐 build()（board_system / map_runtime 消费者零改）。
 func build_branch(act: int, seed_value: int, total_acts: int = 1) -> Dictionary:
 	total_acts = normalized_acts(total_acts)
 	_rng.seed = seed_value
+	# 从可配置资源读布局（数据驱动，改配置不改代码）
+	var layer_count: int = int(BRANCH_CFG.layer_count)
+	var boss_layer: int = layer_count - 1
+	var cand_per_layer: int = int(BRANCH_CFG.candidates_per_layer)
 	var nodes: Array = []
 	var by_id: Dictionary = {}
 	var layer_of: Dictionary = {}
@@ -186,10 +170,10 @@ func build_branch(act: int, seed_value: int, total_acts: int = 1) -> Dictionary:
 	layer_of[start.id] = 0
 
 	# 层1-5：候选节点
-	for layer in range(1, BOSS_LAYER):
-		var pool: Array = BRANCH_LAYERS.get(layer, ["battle"]).duplicate()
+	for layer in range(1, boss_layer):
+		var pool: Array = BRANCH_CFG.types_for_layer(layer)
 		_shuffle(pool)
-		var count: int = mini(3, pool.size())
+		var count: int = mini(cand_per_layer, pool.size())
 		for i in range(count):
 			var type: String = String(pool[i])
 			var id: String = "b%d_%d" % [layer, i]
@@ -212,8 +196,8 @@ func build_branch(act: int, seed_value: int, total_acts: int = 1) -> Dictionary:
 			layer_of[id] = layer
 
 	# 层6：BOSS 汇聚（4 选 1 随机，复用 controller 的 pick_boss）
-	var boss_id: String = "b%d_0" % BOSS_LAYER
-	var boss_node := NODE.make(boss_id, "boss", BOSS_LAYER)
+	var boss_id: String = "b%d_0" % boss_layer
+	var boss_node := NODE.make(boss_id, "boss", boss_layer)
 	boss_node["type"] = "boss"
 	boss_node["legacy_type"] = "boss"
 	boss_node["act"] = act
@@ -221,7 +205,7 @@ func build_branch(act: int, seed_value: int, total_acts: int = 1) -> Dictionary:
 	boss_node["frozen"] = true
 	boss_node["revealed"] = true
 	boss_node["visible"] = true
-	boss_node["distance"] = BOSS_LAYER
+	boss_node["distance"] = boss_layer
 	boss_node["source"] = "room"
 	boss_node["final"] = (act >= total_acts)
 	boss_node["icon"] = "👑"
@@ -229,12 +213,12 @@ func build_branch(act: int, seed_value: int, total_acts: int = 1) -> Dictionary:
 	boss_node["desc"] = "本幕首领（提前公开，可针对性构筑）"
 	nodes.append(boss_node)
 	by_id[boss_id] = boss_node
-	layer_of[boss_id] = BOSS_LAYER
+	layer_of[boss_id] = boss_layer
 
 	# 第二遍：统一连边（此时所有层的节点都已存在）→ 每个节点连下一层全部候选，全连通无死路
 	for n in nodes:
 		var layer: int = int(layer_of[n.id])
-		n["next"] = _ids_in_layer(layer_of, layer + 1) if layer < BOSS_LAYER else []
+		n["next"] = _ids_in_layer(layer_of, layer + 1) if layer < boss_layer else []
 
 	_assign_rooms(nodes, act, total_acts)
 
@@ -273,8 +257,8 @@ func build_branch(act: int, seed_value: int, total_acts: int = 1) -> Dictionary:
 		"grid": {},              # 分岔图无网格；消费者若读 grid 只会拿到空
 		"patrols": [],           # 分岔图无巡逻怪
 		"branch": true,          # 标记新拓扑，供 runtime / screen 判定
-		"cols": BRANCH_LAYERS.size(),
-		"rows": BOSS_LAYER + 1,
+		"cols": cand_per_layer,
+		"rows": layer_count,
 		"act": act,
 		"total_acts": total_acts,
 		"seed": seed_value,

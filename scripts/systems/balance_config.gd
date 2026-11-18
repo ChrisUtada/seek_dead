@@ -58,6 +58,10 @@ extends Resource
 @export var charge_extra_base: int = 30       # 主导元素爆发附伤基础值（× 该元素克制倍率，2026-08-14）
 
 # —— 三连收益校准（2026-11-11 Step 1，单一数值轴可复测）——
+# ⚠️ 观测（2026-11-18，4种子 strategy_probe）：核爆占总输出 18-25%、每局触发 8-13 次，
+# 偏强（约 1/5 伤害绕过伤害公式）。用户拍板：本次只保留配置外置 + 观测，
+# 数值下调留待 L3（与 BOSS 机制/目押鸿沟一起平衡，避免破坏刚标定的 player_dmg_mult=1.0）。
+# 观测手段：strategy_probe 的 counter_burst_damage / counter_triples 字段。
 @export var counter_burst_pct: float = 0.125  # 克制元素三连核爆 = 敌人 max HP × 此比例（穿透直击）
 @export var heal_line_mults: Array = [1.0, 2.5, 4.5]   # 治疗符号 1/2/3 连倍率（三连倍率可独立复测）
 
