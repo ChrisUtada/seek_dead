@@ -344,11 +344,11 @@ func build_loot_offer(source: String, act: int, opts: Dictionary = {}, forced_qu
 	if bool(opts.get("growth_only", false)):
 		# P2 新路径：普通/精英战后成长走 Draft 引擎
 		var snap = RunStateAnalyzer.capture(_ctrl)
-		_draft_composer.reset_reroll_state(_has_free_reroll_reward())
+		_draft_composer.reset_reroll_state()
 		_draft_result = _draft_composer.compose(snap, 3, draft_debug)
 		_draft_active = true
 		_loot_view = RewardPresentation.draft_to_view(_draft_result, LootSourceTable.source_label(source))
-		# 重抽费用走 composer 的付费档（免费重抽由 request_reroll 内部优先判定）
+		# 重抽费用走 composer 的付费递增档（5 + 5×次数）
 		_loot_view["reroll_cost"] = _draft_composer.paid_reroll_cost
 		_loot_view["reroll_paid"] = 0
 		if _ctrl._telemetry != null:
@@ -369,11 +369,6 @@ func build_loot_offer(source: String, act: int, opts: Dictionary = {}, forced_qu
 	return _loot_view
 
 
-# 当前 Build 是否含免费重抽奖励（P2 种子卡未含，预留钩子）
-func _has_free_reroll_reward() -> bool:
-	return false
-
-
 func loot_reroll_cost() -> int:
 	return int(BALANCE.loot_reroll_base_cost) + int(BALANCE.loot_reroll_cost_step) * _loot_rerolls
 
@@ -384,24 +379,21 @@ func reroll_loot_offer() -> Dictionary:
 
 	# P2 新路径：免费重抽优先于扣费（契约 §2.4）
 	if _draft_active:
-		var rr: Dictionary = _draft_composer.request_reroll()
-		if not bool(rr.get("ok", false)):
-			return {"ok": false, "reason": "reroll_failed"}
-		var cost := int(rr.get("cost", 0))
-		if not bool(rr.get("free", false)):
-			if _ctrl.gold < cost:
-				return {"ok": false, "reason": "insufficient_gold", "cost": cost}
-			_ctrl.gold -= cost
+		var cost: int = _draft_composer.paid_reroll_cost
+		if _ctrl.gold < cost:
+			return {"ok": false, "reason": "insufficient_gold", "cost": cost}
+		_ctrl.gold -= cost
+		_draft_composer.note_paid_reroll()
 		# 重生成 Draft（不重置重抽状态）
 		var snap = RunStateAnalyzer.capture(_ctrl)
 		_draft_result = _draft_composer.compose(snap, 3, draft_debug)
 		_loot_view = RewardPresentation.draft_to_view(_draft_result, LootSourceTable.source_label("normal"))
 		_loot_view["growth_only"] = true
 		_loot_view["reroll_cost"] = _draft_composer.paid_reroll_cost
-		_loot_view["reroll_paid"] = 0 if bool(rr.get("free", false)) else cost
+		_loot_view["reroll_paid"] = cost
 		if _ctrl._telemetry != null:
-			_ctrl._telemetry.on_reward_rerolled(_draft_result.draft_id, bool(rr.get("free", false)), cost)
-		_ctrl.hud._log("战利品重抽：%s" % ("免费" if bool(rr.get("free", false)) else "金币 -%d" % cost))
+			_ctrl._telemetry.on_reward_rerolled(_draft_result.draft_id, false, cost)
+		_ctrl.hud._log("战利品重抽：金币 -%d（下次 %d）" % [cost, _draft_composer.paid_reroll_cost])
 		_ctrl.invalidate_state()
 		return _loot_view
 

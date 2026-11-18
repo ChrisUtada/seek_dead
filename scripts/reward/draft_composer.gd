@@ -26,8 +26,7 @@ const DRAFT_SAMPLES := 6       # 采样候选组数
 
 var _rng := RandomNumberGenerator.new()
 
-# 免费重抽状态（每次 new_draft 重置）
-var free_rerolls_remaining: int = 0
+# 付费重抽递增状态（每次新奖励界面重置）
 var paid_rerolls_used: int = 0
 var paid_reroll_cost: int = BASE_PAID_REROLL_COST
 
@@ -75,22 +74,16 @@ func compose(snap: RunSnapshot, count: int = 3, debug: bool = false) -> DraftRes
 	return draft
 
 
-# 进入新奖励界面：重置重抽状态（契约 §2.2）
-func reset_reroll_state(has_free_reroll_reward: bool = false) -> void:
-	free_rerolls_remaining = 1 if has_free_reroll_reward else 0
+# 进入新奖励界面：重置付费重抽递增（价格回到 5）
+func reset_reroll_state() -> void:
 	paid_rerolls_used = 0
 	paid_reroll_cost = BASE_PAID_REROLL_COST
 
 
-# 请求重抽：返回 {"free": bool, "cost": int}；免费优先于扣费
-func request_reroll() -> Dictionary:
-	if free_rerolls_remaining > 0:
-		free_rerolls_remaining -= 1
-		return {"free": true, "cost": 0, "ok": true}
-	var cost := paid_reroll_cost
+# 记一次付费重抽：递增下次价格（实际扣费由 reward_system 负责）
+func note_paid_reroll() -> void:
 	paid_rerolls_used += 1
 	paid_reroll_cost = BASE_PAID_REROLL_COST + 5 * paid_rerolls_used
-	return {"free": false, "cost": cost, "ok": true}
 
 
 # ---------------------------------------------------------------------------

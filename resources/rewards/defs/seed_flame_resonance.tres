@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "seed_flame_resonance"
 name = "火焰共鸣"
-desc = "强化火焰构筑。已有火系武器/符号/技艺时产生协同"
+desc = "本局火焰构筑 +1：让火系装备/符号/牌谱更容易在后续三选一中出现"
 rarity = "rare"
 tags = Array[String](["build.fire", "element.fire", "discovery.seed"])
 base_weight = 1.0

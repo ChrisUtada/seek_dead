@@ -5,9 +5,9 @@ extends Node
 # 运行：Godot --headless --fixed-fps 60 --path <项目> res://tests/reward_p2_test.tscn
 #
 # 覆盖：
-# ① 5 张种子卡 .tres 可加载且 validate 通过
+# ① 4 张种子卡 .tres 可加载且 validate 通过
 # ② 新引擎生成 3 张卡的 DraftResult + view（品质各异文案）
-# ③ Resolver 5 个 effect_id 真实执行（heal/shield/power 委托旧结算）
+# ③ Resolver 4 个 effect_id 真实执行（heal/shield/power 委托旧结算 + flame_affinity）
 # ④ 免费重抽优先于扣费
 # ⑤ Telemetry 新事件记录
 # ⑥ BOSS/探索旧路径未被破坏（build_loot_offer growth_only=false）
@@ -16,7 +16,7 @@ extends Node
 
 const SEED_IDS := [
 	"seed_battle_ready", "seed_guardian_ember", "seed_edge_polish",
-	"seed_flame_resonance", "seed_lucky_afterglow",
+	"seed_flame_resonance",
 ]
 
 var _fails := 0
@@ -74,7 +74,7 @@ func _run() -> void:
 func _test_seed_defs() -> void:
 	var reg = load("res://scripts/reward/reward_registry.gd")
 	var all = reg.load_all()
-	_ok(all.size() == 5, "5 seed defs loaded (got %d)" % all.size())
+	_ok(all.size() == 4, "4 seed defs loaded (got %d)" % all.size())
 	var problems = reg.validate_all()
 	_ok(problems.is_empty(), "all seed defs valid: %s" % str(problems))
 
@@ -116,23 +116,16 @@ func _test_resolver(duel: DuelController) -> void:
 	_ok(rp.ok, "power resolves ok: %s" % rp.reason)
 	_ok(duel._reward_system.run_power_bonus == before_power + 2, "power +2")
 
-	# free_reroll
-	var def_f = load("res://resources/rewards/defs/seed_lucky_afterglow.tres")
-	composer.reset_reroll_state(false)
-	var rf = resolver.resolve(def_f)
-	_ok(rf.ok, "free_reroll resolves ok")
-	_ok(composer.free_rerolls_remaining == 1, "free reroll granted")
-
 
 func _test_reroll(duel: DuelController) -> void:
 	duel._reward_system.build_loot_offer("normal", 1, {"growth_only": true})
+	duel.gold = 50   # 付费重抽需 5 金，初始 4 金不足；测试先补足
 	var gold_before: int = duel.gold
-	# 手动授予一次免费重抽
-	duel._reward_system._draft_composer.free_rerolls_remaining = 1
 	var v: Dictionary = duel._reward_system.reroll_loot_offer()
 	_ok(bool(v.get("ok", false)), "reroll ok")
-	_ok(duel.gold == gold_before, "free reroll did not deduct gold")
-	_ok(int(v.get("reroll_paid", -1)) == 0, "reroll_paid 0 for free")
+	# 无免费重抽来源，重抽应正常扣费
+	_ok(duel.gold < gold_before, "paid reroll deducts gold")
+	_ok(int(v.get("reroll_paid", -1)) > 0, "reroll_paid > 0 for paid")
 
 
 func _test_telemetry(duel: DuelController) -> void:

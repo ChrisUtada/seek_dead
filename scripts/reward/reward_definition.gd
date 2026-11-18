@@ -27,7 +27,7 @@ extends Resource
 @export var base_value: float = 1.0              # 设计基准价值（供 Draft 评分，≠效果数值）
 
 # 效果列表：每项 {"effect_id": String, "params": Dictionary}
-# effect_id 取值见契约 §1：heal / shield_next_battle / run_power_bonus / flame_affinity / free_reroll
+# effect_id 取值：heal / shield_next_battle / run_power_bonus / flame_affinity（原 free_reroll 卡已删除）
 @export var effects: Array[Dictionary] = []
 
 @export var stack_rule: StackRule = StackRule.NONE
@@ -77,7 +77,7 @@ func validate() -> Array[String]:
 	return errors
 
 
-# 首个效果 id（当前 5 张种子卡均为单效果，便于 Resolver 分发）。
+# 首个效果 id（当前 4 张种子卡均为单效果，便于 Resolver 分发）。
 # 多效果卡由 Resolver 遍历 effects 逐个分发。
 func first_effect_id() -> String:
 	if effects.is_empty():

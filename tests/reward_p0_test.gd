@@ -95,22 +95,15 @@ func _test_registry() -> void:
 
 func _test_composer() -> void:
 	var c := DraftComposer.new(12345)
-	# 初次：无免费卡 → 付费
-	c.reset_reroll_state(false)
-	var r1 := c.request_reroll()
-	_ok(r1.get("free") == false, "no free reward -> paid reroll")
-	_ok(int(r1.get("cost", 0)) == 5, "first paid cost 5")
-	var r2 := c.request_reroll()
-	_ok(int(r2.get("cost", 0)) == 10, "paid cost increments")
-
-	# 有免费卡：首次免费，不扣费，不累积
-	c.reset_reroll_state(true)
-	_ok(c.free_rerolls_remaining == 1, "free reroll initialized")
-	var f1 := c.request_reroll()
-	_ok(f1.get("free") == true and int(f1.get("cost", 0)) == 0, "free reroll no cost")
-	var f2 := c.request_reroll()
-	_ok(f2.get("free") == false, "free reroll not accumulate")
-	_ok(c.paid_rerolls_used == 1, "free reroll does not touch paid count")
+	# 付费重抽递增：首次 5，之后每次 +5
+	c.reset_reroll_state()
+	_ok(c.paid_reroll_cost == 5, "first paid cost 5")
+	c.note_paid_reroll()
+	_ok(c.paid_reroll_cost == 10, "paid cost increments to 10")
+	c.note_paid_reroll()
+	_ok(c.paid_reroll_cost == 15, "paid cost increments to 15")
+	c.reset_reroll_state()
+	_ok(c.paid_reroll_cost == 5, "reset restores cost to 5")
 
 
 func _test_evaluator() -> void:
@@ -188,7 +181,7 @@ func _test_p1_evaluator_extras() -> void:
 
 
 func _test_p1_composer_sampling() -> void:
-	# P2 起 defs 已有 5 张种子卡，compose 应返回 3 张有效卡
+	# P2 起 defs 已有 4 张种子卡，compose 应返回 3 张有效卡
 	var c := DraftComposer.new(999)
 	var snap := RunSnapshot.new()
 	snap.survival = {"current_hp": 50, "max_hp": 100, "hp_ratio": 0.5}

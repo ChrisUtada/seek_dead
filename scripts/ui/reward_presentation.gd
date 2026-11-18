@@ -62,7 +62,6 @@ static func _glyph(effect_id: String) -> String:
 		"shield_next_battle": return "🛡"
 		"run_power_bonus": return "⚔"
 		"flame_affinity": return "🔥"
-		"free_reroll": return "🎲"
 		_: return "🎁"
 
 
@@ -83,7 +82,6 @@ static func _result_text(def: RewardDefinition, params: Dictionary) -> String:
 		"shield_next_battle": return "下战护盾 +%d" % int(params.get("amount", 10))
 		"run_power_bonus": return "本局伤害 +%d" % int(params.get("amount", 2))
 		"flame_affinity": return "火焰构筑 +%d" % int(params.get("amount", 1))
-		"free_reroll": return "免费重抽 +1"
 		_: return def.name
 
 
@@ -93,5 +91,4 @@ static func _condition_text(def: RewardDefinition) -> String:
 		"shield_next_battle": return "下一战生效"
 		"run_power_bonus": return "本局生效"
 		"flame_affinity": return "本局构筑"
-		"free_reroll": return "本次奖励界面"
 		_: return ""

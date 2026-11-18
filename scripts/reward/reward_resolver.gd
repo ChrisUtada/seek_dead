@@ -8,11 +8,12 @@ extends RefCounted
 # - 必须返回 RewardApplyResult（成功/失败/摘要/原因），禁止"卡消失但效果没执行"。
 # - 不依赖旧抽选器（LootOffer/GrowthLootOffer），只依赖旧结算接口。
 #
-# P0 范围：5 个 effect_id 的分发骨架。三个复用项接到真实结算入口；
-# 两个新效果（flame_affinity/free_reroll）先写状态登记，P1/P3 接入实际系统。
+# 当前 4 张种子卡的 effect_id 分发：三个复用项（heal/shield/power）委托现有结算，
+# 一个新效果（flame_affinity）写本局构筑状态。
+# 原第 5 张「幸运余波」已删除：免费重抽不产生构筑价值，且与战斗内重转消耗品重复。
 
 var _ctrl: DuelController
-var _draft_composer: DraftComposer = null   # free_reroll 需要访问重抽状态
+var _draft_composer: DraftComposer = null   # 预留：未来需要访问 Draft 状态的奖励
 
 
 func _init(ctrl: DuelController) -> void:
@@ -31,7 +32,7 @@ func resolve(reward: RewardDefinition) -> DraftResult.RewardApplyResult:
 	if not errors.is_empty():
 		return DraftResult.RewardApplyResult.failure(reward.id, reward.first_effect_id(), "invalid_definition:" + str(errors))
 
-	# 多效果卡：逐个分发，任一失败即整体失败（P0 的 5 张卡均为单效果）
+	# 多效果卡：逐个分发，任一失败即整体失败（当前 4 张种子卡均为单效果）
 	var last: DraftResult.RewardApplyResult = null
 	for effect in reward.effects:
 		var eid := String(effect.get("effect_id", ""))
@@ -52,8 +53,6 @@ func _dispatch(reward_id: String, effect_id: String, params: Dictionary) -> Draf
 			return _apply_existing_power(reward_id, params)
 		"flame_affinity":
 			return _apply_flame_affinity(reward_id, params)
-		"free_reroll":
-			return _apply_free_reroll(reward_id, params)
 		_:
 			return DraftResult.RewardApplyResult.failure(reward_id, effect_id, "unknown_effect_id")
 
@@ -120,12 +119,3 @@ func _apply_flame_affinity(reward_id: String, params: Dictionary) -> DraftResult
 	r.state_updates["element_affinity"] = _ctrl.element_affinity.duplicate(true)
 	return r
 
-
-func _apply_free_reroll(reward_id: String, params: Dictionary) -> DraftResult.RewardApplyResult:
-	# P0：增加免费重抽次数（契约 §2：每次新 Draft 上限 1，不累积）。
-	if _draft_composer == null:
-		return DraftResult.RewardApplyResult.failure(reward_id, "free_reroll", "composer_not_bound")
-	_draft_composer.free_rerolls_remaining = mini(1, _draft_composer.free_rerolls_remaining + 1)
-	var r := DraftResult.RewardApplyResult.success(reward_id, "free_reroll", "免费重抽 +1")
-	r.state_updates["free_rerolls_remaining"] = _draft_composer.free_rerolls_remaining
-	return r
