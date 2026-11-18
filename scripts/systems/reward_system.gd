@@ -337,6 +337,22 @@ func roll_shop_ladder(act: int, opts: Dictionary = {}) -> Array:
 # ---------------------------------------------------------------------------
 # Step 4：同层三选一（生成 / 冻结 / 重抽 / 跳过）
 # ---------------------------------------------------------------------------
+# 升级待选技艺 → 动态构造 Draft 卡（effect_id=pick_perk，选中时走 growth.pick）。
+# 技艺是运行时状态相关的奖励（pending_picks>0 才出现），不做静态 .tres 污染常驻卡池。
+func _make_perk_def(c: Dictionary) -> RewardDefinition:
+	var def := RewardDefinition.new()
+	var perk_id := String(c.get("id", ""))
+	def.id = "perk_" + perk_id
+	def.name = String(c.get("name", perk_id))
+	def.desc = String(c.get("desc", ""))
+	def.rarity = "uncommon"
+	def.base_weight = 1.0
+	def.base_value = 2.0
+	def.tags = ["growth.perk", "perk." + String(c.get("family", "")), "discovery.perk"]
+	def.effects = [{"effect_id": "pick_perk", "params": {"id": perk_id}}]
+	return def
+
+
 # 重抽沿用同一品质层；每组首次 5 金，之后每次 +5 金。跳过免费且不发奖励。
 func build_loot_offer(source: String, act: int, opts: Dictionary = {}, forced_quality: String = "") -> Dictionary:
 	_loot_settled = false
@@ -345,7 +361,13 @@ func build_loot_offer(source: String, act: int, opts: Dictionary = {}, forced_qu
 		# P2 新路径：普通/精英战后成长走 Draft 引擎
 		var snap = RunStateAnalyzer.capture(_ctrl)
 		_draft_composer.reset_reroll_state()
-		_draft_result = _draft_composer.compose(snap, 3, draft_debug)
+		# 有待选技艺时注入技艺卡（升级 Lv.2/4/6 的奖励），保证至少一张进候选
+		var extra: Array = []
+		var growth = _ctrl.growth
+		if growth != null and growth.pending_picks > 0:
+			for c in growth.roll_choices():
+				extra.append(_make_perk_def(c))
+		_draft_result = _draft_composer.compose(snap, 3, draft_debug, extra)
 		_draft_active = true
 		_loot_view = RewardPresentation.draft_to_view(_draft_result, LootSourceTable.source_label(source))
 		# 重抽费用走 composer 的付费递增档（5 + 5×次数）

@@ -53,6 +53,8 @@ func _dispatch(reward_id: String, effect_id: String, params: Dictionary) -> Draf
 			return _apply_existing_power(reward_id, params)
 		"flame_affinity":
 			return _apply_flame_affinity(reward_id, params)
+		"pick_perk":
+			return _apply_pick_perk(reward_id, params)
 		_:
 			return DraftResult.RewardApplyResult.failure(reward_id, effect_id, "unknown_effect_id")
 
@@ -107,6 +109,21 @@ func _apply_existing_power(reward_id: String, params: Dictionary) -> DraftResult
 
 
 # ===== 新效果（P0 状态登记，P1/P3 接入实际系统） =====
+
+func _apply_pick_perk(reward_id: String, params: Dictionary) -> DraftResult.RewardApplyResult:
+	# 技艺卡：选中时兑现升级待选（pick 会校验 pending_picks>0 并扣减）。
+	# 若 pending_picks 已为 0（如重复结算），返回失败，避免卡消失但技艺没学到。
+	var perk_id := String(params.get("id", ""))
+	if perk_id.is_empty():
+		return DraftResult.RewardApplyResult.failure(reward_id, "pick_perk", "invalid_perk_id")
+	if _ctrl.growth == null:
+		return DraftResult.RewardApplyResult.failure(reward_id, "pick_perk", "growth_missing")
+	if not _ctrl.growth.pick(perk_id):
+		return DraftResult.RewardApplyResult.failure(reward_id, "pick_perk", "perk_not_available")
+	var r := DraftResult.RewardApplyResult.success(reward_id, "pick_perk", "习得技艺「%s」" % _ctrl.growth.perk_name(perk_id))
+	r.state_updates["perk_id"] = perk_id
+	return r
+
 
 func _apply_flame_affinity(reward_id: String, params: Dictionary) -> DraftResult.RewardApplyResult:
 	# P3：写入本局元素构筑计数，RunStateAnalyzer 下次 capture 时据此推导 element.fire/build.fire

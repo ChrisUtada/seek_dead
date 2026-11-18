@@ -60,6 +60,7 @@ func _run() -> void:
 	_test_telemetry(duel)
 	_test_old_path(duel)
 	_test_p3_build_state(duel)
+	_test_perk_in_draft(duel)
 	_test_p4_events(duel)
 	_test_p4_explain(duel)
 
@@ -189,6 +190,29 @@ func _test_p3_build_state(duel: DuelController) -> void:
 	duel.element_affinity.clear()
 	duel.selected_loadout.clear()
 	duel._build_pool(duel.selected_loadout)
+
+
+func _test_perk_in_draft(duel: DuelController) -> void:
+	# 升级待选技艺应注入 Draft，选中后兑现（修复 P0-P4 遗留的技艺选不到问题）
+	duel.growth.reset_run()
+	duel.growth.pending_picks = 1
+	var view: Dictionary = duel._reward_system.build_loot_offer("normal", 1, {"growth_only": true})
+	var opts: Array = view.get("options", [])
+	var perk_idx := -1
+	for i in range(opts.size()):
+		if String(opts[i].get("id", "")).begins_with("perk_"):
+			perk_idx = i
+			break
+	_ok(perk_idx >= 0, "perk card injected when pending_picks>0")
+	if perk_idx < 0:
+		duel.growth.reset_run()
+		return
+	var def = duel._reward_system._draft_result.rewards[perk_idx]
+	var res = duel._reward_system._draft_resolver.resolve(def)
+	_ok(res.ok, "perk card resolves ok: %s" % res.reason)
+	_ok(duel.growth.pending_picks == 0, "perk pick consumes pending_picks")
+	_ok(duel.growth.perk_ids.size() == 1, "perk learned")
+	duel.growth.reset_run()
 
 
 func _test_p4_events(duel: DuelController) -> void:

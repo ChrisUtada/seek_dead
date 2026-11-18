@@ -52,14 +52,18 @@ func _init(seed_value: int = -1) -> void:
 # ---------------------------------------------------------------------------
 
 # 生成一组 Draft（count 张）。重抽时调 compose 但不 reset（重抽状态由调用方管）。
-func compose(snap: RunSnapshot, count: int = 3, debug: bool = false) -> DraftResult:
+func compose(snap: RunSnapshot, count: int = 3, debug: bool = false, extra_defs: Array = []) -> DraftResult:
 	var pool := RewardRegistry.load_valid()
 	var eligible := _eligible(pool, snap)
+	# 额外候选（如 pending_picks>0 时注入的技艺卡）并入池
+	for ed in extra_defs:
+		if ed is RewardDefinition and not eligible.has(ed):
+			eligible.append(ed)
 	if eligible.is_empty():
 		return _fallback(snap, count, "empty_eligible")
 
 	# 采样只看稀有度，不看情境评分；评分仅在 debug 下计算用于展示
-	var picked := _compose_samples(eligible, snap, count)
+	var picked := _compose_samples(eligible, snap, count, extra_defs)
 	if picked.size() < count:
 		var fb := _fallback(snap, count - picked.size(), "insufficient_candidates")
 		picked.append_array(fb.rewards)
@@ -152,11 +156,28 @@ func _passes_eligibility_rule(def: RewardDefinition, snap: RunSnapshot) -> bool:
 
 
 # 核心：采样多组 → 组合评分 → 带权抽一组。权重全来自稀有度，不用情境评分。
-func _compose_samples(eligible: Array, snap: RunSnapshot, count: int) -> Array[RewardDefinition]:
+# extra_defs 非空时保证至少 1 张进入最终候选（如待选技艺必须给玩家选择机会）。
+func _compose_samples(eligible: Array, snap: RunSnapshot, count: int, extra_defs: Array = []) -> Array[RewardDefinition]:
 	var best: Array[RewardDefinition] = []
 
 	for sample_i in range(DRAFT_SAMPLES):
 		var group := _sample_group(eligible, count)
+		if not extra_defs.is_empty() and count > 0:
+			var has_extra := false
+			for d in group:
+				if extra_defs.has(d):
+					has_extra = true
+					break
+			if not has_extra:
+				# 强制把一张额外候选换进组（随机选一张 extra，替换组里最后一张非 extra）
+				var chosen_extra: RewardDefinition = extra_defs[_rng.randi() % extra_defs.size()]
+				var replace_idx := -1
+				for i in range(group.size() - 1, -1, -1):
+					if not extra_defs.has(group[i]):
+						replace_idx = i
+						break
+				if replace_idx >= 0:
+					group[replace_idx] = chosen_extra
 		if group.size() < count:
 			continue
 		var gs := _draft_score(group)

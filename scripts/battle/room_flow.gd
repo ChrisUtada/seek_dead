@@ -260,9 +260,12 @@ func _auto_settle_loot(prefer: Array = [], want_growth_id: String = "") -> void:
 	if prefer.has("growth"):
 		for i in range(opts.size()):
 			var o: Dictionary = opts[i]
-			if String(o.get("kind", "")) != "queued_growth":
+			# 新 Draft 路径：技艺卡的 id 以 "perk_" 开头；旧路径：queued_growth
+			var is_perk := String(o.get("id", "")).begins_with("perk_")
+			var is_queued := String(o.get("kind", "")) == "queued_growth"
+			if not is_perk and not is_queued:
 				continue
-			if want_growth_id != "" and String(o.get("growth_entry", {}).get("growth_id", "")) != want_growth_id:
+			if want_growth_id != "" and String(o.get("id", o.get("growth_entry", {}).get("growth_id", ""))) != want_growth_id:
 				continue
 			_ctrl._on_loot_offer_chosen(i)
 			return
