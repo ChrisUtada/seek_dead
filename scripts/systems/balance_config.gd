@@ -16,8 +16,8 @@ extends Resource
 # —— 难度曲线（ante）：幕间台阶 × 幕内爬升 ——
 @export var ante_act_step_hp: float = 1.75    # 每进一幕敌方 HP ×
 @export var ante_act_step_atk: float = 1.30   # 每进一幕敌方 ATK ×（与 balance_config.tres 实际值一致）
-@export var ante_room_step_hp: float = 1.15   # 同幕每过一房敌方 HP ×
-@export var ante_room_step_atk: float = 1.06  # 同幕每过一房敌方 ATK ×（与 balance_config.tres 实际值一致）
+@export var ante_room_step_hp: float = 1.08   # 同幕每过一房敌方 HP ×（L3 P2：1.15→1.08，压平指数曲线）
+@export var ante_room_step_atk: float = 1.04  # 同幕每过一房敌方 ATK ×（L3 P2：1.06→1.04；与 balance_config.tres 实际值一致）
 
 # —— 伤害基准 ——
 @export var player_dmg_mult: float = 1.0      # 玩家直击总伤害全局倍率（2026-11-18 标定：1.5 时小怪77%一回合秒；降至1.0 后普通怪1.8回合/精英2.8/BOSS7.3，通关率6/6→4/6）
