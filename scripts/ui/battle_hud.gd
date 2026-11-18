@@ -762,6 +762,8 @@ func _show_reward_screen(is_boss: bool) -> void:
 	if not is_boss:
 		controller.room_flow.begin_post_battle()
 		return
+	# L3 §6.6：BOSS 先结算收益+生成战果快照，再开战利品屏同屏展示。
+	controller.room_flow.prepare_boss_summary()
 	reward_screen.show_screen(true)
 
 

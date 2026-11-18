@@ -27,6 +27,7 @@ const UI_BUTTON = preload("res://scenes/ui/ui_button.tscn")
 var _skip_btn: Button = null
 var _reroll_btn: Button = null
 var _mode := ""
+var _battle_summary_label: Label = null   # L3 §6.6：本场战果栏（三选一顶部，只读）
 
 func configure(ctrl, h: BattleHud) -> void:
 	controller = ctrl
@@ -34,6 +35,15 @@ func configure(ctrl, h: BattleHud) -> void:
 	dimmer.color = Palette.BG_OVERLAY
 	sub_label.text = "选择一项（跳过则不取）"
 	sub_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	# L3 §6.6：在 SubLabel 上方插一条「本场战果」栏（只读，零额外点击）
+	_battle_summary_label = Label.new()
+	_battle_summary_label.name = "BattleSummary"
+	_battle_summary_label.add_theme_font_size_override("font_size", 9)
+	_battle_summary_label.add_theme_color_override("font_color", Palette.ACCENT_GOLD)
+	_battle_summary_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	var content: VBoxContainer = sub_label.get_parent()
+	content.add_child(_battle_summary_label)
+	content.move_child(_battle_summary_label, sub_label.get_index())
 	var sp = Control.new()
 	sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bot.add_child(sp)
@@ -48,6 +58,21 @@ func configure(ctrl, h: BattleHud) -> void:
 	_skip_btn.custom_minimum_size = Vector2(96, 30)
 	_skip_btn.pressed.connect(_on_skip_pressed)
 	bot.add_child(_skip_btn)
+
+
+# L3 §6.6：从 room_flow 的战果快照刷新顶部战果栏（只读，不增加任何点击）。
+func _refresh_battle_summary() -> void:
+	if _battle_summary_label == null:
+		return
+	var rf = controller.room_flow if controller != null else null
+	var s: Dictionary = rf.last_battle_summary if rf != null and "last_battle_summary" in rf else {}
+	if s.is_empty():
+		_battle_summary_label.visible = false
+		return
+	_battle_summary_label.visible = true
+	var is_boss: bool = bool(s.get("is_boss", false))
+	var prefix: String = "★ BOSS 战果  " if is_boss else "本场战果  "
+	_battle_summary_label.text = prefix + String(s.get("text", ""))
 
 
 # 跳过按钮按当前模式分发：战利品 = 免费且零收益；成长 = 保留到下次；其余 = 旧跳过。
@@ -100,6 +125,7 @@ func show_screen(is_boss: bool) -> void:
 		title_label.text = "胜利！选一项奖励"
 		for i in range(choices.size()):
 			reward_grid.add_child(hud._make_reward_card(choices[i], i))
+	_refresh_battle_summary()
 	visible = true
 
 
@@ -120,6 +146,7 @@ func show_post_battle(offer: Array, summary: String) -> void:
 				String(cand.get("slot_label", ""))))
 		else:
 			reward_grid.add_child(hud._make_post_growth_card(cand))
+	_refresh_battle_summary()
 	visible = true
 
 
@@ -146,6 +173,7 @@ func show_loot_offer(view: Dictionary) -> void:
 			else "同层三选一：三项品质相同，按用途与当前 Build 选择"
 	_refresh_loot_actions(view)
 	_fill_loot_options(view)
+	_refresh_battle_summary()
 	visible = true
 
 

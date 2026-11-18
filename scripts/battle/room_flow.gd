@@ -15,6 +15,10 @@ func _init(ctrl) -> void:
 # 普通 / 精英胜利 → 结算历练/熟练并生成成长三选一；选一项、付费重抽或免费跳过。
 # 任意结算后清空本次未选成长，不进入下一战；BOSS 未选成长采用同一清空规则。
 var post_battle_active := false
+
+# L3 §6.6：本场战果快照（胜利结算后生成，供三选一界面同屏展示；零额外点击）
+var last_battle_summary: Dictionary = {}
+var _summary_before: Dictionary = {}
 var _post_offer: Array = []       # 本次胜利可用的成长候选（0 或 1 项，展示前冻结）
 var _phase := ""                  # "" | "loot" | "growth"
 var _loot_view: Dictionary = {}
@@ -44,7 +48,12 @@ func begin_post_battle() -> void:
 	if post_battle_active:
 		return
 	post_battle_active = true
+	# L3 §6.6：先结算再开三选一——本场战果在三选一打开时已全部确定，供界面同屏展示。
+	# 原本 _award_victory 在 finish_room（选完之后）才发，改到这里提前发，确保战果栏数字准确。
+	_snapshot_before()
 	_settle_victory()
+	_award_victory(false)   # 铁砧/金币/掉落提前结算（原在 finish_room）
+	_finish_battle_summary(false)
 	_grant_elite_trim()
 	# 成长候选先冻结：战利品阶段的 post_battle_has_growth() 仍要能回答「本房有没有真实成长」。
 	_post_offer = _growth_candidates()
@@ -151,7 +160,7 @@ func finish_room(apply_fn: Callable, is_boss: bool) -> void:
 	_ctrl._post_battle.clear_pending_choices()
 	if apply_fn.is_valid():
 		apply_fn.call()
-	_award_victory(is_boss)
+	# L3 §6.6：_award_victory 已提前（普通战在 begin_post_battle / BOSS 在 prepare_boss_summary），此处不再重复。
 	_after_victory()
 
 
@@ -166,7 +175,7 @@ func _finish_post_battle(apply_fn: Callable) -> void:
 	_ctrl.hud.hide_reward_screen()
 	if apply_fn.is_valid():
 		apply_fn.call()
-	_award_victory(false)
+	# L3 §6.6：_award_victory(false) 已提前到 begin_post_battle，此处不再重复结算。
 	_after_victory()
 
 
@@ -191,6 +200,60 @@ func _award_victory(is_boss: bool) -> void:
 		_ctrl._career.on_boss_cleared()        # G6-01：BOSS 通关 → 一次性生涯成就（只记录，不发属性）
 	if is_boss and _ctrl._codex != null:
 		_ctrl._codex.record_run(_ctrl.mastery)   # G6-04：记录本局武器最高熟练与铭印组合
+
+
+# ===== L3 §6.6 战果快照（before/after 差值，不改任何结算逻辑）=====
+# BOSS 战入口：三选一打开前调用——提前结算收益并生成战果快照（普通战在 begin_post_battle 内）。
+func prepare_boss_summary() -> void:
+	_snapshot_before()
+	_settle_victory()
+	_award_victory(true)
+	_finish_battle_summary(true)
+
+
+func _snapshot_before() -> void:
+	_summary_before = {
+		"gold": int(_ctrl.gold),
+		"anvil": int(_ctrl.meta.get("anvil_points", 0)),
+		"level": int(_ctrl.growth.level),
+		"xp": int(_ctrl.growth.xp),
+		"charms": _ctrl.selected_charms.duplicate(),
+		"consumables": [],
+	}
+	for slot in _ctrl.consumable_slots:
+		_summary_before["consumables"].append(String(slot.get("path", "")))
+
+
+func _finish_battle_summary(is_boss: bool) -> void:
+	var d_gold: int = int(_ctrl.gold) - int(_summary_before.get("gold", 0))
+	var d_anvil: int = int(_ctrl.meta.get("anvil_points", 0)) - int(_summary_before.get("anvil", 0))
+	var d_level: int = int(_ctrl.growth.level) - int(_summary_before.get("level", 1))
+	var d_xp: int = int(_ctrl.growth.xp) - int(_summary_before.get("xp", 0))
+	# 掉落：护符/消耗品的集合差（本场新入账的）
+	var drops: Array[String] = []
+	var before_charms: Array = _summary_before.get("charms", [])
+	for p in _ctrl.selected_charms:
+		if not before_charms.has(p):
+			drops.append("护符")
+	var before_cons: Array = _summary_before.get("consumables", [])
+	var now_cons: Array[String] = []
+	for slot in _ctrl.consumable_slots:
+		now_cons.append(String(slot.get("path", "")))
+	for p in now_cons:
+		if not before_cons.has(p):
+			drops.append("消耗品")
+	var drop_txt: String = "、".join(drops) if not drops.is_empty() else "无"
+	last_battle_summary = {
+		"gold": d_gold,
+		"anvil": d_anvil,
+		"level": d_level,
+		"xp": d_xp,
+		"mastery": "本场武器熟练已结算",   # 熟练按本房有效结算，无单一增量字段
+		"drops": drop_txt,
+		"is_boss": is_boss,
+		"text": "金币 +%d · 历练 Lv%d · 熟练已计 · 铁砧 +%d · 掉落 %s" % [
+			d_gold, _ctrl.growth.level, d_anvil, drop_txt],
+	}
 
 
 func _after_victory() -> void:
