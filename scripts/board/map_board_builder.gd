@@ -131,6 +131,153 @@ func build(act: int, seed_value: int, total_acts: int = 1) -> Dictionary:
 	}
 
 
+# ---------------------------------------------------------------------------
+# 分岔路线图（经典 roguelike DAG）：替代 14×9 网格拓扑。
+# 只换拓扑层；节点内容生成 / 房间分配 / 结算字段全部复用本文件既有辅助函数。
+# 结构：7 层（起点 → 5 中间层 × 2-3 候选 → BOSS 汇聚），连线只连相邻层。
+# ---------------------------------------------------------------------------
+
+# 每层的候选类型池（经典风险收益节奏）。每层从中随机取 2-3 个不重复类型。
+const BRANCH_LAYERS := {
+	1: ["battle", "chest", "battle"],
+	2: ["battle", "elite", "event"],
+	3: ["shop", "armory", "event"],
+	4: ["rest", "elite", "battle"],
+	5: ["battle", "chest", "rest"],
+}
+
+const BOSS_LAYER := 6
+
+
+# 生成一张分岔图。返回结构对齐 build()（board_system / map_runtime 消费者零改）。
+func build_branch(act: int, seed_value: int, total_acts: int = 1) -> Dictionary:
+	total_acts = normalized_acts(total_acts)
+	_rng.seed = seed_value
+	var nodes: Array = []
+	var by_id: Dictionary = {}
+	var layer_of: Dictionary = {}
+
+	# 层0：起点
+	var start := NODE.make("b0_0", TYPES.START, 0)
+	start["act"] = act
+	start["next"] = []
+	start["frozen"] = true
+	start["revealed"] = true
+	start["visible"] = true
+	start["distance"] = 0
+	start["source"] = "start"
+	start["icon"] = "🚩"
+	start["title"] = "起点"
+	start["desc"] = "本幕起点，无结算"
+	nodes.append(start)
+	by_id[start.id] = start
+	layer_of[start.id] = 0
+
+	# 层1-5：候选节点
+	for layer in range(1, BOSS_LAYER):
+		var pool: Array = BRANCH_LAYERS.get(layer, ["battle"]).duplicate()
+		_shuffle(pool)
+		var count: int = mini(3, pool.size())
+		for i in range(count):
+			var type: String = String(pool[i])
+			var id: String = "b%d_%d" % [layer, i]
+			var n := NODE.make(id, TYPES.legacy_of(type) if TYPES.is_registered(type) else "normal", layer)
+			n["type"] = type
+			n["legacy_type"] = TYPES.legacy_of(type)
+			n["act"] = act
+			n["next"] = []
+			n["frozen"] = true
+			n["revealed"] = true
+			n["visible"] = true
+			n["distance"] = layer
+			n["source"] = TYPES.source_of(type)
+			n["final"] = false
+			n["icon"] = TYPES.icon_of(type)
+			n["title"] = TYPES.label_of(type)
+			n["desc"] = "%s · 来源 %s" % [TYPES.label_of(type), TYPES.source_of(type)]
+			nodes.append(n)
+			by_id[id] = n
+			layer_of[id] = layer
+
+	# 层6：BOSS 汇聚（4 选 1 随机，复用 controller 的 pick_boss）
+	var boss_id: String = "b%d_0" % BOSS_LAYER
+	var boss_node := NODE.make(boss_id, "boss", BOSS_LAYER)
+	boss_node["type"] = "boss"
+	boss_node["legacy_type"] = "boss"
+	boss_node["act"] = act
+	boss_node["next"] = []
+	boss_node["frozen"] = true
+	boss_node["revealed"] = true
+	boss_node["visible"] = true
+	boss_node["distance"] = BOSS_LAYER
+	boss_node["source"] = "room"
+	boss_node["final"] = (act >= total_acts)
+	boss_node["icon"] = "👑"
+	boss_node["title"] = "BOSS"
+	boss_node["desc"] = "本幕首领（提前公开，可针对性构筑）"
+	nodes.append(boss_node)
+	by_id[boss_id] = boss_node
+	layer_of[boss_id] = BOSS_LAYER
+
+	# 第二遍：统一连边（此时所有层的节点都已存在）→ 每个节点连下一层全部候选，全连通无死路
+	for n in nodes:
+		var layer: int = int(layer_of[n.id])
+		n["next"] = _ids_in_layer(layer_of, layer + 1) if layer < BOSS_LAYER else []
+
+	_assign_rooms(nodes, act, total_acts)
+
+	# BOSS 房间必须在 _assign_rooms 之后定：最后一幕强制 final_boss，否则 4 选 1 随机。
+	# 这样"提前公开的 BOSS"由 pick_boss 决定，与线性模式同一套加权随机（总纲 §3.5）。
+	if total_acts > 1 and act >= total_acts:
+		var fin: RoomData = _final_room()
+		if fin != null:
+			boss_node["room"] = fin
+			boss_node["title"] = String(fin.name)
+	else:
+		var candidates: Array = _pool(act, "boss")
+		var picked: RoomData = _ctrl._pick_boss(candidates) if candidates.size() > 0 else _preferred_room(act, "boss")
+		if picked != null:
+			boss_node["room"] = picked
+			boss_node["title"] = String(picked.name)
+	boss_node["ria"] = 7
+
+	var used: Dictionary = {}
+	for n in nodes:
+		if TYPES.is_registered(String(n["type"])):
+			TYPES.fill_explore_fields(n, _ctrl, act, _rng, used)
+	var battle_rooms: Array = []
+	for n in nodes:
+		if not TYPES.is_battle(String(n["type"])):
+			continue
+		n["battle_index"] = battle_rooms.size()
+		battle_rooms.append(n["room"])
+
+	return {
+		"nodes": nodes,
+		"by_id": by_id,
+		"start_id": start.id,
+		"boss_id": boss_id,
+		"battle_rooms": battle_rooms,
+		"grid": {},              # 分岔图无网格；消费者若读 grid 只会拿到空
+		"patrols": [],           # 分岔图无巡逻怪
+		"branch": true,          # 标记新拓扑，供 runtime / screen 判定
+		"cols": BRANCH_LAYERS.size(),
+		"rows": BOSS_LAYER + 1,
+		"act": act,
+		"total_acts": total_acts,
+		"seed": seed_value,
+	}
+
+
+# 取某一层的所有节点 id（按插入顺序）。
+static func _ids_in_layer(layer_of: Dictionary, layer: int) -> Array:
+	var out: Array = []
+	for id in layer_of:
+		if int(layer_of[id]) == layer:
+			out.append(id)
+	return out
+
+
 # 4 个 treasure 中固定 cell_id 最小者为武器藏库（布局稳定，不随 seed 漂移）。
 func _first_treasure_cell(contents: Dictionary) -> int:
 	var best := -1
