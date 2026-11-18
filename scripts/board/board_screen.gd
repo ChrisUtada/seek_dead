@@ -107,6 +107,13 @@ var _retreat_text: Label = null
 var _retreat_next_btn: Button = null
 var _retreat_stage := 0   # 0 关闭 / 1 第一次确认 / 2 第二次确认
 
+# L2 收尾：本局收集品面板（遗物栏 + 牌谱栏，只读；不读 RNG、不改状态）
+var _collect_btn: Button = null
+var _collect_layer: Control = null
+var _collect_content: VBoxContainer = null   # 当前页内容容器（切页时重建）
+var _collect_tab := "relic"                 # "relic" / "sig"
+var _collect_tab_btns: Dictionary = {}
+
 
 func configure(ctrl, h) -> void:
 	controller = ctrl
@@ -195,6 +202,18 @@ func _build_ui() -> void:
 	_retreat_btn.pressed.connect(_on_retreat_pressed)
 	sys_row.add_child(_retreat_btn)
 
+	# L2 收尾：本局收集按钮单独一行（避免三按钮挤宽右栏触发越界）
+	var collect_row := HBoxContainer.new()
+	collect_row.add_theme_constant_override("separation", 4)
+	iv.add_child(collect_row)
+	_collect_btn = UI_BUTTON.instantiate()
+	_collect_btn.custom_minimum_size = Vector2(66, 14)
+	_collect_btn.size = Vector2(66, 14)
+	_collect_btn.add_theme_font_size_override("font_size", 8)
+	_collect_btn.text = "本局收集"
+	_collect_btn.pressed.connect(_on_collect_pressed)
+	collect_row.add_child(_collect_btn)
+
 	# 玩家标记叠在地图之上。
 	_piece = TextureRect.new()
 	_piece.texture = PIECE_ICON
@@ -206,6 +225,7 @@ func _build_ui() -> void:
 
 	_build_confirm_layer()
 	_build_view_layer()
+	_build_collect_layer()   # L2 收尾：本局收集品面板
 	_build_retreat_layer()
 
 
@@ -350,6 +370,148 @@ func _build_view_layer() -> void:
 	crow.alignment = BoxContainer.ALIGNMENT_CENTER
 	crow.add_child(close)
 	vb.add_child(crow)
+
+
+# L2 收尾：本局收集品面板（遗物 + 签名牌谱，只读覆盖层，不读 RNG/不改状态）
+func _build_collect_layer() -> void:
+	_collect_layer = Control.new()
+	_collect_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_collect_layer.visible = false
+	add_child(_collect_layer)
+
+	var dim := ColorRect.new()
+	dim.color = Color(0, 0, 0, 0.6)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_collect_layer.add_child(dim)
+
+	var panel := PanelContainer.new()
+	panel.position = Vector2(30, 16)
+	panel.size = Vector2(420, 238)
+	panel.custom_minimum_size = Vector2(420, 238)
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Palette.PANEL_BG
+	sb.border_color = Palette.ACCENT_GOLD   # 金色框：收集品纪念感
+	sb.set_border_width_all(2)
+	panel.add_theme_stylebox_override("panel", sb)
+	_collect_layer.add_child(panel)
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 10)
+	margin.add_theme_constant_override("margin_right", 10)
+	margin.add_theme_constant_override("margin_top", 8)
+	margin.add_theme_constant_override("margin_bottom", 8)
+	panel.add_child(margin)
+
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 4)
+	margin.add_child(vb)
+	vb.add_child(_label("本局收集（只读）", 10, Palette.ACCENT_GOLD))
+
+	# 页签：遗物 / 牌谱
+	var tabs := HBoxContainer.new()
+	tabs.add_theme_constant_override("separation", 4)
+	for tab in ["relic", "sig"]:
+		var b := UI_BUTTON.instantiate()
+		b.custom_minimum_size = Vector2(80, 16)
+		b.size = Vector2(80, 16)
+		b.add_theme_font_size_override("font_size", 8)
+		b.pressed.connect(_on_collect_tab.bind(String(tab)))
+		tabs.add_child(b)
+		_collect_tab_btns[String(tab)] = b
+	vb.add_child(tabs)
+
+	var scroll := ScrollContainer.new()
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	vb.add_child(scroll)
+	_collect_content = VBoxContainer.new()
+	_collect_content.add_theme_constant_override("separation", 3)
+	_collect_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(_collect_content)
+
+	var close := UI_BUTTON.instantiate()
+	close.custom_minimum_size = Vector2(120, 24)
+	close.size = Vector2(120, 24)
+	close.text = "返回棋盘"
+	close.pressed.connect(_on_collect_closed)
+	var crow := HBoxContainer.new()
+	crow.alignment = BoxContainer.ALIGNMENT_CENTER
+	crow.add_child(close)
+	vb.add_child(crow)
+
+
+# 重建收集面板当前页内容
+func _refresh_collect_view() -> void:
+	if _collect_content == null or controller == null:
+		return
+	for c in _collect_content.get_children():
+		_collect_content.remove_child(c)
+		c.queue_free()
+	# 页签高亮
+	(_collect_tab_btns.get("relic") as Button).text = ("[遗物栏]" if _collect_tab == "relic" else "  遗物栏  ")
+	(_collect_tab_btns.get("sig") as Button).text = ("[牌谱栏]" if _collect_tab == "sig" else "  牌谱栏  ")
+
+	if _collect_tab == "relic":
+		var relics: Array = controller.run_relics if "run_relics" in controller else []
+		if relics.is_empty():
+			_collect_content.add_child(_label("本局尚未获得遗物", 9, Palette.MUTED))
+			_collect_content.add_child(_label("击败 BOSS 必得遗物，拥有即生效、不占护符槽", 8, Palette.MUTED_DIM))
+		else:
+			for p in relics:
+				var d = load(String(p))
+				var fallback := String(p).get_file().get_basename()
+				var nmv = d.get("item_name") if d != null else null
+				var nm := String(nmv) if nmv != null else fallback
+				var dv = d.get("mechanism_summary") if d != null else null
+				if dv == null or String(dv) == "":
+					dv = d.get("description") if d != null else null
+				var desc := String(dv) if dv != null else ""
+				_collect_content.add_child(_label("🏆 %s" % nm, 9, Palette.ACCENT_GOLD))
+				if desc != "":
+					var dl := _label("   %s" % desc, 8, Palette.MUTED)
+					dl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+					dl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+					_collect_content.add_child(dl)
+	else:
+		var learned: Array = controller.learned_signatures if "learned_signatures" in controller else []
+		var sigs: Array = []
+		for p in controller._pattern_system.all_patterns():
+			var tv = p.get("track")
+			if tv != null and String(tv) == "signature":
+				sigs.append(p)
+		for p in sigs:
+			var idv = p.get("id")
+			var pid := String(idv) if idv != null else ""
+			if learned.has(pid):
+				var nv = p.get("name")
+				var pname := String(nv) if nv != null else pid
+				_collect_content.add_child(_label("🗂 %s（已习得）" % pname, 9, Palette.ACCENT_GOLD))
+				var dv2 = p.get("desc")
+				var dl := _label("   %s" % (String(dv2) if dv2 != null else ""), 8, Palette.MUTED)
+				dl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+				dl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				_collect_content.add_child(dl)
+			else:
+				_collect_content.add_child(_label("🗂 ???（未习得）", 9, Palette.MUTED_DIM))
+
+
+func _on_collect_tab(tab: String) -> void:
+	_collect_tab = tab
+	_refresh_collect_view()
+
+
+func _on_collect_pressed() -> void:
+	if _collect_layer == null:
+		return
+	_collect_tab = "relic"
+	_refresh_collect_view()
+	_collect_layer.visible = true
+
+
+func _on_collect_closed() -> void:
+	if _collect_layer != null:
+		_collect_layer.visible = false
 
 
 # 撤回整备弹层：两次确认；取消不改变任何状态。
@@ -574,6 +736,7 @@ func refresh() -> void:
 	else:
 		_wait_btn.text = "等待一回合"
 	_build_btn.disabled = busy
+	_collect_btn.disabled = busy   # L2 收尾：移动/战斗中禁用收集面板
 	_retreat_btn.disabled = busy
 	_info_stats.text = "HP %d/%d · 金币 %d · 探索 %d/%d" % [
 		controller.player_hp, controller.player_hp_max, controller.gold,
@@ -694,6 +857,8 @@ func _on_retreat_confirm() -> void:
 	if _retreat_stage == 2:
 		_retreat_stage = 0
 		_retreat_layer.visible = false
+		if _collect_layer != null:
+			_collect_layer.visible = false   # 撤回整备：关掉本局收集面板
 		controller.room_flow.retreat_run()
 
 
