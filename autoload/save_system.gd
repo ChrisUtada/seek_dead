@@ -1,6 +1,7 @@
 extends Node
 
-const SAVE_PATH: String = "user://save_data.json"
+# 局内进度不落盘（经典 roguelike 惯例）：本系统仅持久化大厅 meta。
+# 旧的 save_data.json 一套 API（save_game/load_game/has_save/delete_save）无调用点，已移除。
 const LOBBY_PATH: String = "user://lobby_data.json"
 
 # 大厅存档防抖：所有 lobby 写入先落内存缓存，最多每 _LOBBY_FLUSH_INTERVAL 秒批量落盘一次，
@@ -18,37 +19,6 @@ func _process(delta: float) -> void:
 		_lobby_flush_timer -= delta
 		if _lobby_flush_timer <= 0.0:
 			_flush_lobby()
-
-func save_game(data: Dictionary) -> bool:
-	var file = FileAccess.open(SAVE_PATH, FileAccess.WRITE)
-	if not file:
-		push_error("SaveSystem: 无法打开存档文件")
-		return false
-	file.store_string(JSON.stringify(data, "\t"))
-	file.close()
-	return true
-
-func load_game() -> Dictionary:
-	if not FileAccess.file_exists(SAVE_PATH):
-		return {}
-	var file = FileAccess.open(SAVE_PATH, FileAccess.READ)
-	if not file:
-		return {}
-	var text = file.get_as_text()
-	file.close()
-	var json = JSON.new()
-	var err = json.parse(text)
-	if err != OK:
-		push_error("SaveSystem: 存档解析失败 - " + json.get_error_message())
-		return {}
-	return json.data
-
-func has_save() -> bool:
-	return FileAccess.file_exists(SAVE_PATH)
-
-func delete_save():
-	if has_save():
-		DirAccess.remove_absolute(SAVE_PATH)
 
 ## 写入大厅存档。先更新内存缓存并标记脏，实际落盘由防抖定时器批量执行；
 ## 关键节点（运行结束/退出/附魔后）应改调 flush_lobby_data() 立即落盘。

@@ -282,7 +282,7 @@ func loot_offer_card(opt: Dictionary, index: int) -> Button:
 	return card
 
 
-# 每局结束元进度三选一（仅 3 张、覆盖层空间充足，放大提升可读性）
+# 每局结束元进度结算卡（覆盖层空间充足，放大提升可读性）
 func meta_card(opt: Dictionary) -> Button:
 	var card: ItemCard = ITEM_CARD.instantiate()
 	card.custom_minimum_size = Vector2(130, 60)

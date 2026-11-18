@@ -216,9 +216,6 @@ func _choice_view(p: Dictionary) -> Dictionary:
 		"guard":
 			var shield_now: int = int(_ctrl.charm_room_shield) + int(_ctrl._reward_system.run_shield_next)
 			desc += "（每房开局护盾 %d → %d）" % [shield_now, shield_now + GUARD_SHIELD]
-		"frugal":
-			var free_now: int = _ctrl._shop_system.free_reroll_count()
-			desc += "（每房间歇免费刷新 %d → %d 次）" % [free_now, free_now + 1]
 		"reserve":
 			var charges_now := 0
 			for slot in _ctrl.consumable_slots:
@@ -288,33 +285,28 @@ func perk_name(id: String) -> String:
 	for p in PERKS:
 		if p["id"] == id:
 			return p["name"]
-	return "精打细算" if id == "frugal" else ""
+	return ""
 
 
 func perk_desc(id: String) -> String:
 	for p in PERKS:
 		if p["id"] == id:
 			return p["desc"]
-	return "每个房间间歇首次商店刷新免费" if id == "frugal" else ""
+	return ""
 
 
 func perk_family(id: String) -> String:
 	for p in PERKS:
 		if p["id"] == id:
 			return FAMILIES[p["family"]]
-	return "plan" if id == "frugal" else ""
+	return ""
 
 
-# —— 落点查询（守势 / 精打细算 / 三个命中确定性技艺）——
+# —— 落点查询（守势 / 三个命中确定性技艺）——
 
 # 守势：每房开局护盾（RoomFlow / _start_room 叠加到 player_shield）
 func room_shield() -> int:
 	return GUARD_SHIELD if has_perk("guard") else 0
-
-
-# 精打细算：每房间歇免费刷新次数（叠加在护符免费刷新之上）
-func free_reroll_bonus() -> int:
-	return 1 if has_perk("frugal") else 0
 
 
 # 落点吸附：每回合可用次数（0 = 未拥有）

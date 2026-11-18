@@ -752,7 +752,8 @@ func apply_soft_default() -> void:
 	var guard := 0
 	while c.selected_loadout.size() < c.LOADOUT_MIN and guard < 8:
 		guard += 1
-		var p := _pref_pick(c._loadout_system.owned_arr("weapon"), ["fire_sword", "holy_sword"])
+		# 偏好必须是新档就拥有的武器（holy_sword 需铁砧解锁，曾导致双轴意图落空）
+		var p := _pref_pick(c._loadout_system.owned_arr("weapon"), ["fire_sword", "ice_staff"])
 		if p == "" or c.selected_loadout.has(p):
 			p = _first_owned_not_in(c._loadout_system.owned_arr("weapon"), c.selected_loadout)
 		if p == "":

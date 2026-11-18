@@ -212,7 +212,7 @@ var room_element_mult: Dictionary = {}    # 元素精华（消耗品）：本房
 # 玩家状态
 var player_hp: int = int(BALANCE.player_hp_base)
 var player_hp_max: int = int(BALANCE.player_hp_base)
-var gold = 4                           # S6：局内金币（每局清零，见 §11）
+var gold = 4                           # S6：局内金币起始值（每局重置为本值；L1 经济平衡拟上调）
 var player_shield = 0
 
 # 敌人 / 房间状态

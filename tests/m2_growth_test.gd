@@ -171,11 +171,11 @@ func _test_hooks(duel: DuelController) -> void:
 	_check(g.room_shield() == 0, "未选守势：无开局护盾")
 	g.perk_ids.append("guard")
 	_check(g.room_shield() == 8, "守势：每房开局护盾 8")
-	_check(g.free_reroll_bonus() == 0, "未选精打细算：无额外免费刷新")
-	g.perk_ids.append("frugal")
-	_check(g.free_reroll_bonus() == 1, "精打细算：+1 免费刷新")
+	# 免费刷新现在只来自信物「迷宫回声」，技艺「精打细算」已移除
 	duel.charm_free_reroll = 0
-	_check(duel._shop_system.free_reroll_count() == 1, "商店免费刷新计数叠加精打细算（+1）")
+	_check(duel._shop_system.free_reroll_count() == 0, "无信物时商店无免费刷新")
+	duel.charm_free_reroll = 2
+	_check(duel._shop_system.free_reroll_count() == 2, "商店免费刷新来自信物迷宫回声（+2）")
 	# 命中确定性三技艺的落点查询接口（未选中时均回落默认值）
 	_check(g.snap_per_turn() == 0, "未选落点吸附：每回合次数 0")
 	_check(g.mercy_per_turn() == 0, "未选废铁豁免：每回合次数 0")
@@ -187,6 +187,7 @@ func _test_hooks(duel: DuelController) -> void:
 	_check(g.snap_per_turn() == 2, "落点吸附：每回合 2 次")
 	_check(g.mercy_per_turn() == 1, "废铁豁免：每回合 1 次")
 	_check(g.wide_range() == 2, "宽判窗口：容差 ±2")
+	duel.charm_free_reroll = 0   # 还原，避免污染后续测试
 	g.perk_ids.clear()
 
 

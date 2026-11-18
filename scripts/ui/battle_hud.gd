@@ -153,7 +153,7 @@ var feedback_label: Control = null
 	$ConsumablePanel/Cell4,
 ]
 var reward_screen                       # 奖励三选一覆盖层（reward_screen.tscn 实例）
-var meta_screen                         # 每局结束元进度三选一覆盖层（meta_screen.tscn 实例）
+var meta_screen                         # 每局结束元进度结算覆盖层（meta_screen.tscn 实例）
 
 var shop_screen                         # 商店覆盖层（shop_screen.tscn 实例）
 var anvil_screen                        # 铁砧锻造覆盖层（anvil_screen.tscn 实例）
@@ -782,7 +782,7 @@ func _make_boss_reward_card(cand: Dictionary) -> Button:
 
 
 # ---------------------------------------------------------------------------
-# 每局结束元进度三选一（膨胀双轨：武器 base 线性 × 护符乘数增值，持久跨局）
+# 每局结束元进度结算（当前仅铁砧点单一结果）
 # ---------------------------------------------------------------------------
 func _build_meta_screen() -> void:
 	meta_screen = META_SCENE.instantiate()

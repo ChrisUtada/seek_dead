@@ -15,6 +15,7 @@ extends Resource
 @export var jitter_max: int = 2      # 每次报价的随机浮动上限
 @export var price_floor: int = 3     # 价格下限（防零价/负价）
 @export var sell_refund_ratio: float = 0.5   # 卖出返还实际购入价的比例（过高会刷金，过低换装几乎免费）
+@export var free_item_sell_price: int = 3    # 无购入价物品（BOSS/宝箱免费掉落、腰带满折算）的固定卖出价——堵住"免费掉落变现"白嫖
 
 # —— 货架刷新（reroll，2026-08-09）——
 # 每房间歇期可付费重滚货架：价格 = reroll_base + 已刷次数 × reroll_step（Balatro 式递增，自然抑制滥用），

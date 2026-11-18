@@ -183,7 +183,7 @@ func _shop_kind(path: String) -> String:
 # 迷宫回声（信物 2026-08-14）：每房间歇期前 N 次免费（价格 0，不占付费次数；之后照常计费递增）。
 # 下一房预告（规划中）与刷新互为闭环：预告给目标、刷新给执行手段。
 func free_reroll_count() -> int:
-	return (_ctrl.charm_free_reroll if _ctrl.deprived_level < 1 else 0) + _ctrl.growth.free_reroll_bonus()   # M2-01：技艺「精打细算」叠加
+	return _ctrl.charm_free_reroll if _ctrl.deprived_level < 1 else 0   # 免费刷新来自信物「迷宫回声」；技艺「精打细算」已移除
 
 
 func reroll_price() -> int:
@@ -289,10 +289,10 @@ func on_shop_buy_pressed(offer: Dictionary, source: String = "shop") -> void:
 
 func sell_price(kind: String, path: String) -> int:
 	# 卖出返还按 ShopConfig.sell_refund_ratio 比例（过高会刷金；过低则换装几乎免费）。
-	# 未记录购入价（如 BOSS 免费掉落）时按当前购价同比例兜底。
+	# 无购入价（BOSS/宝箱免费掉落、腰带满折算）走固定低价，避免按购价 50% 变现白嫖。
 	var paid = int(paid_price.get(path, -1))
 	if paid < 0:
-		paid = shop_price(kind, -1, path)
+		return max(1, int(SHOP_CONFIG.free_item_sell_price))
 	return max(1, int(paid * SHOP_CONFIG.sell_refund_ratio))
 
 

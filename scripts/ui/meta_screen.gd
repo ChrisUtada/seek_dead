@@ -1,7 +1,7 @@
 extends Control
 class_name MetaScreen
 
-# meta_screen — 每局结束元进度三选一覆盖层（P3b-2 抽独立场景）
+# meta_screen — 每局结束元进度结算覆盖层（P3b-2 抽独立场景）
 # 静态骨架由 meta_screen.tscn 提供；本脚本负责显隐 / 填数据 / 发信号。
 # 卡片构造复用 HUD 的 _make_meta_card（保持信号接线单一来源）。
 

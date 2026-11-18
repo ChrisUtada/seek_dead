@@ -12,9 +12,9 @@ extends Resource
 
 # —— 难度曲线（ante）：幕间台阶 × 幕内爬升 ——
 @export var ante_act_step_hp: float = 1.75    # 每进一幕敌方 HP ×
-@export var ante_act_step_atk: float = 1.46   # 每进一幕敌方 ATK ×
+@export var ante_act_step_atk: float = 1.30   # 每进一幕敌方 ATK ×（与 balance_config.tres 实际值一致）
 @export var ante_room_step_hp: float = 1.15   # 同幕每过一房敌方 HP ×
-@export var ante_room_step_atk: float = 1.10  # 同幕每过一房敌方 ATK ×
+@export var ante_room_step_atk: float = 1.06  # 同幕每过一房敌方 ATK ×（与 balance_config.tres 实际值一致）
 
 # —— 伤害基准 ——
 @export var player_dmg_mult: float = 1.5      # 玩家直击总伤害全局倍率（2026-09-29 拍板转正：全部平衡基线/ante 拍板均在此值下测得，即正式基准，不回退 1.0）

@@ -67,18 +67,18 @@ func reset_run() -> void:
 
 
 # ---------------------------------------------------------------------------
-# 局末元进度三选一（膨胀双轨：武器 base 线性 × 护符乘数增值，持久跨局）
+# 局末元进度结算（当前仅铁砧点单一结果；膨胀双轨：武器 base 线性 × 护符乘数增值）
 # ---------------------------------------------------------------------------
 
 func roll_meta_choices() -> Array:
 	# T6：武器/护符/命中率等 per-item 旋钮入口已退役（§6 铁砧纯 gacha 定案）。
-	# 元进度三选一只保留「铁砧点数」兜底候选，避免给出无生效通道的假选项。
+	# 元进度当前只有「铁砧点数」一个真实结果，避免伪装成三选一给出假选项。
 	var meta_pool := [{
 		"kind": "anvil", "path": "",
 		"icon": "🔨", "label": "铁砧点数 +%d" % BALANCE.meta_anvil_bonus,
 		"desc": "永久铁砧点数，用于铁砧抽取装备（盘外成长）",
 	}]
-	return meta_pool.slice(0, BALANCE.meta_choice_count)   # 三选一：候选不足时全出
+	return meta_pool.slice(0, BALANCE.meta_choice_count)   # 候选不足时全出
 
 
 func on_meta_choice_chosen(opt: Dictionary) -> void:
