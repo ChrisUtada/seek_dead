@@ -37,7 +37,11 @@ func _run() -> void:
 	_test_registry()
 	_test_composer()
 	_test_evaluator()
-	print("P0 RESULT: %d checks, %d fails" % [_checks, _fails])
+	_test_p1_presentation()
+	_test_p1_evaluator_extras()
+	_test_p1_composer_sampling()
+	_test_p1_definition_rules()
+	print("P1 RESULT: %d checks, %d fails" % [_checks, _fails])
 	get_tree().quit(1 if _fails > 0 else 0)
 
 
@@ -122,3 +126,90 @@ func _test_evaluator() -> void:
 	var s_high := RewardEvaluator.score(d, high)
 	_ok(s_low > s_high, "heal scores higher at low HP")
 	_ok(RewardEvaluator.score_breakdown(d, low).get("context", 0.0) <= 10.0, "context capped")
+
+
+# ===== P1 测试 =====
+
+func _mk_def(id: String, effect: String, tags: Array[String]) -> RewardDefinition:
+	var d := RewardDefinition.new()
+	d.id = id
+	d.name = id
+	d.rarity = "common"
+	d.effects = [{"effect_id": effect, "params": {"amount": 2}}]
+	d.tags = tags
+	d.base_value = 1.0
+	return d
+
+
+func _test_p1_presentation() -> void:
+	var defs: Array[RewardDefinition] = []
+	var d := _mk_def("seed_edge_polish", "run_power_bonus", ["offense.power"])
+	d.rarity = "rare"
+	d.desc = "本局伤害提升"
+	defs.append(d)
+	var draft := DraftResult.new(defs, "draft_view")
+	var view := RewardPresentation.draft_to_view(draft, "战利品")
+	_ok(bool(view.get("ok", false)), "presentation view ok")
+	_ok(String(view.get("quality_name", "")).is_empty(), "no global quality label in new draft")
+	var opts: Array = view.get("options", [])
+	_ok(opts.size() == 1, "view has options")
+	var opt: Dictionary = opts[0]
+	_ok(String(opt.get("quality", "")) == "rare", "option quality from card")
+	_ok(String(opt.get("quality_name", "")) == "稀有", "quality label mapped")
+	_ok(String(opt.get("title", "")) == "seed_edge_polish", "option title")
+	_ok(String(opt.get("condition", "")) == "本局生效", "condition from effect")
+
+
+func _test_p1_evaluator_extras() -> void:
+	var snap := RunSnapshot.new()
+	snap.survival = {"current_hp": 50, "max_hp": 100, "hp_ratio": 0.5}
+	snap.progression = {"room_index": 2, "act": 1, "room_kind": "normal"}
+	snap.build_state.build_scores["fire"] = 5
+	snap.build_state.tags["build.fire"] = 5.0
+
+	# 新颖性：未形成的构筑种子（build.ice）应给探索分
+	var seed := _mk_def("seed_ice", "flame_affinity", ["build.ice"])
+	seed.effects = [{"effect_id": "flame_affinity", "params": {}}]
+	var b_seed := RewardEvaluator.score_breakdown(seed, snap)
+	_ok(float(b_seed.get("novelty", 0.0)) > 0.0, "novelty for unformed build seed")
+
+	# 协同：已形成的火构筑给协同分，且不因多标签重复叠加
+	var fire := _mk_def("fire1", "flame_affinity", ["build.fire", "element.fire", "build.fire"])
+	fire.effects = [{"effect_id": "flame_affinity", "params": {}}]
+	var b_fire := RewardEvaluator.score_breakdown(fire, snap)
+	_ok(float(b_fire.get("synergy", 0.0)) > 0.0, "synergy for formed fire build")
+	_ok(float(b_fire.get("synergy", 0.0)) <= 8.0, "synergy capped")
+
+	# 风险补偿：带 hp 代价的卡给正分
+	var risky := _mk_def("risky", "run_power_bonus", ["risk.high"])
+	risky.risk_cost = {"hp": 10}
+	var b_risk := RewardEvaluator.score_breakdown(risky, snap)
+	_ok(float(b_risk.get("risk", 0.0)) > 0.0, "risk compensation positive")
+
+
+func _test_p1_composer_sampling() -> void:
+	# Registry 无卡时 compose 走兜底，不空屏不报错
+	var c := DraftComposer.new(999)
+	var snap := RunSnapshot.new()
+	snap.survival = {"current_hp": 50, "max_hp": 100, "hp_ratio": 0.5}
+	var draft: DraftResult = c.compose(snap, 3, true)
+	_ok(draft is DraftResult, "composer returns DraftResult")
+	_ok(draft.debug_metadata.has("fallback_reason"), "empty pool uses fallback with reason")
+
+
+func _test_p1_definition_rules() -> void:
+	# 新字段：规则键名 / 叠加规则 / 风险代价（P1 数据结构完整性）
+	var d := _mk_def("rules_test", "flame_affinity", ["build.fire"])
+	d.eligibility_rule = "has_build_fire"
+	d.context_rule = "income_by_gold"
+	d.synergy_rule = "fire"
+	d.stack_rule = RewardDefinition.StackRule.LINEAR
+	d.max_stack = 3
+	d.risk_cost = {"hp": 10}
+	_ok(d.validate().is_empty(), "definition with rule fields valid")
+	_ok(d.eligibility_rule == "has_build_fire", "eligibility rule stored")
+	_ok(d.stack_rule == RewardDefinition.StackRule.LINEAR, "stack rule stored")
+
+	# max_stack=0 非法
+	d.max_stack = 0
+	_ok(not d.validate().is_empty(), "max_stack 0 invalid")
