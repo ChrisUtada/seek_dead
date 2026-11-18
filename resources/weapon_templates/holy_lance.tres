@@ -1,9 +1,10 @@
-[gd_resource type="Resource" script_class="WeaponData" load_steps=6 format=3]
+[gd_resource type="Resource" script_class="WeaponData" load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/equipment/weapon_data.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/battle/symbol_weight.gd" id="sw"]
 [ext_resource type="Resource" path="res://resources/symbols/holy_slash.tres" id="s0"]
 [ext_resource type="Resource" path="res://resources/symbols/holy_bolt.tres" id="s1"]
+[ext_resource type="Resource" path="res://resources/symbols/holy_burn.tres" id="sdot"]
 
 [sub_resource type="Resource" id="sw0"]
 script = ExtResource("sw")
@@ -14,6 +15,11 @@ weight = 4.0
 script = ExtResource("sw")
 symbol = ExtResource("s1")
 weight = 2.0
+
+[sub_resource type="Resource" id="swdot"]
+script = ExtResource("sw")
+symbol = ExtResource("sdot")
+weight = 3.5
 
 [resource]
 script = ExtResource("1")
@@ -34,7 +40,8 @@ status_effect_damage = 0.0
 status_effect_duration = 3.0
 reel_element = "light"
 element = "light"
-symbols = Array[ExtResource("sw")]([SubResource("sw0"), SubResource("sw1")])
+
+symbols = Array[ExtResource("sw")]([SubResource("sw0"), SubResource("sw1"), SubResource("swdot")])
 family_tags = Array[String](["light", "combo"])
 role = "damage"
 mechanism_summary = "光系中型近战：圣辉斩（4权重，光伤害） + 圣辉穿刺（2权重，光伤害）；非三连暴击+5%；命中率86%，基础伤害14。符号需落线触发，未命中为废铁格。"

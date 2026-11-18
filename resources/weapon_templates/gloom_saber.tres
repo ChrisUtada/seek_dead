@@ -1,14 +1,20 @@
-[gd_resource type="Resource" script_class="WeaponData" load_steps=6 format=3]
+[gd_resource type="Resource" script_class="WeaponData" load_steps=8 format=3]
 
 [ext_resource type="Script" uid="uid://rshxw30hg44e" path="res://scripts/equipment/weapon_data.gd" id="1"]
 [ext_resource type="Script" uid="uid://b7ejpof4wrtqt" path="res://scripts/battle/symbol_weight.gd" id="sw"]
 [ext_resource type="Resource" path="res://resources/symbols/shadow_slash.tres" id="s0"]
+[ext_resource type="Resource" path="res://resources/symbols/shadow_blight.tres" id="sdot"]
 
 [sub_resource type="Resource" id="sw0"]
 script = ExtResource("sw")
 symbol = ExtResource("s0")
 weight = 5.0
 
+
+[sub_resource type="Resource" id="swdot"]
+script = ExtResource("sw")
+symbol = ExtResource("sdot")
+weight = 3.5
 
 [resource]
 script = ExtResource("1")
@@ -21,7 +27,8 @@ base_power = 9
 hit_rate = 0.88
 archetype = 0
 weapon_type = 0
-symbols = Array[ExtResource("sw")]([SubResource("sw0")])
+
+symbols = Array[ExtResource("sw")]([SubResource("sw0"), SubResource("swdot")])
 reel_element = "dark"
 element = "dark"
 family_tags = Array[String](["dark", "combo"])
