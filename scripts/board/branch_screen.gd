@@ -15,13 +15,20 @@ const MAP_RECT := Rect2(8.0, 30.0, 320.0, 220.0)
 const INFO_RECT := Rect2(334.0, 30.0, 142.0, 220.0)
 const FOOT_RECT := Rect2(8.0, 252.0, 464.0, 16.0)
 
-# 节点颜色（按类型）
+# 节点强调色（按类型）— 深色底 + 鲜明边框/图标，文字统一亮白（2026-11-18 可读性优化）
+# 底色统一用 NODE_BG，颜色只做边框/图标，避免浅底压浅字看不清。
+const NODE_BG := Color("#1d1219")
+const NODE_BG_CURRENT := Color("#3a2b31")
+const NODE_TEXT := Color("#f2ead8")       # 亮白暖字（高对比）
+const NODE_TEXT_DIM := Color("#8a7f74")   # 不可走节点弱化文字
+const LINE_DIM := Color(0.32, 0.34, 0.37, 0.5)  # 非可选连线：压暗
+const LINE_LIT := Color("#d5a33d")        # 可选连线：交互金高亮
 const COLORS := {
-	"battle": Color(0.82, 0.90, 0.82), "elite": Color(0.96, 0.82, 0.78),
-	"boss": Color(0.85, 0.82, 0.98), "chest": Color(0.98, 0.94, 0.72),
-	"armory": Color(0.92, 0.86, 0.72), "shop": Color(0.78, 0.88, 0.96),
-	"rest": Color(0.78, 0.92, 0.88), "event": Color(0.98, 0.88, 0.72),
-	"start": Color(0.90, 0.90, 0.88),
+	"battle": Color("#a4bc4d"), "elite": Color("#e35b50"),
+	"boss": Color("#b98cff"), "chest": Color("#e3c84d"),
+	"armory": Color("#c9a24d"), "shop": Color("#62a1c2"),
+	"rest": Color("#5fc9a8"), "event": Color("#e09b4d"),
+	"start": Color("#a99d89"),
 }
 const ICONS := {
 	"battle": "⚔", "elite": "★", "boss": "👑", "chest": "🎁",
@@ -282,27 +289,38 @@ func _draw_screen() -> void:
 	for line in lines:
 		_art.draw_string(font, Vector2(INFO_RECT.position.x + 6, y), line, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(0.85, 0.86, 0.88))
 		y += 18.0
-	# 底部提示
-	_art.draw_string(font, Vector2(FOOT_RECT.position.x + 6, FOOT_RECT.position.y + 12),
-		"滚轮/拖拽切屏 · 点击高亮节点前进 · 沿连线走向下一层 · 不可回头", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(0.70, 0.72, 0.75))
-
 	var layers: Dictionary = _nodes_by_layer()
 	# 视口裁剪范围（层号）
 	var vlo: float = _scroll_top - 1.0
 	var vhi: float = _scroll_top + VISIBLE_LAYERS + 1.0
+	# 当前节点 → 下一层合法目标 id 集合（用于高亮可选连线）
+	var legal_ids: Dictionary = {}
+	for n in board.legal_targets():
+		legal_ids[String(n["id"])] = true
+	var cur_id: String = String(board.current_id)
+
 	# 先画连线（节点中心 → 下一层节点中心），只画视口附近
+	# 高亮规则：只有「当前节点 → 合法目标」的连线用交互金加粗，其余压暗 —— 一眼看出能往哪走
 	for layer in layers:
 		if float(layer) < vlo or float(layer) > vhi:
 			continue
 		for n in layers[layer]:
 			var from: Vector2 = _node_center(n, layers)
+			var is_from_cur: bool = String(n["id"]) == cur_id
 			for nid in n.get("next", []):
 				var target = board.node_by_id(nid)
 				if target == null:
 					continue
 				var to: Vector2 = _node_center(target, layers)
-				_art.draw_line(from, to, Color(0.55, 0.55, 0.55, 0.6), 1.0)
-	# 再画节点底色块（文本由 Button 负责），视口外跳过
+				# 两端节点中心都必须在视口内才画（避免底栏边缘悬空线段）
+				if not MAP_RECT.has_point(from) or not MAP_RECT.has_point(to):
+					continue
+				var lit: bool = is_from_cur and legal_ids.has(String(nid))
+				if lit:
+					_art.draw_line(from, to, LINE_LIT, 2.0)
+				else:
+					_art.draw_line(from, to, LINE_DIM, 1.0)
+	# 再画节点底色块 + 类型色边框（文本由 Button 负责），视口外跳过
 	for layer in layers:
 		if float(layer) < vlo or float(layer) > vhi:
 			continue
@@ -310,13 +328,28 @@ func _draw_screen() -> void:
 		for i in range(arr.size()):
 			var n: Dictionary = arr[i]
 			var r: Rect2 = _node_rect(n, int(layer), arr.size(), i)
-			if not MAP_RECT.intersects(r):
+			# 节点必须完整落在地图视口内才画（避免最后一层被底部提示条压住）
+			if not MAP_RECT.encloses(r):
 				continue
 			var t: String = String(n.get("type", ""))
-			var col: Color = COLORS.get(t, Color(0.9, 0.9, 0.9))
-			if String(board.current_id) == String(n["id"]):
-				col = col.darkened(0.25)
-			_art.draw_rect(r, col)
+			var accent: Color = COLORS.get(t, Color(0.9, 0.9, 0.9))
+			var is_cur: bool = cur_id == String(n["id"])
+			var is_legal: bool = legal_ids.has(String(n["id"]))
+			# 深色底：当前节点略亮、可选节点稍提亮，其余最暗
+			var bg: Color = NODE_BG
+			if is_cur:
+				bg = NODE_BG_CURRENT
+			_art.draw_rect(r, bg)
+			# 边框：合法目标=金色 2px（指引下一步），其余=类型色 1px
+			if is_legal or is_cur:
+				_draw_rect_border(r, LINE_LIT if is_legal else accent, 2.0)
+			else:
+				_draw_rect_border(r, accent, 1.0)
+
+	# 底部提示（画在节点之上，加深色底衬避免与节点文字重叠看不清）
+	_art.draw_rect(FOOT_RECT, Color(0.10, 0.11, 0.14, 0.95))
+	_art.draw_string(font, Vector2(FOOT_RECT.position.x + 6, FOOT_RECT.position.y + 12),
+		"滚轮/拖拽切屏 · 点击高亮节点前进 · 沿连线走向下一层 · 不可回头", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(0.78, 0.80, 0.83))
 
 	# 视口右侧滚动条（指示当前看到整条路线的哪一段）
 	var total: float = float(_total_layers())
@@ -327,6 +360,13 @@ func _draw_screen() -> void:
 		var thumb_h: float = bar_h * (VISIBLE_LAYERS / total)
 		var thumb_y: float = MAP_RECT.position.y + (_scroll_top / maxf(1.0, _max_scroll())) * (bar_h - thumb_h)
 		_art.draw_rect(Rect2(bar_x, thumb_y, 3.0, thumb_h), Color(0.85, 0.78, 0.50))
+
+
+func _draw_rect_border(r: Rect2, c: Color, w: float) -> void:
+	_art.draw_line(Vector2(r.position.x, r.position.y), Vector2(r.end.x, r.position.y), c, w)
+	_art.draw_line(Vector2(r.end.x, r.position.y), Vector2(r.end.x, r.end.y), c, w)
+	_art.draw_line(Vector2(r.end.x, r.end.y), Vector2(r.position.x, r.end.y), c, w)
+	_art.draw_line(Vector2(r.position.x, r.end.y), Vector2(r.position.x, r.position.y), c, w)
 
 
 func _node_center(n: Dictionary, layers: Dictionary) -> Vector2:
@@ -359,12 +399,23 @@ func _rebuild_buttons() -> void:
 		for i in range(arr.size()):
 			var n: Dictionary = arr[i]
 			var r: Rect2 = _node_rect(n, int(layer), arr.size(), i)
+			if not MAP_RECT.encloses(r):
+				continue
 			var b := Button.new()
 			b.set_anchors_preset(Control.PRESET_TOP_LEFT)
 			b.position = r.position
 			b.size = r.size
-			b.flat = true
+			# 文字统一亮白（深色底上高对比）；禁用节点用弱色但不隐藏（仍可见路径结构）
 			b.add_theme_font_size_override("font_size", 10)
+			b.add_theme_color_override("font_color", NODE_TEXT)
+			b.add_theme_color_override("font_disabled_color", NODE_TEXT_DIM)
+			var sb := StyleBoxFlat.new()
+			sb.bg_color = Color(0, 0, 0, 0)  # 透明：底色/边框由 _draw_screen 统一绘制
+			sb.set_border_width_all(0)
+			b.add_theme_stylebox_override("normal", sb)
+			b.add_theme_stylebox_override("hover", sb)
+			b.add_theme_stylebox_override("pressed", sb)
+			b.add_theme_stylebox_override("disabled", sb)
 			b.set_meta("layer", int(layer))
 			b.set_meta("idx", i)
 			b.set_meta("cnt", arr.size())
