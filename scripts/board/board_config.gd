@@ -25,6 +25,8 @@ extends Resource
 @export var boss_ria: int = 7               # BOSS 的幕内难度位置（与线性 ACT1 8 房一致）
 # 14×9 地图固定种子：同种子地形、内容、陷阱、巡逻与房间绑定完全一致。
 @export var map_seed: int = 20261110
+# L2：true = 分岔路线图（DAG），false = 旧 14×9 开放网格。切换后 F6 走经典分岔图。
+@export var branch_mode: bool = false
 
 
 func is_active() -> bool:

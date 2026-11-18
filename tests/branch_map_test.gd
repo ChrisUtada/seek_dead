@@ -120,6 +120,29 @@ func _run() -> void:
 		ids2.append("%s:%s" % [n["id"], n["type"]])
 	_check(ids1 == ids2, "same seed → same structure")
 
+	# BoardSystem 门面：branch_mode=true 时应委托 BranchRuntime，可沿边走到 BOSS
+	_duel.board_config.branch_mode = true
+	var ok_gen: bool = _duel.board.generate(_duel.board_config)
+	_check(ok_gen, "board.generate ok in branch mode")
+	_check(_duel.board.branch_mode, "board.branch_mode set")
+	_check(_duel.board.current_id == "b0_0", "starts at b0_0")
+	# 逐层沿第一条合法边前进，直到 BOSS
+	var steps := 0
+	while steps < 10 and not _duel.board.current_is_boss():
+		var targets: Array = _duel.board.legal_targets()
+		if targets.is_empty():
+			break
+		var next_node: Dictionary = targets[0]
+		var res: Dictionary = _duel.board.advance_to(String(next_node["id"]))
+		_check(not res.is_empty() and String(res.get("id", "")) == String(next_node["id"]), "advance to %s ok" % next_node["id"])
+		steps += 1
+	_check(_duel.board.current_is_boss(), "reached BOSS in %d steps" % steps)
+	_check(_duel.board.visited_count() == 7, "visited 7 nodes (got %d)" % _duel.board.visited_count())
+	# 分岔图不能回访：起点不可再进
+	var back: Dictionary = _duel.board.advance_to("b0_0")
+	_check(back.is_empty(), "cannot go back to start")
+	_duel.board_config.branch_mode = false
+
 	_duel.free()
 	print("BRANCHMAP|RESULT %s (checks=%d fails=%d)" % ["PASS" if _fails == 0 else "FAIL", _checks, _fails])
 	get_tree().quit(0 if _fails == 0 else 2)

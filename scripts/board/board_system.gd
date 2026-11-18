@@ -21,9 +21,11 @@ const NODE = preload("res://scripts/board/board_node_data.gd")
 const MAP_GRID = preload("res://scripts/board/map_grid.gd")
 const MAP_BUILDER = preload("res://scripts/board/map_board_builder.gd")
 const MAP_RUNTIME = preload("res://scripts/board/map_runtime.gd")
+const BRANCH_RUNTIME = preload("res://scripts/board/branch_runtime.gd")
 
 var _ctrl
-var runtime = null                  # MapRuntime：14×9 唯一运行时状态源
+var runtime = null                  # MapRuntime（旧网格）或 BranchRuntime（分岔图）
+var branch_mode: bool = false       # true = 分岔路线图（L2）
 
 var nodes: Array = []
 var by_id: Dictionary = {}
@@ -56,6 +58,7 @@ func reset() -> void:
 	nodes.clear()
 	by_id.clear()
 	battle_rooms.clear()
+	branch_mode = false
 	current_id = ""
 	consumed.clear()
 	dice = 0
@@ -82,11 +85,18 @@ func generate(cfg, act_override: int = -1) -> bool:
 	act = int(cfg.act) if act_override < 0 else int(act_override)
 	var seed_value: int = int(cfg.map_seed) if cfg != null and "map_seed" in cfg else 20261110
 	var total_acts: int = int(cfg.acts) if cfg != null else 1
+	branch_mode = bool(cfg.branch_mode) if cfg != null and "branch_mode" in cfg else false
 	var builder = MAP_BUILDER.new(_ctrl)
-	var data: Dictionary = builder.build(act, seed_value, total_acts)
-
-	runtime = MAP_RUNTIME.new()
-	runtime.setup(data, true, _ctrl)   # 产品地图默认启用巡逻与陷阱
+	var data: Dictionary
+	if branch_mode:
+		# L2：分岔路线图（DAG）——只换拓扑与运行时，节点内容/结算全部复用。
+		data = builder.build_branch(act, seed_value, total_acts)
+		runtime = BRANCH_RUNTIME.new()
+		runtime.setup(data)
+	else:
+		data = builder.build(act, seed_value, total_acts)
+		runtime = MAP_RUNTIME.new()
+		runtime.setup(data, true, _ctrl)   # 旧网格默认启用巡逻与陷阱
 
 	nodes = data["nodes"]
 	by_id = data["by_id"]
@@ -103,16 +113,31 @@ func generate(cfg, act_override: int = -1) -> bool:
 		revealed[String(n["id"])] = true
 	consumed = runtime.consumed
 	consumed[current_id] = true
-	layout = {
-		"cols": MAP_GRID.COLS, "rows": MAP_GRID.ROWS,
-		"cam_cols": MAP_RUNTIME.VIEW_COLS, "cam_rows": MAP_RUNTIME.VIEW_ROWS,
-		"cell": float(MAP_RUNTIME.TILE_SIZE),
-	}
+	if branch_mode:
+		# 分岔图：布局按层×候选，UI 自己算坐标；不读网格常量。
+		layout = {
+			"cols": int(data.get("cols", 3)), "rows": int(data.get("rows", 7)),
+			"branch": true,
+		}
+	else:
+		layout = {
+			"cols": MAP_GRID.COLS, "rows": MAP_GRID.ROWS,
+			"cam_cols": MAP_RUNTIME.VIEW_COLS, "cam_rows": MAP_RUNTIME.VIEW_ROWS,
+			"cell": float(MAP_RUNTIME.TILE_SIZE),
+		}
 	generated = true
 	return _validate(data)
 
 
 func _validate(data: Dictionary) -> bool:
+	if branch_mode:
+		# 分岔图结构校验（DAG：BOSS 唯一、战斗节点有房间、层间连通由 generator 保证）
+		if boss_ids.size() != 1 or nodes.is_empty():
+			return false
+		for n in nodes:
+			if String(n["type"]) in ["battle", "elite", "boss"] and n.get("room") == null:
+				return false
+		return true
 	var errs: Array = MAP_GRID.validate(data.get("grid", {}))
 	for e in errs:
 		push_error("MapGrid: %s" % e)
@@ -135,8 +160,12 @@ func node_count() -> int:
 
 
 func visited_count() -> int:
-	# 访问口径是「走过的格子数」，不是「结算过的内容数」：回访也计入历史访问。
-	return 0 if runtime == null else runtime.visits.size()
+	if runtime == null:
+		return 0
+	if branch_mode:
+		return int(runtime.consumed.size())   # 分岔图：走过的节点数
+	# 旧网格口径是「走过的格子数」，回访也计入历史访问。
+	return runtime.visits.size()
 
 
 func current_node() -> Dictionary:
@@ -202,10 +231,14 @@ func is_final_node(node: Dictionary) -> bool:
 
 
 func route_length() -> int:
+	if branch_mode:
+		return int(layout.get("rows", 7))   # 分岔图路径长度 = 层数（7）
 	return MAP_GRID.CELL_COUNT
 
 
 func progress_text() -> String:
+	if branch_mode:
+		return "本幕进度：%d / %d 层" % [visited_count(), route_length()]
 	return "已探索 %d 格 · 第 %d 回合" % [visited_count(), 0 if runtime == null else runtime.turn]
 
 
@@ -238,6 +271,8 @@ func legal_targets() -> Array:
 	var out: Array = []
 	if runtime == null:
 		return out
+	if branch_mode:
+		return runtime.legal_targets()
 	for cid in MAP_GRID.neighbors(runtime.grid, runtime.player_cell):
 		if not runtime.patrol_at(int(cid)).is_empty():
 			continue
@@ -261,6 +296,17 @@ func roll_dice() -> int:
 func advance_to(id: String) -> Dictionary:
 	if runtime == null or id == "":
 		return {}
+	if branch_mode:
+		var res: Dictionary = runtime.advance_to(id)
+		if not bool(res.get("ok", false)):
+			return {}
+		current_id = id
+		last_move_revisit = false
+		var node: Dictionary = res.get("node", {})
+		var t: String = String(node.get("type", ""))
+		if t in ["chest", "armory", "shop", "rest", "event"]:
+			feedback = "进入%s" % String(node.get("title", t))
+		return node
 	var cell: int = int(String(id).trim_prefix("m"))
 	var res: Dictionary = runtime.try_move(cell)
 	if String(res.get("reason", "")) == "patrol":
@@ -297,6 +343,8 @@ func advance_to(id: String) -> Dictionary:
 func wait_here() -> Dictionary:
 	if runtime == null:
 		return {}
+	if branch_mode:
+		return {}   # 分岔图无「原地等待」概念
 	var res: Dictionary = runtime.wait_turn()
 	var contact: Dictionary = res.get("contact", {})
 	if not contact.is_empty():
