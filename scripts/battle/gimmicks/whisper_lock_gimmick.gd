@@ -7,7 +7,8 @@ const ICON := "🌀"   # 呓语锁轮/迷宫低语者（battle_hud 经 get_scrip
 # 双阶段（迷宫低语者，gimmick_params 传 phase2_* 启用）：
 #   P1 呓语不绝：上述锁轮节奏（默认每 3 回合 ×1.5）
 #   P2 疯狂呓语（on_damaged 检测 HP < phase2_hp_ratio 一次性触发）：
-#       锁轮加速（phase2_lock_every）+ 攻击强化（phase2_attack_mult）+ 每回合 phase2_chaos_chance 概率乱权（pending_chaos，不占意图槽位）
+#       锁轮加速（phase2_lock_every）+ 每回合 phase2_chaos_chance 概率乱权（pending_chaos，不占意图槽位）
+#       + phase2_jam_on_lock=true 时锁轮附带注废（6.4：阶段变化绑决策，替代原纯数值攻击×1.8）
 # 缺省 = 单阶段（phase2_hp_ratio=0 永不触发）——呓语教徒（教学位）.tres 零改动。
 # 参数经 RoomData.gimmick_params（T24），缺省值见各字段注释。
 
@@ -22,6 +23,7 @@ var _chaos_chance := 0.25       # P2 每回合乱权概率
 var _same_col := false          # 深渊咏者：每次都锁同一列
 var _lock_column := -1          # 指定列（-1 = 首次随机后固定）
 var _jam_on_lock := false       # 深渊咒师（D4）：锁列同时向该列注 1 废铁
+var _phase2_jam_on_lock := false # 6.4 迷宫低语者 P2：锁轮时附带注废（阶段变化绑决策，非纯数值）
 var _triple_counter := false    # 深渊咏者：用锁定符号三连后，下回合攻击降低
 var _counter_atk_mult := 0.7
 var _lock_col := -1
@@ -44,6 +46,7 @@ func on_room_start(ctrl) -> void:
 	_same_col = bool(p.get("same_col", false))
 	_lock_column = int(p.get("lock_column", -1))
 	_jam_on_lock = bool(p.get("jam_on_lock", false))
+	_phase2_jam_on_lock = bool(p.get("phase2_jam_on_lock", false))
 	_triple_counter = bool(p.get("triple_counter", false))
 	_counter_atk_mult = float(p.get("counter_atk_mult", 0.7))
 	_lock_col = -1
@@ -79,8 +82,10 @@ func on_turn_begin(ctrl) -> void:
 		ctrl.boss_atk_mult = mult
 		_recovery_next = true
 		ctrl.hud._log("🌀 呓语锁轮：第 %d 列被锁定，本回合敌方攻击 ×%s" % [col + 1, mult])
-		if _jam_on_lock:
+		if _jam_on_lock or (_phase2 and _phase2_jam_on_lock):
 			_jam_column_strip(ctrl, col)
+			if _phase2 and _phase2_jam_on_lock:
+				ctrl.hud._log("🌀 疯狂呓语：锁轮附带注废（锁符三连反制受限，需换解法）")
 	if _recovering:
 		ctrl.hud._log("🌀 锁轮间隙：本回合不追加锁轮/乱权（净化与输出窗口）")
 	# 深渊咏者：上一次三连反制的弱化在本回合落地

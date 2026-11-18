@@ -1,8 +1,27 @@
-[gd_resource type="Resource" script_class="RoomData" load_steps=4 format=3]
+[gd_resource type="Resource" script_class="RoomData" load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/battle/room_data.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/battle/gimmicks/whisper_lock_gimmick.gd" id="2"]
+[ext_resource type="Script" path="res://scripts/battle/intent_data.gd" id="3"]
 [ext_resource type="Texture2D" path="res://assets/characters/whispering_cultist/idle_01.png" id="art_room"]
+
+[sub_resource type="Resource" script_class="IntentData" id="intent_attack"]
+script = ExtResource("3")
+id = "attack"
+display_name = "攻击"
+icon = "⚔"
+weight = 65.0
+purifiable = false
+value_mult = 1.0
+
+[sub_resource type="Resource" script_class="IntentData" id="intent_lock"]
+script = ExtResource("3")
+id = "lock"
+display_name = "锁轮"
+icon = "🔒"
+weight = 35.0
+purifiable = false
+value_mult = 0.0
 
 [resource]
 script = ExtResource("1")
@@ -15,8 +34,9 @@ act = 2
 armor = 25
 gimmick_script = ExtResource("2")
 gimmick_params = {"lock_every": 3, "attack_mult": 1.5, "phase2_hp_ratio": 0, "first_lock_turn": 2}
+intents = Array[IntentData]([SubResource("intent_attack"), SubResource("intent_lock")])
 boss_reward_weapons = Array[String](["res://resources/weapon_templates/holy_sword.tres", "res://resources/weapon_templates/dawn_bow.tres", "res://resources/weapon_templates/plague_reaper.tres", "res://resources/weapon_templates/venom_queen.tres", "res://resources/weapon_templates/iron_sword.tres"])
 boss_relic_path = "res://resources/charms/silence_seal_relic.tres"
 art = ExtResource("art_room")
 art_scale = 2.0
-mechanic_summary = "第2回合先锁1列，此后每3回合锁1列并攻击×1.5；锁轮后一回合不追加锁轮/乱权。净化、利用锁符、间隙输出。"
+mechanic_summary = "教学位·纯粹锁轮：第2回合先锁1列，此后每3回合锁1列并攻击×1.5；意图只有「攻击/锁轮」两种，无注废无乱权；锁轮间隙不追加干扰。净化、利用锁符、间隙输出。"
