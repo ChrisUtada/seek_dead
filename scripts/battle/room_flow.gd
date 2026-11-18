@@ -25,10 +25,11 @@ var _loot_view: Dictionary = {}
 
 
 # B 方案：精英战必掉「精简剪」，保证每幕至少一次瘦身机会。
-const TRIM_ITEM_PATH := "res://resources/consumables/trim_scissors.tres"   # L3 P1 弃用：精英奖励改为同元素武器，常量保留兼容
+const TRIM_ITEM_PATH := "res://resources/consumables/trim_scissors.tres"   # L3 P1 弃用：精英奖励改为克制元素武器，常量保留兼容
 
 
-# L3 P1：精英战专属奖励——必给一把「与本房 element 同元素」的武器（Build 组件身份）。
+# L3 P1：精英战专属奖励——必给一把「克制本房 element」的武器（Build 组件身份）。
+# 例：冰精英给火武器（克冰+毒），而非同元素冰武器（打冰敌人×0.85劣势）。
 # 替换原「精简剪」消耗品；武器槽满时由 controller 弹替换弹层（复用 BOSS 武器替换流程）。
 func _grant_elite_trim() -> void:
 	if _ctrl.current_room == null or String(_ctrl.current_room.kind) != "elite":

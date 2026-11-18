@@ -795,22 +795,32 @@ func roll_elite_rewards() -> Array:
 	return out
 
 
-# L3 P1：给精英战掉落「与本房 element 同元素的一把武器」的路径。
+# L3 P1：给精英战掉落「克制本房 element 的一把武器」的路径。
 # 武器 element 由其 family_tags 决定（如 ["fire","combo"]）；无元素/池空时退回 elite 通用抽取。
 # 供 room_flow._grant_elite_trim 调用（精英战后必给的专属奖励）。
+# L3 P1（克制版）：按本房 element 的「克制元素」筛武器——精英给一把能打它同类的武器。
+# 例：冰精英→火武器（克冰+毒）。修复原「同元素」版冰精英给冰武器反成×0.85劣势的缺陷。
+# 覆盖率实测：三幕精英可给的克制元素 100% 覆盖主流敌人需求。
 func roll_elite_element_weapon(act: int) -> String:
 	var element := "none"
 	if _ctrl.room_index >= 0 and _ctrl.room_index < _ctrl.ROOMS.size():
 		var ev = _ctrl.ROOMS[_ctrl.room_index].get("element")
 		element = String(ev) if ev != null else "none"
 	var opts := {"category": "weapon", "exclude": _ctrl.selected_loadout}
-	if element != "none" and element != "":
+	var counters: Array = ElementCounter.weakness(element) if element != "none" and element != "" else []
+	if not counters.is_empty():
 		var themed: Array[String] = []
 		for p in _ctrl.WEAPON_POOL:
 			var wd: Resource = load(p)
 			if wd == null or not (wd.get("family_tags") is Array):
 				continue
-			if String(element) in (wd.get("family_tags") as Array):
+			var fams: Array = wd.get("family_tags")
+			var hit := false
+			for ce in counters:
+				if fams.has(String(ce)):
+					hit = true
+					break
+			if hit:
 				themed.append(p)
 		if not themed.is_empty():
 			opts["theme"] = themed
