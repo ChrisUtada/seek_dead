@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1")
-rarity = "epic"
+rarity = "relic"
 category = "passive"
 item_id = "silence_seal_relic"
 item_name = "静默之印"

@@ -19,7 +19,7 @@ const SOURCES: Array[String] = [
 	"normal", "elite", "boss", "chest", "event", "shop", "anvil", "start",
 ]
 
-const RARITIES: Array[String] = ["common", "uncommon", "rare", "epic"]
+const RARITIES: Array[String] = ["common", "uncommon", "rare", "epic", "relic"]
 
 const FAMILY_LABEL := {
 	"fire": "火焰/灼烧",
@@ -60,6 +60,7 @@ const RARITY_LABEL := {
 	"uncommon": "进阶",
 	"rare": "稀有",
 	"epic": "传说",
+	"relic": "遗物",   # L3 P0：BOSS 信物独立品质，不参与普通装备品质比较
 }
 
 

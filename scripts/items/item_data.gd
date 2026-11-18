@@ -12,7 +12,7 @@ extends Resource
 @export var description: String = ""
 @export var icon: String = "🧪"          # 展示用 emoji
 @export var icon_tex: Texture2D = null   # M3-03：通用图标绑定；为空时回落 emoji
-@export var rarity: String = "common"    # 强度档位 common|uncommon|rare|epic（T6：护符/消耗品分档，铁砧加权/商店定价用，不动结算）
+@export var rarity: String = "common"    # 强度档位 common|uncommon|rare|epic|relic（L3：relic=BOSS信物独立品质，不参与普通装备品质比较；铁砧加权/商店定价用，不动结算）
 @export var category: String = "active"  # active / passive
 
 # 四级品质战利品 Step 1：与 LoadoutItem 同口径的构筑标签；取值见 item_taxonomy.gd。

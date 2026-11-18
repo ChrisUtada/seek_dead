@@ -66,6 +66,7 @@ static func _rarity_color(r: String) -> Color:
 		"uncommon": return Palette.RARITY_UNCOMMON
 		"rare":     return Palette.RARITY_RARE
 		"epic":     return Palette.RARITY_EPIC
+		"relic":    return Palette.RARITY_RELIC
 	return Palette.RARITY_COMMON
 
 

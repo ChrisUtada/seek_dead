@@ -80,6 +80,7 @@ const RARITY_COMMON   := Color("#a99d89")
 const RARITY_UNCOMMON := Color("#a4bc4d")
 const RARITY_RARE     := Color("#62a1c2")
 const RARITY_EPIC     := Color(0.85, 0.65, 1.00)  # 语义例外：史诗紫（与增益飘字同色，稀有度轴不与战斗语义冲突）
+const RARITY_RELIC    := Color("#d5a33d")  # L3 P0：遗物金（呼应 L2 遗物栏金框，区别于 epic 紫）
 
 
 # Step 7：四级品质统一取色（奖励卡 / 图鉴 / BOSS 战利品共用）。
@@ -88,4 +89,5 @@ static func quality_color(quality: String) -> Color:
 		"uncommon": return RARITY_UNCOMMON
 		"rare":     return RARITY_RARE
 		"epic":     return RARITY_EPIC
+		"relic":    return RARITY_RELIC
 		_:          return RARITY_COMMON

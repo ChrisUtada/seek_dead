@@ -5,7 +5,7 @@
 [ext_resource type="Texture2D" path="res://assets/icons/items/icon_frost_core_relic.png" id="ico"]
 [resource]
 script = ExtResource("1")
-rarity = "epic"
+rarity = "relic"
 category = "passive"
 item_id = "frost_core_relic"
 icon_tex = ExtResource("ico")

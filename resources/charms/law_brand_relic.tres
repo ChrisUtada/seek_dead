@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1")
-rarity = "epic"
+rarity = "relic"
 category = "passive"
 item_id = "law_brand_relic"
 item_name = "律法烙印"
