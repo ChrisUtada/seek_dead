@@ -345,6 +345,13 @@ func _draw_screen() -> void:
 				_draw_rect_border(r, LINE_LIT if is_legal else accent, 2.0)
 			else:
 				_draw_rect_border(r, accent, 1.0)
+			# L2 修复：节点文字改由 _art 与边框同帧绘制（Button 只做热区）。
+			# 避免 Button theme 在缩放/重建后偶发不渲染文字（"第二次开局文字消失"）。
+			var tname: String = String(n.get("title", t))
+			var label: String = "%s %s" % [ICONS.get(t, "•"), tname]
+			_art.draw_string(font, Vector2(r.position.x + 5, r.position.y + r.size.y - 6),
+				label, HORIZONTAL_ALIGNMENT_LEFT, NODE_W - 10, 10,
+				NODE_TEXT if is_legal or is_cur else NODE_TEXT_DIM)
 
 	# 底部提示（画在节点之上，加深色底衬避免与节点文字重叠看不清）
 	_art.draw_rect(FOOT_RECT, Color(0.10, 0.11, 0.14, 0.95))
@@ -405,22 +412,12 @@ func _rebuild_buttons() -> void:
 			b.set_anchors_preset(Control.PRESET_TOP_LEFT)
 			b.position = r.position
 			b.size = r.size
-			# 文字统一亮白（深色底上高对比）；禁用节点用弱色但不隐藏（仍可见路径结构）
-			b.add_theme_font_size_override("font_size", 10)
-			b.add_theme_color_override("font_color", NODE_TEXT)
-			b.add_theme_color_override("font_disabled_color", NODE_TEXT_DIM)
-			var sb := StyleBoxFlat.new()
-			sb.bg_color = Color(0, 0, 0, 0)  # 透明：底色/边框由 _draw_screen 统一绘制
-			sb.set_border_width_all(0)
-			b.add_theme_stylebox_override("normal", sb)
-			b.add_theme_stylebox_override("hover", sb)
-			b.add_theme_stylebox_override("pressed", sb)
-			b.add_theme_stylebox_override("disabled", sb)
+			# L2 修复：文字由 _art 与边框同帧绘制，Button 退化为纯点击热区（text 留空），
+			# 彻底避开 Button theme 在缩放/重建后偶发不渲染文字的问题。
 			b.set_meta("layer", int(layer))
 			b.set_meta("idx", i)
 			b.set_meta("cnt", arr.size())
 			var t: String = String(n.get("type", ""))
-			b.text = "%s %s" % [ICONS.get(t, "•"), String(n.get("title", t))]
 			b.tooltip_text = "%s · %s" % [String(n.get("title", t)), String(n.get("desc", ""))]
 			b.disabled = not legal_ids.has(String(n["id"]))
 			b.pressed.connect(_on_node_pressed.bind(String(n["id"])))
