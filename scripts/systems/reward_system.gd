@@ -820,20 +820,22 @@ func roll_boss_rewards(room) -> Array:
 			"label": (wd.weapon_name if wd != null else p.get_file().get_basename()),
 			"desc": "新武器 · 进转轮带",
 		})
-	# ② Boss 信物：占护符槽 1/3（CHARM_CAP），护符槽满则不出
-	if room.boss_relic_path != "" and _ctrl._loadout_system.sel_arr("passive").size() < _ctrl._loadout_system.cat_max("passive"):
+	# ② Boss 信物（L2-E 遗物化）：不占护符槽，BOSS 必得！
+	# 旧逻辑「护符槽满则不出」会让打赢 BOSS 却拿不到纪念品（高潮落空）——已废弃。
+	# 信物入独立遗物栏 run_relics（本局拥有即生效、每局清零），图鉴 owned_charms 仍跨局。
+	if room.boss_relic_path != "" and not _ctrl.run_relics.has(room.boss_relic_path):
 		var rd: ItemData = load(room.boss_relic_path)
 		cands.append({
 			"kind": "boss_relic", "path": room.boss_relic_path,
 			"quality": String(rd.rarity) if rd != null else "",
 			"icon": (rd.icon if rd != null else "🏆"),
 			"label": (rd.item_name if rd != null else "Boss 信物"),
-			"desc": "信物 · 占护符槽",
-			"tip": (rd.description if rd != null else "专属信物 · 占护符槽"),
+			"desc": "遗物 · 拥有即生效（不占槽）",
+			"tip": (rd.description if rd != null else "专属遗物 · 本局永久生效"),
 		})
 	_loot.shuffle_in_place(cands)   # 展示顺序随机（抽取本身已定层，不消耗地图 RNG）
-	# 空池保底（2026-08-14，docs/BOSS信物_设计方案.md §4）：武器槽满 2 + 护符槽满/无信物
-	# → 两来源全被拦截，注入铁砧点兜底卡，战利品永不空屏
+	# 空池保底（2026-08-14，docs/BOSS信物_设计方案.md §4）：武器槽满 2 + 无信物或无 Boss 信物掉落
+	# → 两来源全被拦截，注入铁砧点兜底卡，战利品永不空屏（L2-E：护符槽满不再拦截信物）
 	if cands.is_empty():
 		cands.append({"kind": "boss_anvil", "path": "", "icon": "🔨",
 			"label": "铁砧结晶", "desc": "铁砧点数 +%d（跨局）" % BALANCE.boss_anvil_bonus,
@@ -1141,22 +1143,21 @@ func apply_boss_reward(cand: Dictionary) -> void:
 					_ctrl.hud._popup("⚔ 获得武器 %s" % cand.get("label", p), Palette.ACCENT_GOLD, _ctrl.hud._player_sprite_anchor())
 		"boss_relic":
 			var p = cand.get("path", "")
-			if p != "" and not _ctrl.selected_charms.has(p):
-				if _ctrl._loadout_system.sel_arr("passive").size() >= _ctrl._loadout_system.cat_max("passive"):
-					_ctrl.hud._log("BOSS 战利品：护符槽已满，信物无法拾取")
-					return
-				_ctrl.selected_charms.append(p)            # 占护符槽 1/3（CHARM_CAP）
-				# 2026-08-14 拍板（审查 §3.4）：信物跨局持久化——写入 owned_charms（收藏金字塔顶端定位），
-				# 后续整备页可随时再选（BOSS 信物不进商店/铁砧/新档种子，仅 BOSS 战利品与后续重选两条路径）
+			if p != "" and not _ctrl.run_relics.has(p):
+				# L2-E 遗物化：入独立遗物栏（本局拥有即生效、不占护符槽、每局清零）
+				_ctrl.run_relics.append(p)
+				# 跨局图鉴仍保留（2026-08-14 审查 §3.4）：owned_charms 收藏金字塔顶端，
+				# 整备页可再选作护符（BOSS 信物不进商店/铁砧/新档种子，仅 BOSS 战利品与后续重选）。
+				# 增益走本局遗物栏，图鉴归属不因此改变。
 				if not _ctrl.meta["owned_charms"].has(p):
 					_ctrl.meta["owned_charms"].append(p)
 					_ctrl._anvil_system.check_collection_milestones()   # M1-03
 					_ctrl._meta_store.save_meta()
 				_ctrl._meta_store.record_source(p, _ctrl._item_source())   # G2-01：来源记录
-				_ctrl._apply_charms()                     # 重算护符被动（伤害乘区等随持有变化）
-				_ctrl.hud._log("BOSS 战利品：获得专属信物 %s（占护符槽，已入图鉴）" % cand.get("label", p))
-				_ctrl.hud._popup("🏆 获得信物 %s" % cand.get("label", p), Palette.ACCENT_GOLD, _ctrl.hud._player_sprite_anchor())
-		# 空池兜底（2026-08-14）：武器/护符槽双满时的铁砧点补偿
+				_ctrl._apply_charms()                     # 重算被动：护符 + 本局遗物（L2-E）
+				_ctrl.hud._log("BOSS 战利品：获得遗物 %s（入本局遗物栏 · 拥有即生效，已入图鉴）" % cand.get("label", p))
+				_ctrl.hud._popup("🏆 获得遗物 %s" % cand.get("label", p), Palette.ACCENT_GOLD, _ctrl.hud._player_sprite_anchor())
+		# 空池兜底（2026-08-14）：武器槽满且无可掉信物时的铁砧点补偿（L2-E：护符槽满不再拦截）
 		"boss_anvil":
 			_ctrl.meta["anvil_points"] += BALANCE.boss_anvil_bonus
 			_ctrl._meta_store.save_meta()   # 跨局货币立即落盘

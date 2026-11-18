@@ -306,6 +306,9 @@ var reward_choices: Array = []         # 当前展示的 3 个奖励
 var reward_is_boss: bool = false       # 当前奖励是否来自 Boss 房（选完开新局）
 # 战后三选一重构 P3：本局已获元素构筑奖励计数（fire/ice/…），供 BuildState 推导标签；每局清零
 var element_affinity: Dictionary = {}
+# L2-E 本局收集品框架：遗物栏（BOSS 信物）——拥有即生效、不占护符槽、每局清零。
+# 与 meta["owned_charms"]（跨局图鉴）分离：图鉴仍跨局，增益只在本局。
+var run_relics: Array[String] = []
 # S7/S12 商店状态（shop_offers / paid_price）已抽至 ShopSystem（步骤3，见 _shop_system）
 
 # M5 元进度（铁砧锻造 + 存档持久化，跨局保留）

@@ -386,6 +386,7 @@ func _apply_patterns(acc: Dictionary) -> void:
 		# 签名：修改所属基础牌谱的效果参数；卸下关键武器立即失效（靠 find_signature 的 loadout 检查）
 		var all_equip: Array = loadout.duplicate()
 		all_equip.append_array(_ctrl.selected_charms)
+		all_equip.append_array(_ctrl.run_relics)   # L2-E：遗物也参与签名牌谱解锁判定（拥有即生效）
 		var sig = _ctrl._pattern_system.find_signature(String(w_pick.id), all_equip, weapon_cards)
 		acc["pattern_weapon"] = String(w_pick.id)
 		acc["pattern_equipment"] = String(w_pick.id)   # 兼容既有断言与展示

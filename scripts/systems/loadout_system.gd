@@ -164,7 +164,12 @@ func apply_charms() -> void:
 	_ctrl.charm_charge_start = 0
 	_ctrl.charm_first_hit = 1.0
 	_ctrl.charm_breakdown = []   # 明细只做归因，不参与结算
-	for path in _ctrl.selected_charms:
+	# L2-E：遗物（本局收集）与护符（跨局图鉴勾选）共用同一套被动效果结算——拥有即生效。
+	# 遗物不占护符槽，只是叠加进效果源数组；每局清零由 reset_run_state 负责。
+	var effect_sources: Array[String] = []
+	effect_sources.append_array(_ctrl.selected_charms)
+	effect_sources.append_array(_ctrl.run_relics)
+	for path in effect_sources:
 		var cd: Resource = load(path)
 		if cd == null:
 			continue
@@ -287,6 +292,7 @@ func reset_run_state() -> void:
 	_ctrl.charm_max = int(_ctrl.SLOT_INIT["passive"])
 	_ctrl._shop_system.reset_run()   # 商店状态清零（购入价记录 + 金币升级等级）
 	_ctrl._reward_system.reset_run()   # 本局加成层清零（符号灌注 / 伤害加成 / 下一房护盾）
+	_ctrl.run_relics.clear()            # L2-E：本局遗物栏清零（跨局图鉴 owned_charms 不动）
 	_ctrl.growth.reset_run()           # M2-01：历练经验 / 等级 / 技艺清零
 	_ctrl.mastery.reset_run()          # M2-02：武器熟练 / 铭印 / 欠选清零
 	if _ctrl._trim != null:

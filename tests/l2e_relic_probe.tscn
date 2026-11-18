@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://bnlpue5l7csf5"]
+
+[ext_resource type="Script" path="res://tests/l2e_relic_probe.gd" id="1"]
+
+[node name="L2ERelicProbe" type="Node"]
+script = ExtResource("1")
