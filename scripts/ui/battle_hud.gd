@@ -409,6 +409,7 @@ func _build_ui() -> void:
 	_build_snow()
 	_build_vitals()
 	_build_charm_row()
+	_build_relic_row()   # L2-F：遗物行（护符行下方，风格一致）
 	_hide_panel_vitals()
 
 	# 房间歇态按钮（opt-in 商店 + 下一房）：静态节点已在 battle_hud.tscn，这里只接信号
@@ -2575,6 +2576,7 @@ func _log(msg: String) -> void:
 func _refresh_gear_icons() -> void:
 	panel_view.refresh_gear_icons()
 	_refresh_charm_row()
+	_refresh_relic_row()   # L2-F：遗物行随装备刷新
 
 
 # ---------------------------------------------------------------------------
@@ -2673,10 +2675,14 @@ func _refresh_charm_row() -> void:
 
 
 # 护符生效脉冲：点亮头顶对应的护符图标（paths 由 ctrl.charm_breakdown 归因得出）
+# L2-F：遗物与护符共用被动归因，paths 里可能含遗物 path —— 两行都脉冲。
 func pulse_charm_card(paths: Array = []) -> void:
-	if charm_row == null or not is_instance_valid(charm_row) or not charm_row.visible:
-		return
-	for e in charm_icons:
+	_pulse_icon_row(charm_icons, paths)
+	_pulse_icon_row(relic_icons, paths)
+
+
+func _pulse_icon_row(icons: Array, paths: Array) -> void:
+	for e in icons:
 		if not paths.is_empty() and not paths.has(String(e["path"])):
 			continue
 		@warning_ignore("shadowed_variable_base_class")
@@ -2684,7 +2690,7 @@ func pulse_charm_card(paths: Array = []) -> void:
 		if tr == null or not is_instance_valid(tr):
 			continue
 		# Godot 4：get_meta(key, null) 的 null default 等同未提供，key 不存在时会报 C++ 错误。
-		# 护符图标首次创建时无 "tw" meta，必须先用 has_meta 守卫。
+		# 图标首次创建时无 "tw" meta，必须先用 has_meta 守卫。
 		if tr.has_meta("tw"):
 			var old = tr.get_meta("tw")
 			if old != null and is_instance_valid(old):
@@ -2693,6 +2699,85 @@ func pulse_charm_card(paths: Array = []) -> void:
 		var tw := tr.create_tween()
 		tw.tween_property(tr, "modulate", CHARM_DIM, 0.45)
 		tr.set_meta("tw", tw)
+
+
+# ---------------------------------------------------------------------------
+# L2-F 头顶遗物行（2026-11-18）
+# BOSS 信物入独立遗物栏 run_relics（本局拥有即生效、不占槽），与护符行同款样式，
+# 贴在其下方一行。也可能触发脉冲（charm_breakdown 已含遗物 path）。
+# ---------------------------------------------------------------------------
+var relic_row: Control
+var relic_icons: Array = []   # [{path: String, node: TextureRect}]
+
+
+func _build_relic_row() -> void:
+	if player_sprite == null:
+		return
+	relic_row = Control.new()
+	relic_row.name = "RelicRow"
+	relic_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	relic_row.anchor_left = 0.5
+	relic_row.anchor_right = 0.5
+	relic_row.visible = false
+	player_sprite.add_child(relic_row)
+	_refresh_relic_row()
+
+
+func _refresh_relic_row() -> void:
+	if relic_row == null or not is_instance_valid(relic_row):
+		return
+	var paths: Array = controller.run_relics if controller != null and "run_relics" in controller else []
+	var sig := "|".join(paths)
+	if String(relic_row.get_meta("sig", "")) == sig:
+		return
+	relic_row.set_meta("sig", sig)
+	for c in relic_row.get_children():
+		relic_row.remove_child(c)
+		c.queue_free()
+	relic_icons.clear()
+
+	var n: int = paths.size()
+	relic_row.visible = n > 0
+	if n == 0:
+		return
+	var total: float = n * CHARM_SLOT + float(n - 1) * CHARM_GAP
+	relic_row.offset_left = -total * 0.5
+	relic_row.offset_right = total * 0.5
+	# 护符行贴在血条上方（offset_bottom = -(VITAL_HP_H+4+2)），遗物行再往上 1 槽高 + 2px
+	relic_row.offset_bottom = -(VITAL_HP_H + 4.0 + 2.0) - CHARM_SLOT - 2.0
+	relic_row.offset_top = relic_row.offset_bottom - CHARM_SLOT
+	for i in n:
+		var cpath := String(paths[i])
+		var d = load(cpath)
+		var tex: Texture2D = d.get("icon_tex") if d != null else null
+		var slot := Panel.new()
+		slot.name = "RelicSlot_%d" % i
+		slot.custom_minimum_size = Vector2(CHARM_SLOT, CHARM_SLOT)
+		slot.size = Vector2(CHARM_SLOT, CHARM_SLOT)
+		slot.position = Vector2(float(i) * (CHARM_SLOT + CHARM_GAP), 0.0)
+		slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		slot.add_theme_stylebox_override("panel", _charm_slot_style())
+		relic_row.add_child(slot)
+
+		@warning_ignore("shadowed_variable_base_class")
+		var tr := TextureRect.new()
+		tr.texture = tex
+		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		tr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		tr.custom_minimum_size = Vector2(CHARM_ICON, CHARM_ICON)
+		tr.size = Vector2(CHARM_ICON, CHARM_ICON)
+		tr.position = Vector2(1, 1)
+		tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tr.modulate = CHARM_DIM
+		# 遗物边框用交互金区分护符（护符是暗铜色框）——拥有即生效的纪念品
+		var rsb := StyleBoxFlat.new()
+		rsb.bg_color = Palette.CARD_BG
+		rsb.border_color = Palette.ACCENT_GOLD
+		rsb.set_border_width_all(1)
+		slot.add_theme_stylebox_override("panel", rsb)
+		slot.add_child(tr)
+		relic_icons.append({"path": cpath, "node": tr})
 
 
 # 4 格子刷新：按 consumable_slots 顺序填，缺位留空占位文案
