@@ -1,25 +1,30 @@
 class_name DraftComposer
 extends RefCounted
 
-# 战后三选一重构 P1 · 核心④：候选硬过滤 + 组合生成 + 多样性 + 兜底 + RNG。
+# 战后三选一重构 · 核心④：候选硬过滤 + 组合生成 + 多样性 + 兜底 + RNG。
 #
 # 由 RewardSystem 在战后调用 compose(snap, count) 生成 DraftResult。
 # 本模块持有专用 RNG（不消耗全局/战斗 RNG，项目铁律 10）。
-# 免费重抽状态（契约 §2）：每次新 Draft 重置，免费优先于扣费判定。
 #
-# P1 组合采样（v2.0 §7.6/7.7）：
-#   1) 从 eligible 采样若干组候选 draft（每组 count 张）
-#   2) 对每组算 DraftScore = ΣOfferValue - SimilarityPenalty + PairSynergyBonus
-#                            + ChoiceTensionBonus + Randomness
-#   3) 过滤明显失衡组合，从高质量组中带权抽一组（非唯一 Top1，保留探索）
-#   4) 多样性约束逐级放宽；兜底永不空屏、不塞假卡
+# ★ 采样模型（经典 roguelike 最佳实践，2026-11-18 重构）：
+#   - 出现率由稀有度决定（RARITY_WEIGHT），rare/epic 真正稀有；
+#   - 情境评分只做硬过滤（满血滤回血等）与信息性展示，不参与抽样——
+#     避免"系统替玩家决策"（低血必出回血，玩家失去权衡乐趣）；
+#   - 保留组合多样性（同标签软惩罚）与兜底。
+# 这修正了 P0-P4 时期"评分直接当权重、rarity 是死字段"的根本问题。
 
 const BASE_PAID_REROLL_COST := 5
 
+# 稀有度出现权重（common 高、epic 极低）——经典四档梯度
+const RARITY_WEIGHT := {
+	"common": 60.0, "uncommon": 30.0, "rare": 9.0, "epic": 1.0
+}
+const DEFAULT_RARITY_WEIGHT := 1.0
+
 # 组合评分权重（可调参数）
-const W_SIMILARITY := 4.0      # 同标签惩罚
+const W_SIMILARITY := 1.5      # 同标签惩罚（不再用评分梯度，权重下调）
 const W_PAIR_SYNERGY := 2.0    # 组合内真实协同
-const W_TENSION := 3.0         # 选择张力（价值梯度）
+const W_TENSION := 3.0         # 稀有度梯度张力（有稀有卡=有取舍）
 const W_RANDOM := 1.0          # 受控随机
 const DIVERSITY_FACTOR := 0.65 # 同标签软惩罚（不绝对禁用）
 const DRAFT_SAMPLES := 6       # 采样候选组数
@@ -53,8 +58,8 @@ func compose(snap: RunSnapshot, count: int = 3, debug: bool = false) -> DraftRes
 	if eligible.is_empty():
 		return _fallback(snap, count, "empty_eligible")
 
-	var scores := RewardEvaluator.score_all(eligible, snap, debug)
-	var picked := _compose_samples(eligible, scores, snap, count)
+	# 采样只看稀有度，不看情境评分；评分仅在 debug 下计算用于展示
+	var picked := _compose_samples(eligible, snap, count)
 	if picked.size() < count:
 		var fb := _fallback(snap, count - picked.size(), "insufficient_candidates")
 		picked.append_array(fb.rewards)
@@ -65,7 +70,7 @@ func compose(snap: RunSnapshot, count: int = 3, debug: bool = false) -> DraftRes
 			"draft_id": draft.draft_id,
 			"pool_size": pool.size(),
 			"eligible_ids": eligible.map(func(d): return d.id),
-			"scores": scores,
+			"scores": RewardEvaluator.score_all(eligible, snap, true),  # 信息性，不参与抽样
 			"filtered": _last_filtered.duplicate(true),
 			"picked_ids": picked.map(func(d): return d.id),
 		}
@@ -146,39 +151,36 @@ func _passes_eligibility_rule(def: RewardDefinition, snap: RunSnapshot) -> bool:
 		_: return true
 
 
-# P1 核心：采样多组 → 组合评分 → 带权抽一组。
-func _compose_samples(eligible: Array, scores: Dictionary, snap: RunSnapshot, count: int) -> Array[RewardDefinition]:
+# 核心：采样多组 → 组合评分 → 带权抽一组。权重全来自稀有度，不用情境评分。
+func _compose_samples(eligible: Array, snap: RunSnapshot, count: int) -> Array[RewardDefinition]:
 	var best: Array[RewardDefinition] = []
 
 	for sample_i in range(DRAFT_SAMPLES):
-		var group := _sample_group(eligible, scores, count)
+		var group := _sample_group(eligible, count)
 		if group.size() < count:
 			continue
-		var gs := _draft_score(group, scores)
-		# 过滤明显失衡组合（同质化严重且无价值梯度）
+		var gs := _draft_score(group)
+		# 过滤明显失衡组合（同质化严重且无稀有度梯度）
 		if float(gs.get("similarity", 0.0)) > W_SIMILARITY and float(gs.get("tension", 0.0)) <= 0.0:
 			continue
-		# 带权抽：用得分构造权重，非唯一 Top1
 		var weight := maxf(0.01, float(gs.get("total", 0.0)))
 		if sample_i == 0 or _rng.randf() < weight / (weight + 1.0):
 			best = group
 
 	if not best.is_empty():
 		return best
-
-	# 所有采样都被过滤 → 放宽软约束，直接按评分抽一组
-	return _sample_group(eligible, scores, count)
+	return _sample_group(eligible, count)
 
 
-# 采样一组：按评分加权无放回抽 count 张，带同标签软惩罚。
-func _sample_group(eligible: Array, scores: Dictionary, count: int) -> Array[RewardDefinition]:
+# 采样一组：按稀有度权重无放回抽 count 张，带同标签软惩罚。
+func _sample_group(eligible: Array, count: int) -> Array[RewardDefinition]:
 	var remaining := eligible.duplicate()
 	var out: Array[RewardDefinition] = []
 	var used_tags := {}
 	while out.size() < count and not remaining.is_empty():
 		var weights: Array[float] = []
 		for def in remaining:
-			var w := maxf(0.01, float(scores.get(def.id, 1.0)))
+			var w := rarity_weight(def)
 			for tag in def.tags:
 				if used_tags.has(tag):
 					w *= DIVERSITY_FACTOR
@@ -193,15 +195,21 @@ func _sample_group(eligible: Array, scores: Dictionary, count: int) -> Array[Rew
 	return out
 
 
-# 组合评分（v2.0 §7.6）
-func _draft_score(group: Array, scores: Dictionary) -> Dictionary:
-	var card_total := 0.0
+# 单卡稀有度权重（供采样与组合评分共用）
+static func rarity_weight(def: RewardDefinition) -> float:
+	return float(RARITY_WEIGHT.get(def.rarity, DEFAULT_RARITY_WEIGHT))
+
+
+# 组合评分：稀有度梯度 + 多样性 + 协同 + 张力 + 随机。
+# 情境评分完全不参与——避免系统替玩家做决策。
+func _draft_score(group: Array) -> Dictionary:
+	var rarity_total := 0.0
 	var tag_count := {}
-	var vals: Array[float] = []
+	var rvals: Array[float] = []
 	for def in group:
-		var v := float(scores.get(def.id, 1.0))
-		vals.append(v)
-		card_total += v
+		var rw := rarity_weight(def)
+		rvals.append(rw)
+		rarity_total += rw
 		for tag in def.tags:
 			tag_count[tag] = int(tag_count.get(tag, 0)) + 1
 
@@ -213,7 +221,7 @@ func _draft_score(group: Array, scores: Dictionary) -> Dictionary:
 			similarity += float(n - 1)
 	similarity *= W_SIMILARITY
 
-	# 组合协同：≥2 个不同 build.* 标签给小奖励（简化版，P3 接真实协同矩阵）
+	# 组合协同：≥2 个不同 build.* 标签给小奖励
 	var pair_synergy := 0.0
 	var build_tags := []
 	for t in tag_count:
@@ -222,15 +230,15 @@ func _draft_score(group: Array, scores: Dictionary) -> Dictionary:
 	if build_tags.size() >= 2:
 		pair_synergy = W_PAIR_SYNERGY
 
-	# 选择张力：价值有梯度说明有取舍；全等或悬殊都扣分
+	# 选择张力：稀有度有梯度（有稀有卡=有取舍）；全 common 则无张力
 	var tension := 0.0
-	if vals.size() >= 2:
-		vals.sort()
-		var spread := vals[vals.size() - 1] - vals[0]
-		tension = W_TENSION if spread > 1.0 else 0.0
+	if rvals.size() >= 2:
+		rvals.sort()
+		var spread := rvals[rvals.size() - 1] - rvals[0]
+		tension = W_TENSION if spread >= 5.0 else 0.0
 
 	var randomness := _rng.randf_range(0.0, W_RANDOM)
-	var total := card_total - similarity + pair_synergy + tension + randomness
+	var total := rarity_total * 0.1 - similarity + pair_synergy + tension + randomness
 	return {
 		"total": total, "similarity": similarity,
 		"pair_synergy": pair_synergy, "tension": tension, "randomness": randomness,

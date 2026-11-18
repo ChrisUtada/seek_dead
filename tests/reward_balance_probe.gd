@@ -47,6 +47,8 @@ func _init() -> void:
 		for d in draft.rewards:
 			ids.append(d.id)
 			offer_count[d.id] = int(offer_count.get(d.id, 0)) + 1
+			var q: String = d.rarity
+			offer_count["__rarity__" + q] = int(offer_count.get("__rarity__" + q, 0)) + 1
 			if d.id == "seed_battle_ready":
 				heal_pick_by_band[band] += 1
 		ids.sort()
@@ -64,10 +66,17 @@ func _init() -> void:
 
 func _report(offer: Dictionary, combos: Dictionary, hs: Dictionary, hp: Dictionary, filters: Dictionary) -> void:
 	print("=== 战后三选一平衡探针 (%d 次 Draft) ===" % TRIALS)
+	print("\n[稀有度 offer 占比（应 common > uncommon > rare > epic）]")
+	for q in ["common", "uncommon", "rare", "epic"]:
+		var n := int(offer.get("__rarity__" + q, 0))
+		if n > 0:
+			print("  %-10s %5d  %5.1f%%" % [q, n, 100.0 * n / (TRIALS * 3.0)])
 	print("\n[卡片 offer 占比]")
 	for id in offer:
+		if String(id).begins_with("__rarity__"):
+			continue
 		print("  %-28s %5d  %5.1f%%" % [id, offer[id], 100.0 * offer[id] / (TRIALS * 3.0)])
-	print("\n[治疗评分（应低血高、高血低）]")
+	print("\n[治疗入选次数（解耦后应三段接近，系统不再讨好玩家）]")
 	for band in ["low", "mid", "high"]:
 		var n := int(hs.get(band + "_n", 1))
 		var avg := float(hs.get(band, 0.0)) / float(maxi(1, n))

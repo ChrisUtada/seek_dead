@@ -181,7 +181,7 @@ func _test_p1_evaluator_extras() -> void:
 
 
 func _test_p1_composer_sampling() -> void:
-	# P2 起 defs 已有 4 张种子卡，compose 应返回 3 张有效卡
+	# defs 已有 8 张种子卡，compose 应返回 3 张有效卡
 	var c := DraftComposer.new(999)
 	var snap := RunSnapshot.new()
 	snap.survival = {"current_hp": 50, "max_hp": 100, "hp_ratio": 0.5}

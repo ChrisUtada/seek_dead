@@ -5,7 +5,7 @@ extends Node
 # 运行：Godot --headless --fixed-fps 60 --path <项目> res://tests/reward_p2_test.tscn
 #
 # 覆盖：
-# ① 4 张种子卡 .tres 可加载且 validate 通过
+# ① 8 张种子卡 .tres 可加载且 validate 通过
 # ② 新引擎生成 3 张卡的 DraftResult + view（品质各异文案）
 # ③ Resolver 4 个 effect_id 真实执行（heal/shield/power 委托旧结算 + flame_affinity）
 # ④ 免费重抽优先于扣费
@@ -74,7 +74,7 @@ func _run() -> void:
 func _test_seed_defs() -> void:
 	var reg = load("res://scripts/reward/reward_registry.gd")
 	var all = reg.load_all()
-	_ok(all.size() == 4, "4 seed defs loaded (got %d)" % all.size())
+	_ok(all.size() == 8, "8 seed defs loaded (got %d)" % all.size())
 	var problems = reg.validate_all()
 	_ok(problems.is_empty(), "all seed defs valid: %s" % str(problems))
 
@@ -177,7 +177,15 @@ func _test_p3_build_state(duel: DuelController) -> void:
 	var b = evaluator.score_breakdown(fire_def, snap2)
 	_ok(float(b.get("synergy", 0.0)) > 0.0, "fire resonance gains synergy when build formed")
 
-	# ④ 清理（不污染后续测试）
+	# ④ 四元素对称卡：Resolver 写入非 fire 元素，协同走默认 build_tag 规则
+	var def_ice = load("res://resources/rewards/defs/seed_frost_resonance.tres")
+	var ri = resolver.resolve(def_ice)
+	_ok(ri.ok, "ice affinity resolves ok")
+	_ok(int(duel.element_affinity.get("ice", 0)) > 0, "ice affinity recorded")
+	var snap_ice = analyzer.capture(duel)
+	_ok(int(snap_ice.build_state.build_score("ice")) > 0, "ice build score derived")
+
+	# ⑤ 清理（不污染后续测试）
 	duel.element_affinity.clear()
 	duel.selected_loadout.clear()
 	duel._build_pool(duel.selected_loadout)
