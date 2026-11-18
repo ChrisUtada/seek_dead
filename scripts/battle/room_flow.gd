@@ -25,23 +25,20 @@ var _loot_view: Dictionary = {}
 
 
 # B 方案：精英战必掉「精简剪」，保证每幕至少一次瘦身机会。
-const TRIM_ITEM_PATH := "res://resources/consumables/trim_scissors.tres"
+const TRIM_ITEM_PATH := "res://resources/consumables/trim_scissors.tres"   # L3 P1 弃用：精英奖励改为同元素武器，常量保留兼容
 
 
+# L3 P1：精英战专属奖励——必给一把「与本房 element 同元素」的武器（Build 组件身份）。
+# 替换原「精简剪」消耗品；武器槽满时由 controller 弹替换弹层（复用 BOSS 武器替换流程）。
 func _grant_elite_trim() -> void:
 	if _ctrl.current_room == null or String(_ctrl.current_room.kind) != "elite":
 		return
-	var cap: int = int(_ctrl.CONSUMABLE_CAP)
-	if _ctrl.consumable_slots.size() >= cap:
-		_ctrl.hud._log("✂ 精英战利品：精简剪（腰带已满，未拾取）")
+	var act: int = int(_ctrl.current_room.act)
+	var path: String = _ctrl._reward_system.roll_elite_element_weapon(act)
+	if path == "":
+		_ctrl.hud._log("精英战利品：无可掉落的主题武器（池空），跳过")
 		return
-	var cd = load(TRIM_ITEM_PATH)
-	if cd == null:
-		return
-	_ctrl._consumable_uid += 1
-	_ctrl.consumable_slots.append({"path": TRIM_ITEM_PATH, "item_id": cd.item_id,
-		"charges": cd.charges, "uid": "c%d" % _ctrl._consumable_uid})
-	_ctrl.hud._log("✂ 精英战利品：获得「%s」" % cd.item_name)
+	_ctrl.grant_elite_weapon(path)
 
 
 func begin_post_battle() -> void:

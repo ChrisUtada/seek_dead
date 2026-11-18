@@ -851,6 +851,43 @@ func _on_boss_reward_chosen(cand: Dictionary) -> void:
 	_finish_room(func(): _reward_system.apply_boss_reward(cand), true)
 
 
+# L3 P1：精英战专属武器发放——槽未满直接入槽；槽满走替换弹层（复用 BOSS 武器替换流程）。
+func grant_elite_weapon(path: String) -> void:
+	if path == "" or selected_loadout.has(path):
+		return
+	var wd: Resource = load(path)
+	var wnamev = wd.get("weapon_name") if wd != null else null
+	var wname: String = String(wnamev) if wnamev != null else path.get_file().get_basename()
+	if selected_loadout.size() >= _loadout_system.cat_cap("weapon"):
+		hud.request_weapon_replace("精英主题武器：替换武器", _weapon_info(path, 0), func(old_path: String) -> void:
+			_apply_elite_weapon_replace(path, old_path), path)
+		return
+	_loadout_system.grow_slot("weapon")
+	selected_loadout.append(path)
+	_reward_system.remember_weapon(path, "elite")
+	if _telemetry != null:
+		_telemetry.on_reward_pick("elite_weapon")
+	_build_pool(selected_loadout)
+	hud._log("精英战利品：获得主题武器「%s」" % wname)
+	hud._popup("⚔ %s" % wname, Palette.POP_GOLD, hud._player_sprite_anchor())
+
+
+func _apply_elite_weapon_replace(p: String, old_path: String) -> void:
+	if p == "" or not selected_loadout.has(old_path) or selected_loadout.has(p):
+		return
+	var old_name = _shop_name(old_path, "weapon")
+	var slot: int = selected_loadout.find(old_path)
+	if slot < 0 or not replace_weapon_at_slot(slot, p):
+		return
+	_reward_system.remember_weapon(p, "elite")
+	if _telemetry != null:
+		_telemetry.on_weapon_swap()
+	if _journal != null:
+		_journal.note_weapon_change(String(old_name), _shop_name(p, "weapon"), "精英战利品")
+	_build_pool(selected_loadout)
+	hud._log("精英武器替换：%s → %s" % [old_name, _shop_name(p, "weapon")])
+
+
 func _apply_boss_weapon_replace(p: String, old_path: String) -> void:
 	if p == "" or not selected_loadout.has(old_path) or selected_loadout.has(p):
 		_finish_room(Callable(), true)

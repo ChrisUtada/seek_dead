@@ -795,6 +795,29 @@ func roll_elite_rewards() -> Array:
 	return out
 
 
+# L3 P1：给精英战掉落「与本房 element 同元素的一把武器」的路径。
+# 武器 element 由其 family_tags 决定（如 ["fire","combo"]）；无元素/池空时退回 elite 通用抽取。
+# 供 room_flow._grant_elite_trim 调用（精英战后必给的专属奖励）。
+func roll_elite_element_weapon(act: int) -> String:
+	var element := "none"
+	if _ctrl.room_index >= 0 and _ctrl.room_index < _ctrl.ROOMS.size():
+		var ev = _ctrl.ROOMS[_ctrl.room_index].get("element")
+		element = String(ev) if ev != null else "none"
+	var opts := {"category": "weapon", "exclude": _ctrl.selected_loadout}
+	if element != "none" and element != "":
+		var themed: Array[String] = []
+		for p in _ctrl.WEAPON_POOL:
+			var wd: Resource = load(p)
+			if wd == null or not (wd.get("family_tags") is Array):
+				continue
+			if String(element) in (wd.get("family_tags") as Array):
+				themed.append(p)
+		if not themed.is_empty():
+			opts["theme"] = themed
+	var res: Dictionary = _loot.roll("elite", act, opts)
+	return String(res.get("path", ""))
+
+
 # BOSS 战利品：先按来源表（boss）确定品质，再在主题池的同品质层内无放回抽至多 3 把。
 # 主题过滤保留；不再使用 acquisition_weight / boss_depth_bias（Step 3 起来源表是唯一品质概率）。
 # 同层不足 3 把时按实际数量返回，空层返回明确原因（Step 4 再补同层转化）。
