@@ -120,7 +120,7 @@ func _test_resolver(duel: DuelController) -> void:
 
 func _test_reroll(duel: DuelController) -> void:
 	duel._reward_system.build_loot_offer("normal", 1, {"growth_only": true})
-	duel.gold = 50   # 付费重抽需 5 金，初始 4 金不足；测试先补足
+	duel.gold = 50   # 付费重抽需 5 金；设 50 确保余额充足
 	var gold_before: int = duel.gold
 	var v: Dictionary = duel._reward_system.reroll_loot_offer()
 	_ok(bool(v.get("ok", false)), "reroll ok")

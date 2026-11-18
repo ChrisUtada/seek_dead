@@ -4,6 +4,9 @@
 
 [resource]
 script = ExtResource("1")
+starting_gold = 25
+interest_per_gold = 15
+interest_cap = 8
 gold_pool_weight = 3.0
 gold_per_coin = 1
 ante_act_step_hp = 1.75

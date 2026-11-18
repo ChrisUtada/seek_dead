@@ -7,6 +7,9 @@ extends Resource
 # M1-03：新档 everything-owned 调试旗标（原 SMALL_OWNED_*）已删除——初始池本身即基础子集。
 
 # —— 经济 ——
+@export var starting_gold: int = 25           # 局内起始金币（L1 经济平衡：4→25，保证第一个商店能买东西；单一真源）
+@export var interest_per_gold: int = 15       # 利息：每持有 N 金 +1（原每5金+1太快触顶，改15金让囤钱始终有价值）
+@export var interest_cap: int = 8             # 利息上限（原5太低；8 对应 120 金，需长期积累）
 @export var gold_pool_weight: float = 3.0     # 金币符号权重——⚠ 2026-08-14 勘误：仅喂 legacy 展示池（duel_controller:467 图例/查询），带子金币格数由 _GOLD_CELLS=2 固定决定，与频率解耦；旧注释「防稀释 DPS」为误导
 @export var gold_per_coin: int = 1            # 每枚落在连线上的金币符号产出的金币数
 

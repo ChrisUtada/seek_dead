@@ -280,7 +280,7 @@ func reset_run_state() -> void:
 	_ctrl.player_hp_max = int(BALANCE.player_hp_base)
 	_ctrl.player_hp = _ctrl.player_hp_max
 	_ctrl.in_interroom = false                     # opt-in 商店：新一局不可能处于房间歇态
-	_ctrl.gold = 4                                 # S6：新一局金币重置为起始值（与 duel_controller.gold 初值一致；L1 拟上调）
+	_ctrl.gold = int(BALANCE.starting_gold)        # 新一局金币重置为起始值（单一真源 balance_config.tres）
 	# 新一局四类槽位回到初始配额（商店「买即开槽」可再逐步扩至各自天花板）
 	_ctrl.loadout_max = int(_ctrl.SLOT_INIT["weapon"])
 	_ctrl.skill_max = int(_ctrl.SLOT_INIT["skill"])

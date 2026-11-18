@@ -1,6 +1,8 @@
 class_name MetaStore
 extends RefCounted
 
+const BALANCE = preload("res://resources/config/balance_config.tres")
+
 # M5 元进度（铁砧锻造 + 存档持久化）——从 duel_controller.gd 抽出的纯 IO 子系统。
 #
 # 由 controller 在 _ready 处实例化并注入：MetaStore.new(ctrl, ctrl.meta)。
@@ -220,7 +222,9 @@ func record_source(path: String, entry: Dictionary) -> void:
 
 func award_gold(is_boss: bool) -> void:
 	var base = 10 if is_boss else 5
-	var interest = mini(int(_ctrl.gold / 5.0), 5)     # S8：每 5 金 +1，上限 +5
+	# L1：利息改每 15 金 +1、上限 +8（原每 5 金 +1 上限 5，持 25 金即触顶）。
+	# 起始 25 金现在只有 +1 利息，避免开局吃满；囤钱始终有微弱价值。
+	var interest = mini(int(_ctrl.gold / float(BALANCE.interest_per_gold)), int(BALANCE.interest_cap))
 	var total = base + interest
 	_ctrl.gold += total
 	_ctrl.hud._log("金币 +%d（清房 %d + 利息 %d，共 %d）" % [total, base, interest, _ctrl.gold])
