@@ -58,6 +58,11 @@ func reset() -> void:
 	counter_burst_damage = 0
 	heal_total = 0
 	heal_overflow_shield = 0
+	draft_shown = 0
+	draft_rerolled = 0
+	draft_free_rerolls = 0
+	draft_skipped = 0
+	draft_events = []
 	_spin_started = -1
 	_room_started = -1
 
@@ -142,6 +147,51 @@ func on_reward_shown(n: int) -> void:
 
 func on_reward_pick(id: String) -> void:
 	reward_picks[id] = int(reward_picks.get(id, 0)) + 1
+
+
+# ===== P2 新 Draft 引擎事件（复用本遥测载体，不另建 Singleton） =====
+var draft_shown := 0
+var draft_rerolled := 0
+var draft_free_rerolls := 0
+var draft_skipped := 0
+var draft_events: Array[Dictionary] = []   # 开发环境详细记录，最多保留 64 条
+
+func on_reward_draft_shown(draft_id: String, ids: Array, hp_ratio: float, tags: Array = []) -> void:
+	draft_shown += 1
+	_draft_event({
+		"event": "reward_draft_generated", "draft_id": draft_id,
+		"reward_ids": ids, "hp_ratio": hp_ratio, "build_tags": tags,
+	})
+
+func on_reward_selected(draft_id: String, reward_id: String, effect_id: String, hp_ratio: float) -> void:
+	_draft_event({
+		"event": "reward_selected", "draft_id": draft_id,
+		"reward_id": reward_id, "effect_id": effect_id, "hp_ratio": hp_ratio,
+	})
+
+func on_reward_rerolled(draft_id: String, free: bool, cost: int) -> void:
+	draft_rerolled += 1
+	if free:
+		draft_free_rerolls += 1
+	_draft_event({
+		"event": "reward_rerolled", "draft_id": draft_id,
+		"free": free, "cost": cost,
+	})
+
+func on_reward_skipped(draft_id: String, ids: Array) -> void:
+	draft_skipped += 1
+	_draft_event({"event": "reward_skipped", "draft_id": draft_id, "reward_ids": ids})
+
+func on_reward_apply_failed(reward_id: String, effect_id: String, reason: String) -> void:
+	_draft_event({
+		"event": "reward_apply_failed", "reward_id": reward_id,
+		"effect_id": effect_id, "reason": reason,
+	})
+
+func _draft_event(e: Dictionary) -> void:
+	if draft_events.size() >= 64:
+		draft_events.pop_front()
+	draft_events.append(e)
 
 
 func triple_rate() -> float:

@@ -50,9 +50,20 @@ static func definition_to_option(def: RewardDefinition) -> Dictionary:
 		"condition": _condition_text(def),
 		"tooltip": def.desc,
 		"icon": def.icon,
+		"icon_glyph": _glyph(effect_id),   # 无美术时的 emoji 占位（card_factory 暂未用，供后续接入）
 		"effect_id": effect_id,
 		"tags": def.tags,
 	}
+
+
+static func _glyph(effect_id: String) -> String:
+	match effect_id:
+		"heal": return "✚"
+		"shield_next_battle": return "🛡"
+		"run_power_bonus": return "⚔"
+		"flame_affinity": return "🔥"
+		"free_reroll": return "🎲"
+		_: return "🎁"
 
 
 static func _first_params(def: RewardDefinition) -> Dictionary:

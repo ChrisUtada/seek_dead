@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="RewardDefinition" format=3]
+
+[ext_resource type="Script" uid="uid://dtkfpq4onbs5t" path="res://scripts/reward/reward_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "seed_edge_polish"
+name = "锋锐打磨"
+desc = "本局所有符号伤害 +2"
+rarity = "common"
+tags = Array[String](["offense.power", "scaling"])
+base_weight = 1.0
+base_value = 2.5
+effects = [{"effect_id": "run_power_bonus", "params": {"amount": 2}}]
+stack_rule = 1
+max_stack = -1
+eligibility_rule = ""
+context_rule = ""
+synergy_rule = ""

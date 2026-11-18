@@ -4,6 +4,11 @@ extends RefCounted
 # T22：平衡常量收敛于 BalanceConfig（balance_config.tres）
 const BALANCE = preload("res://resources/config/balance_config.tres")
 const GROWTH_LOOT_OFFER = preload("res://scripts/systems/growth_loot_offer.gd")
+# 战后三选一重构 P2：新 Draft 引擎（仅普通/精英战后成长路径使用，BOSS/探索保留旧 LootOffer）
+const DraftComposer = preload("res://scripts/reward/draft_composer.gd")
+const RewardResolver = preload("res://scripts/reward/reward_resolver.gd")
+const RewardPresentation = preload("res://scripts/ui/reward_presentation.gd")
+const RunStateAnalyzer = preload("res://scripts/reward/run_state_analyzer.gd")
 
 # M4 房奖励 / 精英战前补给 / BOSS 战利品 / 局末元进度三选一——从 duel_controller.gd 抽出。
 #
@@ -29,9 +34,18 @@ var _loot_settled := false              # Step 6：本组三选一是否已结�
 var _loot_view: Dictionary = {}         # Step 7：最近一次生成/重抽的展示快照（品质冻结）
 var _loot_rerolls := 0                  # 本组已付费重抽次数，费用 = 5 + 5 × 次数
 
+# P2 新路径：普通/精英战后成长三选一走 Draft 引擎；BOSS/探索仍走旧 _loot_offer。
+var _draft_active := false              # 当前 view 是否由新引擎生成
+var _draft_composer                     # DraftComposer 实例
+var _draft_resolver                     # RewardResolver 实例
+var _draft_result                       # 最近一次 DraftResult
+
 func _init(ctrl: DuelController) -> void:
 	_ctrl = ctrl
 	_loot = LootPool.new(ctrl)
+	_draft_composer = DraftComposer.new()
+	_draft_resolver = RewardResolver.new(ctrl)
+	_draft_resolver.bind_composer(_draft_composer)
 
 
 # ---------------------------------------------------------------------------
@@ -46,6 +60,8 @@ func reset_run() -> void:
 		_loot.reset_run()   # 本局来源品质抽取的专用种子（只取一次，之后不碰地图 RNG）
 	_loot_settled = false
 	_loot_view = {}
+	_draft_active = false
+	_draft_result = null
 	_ctrl.invalidate_state()
 
 
@@ -322,17 +338,39 @@ func roll_shop_ladder(act: int, opts: Dictionary = {}) -> Array:
 # ---------------------------------------------------------------------------
 # 重抽沿用同一品质层；每组首次 5 金，之后每次 +5 金。跳过免费且不发奖励。
 func build_loot_offer(source: String, act: int, opts: Dictionary = {}, forced_quality: String = "") -> Dictionary:
-	if bool(opts.get("growth_only", false)):
-		_loot_offer = GROWTH_LOOT_OFFER.new(_ctrl, _loot)
-	elif _loot_offer == null or _loot_offer is GROWTH_LOOT_OFFER:
-		_loot_offer = LootOffer.new(_ctrl, _loot)
 	_loot_settled = false
 	_loot_rerolls = 0
+	if bool(opts.get("growth_only", false)):
+		# P2 新路径：普通/精英战后成长走 Draft 引擎
+		var snap = RunStateAnalyzer.capture(_ctrl)
+		_draft_composer.reset_reroll_state(_has_free_reroll_reward())
+		_draft_result = _draft_composer.compose(snap, 3, false)
+		_draft_active = true
+		_loot_view = RewardPresentation.draft_to_view(_draft_result, LootSourceTable.source_label(source))
+		# 重抽费用走 composer 的付费档（免费重抽由 request_reroll 内部优先判定）
+		_loot_view["reroll_cost"] = _draft_composer.paid_reroll_cost
+		_loot_view["reroll_paid"] = 0
+		if _ctrl._telemetry != null:
+			var ids: Array = []
+			for d in _draft_result.rewards:
+				ids.append(d.id)
+			_ctrl._telemetry.on_reward_draft_shown(_draft_result.draft_id, ids, snap.hp_ratio())
+		return _loot_view
+
+	# 旧路径：BOSS / 探索 / 商店（本次不重构）
+	_draft_active = false
+	if _loot_offer == null or _loot_offer is GROWTH_LOOT_OFFER:
+		_loot_offer = LootOffer.new(_ctrl, _loot)
 	_loot_view = _loot_offer.build(source, act, opts, forced_quality)
-	_loot_view["growth_only"] = bool(opts.get("growth_only", false))
+	_loot_view["growth_only"] = false
 	_loot_view["reroll_cost"] = loot_reroll_cost()
 	_loot_view["reroll_paid"] = 0
 	return _loot_view
+
+
+# 当前 Build 是否含免费重抽奖励（P2 种子卡未含，预留钩子）
+func _has_free_reroll_reward() -> bool:
+	return false
 
 
 func loot_reroll_cost() -> int:
@@ -340,10 +378,35 @@ func loot_reroll_cost() -> int:
 
 
 func reroll_loot_offer() -> Dictionary:
-	if _loot_offer == null:
-		return {"ok": false, "reason": "no_offer", "quality": "", "options": [], "skip": {}}
 	if _loot_settled:
 		return {"ok": false, "reason": "already_settled", "quality": "", "options": [], "skip": {}}
+
+	# P2 新路径：免费重抽优先于扣费（契约 §2.4）
+	if _draft_active:
+		var rr: Dictionary = _draft_composer.request_reroll()
+		if not bool(rr.get("ok", false)):
+			return {"ok": false, "reason": "reroll_failed"}
+		var cost := int(rr.get("cost", 0))
+		if not bool(rr.get("free", false)):
+			if _ctrl.gold < cost:
+				return {"ok": false, "reason": "insufficient_gold", "cost": cost}
+			_ctrl.gold -= cost
+		# 重生成 Draft（不重置重抽状态）
+		var snap = RunStateAnalyzer.capture(_ctrl)
+		_draft_result = _draft_composer.compose(snap, 3, false)
+		_loot_view = RewardPresentation.draft_to_view(_draft_result, LootSourceTable.source_label("normal"))
+		_loot_view["growth_only"] = true
+		_loot_view["reroll_cost"] = _draft_composer.paid_reroll_cost
+		_loot_view["reroll_paid"] = 0 if bool(rr.get("free", false)) else cost
+		if _ctrl._telemetry != null:
+			_ctrl._telemetry.on_reward_rerolled(_draft_result.draft_id, bool(rr.get("free", false)), cost)
+		_ctrl.hud._log("战利品重抽：%s" % ("免费" if bool(rr.get("free", false)) else "金币 -%d" % cost))
+		_ctrl.invalidate_state()
+		return _loot_view
+
+	# 旧路径
+	if _loot_offer == null:
+		return {"ok": false, "reason": "no_offer", "quality": "", "options": [], "skip": {}}
 	var cost: int = loot_reroll_cost()
 	if _ctrl.gold < cost:
 		return {"ok": false, "reason": "insufficient_gold", "cost": cost,
@@ -354,7 +417,7 @@ func reroll_loot_offer() -> Dictionary:
 	_ctrl.gold -= cost
 	_loot_rerolls += 1
 	_loot_view = next
-	_loot_view["growth_only"] = _loot_offer is GROWTH_LOOT_OFFER
+	_loot_view["growth_only"] = false
 	_loot_view["reroll_cost"] = loot_reroll_cost()
 	_loot_view["reroll_paid"] = cost
 	_ctrl.hud._log("战利品重抽：金币 -%d（剩余 %d，下次 %d）" % [cost, _ctrl.gold, loot_reroll_cost()])
@@ -369,12 +432,19 @@ func loot_offer_view() -> Dictionary:
 
 # Step 7：第 index 项的冻结 payload（点击前判断 needs_replace）。
 func loot_offer_option(index: int) -> Dictionary:
+	if _draft_active:
+		var opts: Array = _loot_view.get("options", [])
+		if index >= 0 and index < opts.size():
+			return opts[index]
+		return {}
 	if _loot_offer == null:
 		return {}
 	return _loot_offer.payload_at(index)
 
 
 func loot_offer_skip() -> Dictionary:
+	if _draft_active:
+		return {"kind": "skip", "gold": 0, "power": 0}
 	if _loot_offer == null:
 		return {}
 	return _loot_offer.skip_result()
@@ -384,10 +454,30 @@ func loot_offer_skip() -> Dictionary:
 # 同一组只结算一次（重复点击 / 回访不会二次发奖），失败时不消耗结算机会。
 # 返回 {ok, reason, kind, path?, gold?, power?, mastery?}
 func settle_loot_offer(index: int) -> Dictionary:
-	if _loot_offer == null:
-		return {"ok": false, "reason": "no_offer"}
 	if _loot_settled:
 		return {"ok": false, "reason": "already_settled"}
+
+	# P2 新路径：DraftResult → Resolver（效果执行仍委托旧结算）
+	if _draft_active:
+		if _draft_result == null or index < 0 or index >= _draft_result.rewards.size():
+			return {"ok": false, "reason": "invalid_index"}
+		var def = _draft_result.rewards[index]
+		var apply_res = _draft_resolver.resolve(def)
+		if not apply_res.ok:
+			if _ctrl._telemetry != null:
+				_ctrl._telemetry.on_reward_apply_failed(def.id, apply_res.effect_id, apply_res.reason)
+			return {"ok": false, "reason": apply_res.reason, "effect_id": apply_res.effect_id}
+		_loot_settled = true
+		_ctrl._post_battle.clear_pending_choices()
+		if _ctrl._telemetry != null:
+			var snap = RunStateAnalyzer.capture(_ctrl)
+			_ctrl._telemetry.on_reward_selected(_draft_result.draft_id, def.id, apply_res.effect_id, snap.hp_ratio())
+		# 转回旧格式供调用方（controller 只读 ok/kind）
+		return {"ok": true, "kind": apply_res.effect_id, "summary": apply_res.summary,
+			"effect_id": apply_res.effect_id, "reward_id": def.id}
+
+	if _loot_offer == null:
+		return {"ok": false, "reason": "no_offer"}
 	var opt: Dictionary = _loot_offer.payload_at(index)
 	if opt.is_empty():
 		return {"ok": false, "reason": "invalid_index"}
@@ -413,10 +503,19 @@ func settle_loot_queued_growth(cand: Dictionary) -> Dictionary:
 
 # Step 6：免费跳过战利品——不发金币、强化或物品，同样只结算一次。
 func settle_loot_skip() -> Dictionary:
-	if _loot_offer == null:
-		return {"ok": false, "reason": "no_offer"}
 	if _loot_settled:
 		return {"ok": false, "reason": "already_settled"}
+	if _draft_active:
+		_loot_settled = true
+		_ctrl._post_battle.clear_pending_choices()
+		if _ctrl._telemetry != null and _draft_result != null:
+			var ids: Array = []
+			for d in _draft_result.rewards:
+				ids.append(d.id)
+			_ctrl._telemetry.on_reward_skipped(_draft_result.draft_id, ids)
+		return {"ok": true, "kind": "skip", "gold": 0, "power": 0}
+	if _loot_offer == null:
+		return {"ok": false, "reason": "no_offer"}
 	var skip: Dictionary = _loot_offer.skip_result()
 	if skip.is_empty():
 		return {"ok": false, "reason": "no_skip"}
@@ -431,6 +530,9 @@ func settle_loot_skip() -> Dictionary:
 # Step 7：武器槽满时的替换结算——玩家在替换弹层选定旧武器后调用。
 # 与 settle_loot_offer 共享「只结算一次」纪律：成功才置位，取消 / 非法参数不消耗机会。
 func settle_loot_replace(index: int, old_path: String) -> Dictionary:
+	if _draft_active:
+		# 新 Draft 路径的种子卡不含武器替换；若未来加入武器卡需在此扩展
+		return {"ok": false, "reason": "replace_not_supported_in_draft"}
 	if _loot_offer == null:
 		return {"ok": false, "reason": "no_offer"}
 	if _loot_settled:

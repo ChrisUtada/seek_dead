@@ -188,13 +188,13 @@ func _test_p1_evaluator_extras() -> void:
 
 
 func _test_p1_composer_sampling() -> void:
-	# Registry 无卡时 compose 走兜底，不空屏不报错
+	# P2 起 defs 已有 5 张种子卡，compose 应返回 3 张有效卡
 	var c := DraftComposer.new(999)
 	var snap := RunSnapshot.new()
 	snap.survival = {"current_hp": 50, "max_hp": 100, "hp_ratio": 0.5}
 	var draft: DraftResult = c.compose(snap, 3, true)
 	_ok(draft is DraftResult, "composer returns DraftResult")
-	_ok(draft.debug_metadata.has("fallback_reason"), "empty pool uses fallback with reason")
+	_ok(draft.rewards.size() == 3, "composer returns 3 valid cards (got %d)" % draft.rewards.size())
 
 
 func _test_p1_definition_rules() -> void:

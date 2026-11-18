@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="RewardDefinition" format=3]
+
+[ext_resource type="Script" uid="uid://dtkfpq4onbs5t" path="res://scripts/reward/reward_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "seed_guardian_ember"
+name = "守护余烬"
+desc = "下一场战斗开局获得 10 护盾"
+rarity = "uncommon"
+tags = Array[String](["survival.shield", "future"])
+base_weight = 1.0
+base_value = 2.0
+effects = [{"effect_id": "shield_next_battle", "params": {"amount": 10}}]
+stack_rule = 1
+max_stack = -1
+eligibility_rule = ""
+context_rule = ""
+synergy_rule = ""

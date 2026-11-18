@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="RewardDefinition" format=3]
+
+[ext_resource type="Script" uid="uid://dtkfpq4onbs5t" path="res://scripts/reward/reward_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "seed_lucky_afterglow"
+name = "幸运余波"
+desc = "本次奖励界面获得 1 次免费重抽，不消耗金币"
+rarity = "rare"
+tags = Array[String](["control.reroll", "mechanic"])
+base_weight = 1.0
+base_value = 2.0
+effects = [{"effect_id": "free_reroll", "params": {"count": 1}}]
+stack_rule = 0
+max_stack = 1
+eligibility_rule = ""
+context_rule = ""
+synergy_rule = ""

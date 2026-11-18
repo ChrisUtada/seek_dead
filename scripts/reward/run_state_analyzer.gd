@@ -37,7 +37,7 @@ static func _capture_survival(ctrl) -> Dictionary:
 
 
 static func _capture_economy(ctrl) -> Dictionary:
-	var slots := ctrl.consumable_slots if ctrl.consumable_slots != null else []
+	var slots: Array = ctrl.consumable_slots if ctrl.consumable_slots != null else []
 	return {
 		"gold": int(ctrl.gold),
 		"consumable_count": slots.size(),

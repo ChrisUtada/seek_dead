@@ -127,16 +127,23 @@ func show_post_battle(offer: Array, summary: String) -> void:
 # Step 7：同层三选一
 # ---------------------------------------------------------------------------
 
-# 战利品阶段：标题写明来源与品质；三项同层，卡面不出现品质高下提示。
+# 战利品阶段：新 Draft 路径三张品质各异（卡面显示各自品质）；旧路径三项同层。
 func show_loot_offer(view: Dictionary) -> void:
 	_mode = "loot"
 	reward_grid.columns = 3
 	var growth := bool(view.get("growth_only", false))
-	title_label.text = "%s · %s%s" % [
-		String(view.get("source_label", "战利品")), String(view.get("quality_name", "")),
-		"成长" if growth else "战利品"]
-	sub_label.text = "成长三选一：强化当前 Build；装备主要来自探索、商店与BOSS" if growth \
-		else "同层三选一：三项品质相同，按用途与当前 Build 选择"
+	var is_draft := not String(view.get("draft_id", "")).is_empty()
+	var qname := String(view.get("quality_name", ""))
+	if is_draft:
+		# 新路径：品质由每张卡自带，卡面显示；标题不再写统一品质
+		title_label.text = "%s · 成长" % String(view.get("source_label", "战利品"))
+		sub_label.text = "成长三选一：按品质、用途与当前构筑选择"
+	else:
+		title_label.text = "%s · %s%s" % [
+			String(view.get("source_label", "战利品")), qname,
+			"成长" if growth else "战利品"]
+		sub_label.text = "成长三选一：强化当前 Build；装备主要来自探索、商店与BOSS" if growth \
+			else "同层三选一：三项品质相同，按用途与当前 Build 选择"
 	_refresh_loot_actions(view)
 	_fill_loot_options(view)
 	visible = true
@@ -153,10 +160,12 @@ func refresh_loot_offer(view: Dictionary) -> void:
 func _refresh_loot_actions(view: Dictionary) -> void:
 	if _reroll_btn != null:
 		var cost := int(view.get("reroll_cost", 5))
+		var is_draft := not String(view.get("draft_id", "")).is_empty()
 		_reroll_btn.visible = true
 		_reroll_btn.text = "重抽 · %d金" % cost
 		_reroll_btn.disabled = controller.gold < cost
-		_reroll_btn.tooltip_text = "支付 %d 金币，更换同层候选；不会提高品质" % cost
+		_reroll_btn.tooltip_text = ("重新生成三选一，品质由新 Draft 决定" if is_draft
+			else "支付 %d 金币，更换同层候选；不会提高品质" % cost)
 	if _skip_btn != null:
 		_skip_btn.text = "跳过 · 免费"
 
