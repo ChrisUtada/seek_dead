@@ -374,32 +374,52 @@ func _build_board_toggle() -> void:
 	var idx: int = _preview_btn.get_index() if _preview_btn != null else confirm_btn.get_index()
 	_board_btn = Button.new()
 	_board_btn.add_theme_font_size_override("font_size", 9)
-	_board_btn.tooltip_text = "14×9 地图探索：点击开启，再点回到线性"
+	_board_btn.tooltip_text = "点击切换：线性 → 14×9 旧网格 → 分岔路线图"
 	_board_btn.pressed.connect(_toggle_board_mode)
 	bar.add_child(_board_btn)
 	bar.move_child(_board_btn, idx)
 	_refresh_board_toggle()
 
 
+# 三态循环：线性 → 14×9 旧网格 → 分岔路线图 → 线性。
+# 只改 board_config 的本进程值，不写存档；确认开战后由 full_reset 读取。
 func _toggle_board_mode() -> void:
 	var cfg = controller.board_config
-	if cfg.is_active():
-		cfg.enabled = false
-	else:
+	if not cfg.enabled:
+		# 线性 → 旧网格
 		cfg.enabled = true
+		cfg.branch_mode = false
+	elif not cfg.branch_mode:
+		# 旧网格 → 分岔图
+		cfg.branch_mode = true
+	else:
+		# 分岔图 → 线性
+		cfg.enabled = false
+		cfg.branch_mode = false
 	_refresh_board_toggle()
-	hud._log("棋盘模式：%s（确认开战后生效）" % _board_mode_name())
+	hud._log("地图模式：%s（确认开战后生效）" % _board_mode_name())
 
 
 func _board_mode_name() -> String:
-	return "14×9 地图" if controller.board_config.is_active() else "线性"
+	var cfg = controller.board_config
+	if not cfg.enabled:
+		return "线性"
+	return "分岔路线图" if cfg.branch_mode else "14×9 旧网格"
 
 
 func _refresh_board_toggle() -> void:
-	var active: bool = controller.board_config.is_active()
+	var cfg = controller.board_config
 	if _board_btn != null:
-		_board_btn.text = "🗺 地图✓" if active else "🗺 地图"
-		_board_btn.modulate = Color(1, 1, 1, 1.0) if active else Color(1, 1, 1, 0.65)
+		if not cfg.enabled:
+			_board_btn.text = "🗺 地图"
+			_board_btn.modulate = Color(1, 1, 1, 0.65)
+		elif cfg.branch_mode:
+			_board_btn.text = "🗺 分岔✓"
+			_board_btn.modulate = Color(0.72, 0.88, 1.0, 1.0)
+		else:
+			_board_btn.text = "🗺 网格✓"
+			_board_btn.modulate = Color(1, 1, 1, 1.0)
+		_board_btn.tooltip_text = "点击切换：线性 → 14×9 旧网格 → 分岔路线图（当前：%s）" % _board_mode_name()
 
 
 # ---------------------------------------------------------------------------
