@@ -59,6 +59,9 @@ func _run() -> void:
 	_test_reroll(duel)
 	_test_telemetry(duel)
 	_test_old_path(duel)
+	_test_p3_build_state(duel)
+	_test_p4_events(duel)
+	_test_p4_explain(duel)
 
 	duel.meta.clear()
 	for k in meta_backup:
@@ -144,3 +147,77 @@ func _test_old_path(duel: DuelController) -> void:
 	# BOSS/探索走旧路径，不应设置 draft_id
 	var view: Dictionary = duel._reward_system.build_loot_offer("boss", 1, {})
 	_ok(String(view.get("draft_id", "")).is_empty(), "old path has no draft_id")
+
+
+func _test_p3_build_state(duel: DuelController) -> void:
+	var analyzer = load("res://scripts/reward/run_state_analyzer.gd")
+	var evaluator = load("res://scripts/reward/reward_evaluator.gd")
+	var resolver = load("res://scripts/reward/reward_resolver.gd").new(duel)
+	var composer = load("res://scripts/reward/draft_composer.gd").new(7)
+	resolver.bind_composer(composer)
+
+	# 基线：清空构筑计数与装备
+	duel.element_affinity.clear()
+	duel.selected_loadout.clear()
+	duel._build_pool(duel.selected_loadout)
+	var snap0 = analyzer.capture(duel)
+	_ok(int(snap0.build_state.build_score("fire")) == 0, "no fire build at baseline")
+
+	# ① 装备火武器 → 火焰分 >0（武器 +3，符号另计）
+	duel.selected_loadout.append("res://resources/weapon_templates/cinder_saber.tres")
+	duel._build_pool(duel.selected_loadout)
+	var snap1 = analyzer.capture(duel)
+	var fire_score := int(snap1.build_state.build_score("fire"))
+	_ok(fire_score >= 3, "fire weapon contributes >=3 (got %d)" % fire_score)
+	_ok(snap1.build_state.has_tag("element.fire"), "element.fire tag set")
+	_ok(snap1.build_state.has_tag("build.fire"), "build.fire tag set")
+
+	# ② 已获火焰奖励 +2（Resolver 写入 element_affinity，重新 capture 生效）
+	var def_fire = load("res://resources/rewards/defs/seed_flame_resonance.tres")
+	var rr = resolver.resolve(def_fire)
+	_ok(rr.ok, "flame_affinity resolves ok")
+	var snap2 = analyzer.capture(duel)
+	_ok(int(snap2.build_state.build_score("fire")) > fire_score, "fire affinity reward raises fire score")
+
+	# ③ 火焰共鸣卡在已形成构筑时拿协同分
+	var fire_def = load("res://resources/rewards/defs/seed_flame_resonance.tres")
+	var b = evaluator.score_breakdown(fire_def, snap2)
+	_ok(float(b.get("synergy", 0.0)) > 0.0, "fire resonance gains synergy when build formed")
+
+	# ④ 清理（不污染后续测试）
+	duel.element_affinity.clear()
+	duel.selected_loadout.clear()
+	duel._build_pool(duel.selected_loadout)
+
+
+func _test_p4_events(duel: DuelController) -> void:
+	var t = duel._telemetry
+	# applied 事件：settle 一张卡后应有 reward_applied
+	duel._reward_system.build_loot_offer("normal", 1, {"growth_only": true})
+	var applied_before := _count_event(t, "reward_applied")
+	duel._reward_system.settle_loot_offer(0)
+	_ok(_count_event(t, "reward_applied") > applied_before, "reward_applied event recorded")
+	# run_outcome：log_telemetry 应记录一局结果（不真正改游戏状态）
+	var outcome_before := _count_event(t, "run_outcome")
+	duel.room_flow.log_telemetry()
+	_ok(_count_event(t, "run_outcome") > outcome_before, "run_outcome event recorded")
+
+
+func _count_event(t, event_name: String) -> int:
+	var n := 0
+	for e in t.draft_events:
+		if e is Dictionary and str(e.get("event", "")) == event_name:
+			n += 1
+	return n
+
+
+func _test_p4_explain(duel: DuelController) -> void:
+	var composer = load("res://scripts/reward/draft_composer.gd").new(11)
+	var snap = RunSnapshot.new()
+	snap.survival = {"current_hp": 20, "max_hp": 100, "hp_ratio": 0.2}
+	snap.build_state.build_scores["fire"] = 0
+	composer.compose(snap, 3, true)
+	var text: String = composer.explain_last()
+	_ok(text.contains("候选池"), "explain has pool info")
+	_ok(text.contains("评分明细"), "explain has score breakdown")
+	_ok(text.contains("入选"), "explain has picked info")

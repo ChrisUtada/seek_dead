@@ -324,6 +324,15 @@ func log_telemetry() -> void:
 		_ctrl._journal.finish()   # G5 工具：局末写 JSON + 预填记录表（只读，不改结算）
 	if _ctrl._telemetry == null:
 		return
+	# P4：记录局末结果（构筑标签 vs 通关/死亡，仅作相关性观察）
+	var win: bool = _ctrl.game_state == DuelController.FlowState.WON
+	var tags: Array = []
+	var affinity = _ctrl.get("element_affinity")
+	if affinity is Dictionary:
+		for k in affinity:
+			if int(affinity[k]) > 0:
+				tags.append("build." + String(k))
+	_ctrl._telemetry.on_run_outcome(win, int(_ctrl.room_index), tags)
 	var txt: String = _ctrl._telemetry.summary_text()
 	print("TELEMETRY|" + txt)
 	_ctrl.hud._log("📊 本局遥测：" + txt)

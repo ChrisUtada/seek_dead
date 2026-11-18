@@ -39,6 +39,7 @@ var _draft_active := false              # 当前 view 是否由新引擎生成
 var _draft_composer                     # DraftComposer 实例
 var _draft_resolver                     # RewardResolver 实例
 var _draft_result                       # 最近一次 DraftResult
+var draft_debug := false                # P4：开发时置 true，输出 Draft 候选/评分/过滤可解释日志
 
 func _init(ctrl: DuelController) -> void:
 	_ctrl = ctrl
@@ -344,7 +345,7 @@ func build_loot_offer(source: String, act: int, opts: Dictionary = {}, forced_qu
 		# P2 新路径：普通/精英战后成长走 Draft 引擎
 		var snap = RunStateAnalyzer.capture(_ctrl)
 		_draft_composer.reset_reroll_state(_has_free_reroll_reward())
-		_draft_result = _draft_composer.compose(snap, 3, false)
+		_draft_result = _draft_composer.compose(snap, 3, draft_debug)
 		_draft_active = true
 		_loot_view = RewardPresentation.draft_to_view(_draft_result, LootSourceTable.source_label(source))
 		# 重抽费用走 composer 的付费档（免费重抽由 request_reroll 内部优先判定）
@@ -393,7 +394,7 @@ func reroll_loot_offer() -> Dictionary:
 			_ctrl.gold -= cost
 		# 重生成 Draft（不重置重抽状态）
 		var snap = RunStateAnalyzer.capture(_ctrl)
-		_draft_result = _draft_composer.compose(snap, 3, false)
+		_draft_result = _draft_composer.compose(snap, 3, draft_debug)
 		_loot_view = RewardPresentation.draft_to_view(_draft_result, LootSourceTable.source_label("normal"))
 		_loot_view["growth_only"] = true
 		_loot_view["reroll_cost"] = _draft_composer.paid_reroll_cost
@@ -472,6 +473,7 @@ func settle_loot_offer(index: int) -> Dictionary:
 		if _ctrl._telemetry != null:
 			var snap = RunStateAnalyzer.capture(_ctrl)
 			_ctrl._telemetry.on_reward_selected(_draft_result.draft_id, def.id, apply_res.effect_id, snap.hp_ratio())
+			_ctrl._telemetry.on_reward_applied(def.id, apply_res.effect_id, apply_res.summary)
 		# 转回旧格式供调用方（controller 只读 ok/kind）
 		return {"ok": true, "kind": apply_res.effect_id, "summary": apply_res.summary,
 			"effect_id": apply_res.effect_id, "reward_id": def.id}

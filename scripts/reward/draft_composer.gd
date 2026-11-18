@@ -33,6 +33,7 @@ var paid_reroll_cost: int = BASE_PAID_REROLL_COST
 
 # 最近一次 Draft 的调试元数据
 var last_debug: Dictionary = {}
+var _last_filtered: Array[Dictionary] = []   # [{id, reason}]，仅 debug 时填充
 
 
 func _init(seed_value: int = -1) -> void:
@@ -62,11 +63,15 @@ func compose(snap: RunSnapshot, count: int = 3, debug: bool = false) -> DraftRes
 	var draft := DraftResult.new(picked, _make_draft_id())
 	if debug:
 		last_debug = {
+			"draft_id": draft.draft_id,
 			"pool_size": pool.size(),
 			"eligible_ids": eligible.map(func(d): return d.id),
 			"scores": scores,
+			"filtered": _last_filtered.duplicate(true),
+			"picked_ids": picked.map(func(d): return d.id),
 		}
 		draft.debug_metadata = last_debug
+		Debug.log(explain_last())
 	return draft
 
 
@@ -94,18 +99,49 @@ func request_reroll() -> Dictionary:
 
 # 硬过滤：满级/无目标/未解锁/满血治疗无效。硬条件不放宽。
 func _eligible(pool: Array, snap: RunSnapshot) -> Array[RewardDefinition]:
+	_last_filtered = []
 	var out: Array[RewardDefinition] = []
 	for def in pool:
 		if not (def is RewardDefinition):
 			continue
 		if not def.validate().is_empty():
+			_last_filtered.append({"id": def.id, "reason": "invalid_definition"})
 			continue
 		if not _passes_eligibility_rule(def, snap):
+			_last_filtered.append({"id": def.id, "reason": "eligibility_rule:" + def.eligibility_rule})
 			continue
 		if def.first_effect_id() == "heal" and snap.hp_ratio() >= 0.999:
+			_last_filtered.append({"id": def.id, "reason": "full_hp"})
 			continue
 		out.append(def)
 	return out
+
+
+# P4：把 last_debug 格式化成可读文本，解释候选为何出现/被过滤/被选。
+# 只在 debug 构建输出（Debug.log 在 release 自动静默）。
+func explain_last() -> String:
+	if last_debug.is_empty():
+		return "[Draft explain] 无调试数据（compose 时传 debug=true）"
+	var lines: Array[String] = []
+	lines.append("[Draft explain] draft=%s" % str(last_debug.get("draft_id", "")))
+	lines.append("  候选池 %d 张 → 有效 %d 张 → 选出 %d 张" % [
+		int(last_debug.get("pool_size", 0)),
+		(last_debug.get("eligible_ids", []) as Array).size(),
+		(last_debug.get("picked_ids", []) as Array).size(),
+	])
+	var filtered: Array = last_debug.get("filtered", [])
+	for f in filtered:
+		if f is Dictionary:
+			lines.append("  ✗ 过滤 %s：%s" % [str(f.get("id", "")), str(f.get("reason", ""))])
+	var scores = last_debug.get("scores", {})
+	if scores is Dictionary:
+		var detail = scores.get("__detail__", {})
+		if detail is Dictionary:
+			for id in detail:
+				if id is String:
+					lines.append("  ✓ %s 评分明细 %s" % [id, str(detail[id])])
+	lines.append("  入选：%s" % str(last_debug.get("picked_ids", [])))
+	return "\n".join(lines)
 
 
 # 规则键名 → 实际判定（P1 只处理常见规则；P2 填卡后扩展）

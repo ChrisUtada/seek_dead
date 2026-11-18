@@ -188,6 +188,19 @@ func on_reward_apply_failed(reward_id: String, effect_id: String, reason: String
 		"effect_id": effect_id, "reason": reason,
 	})
 
+func on_reward_applied(reward_id: String, effect_id: String, summary: String) -> void:
+	_draft_event({
+		"event": "reward_applied", "reward_id": reward_id,
+		"effect_id": effect_id, "summary": summary,
+	})
+
+# 局末结果：供"构筑路径 vs 通关"相关性分析（只记摘要，不做因果断言）
+func on_run_outcome(win: bool, death_room: int, build_tags: Array) -> void:
+	_draft_event({
+		"event": "run_outcome", "win": win,
+		"death_room": death_room, "build_tags": build_tags,
+	})
+
 func _draft_event(e: Dictionary) -> void:
 	if draft_events.size() >= 64:
 		draft_events.pop_front()

@@ -62,15 +62,70 @@ static func _capture_progression(ctrl) -> Dictionary:
 	}
 
 
-# P0：只建立结构，标签来源梳理见契约 §3.2。
-# 武器/符号的实际元素从 resource_path load 后读 element 字段（P3 接入）。
+# P3：从玩家真实拥有的武器/符号/技艺/已获奖励推导构筑标签与分数（契约 §3）。
+# 贡献表（元素通用，fire/ice/poison/light/dark）：
+#   元素武器 +3 / 元素符号 +1 每个 / 元素技艺 +2 / 已获该元素构筑奖励 +2
+# 消耗品与临时 Buff 不参与（一次性/易变，不构成永久 Build）。
+const ELEMENTS := ["fire", "ice", "poison", "light", "dark"]
+const WEAPON_PTS := 3.0
+const SYMBOL_PTS := 1.0
+const SKILL_PTS := 2.0
+const REWARD_PTS := 2.0
+
+
 static func _build_state(ctrl, bs: RunSnapshot.BuildState) -> void:
-	# 火焰来源初始化（P0 不写入实际贡献，结构保留）
-	bs.build_scores["fire"] = 0
-	# 已学技艺（P0 仅登记，不参与火焰贡献——现有 8 技艺无火标签）
-	if ctrl.growth != null:
-		for pid in ctrl.growth.perk_ids:
-			bs.skill_contributions[String(pid)] = float(bs.skill_contributions.get(String(pid), 0.0))
-	# 已选装备路径（P0 仅登记）
+	for elem in ELEMENTS:
+		bs.build_scores[elem] = 0
+
+	# ① 武器：从 selected_loadout 路径 load，读 element（已含武器自身元素化）
 	for path in ctrl.selected_loadout:
-		bs.weapon_contributions[String(path)] = float(bs.weapon_contributions.get(String(path), 0.0))
+		var wd: Resource = load(path) if String(path).begins_with("res://") else null
+		if wd == null:
+			continue
+		var elem := String(wd.get("element"))
+		if elem in ELEMENTS:
+			bs.weapon_contributions[String(path)] = WEAPON_PTS
+			_add_element(bs, elem, WEAPON_PTS)
+
+	# ② 符号：从 pool_items 的 syms 三元组读 element（已含武器继承），每个符号 +1
+	#    pool_items 元素格式：[SymbolData, weight, element, source_id, base_power]
+	var pool: Array = ctrl.pool_items if ctrl.pool_items != null else []
+	var counted_syms := {}
+	for it in pool:
+		var syms: Array = it.get("syms", []) if it is Dictionary else []
+		for s in syms:
+			if not (s is Array) or s.size() < 3:
+				continue
+			var elem := String(s[2])
+			var sym = s[0]
+			var key: String = String(sym.resource_path) if sym != null else str(syms.find(s))
+			if elem in ELEMENTS and not counted_syms.has(String(key)):
+				counted_syms[String(key)] = true
+				var tag: String = "symbol." + elem
+				bs.symbol_contributions[tag] = float(bs.symbol_contributions.get(tag, 0.0)) + SYMBOL_PTS
+				_add_element(bs, elem, SYMBOL_PTS)
+
+	# ③ 技艺：现有 8 项无元素标签 → 首期为 0（契约修正 D，不为此新增技艺）
+	for pid in ctrl.growth.perk_ids if ctrl.growth != null else []:
+		bs.skill_contributions[String(pid)] = 0.0
+
+	# ④ 已获元素构筑奖励：从 controller 的 element_affinity 记录读取（P3 新字段）
+	var affinity = ctrl.get("element_affinity")
+	if affinity is Dictionary:
+		for elem in ELEMENTS:
+			var n := int(affinity.get(elem, 0))
+			if n > 0:
+				var tag: String = "reward." + elem
+				bs.reward_contributions[tag] = float(n) * REWARD_PTS
+				_add_element(bs, elem, float(n) * REWARD_PTS)
+
+	# 把元素总分写成 tags（element.X + build.X）
+	for elem in ELEMENTS:
+		var score := int(bs.build_scores.get(elem, 0))
+		if score > 0:
+			bs.tags["element." + elem] = float(score)
+			bs.tags["build." + elem] = float(score)
+
+
+static func _add_element(bs: RunSnapshot.BuildState, elem: String, pts: float) -> void:
+	bs.build_scores[elem] = float(bs.build_scores.get(elem, 0)) + pts

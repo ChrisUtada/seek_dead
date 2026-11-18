@@ -110,10 +110,14 @@ func _apply_existing_power(reward_id: String, params: Dictionary) -> DraftResult
 # ===== 新效果（P0 状态登记，P1/P3 接入实际系统） =====
 
 func _apply_flame_affinity(reward_id: String, params: Dictionary) -> DraftResult.RewardApplyResult:
-	# P0：仅登记到已选奖励列表；BuildState 的火焰分数由 RunStateAnalyzer P3 推导。
+	# P3：写入本局元素构筑计数，RunStateAnalyzer 下次 capture 时据此推导 element.fire/build.fire
 	var amount := int(params.get("amount", 1))
-	var r := DraftResult.RewardApplyResult.success(reward_id, "flame_affinity", "火焰构筑 +%d" % amount)
-	r.state_updates["flame_affinity"] = amount
+	if amount <= 0:
+		return DraftResult.RewardApplyResult.failure(reward_id, "flame_affinity", "invalid_amount")
+	var elem := String(params.get("element", "fire"))
+	_ctrl.element_affinity[elem] = int(_ctrl.element_affinity.get(elem, 0)) + amount
+	var r := DraftResult.RewardApplyResult.success(reward_id, "flame_affinity", "%s构筑 +%d" % [elem, amount])
+	r.state_updates["element_affinity"] = _ctrl.element_affinity.duplicate(true)
 	return r
 
 

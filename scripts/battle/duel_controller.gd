@@ -304,6 +304,8 @@ var turn_count = 1
 # RewardSystem（步骤4，见 _reward_system）；reward_choices / reward_is_boss 仍由本 controller 持有（HUD 直读写）
 var reward_choices: Array = []         # 当前展示的 3 个奖励
 var reward_is_boss: bool = false       # 当前奖励是否来自 Boss 房（选完开新局）
+# 战后三选一重构 P3：本局已获元素构筑奖励计数（fire/ice/…），供 BuildState 推导标签；每局清零
+var element_affinity: Dictionary = {}
 # S7/S12 商店状态（shop_offers / paid_price）已抽至 ShopSystem（步骤3，见 _shop_system）
 
 # M5 元进度（铁砧锻造 + 存档持久化，跨局保留）
@@ -987,6 +989,7 @@ func _reset_run_state() -> void:
 		_journal.reset()   # G5 工具：新一局记录清空（start_run 在 full_reset 末尾启动）
 	if readability != null:
 		readability.reset_run()   # P1：目标声明与停轮统计随新局重置
+	element_affinity.clear()   # P3：本局元素构筑奖励计数清零
 	if hud != null:
 		hud._refresh_p1_ui()
 
