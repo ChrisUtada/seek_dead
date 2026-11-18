@@ -41,6 +41,7 @@ element = "none"
 kind = "boss"
 act = 3
 boss_role = "fixed"
+boss_relic_path = "res://resources/charms/hero_emblem_relic.tres"
 final_boss = true
 armor = 40
 intents = Array[IntentData]([SubResource("intent_attack"), SubResource("intent_heavy"), SubResource("intent_jam")])

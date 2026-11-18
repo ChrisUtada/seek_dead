@@ -169,11 +169,11 @@ func _all_active_items() -> Array:
 	return out
 
 
-# BOSS 信物判定（2026-08-14）：epic 稀有度 + *_relic 文件名的 passive——
-# 12 个 BOSS 信物仅 BOSS 战利品可获（docs/BOSS信物_设计方案.md），不进种子/商店/铁砧池。
-# 旧 3 信物（rust/whisper/abyss_relic，rare/common/uncommon）与非信物 epic（crush_seal/status_charm）不受影响。
+# BOSS 信物判定（2026-08-14 建立，2026-11-18 L3 P0 更新）：
+# relic 稀有度 + *_relic 文件名的 passive——12 个 BOSS 信物仅 BOSS 战利品可获，不进种子/商店/铁砧池。
+# P0 起信物 rarity 由 epic 改为独立 relic 标签；此处同步改用 relic 判定，避免与普通 epic 装备混淆。
 static func _is_boss_relic(d: Resource, p: String) -> bool:
-	return d.get("rarity") == "epic" and p.get_file().contains("_relic")
+	return d.get("rarity") == "relic" and p.get_file().contains("_relic")
 
 
 func sanitize_owned() -> void:

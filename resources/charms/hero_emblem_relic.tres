@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rarity = "relic"
+category = "passive"
+item_id = "hero_emblem_relic"
+item_name = "勇者之证"
+description = "击败勇者的阴影后留下的证明：本局所有伤害 ×1.5——战胜自己的影子，才配得上勇者之名。"
+icon = "⚔"
+effect = "damage_mult"
+value = 0
+mult_value = 1.5
+family_tags = Array[String](["combo", "damage"])
+role = "damage"
+mechanism_summary = "BOSS 信物（仅勇者的阴影掉落，整局最后一战）：本局所有伤害 ×1.5——战胜自己的影子，才配得上勇者之名。"
+act_min = 3
+act_max = 3
+source_tags = Array[String](["boss"])
+unique_group = "relic_hero_emblem_relic"
