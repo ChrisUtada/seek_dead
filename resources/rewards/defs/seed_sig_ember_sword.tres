@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="RewardDefinition" format=3]
+
+[ext_resource type="Script" uid="uid://dtkfpq4onbs5t" path="res://scripts/reward/reward_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "seed_sig_ember_sword"
+name = "烈焰共鸣·余烬蓄燃·图纸"
+desc = "本局习得「烈焰共鸣·余烬蓄燃」签名：无需携带关键武器，凑齐火焰签名牌型即可生效"
+rarity = "rare"
+tags = Array[String](["build.fire", "element.fire", "discovery.signature"])
+base_weight = 1.0
+base_value = 2.0
+effects = [{"effect_id": "learn_signature", "params": {"signature_id": "SIG_W01_EMBER"}}]
+stack_rule = 0
+max_stack = 1
+eligibility_rule = ""
+context_rule = ""
+synergy_rule = "fire"

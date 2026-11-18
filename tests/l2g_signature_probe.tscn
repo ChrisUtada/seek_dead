@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://ddruov3p4kuya"]
+
+[ext_resource type="Script" path="res://tests/l2g_signature_probe.gd" id="1"]
+
+[node name="L2GSignatureProbe" type="Node"]
+script = ExtResource("1")

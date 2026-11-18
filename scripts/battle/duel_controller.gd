@@ -309,6 +309,9 @@ var element_affinity: Dictionary = {}
 # L2-E 本局收集品框架：遗物栏（BOSS 信物）——拥有即生效、不占护符槽、每局清零。
 # 与 meta["owned_charms"]（跨局图鉴）分离：图鉴仍跨局，增益只在本局。
 var run_relics: Array[String] = []
+# L2-G 本局收集品框架：已习得签名牌谱（战后三选一解锁）——拥有即生效、每局清零。
+# 只锁 11 张签名；通用牌型/基础装备牌谱永不锁（避免双重门槛，见 牌型作为成长奖励_设计评估 §4）。
+var learned_signatures: Array[String] = []
 # S7/S12 商店状态（shop_offers / paid_price）已抽至 ShopSystem（步骤3，见 _shop_system）
 
 # M5 元进度（铁砧锻造 + 存档持久化，跨局保留）
@@ -993,6 +996,7 @@ func _reset_run_state() -> void:
 	if readability != null:
 		readability.reset_run()   # P1：目标声明与停轮统计随新局重置
 	element_affinity.clear()   # P3：本局元素构筑奖励计数清零
+	learned_signatures.clear() # L2-G：本局已习得签名清零
 	if hud != null:
 		hud._refresh_p1_ui()
 

@@ -96,7 +96,7 @@ func resolve_universal(matched_ids: Array, unlocked: Array) -> Array:
 # 查找某条基础牌谱的生效签名（2026-11-15 Step 5）。
 # 规则：base_pattern_id 匹配 + 关键武器在装备里（卸下立即失效）+ 签名自己的组件条件也满足。
 # 多条同时可用时取 priority 最高；同优先级按 id 升序，保证确定性。
-func find_signature(base_id: String, loadout: Array, cards: Array) -> Variant:
+func find_signature(base_id: String, loadout: Array, cards: Array, learned: Array = []) -> Variant:
 	if base_id == "":
 		return null
 	var best = null
@@ -105,11 +105,15 @@ func find_signature(base_id: String, loadout: Array, cards: Array) -> Variant:
 			continue
 		if String(p.base_pattern_id) != base_id:
 			continue
+		# L2-G：签名解锁第二个来源——携带关键武器 OR 通过三选一习得（learned）。
+		# 只影响签名层；通用牌型/基础装备牌谱不受此参数影响（避免双重门槛）。
 		var has_key := false
 		for k in p.key_paths:
 			if loadout.has(String(k)):
 				has_key = true
 				break
+		if not has_key and learned.has(String(p.id)):
+			has_key = true
 		if not has_key:
 			continue
 		if not (p.match_rule as Dictionary).is_empty() \
