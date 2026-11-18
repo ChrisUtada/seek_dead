@@ -14,6 +14,11 @@ var consumed: Dictionary = {}       # node_id -> true（进入即消耗，不可
 var path: Array[String] = []        # 本幕走过的节点序列（可视化 / 日志）
 var feedback: String = ""
 var act: int = 1
+# 兼容字段：BoardSystem.summary() 等门面会读这些（旧 MapRuntime 同名）。
+# 分岔图无回合/坐标概念，battles 按战斗节点记录，visits 复用 consumed，turn 恒 0。
+var battles: Dictionary = {}        # node_id -> {type}
+var visits: Dictionary = {}         # node_id -> 次数（每次进入 +1）
+var turn: int = 0
 
 
 # 从 MapBoardBuilder.build_branch() 的数据初始化。
@@ -24,8 +29,12 @@ func setup(data: Dictionary) -> void:
 	consumed.clear()
 	path.clear()
 	feedback = ""
+	battles.clear()
+	visits.clear()
+	turn = 0
 	consumed[current_id] = true
 	path.append(current_id)
+	visits[current_id] = 1
 
 
 # 当前节点字典。
@@ -65,7 +74,11 @@ func advance_to(id: String) -> Dictionary:
 	current_id = id
 	path.append(id)
 	consumed[id] = true
+	visits[id] = int(visits.get(id, 0)) + 1
+	turn += 1
 	var t: String = String(node.get("type", ""))
+	if t in ["battle", "elite", "boss"]:
+		battles[id] = {"type": t}
 	# 非战斗节点的结算反馈由 controller 填充；这里只标记进入。
 	if t in ["chest", "armory", "shop", "rest", "event"]:
 		feedback = "进入%s" % String(node.get("title", t))

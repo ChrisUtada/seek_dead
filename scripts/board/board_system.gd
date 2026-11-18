@@ -264,7 +264,9 @@ func summary() -> Dictionary:
 # ---------------------------------------------------------------------------
 
 func current_cell() -> int:
-	return -1 if runtime == null else runtime.player_cell
+	if branch_mode or runtime == null:
+		return -1   # 分岔图无数字坐标（节点用 id 定位）
+	return runtime.player_cell
 
 
 # 相邻可进入格。巡逻占格不可进入；已消耗格可回访（只移动、不结算）。

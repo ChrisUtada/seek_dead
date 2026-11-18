@@ -138,6 +138,10 @@ func _run() -> void:
 		steps += 1
 	_check(_duel.board.current_is_boss(), "reached BOSS in %d steps" % steps)
 	_check(_duel.board.visited_count() == 7, "visited 7 nodes (got %d)" % _duel.board.visited_count())
+	# 崩溃回归：full_reset → run_journal.start_run → board.summary() 读 runtime.battles
+	var sum: Dictionary = _duel.board.summary()
+	_check(int(sum.get("battles", -1)) >= 0, "summary() battles field ok (got %s)" % sum.get("battles", "MISSING"))
+	_check(_duel.board.current_cell() == -1, "current_cell() = -1 in branch mode")
 	# 分岔图不能回访：起点不可再进
 	var back: Dictionary = _duel.board.advance_to("b0_0")
 	_check(back.is_empty(), "cannot go back to start")
@@ -154,6 +158,12 @@ func _run() -> void:
 	screen.hide_board(false)
 	_check(not screen.visible, "branch_screen hidden after hide_board")
 	screen.queue_free()
+	# 真机崩溃路径回归：branch_mode=true 时 confirm_loadout → full_reset → journal.start_run()
+	_duel.board_config.enabled = true
+	_duel.board_config.branch_mode = true
+	_duel._confirm_loadout()
+	_check(_duel.node_mode and _duel.board.branch_mode, "confirm_loadout path ok in branch mode")
+	_duel.board_config.enabled = false
 	_duel.board_config.branch_mode = false
 
 	_duel.free()
