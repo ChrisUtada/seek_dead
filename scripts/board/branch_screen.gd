@@ -88,6 +88,14 @@ func _layout_art() -> void:
 	_art.set_anchors_preset(Control.PRESET_FULL_RECT)
 
 
+# 6.x 信息隐藏：普通战节点不公开具体敌人身份（地图显示"战斗"），进战斗才揭示。
+# 精英/BOSS/其它节点保留具体名（可针对性构筑，是玩家规划路线的依据）。
+func _display_title(n: Dictionary, t: String) -> String:
+	if t == "battle":
+		return "战斗"
+	return String(n.get("title", t))
+
+
 # ---------- 显隐 ----------
 
 func show_board(board_sys) -> void:
@@ -347,7 +355,7 @@ func _draw_screen() -> void:
 				_draw_rect_border(r, accent, 1.0)
 			# L2 修复：节点文字改由 _art 与边框同帧绘制（Button 只做热区）。
 			# 避免 Button theme 在缩放/重建后偶发不渲染文字（"第二次开局文字消失"）。
-			var tname: String = String(n.get("title", t))
+			var tname: String = _display_title(n, t)
 			var label: String = "%s %s" % [ICONS.get(t, "•"), tname]
 			_art.draw_string(font, Vector2(r.position.x + 5, r.position.y + r.size.y - 6),
 				label, HORIZONTAL_ALIGNMENT_LEFT, NODE_W - 10, 10,
@@ -418,7 +426,7 @@ func _rebuild_buttons() -> void:
 			b.set_meta("idx", i)
 			b.set_meta("cnt", arr.size())
 			var t: String = String(n.get("type", ""))
-			b.tooltip_text = "%s · %s" % [String(n.get("title", t)), String(n.get("desc", ""))]
+			b.tooltip_text = "%s · %s" % [_display_title(n, t), String(n.get("desc", ""))]
 			b.disabled = not legal_ids.has(String(n["id"]))
 			b.pressed.connect(_on_node_pressed.bind(String(n["id"])))
 			add_child(b)
@@ -462,7 +470,7 @@ func _show_confirm(node: Dictionary) -> void:
 		if child is Label:
 			var t: String = String(child.name)
 			if t == "Title":
-				(child as Label).text = "挑战「%s」？" % String(node.get("title", "敌人"))
+				(child as Label).text = "挑战「%s」？" % _display_title(node, String(node.get("type", "")))
 			elif t == "Desc":
 				(child as Label).text = String(node.get("desc", ""))
 	_confirm_layer.visible = true
