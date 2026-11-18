@@ -20,7 +20,7 @@ extends Resource
 @export var ante_room_step_atk: float = 1.06  # 同幕每过一房敌方 ATK ×（与 balance_config.tres 实际值一致）
 
 # —— 伤害基准 ——
-@export var player_dmg_mult: float = 1.5      # 玩家直击总伤害全局倍率（2026-09-29 拍板转正：全部平衡基线/ante 拍板均在此值下测得，即正式基准，不回退 1.0）
+@export var player_dmg_mult: float = 1.0      # 玩家直击总伤害全局倍率（2026-11-18 标定：1.5 时小怪77%一回合秒；降至1.0 后普通怪1.8回合/精英2.8/BOSS7.3，通关率6/6→4/6）
 # 状态 DoT 无全局倍率：原 status_dmg_mult=3.0 已于 2026-09-29 等值折入 StatusDef.base（burn 4→12 / poison 3→9），数值所见即所得
 
 # —— 转轮频率 ——

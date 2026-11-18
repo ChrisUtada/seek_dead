@@ -134,19 +134,31 @@ func build(act: int, seed_value: int, total_acts: int = 1) -> Dictionary:
 # ---------------------------------------------------------------------------
 # 分岔路线图（经典 roguelike DAG）：替代 14×9 网格拓扑。
 # 只换拓扑层；节点内容生成 / 房间分配 / 结算字段全部复用本文件既有辅助函数。
-# 结构：7 层（起点 → 5 中间层 × 2-3 候选 → BOSS 汇聚），连线只连相邻层。
+# 结构：15 层（起点 → 13 中间层 × 2-3 候选 → BOSS 汇聚），连线只连相邻层。
+# 层数参数化：BRANCH_LAYER_COUNT = 总层数，BOSS 在最后一层（索引 = COUNT-1）。
 # ---------------------------------------------------------------------------
 
-# 每层的候选类型池（经典风险收益节奏）。每层从中随机取 2-3 个不重复类型。
+# 总层数（含起点与 BOSS）。经典 roguelike 每幕约 15 层，单局路径有分量。
+const BRANCH_LAYER_COUNT := 15
+const BOSS_LAYER := BRANCH_LAYER_COUNT - 1   # BOSS 所在层索引（14）
+
+# 13 个中间层的候选类型池（经典风险收益节奏）：前段战斗/宝箱、中段精英/商店/休整、
+# 后段精英强化、BOSS 前休整。每层 3 个候选类型，按 seed 洗牌取用。
 const BRANCH_LAYERS := {
 	1: ["battle", "chest", "battle"],
-	2: ["battle", "elite", "event"],
-	3: ["shop", "armory", "event"],
-	4: ["rest", "elite", "battle"],
-	5: ["battle", "chest", "rest"],
+	2: ["battle", "event", "chest"],
+	3: ["elite", "battle", "shop"],
+	4: ["battle", "rest", "event"],
+	5: ["shop", "armory", "battle"],
+	6: ["battle", "elite", "chest"],
+	7: ["rest", "event", "battle"],
+	8: ["battle", "elite", "shop"],
+	9: ["armory", "chest", "battle"],
+	10: ["elite", "event", "rest"],
+	11: ["battle", "shop", "battle"],
+	12: ["elite", "armory", "event"],
+	13: ["rest", "chest", "battle"],
 }
-
-const BOSS_LAYER := 6
 
 
 # 生成一张分岔图。返回结构对齐 build()（board_system / map_runtime 消费者零改）。

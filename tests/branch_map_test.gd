@@ -24,6 +24,10 @@ func _check(ok: bool, label: String) -> void:
 		print("FAIL  %s" % label)
 
 
+static func _layer_of(id: String) -> int:
+	return id.split("_")[0].trim_prefix("b").to_int()
+
+
 func _frames(n: int) -> void:
 	for i in range(n):
 		await get_tree().process_frame
@@ -46,17 +50,17 @@ func _run() -> void:
 	var nodes: Array = map.get("nodes", [])
 	var by_id: Dictionary = map.get("by_id", {})
 
-	_check(nodes.size() >= 13 and nodes.size() <= 17, "node count in [13,17] (got %d)" % nodes.size())
+	_check(nodes.size() >= 30 and nodes.size() <= 45, "node count in [30,45] (got %d)" % nodes.size())
 	_check(map.get("branch") == true, "branch flag set")
 	_check(String(map.get("start_id", "")).begins_with("b0_"), "start id")
-	_check(String(map.get("boss_id", "")).begins_with("b6_"), "boss id")
+	_check(String(map.get("boss_id", "")).begins_with("b14_"), "boss id")
 
 	# 层间连通：每个节点的 next 只指向下一层
 	var bad_edge := 0
 	for n in nodes:
-		var layer := int(String(n["id"]).substr(1, 1))
+		var layer := _layer_of(String(n["id"]))
 		for nid in n["next"]:
-			var nlayer := int(String(nid).substr(1, 1))
+			var nlayer := _layer_of(String(nid))
 			if nlayer != layer + 1:
 				bad_edge += 1
 	_check(bad_edge == 0, "all edges go layer→layer+1 (bad=%d)" % bad_edge)
@@ -65,7 +69,7 @@ func _run() -> void:
 	var no_out := 0
 	var incoming: Dictionary = {}
 	for n in nodes:
-		if int(String(n["id"]).substr(1, 1)) < 6 and (n["next"] as Array).is_empty():
+		if _layer_of(String(n["id"])) < 14 and (n["next"] as Array).is_empty():
 			no_out += 1
 		for nid in n["next"]:
 			incoming[nid] = true
@@ -128,7 +132,7 @@ func _run() -> void:
 	_check(_duel.board.current_id == "b0_0", "starts at b0_0")
 	# 逐层沿第一条合法边前进，直到 BOSS
 	var steps := 0
-	while steps < 10 and not _duel.board.current_is_boss():
+	while steps < 20 and not _duel.board.current_is_boss():
 		var targets: Array = _duel.board.legal_targets()
 		if targets.is_empty():
 			break
@@ -137,7 +141,7 @@ func _run() -> void:
 		_check(not res.is_empty() and String(res.get("id", "")) == String(next_node["id"]), "advance to %s ok" % next_node["id"])
 		steps += 1
 	_check(_duel.board.current_is_boss(), "reached BOSS in %d steps" % steps)
-	_check(_duel.board.visited_count() == 7, "visited 7 nodes (got %d)" % _duel.board.visited_count())
+	_check(_duel.board.visited_count() == 15, "visited 15 nodes (got %d)" % _duel.board.visited_count())
 	# 崩溃回归：full_reset → run_journal.start_run → board.summary() 读 runtime.battles
 	var sum: Dictionary = _duel.board.summary()
 	_check(int(sum.get("battles", -1)) >= 0, "summary() battles field ok (got %s)" % sum.get("battles", "MISSING"))

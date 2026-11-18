@@ -28,7 +28,7 @@ const ICONS := {
 	"armory": "🏛", "shop": "🛒", "rest": "🔥", "event": "⛩", "start": "🚩",
 }
 const NODE_W := 66.0
-const NODE_H := 22.0
+const NODE_H := 14.0   # 15 层密排：层距约 14px，节点高需 ≤ 层距避免重叠
 
 var controller
 var hud
@@ -106,11 +106,24 @@ var _selected_id: String = ""
 
 # ---------- 布局计算 ----------
 
-# 层 y：从地图面板顶部往下均分（7 层）
+# 从 id（形如 b14_2）解析层号，支持两位数层号
+static func _parse_layer(id: String) -> int:
+	var head: String = id.split("_")[0]
+	return head.trim_prefix("b").to_int()
+
+
+# 总层数（从 board.layout.rows 读，默认 15）
+func _total_layers() -> int:
+	if board != null:
+		return int(board.layout.get("rows", 15)) if board.layout.has("rows") else 15
+	return 15
+
+
+# 层 y：从地图面板顶部往下均分（层数动态）
 func _layer_y(layer: int, total_layers: int) -> float:
-	var usable: float = MAP_RECT.size.y - NODE_H - 8.0
+	var usable: float = MAP_RECT.size.y - NODE_H - 4.0
 	var step: float = usable / float(maxi(1, total_layers - 1))
-	return MAP_RECT.position.y + 4.0 + float(layer) * step
+	return MAP_RECT.position.y + 2.0 + float(layer) * step
 
 
 # 节点 x：同层节点水平均分居中
@@ -118,7 +131,7 @@ func _node_rect(n: Dictionary, layer: int, count_in_layer: int, index_in_layer: 
 	var total_w: float = float(count_in_layer) * NODE_W + float(maxi(0, count_in_layer - 1)) * 8.0
 	var x0: float = MAP_RECT.position.x + (MAP_RECT.size.x - total_w) / 2.0
 	var x: float = x0 + float(index_in_layer) * (NODE_W + 8.0)
-	return Rect2(x, _layer_y(layer, 7), NODE_W, NODE_H)
+	return Rect2(x, _layer_y(layer, _total_layers()), NODE_W, NODE_H)
 
 
 # 按层分组节点（保持 id 顺序）
@@ -127,7 +140,7 @@ func _nodes_by_layer() -> Dictionary:
 	if board == null:
 		return out
 	for n in board.nodes:
-		var layer: int = int(String(n["id"]).substr(1, 1))
+		var layer: int = _parse_layer(String(n["id"]))
 		if not out.has(layer):
 			out[layer] = []
 		out[layer].append(n)
@@ -135,7 +148,7 @@ func _nodes_by_layer() -> Dictionary:
 
 
 func _node_layer(n: Dictionary) -> int:
-	return int(String(n["id"]).substr(1, 1))
+	return _parse_layer(String(n["id"]))
 
 
 # ---------- 绘制 ----------
@@ -242,6 +255,7 @@ func _rebuild_buttons() -> void:
 			b.position = r.position
 			b.size = r.size
 			b.flat = true
+			b.add_theme_font_size_override("font_size", 8)
 			var t: String = String(n.get("type", ""))
 			b.text = "%s %s" % [ICONS.get(t, "•"), String(n.get("title", t))]
 			b.tooltip_text = "%s · %s" % [String(n.get("title", t)), String(n.get("desc", ""))]
