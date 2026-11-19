@@ -71,7 +71,7 @@ static func apply_victory(node: Dictionary, ctrl) -> Dictionary:
 	var kind := kind_of(node)
 	if kind == "" or ctrl == null:
 		return {"ok": false}
-	ctrl.growth.note_room_settled()
+	ctrl._reward_system.note_skill_pity_room(kind != "boss")
 	ctrl.growth.apply_victory_perks(kind)
 	return {
 		"ok": true,

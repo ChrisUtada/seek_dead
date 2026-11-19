@@ -43,13 +43,7 @@ const ACT_BOON_HP := 20
 var enabled: bool = true         # 探针开关（M2-04 对照组）：false 时房间胜利不发历练
 var boon_enabled: bool = true    # 探针开关（S5 复测 A/B）：false 时不发幕间锻魂
 var perk_ids: Array[String] = []
-var rooms_settled: int = 0       # 本局已结算房间数（技艺注入保底用）
-var perks_offered: int = 0       # 本局已提供技艺选择的次数
-var _rng: RandomNumberGenerator = RandomNumberGenerator.new()  # 本系统独立RNG(不碰全局)
 
-# 技艺注入三选一的参数（2026-11-19 替代等级）
-const PERK_OFFER_CHANCE := 0.15  # 每次战后三选一注入技艺卡的概率
-const PERK_GUARANTEE_ROOMS := 3  # 前 N 房至少提供 1 次技艺选择（保底）
 
 
 func _init(ctrl) -> void:
@@ -59,9 +53,6 @@ func _init(ctrl) -> void:
 # 新一局 / 战败回整备：历练与技艺清零（最大 HP 由 LoadoutSystem.reset_run_state 回基础值）。
 func reset_run() -> void:
 	perk_ids.clear()
-	rooms_settled = 0
-	perks_offered = 0
-	_rng.seed = hash(Time.get_ticks_usec())
 
 
 func has_perk(id: String) -> bool:
@@ -95,31 +86,8 @@ func detail_text() -> String:
 	return "\n".join(lines)
 
 
-# 房间胜利：只累计已结算房间数（等级已移除，不再发经验/升级）。
-# 注入技艺卡的概率判定见 should_offer_perk()；本函数仅维护保底所需计数。
-func note_room_settled() -> void:
-	if enabled:
-		rooms_settled += 1
-
-
-# 本次战后三选一是否注入技艺卡（2026-11-19 替代原 Lv.2/4/6 触发）。
-# 规则：前 PERK_GUARANTEE_ROOMS 房至少给 1 次（保底），之后每房 PERK_OFFER_CHANCE 概率。
-# 技艺池已耗尽时不再注入。使用本系统独立 RNG，不消耗全局随机序列（工程铁律）。
-func should_offer_perk() -> bool:
-	if not enabled or _unowned_in("").is_empty():
-		return false
-	var guaranteed: bool = rooms_settled <= PERK_GUARANTEE_ROOMS and perks_offered == 0
-	if guaranteed:
-		perks_offered += 1
-		return true
-	var hit: bool = _rng.randf() < PERK_OFFER_CHANCE
-	if hit:
-		perks_offered += 1
-	return hit
-
-
 # G7-A S1（2026-11-08 拍板）：房间胜利后的技艺结算（回春 / 积蓄）。
-# 与 note_room_settled 同一处调用（room_flow._settle_victory），只读本局状态；
+# 与 reward_system.note_skill_pity_room 同一处调用（room_flow._settle_victory），只读本局状态；
 # 不发经验、不改房间数值、不碰掉落与 RNG。
 func apply_victory_perks(kind: String) -> void:
 	if not enabled:

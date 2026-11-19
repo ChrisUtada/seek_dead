@@ -83,24 +83,24 @@ func _fresh(duel: DuelController) -> void:
 	duel.turn_count = 1
 
 
-# 2026-11-19：等级/经验已移除，改为验证技艺概率注入（前3房保底 + 15%概率）
+# 2026-11-19 P0.3：等级/经验已移除，技艺保底归 RewardSystem（一次性前3房）
 func _test_perk_offer(duel: DuelController) -> void:
 	_fresh(duel)
-	var g = duel.growth
-	_check(g.rooms_settled == 0 and g.perks_offered == 0, "新局计数清零")
-	# 前 3 房保底：至少提供 1 次技艺（逐房调用 should_offer_perk 模拟战后抽取）
-	var offered := false
-	for i in range(g.PERK_GUARANTEE_ROOMS):
-		g.note_room_settled()
-		if g.should_offer_perk():
-			offered = true
+	var rs = duel._reward_system
+	_check(rs.skill_pity_rooms == 0 and not rs.skill_offer_guarantee_satisfied, "新局保底状态清零")
+	# 前 3 房保底：逐房计数，达到门槛时 should_force_skill 为真
+	var forced := false
+	for i in range(rs.SKILL_PITY_ROOMS):
+		rs.note_skill_pity_room(true)
+		if rs.should_force_skill():
+			forced = true
 			break
-	_check(offered, "前 %d 房保底至少提供 1 次技艺" % g.PERK_GUARANTEE_ROOMS)
-	# 技艺池耗尽后不再提供
-	for p in g.PERKS:
-		if not g.perk_ids.has(String(p["id"])):
-			g.pick(String(p["id"]))
-	_check(not g.should_offer_perk(), "技艺池耗尽后不再提供")
+	_check(forced, "前 %d 房保底触发强制技艺" % rs.SKILL_PITY_ROOMS)
+	# 展示后一次性完成，之后不再强制
+	rs.mark_skill_offer_satisfied()
+	_check(not rs.should_force_skill(), "保底完成后不再强制")
+	rs.note_skill_pity_room(true)
+	_check(not rs.should_force_skill(), "保底完成后计数不再触发")
 
 
 func _test_perk_choices(duel: DuelController) -> void:
@@ -298,8 +298,10 @@ func _test_room_flow_offers_pick(duel: DuelController) -> void:
 
 func _test_reset(duel: DuelController) -> void:
 	duel.growth.perk_ids.append("tough")
-	duel.growth.rooms_settled = 9
-	duel.growth.perks_offered = 3
+	duel._reward_system.skill_pity_rooms = 9
+	duel._reward_system.skill_offer_guarantee_satisfied = true
 	duel.growth.reset_run()
+	duel._reward_system.reset_run()
 	_check(duel.growth.perk_ids.is_empty(), "新一局：技艺清零")
-	_check(duel.growth.rooms_settled == 0 and duel.growth.perks_offered == 0, "新一局：计数清零")
+	_check(duel._reward_system.skill_pity_rooms == 0 and not duel._reward_system.skill_offer_guarantee_satisfied,
+		"新一局：保底状态清零")

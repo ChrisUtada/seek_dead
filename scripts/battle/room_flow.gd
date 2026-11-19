@@ -184,7 +184,9 @@ func _settle_victory() -> void:
 	if _ctrl._journal != null:
 		_ctrl._journal.note_battle_end("win")   # G5 工具：战斗胜利（战败由局末收口）
 	var kind := _current_kind()
-	_ctrl.growth.note_room_settled()  # 累计已结算房间数（技艺注入保底用）
+	# P0.3：技艺保底计数归 RewardSystem（V1.1 §23 单一权威来源）
+	# 普通/精英战后走 Draft 三选一 → 计入；BOSS 走专属战利品 → 不计入
+	_ctrl._reward_system.note_skill_pity_room(kind != "boss")
 	_ctrl.growth.apply_victory_perks(kind)   # G7-A S1：回春 / 积蓄（无对应技艺时为空操作）
 	_ctrl.mastery.settle_room(kind)    # M2-02：样板武器按本房有效结算累计熟练
 

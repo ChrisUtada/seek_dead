@@ -41,6 +41,13 @@ var _draft_resolver                     # RewardResolver 实例
 var _draft_result                       # 最近一次 DraftResult
 var draft_debug := false                # P4：开发时置 true，输出 Draft 候选/评分/过滤可解释日志
 
+# 2026-11-19 P0.3：技艺保底状态（V1.1 §21/§23 定案，单一权威来源在本系统）。
+# 一次性：前 SKILL_PITY_ROOMS 个有效普通奖励房至少展示一次技艺候选，之后不再保底。
+const SKILL_PITY_ROOMS := 3
+var skill_pity_rooms: int = 0            # 已计入的普通奖励房数
+var skill_offer_guarantee_satisfied: bool = false  # 保底是否已完成
+var _force_skill_this_room: bool = false  # 本奖励房是否处于保底Draft（重抽也要含技艺，§21）
+
 func _init(ctrl: DuelController) -> void:
 	_ctrl = ctrl
 	_loot = LootPool.new(ctrl)
@@ -63,7 +70,65 @@ func reset_run() -> void:
 	_loot_view = {}
 	_draft_active = false
 	_draft_result = null
+	# P0.3：技艺保底状态归本系统，随新局清零
+	skill_pity_rooms = 0
+	skill_offer_guarantee_satisfied = false
+	_force_skill_this_room = false
 	_ctrl.invalidate_state()
+
+
+# ---------------------------------------------------------------------------
+# P0.3 技艺保底（V1.1 §21：一次性前 3 房，非滚动）
+# ---------------------------------------------------------------------------
+
+# 房间胜利时调用。counts=true 表示该房计入保底（普通战斗三选一）。
+# 保底未完成且计数达到门槛时，标记本奖励房强制注入技艺候选。
+func note_skill_pity_room(counts: bool = true) -> void:
+	if skill_offer_guarantee_satisfied or not counts:
+		return
+	skill_pity_rooms += 1
+	if skill_pity_rooms >= SKILL_PITY_ROOMS:
+		_force_skill_this_room = true
+
+
+# 本奖励房 Draft 是否需强制技艺（重抽时保持，直到房间结算）。
+func should_force_skill() -> bool:
+	return _force_skill_this_room and not skill_offer_guarantee_satisfied
+
+
+# 技艺候选被成功展示（自然出现或保底注入）后调用——一次性完成，之后不再保底。
+func mark_skill_offer_satisfied() -> void:
+	skill_offer_guarantee_satisfied = true
+	_force_skill_this_room = false
+
+
+# 进入下一奖励房时清除房间级标记（由 settle/advance 调用；此处提供入口）
+func clear_skill_pity_room() -> void:
+	_force_skill_this_room = false
+
+
+# 构造本次 Draft 的动态额外候选：技艺（skill 类别）+ 符号权重（symbol_mod 类别）。
+# build_loot_offer 与 reroll_loot_offer 共用，保证重抽也走同一生成规则（V1.1 §4.2/§7.1）。
+func _draft_extra() -> Array:
+	var extra: Array = []
+	var growth = _ctrl.growth
+	if growth != null:
+		for c in growth.roll_choices():
+			extra.append(_make_perk_def(c))
+	var sym_defs := _make_symbol_weight_defs()
+	if not sym_defs.is_empty():
+		extra.append(sym_defs[_draft_composer.pick_index(sym_defs.size())])
+	return extra
+
+
+# 一次 Draft 结果里是否含技艺候选（按 category 判断，动态卡与静态规则同源）
+func _draft_has_skill(result) -> bool:
+	if result == null:
+		return false
+	for d in (result.rewards as Array):
+		if d is RewardDefinition and d.effective_category() == "skill":
+			return true
+	return false
 
 
 # ---------------------------------------------------------------------------
@@ -413,17 +478,15 @@ func build_loot_offer(source: String, act: int, opts: Dictionary = {}, forced_qu
 		# P2 新路径：普通/精英战后成长走 Draft 引擎
 		var snap = RunStateAnalyzer.capture(_ctrl)
 		_draft_composer.reset_reroll_state()
-		# 技艺卡按概率注入战后三选一（2026-11-19 替代原 Lv.2/4/6 升级奖励）
-		var extra: Array = []
-		var growth = _ctrl.growth
-		if growth != null and growth.should_offer_perk():
-			for c in growth.roll_choices():
-				extra.append(_make_perk_def(c))
-		# P0.2：符号权重强化注入 1 张（从当前武器符号池动态构造，真实 resource_path）
-		var sym_defs := _make_symbol_weight_defs()
-		if not sym_defs.is_empty():
-			extra.append(sym_defs[_draft_composer.pick_index(sym_defs.size())])
-		_draft_result = _draft_composer.compose(snap, 3, draft_debug, extra)
+		# P0.3：技艺卡始终作为 skill 类别候选进入池（参与一级类别 8% 权重，V1.1 §21）。
+		# 保底（前3房）由 force_skill 绕过权重强制注入；取消旧 15% 独立随机注入。
+		var extra: Array = _draft_extra()
+		var force_skill: bool = should_force_skill()
+		_draft_result = _draft_composer.compose(snap, 3, draft_debug, extra, force_skill)
+		# 非保底房自然出现技艺即完成保底（V1.1 §21）；保底房则在玩家结算时才 mark，
+		# 以保证「保底 Draft 重抽后仍须含技艺」（mark 太早会让重抽丢失强制）。
+		if not force_skill and _draft_has_skill(_draft_result):
+			mark_skill_offer_satisfied()
 		_draft_active = true
 		_loot_view = RewardPresentation.draft_to_view(_draft_result, LootSourceTable.source_label(source))
 		# 重抽费用走 composer 的付费递增档（5 + 5×次数）
@@ -462,9 +525,11 @@ func reroll_loot_offer() -> Dictionary:
 			return {"ok": false, "reason": "insufficient_gold", "cost": cost}
 		_ctrl.gold -= cost
 		_draft_composer.note_paid_reroll()
-		# 重生成 Draft（不重置重抽状态）
+		# 重生成 Draft（不重置重抽状态）；保底 Draft 重抽后仍须含技艺（V1.1 §21）
 		var snap = RunStateAnalyzer.capture(_ctrl)
-		_draft_result = _draft_composer.compose(snap, 3, draft_debug)
+		var force_skill: bool = should_force_skill()
+		_draft_result = _draft_composer.compose(snap, 3, draft_debug, _draft_extra(), force_skill)
+		# 保底 Draft 重抽后仍强制含技艺；不在此 mark（等结算时）
 		_loot_view = RewardPresentation.draft_to_view(_draft_result, LootSourceTable.source_label("normal"))
 		_loot_view["growth_only"] = true
 		_loot_view["reroll_cost"] = _draft_composer.paid_reroll_cost
@@ -539,6 +604,9 @@ func settle_loot_offer(index: int) -> Dictionary:
 				_ctrl._telemetry.on_reward_apply_failed(def.id, apply_res.effect_id, apply_res.reason)
 			return {"ok": false, "reason": apply_res.reason, "effect_id": apply_res.effect_id}
 		_loot_settled = true
+		# P0.3：技艺候选展示并最终结算后，一次性保底完成（含保底房重抽后的 Draft）
+		if _draft_has_skill(_draft_result):
+			mark_skill_offer_satisfied()
 		_ctrl._post_battle.clear_pending_choices()
 		if _ctrl._telemetry != null:
 			var snap = RunStateAnalyzer.capture(_ctrl)
@@ -579,6 +647,9 @@ func settle_loot_skip() -> Dictionary:
 		return {"ok": false, "reason": "already_settled"}
 	if _draft_active:
 		_loot_settled = true
+		# 展示过即完成一次性保底（跳过也不强求选择，V1.1 §21）
+		if _draft_result != null and _draft_has_skill(_draft_result):
+			mark_skill_offer_satisfied()
 		_ctrl._post_battle.clear_pending_choices()
 		if _ctrl._telemetry != null and _draft_result != null:
 			var ids: Array = []
