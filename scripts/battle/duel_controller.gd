@@ -191,7 +191,10 @@ var boss_trash := 0                     # S10 T2：深渊侵蚀注入的额外�
 # 整备（M3–M6）：玩家自由勾选武器 / 消耗品 / 护符三分类
 var in_loadout := false
 var in_interroom := false   # 房间歇态：房奖励结算后、进下一房前（opt-in 商店，替代强制全屏商店）
-var selected_loadout: Array[String] = []          # 玩家勾选的武器路径
+var selected_loadout: Array[String] = []          # 玩家勾选的武器路径（当前已装备，子集于本局仓库）
+# G2-1 本局武器仓库：本局实际拥有（开局携带 + weapon_acquire 获得 + 换下保留）的武器路径。
+# 与 meta["owned_weapons"]（局外永久解锁/图鉴资格）严格分离：本字段不落盘，每局重置。
+var run_weapon_inventory: Array[String] = []
 var selected_consumables: Array[String] = []      # 玩家勾选的消耗品路径
 var selected_charms: Array[String] = []           # 玩家勾选的护符路径
 var selected_skills: Array[String] = []           # 玩家勾选的主动技能路径（Phase C 重构：原「增益」改名「技能」）

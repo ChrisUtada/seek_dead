@@ -247,6 +247,11 @@ func apply_charms() -> void:
 # M2：BoardConfig 开启时改走棋盘——ROOMS = 本局战斗房（按路径顺序），首屏为棋盘而非首房。
 func full_reset() -> void:
 	_ctrl._reset_run_state()   # 包含遥测/P1 统计清零；避免只重置局内状态而漏掉每局计数器
+	# G2-1：开局携带武器自动加入本局仓库（三态：当前已装备 ⊆ 本局已拥有）。
+	# 必须在 _reset_run_state（清空仓库）之后填充，否则会被清掉。
+	for wpath in _ctrl.selected_loadout:
+		if not _ctrl.run_weapon_inventory.has(wpath):
+			_ctrl.run_weapon_inventory.append(wpath)
 	_ctrl.node_mode = bool(_ctrl.board_config.is_active())
 	if _ctrl.node_mode and _ctrl.board != null and _ctrl.board.generate(_ctrl.board_config):
 		_ctrl.ROOMS.clear()
@@ -298,6 +303,9 @@ func reset_run_state() -> void:
 	if _ctrl._trim != null:
 		_ctrl._trim.reset_run()        # G7-B B1：本局精简状态与每幕次数清零
 	_ctrl._post_battle.reset_run()     # M1：战后成长队列清零
+	# G2-1：本局武器仓库清零（不落盘；开局携带武器由 confirm_loadout 重新写入）。
+	# 与 meta["owned_weapons"]（局外永久收藏）严格分离。
+	_ctrl.run_weapon_inventory.clear()
 	# M2：棋盘状态清零（node_mode 由 full_reset 按开关重新决定）
 	_ctrl.node_mode = false
 	_ctrl.current_room = null
