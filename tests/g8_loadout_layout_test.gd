@@ -92,21 +92,16 @@ func _run() -> void:
 			right = maxf(right, ctl.position.x + ctl.size.x)
 	_check(right <= bar.size.x + 0.5, "底部栏子项不越界（%.1f / %.1f）" % [right, bar.size.x])
 
-	# 2026-11-18 L2：整备底栏「地图」入口三态循环（线性 → 旧网格 → 分岔图 → 线性）。
+	# 2026-11-19：整备底栏「地图」入口二态循环（线性 ↔ 分岔路线图，网格已删）。
 	var cfg = duel.board_config
 	cfg.enabled = false
-	cfg.branch_mode = false
 	lo._refresh_board_toggle()
 	_check(lo._board_btn != null, "整备底栏有地图入口")
-	_check(not lo.has_method("_toggle_grid_mode"), "扫雷入口已随旧模型退役")
 	lo._toggle_board_mode()
-	_check(cfg.is_active() and not cfg.branch_mode, "第一次点：开启 14×9 旧网格")
-	_check(String(lo._board_btn.text).contains("✓"), "地图入口显示开启态")
-	lo._toggle_board_mode()
-	_check(cfg.is_active() and cfg.branch_mode, "第二次点：切到分岔路线图")
+	_check(cfg.is_active(), "第一次点：开启分岔路线图")
 	_check(String(lo._board_btn.text).contains("分岔"), "按钮文字显示分岔态")
 	lo._toggle_board_mode()
-	_check(not cfg.is_active() and not cfg.branch_mode, "第三次点：回到线性")
+	_check(not cfg.is_active(), "第二次点：回到线性")
 
 	# 三个叠层：内容不超出屏幕，且超长时可用滚动查看
 	lo._preview_panel.visible = true

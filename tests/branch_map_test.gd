@@ -124,11 +124,10 @@ func _run() -> void:
 		ids2.append("%s:%s" % [n["id"], n["type"]])
 	_check(ids1 == ids2, "same seed → same structure")
 
-	# BoardSystem 门面：branch_mode=true 时应委托 BranchRuntime，可沿边走到 BOSS
-	_duel.board_config.branch_mode = true
+	# BoardSystem 门面：启用地图模式走分岔，可沿边走到 BOSS
+	_duel.board_config.enabled = true
 	var ok_gen: bool = _duel.board.generate(_duel.board_config)
-	_check(ok_gen, "board.generate ok in branch mode")
-	_check(_duel.board.branch_mode, "board.branch_mode set")
+	_check(ok_gen, "board.generate ok in map mode")
 	_check(_duel.board.current_id == "b0_0", "starts at b0_0")
 	# 逐层沿第一条合法边前进，直到 BOSS
 	var steps := 0
@@ -173,13 +172,11 @@ func _run() -> void:
 	screen.hide_board(false)
 	_check(not screen.visible, "branch_screen hidden after hide_board")
 	screen.queue_free()
-	# 真机崩溃路径回归：branch_mode=true 时 confirm_loadout → full_reset → journal.start_run()
+	# 真机崩溃路径回归：地图模式 confirm_loadout → full_reset → journal.start_run()
 	_duel.board_config.enabled = true
-	_duel.board_config.branch_mode = true
 	_duel._confirm_loadout()
-	_check(_duel.node_mode and _duel.board.branch_mode, "confirm_loadout path ok in branch mode")
+	_check(_duel.node_mode, "confirm_loadout path ok in map mode")
 	_duel.board_config.enabled = false
-	_duel.board_config.branch_mode = false
 
 	_duel.free()
 	print("BRANCHMAP|RESULT %s (checks=%d fails=%d)" % ["PASS" if _fails == 0 else "FAIL", _checks, _fails])

@@ -20,8 +20,7 @@ const REWARD_SCENE = preload("res://scenes/ui/reward_screen.tscn")
 const ANVIL_SCENE = preload("res://scenes/ui/anvil_screen.tscn")
 const SHOP_SCENE = preload("res://scenes/ui/shop_screen.tscn")
 const LOADOUT_SCENE = preload("res://scenes/ui/loadout_scene.tscn")
-const BOARD_SCREEN = preload("res://scripts/board/board_screen.gd")
-const BRANCH_SCREEN = preload("res://scripts/board/branch_screen.gd")   # L2 分岔路线图 UI
+const BRANCH_SCREEN = preload("res://scripts/board/branch_screen.gd")   # 分岔路线图 UI（唯一地图）
 const CARD_FACTORY = preload("res://scripts/ui/card_factory.gd")   # G8 第二切片：卡片构造外迁
 
 var controller   # DuelController 引用（运行时由 _ready 设置）
@@ -84,8 +83,7 @@ func build_all() -> void:
 	_layout_bottom_zones()
 	_wire_spin_feedback()
 	_build_loadout_screen()
-	_build_board_screen()      # M2：棋盘主视图（hud 兄弟节点，显示时 hud.hide()）
-	_build_branch_screen()     # L2：分岔路线图 UI（与棋盘视图并列，按 branch_mode 切换）
+	_build_branch_screen()     # 分岔路线图 UI（唯一地图）
 	_build_reward_screen()
 	_build_anvil_screen()
 	_build_shop_screen()
@@ -141,8 +139,7 @@ var cell_stop_flashes = []   # [reel][row] -> Panel（仅边框 StyleBoxFlat）
 var cell_stop_tweens = []    # [reel][row] -> Tween（复用前先 kill，避免叠加）
 var _feedback_tween: Tween = null   # 底部短反馈的缩放脉冲（纯视觉）
 var loadout_screen                     # 整备场景（scenes/ui/loadout_scene.tscn 实例，hud 兄弟节点）
-var board_screen                       # M2 棋盘主视图（scripts/board/board_screen.gd，hud 兄弟节点）
-var branch_screen                      # L2 分岔路线图 UI（board.branch_mode=true 时显示）
+var branch_screen                      # 分岔路线图 UI（唯一地图，hud 兄弟节点）
 # 消耗品腰带 4 个固定格子（2x2），由 hud._refresh_consumable_panel 同步状态；
 # consumable_panel 字段（controller 持有）已废弃，HUD 内聚管理 cell。
 # 位置：左栏 PlayerPanel/VBox（GearBox 之后、PlayerBuffLabel 之前），保持 4 格子 2x2 形态
@@ -416,7 +413,7 @@ func _build_ui() -> void:
 	interroom_shop_btn.connect("pressed", shop_requested.emit)
 	interroom_next_btn.connect("pressed", next_room_requested.emit)
 
-	# G7-B B3：主动减带入口（线性间歇态）。插在「商店」左边，棋盘模式的入口在 board_screen。
+	# G7-B B3：主动减带入口（线性间歇态）。插在「商店」左边，地图入口在整备页。
 	interroom_trim_btn = UI_BUTTON.instantiate()
 	interroom_trim_btn.text = "✂ 精简"
 	interroom_trim_btn.custom_minimum_size = Vector2(58, 18)
@@ -684,13 +681,6 @@ func _build_loadout_screen() -> void:
 
 
 # M2：棋盘主视图与整备场景同级（hud 兄弟节点），显示时隐藏战斗 HUD，避免挤进战斗中央区域。
-func _build_board_screen() -> void:
-	board_screen = BOARD_SCREEN.new()
-	get_parent().add_child(board_screen)
-	board_screen.configure(controller, self)
-	board_screen.hide_board(false)
-
-
 func _build_branch_screen() -> void:
 	branch_screen = BRANCH_SCREEN.new()
 	get_parent().add_child(branch_screen)
@@ -699,24 +689,12 @@ func _build_branch_screen() -> void:
 
 
 func show_board_screen(board_sys) -> void:
-	# L2：分岔图与旧网格按 board.branch_mode 切换，二者互斥
-	var is_branch: bool = board_sys != null and bool(board_sys.branch_mode)
-	if is_branch:
-		if board_screen != null:
-			board_screen.hide_board(false)
-		if branch_screen != null:
-			branch_screen.show_board(board_sys)
+	if branch_screen == null:
 		return
-	if branch_screen != null:
-		branch_screen.hide_board(false)
-	if board_screen == null:
-		return
-	board_screen.show_board(board_sys)
+	branch_screen.show_board(board_sys)
 
 
 func hide_board_screen(show_hud: bool = false) -> void:
-	if board_screen != null:
-		board_screen.hide_board(false)
 	if branch_screen != null:
 		branch_screen.hide_board(show_hud)
 
@@ -2277,7 +2255,7 @@ func request_camp_supply(offers: Array, on_buy: Callable, on_close: Callable) ->
 		dlg.add_child(_camp_vbox)
 		center.add_child(dlg)
 		_camp_dialog.add_child(center)
-		# 与 board_screen 同级（都挂在 duel 根节点）：棋盘视图会 hud.hide()，
+		# 与 branch_screen 同级（都挂在 duel 根节点）：地图视图会 hud.hide()，
 		# 营地面板若挂在 HUD 下会被一起隐藏，导致「看不见营地 / 到 BOSS 才突然弹出」。
 		get_parent().add_child(_camp_dialog)
 	for c in _camp_vbox.get_children():
@@ -2460,11 +2438,11 @@ func _on_trim_confirm_pressed() -> void:
 	hide_trim_dialog()
 	if feedback_label != null:
 		feedback_label.text = msg
-	# 棋盘模式：信息栏同步一行；棋盘屏自己再刷新一次（按钮状态 / 顶栏）。
+	# 地图模式：信息栏同步一行；地图屏自己再刷新一次（按钮状态 / 顶栏）。
 	if controller.board != null and controller.node_mode:
 		controller.board.feedback = msg
-	if board_screen != null and board_screen.visible:
-		board_screen.refresh()
+	if branch_screen != null and branch_screen.visible:
+		branch_screen.refresh()
 	_refresh_trim_entry()
 
 
