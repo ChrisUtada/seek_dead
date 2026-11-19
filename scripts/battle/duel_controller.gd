@@ -318,10 +318,6 @@ var symbol_effect_overrides: Dictionary = {}
 # L2-E 本局收集品框架：遗物栏（BOSS 信物）——拥有即生效、不占护符槽、每局清零。
 # 与 meta["owned_charms"]（跨局图鉴）分离：图鉴仍跨局，增益只在本局。
 var run_relics: Array[String] = []
-# L2-G 本局收集品框架：已习得签名牌谱（战后三选一习得）——习得为生效前提之一，
-# 仍需携带专属武器(key_paths)+牌型满足；每局清零。
-# 2026-11-19：只有 11 张签名需要习得（携带关键武器不再自动解锁）；基础牌谱 W01-W06 装备条件自动激活，不受此限制。
-var learned_signatures: Array[String] = []
 # S7/S12 商店状态（shop_offers / paid_price）已抽至 ShopSystem（步骤3，见 _shop_system）
 
 # M5 元进度（铁砧锻造 + 存档持久化，跨局保留）
@@ -1046,7 +1042,6 @@ func _reset_run_state() -> void:
 	pattern_param_overrides.clear()  # P1-B：本局牌谱参数覆盖清零
 	reel_controls.clear()   # P1-C：本局滚轴操控清零
 	symbol_effect_overrides.clear()  # P1.1②：本局符号效果覆盖清零
-	learned_signatures.clear() # L2-G：本局已习得签名清零
 	if hud != null:
 		hud._refresh_p1_ui()
 

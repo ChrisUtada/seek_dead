@@ -67,8 +67,6 @@ func _dispatch(reward_id: String, effect_id: String, params: Dictionary) -> Draf
 			return _apply_flame_affinity(reward_id, params)
 		"pick_perk":
 			return _apply_pick_perk(reward_id, params)
-		"learn_signature":
-			return _apply_learn_signature(reward_id, params)
 		_:
 			return DraftResult.RewardApplyResult.failure(reward_id, effect_id, "unknown_effect_id")
 
@@ -269,19 +267,4 @@ func _apply_flame_affinity(reward_id: String, params: Dictionary) -> DraftResult
 	r.state_updates["element_affinity"] = _ctrl.element_affinity.duplicate(true)
 	return r
 
-
-func _apply_learn_signature(reward_id: String, params: Dictionary) -> DraftResult.RewardApplyResult:
-	# L2-G：三选一习得签名牌谱——写入本局 learned_signatures，作为签名生效的前提之一。
-	# 2026-11-19：签名生效=习得+携带专属武器(key_paths)+牌型满足；习得是必要条件但非充分。基础牌谱不受影响。
-	var sid := String(params.get("signature_id", ""))
-	if sid.is_empty():
-		return DraftResult.RewardApplyResult.failure(reward_id, "learn_signature", "invalid_signature_id")
-	if not _ctrl.learned_signatures.has(sid):
-		_ctrl.learned_signatures.append(sid)
-	# 日志走现有 hud（只写数据+日志，不做灰条目 UI）
-	if _ctrl.hud != null:
-		_ctrl.hud._log("🗂 习得签名牌谱「%s」：本局对应凑牌现可生效" % sid)
-	var r := DraftResult.RewardApplyResult.success(reward_id, "learn_signature", "习得签名「%s」" % sid)
-	r.state_updates["learned_signatures"] = _ctrl.learned_signatures.duplicate(true)
-	return r
 
