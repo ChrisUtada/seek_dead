@@ -88,6 +88,20 @@ func _test_symbol_weight(duel: DuelController) -> void:
 			has_path = true
 	_ok(not has_path, "symbol at max weight not offered again")
 
+	# G1-F：提交前数值上限预检——展示后到结算间符号已被灌满时，resolve 必须拦截，
+	# 且不修改状态（预检只读）。构造一张指向该已满符号的动态卡直接 resolve。
+	var before_max: int = int(duel._reward_system.run_symbol_bonus.get(path, 0))
+	var maxed_def := RewardDefinition.new()
+	maxed_def.id = "sym_weight_maxed_test"
+	maxed_def.name = "已满符号权重卡"
+	maxed_def.rarity = "common"
+	maxed_def.category = "symbol_mod"
+	maxed_def.effects = [{"effect_id": "run_symbol_bonus", "params": {"path": path, "weight": 3}}]
+	var maxed_res = resolver.resolve(maxed_def)
+	_ok(not maxed_res.ok, "G1-F commit-time rejects symbol at max weight")
+	_ok(String(maxed_res.reason) == "symbol_weight_maxed", "G1-F reject reason=symbol_weight_maxed (got %s)" % String(maxed_res.reason))
+	_ok(int(duel._reward_system.run_symbol_bonus.get(path, 0)) == before_max, "G1-F rejected resolve leaves state unchanged")
+
 
 func _test_gold(duel: DuelController) -> void:
 	var gold_before := int(duel.gold)

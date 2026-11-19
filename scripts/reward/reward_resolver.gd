@@ -128,6 +128,14 @@ func _apply_existing_symbol_weight(reward_id: String, params: Dictionary) -> Dra
 	var weight := int(params.get("weight", 0))
 	if path.is_empty() or weight <= 0:
 		return DraftResult.RewardApplyResult.failure(reward_id, "run_symbol_bonus", "invalid_params")
+	# G1-F 提交前目标数值上限预检（权威 §6.3「不出现当前零收益/不可达成项」、
+	# §3.1 G1-4 拍板「提交前用真实拥有状态/目标数值上限/eligibility 过滤」）。
+	# 生成侧 _make_symbol_weight_defs 只跳过「展示时已满」的符号；若展示后到结算间
+	# 该符号已被另一张卡灌满（重抽/延迟结算/重复点选），提交前必须再次拦截，
+	# 否则会突破 SYMBOL_WEIGHT_MAX。此处只读不写，符合「预检禁写状态」。
+	var rs = _ctrl._reward_system
+	if int(rs.run_symbol_bonus.get(path, 0)) >= int(RewardSystem.SYMBOL_WEIGHT_MAX):
+		return DraftResult.RewardApplyResult.failure(reward_id, "run_symbol_bonus", "symbol_weight_maxed")
 	var res: Dictionary = _ctrl._reward_system._apply_loot_option({
 		"kind": "symbol", "path": path, "weight": weight
 	})

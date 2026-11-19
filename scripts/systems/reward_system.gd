@@ -107,25 +107,25 @@ func clear_skill_pity_room() -> void:
 	_force_skill_this_room = false
 
 
-# 构造本次 Draft 的动态额外候选：技艺（skill 类别）+ 符号权重（symbol_mod 类别）。
+# 构造本次 Draft 的动态额外候选：技艺（skill）+ 符号权重 + 符号效果 + 武器替换。
 # build_loot_offer 与 reroll_loot_offer 共用，保证重抽也走同一生成规则（V1.1 §4.2/§7.1）。
+#
+# G1-E（权威 §6.2.2 / G1-3）：各 Provider 输出「全部合法候选」，不再先随机只注入一张。
+# 旧实现用 pick_index 每类挑 1 张 → 玩家看不到全部合法目标、生成分布受注入顺序影响。
+# 现全量并入 eligible：类别权重按 CategoryResolver.CATEGORY_WEIGHT 固定值计算（非卡数），
+# 全量注入同类别候选不改变类别分布；组内抽取仍按 base_weight 无放回 + used_ids 去重，
+# MAX_SAME_CATEGORY=2 同类上限与 _eligible 硬过滤均由 composer 统一执行。
+# 副作用：不再消耗 composer RNG 做注入选择（去同组重试仍用 composer RNG，不受影响）。
 func _draft_extra() -> Array:
 	var extra: Array = []
 	var growth = _ctrl.growth
 	if growth != null:
 		for c in growth.roll_choices():
 			extra.append(_make_perk_def(c))
-	var sym_defs := _make_symbol_weight_defs()
-	if not sym_defs.is_empty():
-		extra.append(sym_defs[_draft_composer.pick_index(sym_defs.size())])
-	# P1.1②：符号效果强化也注入 1 张（与权重卡并存，均走 composer RNG 不碰全局）
-	var eff_defs := _make_symbol_effect_defs()
-	if not eff_defs.is_empty():
-		extra.append(eff_defs[_draft_composer.pick_index(eff_defs.size())])
-	# P1.1①：武器替换候选（V1.1 权重 20%，武器是底盘/主要变强来源）
-	var wp_defs := _make_weapon_defs()
-	if not wp_defs.is_empty():
-		extra.append(wp_defs[_draft_composer.pick_index(wp_defs.size())])
+	# 全部合法动态候选一次性并入，交由 composer 统一过滤/抽取
+	extra.append_array(_make_symbol_weight_defs())
+	extra.append_array(_make_symbol_effect_defs())
+	extra.append_array(_make_weapon_defs())
 	return extra
 
 
