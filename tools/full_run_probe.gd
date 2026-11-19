@@ -3,9 +3,11 @@ extends Node
 const OUT_DEFAULT := "res://.workbuddy/full_run"
 const SEEDS_DEFAULT := [111, 333, 555, 777, 999, 1234]
 const STRATEGIES_DEFAULT := ["tactical"]
+const STOP_MODELS := ["random", "normal", "skilled", "perfect"]  # 方案 §14.1 四档操作模型
 var OUT := OUT_DEFAULT
 var SEEDS: Array = SEEDS_DEFAULT
 var STRATEGIES: Array = STRATEGIES_DEFAULT
+var HIT_RATES: Dictionary = {}   # 普通/熟练档目标停中率：必须真人测量后显式传入，禁止内定
 var TIME_SCALE := 40.0
 var duel: DuelController
 var initial_save: Dictionary = {}
@@ -26,8 +28,17 @@ func _ready() -> void:
 			SEEDS = _parse_ints(arg.substr(8))
 		elif arg.begins_with("--strategies="):
 			STRATEGIES = arg.substr(13).split(",", false)
+		elif arg.begins_with("--hit-rates="):
+			# --hit-rates=normal:0.5,skilled:0.8；缺失该档键则拒绝运行该档（不内定真人值）
+			HIT_RATES = _parse_hit_rates(arg.substr(12))
 		elif arg.begins_with("--speed="):
 			TIME_SCALE = float(arg.substr(8))
+	# 普通/熟练档必须显式给停中率，否则拒绝运行，避免用编造值冒充真人近似
+	for s in STRATEGIES:
+		if (s == "normal" or s == "skilled") and not HIT_RATES.has(s):
+			push_error("G0-3b: 策略 %s 缺少真人实测停中率（--hit-rates=%s:0.xx），拒绝运行" % [s, s])
+			get_tree().quit(2)
+			return
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT))
 	Engine.time_scale = TIME_SCALE   # 加速全部timer/动画演出（await create_timer 受此影响）
 	initial_save = SaveSystem.load_lobby_data().duplicate(true)
@@ -42,7 +53,17 @@ func _ready() -> void:
 			results.append(result)
 			_write_json("%s/%s_%d.json" % [OUT, strategy, run_seed], result)
 			print("STRATEGY_RUN|%s|%d|%s|rooms=%d|turns=%d|damage=%d|boss=%s" % [strategy, run_seed, result["terminal"], result["rooms"].size(), result["turns"], result["damage_taken"], result["boss"]])
-	_write_json(OUT + "/summary.json", {"runs": results, "method": "same seed/loadout/rewards; readable only; baseline fixed interval/no consumable vs tactical target/consumable",
+	_write_json(OUT + "/summary.json", {"runs": results,
+		"operation_models": {
+			"random": "新手/随机：整带均匀随机停，不瞄准（测下限）",
+			"normal": "普通目标命中：按 --hit-rates=normal:p 概率命中，失手停相邻格（p 须真人实测）",
+			"skilled": "熟练目标命中：按 --hit-rates=skilled:p 概率命中，失手停相邻格（p 须真人实测）",
+			"perfect": "完美目押：100% 命中目标，只测上限",
+			"tactical": "历史兼容档：完美目押 + 自动喝药（基线 A 口径）",
+			"hit_rates_used": HIT_RATES,
+			"note": "normal/skilled 无真人实测则拒绝运行；本轮只跑 random + perfect"
+		},
+		"method": "same seed/loadout/rewards; readable only; G0-3b 四档仅隔离停中能力，统一不自动喝药",
 		"balance": {"counter_burst_pct": DuelController.BALANCE.counter_burst_pct, "heal_line_mults": DuelController.BALANCE.heal_line_mults}})
 	print("STRATEGY_PROBE|DONE|%d" % results.size())
 	get_tree().quit()
@@ -132,8 +153,10 @@ func _run_one(strategy: String, run_seed: int) -> Dictionary:
 					"frost_start": int(duel.player_frost), "jam_start": int(duel.pending_jam_reel),
 					"turn_log": []}
 				if duel.current_room.kind == "boss": result["boss"] = duel.enemy_name
+			# G0-3b 四操作模型对照：只隔离「停中能力」变量，四档统一不自动喝药。
+			# 旧 tactical 策略保留自动喝药以兼容历史基线；perfect/random/normal/skilled 均不喝。
 			if strategy == "tactical": _use_consumables()
-			var error: String = await _play_turn(strategy, current)
+			var error: String = await _play_turn(strategy, current, run_seed)
 			if error != "OK":
 				result["errors"].append(error)
 				result["terminal"] = error
@@ -195,7 +218,7 @@ func _end_room(result: Dictionary, current: Dictionary) -> void:
 	(result["rooms"] as Array).append(current)
 
 
-func _play_turn(strategy: String, current: Dictionary) -> String:
+func _play_turn(strategy: String, current: Dictionary, run_seed: int) -> String:
 	# 完美玩家模拟：不依赖视觉目押（高 time_scale 会让目押失真），直接把转轮光标
 	# 设到目标符号 index 后 lock_reel(use_visual=false)，100% 精确命中目标 Build 符号。
 	# 这样测出的是「最优操作下的通关能力/难度曲线」，而非 AI 的目押水平。
@@ -206,37 +229,40 @@ func _play_turn(strategy: String, current: Dictionary) -> String:
 		turn_rec["window"] = String(duel.current_gimmick.rhythm_window(duel))
 	duel._on_spin_pressed()
 	var frames := 0
-	var locked := false
-	while frames < 300:
+	var target: String = duel.readability.target_symbol_path
+	while frames < 600:
 		frames += 1
-		if duel.reel_system.spinning and not locked:
-			locked = true
-			var target: String = duel.readability.target_symbol_path
-			for r in range(DuelController.REELS):
-				if duel.reel_system.reel_stopped[r] or duel.reel_system.is_absorbing(r):
-					continue
+		if duel.reel_system.spinning:
+			# G0-3b 修复：缠绕机制要求按指定方向逐列停，不能像旧探针那样一帧内遍历所有列
+			# （顺序不对的列会被 lock_reel 拒绝且不再重试 → 该回合永不结束 → TURN_TIMEOUT）。
+			# 每帧只停「当前允许停的一列」：缠绕时服从 entangle_next()，否则取第一个未忙列。
+			var r: int = -1
+			if duel.debuffs != null and duel.debuffs.entangle_active():
+				r = duel.debuffs.entangle_next(duel.reel_system)
+			else:
+				r = _next_reel()
+			if r >= 0 and not duel.reel_system.reel_stopped[r] and not duel.reel_system.is_absorbing(r):
 				var strip: Array = duel.reel_system.reel_strips[r]
-				if strip.is_empty():
-					continue
-				# 找目标符号在本列的 index；dot 策略优先 DoT 状态符号
-				var idx := -1
-				if strategy == "dot":
-					for i in range(strip.size()):
-						var sym0: Resource = strip[i][0]
-						var kv = sym0.get("kind") if sym0 != null else null
-						if kv != null and String(kv) == "status":
-							idx = i
-							break
-				if idx < 0:
-					for i in range(strip.size()):
-						if String(strip[i][0].resource_path) == target:
-							idx = i
-							break
-				if idx < 0:
-					idx = 0
-				duel.reel_system.reel_cursor[r] = idx
-				duel.reel_system.lock_reel(r, false, "player")
-		elif not duel._busy and locked:
+				if not strip.is_empty():
+					# 找目标符号在本列的 index；dot 策略优先 DoT 状态符号
+					var idx := -1
+					if strategy == "dot":
+						for i in range(strip.size()):
+							var sym0: Resource = strip[i][0]
+							var kv = sym0.get("kind") if sym0 != null else null
+							if kv != null and String(kv) == "status":
+								idx = i
+								break
+					if idx < 0:
+						for i in range(strip.size()):
+							if String(strip[i][0].resource_path) == target:
+								idx = i
+								break
+					var target_idx := idx   # 目标格；perfect 用它，其余档据此计算「是否命中」
+					idx = _pick_stop_index(strategy, idx, target_idx, strip.size(), run_seed, r)
+					duel.reel_system.reel_cursor[r] = idx
+					duel.reel_system.lock_reel(r, false, "player")
+		elif not duel._busy:
 			_finish_turn(current, turn_rec)
 			return "OK"
 		await get_tree().process_frame
@@ -264,6 +290,37 @@ func _next_reel() -> int:
 		if not duel.reel_system.reel_stopped[r] and not duel.reel_system.has_pending_stop(r):
 			return r
 	return -1
+
+
+func _det_rand(seed_val: int) -> float:
+	# 确定性伪随机 [0,1)，不消耗全局 RNG，保证同种子各操作模型可复现对照。
+	var x: int = seed_val & 0x7FFFFFFF
+	x = (x * 1103515245 + 12345) & 0x7FFFFFFF
+	x = (x ^ (x >> 13)) & 0x7FFFFFFF
+	x = (x * 1274126177) & 0x7FFFFFFF
+	return float(x) / 2147483648.0
+
+
+func _pick_stop_index(strategy: String, found_idx: int, target_idx: int, strip_size: int, run_seed: int, r: int) -> int:
+	if strip_size <= 0:
+		return 0
+	# perfect / tactical / dot：保持原行为，命中目标（找不到目标则第 0 格）
+	if strategy == "perfect" or strategy == "tactical" or strategy == "dot":
+		return found_idx if found_idx >= 0 else 0
+	var base: int = run_seed + duel.room_index * 100003 + int(duel.turn_count) * 1009 + r * 37
+	# random / 新手：不瞄准，整条带均匀随机（测下限）
+	if strategy == "random":
+		return int(_det_rand(base) * strip_size) % strip_size
+	# normal / skilled：按给定停中率命中目标；失手停在相邻格（真人「差一点」近似）
+	if strategy == "normal" or strategy == "skilled":
+		var p: float = float(HIT_RATES.get(strategy, 0.0))
+		if target_idx >= 0 and _det_rand(base) < p:
+			return target_idx
+		if target_idx >= 0 and strip_size > 1:
+			var off: int = 1 if _det_rand(base + 7) < 0.5 else -1
+			return (target_idx + off + strip_size) % strip_size
+		return int(_det_rand(base + 13) * strip_size) % strip_size
+	return found_idx if found_idx >= 0 else 0
 
 
 func _use_consumables() -> void:
@@ -295,4 +352,14 @@ func _parse_ints(text: String) -> Array:
 	var out: Array = []
 	for part in text.split(",", false):
 		out.append(int(part.strip_edges()))
+	return out
+
+
+func _parse_hit_rates(text: String) -> Dictionary:
+	# 形如 normal:0.5,skilled:0.8；键必须是操作模型名，值为 [0,1] 停中率
+	var out: Dictionary = {}
+	for part in text.split(",", false):
+		var kv := part.split(":", false)
+		if kv.size() == 2:
+			out[String(kv[0]).strip_edges()] = clampf(float(kv[1].strip_edges()), 0.0, 1.0)
 	return out
