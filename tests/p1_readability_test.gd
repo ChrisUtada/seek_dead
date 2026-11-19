@@ -241,13 +241,14 @@ func _run() -> void:
 	_check(hud.p1_preview_row.visible, "preview 预设：预览行可见")
 	_check(hud.p1_preview_labels[0][0].visible, "preview 预设：首格预览可见")
 	_check(String(hud.p1_preview_labels[0][0].text).contains("火斩"), "预览显示目标符号")
-	# 2026-11-17：洞察已移除，预览格数只由 preset 决定，命中确定性三技艺不干扰预览行。
+	# 洞察已移除，预览格数只由 preset 决定；B方案操控卡（含 slow_ramp）不干扰预览行。
 	duel.growth.perk_ids.append("snap")
-	duel.growth.perk_ids.append("wide")
 	duel.growth.perk_ids.append("mercy")
+	duel.reel_controls["slow_ramp"] = true
 	hud._refresh_p1_previews()
 	_check(not hud.p1_preview_labels[0][2].visible, "命中确定性技艺不改变预览行格数（洞察已移除）")
 	duel.growth.perk_ids.clear()
+	duel.reel_controls.clear()
 	hud._refresh_p1_previews()
 	_check(not hud.p1_preview_labels[0][2].visible, "清空技艺后预览行仍为 2 格")
 	rd.apply_preset("control")

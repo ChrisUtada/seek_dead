@@ -44,10 +44,10 @@ func _run() -> void:
 		return
 	var rs = duel._reward_system
 
-	# 初始：无技艺无奖励 → 操控全 0
+	# 初始：无操控奖励 → 操控全 0
 	_ok(duel.growth.snap_per_turn() == 0, "initial snap=0")
-	_ok(duel.growth.wide_range() == 1, "initial wide=1")
 	_ok(duel.growth.mercy_per_turn() == 0, "initial mercy=0")
+	_ok(not duel.reel_controls.has("slow_ramp"), "initial slow_ramp=off")
 
 	# ① 授予 snap 奖励
 	var def := RewardDefinition.new()
@@ -65,9 +65,16 @@ func _run() -> void:
 	var dup = rs._draft_resolver.resolve(def)
 	_ok(not dup.ok, "duplicate control rejected")
 
-	# ④ P1.1③：操控唯一归 reel_controls，技艺宽判已迁出（grant_perk 拒绝且不生效）
-	_ok(not duel.growth.grant_perk("wide"), "legacy aim perk no longer exists")
-	_ok(duel.growth.wide_range() == 1, "no wide without reel_controls grant")
+	# ④ B方案：宽判已移除改为 slow_ramp；操控唯一归 reel_controls
+	_ok(not duel.growth.grant_perk("wide"), "legacy wide perk no longer exists")
+	var slow_def := RewardDefinition.new()
+	slow_def.id = "test_slow"
+	slow_def.name = "测试缓速"
+	slow_def.rarity = "common"
+	slow_def.effects = [{"effect_id": "reel_control", "params": {"control_id": "slow_ramp"}}]
+	var slow_res = rs._draft_resolver.resolve(slow_def)
+	_ok(slow_res.ok, "slow_ramp reward resolves: %s" % slow_res.reason)
+	_ok(duel.reel_controls.has("slow_ramp"), "slow_ramp written to reel_controls")
 
 	# ⑤ 新局清零
 	duel._reset_run_state()

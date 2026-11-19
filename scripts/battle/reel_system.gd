@@ -17,6 +17,10 @@ extends RefCounted
 signal spin_finished
 
 const MISS_SYMBOL = preload("res://resources/symbols/miss.tres")
+
+# B方案（2026-11-19）：废铁转化——废铁落点换取的金币补偿。
+# 刻意只给少量收益，不把废铁改判为有效符号（否则等于免死金牌、破坏风险曲线）。
+const TRASH_TO_GOLD := 2
 # 2026-11-12 Step 2：停轮吸附时长取 ReelClock 的区间常量（2026-11-13 重标定为
 # 0.16–0.20s 实机回调档；t = 2d/v 折算后被上界截断）；用 preload 而非全局类名，
 # 避免 --script / 未打开编辑器的环境读不到 global_script_class_cache。
@@ -87,9 +91,14 @@ func _min_wait() -> float:
 
 
 func _accel() -> float:
+	var a: float = 0.0020
 	if _ctrl.readability != null:
-		return float(_ctrl.readability.accel)
-	return 0.0020
+		a = float(_ctrl.readability.accel)
+	# B方案：缓速操控——每拍加速度 ×0.75（0.0051→0.0038 readable 档），
+	# 转轮约 2 秒才到顶速而非 1.5 秒，玩家更容易看清符号、更好按停。
+	if _ctrl.reel_controls.has("slow_ramp"):
+		a *= 0.75
+	return a
 
 
 func _startup_wait(base: float, progress: float) -> float:
@@ -504,14 +513,12 @@ func lock_reel(r: int, use_visual: bool = true, reason: String = "player") -> vo
 						_ctrl.readability.on_buffer_queued()
 						_ctrl.hud._log("⏳ 第 %d 列进入输入缓冲：下一拍锁定视觉中心符号" % (r + 1))
 						return
-				# 宽判窗口技艺独立生效：即使 preset 未开 visual_stop，也按放宽后的容差锁定所见格。
-				var wide_tol: int = _ctrl.growth.wide_range() if _ctrl.growth != null else 1
-				var do_align: bool = _ctrl.readability.visual_stop or wide_tol > 1
-				if do_align:
-					var delta: int = absi(vi - cur)
-					delta = mini(delta, n - delta)   # 环形距离
-					if delta <= wide_tol:
-						idx = vi
+			# B方案（2026-11-19）：宽判窗口已移除（改缓速操控），视觉落点对齐只由 preset 的 visual_stop 控制。
+			if _ctrl.readability.visual_stop:
+				var delta: int = absi(vi - cur)
+				delta = mini(delta, n - delta)   # 环形距离
+				if delta <= 1:
+					idx = vi
 		# 2026-11-17 命中确定性三技艺：只改玩家按停的落点，不动伤害与速度。
 		if reason == "player" and strip != null and not strip.is_empty() and _ctrl.readability != null:
 			var n2: int = strip.size()
@@ -526,27 +533,16 @@ func lock_reel(r: int, use_visual: bool = true, reason: String = "player") -> vo
 					idx = ti
 					_ctrl.readability.consume_snap()
 					_ctrl.hud._log("🧲 落点吸附：第 %d 列锁定目标符号" % (r + 1))
-			# 废铁豁免：若落点是废铁（trash / MISS），改判为相邻最近的非废铁格（每回合限次）。
+			# B方案：废铁转化——废铁不再是"无效格"，而是给一点资源补偿（每回合限次）。
+			# 关键：不把废铁改判为有效符号（那会抹除失败惩罚、过强），
+			# 而是保留废铁格，只看作"变废为宝"的收益提示——感知明确且不破坏风险曲线。
 			var sym_now = strip[idx][0] if strip[idx] is Array else strip[idx]
 			if sym_now != null and String(sym_now.kind) == "trash" and _ctrl.readability.mercy_ready():
-				var good: int = _nearest_non_trash(strip, idx)
-				if good >= 0:
-					idx = good
-					_ctrl.readability.consume_mercy()
-					_ctrl.hud._log("🛡 废铁豁免：第 %d 列改判为有效符号" % (r + 1))
+				_ctrl.gold += TRASH_TO_GOLD
+				_ctrl.readability.consume_mercy()
+				if _ctrl.hud != null:
+					_ctrl.hud._log("♻️ 废铁转化：第 %d 列废铁 → +%d 金（不抵消空转）" % [r + 1, TRASH_TO_GOLD])
 	_begin_absorb(r, idx, reason)
-
-
-# 从 idx 向两侧找最近的非废铁格（含 idx 自身之外的相邻格）；全废铁返回 -1。
-func _nearest_non_trash(strip: Array, idx: int) -> int:
-	var n: int = strip.size()
-	for d in range(1, n):
-		for off in [d, -d]:
-			var i: int = (idx + off + n) % n
-			var sym = strip[i][0] if strip[i] is Array else strip[i]
-			if sym != null and String(sym.kind) != "trash" and sym is Resource:
-				return i
-	return -1
 
 
 # Step 2：停轮请求先记录，不立即写格子；0.16–0.20s 减速吸附结束才落子并进入结算

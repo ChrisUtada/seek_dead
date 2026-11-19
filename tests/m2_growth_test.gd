@@ -157,15 +157,15 @@ func _test_hooks(duel: DuelController) -> void:
 	_check(duel._shop_system.free_reroll_count() == 2, "商店免费刷新来自信物迷宫回声（+2）")
 	# P1.1③：操控能力唯一由 reel_controls 授予，技艺不再授予（旧 aim 三技艺已迁出）
 	_check(g.snap_per_turn() == 0, "无操控授予：吸附次数 0")
-	_check(g.mercy_per_turn() == 0, "无操控授予：豁免次数 0")
-	_check(g.wide_range() == 1, "无操控授予：容差回落 ±1")
+	_check(g.mercy_per_turn() == 0, "无操控授予：废铁转化次数 0")
 	_check(g.snap_range() == 2, "落点吸附容差常量 ±2（B方案放宽）")
+	var accel_before: float = duel.reel_system._accel()
 	duel.reel_controls["snap"] = true
 	duel.reel_controls["mercy"] = true
-	duel.reel_controls["wide"] = true
+	duel.reel_controls["slow_ramp"] = true
 	_check(g.snap_per_turn() == 2, "reel_controls 授予吸附：每回合 2 次")
-	_check(g.mercy_per_turn() == 1, "reel_controls 授予豁免：每回合 1 次")
-	_check(g.wide_range() == 2, "reel_controls 授予宽判：容差 ±2")
+	_check(g.mercy_per_turn() == 1, "reel_controls 授予废铁转化：每回合 1 次")
+	_check(duel.reel_system._accel() < accel_before, "slow_ramp 授予后每拍加速度变小（加速变慢）")
 	duel.reel_controls.clear()
 	duel.charm_free_reroll = 0   # 还原，避免污染后续测试
 	g.perk_ids.clear()
@@ -231,13 +231,13 @@ func _test_new_perks(duel: DuelController) -> void:
 	rd.begin_spin()
 	_check(rd.snap_ready(), "落点吸附：下一回合次数重置")
 
-	# —— 废铁豁免：落点是废铁时改判相邻非废铁格，每回合 1 次 ——
+	# —— B方案废铁转化：落点是废铁时 +2 金（不改判、不抵消空转），每回合 1 次 ——
 	# 先移除落点吸附，避免它把目标 gold 提前吸附走、干扰废铁判定。
 	duel.reel_controls.erase("snap")
 	duel.reel_controls["mercy"] = true
 	rd.begin_spin()
-	rd.target_symbol_path = ""   # 豁免不依赖目标符号
-	_check(rd.mercy_ready(), "废铁豁免：本回合可用")
+	rd.target_symbol_path = ""   # 废铁转化不依赖目标符号
+	_check(rd.mercy_ready(), "废铁转化：本回合可用")
 	var strip_tr: Array = [[trash, "none"], [gold, "none"]]
 	rs.reel_strips = [strip_tr]
 	rs.reel_cursor.clear()
@@ -247,12 +247,14 @@ func _test_new_perks(duel: DuelController) -> void:
 	rs._pending_stops.clear()
 	duel.pending_jam_reel = -1
 	duel.pending_lock_reel = -1
-	# 视觉中心置 0（非旋转态默认 = cursor），落点为废铁 → 豁免改判到 gold(1)
+	var gold_before_trash: int = duel.gold
+	# 视觉中心置 0（非旋转态默认 = cursor），落点为废铁 → 转化 +2 金，落点不变
 	rs.lock_reel(0)
-	_check(rd.mercy_used == 1, "废铁豁免：废铁落点触发改判并用掉 1 次")
-	_check(not rd.mercy_ready(), "废铁豁免：每回合 1 次用尽")
+	_check(duel.gold == gold_before_trash + rs.TRASH_TO_GOLD, "废铁转化：+2 金")
+	_check(rd.mercy_used == 1, "废铁转化：触发并用掉 1 次")
+	_check(not rd.mercy_ready(), "废铁转化：每回合 1 次用尽")
 	await get_tree().create_timer(0.45).timeout
-	_check(rs.reel_stopped[0], "废铁豁免：吸附完成后落子")
+	_check(rs.reel_stopped[0], "废铁转化：落子完成")
 
 	rd.begin_spin()
 	_check(rd.mercy_ready(), "废铁豁免：下一回合次数重置")

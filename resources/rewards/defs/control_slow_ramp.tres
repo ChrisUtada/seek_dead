@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RewardDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/reward/reward_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "control_slow_ramp"
+name = "操控 · 缓速启动"
+desc = "转轮启动加速更平缓，约 2 秒到全速（原 1.5 秒），更容易看清符号与按停"
+rarity = "common"
+tags = Array[String](["control", "reel.speed", "tactical"])
+base_weight = 1.0
+base_value = 1.0
+effects = [{"effect_id": "reel_control", "params": {"control_id": "slow_ramp"}}]
+category = "reel_control"
+effect_family = "reel_control"
+stack_rule = 0
+max_stack = -1

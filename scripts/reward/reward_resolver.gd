@@ -181,11 +181,12 @@ func _apply_pattern_bonus(reward_id: String, params: Dictionary) -> DraftResult.
 	return r
 
 
-# 滚轴操控（P1-C）：写 controller.reel_controls，与技艺同名能力共用查询接口。
-# params: {"control_id": "snap"|"wide"|"mercy"}
+# 滚轴操控：写 controller.reel_controls。
+# B方案（2026-11-19）：wide 已移除，改为 slow_ramp（缓速）；snap=±2吸附，mercy=废铁转化。
+# params: {"control_id": "snap"|"mercy"|"slow_ramp"}
 func _apply_reel_control(reward_id: String, params: Dictionary) -> DraftResult.RewardApplyResult:
 	var cid := String(params.get("control_id", ""))
-	if not ["snap", "wide", "mercy"].has(cid):
+	if not ["snap", "mercy", "slow_ramp"].has(cid):
 		return DraftResult.RewardApplyResult.failure(reward_id, "reel_control", "invalid_control_id")
 	if _ctrl.reel_controls.has(cid):
 		return DraftResult.RewardApplyResult.failure(reward_id, "reel_control", "already_owned")

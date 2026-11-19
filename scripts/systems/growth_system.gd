@@ -34,8 +34,8 @@ const HOARD_GOLD_BOSS := 5
 # 其数值常量仍被下方操控查询函数使用，故保留。
 const SNAP_PER_TURN := 2        # 落点吸附：每回合最多吸附次数
 const SNAP_RANGE := 2           # 落点吸附：目标符号距视觉中心的格数容差（±2，B方案从±1放宽）
-const WIDE_RANGE := 2           # 宽判窗口：视觉落点判定容差（±2，原为 ±1）
-const MERCY_PER_TURN := 1       # 废铁豁免：每回合最多改判次数
+const MERCY_PER_TURN := 1       # 废铁转化：每回合最多触发次数（B方案：废铁→+金，不再改判）
+# B方案：宽判窗口已移除，改为缓速操控 slow_ramp（在 ReelSystem._accel() 读 reel_controls）
 # 2026-11-19 P1.1③ 新增三项生存/运筹型技艺（补 aim 空位，池深保持 8）。
 const SURGE_SHIELD := 5         # 蓄能：每房开局额外护盾
 const RECLAIM_GOLD := 2         # 回收：每房胜利额外金币
@@ -301,11 +301,6 @@ func snap_range() -> int:
 	return SNAP_RANGE
 
 
-# 宽判窗口：视觉落点判定容差（未拥有时回落到原 ±1）
-func wide_range() -> int:
-	return WIDE_RANGE if _has_control("wide") else 1
-
-
-# 废铁豁免：每回合可用次数（0 = 未拥有）
+# 废铁转化：每回合可用次数（0 = 未拥有）
 func mercy_per_turn() -> int:
 	return MERCY_PER_TURN if _has_control("mercy") else 0
