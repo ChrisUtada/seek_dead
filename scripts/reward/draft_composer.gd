@@ -278,12 +278,26 @@ func _has_category_id(arr: Array, cat: String) -> bool:
 # 合法性过滤 / 调试 / 兜底
 # ---------------------------------------------------------------------------
 
+# 2026-11-19：本局已获得的奖励 id 集合（由 RewardSystem 传入），用于生成期过滤，
+# 避免"已选过的操控/技艺卡再次出现在三选一，选中才报 already_owned"。
+var _owned_ids: Dictionary = {}
+
+
+func set_owned_ids(ids: Array) -> void:
+	_owned_ids = {}
+	for id in ids:
+		_owned_ids[String(id)] = true
+
+
 # 硬过滤：满级/无目标/未解锁/满血治疗无效。硬条件不放宽。
 func _eligible(pool: Array, snap: RunSnapshot) -> Array[RewardDefinition]:
 	_last_filtered = []
 	var out: Array[RewardDefinition] = []
 	for def in pool:
 		if not (def is RewardDefinition):
+			continue
+		if _owned_ids.has(def.id):
+			_last_filtered.append({"id": def.id, "reason": "already_owned"})
 			continue
 		if not def.enabled:
 			_last_filtered.append({"id": def.id, "reason": "disabled"})

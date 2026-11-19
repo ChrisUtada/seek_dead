@@ -129,6 +129,22 @@ func _draft_extra() -> Array:
 	return extra
 
 
+# 2026-11-19：本局已获得的"一次性奖励"id，传给 composer 在生成期过滤，
+# 避免已选过的操控/技艺卡再次出现（此前只在结算时报 already_owned）。
+func _owned_reward_ids() -> Array:
+	var ids: Array = []
+	# 操控卡：control_snap / control_wide / control_mercy
+	for cid in ["snap", "wide", "mercy"]:
+		if _ctrl.reel_controls.has(cid):
+			ids.append("control_" + cid)
+	# 技艺动态卡：perk_<id>
+	if _ctrl.growth != null:
+		for pid in _ctrl.growth.perk_ids:
+			ids.append("perk_" + String(pid))
+	# 符号权重/效果卡已满的符号（SYMBOL_WEIGHT_MAX）由 _make_*_defs 自身跳过，无需在此重复
+	return ids
+
+
 # 一次 Draft 结果里是否含技艺候选（按 category 判断，动态卡与静态规则同源）
 func _draft_has_skill(result) -> bool:
 	if result == null:
@@ -576,6 +592,7 @@ func build_loot_offer(source: String, act: int, opts: Dictionary = {}, forced_qu
 		# 保底（前3房）由 force_skill 绕过权重强制注入；取消旧 15% 独立随机注入。
 		var extra: Array = _draft_extra()
 		var force_skill: bool = should_force_skill()
+		_draft_composer.set_owned_ids(_owned_reward_ids())
 		_draft_result = _draft_composer.compose(snap, 3, draft_debug, extra, force_skill)
 		# 非保底房自然出现技艺即完成保底（V1.1 §21）；保底房则在玩家结算时才 mark，
 		# 以保证「保底 Draft 重抽后仍须含技艺」（mark 太早会让重抽丢失强制）。
@@ -622,6 +639,7 @@ func reroll_loot_offer() -> Dictionary:
 		# 重生成 Draft（不重置重抽状态）；保底 Draft 重抽后仍须含技艺（V1.1 §21）
 		var snap = RunStateAnalyzer.capture(_ctrl)
 		var force_skill: bool = should_force_skill()
+		_draft_composer.set_owned_ids(_owned_reward_ids())
 		_draft_result = _draft_composer.compose(snap, 3, draft_debug, _draft_extra(), force_skill)
 		# 保底 Draft 重抽后仍强制含技艺；不在此 mark（等结算时）
 		_loot_view = RewardPresentation.draft_to_view(_draft_result, LootSourceTable.source_label("normal"), _ctrl)
