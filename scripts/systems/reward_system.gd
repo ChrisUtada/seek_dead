@@ -636,18 +636,26 @@ func reroll_loot_offer() -> Dictionary:
 			return {"ok": false, "reason": "insufficient_gold", "cost": cost}
 		_ctrl.gold -= cost
 		_draft_composer.note_paid_reroll()
+		# G1-D：记录当前展示组 id，供去同组比较（权威 §6.5「存在其他合法组合时不得返回完全相同三张」）
+		var prev_ids: Array = []
+		if _draft_result != null and _draft_result is DraftResult:
+			for d in _draft_result.rewards:
+				prev_ids.append(String(d.id))
 		# 重生成 Draft（不重置重抽状态）；保底 Draft 重抽后仍须含技艺（V1.1 §21）
+		# compose_reroll 复用完整 compose 并重试去同组，所有硬过滤/保底口径不绕过
 		var snap = RunStateAnalyzer.capture(_ctrl)
 		var force_skill: bool = should_force_skill()
 		_draft_composer.set_owned_ids(_owned_reward_ids())
-		_draft_result = _draft_composer.compose(snap, 3, draft_debug, _draft_extra(), force_skill)
+		_draft_result = _draft_composer.compose_reroll(snap, prev_ids, 3, draft_debug, _draft_extra(), force_skill)
+		var same_group: bool = _draft_composer.last_reroll_same_group
 		# 保底 Draft 重抽后仍强制含技艺；不在此 mark（等结算时）
 		_loot_view = RewardPresentation.draft_to_view(_draft_result, LootSourceTable.source_label("normal"), _ctrl)
 		_loot_view["growth_only"] = true
 		_loot_view["reroll_cost"] = _draft_composer.paid_reroll_cost
 		_loot_view["reroll_paid"] = cost
+		_loot_view["reroll_same_group"] = same_group   # §6.5 相同组率遥测（展示侧亦可见）
 		if _ctrl._telemetry != null:
-			_ctrl._telemetry.on_reward_rerolled(_draft_result.draft_id, false, cost)
+			_ctrl._telemetry.on_reward_rerolled(_draft_result.draft_id, false, cost, same_group)
 		_ctrl.hud._log("战利品重抽：金币 -%d（下次 %d）" % [cost, _draft_composer.paid_reroll_cost])
 		_ctrl.invalidate_state()
 		return _loot_view

@@ -40,6 +40,9 @@ var _resolver: CategoryResolver
 var paid_rerolls_used: int = 0
 var paid_reroll_cost: int = BASE_PAID_REROLL_COST
 
+# G1-D：最近一次重抽是否与上一组完全相同（权威 §6.5「重抽后相同组率」遥测）。
+var last_reroll_same_group: bool = false
+
 # 最近一次 Draft 的调试元数据
 var last_debug: Dictionary = {}
 var _last_filtered: Array[Dictionary] = []   # [{id, reason}]，仅 debug 时填充
@@ -116,6 +119,47 @@ func compose(snap: RunSnapshot, count: int = 3, debug: bool = false,
 		draft.debug_metadata = last_debug
 		Debug.log(explain_last())
 	return draft
+
+
+# G1-D：重抽专用入口（权威 §6.5 / G1-7「重抽保持约束并避免相同组合」）。
+# 复用完整 compose()（所有硬过滤/保底/同类上限/补足口径均不绕过），重试若干次直到
+# 产出的 id 集合与上一组不同；仅当合法组合确实只有一组（重试耗尽仍相同）才接受相同，
+# 并置 last_reroll_same_group=true 供 §6.5「重抽后相同组率」遥测观测。
+# previous_ids 为上一组展示卡的 id 数组（无序比较：同一组卡换序仍视为相同组合）。
+const REROLL_AVOID_LIMIT := 12
+
+func compose_reroll(snap: RunSnapshot, previous_ids: Array, count: int = 3,
+		debug: bool = false, extra_defs: Array = [], force_skill: bool = false) -> DraftResult:
+	last_reroll_same_group = false
+	var prev_set := {}
+	for pid in previous_ids:
+		prev_set[String(pid)] = true
+	var result: DraftResult = null
+	for attempt in range(REROLL_AVOID_LIMIT):
+		result = compose(snap, count, debug, extra_defs, force_skill)
+		if result == null or result.rewards.is_empty():
+			break
+		if not _same_id_set(result.rewards, prev_set, count):
+			break
+	# 重试耗尽仍相同（或池空/结果为空）→ 如实接受，并标记相同组
+	if result != null and not result.rewards.is_empty() and _same_id_set(result.rewards, prev_set, count):
+		last_reroll_same_group = true
+	if debug and result != null:
+		if result.debug_metadata.is_empty():
+			result.debug_metadata = {}
+		result.debug_metadata["reroll_same_group"] = last_reroll_same_group
+		result.debug_metadata["reroll_avoid_limit"] = REROLL_AVOID_LIMIT
+	return result
+
+
+# 两 id 集合是否相同（顺序无关，且都为 count 张时才比较，避免缩卡误判为相同组）。
+func _same_id_set(rewards: Array, prev_set: Dictionary, count: int) -> bool:
+	if rewards.size() != count or prev_set.size() != count:
+		return false
+	for d in rewards:
+		if not (d is RewardDefinition) or not prev_set.has(String(d.id)):
+			return false
+	return true
 
 
 # 供外部 Provider 用本模块 RNG 取随机索引（不消耗全局 RNG，工程铁律 10）。

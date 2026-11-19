@@ -168,6 +168,9 @@ func _test_reroll(duel: DuelController) -> void:
 	# 无免费重抽来源，重抽应正常扣费
 	_ok(duel.gold < gold_before, "paid reroll deducts gold")
 	_ok(int(v.get("reroll_paid", -1)) > 0, "reroll_paid > 0 for paid")
+	# G1-D：重抽结果带相同组标记（§6.5 相同组率），合法池充足时应为 false
+	_ok(v.has("reroll_same_group"), "reroll view has reroll_same_group flag")
+	_ok(not bool(v.get("reroll_same_group", true)), "ample pool reroll not same_group")
 
 
 func _test_telemetry(duel: DuelController) -> void:
@@ -176,6 +179,8 @@ func _test_telemetry(duel: DuelController) -> void:
 	_ok(t.draft_shown >= 1, "draft_shown recorded")
 	_ok(t.draft_rerolled >= 1, "draft_rerolled recorded")
 	_ok(t.draft_events.size() > 0, "draft events recorded")
+	# G1-D：相同组率计数器存在且与充分池下的 view 标记一致（应为 0）
+	_ok(t.get("draft_reroll_same_group") == 0, "draft_reroll_same_group=0 with ample pool")
 
 
 func _test_old_path(duel: DuelController) -> void:

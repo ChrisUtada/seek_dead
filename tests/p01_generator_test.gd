@@ -49,6 +49,8 @@ func _run() -> void:
 	_test_force_skill()
 	_test_g1c_fallback_filter()
 	_test_g1c_refill_no_owned()
+	_test_g1d_reroll_no_same_group()
+	_test_g1d_reroll_exhausted_allows_same()
 	_test_stress_1000()
 	print("P01GEN RESULT: %d checks, %d fails" % [_checks, _fails])
 	get_tree().quit(1 if _fails > 0 else 0)
@@ -192,6 +194,53 @@ func _test_g1c_refill_no_owned() -> void:
 		_ok(not ids.has(oid), "compose excludes owned %s" % oid)
 	_ok(not ids.has("seed_battle_ready"), "compose excludes full-hp heal card")
 	_ok(ids.size() == draft.rewards.size(), "compose draft has no duplicate ids")
+
+
+# G1-D：重抽去同组。合法池充足时，重抽结果 id 集合必须与上一组不同（权威 §6.5）。
+# 连续多次重抽，任一相同即判失败；不同组断言针对「无序集合」使用 sorted 比较。
+func _test_g1d_reroll_no_same_group() -> void:
+	var c := DraftComposer.new(31415)
+	var cur: DraftResult = c.compose(_snap(0.5), 3, false)
+	var prev_ids: Array = []
+	for d in cur.rewards:
+		prev_ids.append(String(d.id))
+	_ok(prev_ids.size() == 3, "g1d seed group has 3 cards")
+	var repeats := 0
+	for i in range(40):
+		cur = c.compose_reroll(_snap(0.5), prev_ids, 3, false)
+		var next_ids: Array = []
+		for d in cur.rewards:
+			next_ids.append(String(d.id))
+		next_ids.sort()
+		var cmp: Array = prev_ids.duplicate()
+		cmp.sort()
+		if next_ids == cmp:
+			repeats += 1
+		_ok(not c.last_reroll_same_group, "g1d reroll%d not flagged same_group (pool ample)" % i)
+		prev_ids = next_ids
+	_ok(repeats == 0, "g1d 40 rerolls never returned identical group (repeats=%d)" % repeats)
+
+
+# G1-D：合法组合确实只有一组时（owned+满血后仅剩 3 张），允许相同并标记 same_group，
+# 如实记录供遥测观测；不得空屏、不得缩卡、不得造假卡。
+func _test_g1d_reroll_exhausted_allows_same() -> void:
+	var c := DraftComposer.new(27182)
+	var owned := ["control_mercy", "control_slow_ramp", "seed_gold_cache"]
+	c.set_owned_ids(owned)
+	var first: DraftResult = c.compose(_snap(1.0), 3, false)
+	_ok(first.rewards.size() == 3, "exhausted pool still yields 3 cards")
+	var prev_ids: Array = []
+	for d in first.rewards:
+		prev_ids.append(String(d.id))
+	var again: DraftResult = c.compose_reroll(_snap(1.0), prev_ids, 3, false)
+	_ok(again.rewards.size() == 3, "exhausted reroll no shrink (got %d)" % again.rewards.size())
+	_ok(c.last_reroll_same_group, "exhausted reroll flagged same_group=true")
+	var ids := {}
+	for d in again.rewards:
+		ids[String(d.id)] = true
+	for oid in owned:
+		_ok(not ids.has(oid), "exhausted reroll excludes owned %s" % oid)
+	_ok(not ids.has("seed_battle_ready"), "exhausted reroll excludes full-hp heal")
 
 
 func _test_stress_1000() -> void:

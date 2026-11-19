@@ -61,6 +61,7 @@ func reset() -> void:
 	draft_shown = 0
 	draft_rerolled = 0
 	draft_free_rerolls = 0
+	draft_reroll_same_group = 0   # G1-D：重抽后返回完全相同三张的次数（§6.5 相同组率）
 	draft_skipped = 0
 	draft_events = []
 	_spin_started = -1
@@ -153,6 +154,7 @@ func on_reward_pick(id: String) -> void:
 var draft_shown := 0
 var draft_rerolled := 0
 var draft_free_rerolls := 0
+var draft_reroll_same_group := 0   # G1-D：重抽后返回完全相同三张的次数（§6.5 相同组率）
 var draft_skipped := 0
 var draft_events: Array[Dictionary] = []   # 开发环境详细记录，最多保留 64 条
 
@@ -169,13 +171,15 @@ func on_reward_selected(draft_id: String, reward_id: String, effect_id: String, 
 		"reward_id": reward_id, "effect_id": effect_id, "hp_ratio": hp_ratio,
 	})
 
-func on_reward_rerolled(draft_id: String, free: bool, cost: int) -> void:
+func on_reward_rerolled(draft_id: String, free: bool, cost: int, same_group: bool = false) -> void:
 	draft_rerolled += 1
 	if free:
 		draft_free_rerolls += 1
+	if same_group:
+		draft_reroll_same_group += 1
 	_draft_event({
 		"event": "reward_rerolled", "draft_id": draft_id,
-		"free": free, "cost": cost,
+		"free": free, "cost": cost, "same_group": same_group,
 	})
 
 func on_reward_skipped(draft_id: String, ids: Array) -> void:
