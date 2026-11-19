@@ -174,7 +174,7 @@ func _apply_pattern_bonus(reward_id: String, params: Dictionary) -> DraftResult.
 	per_pattern[param_key] = float(per_pattern.get(param_key, 0.0)) + delta
 	_ctrl.pattern_param_overrides[pid] = per_pattern
 	var r := DraftResult.RewardApplyResult.success(
-		reward_id, "pattern_bonus", "牌谱强化：%s %s %+g" % [pid, param_key, delta])
+		reward_id, "pattern_bonus", "牌谱强化：%s %s %+.2f" % [pid, param_key, delta])
 	r.state_updates["pattern_param_overrides"] = _ctrl.pattern_param_overrides.duplicate(true)
 	return r
 
@@ -212,7 +212,7 @@ func _apply_symbol_effect_bonus(reward_id: String, params: Dictionary) -> DraftR
 	per_sym[effect_id] = prev + added
 	_ctrl.symbol_effect_overrides[path] = per_sym
 	var r := DraftResult.RewardApplyResult.success(
-		reward_id, "symbol_effect_bonus", "符号强化：%s %s %+g" % [path.get_file().get_basename(), effect_id, delta])
+		reward_id, "symbol_effect_bonus", "符号强化：%s %s %+.2f" % [path.get_file().get_basename(), effect_id, delta])
 	r.state_updates["symbol_effect_overrides"] = _ctrl.symbol_effect_overrides.duplicate(true)
 	return r
 

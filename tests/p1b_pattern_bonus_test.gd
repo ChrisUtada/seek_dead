@@ -55,6 +55,8 @@ func _run() -> void:
 		"pattern_id": "SIG02", "param": "burn_extra", "delta": 1}}]
 	var res = rs._draft_resolver.resolve(ok_def)
 	_ok(res.ok, "pattern_bonus resolve ok: %s" % res.reason)
+	_ok(res.summary.find("%+g") == -1 and res.summary.find("+1.00") != -1,
+		"summary formats delta with %%+.2f (no unformatted %%+g): %s" % res.summary)
 	_ok(duel.pattern_param_overrides.has("SIG02"), "override written for SIG02")
 	_ok(int(duel.pattern_param_overrides["SIG02"].get("burn_extra", 0)) == 1, "burn_extra delta=1")
 

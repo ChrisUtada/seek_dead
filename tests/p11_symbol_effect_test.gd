@@ -53,6 +53,8 @@ func _run() -> void:
 		"symbol_path": path, "effect": "power", "delta": 3.0}}]
 	var res = rs._draft_resolver.resolve(def)
 	_ok(res.ok, "symbol_effect_bonus resolve ok: %s" % res.reason)
+	_ok(res.summary.find("%+g") == -1 and res.summary.find("+3.00") != -1,
+		"summary formats delta with %%+.2f (no unformatted %%+g): %s" % res.summary)
 	_ok(duel.symbol_effect_overrides.has(path), "override written")
 	_ok(float(duel.symbol_effect_overrides[path].get("power", 0.0)) == 3.0, "power delta=3")
 
