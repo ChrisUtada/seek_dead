@@ -159,7 +159,7 @@ func _test_hooks(duel: DuelController) -> void:
 	_check(g.snap_per_turn() == 0, "无操控授予：吸附次数 0")
 	_check(g.mercy_per_turn() == 0, "无操控授予：豁免次数 0")
 	_check(g.wide_range() == 1, "无操控授予：容差回落 ±1")
-	_check(g.snap_range() == 1, "落点吸附容差常量 ±1")
+	_check(g.snap_range() == 2, "落点吸附容差常量 ±2（B方案放宽）")
 	duel.reel_controls["snap"] = true
 	duel.reel_controls["mercy"] = true
 	duel.reel_controls["wide"] = true
@@ -223,8 +223,8 @@ func _test_new_perks(duel: DuelController) -> void:
 	var strip_ag: Array = [[gold, "none"], [trash, "none"], [trash, "none"]]
 	_check(rd.snap_ready(), "落点吸附：本回合次数未用完")
 	_check(rd.snap_target_index(1, strip_ag) == 0, "落点吸附：视觉中心 1 时目标 gold 在相邻索引 0")
-	var strip_far: Array = [[gold, "none"], [trash, "none"], [trash, "none"], [trash, "none"]]
-	_check(rd.snap_target_index(2, strip_far) == -1, "落点吸附：目标距视觉中心超过 ±1 时不吸附")
+	var strip_far: Array = [[gold, "none"], [trash, "none"], [trash, "none"], [trash, "none"], [trash, "none"], [trash, "none"], [trash, "none"]]
+	_check(rd.snap_target_index(3, strip_far) == -1, "落点吸附：目标距视觉中心超过 ±2 时不吸附")
 	rd.consume_snap()
 	rd.consume_snap()
 	_check(not rd.snap_ready(), "落点吸附：每回合 2 次用尽")

@@ -33,7 +33,7 @@ const HOARD_GOLD_BOSS := 5
 # 命中确定性三能力（snap/wide/mercy）已于 2026-11-19 迁出技艺，唯一归 reel_control 奖励授予；
 # 其数值常量仍被下方操控查询函数使用，故保留。
 const SNAP_PER_TURN := 2        # 落点吸附：每回合最多吸附次数
-const SNAP_RANGE := 1           # 落点吸附：目标符号距视觉中心的格数容差（±1）
+const SNAP_RANGE := 2           # 落点吸附：目标符号距视觉中心的格数容差（±2，B方案从±1放宽）
 const WIDE_RANGE := 2           # 宽判窗口：视觉落点判定容差（±2，原为 ±1）
 const MERCY_PER_TURN := 1       # 废铁豁免：每回合最多改判次数
 # 2026-11-19 P1.1③ 新增三项生存/运筹型技艺（补 aim 空位，池深保持 8）。
