@@ -116,12 +116,13 @@ func _test_perk_choices(duel: DuelController) -> void:
 	var fams := {}
 	for c in choices:
 		fams[c["family"]] = true
-	_check(fams.size() == 3, "三选一候选覆盖 3 个不同家族（生存/运筹/目押）")
+	_check(fams.size() == 2, "三选一候选覆盖 2 个家族（生存/运筹，目押已迁出）")
 	for c in choices:
 		_check(not g.has_perk(c["id"]), "候选 %s 未拥有" % c["name"])
 		_check(String(c.get("hint", "")) != "", "候选 %s 带方向提示（%s）" % [c["name"], String(c.get("hint", ""))])
-		_check(String(c["desc"]).find("→") >= 0 or String(c["desc"]).find("提前") >= 0,
-			"候选 %s 给出可量化前后效果" % c["name"])
+		var d: String = String(c["desc"])
+		_check(d.find("→") >= 0 or d.find("提前") >= 0 or d.find("+") >= 0,
+			"候选 %s 给出可量化效果" % c["name"])
 
 
 func _test_pick_rules(duel: DuelController) -> void:
@@ -154,17 +155,18 @@ func _test_hooks(duel: DuelController) -> void:
 	_check(duel._shop_system.free_reroll_count() == 0, "无信物时商店无免费刷新")
 	duel.charm_free_reroll = 2
 	_check(duel._shop_system.free_reroll_count() == 2, "商店免费刷新来自信物迷宫回声（+2）")
-	# 命中确定性三技艺的落点查询接口（未选中时均回落默认值）
-	_check(g.snap_per_turn() == 0, "未选落点吸附：每回合次数 0")
-	_check(g.mercy_per_turn() == 0, "未选废铁豁免：每回合次数 0")
-	_check(g.wide_range() == 1, "未选宽判窗口：容差回落 ±1")
+	# P1.1③：操控能力唯一由 reel_controls 授予，技艺不再授予（旧 aim 三技艺已迁出）
+	_check(g.snap_per_turn() == 0, "无操控授予：吸附次数 0")
+	_check(g.mercy_per_turn() == 0, "无操控授予：豁免次数 0")
+	_check(g.wide_range() == 1, "无操控授予：容差回落 ±1")
 	_check(g.snap_range() == 1, "落点吸附容差常量 ±1")
-	g.perk_ids.append("snap")
-	g.perk_ids.append("mercy")
-	g.perk_ids.append("wide")
-	_check(g.snap_per_turn() == 2, "落点吸附：每回合 2 次")
-	_check(g.mercy_per_turn() == 1, "废铁豁免：每回合 1 次")
-	_check(g.wide_range() == 2, "宽判窗口：容差 ±2")
+	duel.reel_controls["snap"] = true
+	duel.reel_controls["mercy"] = true
+	duel.reel_controls["wide"] = true
+	_check(g.snap_per_turn() == 2, "reel_controls 授予吸附：每回合 2 次")
+	_check(g.mercy_per_turn() == 1, "reel_controls 授予豁免：每回合 1 次")
+	_check(g.wide_range() == 2, "reel_controls 授予宽判：容差 ±2")
+	duel.reel_controls.clear()
 	duel.charm_free_reroll = 0   # 还原，避免污染后续测试
 	g.perk_ids.clear()
 
@@ -212,7 +214,8 @@ func _test_new_perks(duel: DuelController) -> void:
 	var backup_target: String = rd.target_symbol_path
 
 	# —— 落点吸附：目标符号在视觉中心 ±1 内，吸附到最近目标格，每回合 2 次 ——
-	g.perk_ids.append("snap")
+	# P1.1③：操控唯一由 reel_controls 授予（旧 aim 技艺已迁出）
+	duel.reel_controls["snap"] = true
 	rd.buffer_enabled = false
 	rd.visual_stop = false
 	rd.begin_spin()
@@ -230,8 +233,8 @@ func _test_new_perks(duel: DuelController) -> void:
 
 	# —— 废铁豁免：落点是废铁时改判相邻非废铁格，每回合 1 次 ——
 	# 先移除落点吸附，避免它把目标 gold 提前吸附走、干扰废铁判定。
-	g.perk_ids.erase("snap")
-	g.perk_ids.append("mercy")
+	duel.reel_controls.erase("snap")
+	duel.reel_controls["mercy"] = true
 	rd.begin_spin()
 	rd.target_symbol_path = ""   # 豁免不依赖目标符号
 	_check(rd.mercy_ready(), "废铁豁免：本回合可用")
@@ -259,6 +262,7 @@ func _test_new_perks(duel: DuelController) -> void:
 	rs.reel_stopped = backup_stopped
 	rs._pending_stops.clear()
 	g.perk_ids.clear()
+	duel.reel_controls.clear()
 
 
 func _test_next_symbol(duel: DuelController) -> void:

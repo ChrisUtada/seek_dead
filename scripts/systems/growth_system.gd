@@ -8,7 +8,7 @@
 
 var _ctrl  # DuelController
 
-const FAMILIES := {"survive": "生存", "plan": "运筹", "aim": "目押"}
+const FAMILIES := {"survive": "生存", "plan": "运筹"}
 # P0-2（2026-11-03）：给每个家族一句「打法方向」，选择前能预判自己走哪条线。
 const FAMILY_HINT := {"survive": "更耐打", "plan": "更多资源", "aim": "更易停中"}
 const FAMILY_ORDER := ["survive", "plan", "aim"]
@@ -19,21 +19,27 @@ const PERKS := [
 	# G7-A S1（2026-11-08 拍板）：每家族 +1，池 6→9，支撑 Lv.6 的第三次选择。
 	{"id": "regen", "family": "survive", "name": "回春", "desc": "每次房间胜利恢复 4 HP（BOSS 房 8 HP）"},
 	{"id": "hoard", "family": "plan", "name": "积蓄", "desc": "每次房间胜利获得 2 金（BOSS 房 5 金）"},
-	# 2026-11-17：原「稳定节奏 / 洞察 / 稳手」三个目押技艺效果隐性且洞察会误导判定，整体替换为命中确定性向。
-	{"id": "snap", "family": "aim", "name": "落点吸附", "desc": "按停时若目标符号在视觉中心 ±1 格内，自动吸附停中该格（每回合 2 次）"},
-	{"id": "wide", "family": "aim", "name": "宽判窗口", "desc": "视觉落点判定容差从 ±1 放宽到 ±2 格，所见即所得更容易对齐"},
-	{"id": "mercy", "family": "aim", "name": "废铁豁免", "desc": "按停结果若落在废铁（MISS）上，自动改判为相邻的非废铁格（每回合 1 次）"},
+	# 2026-11-19 P1.1③：原 3 项目押技艺（snap/wide/mercy）迁出至 reel_control 类别，消除双入口。
+	# 补 3 项生存/运筹型，池深保持 8（roll_choices 需 ≥3 未拥有候选，5 项会后期抽干）。
+	{"id": "surge", "family": "survive", "name": "蓄能", "desc": "每房开局额外获得 5 点护盾"},
+	{"id": "reclaim", "family": "plan", "name": "回收", "desc": "每次房间胜利额外获得 2 金币"},
+	{"id": "spare", "family": "plan", "name": "余裕", "desc": "满血时每次房间胜利额外获得 3 金币"},
 ]
 # 回春 / 积蓄的数值（只在这里改，测试与文档都引用这两组常量）。
 const REGEN_HP := 4
 const REGEN_HP_BOSS := 8
 const HOARD_GOLD := 2
 const HOARD_GOLD_BOSS := 5
-# 2026-11-17 命中确定性向三技艺的数值常量（只在这里改，测试与文档都引用）。
+# 命中确定性三能力（snap/wide/mercy）已于 2026-11-19 迁出技艺，唯一归 reel_control 奖励授予；
+# 其数值常量仍被下方操控查询函数使用，故保留。
 const SNAP_PER_TURN := 2        # 落点吸附：每回合最多吸附次数
 const SNAP_RANGE := 1           # 落点吸附：目标符号距视觉中心的格数容差（±1）
 const WIDE_RANGE := 2           # 宽判窗口：视觉落点判定容差（±2，原为 ±1）
 const MERCY_PER_TURN := 1       # 废铁豁免：每回合最多改判次数
+# 2026-11-19 P1.1③ 新增三项生存/运筹型技艺（补 aim 空位，池深保持 8）。
+const SURGE_SHIELD := 5         # 蓄能：每房开局额外护盾
+const RECLAIM_GOLD := 2         # 回收：每房胜利额外金币
+const SPARE_GOLD := 3           # 余裕：满血时每房胜利额外金币
 const GUARD_SHIELD := 8
 # G7-A S5 后续（2026-11-09）：幕间锻魂——进入 ACT II / ACT III 时自动发放一次。
 # 只改本局运行时状态（本局符号伤害 + 最大 HP），不改敌人 / ante / 存档；ACT I 不发放。
@@ -111,6 +117,17 @@ func apply_victory_perks(kind: String) -> void:
 			_ctrl.hud._popup("💰+%d" % gold, Palette.POP_GOLD, _ctrl.hud._player_sprite_anchor())
 			_ctrl.hud._refresh_meta()
 		_ctrl.invalidate_state()
+	# P1.1③：回收（每房+金）/ 余裕（满血时每房+金）
+	if has_perk("reclaim"):
+		_ctrl.gold += RECLAIM_GOLD
+		if _ctrl.hud != null:
+			_ctrl.hud._log("♻️ 回收：金币 +%d（共 %d）" % [RECLAIM_GOLD, _ctrl.gold])
+		_ctrl.invalidate_state()
+	if has_perk("spare") and int(_ctrl.player_hp) >= int(_ctrl.player_hp_max):
+		_ctrl.gold += SPARE_GOLD
+		if _ctrl.hud != null:
+			_ctrl.hud._log("🎒 余裕（满血）：金币 +%d（共 %d）" % [SPARE_GOLD, _ctrl.gold])
+		_ctrl.invalidate_state()
 
 
 # G7-A S5 后续（2026-11-09）：幕间锻魂。advance_act() 在换幕成功后调用一次；
@@ -178,12 +195,12 @@ func _choice_view(p: Dictionary) -> Dictionary:
 				charges_now += int(slot["charges"])
 			var slot_n: int = _ctrl.consumable_slots.size()
 			desc += "（腰带 %d 格合计次数 %d → %d）" % [slot_n, charges_now, charges_now + slot_n]
-		"snap":
-			desc += "（停中目标 0 → 每回合 2 次自动吸附）"
-		"wide":
-			desc += "（判定容差 ±1 → ±2 格）"
-		"mercy":
-			desc += "（废铁 MISS 1 → 每回合 1 次改判有效格）"
+		"surge":
+			desc += "（每房开局护盾 +%d）" % SURGE_SHIELD
+		"reclaim":
+			desc += "（每房胜利金币 +%d）" % RECLAIM_GOLD
+		"spare":
+			desc += "（满血时每房胜利金币 +%d）" % SPARE_GOLD
 		"regen":
 			desc += "（房胜利 HP +%d → BOSS 房 +%d）" % [REGEN_HP, REGEN_HP_BOSS]
 		"hoard":
@@ -257,16 +274,21 @@ func perk_family(id: String) -> String:
 	return ""
 
 
-# —— 落点查询（守势 / 三个命中确定性技艺）——
+# —— 落点查询（守势 / 蓄能 / 操控）——
 
-# 守势：每房开局护盾（RoomFlow / _start_room 叠加到 player_shield）
+# 守势 + 蓄能：每房开局护盾（RoomFlow / _start_room 叠加到 player_shield）
 func room_shield() -> int:
-	return GUARD_SHIELD if has_perk("guard") else 0
+	var shield: int = 0
+	if has_perk("guard"):
+		shield += GUARD_SHIELD
+	if has_perk("surge"):
+		shield += SURGE_SHIELD
+	return shield
 
 
-# P1-C：操控能力可由技艺或 reel_control 奖励授予，共用同一查询接口。
+# P1.1③：操控能力唯一由 reel_control 奖励授予（技艺侧已迁出，消除双入口）。
 func _has_control(id: String) -> bool:
-	return has_perk(id) or (_ctrl != null and _ctrl.reel_controls.has(id))
+	return _ctrl != null and _ctrl.reel_controls.has(id)
 
 
 # 落点吸附：每回合可用次数（0 = 未拥有）

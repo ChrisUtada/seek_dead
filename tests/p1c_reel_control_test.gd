@@ -65,10 +65,9 @@ func _run() -> void:
 	var dup = rs._draft_resolver.resolve(def)
 	_ok(not dup.ok, "duplicate control rejected")
 
-	# ④ 技艺与奖励共用接口：直接给技艺不应重复授予奖励字段
-	duel.growth.grant_perk("wide")
-	_ok(duel.growth.wide_range() > 1, "perk wide also works (shared query)")
-	_ok(not duel.reel_controls.has("wide"), "perk does not write reel_controls")
+	# ④ P1.1③：操控唯一归 reel_controls，技艺宽判已迁出（grant_perk 拒绝且不生效）
+	_ok(not duel.growth.grant_perk("wide"), "legacy aim perk no longer exists")
+	_ok(duel.growth.wide_range() == 1, "no wide without reel_controls grant")
 
 	# ⑤ 新局清零
 	duel._reset_run_state()
