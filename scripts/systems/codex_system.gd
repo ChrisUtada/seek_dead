@@ -93,6 +93,23 @@ func note_equipped(weapons: Array, charms: Array, skills: Array = []) -> void:
 		_save()
 
 
+# G2-3：图鉴「首次发现」独立标记。与 meta.owned_weapons（局外解锁资格）及
+# 本局仓库（本局实际拥有）三者分离：这是跨局持久的图鉴发现结果，不重复覆盖。
+func note_discovered(path: String) -> void:
+	if path == "":
+		return
+	var st := _stat(path)
+	if bool(st.get("discovered", false)):
+		return
+	st["discovered"] = true
+	_save()
+
+
+# 只读：该武器是否已被图鉴记录过首次发现。
+func is_discovered(path: String) -> bool:
+	return bool(_read_stat(path).get("discovered", false))
+
+
 # 消耗品实际消耗一次。
 func note_used(path: String) -> void:
 	if path == "":

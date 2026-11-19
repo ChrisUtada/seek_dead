@@ -12,6 +12,8 @@ var enemy_attacks := 0          # 敌人出手次数（意图落地次数）
 var damage_taken := 0           # 实际承伤
 var damage_blocked := 0         # 护盾格挡量
 var weapon_swaps := 0           # 武器替换次数（奖励/BOSS/商店）
+var weapon_acquires := 0        # G2-2：新武器获取次数（weapon_acquire，写入本局仓库）
+var weapon_swaps_draft := 0     # G2-2：本局仓库换装次数（weapon_swap，不改局外收藏）
 var rewards_shown := 0          # 展示过的奖励卡总数（算「奖励选择率」分母）
 var reward_picks: Dictionary = {}   # reward id -> 选择次数
 var room_times: Array = []      # 每房通关耗时（秒）= TTK 观测
@@ -43,6 +45,8 @@ func reset() -> void:
 	damage_taken = 0
 	damage_blocked = 0
 	weapon_swaps = 0
+	weapon_acquires = 0
+	weapon_swaps_draft = 0
 	rewards_shown = 0
 	reward_picks = {}
 	room_times = []
@@ -140,6 +144,14 @@ func on_room_clear() -> void:
 
 func on_weapon_swap() -> void:
 	weapon_swaps += 1
+
+
+func on_weapon_acquire() -> void:
+	weapon_acquires += 1
+
+
+func on_weapon_swap_draft() -> void:
+	weapon_swaps_draft += 1
 
 
 func on_reward_shown(n: int) -> void:

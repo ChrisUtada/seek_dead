@@ -139,12 +139,15 @@ func _preflight_effect(eid: String, params: Dictionary) -> String:
 			if ResourceLoader.load(path) == null:
 				return "unknown_symbol"
 			return ""
-		"weapon_replace":
+		"weapon_replace", "weapon_swap", "weapon_acquire":
 			var p := String(params.get("weapon_path", ""))
 			if p.is_empty() or ResourceLoader.load(p) == null:
 				return "invalid_weapon"
 			if _ctrl.selected_loadout.has(p):
 				return "already_equipped"
+			# G2-2：weapon_swap 必须来自本局仓库（防伪造/过期卡）；acquire 不要求（它正是把局外武器纳入本局）
+			if eid == "weapon_swap" and not _ctrl.run_weapon_inventory.has(p):
+				return "not_in_run_inventory"
 			# needs_replace（槽满等玩家选旧武器）不是预检失败：由 settle_loot_replace 等待输入后重新预检
 			return ""
 		"flame_affinity":
@@ -184,6 +187,10 @@ func _dispatch(reward_id: String, effect_id: String, params: Dictionary) -> Draf
 			return _apply_symbol_effect_bonus(reward_id, params)
 		"weapon_replace":
 			return _apply_weapon_replace(reward_id, params)
+		"weapon_swap":
+			return _apply_weapon_swap(reward_id, params)
+		"weapon_acquire":
+			return _apply_weapon_acquire(reward_id, params)
 		"flame_affinity":
 			return _apply_flame_affinity(reward_id, params)
 		"pick_perk":
@@ -346,26 +353,55 @@ func _apply_symbol_effect_bonus(reward_id: String, params: Dictionary) -> DraftR
 	return r
 
 
-# 武器替换（P1.1①）：空槽直接装备；槽满返回 needs_replace，由 UI 弹替换层走 settle_loot_replace。
+# 武器替换（P1.1①，旧路径保留）：空槽直接装备；槽满返回 needs_replace。
 # params: {"weapon_path": "..."}
 func _apply_weapon_replace(reward_id: String, params: Dictionary) -> DraftResult.RewardApplyResult:
+	return _equip_weapon_effect(reward_id, params, "weapon_replace", true, false)
+
+
+# G2-2 本局仓库换装：只装备，不改局外收藏；遥测单独记 draft 换装。
+func _apply_weapon_swap(reward_id: String, params: Dictionary) -> DraftResult.RewardApplyResult:
+	return _equip_weapon_effect(reward_id, params, "weapon_swap", false, false)
+
+
+# G2-2 新武器获取：写入本局仓库 + 首次发现记图鉴（图鉴与获得是两个独立结果，G2-3 前置）；
+# 空槽直接装备、槽满走 needs_replace 弹层；遥测记 acquire。
+func _apply_weapon_acquire(reward_id: String, params: Dictionary) -> DraftResult.RewardApplyResult:
+	return _equip_weapon_effect(reward_id, params, "weapon_acquire", true, true)
+
+
+# 三类武器 effect 的公共装备逻辑。
+# write_out_of_run: 是否写局外 meta.owned_weapons（旧 replace / acquire 写，swap 不写）。
+# is_acquire: acquire 额外写本局仓库 + 遥测记获取；否则记换装。
+func _equip_weapon_effect(reward_id: String, params: Dictionary, effect_id: String,
+		write_out_of_run: bool, is_acquire: bool) -> DraftResult.RewardApplyResult:
 	var p := String(params.get("weapon_path", ""))
 	if p.is_empty() or ResourceLoader.load(p) == null:
-		return DraftResult.RewardApplyResult.failure(reward_id, "weapon_replace", "invalid_weapon")
+		return DraftResult.RewardApplyResult.failure(reward_id, effect_id, "invalid_weapon")
 	if _ctrl.selected_loadout.has(p):
-		return DraftResult.RewardApplyResult.failure(reward_id, "weapon_replace", "already_equipped")
+		return DraftResult.RewardApplyResult.failure(reward_id, effect_id, "already_equipped")
+	# G2-2：acquire 把局外武器纳入本局仓库；swap 本就在仓库；旧 replace 不强制（兼容旧路径）
+	if is_acquire and not _ctrl.run_weapon_inventory.has(p):
+		_ctrl.run_weapon_inventory.append(p)
+	if write_out_of_run:
+		_ctrl._reward_system.remember_weapon(p, "normal")
 	if _ctrl.selected_loadout.size() < _ctrl._loadout_system.cat_cap("weapon"):
-		# 空槽：直接装备
 		_ctrl.selected_loadout.append(p)
 		_ctrl._build_pool(_ctrl.selected_loadout)
 		if _ctrl._telemetry != null:
-			_ctrl._telemetry.on_weapon_swap()
+			if is_acquire:
+				_ctrl._telemetry.on_weapon_acquire()
+			elif effect_id == "weapon_swap":
+				_ctrl._telemetry.on_weapon_swap_draft()
+			else:
+				_ctrl._telemetry.on_weapon_swap()
+		var label := "获得并装备武器" if is_acquire else "装备武器"
 		var r0 := DraftResult.RewardApplyResult.success(
-			reward_id, "weapon_replace", "装备武器「%s」" % p.get_file().get_basename())
+			reward_id, effect_id, "%s「%s」" % [label, p.get_file().get_basename()])
 		r0.state_updates["weapon_equipped"] = p
 		return r0
 	# 槽满：需要玩家在替换弹层选旧武器（由 RewardPresentation 标 needs_replace 触发）
-	return DraftResult.RewardApplyResult.failure(reward_id, "weapon_replace", "needs_replace")
+	return DraftResult.RewardApplyResult.failure(reward_id, effect_id, "needs_replace")
 
 
 # ===== 新效果（P0 状态登记，P1/P3 接入实际系统） =====

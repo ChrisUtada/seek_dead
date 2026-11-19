@@ -241,14 +241,17 @@ func _test_reroll(duel: DuelController) -> void:
 
 
 # G1-E：各 Provider 输出全部合法候选，不再「先随机只注入一张」（权威 §6.2.2/G1-3）。
-# 断言 _draft_extra 中符号权重/符号效果/武器三类动态卡数量 == 各 Provider 全量输出，
+# 断言 _draft_extra 中符号权重/符号效果/武器两类新池（G2-2 swap/acquire）全量输出，
 # 且每个合法目标都出现（旧实现每类最多 1 张，会漏掉其他合法目标）。
+# G2-2 起武器 Provider = _make_weapon_swap_defs + _make_weapon_acquire_defs
+# （旧 _make_weapon_defs 从局外收藏取数，保留给旧入口/测试兼容，不进普通 Draft）。
 func _test_g1e_full_provider_candidates(duel: DuelController) -> void:
 	var rs = duel._reward_system
 	var extra: Array = rs._draft_extra()
 	var sym_w: Array = rs._make_symbol_weight_defs()
 	var sym_e: Array = rs._make_symbol_effect_defs()
-	var wp: Array = rs._make_weapon_defs()
+	var wp_swap: Array = rs._make_weapon_swap_defs()
+	var wp_acq: Array = rs._make_weapon_acquire_defs()
 	# 收集 extra 里各类 id（动态卡 id 前缀与 Provider 一致）
 	var extra_ids := {}
 	for d in extra:
@@ -263,12 +266,15 @@ func _test_g1e_full_provider_candidates(duel: DuelController) -> void:
 		if extra_ids.has(String(d.id)):
 			counted_e += 1
 	var counted_wp := 0
-	for d in wp:
+	for d in wp_swap:
+		if extra_ids.has(String(d.id)):
+			counted_wp += 1
+	for d in wp_acq:
 		if extra_ids.has(String(d.id)):
 			counted_wp += 1
 	_ok(counted_w == sym_w.size(), "G1-E all symbol-weight candidates injected (%d/%d)" % [counted_w, sym_w.size()])
 	_ok(counted_e == sym_e.size(), "G1-E all symbol-effect candidates injected (%d/%d)" % [counted_e, sym_e.size()])
-	_ok(counted_wp == wp.size(), "G1-E all weapon candidates injected (%d/%d)" % [counted_wp, wp.size()])
+	_ok(counted_wp == wp_swap.size() + wp_acq.size(), "G1-E all weapon candidates injected (%d/%d)" % [counted_wp, wp_swap.size() + wp_acq.size()])
 	# 分布复核：全量注入后类别权重仍按固定 CATEGORY_WEIGHT 计算，不因卡数改变
 	var composer = load("res://scripts/reward/draft_composer.gd").new(101)
 	var snap = load("res://scripts/reward/run_state_analyzer.gd").capture(duel)

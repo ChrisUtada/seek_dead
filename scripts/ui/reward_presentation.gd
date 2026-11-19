@@ -54,9 +54,10 @@ static func definition_to_option(def: RewardDefinition, ctrl = null) -> Dictiona
 		"effect_id": effect_id,
 		"tags": def.tags,
 	}
-	# P1.1①：武器卡标 path；槽满时标 needs_replace，触发 controller 的替换弹层。
-	if effect_id == "weapon_replace":
+	# G2-2：三类武器卡都标 path；槽满时标 needs_replace，触发 controller 的替换弹层。
+	if effect_id in ["weapon_replace", "weapon_swap", "weapon_acquire"]:
 		out["path"] = String(params.get("weapon_path", ""))
+		out["weapon_effect"] = effect_id   # 供 UI/日志区分 acquire / swap（G2-2）
 		if ctrl != null and ctrl.selected_loadout.size() >= ctrl._loadout_system.cat_cap("weapon"):
 			out["needs_replace"] = true
 	return out
@@ -68,6 +69,7 @@ static func _glyph(effect_id: String) -> String:
 		"shield_next_battle": return "🛡"
 		"run_power_bonus": return "⚔"
 		"flame_affinity": return "🔥"
+		"weapon_replace", "weapon_swap", "weapon_acquire": return "🗡"
 		_: return "🎁"
 
 

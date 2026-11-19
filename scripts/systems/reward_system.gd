@@ -125,7 +125,10 @@ func _draft_extra() -> Array:
 	# 全部合法动态候选一次性并入，交由 composer 统一过滤/抽取
 	extra.append_array(_make_symbol_weight_defs())
 	extra.append_array(_make_symbol_effect_defs())
-	extra.append_array(_make_weapon_defs())
+	# G2-2：普通池两类都出。swap 为本局仓库换装（最多 3），acquire 为新武器获取（低频 1）。
+	# _make_weapon_defs（旧路径，从局外收藏）保留给 BOSS/商店等旧入口与测试兼容，不进普通 Draft。
+	extra.append_array(_make_weapon_swap_defs())
+	extra.append_array(_make_weapon_acquire_defs())
 	return extra
 
 
@@ -580,6 +583,71 @@ func _make_weapon_defs() -> Array:
 	return out
 
 
+# G2-2：本局仓库换装候选（weapon_swap）——只从本局已拥有、当前未装备的武器生成。
+# 与 _make_weapon_defs（旧路径，从局外收藏）分离：卡面明确标"本局仓库换装"。
+# 仓库为空（开局只带装备武器、未获得新武器）时返回空，类别自动失效，不用无效卡补位。
+func _make_weapon_swap_defs() -> Array:
+	var out: Array = []
+	for path in _ctrl.run_weapon_inventory:
+		var p: String = String(path)
+		if p.is_empty() or _ctrl.selected_loadout.has(p):
+			continue
+		if ResourceLoader.load(p) == null:
+			continue
+		var wname := _weapon_display_name(p)
+		var def := RewardDefinition.new()
+		def.id = "weapon_swap_" + p.get_file().get_basename()
+		def.name = "本局仓库换装 · %s" % wname
+		def.desc = "换上本局仓库中的「%s」，不改变本局收藏（换下的武器仍在仓库）" % wname
+		def.rarity = "common"
+		def.base_weight = 1.0
+		def.base_value = 1.0
+		def.tags = ["weapon", "swap", "run_inventory", "core_growth"]
+		def.effects = [{"effect_id": "weapon_swap", "params": {"weapon_path": p}}]
+		def.category = "weapon"
+		def.effect_family = "weapon_swap"
+		out.append(def)
+		if out.size() >= 3:
+			break
+	return out
+
+
+# G2-2：新武器获取候选（weapon_acquire）——从局外已解锁但本局尚未拥有的武器生成。
+# 低频出现（由 _draft_extra 控制数量）；获得后写入本局仓库，装备满时进入替换预览。
+# 局外收藏里没有未拥有的武器时返回空（不凭空造局外未解锁内容）。
+func _make_weapon_acquire_defs() -> Array:
+	var out: Array = []
+	var owned_out: Array = _ctrl.meta.get("owned_weapons", [])
+	for path in owned_out:
+		var p: String = String(path)
+		if p.is_empty() or _ctrl.run_weapon_inventory.has(p):
+			continue
+		if ResourceLoader.load(p) == null:
+			continue
+		var wname := _weapon_display_name(p)
+		var def := RewardDefinition.new()
+		def.id = "weapon_acquire_" + p.get_file().get_basename()
+		def.name = "新武器 · %s" % wname
+		def.desc = "获得新武器「%s」并加入本局仓库（首次发现另记图鉴）" % wname
+		def.rarity = "uncommon"
+		def.base_weight = 1.0
+		def.base_value = 1.5
+		def.tags = ["weapon", "acquire", "new_drop", "core_growth"]
+		def.effects = [{"effect_id": "weapon_acquire", "params": {"weapon_path": p}}]
+		def.category = "weapon"
+		def.effect_family = "weapon_acquire"
+		out.append(def)
+		if out.size() >= 1:   # acquire 低频：每池最多 1 张
+			break
+	return out
+
+
+func _weapon_display_name(p: String) -> String:
+	var wd: Resource = ResourceLoader.load(p)
+	var wname: String = String(wd.get("weapon_name")) if wd != null and wd.has_method("get") else ""
+	return wname if not wname.is_empty() else p.get_file().get_basename()
+
+
 # 重抽沿用同一品质层；每组首次 5 金，之后每次 +5 金。跳过免费且不发奖励。
 func build_loot_offer(source: String, act: int, opts: Dictionary = {}, forced_quality: String = "") -> Dictionary:
 	_loot_settled = false
@@ -799,9 +867,12 @@ func settle_loot_replace(index: int, old_path: String) -> Dictionary:
 			return {"ok": false, "reason": "invalid_index"}
 		var def = _draft_result.rewards[index]
 		var params: Dictionary = {}
+		var weapon_effect := ""
 		for e in (def.effects as Array):
-			if String((e as Dictionary).get("effect_id", "")) == "weapon_replace":
+			var eid := String((e as Dictionary).get("effect_id", ""))
+			if eid in ["weapon_replace", "weapon_swap", "weapon_acquire"]:
 				params = (e as Dictionary).get("params", {})
+				weapon_effect = eid
 				break
 		var p: String = String(params.get("weapon_path", ""))
 		if p.is_empty() or not _ctrl.selected_loadout.has(old_path) or _ctrl.selected_loadout.has(p):
@@ -810,9 +881,18 @@ func settle_loot_replace(index: int, old_path: String) -> Dictionary:
 		var slot: int = _ctrl.selected_loadout.find(old_path)
 		if slot < 0 or not _ctrl.replace_weapon_at_slot(slot, p):
 			return {"ok": false, "reason": "invalid_replace"}
-		remember_weapon(p, "normal")
+		# G2-2：swap 是本局仓库换装，不改局外收藏；acquire 写本局仓库（此时已在仓库）与局外图鉴
+		if weapon_effect != "weapon_swap":
+			remember_weapon(p, "normal")
+		if weapon_effect == "weapon_acquire" and not _ctrl.run_weapon_inventory.has(p):
+			_ctrl.run_weapon_inventory.append(p)
 		if _ctrl._telemetry != null:
-			_ctrl._telemetry.on_weapon_swap()
+			if weapon_effect == "weapon_acquire":
+				_ctrl._telemetry.on_weapon_acquire()
+			elif weapon_effect == "weapon_swap":
+				_ctrl._telemetry.on_weapon_swap_draft()
+			else:
+				_ctrl._telemetry.on_weapon_swap()
 		if _ctrl._journal != null:
 			_ctrl._journal.note_weapon_change(String(old_name), _ctrl._shop_name(p, "weapon"), "战利品")
 		_loot_settled = true
@@ -1034,10 +1114,19 @@ func _grant_loot_item(path: String, category: String) -> Dictionary:
 func remember_weapon(path: String, loot_source: String = "") -> void:
 	if path == "":
 		return
-	if not _ctrl.meta["owned_weapons"].has(path):
+	# G2-3：所有获得来源统一写入「本局仓库」（本局实际拥有，换下后仍保留）。
+	# 这是本局结果，与下面的局外图鉴/解锁记录是两个独立结果。
+	if not _ctrl.run_weapon_inventory.has(path):
+		_ctrl.run_weapon_inventory.append(path)
+	# 局外解锁资格（永久收藏）+ 首次发现图鉴里程碑——跨局持久，与本局获得分离
+	var first_unlock: bool = not _ctrl.meta["owned_weapons"].has(path)
+	if first_unlock:
 		_ctrl.meta["owned_weapons"].append(path)
 		_ctrl._anvil_system.check_collection_milestones()   # M1-03：按真实收集进度结算图鉴里程碑
 	_ctrl._meta_store.record_source(path, _ctrl._item_source(loot_source))   # G2-01：来源记录
+	# G2-3：图鉴「首次发现」独立标记（不依赖解锁资格；重复获得只更新来源，不重复记发现）
+	if _ctrl._codex != null:
+		_ctrl._codex.note_discovered(path)
 
 
 # G2-01：护符获得后写入图鉴/开局池；来源记录与武器同一口径。
