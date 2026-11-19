@@ -21,8 +21,9 @@ const CATEGORY_WEIGHT := {
 	"signature": 5.0,
 }
 
-# 关闭的类别：武器、签名（V1.1 §26）、rule_mod（2026-11-19 规则卡全删）
-const P0_DISABLED_CATEGORIES := ["weapon", "signature", "rule_mod"]
+# 关闭的类别：签名（全解锁无习得）、rule_mod（规则卡全删）。
+# P1.1①：weapon 已启用（动态武器替换卡），从禁用列表移除。
+const P0_DISABLED_CATEGORIES := ["signature", "rule_mod"]
 
 var _rng: RandomNumberGenerator
 

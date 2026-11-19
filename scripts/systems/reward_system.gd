@@ -122,6 +122,10 @@ func _draft_extra() -> Array:
 	var eff_defs := _make_symbol_effect_defs()
 	if not eff_defs.is_empty():
 		extra.append(eff_defs[_draft_composer.pick_index(eff_defs.size())])
+	# P1.1①：武器替换候选（V1.1 权重 20%，武器是底盘/主要变强来源）
+	var wp_defs := _make_weapon_defs()
+	if not wp_defs.is_empty():
+		extra.append(wp_defs[_draft_composer.pick_index(wp_defs.size())])
 	return extra
 
 
@@ -528,6 +532,38 @@ func _make_symbol_effect_defs() -> Array:
 	return out
 
 
+# P1.1① 武器替换候选（V1.1 §5D）：从已拥有武器里挑未装备的，构造 weapon 类卡。
+# 结算走 weapon_replace effect：空槽直接装备、槽满由 UI 弹替换层（见 RewardPresentation / settle_loot_replace）。
+func _make_weapon_defs() -> Array:
+	var out: Array = []
+	var owned: Array = _ctrl.meta.get("owned_weapons", [])
+	for path in owned:
+		var p: String = String(path)
+		if p.is_empty() or _ctrl.selected_loadout.has(p):
+			continue
+		var wd: Resource = ResourceLoader.load(p)
+		if wd == null:
+			continue
+		var wname: String = String(wd.get("weapon_name")) if wd.has_method("get") else ""
+		if wname.is_empty():
+			wname = p.get_file().get_basename()
+		var def := RewardDefinition.new()
+		def.id = "weapon_" + p.get_file().get_basename()
+		def.name = "武器 · %s" % wname
+		def.desc = "换上「%s」，改变符号池与中奖引擎底盘" % wname
+		def.rarity = "uncommon"
+		def.base_weight = 1.0
+		def.base_value = 2.0
+		def.tags = ["weapon", "replacement", "core_growth"]
+		def.effects = [{"effect_id": "weapon_replace", "params": {"weapon_path": p}}]
+		def.category = "weapon"
+		def.effect_family = "weapon_replace"
+		out.append(def)
+		if out.size() >= 4:   # 限制候选数，避免池膨胀
+			break
+	return out
+
+
 # 重抽沿用同一品质层；每组首次 5 金，之后每次 +5 金。跳过免费且不发奖励。
 func build_loot_offer(source: String, act: int, opts: Dictionary = {}, forced_quality: String = "") -> Dictionary:
 	_loot_settled = false
@@ -546,7 +582,7 @@ func build_loot_offer(source: String, act: int, opts: Dictionary = {}, forced_qu
 		if not force_skill and _draft_has_skill(_draft_result):
 			mark_skill_offer_satisfied()
 		_draft_active = true
-		_loot_view = RewardPresentation.draft_to_view(_draft_result, LootSourceTable.source_label(source))
+		_loot_view = RewardPresentation.draft_to_view(_draft_result, LootSourceTable.source_label(source), _ctrl)
 		# 重抽费用走 composer 的付费递增档（5 + 5×次数）
 		_loot_view["reroll_cost"] = _draft_composer.paid_reroll_cost
 		_loot_view["reroll_paid"] = 0
@@ -588,7 +624,7 @@ func reroll_loot_offer() -> Dictionary:
 		var force_skill: bool = should_force_skill()
 		_draft_result = _draft_composer.compose(snap, 3, draft_debug, _draft_extra(), force_skill)
 		# 保底 Draft 重抽后仍强制含技艺；不在此 mark（等结算时）
-		_loot_view = RewardPresentation.draft_to_view(_draft_result, LootSourceTable.source_label("normal"))
+		_loot_view = RewardPresentation.draft_to_view(_draft_result, LootSourceTable.source_label("normal"), _ctrl)
 		_loot_view["growth_only"] = true
 		_loot_view["reroll_cost"] = _draft_composer.paid_reroll_cost
 		_loot_view["reroll_paid"] = cost
@@ -732,8 +768,35 @@ func settle_loot_skip() -> Dictionary:
 # 与 settle_loot_offer 共享「只结算一次」纪律：成功才置位，取消 / 非法参数不消耗机会。
 func settle_loot_replace(index: int, old_path: String) -> Dictionary:
 	if _draft_active:
-		# 新 Draft 路径的种子卡不含武器替换；若未来加入武器卡需在此扩展
-		return {"ok": false, "reason": "replace_not_supported_in_draft"}
+		# P1.1①：draft 路径的武器卡——从对应 RewardDefinition 取 weapon_path 走替换
+		if _draft_result == null or index < 0 or index >= _draft_result.rewards.size():
+			return {"ok": false, "reason": "invalid_index"}
+		var def = _draft_result.rewards[index]
+		var params: Dictionary = {}
+		for e in (def.effects as Array):
+			if String((e as Dictionary).get("effect_id", "")) == "weapon_replace":
+				params = (e as Dictionary).get("params", {})
+				break
+		var p: String = String(params.get("weapon_path", ""))
+		if p.is_empty() or not _ctrl.selected_loadout.has(old_path) or _ctrl.selected_loadout.has(p):
+			return {"ok": false, "reason": "invalid_replace"}
+		var old_name := _ctrl._shop_name(old_path, "weapon")
+		var slot: int = _ctrl.selected_loadout.find(old_path)
+		if slot < 0 or not _ctrl.replace_weapon_at_slot(slot, p):
+			return {"ok": false, "reason": "invalid_replace"}
+		remember_weapon(p, "normal")
+		if _ctrl._telemetry != null:
+			_ctrl._telemetry.on_weapon_swap()
+		if _ctrl._journal != null:
+			_ctrl._journal.note_weapon_change(String(old_name), _ctrl._shop_name(p, "weapon"), "战利品")
+		_loot_settled = true
+		_ctrl._post_battle.clear_pending_choices()
+		if _draft_has_skill(_draft_result):
+			mark_skill_offer_satisfied()
+		_ctrl._build_pool(_ctrl.selected_loadout)
+		_ctrl.hud._log("战利品替换：%s → %s" % [old_name, _ctrl._shop_name(p, "weapon")])
+		_ctrl.invalidate_state()
+		return {"ok": true, "kind": "replace", "path": p, "old_path": old_path}
 	if _loot_offer == null:
 		return {"ok": false, "reason": "no_offer"}
 	if _loot_settled:

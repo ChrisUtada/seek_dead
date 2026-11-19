@@ -17,10 +17,10 @@ const QUALITY_LABELS := {
 
 
 # 把一次 Draft 转成 reward_screen.show_loot_offer(view) 可读的字典。
-static func draft_to_view(draft: DraftResult, source_label: String = "战利品") -> Dictionary:
+static func draft_to_view(draft: DraftResult, source_label: String = "战利品", ctrl = null) -> Dictionary:
 	var options: Array[Dictionary] = []
 	for def in draft.rewards:
-		options.append(definition_to_option(def))
+		options.append(definition_to_option(def, ctrl))
 	return {
 		"ok": not draft.rewards.is_empty(),
 		"source_label": source_label,
@@ -33,13 +33,13 @@ static func draft_to_view(draft: DraftResult, source_label: String = "战利品"
 
 
 # 单张卡 → option 字典（字段对齐 card_factory.loot_offer_card）。
-static func definition_to_option(def: RewardDefinition) -> Dictionary:
+static func definition_to_option(def: RewardDefinition, ctrl = null) -> Dictionary:
 	var q := def.rarity
 	var qname := String(QUALITY_LABELS.get(q, q))
 	var params := _first_params(def)
 	var effect_id := def.first_effect_id()
 
-	return {
+	var out := {
 		"kind": "reward_definition",
 		"id": def.id,
 		"quality": q,
@@ -50,10 +50,16 @@ static func definition_to_option(def: RewardDefinition) -> Dictionary:
 		"condition": _condition_text(def),
 		"tooltip": def.desc,
 		"icon": def.icon,
-		"icon_glyph": _glyph(effect_id),   # 无美术时的 emoji 占位（card_factory 暂未用，供后续接入）
+		"icon_glyph": _glyph(effect_id),
 		"effect_id": effect_id,
 		"tags": def.tags,
 	}
+	# P1.1①：武器卡标 path；槽满时标 needs_replace，触发 controller 的替换弹层。
+	if effect_id == "weapon_replace":
+		out["path"] = String(params.get("weapon_path", ""))
+		if ctrl != null and ctrl.selected_loadout.size() >= ctrl._loadout_system.cat_cap("weapon"):
+			out["needs_replace"] = true
+	return out
 
 
 static func _glyph(effect_id: String) -> String:

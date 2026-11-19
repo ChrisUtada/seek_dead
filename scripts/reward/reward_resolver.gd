@@ -61,6 +61,8 @@ func _dispatch(reward_id: String, effect_id: String, params: Dictionary) -> Draf
 			return _apply_reel_control(reward_id, params)
 		"symbol_effect_bonus":
 			return _apply_symbol_effect_bonus(reward_id, params)
+		"weapon_replace":
+			return _apply_weapon_replace(reward_id, params)
 		"flame_affinity":
 			return _apply_flame_affinity(reward_id, params)
 		"pick_perk":
@@ -214,6 +216,28 @@ func _apply_symbol_effect_bonus(reward_id: String, params: Dictionary) -> DraftR
 		reward_id, "symbol_effect_bonus", "符号强化：%s %s %+g" % [path.get_file().get_basename(), effect_id, delta])
 	r.state_updates["symbol_effect_overrides"] = _ctrl.symbol_effect_overrides.duplicate(true)
 	return r
+
+
+# 武器替换（P1.1①）：空槽直接装备；槽满返回 needs_replace，由 UI 弹替换层走 settle_loot_replace。
+# params: {"weapon_path": "..."}
+func _apply_weapon_replace(reward_id: String, params: Dictionary) -> DraftResult.RewardApplyResult:
+	var p := String(params.get("weapon_path", ""))
+	if p.is_empty() or ResourceLoader.load(p) == null:
+		return DraftResult.RewardApplyResult.failure(reward_id, "weapon_replace", "invalid_weapon")
+	if _ctrl.selected_loadout.has(p):
+		return DraftResult.RewardApplyResult.failure(reward_id, "weapon_replace", "already_equipped")
+	if _ctrl.selected_loadout.size() < _ctrl._loadout_system.cat_cap("weapon"):
+		# 空槽：直接装备
+		_ctrl.selected_loadout.append(p)
+		_ctrl._build_pool(_ctrl.selected_loadout)
+		if _ctrl._telemetry != null:
+			_ctrl._telemetry.on_weapon_swap()
+		var r0 := DraftResult.RewardApplyResult.success(
+			reward_id, "weapon_replace", "装备武器「%s」" % p.get_file().get_basename())
+		r0.state_updates["weapon_equipped"] = p
+		return r0
+	# 槽满：需要玩家在替换弹层选旧武器（由 RewardPresentation 标 needs_replace 触发）
+	return DraftResult.RewardApplyResult.failure(reward_id, "weapon_replace", "needs_replace")
 
 
 # ===== 新效果（P0 状态登记，P1/P3 接入实际系统） =====
