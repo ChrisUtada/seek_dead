@@ -1,0 +1,41 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+WARNING: res://scenes/ui/loadout_scene.tscn:9 - ext_resource, invalid UID: uid://dbrhpr1f4bp17 - using text path instead: res://assets/camp_bg.png
+   at: load (scene/resources/resource_format_text.cpp:501)
+铁砧元进度已载入：点数 104
+已为你预选默认配装（可自由调整后再开战）
+护符已装配：伤害+0 / 开局护盾+0 / 每回合护盾+0 / 每回合回血+0 / 抗扰+0
+🪨 裂壳：首次破甲后下一次行动失效（集中输出窗口）
+▶ 回合 1 开始
+▶ 进入房间 1/25：裂石像（HP 95，攻击 12）
+🎛 P1 预设：control（速度 当前 / 预览 0 / 视觉落点 关 / 缓冲 关 / 反馈 关）
+🎛 P1 预设：readable（速度 慢化 / 预览 2 / 视觉落点 开 / 缓冲 开 / 反馈 开）
+🎛 P1 预设：control（速度 当前 / 预览 0 / 视觉落点 关 / 缓冲 关 / 反馈 关）
+🎛 P1 预设：readable（速度 慢化 / 预览 2 / 视觉落点 开 / 缓冲 开 / 反馈 开）
+🎛 P1 预设：control（速度 当前 / 预览 0 / 视觉落点 关 / 缓冲 关 / 反馈 关）
+🛡 熔铸护甲展开：每 2 回合叠加一层护甲（上限 3 层）
+🛡 熔铸节律：首轮蓄势 1 回合 → 爆发（叠甲+冻结）→ 次回合恢复（熔铸间隙），之后每 2 回合重复
+⚠ 熔铸爆发：叠甲与冻结；随后一回合进入熔铸间隙（恢复）
+🛡 熔铸护甲 +8（1/3 层，护甲 24/24）
+❄ 寒霜侵蚀：冻结 2 列（次回合自消，清净药剂可当回合解除）
+⚔ 熔铸间隙：本回合不再叠甲/冻结，抓住破甲与输出窗口
+🎛 P1 预设：control（速度 当前 / 预览 0 / 视觉落点 关 / 缓冲 关 / 反馈 关）
+转轮旋转中——按【空格】逐列停止，或点击某一列单独停下（不停就一直转）
+🎛 P1 预设：visual（速度 当前 / 预览 0 / 视觉落点 开 / 缓冲 关 / 反馈 关）
+转轮旋转中——按【空格】逐列停止，或点击某一列单独停下（不停就一直转）
+🎛 P1 预设：readable（速度 慢化 / 预览 2 / 视觉落点 开 / 缓冲 开 / 反馈 开）
+转轮旋转中——按【空格】逐列停止，或点击某一列单独停下（不停就一直转）
+⏳ 第 1 列进入输入缓冲：下一拍锁定视觉中心符号
+🎛 P1 预设：preview（速度 当前 / 预览 2 / 视觉落点 关 / 缓冲 关 / 反馈 关）
+转轮旋转中——按【空格】逐列停止，或点击某一列单独停下（不停就一直转）
+🎛 P1 预设：control（速度 当前 / 预览 0 / 视觉落点 关 / 缓冲 关 / 反馈 关）
+---
+P1READ|RESULT PASS (checks=51 fails=0)
+ERROR: 3 RID allocations of type 'PN13RendererDummy14TextureStorage12DummyTextureE' were leaked at exit.
+ERROR: 1 RID allocations of type 'PN18TextServerAdvanced12FontAdvancedE' were leaked at exit.
+WARNING: 5 RIDs of type "CanvasItem" were leaked.
+   at: _free_rids (servers/rendering/renderer_canvas_cull.cpp:2735)
+WARNING: 31 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2535)
+ERROR: 2 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:822)

@@ -1,0 +1,34 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+WARNING: res://scenes/ui/loadout_scene.tscn:9 - ext_resource, invalid UID: uid://dbrhpr1f4bp17 - using text path instead: res://assets/camp_bg.png
+   at: load (scene/resources/resource_format_text.cpp:501)
+铁砧元进度已载入：点数 0
+已为你预选默认配装（可自由调整后再开战）
+=== A 双槽独立 ===
+⚒ 铭印「锋铸」→ 烬裂砍刀
+=== B 换装继承通用成长 ===
+⚒ 铭印「锋铸」→ 烬裂砍刀
+⚒ 铭印「锋铸」→ 烬裂砍刀
+=== C 预算与复制防护 ===
+⚒ 铭印「锋铸」→ 烬裂砍刀
+⚒ 铭印「校准」→ 烬裂砍刀
+=== D 调律仍属武器 ===
+⚒ 铭印「调律」→ 烬裂砍刀
+=== E 共享资源不被修改 ===
+⚒ 铭印「锋铸」→ 烬裂砍刀
+⚒ 铭印「校准」→ 烬裂砍刀
+=== F 替换预览与真实一致 ===
+=== G Step 6 数值对照 ===
+⚒ 清房：烬裂砍刀 熟练 +1（R1 · 1/3）
+⚒ 清房：烬裂砍刀 熟练 +1（R1 · 2/3）
+⚒ 清房：烬裂砍刀 熟练 +1（R2 · 3/7）
+✦ 烬裂砍刀 达 R2：可选择一项铭印
+⚒ 跨级：烬裂砍刀 熟练 +9（R4 · 12/12）
+✦ 烬裂砍刀 达 R3：可选择一项铭印
+SLOTGROWTH|RESULT PASS (checks=54 fails=0)
+ERROR: 3 RID allocations of type 'PN13RendererDummy14TextureStorage12DummyTextureE' were leaked at exit.
+ERROR: 1 RID allocations of type 'PN18TextServerAdvanced12FontAdvancedE' were leaked at exit.
+WARNING: 5 RIDs of type "CanvasItem" were leaked.
+   at: _free_rids (servers/rendering/renderer_canvas_cull.cpp:2735)
+WARNING: 27 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2535)

@@ -1,0 +1,23 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+WARNING: res://scenes/ui/loadout_scene.tscn:9 - ext_resource, invalid UID: uid://dbrhpr1f4bp17 - using text path instead: res://assets/camp_bg.png
+   at: load (scene/resources/resource_format_text.cpp:501)
+铁砧元进度已载入：点数 0
+已为你预选默认配装（可自由调整后再开战）
+护符已装配：伤害+0 / 开局护盾+0 / 每回合护盾+0 / 每回合回血+0 / 抗扰+0
+✨ 辉光护体：首次受击后获得 10 护甲（仅一次）
+▶ 回合 1 开始
+▶ 进入房间 1/25：辉光游侠（HP 100，攻击 13）
+🎛 P1 预设：control（速度 当前 / 预览 0 / 视觉落点 关 / 缓冲 关 / 反馈 关）
+SCRIPT ERROR: Invalid call. Nonexistent function 'get_theme_color' in base 'Nil'.
+   at: _run (res://tests/reel_feedback_test.gd:124)
+   GDScript backtrace (most recent call first):
+       [0] _run (res://tests/reel_feedback_test.gd:124)
+---
+REELFEEDBACK|RESULT PASS (checks=12 fails=0)
+ERROR: 3 RID allocations of type 'PN13RendererDummy14TextureStorage12DummyTextureE' were leaked at exit.
+ERROR: 1 RID allocations of type 'PN18TextServerAdvanced12FontAdvancedE' were leaked at exit.
+WARNING: 5 RIDs of type "CanvasItem" were leaked.
+   at: _free_rids (servers/rendering/renderer_canvas_cull.cpp:2735)
+WARNING: 27 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2535)

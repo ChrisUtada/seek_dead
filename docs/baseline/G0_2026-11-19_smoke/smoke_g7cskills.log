@@ -1,0 +1,49 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+WARNING: res://scenes/ui/loadout_scene.tscn:9 - ext_resource, invalid UID: uid://dbrhpr1f4bp17 - using text path instead: res://assets/camp_bg.png
+   at: load (scene/resources/resource_format_text.cpp:501)
+铁砧元进度已载入：点数 0
+已为你预选默认配装（可自由调整后再开战）
+PASS  老档迁移只授予 G7-C 前的 17 件技能（实际 17）
+PASS  老档迁移包含非初始旧技能 atonement_light
+PASS  老档迁移不赠送 G7-C 新增技能 frost_shard
+铁砧元进度已载入：点数 0
+已为你预选默认配装（可自由调整后再开战）
+PASS  新档初始技能 4 个（期望 4）
+PASS  新档包含初始技能 haste.tres
+PASS  新档包含初始技能 magic_bolt.tres
+PASS  新档包含初始技能 rage.tres
+PASS  新档包含初始技能 recovery.tres
+PASS  新档不含非初始技能 atonement_light
+PASS  铁砧池包含技能
+PASS  铁砧池 = 武器 + 非信物护符 + 技能（162）
+PASS  初始技能判定为已拥有
+PASS  存在未拥有技能用于授予测试
+PASS  未拥有技能判定为未拥有
+PASS  铁砧授予写入 owned_skills
+PASS  铁砧授予不写入 owned_weapons
+购买 abyssal_nova（-1 金，余 9998）
+PASS  商店购买技能写入 owned_skills
+PASS  商店购买技能同时进入本局技能列表
+PASS  整备技能池 = owned_skills（4 / 4）
+PASS  整备技能池项均来自 owned_skills：haste.tres
+PASS  整备技能池项均来自 owned_skills：magic_bolt.tres
+PASS  整备技能池项均来自 owned_skills：rage.tres
+PASS  整备技能池项均来自 owned_skills：recovery.tres
+PASS  图鉴技能分类覆盖全池（42 / 42）
+PASS  图鉴技能列表包含初始技能
+PASS  初始技能在图鉴标记为已拥有
+PASS  已拥有技能显示真实名称
+PASS  图鉴技能详情可生成
+PASS  图鉴详情首行标注技能类别
+PASS  局末新收藏计入技能（深渊新星）
+PASS  sanitize 清除 owned_skills 中的非技能路径
+PASS  sanitize 保留真实技能
+---
+PASSED 32 / FAILED 0
+ERROR: 3 RID allocations of type 'PN13RendererDummy14TextureStorage12DummyTextureE' were leaked at exit.
+ERROR: 1 RID allocations of type 'PN18TextServerAdvanced12FontAdvancedE' were leaked at exit.
+WARNING: 10 RIDs of type "CanvasItem" were leaked.
+   at: _free_rids (servers/rendering/renderer_canvas_cull.cpp:2735)
+WARNING: 37 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2535)

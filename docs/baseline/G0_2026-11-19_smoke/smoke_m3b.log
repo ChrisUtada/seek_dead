@@ -1,0 +1,34 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+WARNING: res://scenes/ui/loadout_scene.tscn:9 - ext_resource, invalid UID: uid://dbrhpr1f4bp17 - using text path instead: res://assets/camp_bg.png
+   at: load (scene/resources/resource_format_text.cpp:501)
+铁砧元进度已载入：点数 104
+已为你预选默认配装（可自由调整后再开战）
+护符已装配：伤害+0 / 开局护盾+0 / 每回合护盾+4 / 每回合回血+0 / 抗扰+0
+🔨 蓄力：下一次行动改为重击，之后恢复普通攻击（入场即可见）
+▶ 回合 1 开始
+🔨 蓄力完成：本次行动为重击（32）
+▶ 进入房间 1/25：重锤蛮兵（HP 140，攻击 16）
+PASS  WeaponData 暴露 icon_tex
+PASS  SkillData 继承 icon_tex
+PASS  SymbolData 暴露 icon_tex
+PASS  ItemData 暴露 icon_tex
+PASS  图标缺省为空（回落旧呈现）
+PASS  符号不绑定 character / anim_class
+PASS  无图标：转轮格回落 label
+PASS  有图标：转轮格图标层显示并清空文字
+PASS  整备列表：装备图标绑定到按钮
+PASS  整备列表：无 icon_tex 时回落到元素小图标
+PASS  卡片：有图显示主图
+PASS  卡片：无图隐藏主图
+---
+PASSED 12 / FAILED 0
+ERROR: 13 RID allocations of type 'PN13RendererDummy14TextureStorage12DummyTextureE' were leaked at exit.
+ERROR: 4 RID allocations of type 'PN18TextServerAdvanced22ShapedTextDataAdvancedE' were leaked at exit.
+ERROR: 3 RID allocations of type 'PN18TextServerAdvanced12FontAdvancedE' were leaked at exit.
+WARNING: 7 RIDs of type "CanvasItem" were leaked.
+   at: _free_rids (servers/rendering/renderer_canvas_cull.cpp:2735)
+WARNING: 87 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2535)
+ERROR: 15 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:822)

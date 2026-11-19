@@ -1,0 +1,91 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+WARNING: res://scenes/ui/loadout_scene.tscn:9 - ext_resource, invalid UID: uid://dbrhpr1f4bp17 - using text path instead: res://assets/camp_bg.png
+   at: load (scene/resources/resource_format_text.cpp:501)
+铁砧元进度已载入：点数 104
+已为你预选默认配装（可自由调整后再开战）
+护符已装配：伤害+0 / 开局护盾+0 / 每回合护盾+4 / 每回合回血+0 / 抗扰+0
+🔥 余烬：每回合首次受到火系伤害会回复 6 HP（换元素或集中爆发）
+▶ 回合 1 开始
+▶ 进入房间 1/25：余烬傀儡（HP 85，攻击 12）
+铁砧点数 +0（本局 0/40，共 104）
+金币 +6（清房 5 + 利息 1，共 31）
+PASS  普通房胜利进入战后结算
+PASS  先进入战利品三选一阶段
+PASS  战利品屏可见
+PASS  标题写明成长（普通战 · 成长）
+PASS  标题写明来源（普通战）
+PASS  固定三张同层候选
+PASS  跳过按钮免费且不发奖励（跳过 · 免费）
+PASS  战利品阶段提供重抽
+PASS  冻结 payload 为 3 项
+PASS  候选带品质名
+PASS  候选带条件文本
+PASS  候选带结果文本
+PASS  候选带机制文本
+PASS  候选带品质名
+PASS  候选带条件文本
+PASS  候选带结果文本
+PASS  候选带机制文本
+PASS  候选带品质名
+PASS  候选带条件文本
+PASS  候选带结果文本
+PASS  候选带机制文本
+FAIL  三项同层
+PASS  成长与战利品同屏结算后直接收尾，不再打开第二成长页
+PASS  收尾后不再显示成长页
+PASS  满血补给位不出纯治疗（第 1 次）
+PASS  补给位与构筑位不重复（第 1 次）
+PASS  满血补给位不出纯治疗（第 2 次）
+PASS  补给位与构筑位不重复（第 2 次）
+PASS  满血补给位不出纯治疗（第 3 次）
+PASS  补给位与构筑位不重复（第 3 次）
+PASS  满血补给位不出纯治疗（第 4 次）
+PASS  补给位与构筑位不重复（第 4 次）
+PASS  满血补给位不出纯治疗（第 5 次）
+PASS  补给位与构筑位不重复（第 5 次）
+PASS  满血补给位不出纯治疗（第 6 次）
+PASS  补给位与构筑位不重复（第 6 次）
+PASS  满血补给位不出纯治疗（第 7 次）
+PASS  补给位与构筑位不重复（第 7 次）
+PASS  满血补给位不出纯治疗（第 8 次）
+PASS  补给位与构筑位不重复（第 8 次）
+PASS  满血补给位不出纯治疗（第 9 次）
+PASS  补给位与构筑位不重复（第 9 次）
+PASS  满血补给位不出纯治疗（第 10 次）
+PASS  补给位与构筑位不重复（第 10 次）
+PASS  满血补给位不出纯治疗（第 11 次）
+PASS  补给位与构筑位不重复（第 11 次）
+PASS  满血补给位不出纯治疗（第 12 次）
+PASS  补给位与构筑位不重复（第 12 次）
+PASS  满血补给位不出纯治疗（第 13 次）
+PASS  补给位与构筑位不重复（第 13 次）
+PASS  满血补给位不出纯治疗（第 14 次）
+PASS  补给位与构筑位不重复（第 14 次）
+PASS  满血补给位不出纯治疗（第 15 次）
+PASS  补给位与构筑位不重复（第 15 次）
+PASS  满血补给位不出纯治疗（第 16 次）
+PASS  补给位与构筑位不重复（第 16 次）
+PASS  满血补给位不出纯治疗（第 17 次）
+PASS  补给位与构筑位不重复（第 17 次）
+PASS  满血补给位不出纯治疗（第 18 次）
+PASS  补给位与构筑位不重复（第 18 次）
+PASS  满血补给位不出纯治疗（第 19 次）
+PASS  补给位与构筑位不重复（第 19 次）
+PASS  满血补给位不出纯治疗（第 20 次）
+PASS  补给位与构筑位不重复（第 20 次）
+PASS  多次生成覆盖多种候选（7 类）
+PASS  补给/构筑组合不是固定同义卡
+铁砧点数 +0（本局 0/40，共 104）
+金币 +7（清房 5 + 利息 2，共 38）
+PASS  腰带满时普通战仍只给成长，不发放消耗品
+---
+PASSED 66 / FAILED 1
+ERROR: 3 RID allocations of type 'PN13RendererDummy14TextureStorage12DummyTextureE' were leaked at exit.
+ERROR: 1 RID allocations of type 'PN18TextServerAdvanced12FontAdvancedE' were leaked at exit.
+WARNING: 5 RIDs of type "CanvasItem" were leaked.
+   at: _free_rids (servers/rendering/renderer_canvas_cull.cpp:2735)
+WARNING: 31 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2535)
+ERROR: 2 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:822)

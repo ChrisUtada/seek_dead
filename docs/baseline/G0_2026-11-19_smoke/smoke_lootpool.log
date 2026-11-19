@@ -1,0 +1,88 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+PASS  normal act1 来源行可读
+PASS  normal act1 权重合计 100（实测 100）
+PASS  normal act2 来源行可读
+PASS  normal act2 权重合计 100（实测 100）
+PASS  normal act3 来源行可读
+PASS  normal act3 权重合计 100（实测 100）
+PASS  elite act1 来源行可读
+PASS  elite act1 权重合计 100（实测 100）
+PASS  elite act2 来源行可读
+PASS  elite act2 权重合计 100（实测 100）
+PASS  elite act3 来源行可读
+PASS  elite act3 权重合计 100（实测 100）
+PASS  boss act1 来源行可读
+PASS  boss act1 权重合计 100（实测 100）
+PASS  boss act2 来源行可读
+PASS  boss act2 权重合计 100（实测 100）
+PASS  boss act3 来源行可读
+PASS  boss act3 权重合计 100（实测 100）
+PASS  chest act1 来源行可读
+PASS  chest act1 权重合计 100（实测 100）
+PASS  chest act2 来源行可读
+PASS  chest act2 权重合计 100（实测 100）
+PASS  chest act3 来源行可读
+PASS  chest act3 权重合计 100（实测 100）
+PASS  normal 走随机品质
+PASS  chest 走随机品质
+PASS  shop 不走随机品质（确定性阶梯）
+PASS  anvil 不走来源表
+PASS  非法来源原因明确（invalid_source）
+PASS  非法幕次原因明确（invalid_act）
+PASS  特殊事件未配置返回 not_random（not_random:event）
+PASS  商店阶梯 act1/act3 各 6 格
+PASS  商店阶梯非法幕次返回空
+PASS  normal common 分布 0.704 ≈ 表 0.700
+PASS  normal uncommon 分布 0.246 ≈ 表 0.250
+PASS  normal rare 分布 0.050 ≈ 表 0.050
+PASS  normal epic 分布 0.000 ≈ 表 0.000
+PASS  elite common 分布 0.203 ≈ 表 0.200
+PASS  elite uncommon 分布 0.498 ≈ 表 0.500
+PASS  elite rare 分布 0.265 ≈ 表 0.270
+PASS  elite epic 分布 0.033 ≈ 表 0.030
+PASS  boss common 分布 0.000 ≈ 表 0.000
+PASS  boss uncommon 分布 0.098 ≈ 表 0.100
+PASS  boss rare 分布 0.609 ≈ 表 0.600
+PASS  boss epic 分布 0.293 ≈ 表 0.300
+PASS  chest common 分布 0.352 ≈ 表 0.350
+PASS  chest uncommon 分布 0.395 ≈ 表 0.400
+PASS  chest rare 分布 0.226 ≈ 表 0.220
+PASS  chest epic 分布 0.028 ≈ 表 0.030
+PASS  normal act1 武器候选非空
+PASS  候选全部带 normal 来源标签
+PASS  候选全部在 act1 合法区间
+PASS  category=weapon 只返回武器
+PASS  主题白名单只返回池内物品（2）
+PASS  exclude 精确排除指定路径
+PASS  空主题池返回 empty_theme（empty_theme）
+PASS  类别数组只返回指定类别
+PASS  默认不返回 BOSS 信物（泄漏 0）
+PASS  include_relics=true 时信物进入候选（4）
+PASS  chest 已有探索标签物品（114）
+PASS  chest 默认不返回 BOSS 信物（泄漏 0）
+PASS  roll 结果品质与物品 rarity 一致（偏差 0）
+PASS  roll 默认不含信物（泄漏 0）
+PASS  roll_n 同层无放回（重复 0）
+PASS  roll_n 所有候选同品质（偏差 0）
+PASS  同层不足 n 返回 short_tier（count=1）
+PASS  act1 精英护符无 epic → empty_tier（empty_tier）
+PASS  forced_quality 精确进入该层
+PASS  shop 不随机品质（source_not_random:shop）
+PASS  LootPool 抽取不消耗全局 RNG
+PASS  同种子两条专用流序列一致
+PASS  不同种子序列不同
+PASS  act1 阶梯返回 6 格（6）
+PASS  act1 阶梯每格都有货
+PASS  act1 阶梯跨格无重复
+PASS  act1 阶梯品质多重集一致
+PASS  act2 阶梯返回 6 格（6）
+PASS  act2 阶梯每格都有货
+PASS  act2 阶梯跨格无重复
+PASS  act2 阶梯品质多重集一致
+PASS  act3 阶梯返回 6 格（6）
+PASS  act3 阶梯每格都有货
+PASS  act3 阶梯跨格无重复
+PASS  act3 阶梯品质多重集一致
+---
+LOOTPOOL|RESULT PASS (checks=84 fails=0)

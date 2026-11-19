@@ -1,0 +1,79 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+WARNING: res://scenes/ui/loadout_scene.tscn:9 - ext_resource, invalid UID: uid://dbrhpr1f4bp17 - using text path instead: res://assets/camp_bg.png
+   at: load (scene/resources/resource_format_text.cpp:501)
+铁砧元进度已载入：点数 0
+已为你预选默认配装（可自由调整后再开战）
+PASS  已装备武器候选标记为熟练转化（1 项）
+PASS  熟练转化数值 = epic 配置 +4（实测 4）
+PASS  重复武器展示文案包含「熟练」
+PASS  找到熟练转化选项
+⚒ 重复转化：火焰法杖 熟练 +4（R2 · 4/7）
+✦ 火焰法杖 达 R2：可选择一项铭印
+PASS  结算重复武器 → 熟练 +4
+PASS  熟练累计 = 展示值（0 → 4）
+PASS  跨 R2 后未选铭印随结算清空（0 → 0）
+PASS  重复结算返回 already_settled
+PASS  重复结算不二次加熟练 / 不重复欠铭印
+战利品重抽：金币 -5（剩余 9995，下次 10）
+战利品重抽：金币 -10（剩余 9985，下次 15）
+战利品重抽：金币 -15（剩余 9970，下次 20）
+战利品重抽：金币 -20（剩余 9950，下次 25）
+战利品重抽：金币 -25（剩余 9925，下次 30）
+战利品重抽：金币 -30（剩余 9895，下次 35）
+战利品重抽：金币 -35（剩余 9860，下次 40）
+战利品重抽：金币 -40（剩余 9820，下次 45）
+战利品重抽：金币 -45（剩余 9775，下次 50）
+战利品重抽：金币 -50（剩余 9725，下次 55）
+战利品重抽：金币 -55（剩余 9670，下次 60）
+战利品重抽：金币 -60（剩余 9610，下次 65）
+战利品重抽：金币 -65（剩余 9545，下次 70）
+战利品重抽：金币 -70（剩余 9475，下次 75）
+战利品重抽：金币 -75（剩余 9400，下次 80）
+战利品重抽：金币 -80（剩余 9320，下次 85）
+战利品重抽：金币 -85（剩余 9235，下次 90）
+战利品重抽：金币 -90（剩余 9145，下次 95）
+战利品重抽：金币 -95（剩余 9050，下次 100）
+战利品重抽：金币 -100（剩余 8950，下次 105）
+PASS  20 次重抽不改变熟练 / 欠铭印
+⚒ 重复转化：火焰法杖 熟练 +4（R2 · 4/7）
+✦ 火焰法杖 达 R2：可选择一项铭印
+PASS  重抽后结算仍按展示值推进成长
+战利品强化：本局符号伤害 +4（共 +4）
+PASS  同层强化结算 +4
+PASS  同层强化重复结算被拒绝
+战利品转化：金币 +30（共 55）
+PASS  同层金币转化结算 +30
+跳过本次战利品：未获得物品或资源
+PASS  免费跳过不发放金币、强化或物品
+PASS  重复跳过被拒绝
+PASS  普通战利品包含可授予武器
+战利品：获得武器 酸液瓶（已加入转轮带）
+PASS  结算后武器进入转轮带（acid_flask）
+PASS  武器写入图鉴 owned_weapons
+PASS  来源记录 loot_source = normal（实测 normal）
+PASS  图鉴来源文案与获得通道一致（ACT1 · 线性 · 普通战利品）
+PASS  重复结算不重复授予
+PASS  已带护符候选标记为金币转化
+战利品转化：金币 +6（共 31）
+PASS  重复护符结算金币 +6
+战利品转化：金币 +6（共 31）
+PASS  满腰带结算金币 +6
+PASS  满槽候选冻结 needs_replace
+PASS  满槽直接结算返回 needs_replace
+战利品：获得武器 暮色手斧（已加入转轮带）
+PASS  失败后腾出槽位仍可结算（未消耗结算机会）
+⚒ 重复转化：火焰法杖 熟练 +5（R2 · 5/7）
+✦ 火焰法杖 达 R2：可选择一项铭印
+PASS  图鉴记录最高 R 等级（R2）
+PASS  图鉴记录最高熟练点数（5）
+---
+LOOTGROWTH|RESULT PASS (checks=30 fails=0)
+ERROR: 3 RID allocations of type 'PN13RendererDummy14TextureStorage12DummyTextureE' were leaked at exit.
+ERROR: 1 RID allocations of type 'PN18TextServerAdvanced12FontAdvancedE' were leaked at exit.
+WARNING: 5 RIDs of type "CanvasItem" were leaked.
+   at: _free_rids (servers/rendering/renderer_canvas_cull.cpp:2735)
+WARNING: 31 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2535)
+ERROR: 2 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:822)

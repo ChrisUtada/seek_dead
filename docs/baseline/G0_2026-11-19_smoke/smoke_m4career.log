@@ -1,0 +1,126 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+WARNING: res://scenes/ui/loadout_scene.tscn:9 - ext_resource, invalid UID: uid://dbrhpr1f4bp17 - using text path instead: res://assets/camp_bg.png
+   at: load (scene/resources/resource_format_text.cpp:501)
+铁砧元进度已载入：点数 104
+已为你预选默认配装（可自由调整后再开战）
+护符已装配：伤害+0 / 开局护盾+0 / 每回合护盾+4 / 每回合回血+0 / 抗扰+0
+🔒 诡计：首次转轮前锁定 1 列当前符号（照常结算，本轮后解除）
+▶ 回合 1 开始
+🔒 暗影诡匠锁定第 1 列：本轮固定不转，符号照常结算
+▶ 进入房间 1/25：暗影诡匠（HP 95，攻击 14）
+PASS  老档缺 career 键时载入自动补默认
+PASS  老档默认解锁数为 0
+PASS  首批成就共 10 个
+PASS  老档也有下一目标
+PASS  初始新解锁队列为空
+PASS  老档默认定向解锁机会为 0
+PASS  未知成就 ID 被过滤，合法 ID 保留
+PASS  空/重复 BOSS ID 被过滤
+🏅 生涯成就：初次深入 — 首次击败任意 ACT1 BOSS
+🏅 生涯成就：同系共振 — 用两把同元素武器击败 BOSS
+PASS  首次 BOSS 通关解锁初次深入
+PASS  两把同元素武器解锁同系共振
+PASS  同元素不误解锁异系调度
+PASS  BOSS 计数为 1
+PASS  新解锁队列含 2 项且取走后清空
+PASS  新解锁队列只取一次
+PASS  同一 BOSS 重复通关不再解锁
+PASS  同一 BOSS 不重复计数
+PASS  3 个不同 BOSS 时未解锁四席猎手
+PASS  4 个不同 BOSS 解锁四席猎手
+PASS  重复 BOSS 不虚增计数
+🏅 生涯成就：初次深入 — 首次击败任意 ACT1 BOSS
+🏅 生涯成就：异系调度 — 用两把不同元素武器击败 BOSS
+PASS  两把异元素武器解锁异系调度
+PASS  异元素不误解锁同系共振
+🏅 生涯成就：初次深入 — 首次击败任意 ACT1 BOSS
+🏅 生涯成就：异系调度 — 用两把不同元素武器击败 BOSS
+🏅 生涯成就：破甲专家 — 在 BOSS 战触发破甲并获胜
+🏅 生涯成就：状态使徒 — BOSS 战状态伤害 ≥ 25 并获胜
+🏅 生涯成就：坚守 — 击败 BOSS 时本局格挡 ≥ 40
+PASS  BOSS 战破甲并获胜解锁破甲专家
+PASS  BOSS 战状态伤害达标解锁状态使徒
+PASS  本局格挡达标解锁坚守
+🏅 生涯成就：初次深入 — 首次击败任意 ACT1 BOSS
+🏅 生涯成就：异系调度 — 用两把不同元素武器击败 BOSS
+PASS  普通房破甲不误判为 BOSS 破甲
+PASS  普通房状态伤害不误判
+🏅 生涯成就：初次深入 — 首次击败任意 ACT1 BOSS
+🏅 生涯成就：异系调度 — 用两把不同元素武器击败 BOSS
+PASS  状态伤害低于门槛不解锁
+PASS  格挡低于门槛不解锁
+🏅 生涯成就：棋盘寻宝 — 在棋盘武器格获得一把武器
+PASS  棋盘武器格解锁棋盘寻宝
+PASS  棋盘寻宝不重复解锁
+🏅 生涯成就：初次深入 — 首次击败任意 ACT1 BOSS
+🏅 生涯成就：异系调度 — 用两把不同元素武器击败 BOSS
+🏅 生涯成就：高危路线 — 经过精英分支并击败 BOSS
+PASS  经过精英分支并击败 BOSS 解锁高危路线
+🏅 生涯成就：初次深入 — 首次击败任意 ACT1 BOSS
+🏅 生涯成就：异系调度 — 用两把不同元素武器击败 BOSS
+🏅 生涯成就：特殊结局 — 以非暴力和解击败 BOSS
+PASS  和解通关解锁特殊结局
+🏅 生涯成就：初次深入 — 首次击败任意 ACT1 BOSS
+🏅 生涯成就：异系调度 — 用两把不同元素武器击败 BOSS
+PASS  首次通关获得 1 次定向解锁
+PASS  定向解锁给出 3 个候选
+PASS  候选路径非空且不重复
+PASS  候选均为未拥有：executioner_axe.tres
+PASS  候选不含 BOSS 信物
+PASS  候选带名称与类别说明
+PASS  候选路径非空且不重复
+PASS  候选均为未拥有：counter_shield.tres
+PASS  候选不含 BOSS 信物
+PASS  候选带名称与类别说明
+PASS  候选路径非空且不重复
+PASS  候选均为未拥有：frost_dagger.tres
+PASS  候选不含 BOSS 信物
+PASS  候选带名称与类别说明
+PASS  选中后写入拥有池
+PASS  解锁机会消耗一次
+PASS  选中物品进入对应拥有池
+PASS  无机会时不再给出候选
+PASS  四席猎手给 1 次定向解锁
+🏅 生涯成就：初次深入 — 首次击败任意 ACT1 BOSS
+🏅 生涯成就：异系调度 — 用两把不同元素武器击败 BOSS
+PASS  局末解锁屏可见
+PASS  局末先显示生涯解锁标题
+PASS  局末解锁屏显示 3 张卡
+生涯解锁：获得 冻原长枪（已写入图鉴与开局拥有池）
+PASS  界面选择后机会清零
+PASS  界面选择写入拥有池
+PASS  解锁后回到原元进度结算
+PASS  原元进度仍显示铁砧点卡
+PASS  局末总结列出本局新增武器
+PASS  局末总结带新收藏前缀
+PASS  局末总结显示熟练与 R 等级
+PASS  测试棋盘可生成
+PASS  局末总结显示 14×9 地图标识
+PASS  局末总结按节点类型计数
+PASS  线性模式给房型计数
+PASS  下一局建议提示剩余解锁机会
+PASS  局末屏展示路线与成长
+PASS  局末屏展示新收藏与建议
+PASS  局末总结固定四行
+🏅 生涯成就：初次深入 — 首次击败任意 ACT1 BOSS
+🏅 生涯成就：异系调度 — 用两把不同元素武器击败 BOSS
+PASS  成就解锁跨 CareerSystem 实例保留（2）
+PASS  BOSS 记录跨实例保留（1）
+PASS  career 以字典写入 meta
+PASS  career.unlocked 为数组
+PASS  整备屏存在
+PASS  整备屏构建生涯面板
+PASS  整备屏构建生涯按钮
+PASS  生涯面板列出 10 条成就与目标行
+PASS  生涯面板末尾有关闭按钮
+---
+PASSED 78 / FAILED 0
+ERROR: 3 RID allocations of type 'PN13RendererDummy14TextureStorage12DummyTextureE' were leaked at exit.
+ERROR: 1 RID allocations of type 'PN18TextServerAdvanced12FontAdvancedE' were leaked at exit.
+WARNING: 5 RIDs of type "CanvasItem" were leaked.
+   at: _free_rids (servers/rendering/renderer_canvas_cull.cpp:2735)
+WARNING: 33 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2535)
+ERROR: 3 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:822)

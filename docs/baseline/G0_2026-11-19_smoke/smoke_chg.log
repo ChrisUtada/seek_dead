@@ -1,0 +1,49 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+WARNING: res://scenes/ui/loadout_scene.tscn:9 - ext_resource, invalid UID: uid://dbrhpr1f4bp17 - using text path instead: res://assets/camp_bg.png
+   at: load (scene/resources/resource_format_text.cpp:501)
+铁砧元进度已载入：点数 104
+已为你预选默认配装（可自由调整后再开战）
+护符已装配：伤害+0 / 开局护盾+0 / 每回合护盾+4 / 每回合回血+0 / 抗扰+0
+❄ 寒意先至：首回合冻结 1 列（次回合自消，清净药剂可当回合解除）
+▶ 回合 1 开始
+❄ 寒霜侵蚀：第 1 列被冰封，本轮无法转动（清净药剂可解）
+▶ 进入房间 1/25：冰锋群蝠（HP 55，攻击 10）
+PASS  找到火系伤害符号
+SCRIPT ERROR: Invalid access to property or key 'dmg_by_elem' on a base object of type 'Dictionary'.
+   at: CombatSystem.contribute (res://scripts/battle/combat_system.gd:128)
+   GDScript backtrace (most recent call first):
+       [0] contribute (res://scripts/battle/combat_system.gd:128)
+       [1] _run (res://tests/charge_rule_test.gd:39)
+PASS  ① 单格擦边克制不充能（实测 +0）
+PASS  ① 不计核爆标记
+SCRIPT ERROR: Invalid access to property or key 'dmg_by_elem' on a base object of type 'Dictionary'.
+   at: CombatSystem.contribute (res://scripts/battle/combat_system.gd:128)
+   GDScript backtrace (most recent call first):
+       [0] contribute (res://scripts/battle/combat_system.gd:128)
+       [1] _run (res://tests/charge_rule_test.gd:45)
+PASS  ② 双连克制充能 +1
+PASS  ② 计核爆标记
+SCRIPT ERROR: Invalid access to property or key 'dmg_by_elem' on a base object of type 'Dictionary'.
+   at: CombatSystem.contribute (res://scripts/battle/combat_system.gd:128)
+   GDScript backtrace (most recent call first):
+       [0] contribute (res://scripts/battle/combat_system.gd:128)
+       [1] _run (res://tests/charge_rule_test.gd:52)
+PASS  ③ 单格贡献不冒充元素共鸣；共鸣改由完整停轮阶段结算
+SCRIPT ERROR: Invalid access to property or key 'dmg_by_elem' on a base object of type 'Dictionary'.
+   at: CombatSystem.contribute (res://scripts/battle/combat_system.gd:128)
+   GDScript backtrace (most recent call first):
+       [0] contribute (res://scripts/battle/combat_system.gd:128)
+       [1] _run (res://tests/charge_rule_test.gd:59)
+PASS  ④ 抵抗对不充能
+PASS  ⑤ charge_max=6（A+B 拍板）
+---
+PASSED 8 / FAILED 0
+ERROR: 3 RID allocations of type 'PN13RendererDummy14TextureStorage12DummyTextureE' were leaked at exit.
+ERROR: 1 RID allocations of type 'PN18TextServerAdvanced12FontAdvancedE' were leaked at exit.
+WARNING: 5 RIDs of type "CanvasItem" were leaked.
+   at: _free_rids (servers/rendering/renderer_canvas_cull.cpp:2735)
+WARNING: 31 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2535)
+ERROR: 2 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:822)

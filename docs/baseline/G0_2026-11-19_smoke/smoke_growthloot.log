@@ -1,0 +1,40 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+WARNING: res://scenes/ui/loadout_scene.tscn:9 - ext_resource, invalid UID: uid://dbrhpr1f4bp17 - using text path instead: res://assets/camp_bg.png
+   at: load (scene/resources/resource_format_text.cpp:501)
+铁砧元进度已载入：点数 0
+已为你预选默认配装（可自由调整后再开战）
+护符已装配：伤害+0 / 开局护盾+0 / 每回合护盾+0 / 每回合回血+0 / 抗扰+0
+🍄 毒孢：HP 首次低于 50% 时使你中毒 2 层（爆发收尾或清净）
+▶ 回合 1 开始
+▶ 进入房间 1/25：毒孢菌（HP 80，攻击 12）
+GROWTHLOOT|FAIL|出现未知成长类型：reward_definition
+GROWTHLOOT|FAIL|出现未知成长类型：reward_definition
+GROWTHLOOT|FAIL|出现未知成长类型：reward_definition
+GROWTHLOOT|FAIL|成长候选至少覆盖两种用途
+GROWTHLOOT|FAIL|武器训练真实增加熟练且不新增武器
+GROWTHLOOT|FAIL|符号灌注按预览真实增加带格数
+GROWTHLOOT|FAIL|技艺直接习得
+GROWTHLOOT|FAIL|最大HP与当前HP同时增加
+GROWTHLOOT|FAIL|守望增加下一场战斗开局护盾
+GROWTHLOOT|FAIL|未满血时休整恢复35%生命
+战利品重抽：金币 -5（下次 10）
+⚒ 重复转化：火焰剑 熟练 +12（R4 · 12/12）
+✦ 火焰剑 达 R2：可选择一项铭印
+✦ 火焰剑 达 R3：可选择一项铭印
+SCRIPT ERROR: Invalid call. Nonexistent function '_growth_candidates' in base 'RefCounted (LootOffer)'.
+   at: _test_r4_no_training (res://tests/growth_loot_offer_test.gd:43)
+   GDScript backtrace (most recent call first):
+       [0] _test_r4_no_training (res://tests/growth_loot_offer_test.gd:43)
+       [1] _ready (res://tests/growth_loot_offer_test.gd:18)
+       [2] _boot (res://tests/growth_loot_offer_test.gd:35)
+---
+GROWTHLOOT|RESULT FAIL (checks=18 fails=10)
+ERROR: 3 RID allocations of type 'PN13RendererDummy14TextureStorage12DummyTextureE' were leaked at exit.
+ERROR: 1 RID allocations of type 'PN18TextServerAdvanced12FontAdvancedE' were leaked at exit.
+WARNING: 5 RIDs of type "CanvasItem" were leaked.
+   at: _free_rids (servers/rendering/renderer_canvas_cull.cpp:2735)
+WARNING: 31 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2535)
+ERROR: 2 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:822)

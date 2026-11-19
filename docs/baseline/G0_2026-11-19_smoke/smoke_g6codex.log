@@ -1,0 +1,54 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+WARNING: res://scenes/ui/loadout_scene.tscn:9 - ext_resource, invalid UID: uid://dbrhpr1f4bp17 - using text path instead: res://assets/camp_bg.png
+   at: load (scene/resources/resource_format_text.cpp:501)
+铁砧元进度已载入：点数 104
+已为你预选默认配装（可自由调整后再开战）
+护符已装配：伤害+0 / 开局护盾+0 / 每回合护盾+4 / 每回合回血+0 / 抗扰+0
+❄ 寒鳞：每次受击获得 1 层霜（下一次攻击降低，可连续小攻击削弱）
+▶ 回合 1 开始
+▶ 进入房间 1/25：寒鳞蝠（HP 80，攻击 10）
+PASS  老档缺 codex 键时载入自动补默认
+PASS  老档默认使用次数为 0
+PASS  老档默认最高熟练为 0
+PASS  老档也能生成详情行
+PASS  整备确认给武器计 1 次使用
+PASS  第二把武器同样计数
+PASS  护符按装备计 1 次使用
+PASS  消耗品按实际使用计数
+PASS  codex 以字典写入 meta
+PASS  7 点熟练记录为 R3
+PASS  最高熟练记录为 7 点
+PASS  铭印组合记录锋铸次数
+PASS  铭印组合记录调律符号
+PASS  低纪录不覆盖最高熟练
+PASS  低纪录不覆盖铭印快照
+PASS  最高熟练跨 CodexSystem 实例保留
+PASS  两个不同来源各留一条
+PASS  棋盘来源带节点类型与房间
+PASS  线性来源带 BOSS 房标记
+PASS  武器详情有路线行
+PASS  武器详情有机制行
+PASS  武器详情有来源与使用行
+PASS  武器详情有熟练与铭印行
+PASS  护符详情显示类别与路线
+PASS  护符不伪造熟练度
+PASS  浏览图鉴不创建空统计条目
+PASS  图鉴武器列表非空
+PASS  已拥有条目排在前面
+PASS  未拥有装备以占位形式保留
+PASS  已拥有条目显示真实名称
+PASS  铁砧屏可打开图鉴面板
+PASS  图鉴列表含标题与全部条目
+PASS  默认选中已拥有装备并展示详情
+PASS  图鉴可切换护符分类
+---
+PASSED 34 / FAILED 0
+ERROR: 3 RID allocations of type 'PN13RendererDummy14TextureStorage12DummyTextureE' were leaked at exit.
+ERROR: 1 RID allocations of type 'PN18TextServerAdvanced12FontAdvancedE' were leaked at exit.
+WARNING: 5 RIDs of type "CanvasItem" were leaked.
+   at: _free_rids (servers/rendering/renderer_canvas_cull.cpp:2735)
+WARNING: 31 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2535)
+ERROR: 2 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:822)

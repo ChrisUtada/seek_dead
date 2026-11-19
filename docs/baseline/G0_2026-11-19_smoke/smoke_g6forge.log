@@ -1,0 +1,76 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+WARNING: res://scenes/ui/loadout_scene.tscn:9 - ext_resource, invalid UID: uid://dbrhpr1f4bp17 - using text path instead: res://assets/camp_bg.png
+   at: load (scene/resources/resource_format_text.cpp:501)
+铁砧元进度已载入：点数 104
+已为你预选默认配装（可自由调整后再开战）
+护符已装配：伤害+0 / 开局护盾+0 / 每回合护盾+4 / 每回合回血+0 / 抗扰+0
+🔒 诡计：首次转轮前锁定 1 列当前符号（照常结算，本轮后解除）
+▶ 回合 1 开始
+🔒 暗影诡匠锁定第 1 列：本轮固定不转，符号照常结算
+▶ 进入房间 1/25：暗影诡匠（HP 95，攻击 14）
+PASS  控制器默认含 forge_styles 键
+PASS  首批支持火焰剑/匕首/战斧/霜晶法杖
+PASS  未扩展到其它武器
+PASS  历史熟练不足时变体锁定
+PASS  无记录按 R1 展示
+PASS  锁定提示写明 R2 条件
+PASS  未解锁时拒绝选择变体
+PASS  未解锁时仍为标准形态
+PASS  历史熟练 R2 解锁全部 4 个变体
+PASS  解锁后可选择烈刃
+PASS  选择写入 meta
+PASS  selected_def 返回烈刃
+PASS  非法变体 id 被拒绝
+PASS  变体 id 不能跨武器错配
+PASS  不支持的武器拒绝选择
+PASS  可切回标准形态
+PASS  标准形态无修正
+PASS  再次选择烈刃
+PASS  选择跨 ForgeStyleSystem 实例保留
+PASS  非法武器路径被清理
+PASS  非法变体 id 被清理
+PASS  合法选择不被清理
+PASS  烈刃：攻 +2 / 命中 -5%
+PASS  稳手：攻 -2 / 命中 +8%
+PASS  破城：斧斩权重 -2 / 破甲 2 连
+PASS  霜鸣：冰霜晶弹权重 -1 / 攻 -2
+PASS  霜鸣：每次状态 +1 层
+PASS  未选破城的武器保持 3 连破甲
+PASS  破城属性行写明破甲连数变化
+PASS  霜鸣属性行写明状态层数变化
+PASS  烈刃入池：火焰剑攻击 18→20
+PASS  烈刃入池：命中 88%→83%
+PASS  霜鸣入池：霜晶法杖攻击 14→12
+PASS  霜鸣入池：冰霜晶弹带 +1 状态层
+PASS  霜鸣入池：冰霜晶弹权重 4→3
+PASS  稳手入池：匕首攻击 8→6
+PASS  稳手入池：命中 86%→94%
+PASS  破城入池：斧斩权重 5→3
+PASS  破城入池：斧斩破甲阈值 3→2
+PASS  破城保留破甲机制
+PASS  烈刃真实带子差异：MISS 格变化
+PASS  稳手真实带子差异：MISS 格变化
+PASS  破城真实带子差异：斧斩 4→3 格
+PASS  霜鸣真实带子差异：冰霜晶弹 4→3 格
+PASS  稳手预览方向：MISS 减少
+PASS  烈刃预览方向：MISS 增加
+PASS  不支持的武器没有铸式带子差异
+PASS  整备屏存在
+PASS  整备屏构建铸式按钮与面板
+PASS  铸式面板可打开
+PASS  铸式面板列出 4 把武器的优势/代价/属性/带子
+🔨 铸式：火焰剑 → 烈刃
+PASS  面板选择写入存档
+🔨 铸式：火焰剑 → 标准形态
+PASS  面板可切回标准形态
+PASS  铸式面板可关闭
+PASS  面板文案含标准形态按钮
+---
+PASSED 55 / FAILED 0
+ERROR: 3 RID allocations of type 'PN13RendererDummy14TextureStorage12DummyTextureE' were leaked at exit.
+ERROR: 1 RID allocations of type 'PN18TextServerAdvanced12FontAdvancedE' were leaked at exit.
+WARNING: 5 RIDs of type "CanvasItem" were leaked.
+   at: _free_rids (servers/rendering/renderer_canvas_cull.cpp:2735)
+WARNING: 27 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2535)

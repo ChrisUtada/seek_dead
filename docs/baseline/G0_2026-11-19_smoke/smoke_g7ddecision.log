@@ -1,0 +1,95 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+WARNING: res://scenes/ui/loadout_scene.tscn:9 - ext_resource, invalid UID: uid://dbrhpr1f4bp17 - using text path instead: res://assets/camp_bg.png
+   at: load (scene/resources/resource_format_text.cpp:501)
+铁砧元进度已载入：点数 0
+已为你预选默认配装（可自由调整后再开战）
+护符已装配：伤害+0 / 开局护盾+0 / 每回合护盾+0 / 每回合回血+0 / 抗扰+0
+🐚 硬壳：入场即拥有 20 护甲（破甲后不再补充）
+▶ 回合 1 开始
+▶ 进入房间 1/25：毒壳壁垒（HP 170，攻击 12）
+🎛 P1 预设：control（速度 当前 / 预览 0 / 视觉落点 关 / 缓冲 关 / 反馈 关）
+PASS  输出窗口局势（实际 输出窗口）
+PASS  输出窗口列出带内输出符号
+PASS  目标行使用「局势 + 对策」结构
+PASS  标准模式不再显示唯一目标
+PASS  局势行开启裁切，长文本不撑宽 UI
+PASS  局势行超长时用省略号收口
+PASS  主栏不再拼接预设名（预设名过长）
+PASS  tooltip 每条对策一行
+PASS  超长局势文本不撑宽状态行（最小宽 16）
+SCRIPT ERROR: Invalid assignment of property or key 'text' with value of type 'String' on a base object of type 'Nil'.
+   at: _test_output (res://tests/g7d_decision_test.gd:174)
+   GDScript backtrace (most recent call first):
+       [0] _test_output (res://tests/g7d_decision_test.gd:174)
+       [1] _run (res://tests/g7d_decision_test.gd:47)
+       [2] _boot (res://tests/g7d_decision_test.gd:72)
+PASS  重击局势显示真实数值（实际 重击 46）
+PASS  重击列出护盾符号
+PASS  重击保留硬吃兜底
+PASS  固定口径目标仍优先护盾
+PASS  无护盾时不列护盾
+PASS  重击且未满血时列出治疗符号
+PASS  重击列出腰带内的治疗药剂
+PASS  无护盾符号时不生成虚假护盾建议
+PASS  对策超过 2 条时主栏用省略号收口（实际 ⚖ 重击 30 · 对策：护盾/治疗/…）
+PASS  第 3 条对策只进 tooltip
+PASS  无资源时只保留可计算的硬吃选项
+PASS  硬吃 tooltip 给出预计伤害
+PASS  低血局势（实际 低血 30/100）
+PASS  低血列出治疗符号
+PASS  低血保留抢攻兜底
+PASS  高甲局势（实际 高甲 20/20）
+PASS  高甲列出特殊三连
+PASS  高甲列出穿透符号
+PASS  高甲列出破甲酸液
+🛡 熔铸护甲展开：每 2 回合叠加一层护甲（上限 3 层）
+🛡 熔铸节律：首轮蓄势 1 回合 → 爆发（叠甲+冻结）→ 次回合恢复（熔铸间隙），之后每 2 回合重复
+⚠ 熔铸爆发：叠甲与冻结；随后一回合进入熔铸间隙（恢复）
+🛡 熔铸护甲 +8（1/3 层，护甲 28/28）
+❄ 寒霜侵蚀：冻结 2 列（次回合自消，清净药剂可当回合解除）
+⚔ 熔铸间隙：本回合不再叠甲/冻结，抓住破甲与输出窗口
+PASS  加压后次回合是真实恢复窗口
+PASS  间隙局势（实际 熔铸间隙）
+PASS  间隙说明不新增叠甲/冻结
+PASS  间隙列出破甲选项
+PASS  干扰局势（实际 干扰 注废）
+PASS  无净化药剂时不生成净化建议
+PASS  干扰保留照常停轮兜底
+PASS  有净化药剂时才列出净化
+PASS  冻结时列出清净药剂
+PASS  残血局势（实际 残血 20/100）
+PASS  残血列出输出符号
+SCRIPT ERROR: Invalid access to property or key 'text' on a base object of type 'Nil'.
+   at: _test_feedback_consistency (res://tests/g7d_decision_test.gd:323)
+   GDScript backtrace (most recent call first):
+       [0] _test_feedback_consistency (res://tests/g7d_decision_test.gd:323)
+       [1] _run (res://tests/g7d_decision_test.gd:54)
+       [2] _boot (res://tests/g7d_decision_test.gd:72)
+PASS  固定目标对照仍钉住指定符号
+PASS  固定对照模式保留单目标行
+PASS  固定对照模式显示指定目标理由
+PASS  遥测记录停中的符号类别 shield
+PASS  机制替停不计入玩家停轮类别
+治疗药剂：回复 30 HP（现 80）
+「heal_potion」已用尽，移出腰带（可于商店补给）
+PASS  遥测记录消耗品实际使用 heal
+PASS  遥测 summary 包含新字段
+PASS  遥测摘要输出停轮类别
+PASS  房间资源可加载：frozen_urn.tres
+PASS  冰封铁瓮 机制摘要写明特殊三连破甲（实际 首轮蓄势1回合→爆发 / 之后每3回合：蓄势→爆发 / 叠甲冻结1~2列→恢复·特殊三连破甲）
+PASS  冰封铁瓮 机制摘要不再误导为火系破甲
+PASS  冰封铁瓮 加压间隔 = 3 回合
+PASS  房间资源可加载：a1_elite_brute_ice.tres
+PASS  寒铁精英 机制摘要写明特殊三连破甲（实际 每3回合叠甲+冻结1列；破甲会立刻解除冻结（特殊三连破甲）。）
+PASS  寒铁精英 机制摘要不再误导为火系破甲
+PASS  寒铁精英 加压间隔 = 3 回合
+---
+PASSED 55 / FAILED 0
+ERROR: 3 RID allocations of type 'PN13RendererDummy14TextureStorage12DummyTextureE' were leaked at exit.
+ERROR: 8 RID allocations of type 'PN18TextServerAdvanced22ShapedTextDataAdvancedE' were leaked at exit.
+ERROR: 1 RID allocations of type 'PN18TextServerAdvanced12FontAdvancedE' were leaked at exit.
+WARNING: 5 RIDs of type "CanvasItem" were leaked.
+   at: _free_rids (servers/rendering/renderer_canvas_cull.cpp:2735)
+WARNING: 27 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2535)

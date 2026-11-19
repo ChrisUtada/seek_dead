@@ -1,0 +1,4729 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+WARNING: res://scenes/ui/loadout_scene.tscn:9 - ext_resource, invalid UID: uid://dbrhpr1f4bp17 - using text path instead: res://assets/camp_bg.png
+   at: load (scene/resources/resource_format_text.cpp:501)
+   GDScript backtrace (most recent call first):
+       [0] _scan_rooms (res://tests/item_taxonomy_test.gd:117)
+       [1] _run (res://tests/item_taxonomy_test.gd:62)
+PASS  资源可加载 res://resources/weapon_templates/absolute_zero.tres
+PASS  资源可加载 res://resources/weapon_templates/abyss_scythe.tres
+PASS  资源可加载 res://resources/weapon_templates/abyss_staff.tres
+PASS  资源可加载 res://resources/weapon_templates/acid_flask.tres
+PASS  资源可加载 res://resources/weapon_templates/acolyte_blade.tres
+PASS  资源可加载 res://resources/weapon_templates/armor_pierce_crossbow.tres
+PASS  资源可加载 res://resources/weapon_templates/battle_axe.tres
+PASS  资源可加载 res://resources/weapon_templates/blight_spear.tres
+PASS  资源可加载 res://resources/weapon_templates/blizzard_staff.tres
+PASS  资源可加载 res://resources/weapon_templates/cinder_cleaver.tres
+PASS  资源可加载 res://resources/weapon_templates/cinder_hatchet.tres
+PASS  资源可加载 res://resources/weapon_templates/cinder_saber.tres
+PASS  资源可加载 res://resources/weapon_templates/corrosive_bow.tres
+PASS  资源可加载 res://resources/weapon_templates/crusader_greatsword.tres
+PASS  资源可加载 res://resources/weapon_templates/dagger.tres
+PASS  资源可加载 res://resources/weapon_templates/dawn_blade.tres
+PASS  资源可加载 res://resources/weapon_templates/dawn_bow.tres
+PASS  资源可加载 res://resources/weapon_templates/dawn_staff.tres
+PASS  资源可加载 res://resources/weapon_templates/dread_greatsword.tres
+PASS  资源可加载 res://resources/weapon_templates/dueling_saber.tres
+PASS  资源可加载 res://resources/weapon_templates/dusk_hatchet.tres
+PASS  资源可加载 res://resources/weapon_templates/eclipse_blade.tres
+PASS  资源可加载 res://resources/weapon_templates/ember_dagger.tres
+PASS  资源可加载 res://resources/weapon_templates/ember_staff.tres
+PASS  资源可加载 res://resources/weapon_templates/ember_sword.tres
+PASS  资源可加载 res://resources/weapon_templates/executioner_axe.tres
+PASS  资源可加载 res://resources/weapon_templates/fire_sword.tres
+PASS  资源可加载 res://resources/weapon_templates/fire_wand.tres
+PASS  资源可加载 res://resources/weapon_templates/flame_scimitar.tres
+PASS  资源可加载 res://resources/weapon_templates/flame_staff.tres
+PASS  资源可加载 res://resources/weapon_templates/flare_dagger.tres
+PASS  资源可加载 res://resources/weapon_templates/flintlock.tres
+PASS  资源可加载 res://resources/weapon_templates/forge_greatsword.tres
+PASS  资源可加载 res://resources/weapon_templates/frost_blade.tres
+PASS  资源可加载 res://resources/weapon_templates/frost_dagger.tres
+PASS  资源可加载 res://resources/weapon_templates/frost_lance.tres
+PASS  资源可加载 res://resources/weapon_templates/frost_wand.tres
+PASS  资源可加载 res://resources/weapon_templates/frozen_spear.tres
+PASS  资源可加载 res://resources/weapon_templates/glacier_greatsword.tres
+PASS  资源可加载 res://resources/weapon_templates/glacier_maul.tres
+PASS  资源可加载 res://resources/weapon_templates/gloom_saber.tres
+PASS  资源可加载 res://resources/weapon_templates/grave_hammer.tres
+PASS  资源可加载 res://resources/weapon_templates/holy_lance.tres
+PASS  资源可加载 res://resources/weapon_templates/holy_mace.tres
+PASS  资源可加载 res://resources/weapon_templates/holy_sword.tres
+PASS  资源可加载 res://resources/weapon_templates/hunting_bow.tres
+PASS  资源可加载 res://resources/weapon_templates/ice_cleaver.tres
+PASS  资源可加载 res://resources/weapon_templates/ice_gun.tres
+PASS  资源可加载 res://resources/weapon_templates/ice_staff.tres
+PASS  资源可加载 res://resources/weapon_templates/icicle_dart.tres
+PASS  资源可加载 res://resources/weapon_templates/inferno_axe.tres
+PASS  资源可加载 res://resources/weapon_templates/iron_spear.tres
+PASS  资源可加载 res://resources/weapon_templates/iron_sword.tres
+PASS  资源可加载 res://resources/weapon_templates/judgment_greatsword.tres
+PASS  资源可加载 res://resources/weapon_templates/mace.tres
+PASS  资源可加载 res://resources/weapon_templates/magma_maul.tres
+PASS  资源可加载 res://resources/weapon_templates/miasma_staff.tres
+PASS  资源可加载 res://resources/weapon_templates/night_scythe.tres
+PASS  资源可加载 res://resources/weapon_templates/pistol.tres
+PASS  资源可加载 res://resources/weapon_templates/plague_hatchet.tres
+PASS  资源可加载 res://resources/weapon_templates/plague_reaper.tres
+PASS  资源可加载 res://resources/weapon_templates/poison_dagger.tres
+PASS  资源可加载 res://resources/weapon_templates/prayer_staff.tres
+PASS  资源可加载 res://resources/weapon_templates/pyre_staff.tres
+PASS  资源可加载 res://resources/weapon_templates/radiant_saber.tres
+PASS  资源可加载 res://resources/weapon_templates/rime_saber.tres
+PASS  资源可加载 res://resources/weapon_templates/rune_repeater.tres
+PASS  资源可加载 res://resources/weapon_templates/rusty_cleaver.tres
+PASS  资源可加载 res://resources/weapon_templates/seraph_codex.tres
+PASS  资源可加载 res://resources/weapon_templates/shade_dagger.tres
+PASS  资源可加载 res://resources/weapon_templates/shadow_dagger.tres
+PASS  资源可加载 res://resources/weapon_templates/shadow_guillotine.tres
+PASS  资源可加载 res://resources/weapon_templates/short_sword.tres
+PASS  资源可加载 res://resources/weapon_templates/sin_blade.tres
+PASS  资源可加载 res://resources/weapon_templates/snow_hatchet.tres
+PASS  资源可加载 res://resources/weapon_templates/spore_wand.tres
+PASS  资源可加载 res://resources/weapon_templates/sun_hatchet.tres
+PASS  资源可加载 res://resources/weapon_templates/sunforged_blade.tres
+PASS  资源可加载 res://resources/weapon_templates/sunlance.tres
+PASS  资源可加载 res://resources/weapon_templates/temple_hammer.tres
+PASS  资源可加载 res://resources/weapon_templates/toxic_dart.tres
+PASS  资源可加载 res://resources/weapon_templates/toxin_greatsword.tres
+PASS  资源可加载 res://resources/weapon_templates/umbral_spear.tres
+PASS  资源可加载 res://resources/weapon_templates/venom_dagger.tres
+PASS  资源可加载 res://resources/weapon_templates/venom_queen.tres
+PASS  资源可加载 res://resources/weapon_templates/venom_sickle.tres
+PASS  资源可加载 res://resources/weapon_templates/viper_whip.tres
+PASS  资源可加载 res://resources/weapon_templates/void_wand.tres
+PASS  资源可加载 res://resources/weapon_templates/war_hammer.tres
+PASS  资源可加载 res://resources/weapon_templates/woodcutter_axe.tres
+PASS  资源可加载 res://resources/charms/abyss_bulwark.tres
+PASS  资源可加载 res://resources/charms/abyss_gaze_relic.tres
+PASS  资源可加载 res://resources/charms/berserker_nail.tres
+PASS  资源可加载 res://resources/charms/blood_pact.tres
+PASS  资源可加载 res://resources/charms/bone_splinter.tres
+PASS  资源可加载 res://resources/charms/bulwark_charm.tres
+PASS  资源可加载 res://resources/charms/cinder_heart.tres
+PASS  资源可加载 res://resources/charms/counter_shield.tres
+PASS  资源可加载 res://resources/charms/crown_fragment_relic.tres
+PASS  资源可加载 res://resources/charms/crush_seal.tres
+PASS  资源可加载 res://resources/charms/dual_core_relic.tres
+PASS  资源可加载 res://resources/charms/element_charm.tres
+PASS  资源可加载 res://resources/charms/frost_bulwark.tres
+PASS  资源可加载 res://resources/charms/frost_core_relic.tres
+PASS  资源可加载 res://resources/charms/gambler_mark.tres
+PASS  资源可加载 res://resources/charms/glass_edge.tres
+PASS  资源可加载 res://resources/charms/guard_charm.tres
+PASS  资源可加载 res://resources/charms/hero_emblem_relic.tres
+PASS  资源可加载 res://resources/charms/innocence_seal_relic.tres
+PASS  资源可加载 res://resources/charms/law_brand_relic.tres
+PASS  资源可加载 res://resources/charms/maze_echo_relic.tres
+PASS  资源可加载 res://resources/charms/mirror_charm.tres
+PASS  资源可加载 res://resources/charms/ossuary_charm.tres
+PASS  资源可加载 res://resources/charms/pierce_charm.tres
+PASS  资源可加载 res://resources/charms/pilgrim_ward.tres
+PASS  资源可加载 res://resources/charms/poison_ward.tres
+PASS  资源可加载 res://resources/charms/pyre_sigil.tres
+PASS  资源可加载 res://resources/charms/rage_charm.tres
+PASS  资源可加载 res://resources/charms/redemption_heart.tres
+PASS  资源可加载 res://resources/charms/regen_charm.tres
+PASS  资源可加载 res://resources/charms/resist_charm.tres
+PASS  资源可加载 res://resources/charms/rhythm_shell_relic.tres
+PASS  资源可加载 res://resources/charms/scales_of_judgment.tres
+PASS  资源可加载 res://resources/charms/sharp_charm.tres
+PASS  资源可加载 res://resources/charms/shattered_mirror.tres
+PASS  资源可加载 res://resources/charms/silence_seal_relic.tres
+PASS  资源可加载 res://resources/charms/soul_soothe.tres
+PASS  资源可加载 res://resources/charms/spore_heart.tres
+PASS  资源可加载 res://resources/charms/status_charm.tres
+PASS  资源可加载 res://resources/charms/stone_shard_relic.tres
+PASS  资源可加载 res://resources/charms/venom_gland_relic.tres
+PASS  资源可加载 res://resources/charms/void_echo_relic.tres
+PASS  资源可加载 res://resources/charms/ward_charm.tres
+PASS  资源可加载 res://resources/consumables/absolution_decree.tres
+PASS  资源可加载 res://resources/consumables/acid_solvent.tres
+PASS  资源可加载 res://resources/consumables/assault_potion.tres
+PASS  资源可加载 res://resources/consumables/atonement_water.tres
+PASS  资源可加载 res://resources/consumables/cleanse_potion.tres
+PASS  资源可加载 res://resources/consumables/dark_essence.tres
+PASS  资源可加载 res://resources/consumables/fire_essence.tres
+PASS  资源可加载 res://resources/consumables/flame_flask.tres
+PASS  资源可加载 res://resources/consumables/frost_flask.tres
+PASS  资源可加载 res://resources/consumables/greater_heal_potion.tres
+PASS  资源可加载 res://resources/consumables/heal_potion.tres
+PASS  资源可加载 res://resources/consumables/holy_burst.tres
+PASS  资源可加载 res://resources/consumables/holy_flask.tres
+PASS  资源可加载 res://resources/consumables/holy_grail.tres
+PASS  资源可加载 res://resources/consumables/ice_essence.tres
+PASS  资源可加载 res://resources/consumables/lava_burst_potion.tres
+PASS  资源可加载 res://resources/consumables/light_essence.tres
+PASS  资源可加载 res://resources/consumables/poison_essence.tres
+PASS  资源可加载 res://resources/consumables/purge_water.tres
+PASS  资源可加载 res://resources/consumables/purify_potion.tres
+PASS  资源可加载 res://resources/consumables/recaster_storm.tres
+PASS  资源可加载 res://resources/consumables/reroll_scroll.tres
+PASS  资源可加载 res://resources/consumables/silencing_draught.tres
+PASS  资源可加载 res://resources/consumables/trim_scissors.tres
+PASS  资源可加载 res://resources/consumables/venom_dagger.tres
+PASS  资源可加载 res://resources/consumables/void_flask.tres
+PASS  资源可加载 res://resources/skills/abyssal_nova.tres
+PASS  资源可加载 res://resources/skills/aegis.tres
+PASS  资源可加载 res://resources/skills/atonement_light.tres
+PASS  资源可加载 res://resources/skills/atonement_mark.tres
+PASS  资源可加载 res://resources/skills/aura_of_order.tres
+PASS  资源可加载 res://resources/skills/blight.tres
+PASS  资源可加载 res://resources/skills/calm.tres
+PASS  资源可加载 res://resources/skills/chill.tres
+PASS  资源可加载 res://resources/skills/ember.tres
+PASS  资源可加载 res://resources/skills/ember_spark.tres
+PASS  资源可加载 res://resources/skills/fire_breath.tres
+PASS  资源可加载 res://resources/skills/flame_mark.tres
+PASS  资源可加载 res://resources/skills/focus.tres
+PASS  资源可加载 res://resources/skills/frost_shard.tres
+PASS  资源可加载 res://resources/skills/glacier_spear.tres
+PASS  资源可加载 res://resources/skills/guard.tres
+PASS  资源可加载 res://resources/skills/haste.tres
+PASS  资源可加载 res://resources/skills/herbal_tonic.tres
+PASS  资源可加载 res://resources/skills/holy_sear.tres
+PASS  资源可加载 res://resources/skills/holy_verdict.tres
+PASS  资源可加载 res://resources/skills/ignite.tres
+PASS  资源可加载 res://resources/skills/iron_wall.tres
+PASS  资源可加载 res://resources/skills/life_siphon.tres
+PASS  资源可加载 res://resources/skills/magic_bolt.tres
+PASS  资源可加载 res://resources/skills/mend.tres
+PASS  资源可加载 res://resources/skills/meteor_judgment.tres
+PASS  资源可加载 res://resources/skills/miracle.tres
+PASS  资源可加载 res://resources/skills/nightmare_gaze.tres
+PASS  资源可加载 res://resources/skills/nightmare_veil.tres
+PASS  资源可加载 res://resources/skills/plague_orb.tres
+PASS  资源可加载 res://resources/skills/prayer.tres
+PASS  资源可加载 res://resources/skills/radiant_lance.tres
+PASS  资源可加载 res://resources/skills/rage.tres
+PASS  资源可加载 res://resources/skills/recovery.tres
+PASS  资源可加载 res://resources/skills/renewal.tres
+PASS  资源可加载 res://resources/skills/sanctuary.tres
+PASS  资源可加载 res://resources/skills/shadow_bolt.tres
+PASS  资源可加载 res://resources/skills/shadow_curse.tres
+PASS  资源可加载 res://resources/skills/shadow_regen.tres
+PASS  资源可加载 res://resources/skills/stone_shot.tres
+PASS  资源可加载 res://resources/skills/venom_bolt.tres
+PASS  资源可加载 res://resources/skills/war_banner.tres
+PASS  weapon 数量 90（实测 90）
+PASS  charm 数量 43（实测 43）
+PASS  consumable 数量 26（实测 26）
+PASS  skill 数量 42（实测 42）
+PASS  absolute_zero 品质合法（epic）
+PASS  absolute_zero 至少一个家族标签
+PASS  absolute_zero 家族标签无重复
+PASS  absolute_zero 家族合法（ice）
+PASS  absolute_zero 家族合法（combo）
+PASS  absolute_zero 用途合法（damage）
+PASS  absolute_zero 至少一个合法来源
+PASS  absolute_zero 来源标签无重复
+PASS  absolute_zero 来源合法（normal）
+PASS  absolute_zero 来源合法（elite）
+PASS  absolute_zero 来源合法（shop）
+PASS  absolute_zero 来源合法（anvil）
+PASS  absolute_zero 来源合法（chest）
+PASS  absolute_zero 来源合法（boss）
+PASS  absolute_zero 幕次下限合法（2）
+PASS  absolute_zero 幕次上限合法（3）
+PASS  absolute_zero 幕次区间有序（2–3）
+PASS  absolute_zero 机制摘要非占位（105 字）
+PASS  absolute_zero 机制摘要无占位词
+PASS  absolute_zero 机制摘要写明触发/条件/限制
+PASS  absolute_zero 有同机制分组
+PASS  absolute_zero 有非 BOSS 获取通道
+PASS  absolute_zero 武器可由商店/铁砧获得
+PASS  absolute_zero BOSS 池来源标记与房间配置一致
+PASS  absolute_zero 高阶武器有状态/特殊/三连机制
+PASS  abyss_scythe 品质合法（uncommon）
+PASS  abyss_scythe 至少一个家族标签
+PASS  abyss_scythe 家族标签无重复
+PASS  abyss_scythe 家族合法（dark）
+PASS  abyss_scythe 家族合法（combo）
+PASS  abyss_scythe 用途合法（damage）
+PASS  abyss_scythe 至少一个合法来源
+PASS  abyss_scythe 来源标签无重复
+PASS  abyss_scythe 来源合法（normal）
+PASS  abyss_scythe 来源合法（elite）
+PASS  abyss_scythe 来源合法（boss）
+PASS  abyss_scythe 来源合法（shop）
+PASS  abyss_scythe 来源合法（anvil）
+PASS  abyss_scythe 来源合法（chest）
+PASS  abyss_scythe 幕次下限合法（1）
+PASS  abyss_scythe 幕次上限合法（3）
+PASS  abyss_scythe 幕次区间有序（1–3）
+PASS  abyss_scythe 机制摘要非占位（81 字）
+PASS  abyss_scythe 机制摘要无占位词
+PASS  abyss_scythe 机制摘要写明触发/条件/限制
+PASS  abyss_scythe 有同机制分组
+PASS  abyss_scythe 有非 BOSS 获取通道
+PASS  abyss_scythe 武器可由商店/铁砧获得
+PASS  abyss_scythe BOSS 池来源标记与房间配置一致
+PASS  abyss_staff 品质合法（uncommon）
+PASS  abyss_staff 至少一个家族标签
+PASS  abyss_staff 家族标签无重复
+PASS  abyss_staff 家族合法（dark）
+PASS  abyss_staff 家族合法（combo）
+PASS  abyss_staff 用途合法（damage）
+PASS  abyss_staff 至少一个合法来源
+PASS  abyss_staff 来源标签无重复
+PASS  abyss_staff 来源合法（normal）
+PASS  abyss_staff 来源合法（elite）
+PASS  abyss_staff 来源合法（shop）
+PASS  abyss_staff 来源合法（anvil）
+PASS  abyss_staff 来源合法（chest）
+PASS  abyss_staff 幕次下限合法（1）
+PASS  abyss_staff 幕次上限合法（3）
+PASS  abyss_staff 幕次区间有序（1–3）
+PASS  abyss_staff 机制摘要非占位（108 字）
+PASS  abyss_staff 机制摘要无占位词
+PASS  abyss_staff 机制摘要写明触发/条件/限制
+PASS  abyss_staff 有同机制分组
+PASS  abyss_staff 有非 BOSS 获取通道
+PASS  abyss_staff 武器可由商店/铁砧获得
+PASS  abyss_staff BOSS 池来源标记与房间配置一致
+PASS  acid_flask 品质合法（common）
+PASS  acid_flask 至少一个家族标签
+PASS  acid_flask 家族标签无重复
+PASS  acid_flask 家族合法（poison）
+PASS  acid_flask 家族合法（combo）
+PASS  acid_flask 用途合法（damage）
+PASS  acid_flask 至少一个合法来源
+PASS  acid_flask 来源标签无重复
+PASS  acid_flask 来源合法（normal）
+PASS  acid_flask 来源合法（elite）
+PASS  acid_flask 来源合法（shop）
+PASS  acid_flask 来源合法（anvil）
+PASS  acid_flask 来源合法（chest）
+PASS  acid_flask 幕次下限合法（1）
+PASS  acid_flask 幕次上限合法（3）
+PASS  acid_flask 幕次区间有序（1–3）
+PASS  acid_flask 基础品质从第 1 幕起可获取
+PASS  acid_flask 机制摘要非占位（95 字）
+PASS  acid_flask 机制摘要无占位词
+PASS  acid_flask 机制摘要写明触发/条件/限制
+PASS  acid_flask 有同机制分组
+PASS  acid_flask 有非 BOSS 获取通道
+PASS  acid_flask 武器可由商店/铁砧获得
+PASS  acid_flask BOSS 池来源标记与房间配置一致
+PASS  acolyte_blade 品质合法（common）
+PASS  acolyte_blade 至少一个家族标签
+PASS  acolyte_blade 家族标签无重复
+PASS  acolyte_blade 家族合法（light）
+PASS  acolyte_blade 家族合法（combo）
+PASS  acolyte_blade 用途合法（damage）
+PASS  acolyte_blade 至少一个合法来源
+PASS  acolyte_blade 来源标签无重复
+PASS  acolyte_blade 来源合法（normal）
+PASS  acolyte_blade 来源合法（elite）
+PASS  acolyte_blade 来源合法（shop）
+PASS  acolyte_blade 来源合法（anvil）
+PASS  acolyte_blade 来源合法（chest）
+PASS  acolyte_blade 幕次下限合法（1）
+PASS  acolyte_blade 幕次上限合法（3）
+PASS  acolyte_blade 幕次区间有序（1–3）
+PASS  acolyte_blade 基础品质从第 1 幕起可获取
+PASS  acolyte_blade 机制摘要非占位（71 字）
+PASS  acolyte_blade 机制摘要无占位词
+PASS  acolyte_blade 机制摘要写明触发/条件/限制
+PASS  acolyte_blade 有同机制分组
+PASS  acolyte_blade 有非 BOSS 获取通道
+PASS  acolyte_blade 武器可由商店/铁砧获得
+PASS  acolyte_blade BOSS 池来源标记与房间配置一致
+PASS  armor_pierce_crossbow 品质合法（uncommon）
+PASS  armor_pierce_crossbow 至少一个家族标签
+PASS  armor_pierce_crossbow 家族标签无重复
+PASS  armor_pierce_crossbow 家族合法（combo）
+PASS  armor_pierce_crossbow 用途合法（damage）
+PASS  armor_pierce_crossbow 至少一个合法来源
+PASS  armor_pierce_crossbow 来源标签无重复
+PASS  armor_pierce_crossbow 来源合法（normal）
+PASS  armor_pierce_crossbow 来源合法（elite）
+PASS  armor_pierce_crossbow 来源合法（shop）
+PASS  armor_pierce_crossbow 来源合法（anvil）
+PASS  armor_pierce_crossbow 来源合法（chest）
+PASS  armor_pierce_crossbow 幕次下限合法（1）
+PASS  armor_pierce_crossbow 幕次上限合法（3）
+PASS  armor_pierce_crossbow 幕次区间有序（1–3）
+PASS  armor_pierce_crossbow 机制摘要非占位（73 字）
+PASS  armor_pierce_crossbow 机制摘要无占位词
+PASS  armor_pierce_crossbow 机制摘要写明触发/条件/限制
+PASS  armor_pierce_crossbow 有同机制分组
+PASS  armor_pierce_crossbow 有非 BOSS 获取通道
+PASS  armor_pierce_crossbow 武器可由商店/铁砧获得
+PASS  armor_pierce_crossbow BOSS 池来源标记与房间配置一致
+PASS  battle_axe 品质合法（uncommon）
+PASS  battle_axe 至少一个家族标签
+PASS  battle_axe 家族标签无重复
+PASS  battle_axe 家族合法（combo）
+PASS  battle_axe 用途合法（damage）
+PASS  battle_axe 至少一个合法来源
+PASS  battle_axe 来源标签无重复
+PASS  battle_axe 来源合法（normal）
+PASS  battle_axe 来源合法（elite）
+PASS  battle_axe 来源合法（shop）
+PASS  battle_axe 来源合法（anvil）
+PASS  battle_axe 来源合法（start）
+PASS  battle_axe 来源合法（chest）
+PASS  battle_axe 幕次下限合法（1）
+PASS  battle_axe 幕次上限合法（3）
+PASS  battle_axe 幕次区间有序（1–3）
+PASS  battle_axe 机制摘要非占位（60 字）
+PASS  battle_axe 机制摘要无占位词
+PASS  battle_axe 机制摘要写明触发/条件/限制
+PASS  battle_axe 有同机制分组
+PASS  battle_axe 有非 BOSS 获取通道
+PASS  battle_axe 武器可由商店/铁砧获得
+PASS  battle_axe BOSS 池来源标记与房间配置一致
+PASS  blight_spear 品质合法（uncommon）
+PASS  blight_spear 至少一个家族标签
+PASS  blight_spear 家族标签无重复
+PASS  blight_spear 家族合法（poison）
+PASS  blight_spear 家族合法（combo）
+PASS  blight_spear 用途合法（damage）
+PASS  blight_spear 至少一个合法来源
+PASS  blight_spear 来源标签无重复
+PASS  blight_spear 来源合法（normal）
+PASS  blight_spear 来源合法（elite）
+PASS  blight_spear 来源合法（shop）
+PASS  blight_spear 来源合法（anvil）
+PASS  blight_spear 来源合法（chest）
+PASS  blight_spear 幕次下限合法（1）
+PASS  blight_spear 幕次上限合法（3）
+PASS  blight_spear 幕次区间有序（1–3）
+PASS  blight_spear 机制摘要非占位（71 字）
+PASS  blight_spear 机制摘要无占位词
+PASS  blight_spear 机制摘要写明触发/条件/限制
+PASS  blight_spear 有同机制分组
+PASS  blight_spear 有非 BOSS 获取通道
+PASS  blight_spear 武器可由商店/铁砧获得
+PASS  blight_spear BOSS 池来源标记与房间配置一致
+PASS  blizzard_staff 品质合法（uncommon）
+PASS  blizzard_staff 至少一个家族标签
+PASS  blizzard_staff 家族标签无重复
+PASS  blizzard_staff 家族合法（ice）
+PASS  blizzard_staff 家族合法（combo）
+PASS  blizzard_staff 用途合法（damage）
+PASS  blizzard_staff 至少一个合法来源
+PASS  blizzard_staff 来源标签无重复
+PASS  blizzard_staff 来源合法（normal）
+PASS  blizzard_staff 来源合法（elite）
+PASS  blizzard_staff 来源合法（shop）
+PASS  blizzard_staff 来源合法（anvil）
+PASS  blizzard_staff 来源合法（chest）
+PASS  blizzard_staff 幕次下限合法（1）
+PASS  blizzard_staff 幕次上限合法（3）
+PASS  blizzard_staff 幕次区间有序（1–3）
+PASS  blizzard_staff 机制摘要非占位（97 字）
+PASS  blizzard_staff 机制摘要无占位词
+PASS  blizzard_staff 机制摘要写明触发/条件/限制
+PASS  blizzard_staff 有同机制分组
+PASS  blizzard_staff 有非 BOSS 获取通道
+PASS  blizzard_staff 武器可由商店/铁砧获得
+PASS  blizzard_staff BOSS 池来源标记与房间配置一致
+PASS  cinder_cleaver 品质合法（uncommon）
+PASS  cinder_cleaver 至少一个家族标签
+PASS  cinder_cleaver 家族标签无重复
+PASS  cinder_cleaver 家族合法（fire）
+PASS  cinder_cleaver 家族合法（combo）
+PASS  cinder_cleaver 用途合法（damage）
+PASS  cinder_cleaver 至少一个合法来源
+PASS  cinder_cleaver 来源标签无重复
+PASS  cinder_cleaver 来源合法（normal）
+PASS  cinder_cleaver 来源合法（elite）
+PASS  cinder_cleaver 来源合法（boss）
+PASS  cinder_cleaver 来源合法（shop）
+PASS  cinder_cleaver 来源合法（anvil）
+PASS  cinder_cleaver 来源合法（chest）
+PASS  cinder_cleaver 幕次下限合法（1）
+PASS  cinder_cleaver 幕次上限合法（3）
+PASS  cinder_cleaver 幕次区间有序（1–3）
+PASS  cinder_cleaver 机制摘要非占位（73 字）
+PASS  cinder_cleaver 机制摘要无占位词
+PASS  cinder_cleaver 机制摘要写明触发/条件/限制
+PASS  cinder_cleaver 有同机制分组
+PASS  cinder_cleaver 有非 BOSS 获取通道
+PASS  cinder_cleaver 武器可由商店/铁砧获得
+PASS  cinder_cleaver BOSS 池来源标记与房间配置一致
+PASS  cinder_hatchet 品质合法（common）
+PASS  cinder_hatchet 至少一个家族标签
+PASS  cinder_hatchet 家族标签无重复
+PASS  cinder_hatchet 家族合法（fire）
+PASS  cinder_hatchet 家族合法（combo）
+PASS  cinder_hatchet 用途合法（damage）
+PASS  cinder_hatchet 至少一个合法来源
+PASS  cinder_hatchet 来源标签无重复
+PASS  cinder_hatchet 来源合法（normal）
+PASS  cinder_hatchet 来源合法（elite）
+PASS  cinder_hatchet 来源合法（shop）
+PASS  cinder_hatchet 来源合法（anvil）
+PASS  cinder_hatchet 来源合法（chest）
+PASS  cinder_hatchet 幕次下限合法（1）
+PASS  cinder_hatchet 幕次上限合法（3）
+PASS  cinder_hatchet 幕次区间有序（1–3）
+PASS  cinder_hatchet 基础品质从第 1 幕起可获取
+PASS  cinder_hatchet 机制摘要非占位（73 字）
+PASS  cinder_hatchet 机制摘要无占位词
+PASS  cinder_hatchet 机制摘要写明触发/条件/限制
+PASS  cinder_hatchet 有同机制分组
+PASS  cinder_hatchet 有非 BOSS 获取通道
+PASS  cinder_hatchet 武器可由商店/铁砧获得
+PASS  cinder_hatchet BOSS 池来源标记与房间配置一致
+PASS  cinder_saber 品质合法（common）
+PASS  cinder_saber 至少一个家族标签
+PASS  cinder_saber 家族标签无重复
+PASS  cinder_saber 家族合法（fire）
+PASS  cinder_saber 家族合法（combo）
+PASS  cinder_saber 用途合法（damage）
+PASS  cinder_saber 至少一个合法来源
+PASS  cinder_saber 来源标签无重复
+PASS  cinder_saber 来源合法（normal）
+PASS  cinder_saber 来源合法（elite）
+PASS  cinder_saber 来源合法（shop）
+PASS  cinder_saber 来源合法（anvil）
+PASS  cinder_saber 来源合法（chest）
+PASS  cinder_saber 幕次下限合法（1）
+PASS  cinder_saber 幕次上限合法（3）
+PASS  cinder_saber 幕次区间有序（1–3）
+PASS  cinder_saber 基础品质从第 1 幕起可获取
+PASS  cinder_saber 机制摘要非占位（84 字）
+PASS  cinder_saber 机制摘要无占位词
+PASS  cinder_saber 机制摘要写明触发/条件/限制
+PASS  cinder_saber 有同机制分组
+PASS  cinder_saber 有非 BOSS 获取通道
+PASS  cinder_saber 武器可由商店/铁砧获得
+PASS  cinder_saber BOSS 池来源标记与房间配置一致
+PASS  corrosive_bow 品质合法（uncommon）
+PASS  corrosive_bow 至少一个家族标签
+PASS  corrosive_bow 家族标签无重复
+PASS  corrosive_bow 家族合法（poison）
+PASS  corrosive_bow 家族合法（combo）
+PASS  corrosive_bow 用途合法（damage）
+PASS  corrosive_bow 至少一个合法来源
+PASS  corrosive_bow 来源标签无重复
+PASS  corrosive_bow 来源合法（normal）
+PASS  corrosive_bow 来源合法（elite）
+PASS  corrosive_bow 来源合法（shop）
+PASS  corrosive_bow 来源合法（anvil）
+PASS  corrosive_bow 来源合法（chest）
+PASS  corrosive_bow 幕次下限合法（1）
+PASS  corrosive_bow 幕次上限合法（3）
+PASS  corrosive_bow 幕次区间有序（1–3）
+PASS  corrosive_bow 机制摘要非占位（81 字）
+PASS  corrosive_bow 机制摘要无占位词
+PASS  corrosive_bow 机制摘要写明触发/条件/限制
+PASS  corrosive_bow 有同机制分组
+PASS  corrosive_bow 有非 BOSS 获取通道
+PASS  corrosive_bow 武器可由商店/铁砧获得
+PASS  corrosive_bow BOSS 池来源标记与房间配置一致
+PASS  crusader_greatsword 品质合法（epic）
+PASS  crusader_greatsword 至少一个家族标签
+PASS  crusader_greatsword 家族标签无重复
+PASS  crusader_greatsword 家族合法（light）
+PASS  crusader_greatsword 家族合法（combo）
+PASS  crusader_greatsword 用途合法（damage）
+PASS  crusader_greatsword 至少一个合法来源
+PASS  crusader_greatsword 来源标签无重复
+PASS  crusader_greatsword 来源合法（normal）
+PASS  crusader_greatsword 来源合法（elite）
+PASS  crusader_greatsword 来源合法（shop）
+PASS  crusader_greatsword 来源合法（anvil）
+PASS  crusader_greatsword 来源合法（chest）
+PASS  crusader_greatsword 幕次下限合法（1）
+PASS  crusader_greatsword 幕次上限合法（3）
+PASS  crusader_greatsword 幕次区间有序（1–3）
+PASS  crusader_greatsword 机制摘要非占位（66 字）
+PASS  crusader_greatsword 机制摘要无占位词
+PASS  crusader_greatsword 机制摘要写明触发/条件/限制
+PASS  crusader_greatsword 有同机制分组
+PASS  crusader_greatsword 有非 BOSS 获取通道
+PASS  crusader_greatsword 武器可由商店/铁砧获得
+PASS  crusader_greatsword BOSS 池来源标记与房间配置一致
+PASS  crusader_greatsword 高阶武器有状态/特殊/三连机制
+PASS  dagger 品质合法（common）
+PASS  dagger 至少一个家族标签
+PASS  dagger 家族标签无重复
+PASS  dagger 家族合法（combo）
+PASS  dagger 用途合法（damage）
+PASS  dagger 至少一个合法来源
+PASS  dagger 来源标签无重复
+PASS  dagger 来源合法（normal）
+PASS  dagger 来源合法（elite）
+PASS  dagger 来源合法（shop）
+PASS  dagger 来源合法（anvil）
+PASS  dagger 来源合法（start）
+PASS  dagger 来源合法（chest）
+PASS  dagger 幕次下限合法（1）
+PASS  dagger 幕次上限合法（3）
+PASS  dagger 幕次区间有序（1–3）
+PASS  dagger 基础品质从第 1 幕起可获取
+PASS  dagger 机制摘要非占位（74 字）
+PASS  dagger 机制摘要无占位词
+PASS  dagger 机制摘要写明触发/条件/限制
+PASS  dagger 有同机制分组
+PASS  dagger 有非 BOSS 获取通道
+PASS  dagger 武器可由商店/铁砧获得
+PASS  dagger BOSS 池来源标记与房间配置一致
+PASS  dawn_blade 品质合法（rare）
+PASS  dawn_blade 至少一个家族标签
+PASS  dawn_blade 家族标签无重复
+PASS  dawn_blade 家族合法（light）
+PASS  dawn_blade 家族合法（combo）
+PASS  dawn_blade 用途合法（damage）
+PASS  dawn_blade 至少一个合法来源
+PASS  dawn_blade 来源标签无重复
+PASS  dawn_blade 来源合法（normal）
+PASS  dawn_blade 来源合法（elite）
+PASS  dawn_blade 来源合法（shop）
+PASS  dawn_blade 来源合法（anvil）
+PASS  dawn_blade 来源合法（chest）
+PASS  dawn_blade 幕次下限合法（1）
+PASS  dawn_blade 幕次上限合法（3）
+PASS  dawn_blade 幕次区间有序（1–3）
+PASS  dawn_blade 机制摘要非占位（75 字）
+PASS  dawn_blade 机制摘要无占位词
+PASS  dawn_blade 机制摘要写明触发/条件/限制
+PASS  dawn_blade 有同机制分组
+PASS  dawn_blade 有非 BOSS 获取通道
+PASS  dawn_blade 武器可由商店/铁砧获得
+PASS  dawn_blade BOSS 池来源标记与房间配置一致
+PASS  dawn_blade 高阶武器有状态/特殊/三连机制
+PASS  dawn_bow 品质合法（uncommon）
+PASS  dawn_bow 至少一个家族标签
+PASS  dawn_bow 家族标签无重复
+PASS  dawn_bow 家族合法（light）
+PASS  dawn_bow 家族合法（combo）
+PASS  dawn_bow 用途合法（damage）
+PASS  dawn_bow 至少一个合法来源
+PASS  dawn_bow 来源标签无重复
+PASS  dawn_bow 来源合法（normal）
+PASS  dawn_bow 来源合法（elite）
+PASS  dawn_bow 来源合法（boss）
+PASS  dawn_bow 来源合法（shop）
+PASS  dawn_bow 来源合法（anvil）
+PASS  dawn_bow 来源合法（chest）
+PASS  dawn_bow 幕次下限合法（1）
+PASS  dawn_bow 幕次上限合法（3）
+PASS  dawn_bow 幕次区间有序（1–3）
+PASS  dawn_bow 机制摘要非占位（72 字）
+PASS  dawn_bow 机制摘要无占位词
+PASS  dawn_bow 机制摘要写明触发/条件/限制
+PASS  dawn_bow 有同机制分组
+PASS  dawn_bow 有非 BOSS 获取通道
+PASS  dawn_bow 武器可由商店/铁砧获得
+PASS  dawn_bow BOSS 池来源标记与房间配置一致
+PASS  dawn_staff 品质合法（uncommon）
+PASS  dawn_staff 至少一个家族标签
+PASS  dawn_staff 家族标签无重复
+PASS  dawn_staff 家族合法（light）
+PASS  dawn_staff 家族合法（combo）
+PASS  dawn_staff 用途合法（damage）
+PASS  dawn_staff 至少一个合法来源
+PASS  dawn_staff 来源标签无重复
+PASS  dawn_staff 来源合法（normal）
+PASS  dawn_staff 来源合法（elite）
+PASS  dawn_staff 来源合法（shop）
+PASS  dawn_staff 来源合法（anvil）
+PASS  dawn_staff 来源合法（chest）
+PASS  dawn_staff 幕次下限合法（1）
+PASS  dawn_staff 幕次上限合法（3）
+PASS  dawn_staff 幕次区间有序（1–3）
+PASS  dawn_staff 机制摘要非占位（100 字）
+PASS  dawn_staff 机制摘要无占位词
+PASS  dawn_staff 机制摘要写明触发/条件/限制
+PASS  dawn_staff 有同机制分组
+PASS  dawn_staff 有非 BOSS 获取通道
+PASS  dawn_staff 武器可由商店/铁砧获得
+PASS  dawn_staff BOSS 池来源标记与房间配置一致
+PASS  dread_greatsword 品质合法（uncommon）
+PASS  dread_greatsword 至少一个家族标签
+PASS  dread_greatsword 家族标签无重复
+PASS  dread_greatsword 家族合法（dark）
+PASS  dread_greatsword 家族合法（combo）
+PASS  dread_greatsword 用途合法（damage）
+PASS  dread_greatsword 至少一个合法来源
+PASS  dread_greatsword 来源标签无重复
+PASS  dread_greatsword 来源合法（normal）
+PASS  dread_greatsword 来源合法（elite）
+PASS  dread_greatsword 来源合法（shop）
+PASS  dread_greatsword 来源合法（anvil）
+PASS  dread_greatsword 来源合法（chest）
+PASS  dread_greatsword 幕次下限合法（1）
+PASS  dread_greatsword 幕次上限合法（3）
+PASS  dread_greatsword 幕次区间有序（1–3）
+PASS  dread_greatsword 机制摘要非占位（65 字）
+PASS  dread_greatsword 机制摘要无占位词
+PASS  dread_greatsword 机制摘要写明触发/条件/限制
+PASS  dread_greatsword 有同机制分组
+PASS  dread_greatsword 有非 BOSS 获取通道
+PASS  dread_greatsword 武器可由商店/铁砧获得
+PASS  dread_greatsword BOSS 池来源标记与房间配置一致
+PASS  dueling_saber 品质合法（uncommon）
+PASS  dueling_saber 至少一个家族标签
+PASS  dueling_saber 家族标签无重复
+PASS  dueling_saber 家族合法（combo）
+PASS  dueling_saber 用途合法（damage）
+PASS  dueling_saber 至少一个合法来源
+PASS  dueling_saber 来源标签无重复
+PASS  dueling_saber 来源合法（normal）
+PASS  dueling_saber 来源合法（elite）
+PASS  dueling_saber 来源合法（shop）
+PASS  dueling_saber 来源合法（anvil）
+PASS  dueling_saber 来源合法（chest）
+PASS  dueling_saber 幕次下限合法（1）
+PASS  dueling_saber 幕次上限合法（3）
+PASS  dueling_saber 幕次区间有序（1–3）
+PASS  dueling_saber 机制摘要非占位（75 字）
+PASS  dueling_saber 机制摘要无占位词
+PASS  dueling_saber 机制摘要写明触发/条件/限制
+PASS  dueling_saber 有同机制分组
+PASS  dueling_saber 有非 BOSS 获取通道
+PASS  dueling_saber 武器可由商店/铁砧获得
+PASS  dueling_saber BOSS 池来源标记与房间配置一致
+PASS  dusk_hatchet 品质合法（common）
+PASS  dusk_hatchet 至少一个家族标签
+PASS  dusk_hatchet 家族标签无重复
+PASS  dusk_hatchet 家族合法（dark）
+PASS  dusk_hatchet 家族合法（combo）
+PASS  dusk_hatchet 用途合法（damage）
+PASS  dusk_hatchet 至少一个合法来源
+PASS  dusk_hatchet 来源标签无重复
+PASS  dusk_hatchet 来源合法（normal）
+PASS  dusk_hatchet 来源合法（elite）
+PASS  dusk_hatchet 来源合法（shop）
+PASS  dusk_hatchet 来源合法（anvil）
+PASS  dusk_hatchet 来源合法（chest）
+PASS  dusk_hatchet 幕次下限合法（1）
+PASS  dusk_hatchet 幕次上限合法（3）
+PASS  dusk_hatchet 幕次区间有序（1–3）
+PASS  dusk_hatchet 基础品质从第 1 幕起可获取
+PASS  dusk_hatchet 机制摘要非占位（58 字）
+PASS  dusk_hatchet 机制摘要无占位词
+PASS  dusk_hatchet 机制摘要写明触发/条件/限制
+PASS  dusk_hatchet 有同机制分组
+PASS  dusk_hatchet 有非 BOSS 获取通道
+PASS  dusk_hatchet 武器可由商店/铁砧获得
+PASS  dusk_hatchet BOSS 池来源标记与房间配置一致
+PASS  eclipse_blade 品质合法（epic）
+PASS  eclipse_blade 至少一个家族标签
+PASS  eclipse_blade 家族标签无重复
+PASS  eclipse_blade 家族合法（dark）
+PASS  eclipse_blade 家族合法（combo）
+PASS  eclipse_blade 用途合法（damage）
+PASS  eclipse_blade 至少一个合法来源
+PASS  eclipse_blade 来源标签无重复
+PASS  eclipse_blade 来源合法（normal）
+PASS  eclipse_blade 来源合法（elite）
+PASS  eclipse_blade 来源合法（shop）
+PASS  eclipse_blade 来源合法（anvil）
+PASS  eclipse_blade 来源合法（chest）
+PASS  eclipse_blade 来源合法（boss）
+PASS  eclipse_blade 幕次下限合法（2）
+PASS  eclipse_blade 幕次上限合法（3）
+PASS  eclipse_blade 幕次区间有序（2–3）
+PASS  eclipse_blade 机制摘要非占位（73 字）
+PASS  eclipse_blade 机制摘要无占位词
+PASS  eclipse_blade 机制摘要写明触发/条件/限制
+PASS  eclipse_blade 有同机制分组
+PASS  eclipse_blade 有非 BOSS 获取通道
+PASS  eclipse_blade 武器可由商店/铁砧获得
+PASS  eclipse_blade BOSS 池来源标记与房间配置一致
+PASS  eclipse_blade 高阶武器有状态/特殊/三连机制
+PASS  ember_dagger 品质合法（common）
+PASS  ember_dagger 至少一个家族标签
+PASS  ember_dagger 家族标签无重复
+PASS  ember_dagger 家族合法（fire）
+PASS  ember_dagger 家族合法（combo）
+PASS  ember_dagger 用途合法（damage）
+PASS  ember_dagger 至少一个合法来源
+PASS  ember_dagger 来源标签无重复
+PASS  ember_dagger 来源合法（normal）
+PASS  ember_dagger 来源合法（elite）
+PASS  ember_dagger 来源合法（shop）
+PASS  ember_dagger 来源合法（anvil）
+PASS  ember_dagger 来源合法（chest）
+PASS  ember_dagger 幕次下限合法（1）
+PASS  ember_dagger 幕次上限合法（3）
+PASS  ember_dagger 幕次区间有序（1–3）
+PASS  ember_dagger 基础品质从第 1 幕起可获取
+PASS  ember_dagger 机制摘要非占位（85 字）
+PASS  ember_dagger 机制摘要无占位词
+PASS  ember_dagger 机制摘要写明触发/条件/限制
+PASS  ember_dagger 有同机制分组
+PASS  ember_dagger 有非 BOSS 获取通道
+PASS  ember_dagger 武器可由商店/铁砧获得
+PASS  ember_dagger BOSS 池来源标记与房间配置一致
+PASS  ember_staff 品质合法（common）
+PASS  ember_staff 至少一个家族标签
+PASS  ember_staff 家族标签无重复
+PASS  ember_staff 家族合法（fire）
+PASS  ember_staff 家族合法（combo）
+PASS  ember_staff 用途合法（damage）
+PASS  ember_staff 至少一个合法来源
+PASS  ember_staff 来源标签无重复
+PASS  ember_staff 来源合法（normal）
+PASS  ember_staff 来源合法（elite）
+PASS  ember_staff 来源合法（shop）
+PASS  ember_staff 来源合法（anvil）
+PASS  ember_staff 来源合法（chest）
+PASS  ember_staff 幕次下限合法（1）
+PASS  ember_staff 幕次上限合法（3）
+PASS  ember_staff 幕次区间有序（1–3）
+PASS  ember_staff 基础品质从第 1 幕起可获取
+PASS  ember_staff 机制摘要非占位（97 字）
+PASS  ember_staff 机制摘要无占位词
+PASS  ember_staff 机制摘要写明触发/条件/限制
+PASS  ember_staff 有同机制分组
+PASS  ember_staff 有非 BOSS 获取通道
+PASS  ember_staff 武器可由商店/铁砧获得
+PASS  ember_staff BOSS 池来源标记与房间配置一致
+PASS  ember_sword 品质合法（rare）
+PASS  ember_sword 至少一个家族标签
+PASS  ember_sword 家族标签无重复
+PASS  ember_sword 家族合法（fire）
+PASS  ember_sword 家族合法（combo）
+PASS  ember_sword 用途合法（damage）
+PASS  ember_sword 至少一个合法来源
+PASS  ember_sword 来源标签无重复
+PASS  ember_sword 来源合法（normal）
+PASS  ember_sword 来源合法（elite）
+PASS  ember_sword 来源合法（shop）
+PASS  ember_sword 来源合法（anvil）
+PASS  ember_sword 来源合法（chest）
+PASS  ember_sword 幕次下限合法（2）
+PASS  ember_sword 幕次上限合法（3）
+PASS  ember_sword 幕次区间有序（2–3）
+PASS  ember_sword 机制摘要非占位（73 字）
+PASS  ember_sword 机制摘要无占位词
+PASS  ember_sword 机制摘要写明触发/条件/限制
+PASS  ember_sword 有同机制分组
+PASS  ember_sword 有非 BOSS 获取通道
+PASS  ember_sword 武器可由商店/铁砧获得
+PASS  ember_sword BOSS 池来源标记与房间配置一致
+PASS  ember_sword 高阶武器有状态/特殊/三连机制
+PASS  executioner_axe 品质合法（rare）
+PASS  executioner_axe 至少一个家族标签
+PASS  executioner_axe 家族标签无重复
+PASS  executioner_axe 家族合法（combo）
+PASS  executioner_axe 用途合法（damage）
+PASS  executioner_axe 至少一个合法来源
+PASS  executioner_axe 来源标签无重复
+PASS  executioner_axe 来源合法（normal）
+PASS  executioner_axe 来源合法（elite）
+PASS  executioner_axe 来源合法（shop）
+PASS  executioner_axe 来源合法（anvil）
+PASS  executioner_axe 来源合法（chest）
+PASS  executioner_axe 幕次下限合法（2）
+PASS  executioner_axe 幕次上限合法（3）
+PASS  executioner_axe 幕次区间有序（2–3）
+PASS  executioner_axe 机制摘要非占位（69 字）
+PASS  executioner_axe 机制摘要无占位词
+PASS  executioner_axe 机制摘要写明触发/条件/限制
+PASS  executioner_axe 有同机制分组
+PASS  executioner_axe 有非 BOSS 获取通道
+PASS  executioner_axe 武器可由商店/铁砧获得
+PASS  executioner_axe BOSS 池来源标记与房间配置一致
+PASS  executioner_axe 高阶武器有状态/特殊/三连机制
+PASS  fire_sword 品质合法（rare）
+PASS  fire_sword 至少一个家族标签
+PASS  fire_sword 家族标签无重复
+PASS  fire_sword 家族合法（fire）
+PASS  fire_sword 家族合法（combo）
+PASS  fire_sword 用途合法（damage）
+PASS  fire_sword 至少一个合法来源
+PASS  fire_sword 来源标签无重复
+PASS  fire_sword 来源合法（normal）
+PASS  fire_sword 来源合法（elite）
+PASS  fire_sword 来源合法（boss）
+PASS  fire_sword 来源合法（shop）
+PASS  fire_sword 来源合法（anvil）
+PASS  fire_sword 来源合法（start）
+PASS  fire_sword 来源合法（chest）
+PASS  fire_sword 幕次下限合法（1）
+PASS  fire_sword 幕次上限合法（3）
+PASS  fire_sword 幕次区间有序（1–3）
+PASS  fire_sword 机制摘要非占位（73 字）
+PASS  fire_sword 机制摘要无占位词
+PASS  fire_sword 机制摘要写明触发/条件/限制
+PASS  fire_sword 有同机制分组
+PASS  fire_sword 有非 BOSS 获取通道
+PASS  fire_sword 武器可由商店/铁砧获得
+PASS  fire_sword BOSS 池来源标记与房间配置一致
+PASS  fire_sword 高阶武器有状态/特殊/三连机制
+PASS  fire_wand 品质合法（common）
+PASS  fire_wand 至少一个家族标签
+PASS  fire_wand 家族标签无重复
+PASS  fire_wand 家族合法（fire）
+PASS  fire_wand 家族合法（combo）
+PASS  fire_wand 用途合法（damage）
+PASS  fire_wand 至少一个合法来源
+PASS  fire_wand 来源标签无重复
+PASS  fire_wand 来源合法（normal）
+PASS  fire_wand 来源合法（elite）
+PASS  fire_wand 来源合法（shop）
+PASS  fire_wand 来源合法（anvil）
+PASS  fire_wand 来源合法（chest）
+PASS  fire_wand 幕次下限合法（1）
+PASS  fire_wand 幕次上限合法（3）
+PASS  fire_wand 幕次区间有序（1–3）
+PASS  fire_wand 基础品质从第 1 幕起可获取
+PASS  fire_wand 机制摘要非占位（96 字）
+PASS  fire_wand 机制摘要无占位词
+PASS  fire_wand 机制摘要写明触发/条件/限制
+PASS  fire_wand 有同机制分组
+PASS  fire_wand 有非 BOSS 获取通道
+PASS  fire_wand 武器可由商店/铁砧获得
+PASS  fire_wand BOSS 池来源标记与房间配置一致
+PASS  flame_scimitar 品质合法（uncommon）
+PASS  flame_scimitar 至少一个家族标签
+PASS  flame_scimitar 家族标签无重复
+PASS  flame_scimitar 家族合法（fire）
+PASS  flame_scimitar 家族合法（combo）
+PASS  flame_scimitar 用途合法（damage）
+PASS  flame_scimitar 至少一个合法来源
+PASS  flame_scimitar 来源标签无重复
+PASS  flame_scimitar 来源合法（normal）
+PASS  flame_scimitar 来源合法（elite）
+PASS  flame_scimitar 来源合法（shop）
+PASS  flame_scimitar 来源合法（anvil）
+PASS  flame_scimitar 来源合法（chest）
+PASS  flame_scimitar 幕次下限合法（1）
+PASS  flame_scimitar 幕次上限合法（3）
+PASS  flame_scimitar 幕次区间有序（1–3）
+PASS  flame_scimitar 机制摘要非占位（73 字）
+PASS  flame_scimitar 机制摘要无占位词
+PASS  flame_scimitar 机制摘要写明触发/条件/限制
+PASS  flame_scimitar 有同机制分组
+PASS  flame_scimitar 有非 BOSS 获取通道
+PASS  flame_scimitar 武器可由商店/铁砧获得
+PASS  flame_scimitar BOSS 池来源标记与房间配置一致
+PASS  flame_staff 品质合法（epic）
+PASS  flame_staff 至少一个家族标签
+PASS  flame_staff 家族标签无重复
+PASS  flame_staff 家族合法（fire）
+PASS  flame_staff 家族合法（combo）
+PASS  flame_staff 家族合法（reel）
+PASS  flame_staff 用途合法（damage）
+PASS  flame_staff 至少一个合法来源
+PASS  flame_staff 来源标签无重复
+PASS  flame_staff 来源合法（normal）
+PASS  flame_staff 来源合法（elite）
+PASS  flame_staff 来源合法（boss）
+PASS  flame_staff 来源合法（shop）
+PASS  flame_staff 来源合法（anvil）
+PASS  flame_staff 来源合法（chest）
+PASS  flame_staff 幕次下限合法（1）
+PASS  flame_staff 幕次上限合法（3）
+PASS  flame_staff 幕次区间有序（1–3）
+PASS  flame_staff 机制摘要非占位（108 字）
+PASS  flame_staff 机制摘要无占位词
+PASS  flame_staff 机制摘要写明触发/条件/限制
+PASS  flame_staff 有同机制分组
+PASS  flame_staff 有非 BOSS 获取通道
+PASS  flame_staff 武器可由商店/铁砧获得
+PASS  flame_staff BOSS 池来源标记与房间配置一致
+PASS  flame_staff 高阶武器有状态/特殊/三连机制
+PASS  flare_dagger 品质合法（uncommon）
+PASS  flare_dagger 至少一个家族标签
+PASS  flare_dagger 家族标签无重复
+PASS  flare_dagger 家族合法（fire）
+PASS  flare_dagger 家族合法（combo）
+PASS  flare_dagger 用途合法（damage）
+PASS  flare_dagger 至少一个合法来源
+PASS  flare_dagger 来源标签无重复
+PASS  flare_dagger 来源合法（normal）
+PASS  flare_dagger 来源合法（elite）
+PASS  flare_dagger 来源合法（shop）
+PASS  flare_dagger 来源合法（anvil）
+PASS  flare_dagger 来源合法（chest）
+PASS  flare_dagger 幕次下限合法（1）
+PASS  flare_dagger 幕次上限合法（3）
+PASS  flare_dagger 幕次区间有序（1–3）
+PASS  flare_dagger 机制摘要非占位（85 字）
+PASS  flare_dagger 机制摘要无占位词
+PASS  flare_dagger 机制摘要写明触发/条件/限制
+PASS  flare_dagger 有同机制分组
+PASS  flare_dagger 有非 BOSS 获取通道
+PASS  flare_dagger 武器可由商店/铁砧获得
+PASS  flare_dagger BOSS 池来源标记与房间配置一致
+PASS  flintlock 品质合法（common）
+PASS  flintlock 至少一个家族标签
+PASS  flintlock 家族标签无重复
+PASS  flintlock 家族合法（combo）
+PASS  flintlock 用途合法（damage）
+PASS  flintlock 至少一个合法来源
+PASS  flintlock 来源标签无重复
+PASS  flintlock 来源合法（normal）
+PASS  flintlock 来源合法（elite）
+PASS  flintlock 来源合法（shop）
+PASS  flintlock 来源合法（anvil）
+PASS  flintlock 来源合法（chest）
+PASS  flintlock 幕次下限合法（1）
+PASS  flintlock 幕次上限合法（3）
+PASS  flintlock 幕次区间有序（1–3）
+PASS  flintlock 基础品质从第 1 幕起可获取
+PASS  flintlock 机制摘要非占位（71 字）
+PASS  flintlock 机制摘要无占位词
+PASS  flintlock 机制摘要写明触发/条件/限制
+PASS  flintlock 有同机制分组
+PASS  flintlock 有非 BOSS 获取通道
+PASS  flintlock 武器可由商店/铁砧获得
+PASS  flintlock BOSS 池来源标记与房间配置一致
+PASS  forge_greatsword 品质合法（uncommon）
+PASS  forge_greatsword 至少一个家族标签
+PASS  forge_greatsword 家族标签无重复
+PASS  forge_greatsword 家族合法（fire）
+PASS  forge_greatsword 家族合法（combo）
+PASS  forge_greatsword 用途合法（damage）
+PASS  forge_greatsword 至少一个合法来源
+PASS  forge_greatsword 来源标签无重复
+PASS  forge_greatsword 来源合法（normal）
+PASS  forge_greatsword 来源合法（elite）
+PASS  forge_greatsword 来源合法（shop）
+PASS  forge_greatsword 来源合法（anvil）
+PASS  forge_greatsword 来源合法（chest）
+PASS  forge_greatsword 幕次下限合法（1）
+PASS  forge_greatsword 幕次上限合法（3）
+PASS  forge_greatsword 幕次区间有序（1–3）
+PASS  forge_greatsword 机制摘要非占位（71 字）
+PASS  forge_greatsword 机制摘要无占位词
+PASS  forge_greatsword 机制摘要写明触发/条件/限制
+PASS  forge_greatsword 有同机制分组
+PASS  forge_greatsword 有非 BOSS 获取通道
+PASS  forge_greatsword 武器可由商店/铁砧获得
+PASS  forge_greatsword BOSS 池来源标记与房间配置一致
+PASS  frost_blade 品质合法（rare）
+PASS  frost_blade 至少一个家族标签
+PASS  frost_blade 家族标签无重复
+PASS  frost_blade 家族合法（ice）
+PASS  frost_blade 家族合法（combo）
+PASS  frost_blade 用途合法（damage）
+PASS  frost_blade 至少一个合法来源
+PASS  frost_blade 来源标签无重复
+PASS  frost_blade 来源合法（normal）
+PASS  frost_blade 来源合法（elite）
+PASS  frost_blade 来源合法（shop）
+PASS  frost_blade 来源合法（anvil）
+PASS  frost_blade 来源合法（chest）
+PASS  frost_blade 幕次下限合法（2）
+PASS  frost_blade 幕次上限合法（3）
+PASS  frost_blade 幕次区间有序（2–3）
+PASS  frost_blade 机制摘要非占位（83 字）
+PASS  frost_blade 机制摘要无占位词
+PASS  frost_blade 机制摘要写明触发/条件/限制
+PASS  frost_blade 有同机制分组
+PASS  frost_blade 有非 BOSS 获取通道
+PASS  frost_blade 武器可由商店/铁砧获得
+PASS  frost_blade BOSS 池来源标记与房间配置一致
+PASS  frost_blade 高阶武器有状态/特殊/三连机制
+PASS  frost_dagger 品质合法（common）
+PASS  frost_dagger 至少一个家族标签
+PASS  frost_dagger 家族标签无重复
+PASS  frost_dagger 家族合法（ice）
+PASS  frost_dagger 家族合法（combo）
+PASS  frost_dagger 用途合法（damage）
+PASS  frost_dagger 至少一个合法来源
+PASS  frost_dagger 来源标签无重复
+PASS  frost_dagger 来源合法（normal）
+PASS  frost_dagger 来源合法（elite）
+PASS  frost_dagger 来源合法（shop）
+PASS  frost_dagger 来源合法（anvil）
+PASS  frost_dagger 来源合法（chest）
+PASS  frost_dagger 幕次下限合法（1）
+PASS  frost_dagger 幕次上限合法（3）
+PASS  frost_dagger 幕次区间有序（1–3）
+PASS  frost_dagger 基础品质从第 1 幕起可获取
+PASS  frost_dagger 机制摘要非占位（83 字）
+PASS  frost_dagger 机制摘要无占位词
+PASS  frost_dagger 机制摘要写明触发/条件/限制
+PASS  frost_dagger 有同机制分组
+PASS  frost_dagger 有非 BOSS 获取通道
+PASS  frost_dagger 武器可由商店/铁砧获得
+PASS  frost_dagger BOSS 池来源标记与房间配置一致
+PASS  frost_lance 品质合法（rare）
+PASS  frost_lance 至少一个家族标签
+PASS  frost_lance 家族标签无重复
+PASS  frost_lance 家族合法（ice）
+PASS  frost_lance 家族合法（combo）
+PASS  frost_lance 用途合法（damage）
+PASS  frost_lance 至少一个合法来源
+PASS  frost_lance 来源标签无重复
+PASS  frost_lance 来源合法（normal）
+PASS  frost_lance 来源合法（elite）
+PASS  frost_lance 来源合法（shop）
+PASS  frost_lance 来源合法（anvil）
+PASS  frost_lance 来源合法（chest）
+PASS  frost_lance 幕次下限合法（2）
+PASS  frost_lance 幕次上限合法（3）
+PASS  frost_lance 幕次区间有序（2–3）
+PASS  frost_lance 机制摘要非占位（73 字）
+PASS  frost_lance 机制摘要无占位词
+PASS  frost_lance 机制摘要写明触发/条件/限制
+PASS  frost_lance 有同机制分组
+PASS  frost_lance 有非 BOSS 获取通道
+PASS  frost_lance 武器可由商店/铁砧获得
+PASS  frost_lance BOSS 池来源标记与房间配置一致
+PASS  frost_lance 高阶武器有状态/特殊/三连机制
+PASS  frost_wand 品质合法（common）
+PASS  frost_wand 至少一个家族标签
+PASS  frost_wand 家族标签无重复
+PASS  frost_wand 家族合法（ice）
+PASS  frost_wand 家族合法（combo）
+PASS  frost_wand 用途合法（damage）
+PASS  frost_wand 至少一个合法来源
+PASS  frost_wand 来源标签无重复
+PASS  frost_wand 来源合法（normal）
+PASS  frost_wand 来源合法（elite）
+PASS  frost_wand 来源合法（shop）
+PASS  frost_wand 来源合法（anvil）
+PASS  frost_wand 来源合法（chest）
+PASS  frost_wand 幕次下限合法（1）
+PASS  frost_wand 幕次上限合法（3）
+PASS  frost_wand 幕次区间有序（1–3）
+PASS  frost_wand 基础品质从第 1 幕起可获取
+PASS  frost_wand 机制摘要非占位（96 字）
+PASS  frost_wand 机制摘要无占位词
+PASS  frost_wand 机制摘要写明触发/条件/限制
+PASS  frost_wand 有同机制分组
+PASS  frost_wand 有非 BOSS 获取通道
+PASS  frost_wand 武器可由商店/铁砧获得
+PASS  frost_wand BOSS 池来源标记与房间配置一致
+PASS  frozen_spear 品质合法（uncommon）
+PASS  frozen_spear 至少一个家族标签
+PASS  frozen_spear 家族标签无重复
+PASS  frozen_spear 家族合法（ice）
+PASS  frozen_spear 家族合法（combo）
+PASS  frozen_spear 用途合法（damage）
+PASS  frozen_spear 至少一个合法来源
+PASS  frozen_spear 来源标签无重复
+PASS  frozen_spear 来源合法（normal）
+PASS  frozen_spear 来源合法（elite）
+PASS  frozen_spear 来源合法（shop）
+PASS  frozen_spear 来源合法（anvil）
+PASS  frozen_spear 来源合法（chest）
+PASS  frozen_spear 来源合法（boss）
+PASS  frozen_spear 幕次下限合法（1）
+PASS  frozen_spear 幕次上限合法（3）
+PASS  frozen_spear 幕次区间有序（1–3）
+PASS  frozen_spear 机制摘要非占位（73 字）
+PASS  frozen_spear 机制摘要无占位词
+PASS  frozen_spear 机制摘要写明触发/条件/限制
+PASS  frozen_spear 有同机制分组
+PASS  frozen_spear 有非 BOSS 获取通道
+PASS  frozen_spear 武器可由商店/铁砧获得
+PASS  frozen_spear BOSS 池来源标记与房间配置一致
+PASS  glacier_greatsword 品质合法（epic）
+PASS  glacier_greatsword 至少一个家族标签
+PASS  glacier_greatsword 家族标签无重复
+PASS  glacier_greatsword 家族合法（ice）
+PASS  glacier_greatsword 家族合法（combo）
+PASS  glacier_greatsword 用途合法（damage）
+PASS  glacier_greatsword 至少一个合法来源
+PASS  glacier_greatsword 来源标签无重复
+PASS  glacier_greatsword 来源合法（normal）
+PASS  glacier_greatsword 来源合法（elite）
+PASS  glacier_greatsword 来源合法（shop）
+PASS  glacier_greatsword 来源合法（anvil）
+PASS  glacier_greatsword 来源合法（chest）
+PASS  glacier_greatsword 幕次下限合法（2）
+PASS  glacier_greatsword 幕次上限合法（3）
+PASS  glacier_greatsword 幕次区间有序（2–3）
+PASS  glacier_greatsword 机制摘要非占位（85 字）
+PASS  glacier_greatsword 机制摘要无占位词
+PASS  glacier_greatsword 机制摘要写明触发/条件/限制
+PASS  glacier_greatsword 有同机制分组
+PASS  glacier_greatsword 有非 BOSS 获取通道
+PASS  glacier_greatsword 武器可由商店/铁砧获得
+PASS  glacier_greatsword BOSS 池来源标记与房间配置一致
+PASS  glacier_greatsword 高阶武器有状态/特殊/三连机制
+PASS  glacier_maul 品质合法（common）
+PASS  glacier_maul 至少一个家族标签
+PASS  glacier_maul 家族标签无重复
+PASS  glacier_maul 家族合法（ice）
+PASS  glacier_maul 家族合法（combo）
+PASS  glacier_maul 用途合法（damage）
+PASS  glacier_maul 至少一个合法来源
+PASS  glacier_maul 来源标签无重复
+PASS  glacier_maul 来源合法（normal）
+PASS  glacier_maul 来源合法（elite）
+PASS  glacier_maul 来源合法（shop）
+PASS  glacier_maul 来源合法（anvil）
+PASS  glacier_maul 来源合法（chest）
+PASS  glacier_maul 幕次下限合法（1）
+PASS  glacier_maul 幕次上限合法（3）
+PASS  glacier_maul 幕次区间有序（1–3）
+PASS  glacier_maul 基础品质从第 1 幕起可获取
+PASS  glacier_maul 机制摘要非占位（69 字）
+PASS  glacier_maul 机制摘要无占位词
+PASS  glacier_maul 机制摘要写明触发/条件/限制
+PASS  glacier_maul 有同机制分组
+PASS  glacier_maul 有非 BOSS 获取通道
+PASS  glacier_maul 武器可由商店/铁砧获得
+PASS  glacier_maul BOSS 池来源标记与房间配置一致
+PASS  gloom_saber 品质合法（common）
+PASS  gloom_saber 至少一个家族标签
+PASS  gloom_saber 家族标签无重复
+PASS  gloom_saber 家族合法（dark）
+PASS  gloom_saber 家族合法（combo）
+PASS  gloom_saber 用途合法（damage）
+PASS  gloom_saber 至少一个合法来源
+PASS  gloom_saber 来源标签无重复
+PASS  gloom_saber 来源合法（normal）
+PASS  gloom_saber 来源合法（elite）
+PASS  gloom_saber 来源合法（shop）
+PASS  gloom_saber 来源合法（anvil）
+PASS  gloom_saber 来源合法（chest）
+PASS  gloom_saber 幕次下限合法（1）
+PASS  gloom_saber 幕次上限合法（3）
+PASS  gloom_saber 幕次区间有序（1–3）
+PASS  gloom_saber 基础品质从第 1 幕起可获取
+PASS  gloom_saber 机制摘要非占位（70 字）
+PASS  gloom_saber 机制摘要无占位词
+PASS  gloom_saber 机制摘要写明触发/条件/限制
+PASS  gloom_saber 有同机制分组
+PASS  gloom_saber 有非 BOSS 获取通道
+PASS  gloom_saber 武器可由商店/铁砧获得
+PASS  gloom_saber BOSS 池来源标记与房间配置一致
+PASS  grave_hammer 品质合法（common）
+PASS  grave_hammer 至少一个家族标签
+PASS  grave_hammer 家族标签无重复
+PASS  grave_hammer 家族合法（dark）
+PASS  grave_hammer 家族合法（combo）
+PASS  grave_hammer 用途合法（damage）
+PASS  grave_hammer 至少一个合法来源
+PASS  grave_hammer 来源标签无重复
+PASS  grave_hammer 来源合法（normal）
+PASS  grave_hammer 来源合法（elite）
+PASS  grave_hammer 来源合法（shop）
+PASS  grave_hammer 来源合法（anvil）
+PASS  grave_hammer 来源合法（chest）
+PASS  grave_hammer 幕次下限合法（1）
+PASS  grave_hammer 幕次上限合法（3）
+PASS  grave_hammer 幕次区间有序（1–3）
+PASS  grave_hammer 基础品质从第 1 幕起可获取
+PASS  grave_hammer 机制摘要非占位（56 字）
+PASS  grave_hammer 机制摘要无占位词
+PASS  grave_hammer 机制摘要写明触发/条件/限制
+PASS  grave_hammer 有同机制分组
+PASS  grave_hammer 有非 BOSS 获取通道
+PASS  grave_hammer 武器可由商店/铁砧获得
+PASS  grave_hammer BOSS 池来源标记与房间配置一致
+PASS  holy_lance 品质合法（uncommon）
+PASS  holy_lance 至少一个家族标签
+PASS  holy_lance 家族标签无重复
+PASS  holy_lance 家族合法（light）
+PASS  holy_lance 家族合法（combo）
+PASS  holy_lance 用途合法（damage）
+PASS  holy_lance 至少一个合法来源
+PASS  holy_lance 来源标签无重复
+PASS  holy_lance 来源合法（normal）
+PASS  holy_lance 来源合法（elite）
+PASS  holy_lance 来源合法（shop）
+PASS  holy_lance 来源合法（anvil）
+PASS  holy_lance 来源合法（chest）
+PASS  holy_lance 幕次下限合法（1）
+PASS  holy_lance 幕次上限合法（3）
+PASS  holy_lance 幕次区间有序（1–3）
+PASS  holy_lance 机制摘要非占位（75 字）
+PASS  holy_lance 机制摘要无占位词
+PASS  holy_lance 机制摘要写明触发/条件/限制
+PASS  holy_lance 有同机制分组
+PASS  holy_lance 有非 BOSS 获取通道
+PASS  holy_lance 武器可由商店/铁砧获得
+PASS  holy_lance BOSS 池来源标记与房间配置一致
+PASS  holy_mace 品质合法（uncommon）
+PASS  holy_mace 至少一个家族标签
+PASS  holy_mace 家族标签无重复
+PASS  holy_mace 家族合法（light）
+PASS  holy_mace 家族合法（combo）
+PASS  holy_mace 用途合法（damage）
+PASS  holy_mace 至少一个合法来源
+PASS  holy_mace 来源标签无重复
+PASS  holy_mace 来源合法（normal）
+PASS  holy_mace 来源合法（elite）
+PASS  holy_mace 来源合法（shop）
+PASS  holy_mace 来源合法（anvil）
+PASS  holy_mace 来源合法（chest）
+PASS  holy_mace 来源合法（boss）
+PASS  holy_mace 幕次下限合法（1）
+PASS  holy_mace 幕次上限合法（3）
+PASS  holy_mace 幕次区间有序（1–3）
+PASS  holy_mace 机制摘要非占位（73 字）
+PASS  holy_mace 机制摘要无占位词
+PASS  holy_mace 机制摘要写明触发/条件/限制
+PASS  holy_mace 有同机制分组
+PASS  holy_mace 有非 BOSS 获取通道
+PASS  holy_mace 武器可由商店/铁砧获得
+PASS  holy_mace BOSS 池来源标记与房间配置一致
+PASS  holy_sword 品质合法（rare）
+PASS  holy_sword 至少一个家族标签
+PASS  holy_sword 家族标签无重复
+PASS  holy_sword 家族合法（light）
+PASS  holy_sword 家族合法（combo）
+PASS  holy_sword 用途合法（damage）
+PASS  holy_sword 至少一个合法来源
+PASS  holy_sword 来源标签无重复
+PASS  holy_sword 来源合法（normal）
+PASS  holy_sword 来源合法（elite）
+PASS  holy_sword 来源合法（boss）
+PASS  holy_sword 来源合法（shop）
+PASS  holy_sword 来源合法（anvil）
+PASS  holy_sword 来源合法（chest）
+PASS  holy_sword 幕次下限合法（1）
+PASS  holy_sword 幕次上限合法（3）
+PASS  holy_sword 幕次区间有序（1–3）
+PASS  holy_sword 机制摘要非占位（59 字）
+PASS  holy_sword 机制摘要无占位词
+PASS  holy_sword 机制摘要写明触发/条件/限制
+PASS  holy_sword 有同机制分组
+PASS  holy_sword 有非 BOSS 获取通道
+PASS  holy_sword 武器可由商店/铁砧获得
+PASS  holy_sword BOSS 池来源标记与房间配置一致
+PASS  holy_sword 高阶武器有状态/特殊/三连机制
+PASS  hunting_bow 品质合法（common）
+PASS  hunting_bow 至少一个家族标签
+PASS  hunting_bow 家族标签无重复
+PASS  hunting_bow 家族合法（combo）
+PASS  hunting_bow 用途合法（damage）
+PASS  hunting_bow 至少一个合法来源
+PASS  hunting_bow 来源标签无重复
+PASS  hunting_bow 来源合法（normal）
+PASS  hunting_bow 来源合法（elite）
+PASS  hunting_bow 来源合法（shop）
+PASS  hunting_bow 来源合法（anvil）
+PASS  hunting_bow 来源合法（chest）
+PASS  hunting_bow 幕次下限合法（1）
+PASS  hunting_bow 幕次上限合法（3）
+PASS  hunting_bow 幕次区间有序（1–3）
+PASS  hunting_bow 基础品质从第 1 幕起可获取
+PASS  hunting_bow 机制摘要非占位（72 字）
+PASS  hunting_bow 机制摘要无占位词
+PASS  hunting_bow 机制摘要写明触发/条件/限制
+PASS  hunting_bow 有同机制分组
+PASS  hunting_bow 有非 BOSS 获取通道
+PASS  hunting_bow 武器可由商店/铁砧获得
+PASS  hunting_bow BOSS 池来源标记与房间配置一致
+PASS  ice_cleaver 品质合法（uncommon）
+PASS  ice_cleaver 至少一个家族标签
+PASS  ice_cleaver 家族标签无重复
+PASS  ice_cleaver 家族合法（ice）
+PASS  ice_cleaver 家族合法（combo）
+PASS  ice_cleaver 用途合法（damage）
+PASS  ice_cleaver 至少一个合法来源
+PASS  ice_cleaver 来源标签无重复
+PASS  ice_cleaver 来源合法（normal）
+PASS  ice_cleaver 来源合法（elite）
+PASS  ice_cleaver 来源合法（shop）
+PASS  ice_cleaver 来源合法（anvil）
+PASS  ice_cleaver 来源合法（chest）
+PASS  ice_cleaver 幕次下限合法（1）
+PASS  ice_cleaver 幕次上限合法（3）
+PASS  ice_cleaver 幕次区间有序（1–3）
+PASS  ice_cleaver 机制摘要非占位（78 字）
+PASS  ice_cleaver 机制摘要无占位词
+PASS  ice_cleaver 机制摘要写明触发/条件/限制
+PASS  ice_cleaver 有同机制分组
+PASS  ice_cleaver 有非 BOSS 获取通道
+PASS  ice_cleaver 武器可由商店/铁砧获得
+PASS  ice_cleaver BOSS 池来源标记与房间配置一致
+PASS  ice_gun 品质合法（rare）
+PASS  ice_gun 至少一个家族标签
+PASS  ice_gun 家族标签无重复
+PASS  ice_gun 家族合法（ice）
+PASS  ice_gun 家族合法（combo）
+PASS  ice_gun 用途合法（damage）
+PASS  ice_gun 至少一个合法来源
+PASS  ice_gun 来源标签无重复
+PASS  ice_gun 来源合法（normal）
+PASS  ice_gun 来源合法（elite）
+PASS  ice_gun 来源合法（boss）
+PASS  ice_gun 来源合法（shop）
+PASS  ice_gun 来源合法（anvil）
+PASS  ice_gun 来源合法（chest）
+PASS  ice_gun 幕次下限合法（1）
+PASS  ice_gun 幕次上限合法（3）
+PASS  ice_gun 幕次区间有序（1–3）
+PASS  ice_gun 机制摘要非占位（95 字）
+PASS  ice_gun 机制摘要无占位词
+PASS  ice_gun 机制摘要写明触发/条件/限制
+PASS  ice_gun 有同机制分组
+PASS  ice_gun 有非 BOSS 获取通道
+PASS  ice_gun 武器可由商店/铁砧获得
+PASS  ice_gun BOSS 池来源标记与房间配置一致
+PASS  ice_gun 高阶武器有状态/特殊/三连机制
+PASS  ice_staff 品质合法（rare）
+PASS  ice_staff 至少一个家族标签
+PASS  ice_staff 家族标签无重复
+PASS  ice_staff 家族合法（ice）
+PASS  ice_staff 家族合法（combo）
+PASS  ice_staff 用途合法（damage）
+PASS  ice_staff 至少一个合法来源
+PASS  ice_staff 来源标签无重复
+PASS  ice_staff 来源合法（normal）
+PASS  ice_staff 来源合法（elite）
+PASS  ice_staff 来源合法（boss）
+PASS  ice_staff 来源合法（shop）
+PASS  ice_staff 来源合法（anvil）
+PASS  ice_staff 来源合法（start）
+PASS  ice_staff 来源合法（chest）
+PASS  ice_staff 幕次下限合法（1）
+PASS  ice_staff 幕次上限合法（3）
+PASS  ice_staff 幕次区间有序（1–3）
+PASS  ice_staff 机制摘要非占位（97 字）
+PASS  ice_staff 机制摘要无占位词
+PASS  ice_staff 机制摘要写明触发/条件/限制
+PASS  ice_staff 有同机制分组
+PASS  ice_staff 有非 BOSS 获取通道
+PASS  ice_staff 武器可由商店/铁砧获得
+PASS  ice_staff BOSS 池来源标记与房间配置一致
+PASS  ice_staff 高阶武器有状态/特殊/三连机制
+PASS  icicle_dart 品质合法（common）
+PASS  icicle_dart 至少一个家族标签
+PASS  icicle_dart 家族标签无重复
+PASS  icicle_dart 家族合法（ice）
+PASS  icicle_dart 家族合法（combo）
+PASS  icicle_dart 用途合法（damage）
+PASS  icicle_dart 至少一个合法来源
+PASS  icicle_dart 来源标签无重复
+PASS  icicle_dart 来源合法（normal）
+PASS  icicle_dart 来源合法（elite）
+PASS  icicle_dart 来源合法（shop）
+PASS  icicle_dart 来源合法（anvil）
+PASS  icicle_dart 来源合法（chest）
+PASS  icicle_dart 幕次下限合法（1）
+PASS  icicle_dart 幕次上限合法（3）
+PASS  icicle_dart 幕次区间有序（1–3）
+PASS  icicle_dart 基础品质从第 1 幕起可获取
+PASS  icicle_dart 机制摘要非占位（94 字）
+PASS  icicle_dart 机制摘要无占位词
+PASS  icicle_dart 机制摘要写明触发/条件/限制
+PASS  icicle_dart 有同机制分组
+PASS  icicle_dart 有非 BOSS 获取通道
+PASS  icicle_dart 武器可由商店/铁砧获得
+PASS  icicle_dart BOSS 池来源标记与房间配置一致
+PASS  inferno_axe 品质合法（epic）
+PASS  inferno_axe 至少一个家族标签
+PASS  inferno_axe 家族标签无重复
+PASS  inferno_axe 家族合法（fire）
+PASS  inferno_axe 家族合法（combo）
+PASS  inferno_axe 用途合法（damage）
+PASS  inferno_axe 至少一个合法来源
+PASS  inferno_axe 来源标签无重复
+PASS  inferno_axe 来源合法（normal）
+PASS  inferno_axe 来源合法（elite）
+PASS  inferno_axe 来源合法（shop）
+PASS  inferno_axe 来源合法（anvil）
+PASS  inferno_axe 来源合法（chest）
+PASS  inferno_axe 幕次下限合法（2）
+PASS  inferno_axe 幕次上限合法（3）
+PASS  inferno_axe 幕次区间有序（2–3）
+PASS  inferno_axe 机制摘要非占位（87 字）
+PASS  inferno_axe 机制摘要无占位词
+PASS  inferno_axe 机制摘要写明触发/条件/限制
+PASS  inferno_axe 有同机制分组
+PASS  inferno_axe 有非 BOSS 获取通道
+PASS  inferno_axe 武器可由商店/铁砧获得
+PASS  inferno_axe BOSS 池来源标记与房间配置一致
+PASS  inferno_axe 高阶武器有状态/特殊/三连机制
+PASS  iron_spear 品质合法（common）
+PASS  iron_spear 至少一个家族标签
+PASS  iron_spear 家族标签无重复
+PASS  iron_spear 家族合法（combo）
+PASS  iron_spear 用途合法（damage）
+PASS  iron_spear 至少一个合法来源
+PASS  iron_spear 来源标签无重复
+PASS  iron_spear 来源合法（normal）
+PASS  iron_spear 来源合法（elite）
+PASS  iron_spear 来源合法（shop）
+PASS  iron_spear 来源合法（anvil）
+PASS  iron_spear 来源合法（chest）
+PASS  iron_spear 幕次下限合法（1）
+PASS  iron_spear 幕次上限合法（3）
+PASS  iron_spear 幕次区间有序（1–3）
+PASS  iron_spear 基础品质从第 1 幕起可获取
+PASS  iron_spear 机制摘要非占位（69 字）
+PASS  iron_spear 机制摘要无占位词
+PASS  iron_spear 机制摘要写明触发/条件/限制
+PASS  iron_spear 有同机制分组
+PASS  iron_spear 有非 BOSS 获取通道
+PASS  iron_spear 武器可由商店/铁砧获得
+PASS  iron_spear BOSS 池来源标记与房间配置一致
+PASS  iron_sword 品质合法（common）
+PASS  iron_sword 至少一个家族标签
+PASS  iron_sword 家族标签无重复
+PASS  iron_sword 家族合法（combo）
+PASS  iron_sword 用途合法（damage）
+PASS  iron_sword 至少一个合法来源
+PASS  iron_sword 来源标签无重复
+PASS  iron_sword 来源合法（normal）
+PASS  iron_sword 来源合法（elite）
+PASS  iron_sword 来源合法（boss）
+PASS  iron_sword 来源合法（shop）
+PASS  iron_sword 来源合法（anvil）
+PASS  iron_sword 来源合法（chest）
+PASS  iron_sword 幕次下限合法（1）
+PASS  iron_sword 幕次上限合法（3）
+PASS  iron_sword 幕次区间有序（1–3）
+PASS  iron_sword 基础品质从第 1 幕起可获取
+PASS  iron_sword 机制摘要非占位（60 字）
+PASS  iron_sword 机制摘要无占位词
+PASS  iron_sword 机制摘要写明触发/条件/限制
+PASS  iron_sword 有同机制分组
+PASS  iron_sword 有非 BOSS 获取通道
+PASS  iron_sword 武器可由商店/铁砧获得
+PASS  iron_sword BOSS 池来源标记与房间配置一致
+PASS  judgment_greatsword 品质合法（uncommon）
+PASS  judgment_greatsword 至少一个家族标签
+PASS  judgment_greatsword 家族标签无重复
+PASS  judgment_greatsword 家族合法（dark）
+PASS  judgment_greatsword 家族合法（combo）
+PASS  judgment_greatsword 用途合法（damage）
+PASS  judgment_greatsword 至少一个合法来源
+PASS  judgment_greatsword 来源标签无重复
+PASS  judgment_greatsword 来源合法（normal）
+PASS  judgment_greatsword 来源合法（elite）
+PASS  judgment_greatsword 来源合法（shop）
+PASS  judgment_greatsword 来源合法（anvil）
+PASS  judgment_greatsword 来源合法（chest）
+PASS  judgment_greatsword 幕次下限合法（1）
+PASS  judgment_greatsword 幕次上限合法（3）
+PASS  judgment_greatsword 幕次区间有序（1–3）
+PASS  judgment_greatsword 机制摘要非占位（65 字）
+PASS  judgment_greatsword 机制摘要无占位词
+PASS  judgment_greatsword 机制摘要写明触发/条件/限制
+PASS  judgment_greatsword 有同机制分组
+PASS  judgment_greatsword 有非 BOSS 获取通道
+PASS  judgment_greatsword 武器可由商店/铁砧获得
+PASS  judgment_greatsword BOSS 池来源标记与房间配置一致
+PASS  mace 品质合法（common）
+PASS  mace 至少一个家族标签
+PASS  mace 家族标签无重复
+PASS  mace 家族合法（combo）
+PASS  mace 用途合法（damage）
+PASS  mace 至少一个合法来源
+PASS  mace 来源标签无重复
+PASS  mace 来源合法（normal）
+PASS  mace 来源合法（elite）
+PASS  mace 来源合法（shop）
+PASS  mace 来源合法（anvil）
+PASS  mace 来源合法（chest）
+PASS  mace 幕次下限合法（1）
+PASS  mace 幕次上限合法（3）
+PASS  mace 幕次区间有序（1–3）
+PASS  mace 基础品质从第 1 幕起可获取
+PASS  mace 机制摘要非占位（60 字）
+PASS  mace 机制摘要无占位词
+PASS  mace 机制摘要写明触发/条件/限制
+PASS  mace 有同机制分组
+PASS  mace 有非 BOSS 获取通道
+PASS  mace 武器可由商店/铁砧获得
+PASS  mace BOSS 池来源标记与房间配置一致
+PASS  magma_maul 品质合法（common）
+PASS  magma_maul 至少一个家族标签
+PASS  magma_maul 家族标签无重复
+PASS  magma_maul 家族合法（fire）
+PASS  magma_maul 家族合法（combo）
+PASS  magma_maul 用途合法（damage）
+PASS  magma_maul 至少一个合法来源
+PASS  magma_maul 来源标签无重复
+PASS  magma_maul 来源合法（normal）
+PASS  magma_maul 来源合法（elite）
+PASS  magma_maul 来源合法（shop）
+PASS  magma_maul 来源合法（anvil）
+PASS  magma_maul 来源合法（chest）
+PASS  magma_maul 幕次下限合法（1）
+PASS  magma_maul 幕次上限合法（3）
+PASS  magma_maul 幕次区间有序（1–3）
+PASS  magma_maul 基础品质从第 1 幕起可获取
+PASS  magma_maul 机制摘要非占位（71 字）
+PASS  magma_maul 机制摘要无占位词
+PASS  magma_maul 机制摘要写明触发/条件/限制
+PASS  magma_maul 有同机制分组
+PASS  magma_maul 有非 BOSS 获取通道
+PASS  magma_maul 武器可由商店/铁砧获得
+PASS  magma_maul BOSS 池来源标记与房间配置一致
+PASS  miasma_staff 品质合法（uncommon）
+PASS  miasma_staff 至少一个家族标签
+PASS  miasma_staff 家族标签无重复
+PASS  miasma_staff 家族合法（poison）
+PASS  miasma_staff 家族合法（combo）
+PASS  miasma_staff 用途合法（damage）
+PASS  miasma_staff 至少一个合法来源
+PASS  miasma_staff 来源标签无重复
+PASS  miasma_staff 来源合法（normal）
+PASS  miasma_staff 来源合法（elite）
+PASS  miasma_staff 来源合法（shop）
+PASS  miasma_staff 来源合法（anvil）
+PASS  miasma_staff 来源合法（chest）
+PASS  miasma_staff 幕次下限合法（1）
+PASS  miasma_staff 幕次上限合法（3）
+PASS  miasma_staff 幕次区间有序（1–3）
+PASS  miasma_staff 机制摘要非占位（95 字）
+PASS  miasma_staff 机制摘要无占位词
+PASS  miasma_staff 机制摘要写明触发/条件/限制
+PASS  miasma_staff 有同机制分组
+PASS  miasma_staff 有非 BOSS 获取通道
+PASS  miasma_staff 武器可由商店/铁砧获得
+PASS  miasma_staff BOSS 池来源标记与房间配置一致
+PASS  night_scythe 品质合法（rare）
+PASS  night_scythe 至少一个家族标签
+PASS  night_scythe 家族标签无重复
+PASS  night_scythe 家族合法（dark）
+PASS  night_scythe 家族合法（combo）
+PASS  night_scythe 用途合法（damage）
+PASS  night_scythe 至少一个合法来源
+PASS  night_scythe 来源标签无重复
+PASS  night_scythe 来源合法（normal）
+PASS  night_scythe 来源合法（elite）
+PASS  night_scythe 来源合法（boss）
+PASS  night_scythe 来源合法（shop）
+PASS  night_scythe 来源合法（anvil）
+PASS  night_scythe 来源合法（chest）
+PASS  night_scythe 幕次下限合法（1）
+PASS  night_scythe 幕次上限合法（3）
+PASS  night_scythe 幕次区间有序（1–3）
+PASS  night_scythe 机制摘要非占位（56 字）
+PASS  night_scythe 机制摘要无占位词
+PASS  night_scythe 机制摘要写明触发/条件/限制
+PASS  night_scythe 有同机制分组
+PASS  night_scythe 有非 BOSS 获取通道
+PASS  night_scythe 武器可由商店/铁砧获得
+PASS  night_scythe BOSS 池来源标记与房间配置一致
+PASS  night_scythe 高阶武器有状态/特殊/三连机制
+PASS  pistol 品质合法（common）
+PASS  pistol 至少一个家族标签
+PASS  pistol 家族标签无重复
+PASS  pistol 家族合法（combo）
+PASS  pistol 用途合法（damage）
+PASS  pistol 至少一个合法来源
+PASS  pistol 来源标签无重复
+PASS  pistol 来源合法（normal）
+PASS  pistol 来源合法（elite）
+PASS  pistol 来源合法（shop）
+PASS  pistol 来源合法（anvil）
+PASS  pistol 来源合法（chest）
+PASS  pistol 幕次下限合法（1）
+PASS  pistol 幕次上限合法（3）
+PASS  pistol 幕次区间有序（1–3）
+PASS  pistol 基础品质从第 1 幕起可获取
+PASS  pistol 机制摘要非占位（71 字）
+PASS  pistol 机制摘要无占位词
+PASS  pistol 机制摘要写明触发/条件/限制
+PASS  pistol 有同机制分组
+PASS  pistol 有非 BOSS 获取通道
+PASS  pistol 武器可由商店/铁砧获得
+PASS  pistol BOSS 池来源标记与房间配置一致
+PASS  plague_hatchet 品质合法（common）
+PASS  plague_hatchet 至少一个家族标签
+PASS  plague_hatchet 家族标签无重复
+PASS  plague_hatchet 家族合法（poison）
+PASS  plague_hatchet 家族合法（combo）
+PASS  plague_hatchet 用途合法（damage）
+PASS  plague_hatchet 至少一个合法来源
+PASS  plague_hatchet 来源标签无重复
+PASS  plague_hatchet 来源合法（normal）
+PASS  plague_hatchet 来源合法（elite）
+PASS  plague_hatchet 来源合法（shop）
+PASS  plague_hatchet 来源合法（anvil）
+PASS  plague_hatchet 来源合法（chest）
+PASS  plague_hatchet 幕次下限合法（1）
+PASS  plague_hatchet 幕次上限合法（3）
+PASS  plague_hatchet 幕次区间有序（1–3）
+PASS  plague_hatchet 基础品质从第 1 幕起可获取
+PASS  plague_hatchet 机制摘要非占位（71 字）
+PASS  plague_hatchet 机制摘要无占位词
+PASS  plague_hatchet 机制摘要写明触发/条件/限制
+PASS  plague_hatchet 有同机制分组
+PASS  plague_hatchet 有非 BOSS 获取通道
+PASS  plague_hatchet 武器可由商店/铁砧获得
+PASS  plague_hatchet BOSS 池来源标记与房间配置一致
+PASS  plague_reaper 品质合法（rare）
+PASS  plague_reaper 至少一个家族标签
+PASS  plague_reaper 家族标签无重复
+PASS  plague_reaper 家族合法（poison）
+PASS  plague_reaper 家族合法（combo）
+PASS  plague_reaper 用途合法（damage）
+PASS  plague_reaper 至少一个合法来源
+PASS  plague_reaper 来源标签无重复
+PASS  plague_reaper 来源合法（normal）
+PASS  plague_reaper 来源合法（elite）
+PASS  plague_reaper 来源合法（shop）
+PASS  plague_reaper 来源合法（anvil）
+PASS  plague_reaper 来源合法（chest）
+PASS  plague_reaper 来源合法（boss）
+PASS  plague_reaper 幕次下限合法（2）
+PASS  plague_reaper 幕次上限合法（3）
+PASS  plague_reaper 幕次区间有序（2–3）
+PASS  plague_reaper 机制摘要非占位（78 字）
+PASS  plague_reaper 机制摘要无占位词
+PASS  plague_reaper 机制摘要写明触发/条件/限制
+PASS  plague_reaper 有同机制分组
+PASS  plague_reaper 有非 BOSS 获取通道
+PASS  plague_reaper 武器可由商店/铁砧获得
+PASS  plague_reaper BOSS 池来源标记与房间配置一致
+PASS  plague_reaper 高阶武器有状态/特殊/三连机制
+PASS  poison_dagger 品质合法（uncommon）
+PASS  poison_dagger 至少一个家族标签
+PASS  poison_dagger 家族标签无重复
+PASS  poison_dagger 家族合法（poison）
+PASS  poison_dagger 家族合法（combo）
+PASS  poison_dagger 用途合法（damage）
+PASS  poison_dagger 至少一个合法来源
+PASS  poison_dagger 来源标签无重复
+PASS  poison_dagger 来源合法（normal）
+PASS  poison_dagger 来源合法（elite）
+PASS  poison_dagger 来源合法（shop）
+PASS  poison_dagger 来源合法（anvil）
+PASS  poison_dagger 来源合法（chest）
+PASS  poison_dagger 幕次下限合法（1）
+PASS  poison_dagger 幕次上限合法（3）
+PASS  poison_dagger 幕次区间有序（1–3）
+PASS  poison_dagger 机制摘要非占位（69 字）
+PASS  poison_dagger 机制摘要无占位词
+PASS  poison_dagger 机制摘要写明触发/条件/限制
+PASS  poison_dagger 有同机制分组
+PASS  poison_dagger 有非 BOSS 获取通道
+PASS  poison_dagger 武器可由商店/铁砧获得
+PASS  poison_dagger BOSS 池来源标记与房间配置一致
+PASS  prayer_staff 品质合法（common）
+PASS  prayer_staff 至少一个家族标签
+PASS  prayer_staff 家族标签无重复
+PASS  prayer_staff 家族合法（light）
+PASS  prayer_staff 家族合法（combo）
+PASS  prayer_staff 用途合法（damage）
+PASS  prayer_staff 至少一个合法来源
+PASS  prayer_staff 来源标签无重复
+PASS  prayer_staff 来源合法（normal）
+PASS  prayer_staff 来源合法（elite）
+PASS  prayer_staff 来源合法（shop）
+PASS  prayer_staff 来源合法（anvil）
+PASS  prayer_staff 来源合法（chest）
+PASS  prayer_staff 幕次下限合法（1）
+PASS  prayer_staff 幕次上限合法（3）
+PASS  prayer_staff 幕次区间有序（1–3）
+PASS  prayer_staff 基础品质从第 1 幕起可获取
+PASS  prayer_staff 机制摘要非占位（99 字）
+PASS  prayer_staff 机制摘要无占位词
+PASS  prayer_staff 机制摘要写明触发/条件/限制
+PASS  prayer_staff 有同机制分组
+PASS  prayer_staff 有非 BOSS 获取通道
+PASS  prayer_staff 武器可由商店/铁砧获得
+PASS  prayer_staff BOSS 池来源标记与房间配置一致
+PASS  pyre_staff 品质合法（uncommon）
+PASS  pyre_staff 至少一个家族标签
+PASS  pyre_staff 家族标签无重复
+PASS  pyre_staff 家族合法（fire）
+PASS  pyre_staff 家族合法（combo）
+PASS  pyre_staff 用途合法（damage）
+PASS  pyre_staff 至少一个合法来源
+PASS  pyre_staff 来源标签无重复
+PASS  pyre_staff 来源合法（normal）
+PASS  pyre_staff 来源合法（elite）
+PASS  pyre_staff 来源合法（shop）
+PASS  pyre_staff 来源合法（anvil）
+PASS  pyre_staff 来源合法（chest）
+PASS  pyre_staff 幕次下限合法（1）
+PASS  pyre_staff 幕次上限合法（3）
+PASS  pyre_staff 幕次区间有序（1–3）
+PASS  pyre_staff 机制摘要非占位（97 字）
+PASS  pyre_staff 机制摘要无占位词
+PASS  pyre_staff 机制摘要写明触发/条件/限制
+PASS  pyre_staff 有同机制分组
+PASS  pyre_staff 有非 BOSS 获取通道
+PASS  pyre_staff 武器可由商店/铁砧获得
+PASS  pyre_staff BOSS 池来源标记与房间配置一致
+PASS  radiant_saber 品质合法（uncommon）
+PASS  radiant_saber 至少一个家族标签
+PASS  radiant_saber 家族标签无重复
+PASS  radiant_saber 家族合法（light）
+PASS  radiant_saber 家族合法（combo）
+PASS  radiant_saber 用途合法（damage）
+PASS  radiant_saber 至少一个合法来源
+PASS  radiant_saber 来源标签无重复
+PASS  radiant_saber 来源合法（normal）
+PASS  radiant_saber 来源合法（elite）
+PASS  radiant_saber 来源合法（shop）
+PASS  radiant_saber 来源合法（anvil）
+PASS  radiant_saber 来源合法（chest）
+PASS  radiant_saber 来源合法（boss）
+PASS  radiant_saber 幕次下限合法（1）
+PASS  radiant_saber 幕次上限合法（3）
+PASS  radiant_saber 幕次区间有序（1–3）
+PASS  radiant_saber 机制摘要非占位（72 字）
+PASS  radiant_saber 机制摘要无占位词
+PASS  radiant_saber 机制摘要写明触发/条件/限制
+PASS  radiant_saber 有同机制分组
+PASS  radiant_saber 有非 BOSS 获取通道
+PASS  radiant_saber 武器可由商店/铁砧获得
+PASS  radiant_saber BOSS 池来源标记与房间配置一致
+PASS  rime_saber 品质合法（uncommon）
+PASS  rime_saber 至少一个家族标签
+PASS  rime_saber 家族标签无重复
+PASS  rime_saber 家族合法（ice）
+PASS  rime_saber 家族合法（combo）
+PASS  rime_saber 用途合法（damage）
+PASS  rime_saber 至少一个合法来源
+PASS  rime_saber 来源标签无重复
+PASS  rime_saber 来源合法（normal）
+PASS  rime_saber 来源合法（elite）
+PASS  rime_saber 来源合法（shop）
+PASS  rime_saber 来源合法（anvil）
+PASS  rime_saber 来源合法（chest）
+PASS  rime_saber 幕次下限合法（1）
+PASS  rime_saber 幕次上限合法（3）
+PASS  rime_saber 幕次区间有序（1–3）
+PASS  rime_saber 机制摘要非占位（84 字）
+PASS  rime_saber 机制摘要无占位词
+PASS  rime_saber 机制摘要写明触发/条件/限制
+PASS  rime_saber 有同机制分组
+PASS  rime_saber 有非 BOSS 获取通道
+PASS  rime_saber 武器可由商店/铁砧获得
+PASS  rime_saber BOSS 池来源标记与房间配置一致
+PASS  rune_repeater 品质合法（uncommon）
+PASS  rune_repeater 至少一个家族标签
+PASS  rune_repeater 家族标签无重复
+PASS  rune_repeater 家族合法（combo）
+PASS  rune_repeater 用途合法（damage）
+PASS  rune_repeater 至少一个合法来源
+PASS  rune_repeater 来源标签无重复
+PASS  rune_repeater 来源合法（normal）
+PASS  rune_repeater 来源合法（elite）
+PASS  rune_repeater 来源合法（shop）
+PASS  rune_repeater 来源合法（anvil）
+PASS  rune_repeater 来源合法（chest）
+PASS  rune_repeater 幕次下限合法（1）
+PASS  rune_repeater 幕次上限合法（3）
+PASS  rune_repeater 幕次区间有序（1–3）
+PASS  rune_repeater 机制摘要非占位（101 字）
+PASS  rune_repeater 机制摘要无占位词
+PASS  rune_repeater 机制摘要写明触发/条件/限制
+PASS  rune_repeater 有同机制分组
+PASS  rune_repeater 有非 BOSS 获取通道
+PASS  rune_repeater 武器可由商店/铁砧获得
+PASS  rune_repeater BOSS 池来源标记与房间配置一致
+PASS  rusty_cleaver 品质合法（common）
+PASS  rusty_cleaver 至少一个家族标签
+PASS  rusty_cleaver 家族标签无重复
+PASS  rusty_cleaver 家族合法（poison）
+PASS  rusty_cleaver 家族合法（combo）
+PASS  rusty_cleaver 用途合法（damage）
+PASS  rusty_cleaver 至少一个合法来源
+PASS  rusty_cleaver 来源标签无重复
+PASS  rusty_cleaver 来源合法（normal）
+PASS  rusty_cleaver 来源合法（elite）
+PASS  rusty_cleaver 来源合法（shop）
+PASS  rusty_cleaver 来源合法（anvil）
+PASS  rusty_cleaver 来源合法（chest）
+PASS  rusty_cleaver 幕次下限合法（1）
+PASS  rusty_cleaver 幕次上限合法（3）
+PASS  rusty_cleaver 幕次区间有序（1–3）
+PASS  rusty_cleaver 基础品质从第 1 幕起可获取
+PASS  rusty_cleaver 机制摘要非占位（69 字）
+PASS  rusty_cleaver 机制摘要无占位词
+PASS  rusty_cleaver 机制摘要写明触发/条件/限制
+PASS  rusty_cleaver 有同机制分组
+PASS  rusty_cleaver 有非 BOSS 获取通道
+PASS  rusty_cleaver 武器可由商店/铁砧获得
+PASS  rusty_cleaver BOSS 池来源标记与房间配置一致
+PASS  seraph_codex 品质合法（uncommon）
+PASS  seraph_codex 至少一个家族标签
+PASS  seraph_codex 家族标签无重复
+PASS  seraph_codex 家族合法（light）
+PASS  seraph_codex 家族合法（combo）
+PASS  seraph_codex 用途合法（damage）
+PASS  seraph_codex 至少一个合法来源
+PASS  seraph_codex 来源标签无重复
+PASS  seraph_codex 来源合法（normal）
+PASS  seraph_codex 来源合法（elite）
+PASS  seraph_codex 来源合法（shop）
+PASS  seraph_codex 来源合法（anvil）
+PASS  seraph_codex 来源合法（chest）
+PASS  seraph_codex 幕次下限合法（1）
+PASS  seraph_codex 幕次上限合法（3）
+PASS  seraph_codex 幕次区间有序（1–3）
+PASS  seraph_codex 机制摘要非占位（108 字）
+PASS  seraph_codex 机制摘要无占位词
+PASS  seraph_codex 机制摘要写明触发/条件/限制
+PASS  seraph_codex 有同机制分组
+PASS  seraph_codex 有非 BOSS 获取通道
+PASS  seraph_codex 武器可由商店/铁砧获得
+PASS  seraph_codex BOSS 池来源标记与房间配置一致
+PASS  shade_dagger 品质合法（common）
+PASS  shade_dagger 至少一个家族标签
+PASS  shade_dagger 家族标签无重复
+PASS  shade_dagger 家族合法（dark）
+PASS  shade_dagger 家族合法（combo）
+PASS  shade_dagger 用途合法（damage）
+PASS  shade_dagger 至少一个合法来源
+PASS  shade_dagger 来源标签无重复
+PASS  shade_dagger 来源合法（normal）
+PASS  shade_dagger 来源合法（elite）
+PASS  shade_dagger 来源合法（shop）
+PASS  shade_dagger 来源合法（anvil）
+PASS  shade_dagger 来源合法（chest）
+PASS  shade_dagger 幕次下限合法（1）
+PASS  shade_dagger 幕次上限合法（3）
+PASS  shade_dagger 幕次区间有序（1–3）
+PASS  shade_dagger 基础品质从第 1 幕起可获取
+PASS  shade_dagger 机制摘要非占位（70 字）
+PASS  shade_dagger 机制摘要无占位词
+PASS  shade_dagger 机制摘要写明触发/条件/限制
+PASS  shade_dagger 有同机制分组
+PASS  shade_dagger 有非 BOSS 获取通道
+PASS  shade_dagger 武器可由商店/铁砧获得
+PASS  shade_dagger BOSS 池来源标记与房间配置一致
+PASS  shadow_dagger 品质合法（uncommon）
+PASS  shadow_dagger 至少一个家族标签
+PASS  shadow_dagger 家族标签无重复
+PASS  shadow_dagger 家族合法（dark）
+PASS  shadow_dagger 家族合法（combo）
+PASS  shadow_dagger 用途合法（damage）
+PASS  shadow_dagger 至少一个合法来源
+PASS  shadow_dagger 来源标签无重复
+PASS  shadow_dagger 来源合法（normal）
+PASS  shadow_dagger 来源合法（elite）
+PASS  shadow_dagger 来源合法（shop）
+PASS  shadow_dagger 来源合法（anvil）
+PASS  shadow_dagger 来源合法（chest）
+PASS  shadow_dagger 幕次下限合法（1）
+PASS  shadow_dagger 幕次上限合法（3）
+PASS  shadow_dagger 幕次区间有序（1–3）
+PASS  shadow_dagger 机制摘要非占位（70 字）
+PASS  shadow_dagger 机制摘要无占位词
+PASS  shadow_dagger 机制摘要写明触发/条件/限制
+PASS  shadow_dagger 有同机制分组
+PASS  shadow_dagger 有非 BOSS 获取通道
+PASS  shadow_dagger 武器可由商店/铁砧获得
+PASS  shadow_dagger BOSS 池来源标记与房间配置一致
+PASS  shadow_guillotine 品质合法（uncommon）
+PASS  shadow_guillotine 至少一个家族标签
+PASS  shadow_guillotine 家族标签无重复
+PASS  shadow_guillotine 家族合法（dark）
+PASS  shadow_guillotine 家族合法（combo）
+PASS  shadow_guillotine 用途合法（damage）
+PASS  shadow_guillotine 至少一个合法来源
+PASS  shadow_guillotine 来源标签无重复
+PASS  shadow_guillotine 来源合法（normal）
+PASS  shadow_guillotine 来源合法（elite）
+PASS  shadow_guillotine 来源合法（boss）
+PASS  shadow_guillotine 来源合法（shop）
+PASS  shadow_guillotine 来源合法（anvil）
+PASS  shadow_guillotine 来源合法（chest）
+PASS  shadow_guillotine 幕次下限合法（1）
+PASS  shadow_guillotine 幕次上限合法（3）
+PASS  shadow_guillotine 幕次区间有序（1–3）
+PASS  shadow_guillotine 机制摘要非占位（86 字）
+PASS  shadow_guillotine 机制摘要无占位词
+PASS  shadow_guillotine 机制摘要写明触发/条件/限制
+PASS  shadow_guillotine 有同机制分组
+PASS  shadow_guillotine 有非 BOSS 获取通道
+PASS  shadow_guillotine 武器可由商店/铁砧获得
+PASS  shadow_guillotine BOSS 池来源标记与房间配置一致
+PASS  short_sword 品质合法（common）
+PASS  short_sword 至少一个家族标签
+PASS  short_sword 家族标签无重复
+PASS  short_sword 家族合法（combo）
+PASS  short_sword 用途合法（damage）
+PASS  short_sword 至少一个合法来源
+PASS  short_sword 来源标签无重复
+PASS  short_sword 来源合法（normal）
+PASS  short_sword 来源合法（elite）
+PASS  short_sword 来源合法（shop）
+PASS  short_sword 来源合法（anvil）
+PASS  short_sword 来源合法（chest）
+PASS  short_sword 幕次下限合法（1）
+PASS  short_sword 幕次上限合法（3）
+PASS  short_sword 幕次区间有序（1–3）
+PASS  short_sword 基础品质从第 1 幕起可获取
+PASS  short_sword 机制摘要非占位（74 字）
+PASS  short_sword 机制摘要无占位词
+PASS  short_sword 机制摘要写明触发/条件/限制
+PASS  short_sword 有同机制分组
+PASS  short_sword 有非 BOSS 获取通道
+PASS  short_sword 武器可由商店/铁砧获得
+PASS  short_sword BOSS 池来源标记与房间配置一致
+PASS  sin_blade 品质合法（uncommon）
+PASS  sin_blade 至少一个家族标签
+PASS  sin_blade 家族标签无重复
+PASS  sin_blade 家族合法（dark）
+PASS  sin_blade 家族合法（combo）
+PASS  sin_blade 用途合法（damage）
+PASS  sin_blade 至少一个合法来源
+PASS  sin_blade 来源标签无重复
+PASS  sin_blade 来源合法（normal）
+PASS  sin_blade 来源合法（elite）
+PASS  sin_blade 来源合法（boss）
+PASS  sin_blade 来源合法（shop）
+PASS  sin_blade 来源合法（anvil）
+PASS  sin_blade 来源合法（chest）
+PASS  sin_blade 幕次下限合法（1）
+PASS  sin_blade 幕次上限合法（3）
+PASS  sin_blade 幕次区间有序（1–3）
+PASS  sin_blade 机制摘要非占位（86 字）
+PASS  sin_blade 机制摘要无占位词
+PASS  sin_blade 机制摘要写明触发/条件/限制
+PASS  sin_blade 有同机制分组
+PASS  sin_blade 有非 BOSS 获取通道
+PASS  sin_blade 武器可由商店/铁砧获得
+PASS  sin_blade BOSS 池来源标记与房间配置一致
+PASS  snow_hatchet 品质合法（common）
+PASS  snow_hatchet 至少一个家族标签
+PASS  snow_hatchet 家族标签无重复
+PASS  snow_hatchet 家族合法（ice）
+PASS  snow_hatchet 家族合法（combo）
+PASS  snow_hatchet 用途合法（damage）
+PASS  snow_hatchet 至少一个合法来源
+PASS  snow_hatchet 来源标签无重复
+PASS  snow_hatchet 来源合法（normal）
+PASS  snow_hatchet 来源合法（elite）
+PASS  snow_hatchet 来源合法（shop）
+PASS  snow_hatchet 来源合法（anvil）
+PASS  snow_hatchet 来源合法（chest）
+PASS  snow_hatchet 幕次下限合法（1）
+PASS  snow_hatchet 幕次上限合法（3）
+PASS  snow_hatchet 幕次区间有序（1–3）
+PASS  snow_hatchet 基础品质从第 1 幕起可获取
+PASS  snow_hatchet 机制摘要非占位（71 字）
+PASS  snow_hatchet 机制摘要无占位词
+PASS  snow_hatchet 机制摘要写明触发/条件/限制
+PASS  snow_hatchet 有同机制分组
+PASS  snow_hatchet 有非 BOSS 获取通道
+PASS  snow_hatchet 武器可由商店/铁砧获得
+PASS  snow_hatchet BOSS 池来源标记与房间配置一致
+PASS  spore_wand 品质合法（common）
+PASS  spore_wand 至少一个家族标签
+PASS  spore_wand 家族标签无重复
+PASS  spore_wand 家族合法（poison）
+PASS  spore_wand 家族合法（combo）
+PASS  spore_wand 用途合法（damage）
+PASS  spore_wand 至少一个合法来源
+PASS  spore_wand 来源标签无重复
+PASS  spore_wand 来源合法（normal）
+PASS  spore_wand 来源合法（elite）
+PASS  spore_wand 来源合法（shop）
+PASS  spore_wand 来源合法（anvil）
+PASS  spore_wand 来源合法（chest）
+PASS  spore_wand 幕次下限合法（1）
+PASS  spore_wand 幕次上限合法（3）
+PASS  spore_wand 幕次区间有序（1–3）
+PASS  spore_wand 基础品质从第 1 幕起可获取
+PASS  spore_wand 机制摘要非占位（94 字）
+PASS  spore_wand 机制摘要无占位词
+PASS  spore_wand 机制摘要写明触发/条件/限制
+PASS  spore_wand 有同机制分组
+PASS  spore_wand 有非 BOSS 获取通道
+PASS  spore_wand 武器可由商店/铁砧获得
+PASS  spore_wand BOSS 池来源标记与房间配置一致
+PASS  sun_hatchet 品质合法（common）
+PASS  sun_hatchet 至少一个家族标签
+PASS  sun_hatchet 家族标签无重复
+PASS  sun_hatchet 家族合法（light）
+PASS  sun_hatchet 家族合法（combo）
+PASS  sun_hatchet 用途合法（damage）
+PASS  sun_hatchet 至少一个合法来源
+PASS  sun_hatchet 来源标签无重复
+PASS  sun_hatchet 来源合法（normal）
+PASS  sun_hatchet 来源合法（elite）
+PASS  sun_hatchet 来源合法（shop）
+PASS  sun_hatchet 来源合法（anvil）
+PASS  sun_hatchet 来源合法（chest）
+PASS  sun_hatchet 幕次下限合法（1）
+PASS  sun_hatchet 幕次上限合法（3）
+PASS  sun_hatchet 幕次区间有序（1–3）
+PASS  sun_hatchet 基础品质从第 1 幕起可获取
+PASS  sun_hatchet 机制摘要非占位（75 字）
+PASS  sun_hatchet 机制摘要无占位词
+PASS  sun_hatchet 机制摘要写明触发/条件/限制
+PASS  sun_hatchet 有同机制分组
+PASS  sun_hatchet 有非 BOSS 获取通道
+PASS  sun_hatchet 武器可由商店/铁砧获得
+PASS  sun_hatchet BOSS 池来源标记与房间配置一致
+PASS  sunforged_blade 品质合法（epic）
+PASS  sunforged_blade 至少一个家族标签
+PASS  sunforged_blade 家族标签无重复
+PASS  sunforged_blade 家族合法（light）
+PASS  sunforged_blade 家族合法（combo）
+PASS  sunforged_blade 用途合法（damage）
+PASS  sunforged_blade 至少一个合法来源
+PASS  sunforged_blade 来源标签无重复
+PASS  sunforged_blade 来源合法（normal）
+PASS  sunforged_blade 来源合法（elite）
+PASS  sunforged_blade 来源合法（shop）
+PASS  sunforged_blade 来源合法（anvil）
+PASS  sunforged_blade 来源合法（chest）
+PASS  sunforged_blade 幕次下限合法（1）
+PASS  sunforged_blade 幕次上限合法（3）
+PASS  sunforged_blade 幕次区间有序（1–3）
+PASS  sunforged_blade 机制摘要非占位（83 字）
+PASS  sunforged_blade 机制摘要无占位词
+PASS  sunforged_blade 机制摘要写明触发/条件/限制
+PASS  sunforged_blade 有同机制分组
+PASS  sunforged_blade 有非 BOSS 获取通道
+PASS  sunforged_blade 武器可由商店/铁砧获得
+PASS  sunforged_blade BOSS 池来源标记与房间配置一致
+PASS  sunforged_blade 高阶武器有状态/特殊/三连机制
+PASS  sunlance 品质合法（uncommon）
+PASS  sunlance 至少一个家族标签
+PASS  sunlance 家族标签无重复
+PASS  sunlance 家族合法（light）
+PASS  sunlance 家族合法（combo）
+PASS  sunlance 用途合法（damage）
+PASS  sunlance 至少一个合法来源
+PASS  sunlance 来源标签无重复
+PASS  sunlance 来源合法（normal）
+PASS  sunlance 来源合法（elite）
+PASS  sunlance 来源合法（shop）
+PASS  sunlance 来源合法（anvil）
+PASS  sunlance 来源合法（chest）
+PASS  sunlance 幕次下限合法（1）
+PASS  sunlance 幕次上限合法（3）
+PASS  sunlance 幕次区间有序（1–3）
+PASS  sunlance 机制摘要非占位（75 字）
+PASS  sunlance 机制摘要无占位词
+PASS  sunlance 机制摘要写明触发/条件/限制
+PASS  sunlance 有同机制分组
+PASS  sunlance 有非 BOSS 获取通道
+PASS  sunlance 武器可由商店/铁砧获得
+PASS  sunlance BOSS 池来源标记与房间配置一致
+PASS  temple_hammer 品质合法（common）
+PASS  temple_hammer 至少一个家族标签
+PASS  temple_hammer 家族标签无重复
+PASS  temple_hammer 家族合法（light）
+PASS  temple_hammer 家族合法（combo）
+PASS  temple_hammer 用途合法（damage）
+PASS  temple_hammer 至少一个合法来源
+PASS  temple_hammer 来源标签无重复
+PASS  temple_hammer 来源合法（normal）
+PASS  temple_hammer 来源合法（elite）
+PASS  temple_hammer 来源合法（shop）
+PASS  temple_hammer 来源合法（anvil）
+PASS  temple_hammer 来源合法（chest）
+PASS  temple_hammer 幕次下限合法（1）
+PASS  temple_hammer 幕次上限合法（3）
+PASS  temple_hammer 幕次区间有序（1–3）
+PASS  temple_hammer 基础品质从第 1 幕起可获取
+PASS  temple_hammer 机制摘要非占位（56 字）
+PASS  temple_hammer 机制摘要无占位词
+PASS  temple_hammer 机制摘要写明触发/条件/限制
+PASS  temple_hammer 有同机制分组
+PASS  temple_hammer 有非 BOSS 获取通道
+PASS  temple_hammer 武器可由商店/铁砧获得
+PASS  temple_hammer BOSS 池来源标记与房间配置一致
+PASS  toxic_dart 品质合法（common）
+PASS  toxic_dart 至少一个家族标签
+PASS  toxic_dart 家族标签无重复
+PASS  toxic_dart 家族合法（poison）
+PASS  toxic_dart 家族合法（combo）
+PASS  toxic_dart 用途合法（damage）
+PASS  toxic_dart 至少一个合法来源
+PASS  toxic_dart 来源标签无重复
+PASS  toxic_dart 来源合法（normal）
+PASS  toxic_dart 来源合法（elite）
+PASS  toxic_dart 来源合法（shop）
+PASS  toxic_dart 来源合法（anvil）
+PASS  toxic_dart 来源合法（chest）
+PASS  toxic_dart 幕次下限合法（1）
+PASS  toxic_dart 幕次上限合法（3）
+PASS  toxic_dart 幕次区间有序（1–3）
+PASS  toxic_dart 基础品质从第 1 幕起可获取
+PASS  toxic_dart 机制摘要非占位（92 字）
+PASS  toxic_dart 机制摘要无占位词
+PASS  toxic_dart 机制摘要写明触发/条件/限制
+PASS  toxic_dart 有同机制分组
+PASS  toxic_dart 有非 BOSS 获取通道
+PASS  toxic_dart 武器可由商店/铁砧获得
+PASS  toxic_dart BOSS 池来源标记与房间配置一致
+PASS  toxin_greatsword 品质合法（uncommon）
+PASS  toxin_greatsword 至少一个家族标签
+PASS  toxin_greatsword 家族标签无重复
+PASS  toxin_greatsword 家族合法（poison）
+PASS  toxin_greatsword 家族合法（combo）
+PASS  toxin_greatsword 用途合法（damage）
+PASS  toxin_greatsword 至少一个合法来源
+PASS  toxin_greatsword 来源标签无重复
+PASS  toxin_greatsword 来源合法（normal）
+PASS  toxin_greatsword 来源合法（elite）
+PASS  toxin_greatsword 来源合法（shop）
+PASS  toxin_greatsword 来源合法（anvil）
+PASS  toxin_greatsword 来源合法（chest）
+PASS  toxin_greatsword 幕次下限合法（1）
+PASS  toxin_greatsword 幕次上限合法（3）
+PASS  toxin_greatsword 幕次区间有序（1–3）
+PASS  toxin_greatsword 机制摘要非占位（78 字）
+PASS  toxin_greatsword 机制摘要无占位词
+PASS  toxin_greatsword 机制摘要写明触发/条件/限制
+PASS  toxin_greatsword 有同机制分组
+PASS  toxin_greatsword 有非 BOSS 获取通道
+PASS  toxin_greatsword 武器可由商店/铁砧获得
+PASS  toxin_greatsword BOSS 池来源标记与房间配置一致
+PASS  umbral_spear 品质合法（uncommon）
+PASS  umbral_spear 至少一个家族标签
+PASS  umbral_spear 家族标签无重复
+PASS  umbral_spear 家族合法（dark）
+PASS  umbral_spear 家族合法（combo）
+PASS  umbral_spear 用途合法（damage）
+PASS  umbral_spear 至少一个合法来源
+PASS  umbral_spear 来源标签无重复
+PASS  umbral_spear 来源合法（normal）
+PASS  umbral_spear 来源合法（elite）
+PASS  umbral_spear 来源合法（shop）
+PASS  umbral_spear 来源合法（anvil）
+PASS  umbral_spear 来源合法（chest）
+PASS  umbral_spear 幕次下限合法（1）
+PASS  umbral_spear 幕次上限合法（3）
+PASS  umbral_spear 幕次区间有序（1–3）
+PASS  umbral_spear 机制摘要非占位（74 字）
+PASS  umbral_spear 机制摘要无占位词
+PASS  umbral_spear 机制摘要写明触发/条件/限制
+PASS  umbral_spear 有同机制分组
+PASS  umbral_spear 有非 BOSS 获取通道
+PASS  umbral_spear 武器可由商店/铁砧获得
+PASS  umbral_spear BOSS 池来源标记与房间配置一致
+PASS  venom_dagger 品质合法（common）
+PASS  venom_dagger 至少一个家族标签
+PASS  venom_dagger 家族标签无重复
+PASS  venom_dagger 家族合法（poison）
+PASS  venom_dagger 家族合法（combo）
+PASS  venom_dagger 用途合法（damage）
+PASS  venom_dagger 至少一个合法来源
+PASS  venom_dagger 来源标签无重复
+PASS  venom_dagger 来源合法（normal）
+PASS  venom_dagger 来源合法（elite）
+PASS  venom_dagger 来源合法（shop）
+PASS  venom_dagger 来源合法（anvil）
+PASS  venom_dagger 来源合法（chest）
+PASS  venom_dagger 幕次下限合法（1）
+PASS  venom_dagger 幕次上限合法（3）
+PASS  venom_dagger 幕次区间有序（1–3）
+PASS  venom_dagger 基础品质从第 1 幕起可获取
+PASS  venom_dagger 机制摘要非占位（83 字）
+PASS  venom_dagger 机制摘要无占位词
+PASS  venom_dagger 机制摘要写明触发/条件/限制
+PASS  venom_dagger 有同机制分组
+PASS  venom_dagger 有非 BOSS 获取通道
+PASS  venom_dagger 武器可由商店/铁砧获得
+PASS  venom_dagger BOSS 池来源标记与房间配置一致
+PASS  venom_queen 品质合法（epic）
+PASS  venom_queen 至少一个家族标签
+PASS  venom_queen 家族标签无重复
+PASS  venom_queen 家族合法（poison）
+PASS  venom_queen 家族合法（combo）
+PASS  venom_queen 用途合法（damage）
+PASS  venom_queen 至少一个合法来源
+PASS  venom_queen 来源标签无重复
+PASS  venom_queen 来源合法（normal）
+PASS  venom_queen 来源合法（elite）
+PASS  venom_queen 来源合法（shop）
+PASS  venom_queen 来源合法（anvil）
+PASS  venom_queen 来源合法（chest）
+PASS  venom_queen 来源合法（boss）
+PASS  venom_queen 幕次下限合法（2）
+PASS  venom_queen 幕次上限合法（3）
+PASS  venom_queen 幕次区间有序（2–3）
+PASS  venom_queen 机制摘要非占位（103 字）
+PASS  venom_queen 机制摘要无占位词
+PASS  venom_queen 机制摘要写明触发/条件/限制
+PASS  venom_queen 有同机制分组
+PASS  venom_queen 有非 BOSS 获取通道
+PASS  venom_queen 武器可由商店/铁砧获得
+PASS  venom_queen BOSS 池来源标记与房间配置一致
+PASS  venom_queen 高阶武器有状态/特殊/三连机制
+PASS  venom_sickle 品质合法（common）
+PASS  venom_sickle 至少一个家族标签
+PASS  venom_sickle 家族标签无重复
+PASS  venom_sickle 家族合法（poison）
+PASS  venom_sickle 家族合法（combo）
+PASS  venom_sickle 用途合法（damage）
+PASS  venom_sickle 至少一个合法来源
+PASS  venom_sickle 来源标签无重复
+PASS  venom_sickle 来源合法（normal）
+PASS  venom_sickle 来源合法（elite）
+PASS  venom_sickle 来源合法（shop）
+PASS  venom_sickle 来源合法（anvil）
+PASS  venom_sickle 来源合法（chest）
+PASS  venom_sickle 幕次下限合法（1）
+PASS  venom_sickle 幕次上限合法（3）
+PASS  venom_sickle 幕次区间有序（1–3）
+PASS  venom_sickle 基础品质从第 1 幕起可获取
+PASS  venom_sickle 机制摘要非占位（83 字）
+PASS  venom_sickle 机制摘要无占位词
+PASS  venom_sickle 机制摘要写明触发/条件/限制
+PASS  venom_sickle 有同机制分组
+PASS  venom_sickle 有非 BOSS 获取通道
+PASS  venom_sickle 武器可由商店/铁砧获得
+PASS  venom_sickle BOSS 池来源标记与房间配置一致
+PASS  viper_whip 品质合法（uncommon）
+PASS  viper_whip 至少一个家族标签
+PASS  viper_whip 家族标签无重复
+PASS  viper_whip 家族合法（poison）
+PASS  viper_whip 家族合法（combo）
+PASS  viper_whip 用途合法（damage）
+PASS  viper_whip 至少一个合法来源
+PASS  viper_whip 来源标签无重复
+PASS  viper_whip 来源合法（normal）
+PASS  viper_whip 来源合法（elite）
+PASS  viper_whip 来源合法（shop）
+PASS  viper_whip 来源合法（anvil）
+PASS  viper_whip 来源合法（chest）
+PASS  viper_whip 幕次下限合法（1）
+PASS  viper_whip 幕次上限合法（3）
+PASS  viper_whip 幕次区间有序（1–3）
+PASS  viper_whip 机制摘要非占位（83 字）
+PASS  viper_whip 机制摘要无占位词
+PASS  viper_whip 机制摘要写明触发/条件/限制
+PASS  viper_whip 有同机制分组
+PASS  viper_whip 有非 BOSS 获取通道
+PASS  viper_whip 武器可由商店/铁砧获得
+PASS  viper_whip BOSS 池来源标记与房间配置一致
+PASS  void_wand 品质合法（common）
+PASS  void_wand 至少一个家族标签
+PASS  void_wand 家族标签无重复
+PASS  void_wand 家族合法（dark）
+PASS  void_wand 家族合法（combo）
+PASS  void_wand 用途合法（damage）
+PASS  void_wand 至少一个合法来源
+PASS  void_wand 来源标签无重复
+PASS  void_wand 来源合法（normal）
+PASS  void_wand 来源合法（elite）
+PASS  void_wand 来源合法（shop）
+PASS  void_wand 来源合法（anvil）
+PASS  void_wand 来源合法（chest）
+PASS  void_wand 幕次下限合法（1）
+PASS  void_wand 幕次上限合法（3）
+PASS  void_wand 幕次区间有序（1–3）
+PASS  void_wand 基础品质从第 1 幕起可获取
+PASS  void_wand 机制摘要非占位（97 字）
+PASS  void_wand 机制摘要无占位词
+PASS  void_wand 机制摘要写明触发/条件/限制
+PASS  void_wand 有同机制分组
+PASS  void_wand 有非 BOSS 获取通道
+PASS  void_wand 武器可由商店/铁砧获得
+PASS  void_wand BOSS 池来源标记与房间配置一致
+PASS  war_hammer 品质合法（uncommon）
+PASS  war_hammer 至少一个家族标签
+PASS  war_hammer 家族标签无重复
+PASS  war_hammer 家族合法（combo）
+PASS  war_hammer 用途合法（damage）
+PASS  war_hammer 至少一个合法来源
+PASS  war_hammer 来源标签无重复
+PASS  war_hammer 来源合法（normal）
+PASS  war_hammer 来源合法（elite）
+PASS  war_hammer 来源合法（shop）
+PASS  war_hammer 来源合法（anvil）
+PASS  war_hammer 来源合法（chest）
+PASS  war_hammer 幕次下限合法（1）
+PASS  war_hammer 幕次上限合法（3）
+PASS  war_hammer 幕次区间有序（1–3）
+PASS  war_hammer 机制摘要非占位（69 字）
+PASS  war_hammer 机制摘要无占位词
+PASS  war_hammer 机制摘要写明触发/条件/限制
+PASS  war_hammer 有同机制分组
+PASS  war_hammer 有非 BOSS 获取通道
+PASS  war_hammer 武器可由商店/铁砧获得
+PASS  war_hammer BOSS 池来源标记与房间配置一致
+PASS  woodcutter_axe 品质合法（common）
+PASS  woodcutter_axe 至少一个家族标签
+PASS  woodcutter_axe 家族标签无重复
+PASS  woodcutter_axe 家族合法（combo）
+PASS  woodcutter_axe 用途合法（damage）
+PASS  woodcutter_axe 至少一个合法来源
+PASS  woodcutter_axe 来源标签无重复
+PASS  woodcutter_axe 来源合法（normal）
+PASS  woodcutter_axe 来源合法（elite）
+PASS  woodcutter_axe 来源合法（shop）
+PASS  woodcutter_axe 来源合法（anvil）
+PASS  woodcutter_axe 来源合法（chest）
+PASS  woodcutter_axe 幕次下限合法（1）
+PASS  woodcutter_axe 幕次上限合法（3）
+PASS  woodcutter_axe 幕次区间有序（1–3）
+PASS  woodcutter_axe 基础品质从第 1 幕起可获取
+PASS  woodcutter_axe 机制摘要非占位（62 字）
+PASS  woodcutter_axe 机制摘要无占位词
+PASS  woodcutter_axe 机制摘要写明触发/条件/限制
+PASS  woodcutter_axe 有同机制分组
+PASS  woodcutter_axe 有非 BOSS 获取通道
+PASS  woodcutter_axe 武器可由商店/铁砧获得
+PASS  woodcutter_axe BOSS 池来源标记与房间配置一致
+PASS  abyss_bulwark 品质合法（rare）
+PASS  abyss_bulwark 至少一个家族标签
+PASS  abyss_bulwark 家族标签无重复
+PASS  abyss_bulwark 家族合法（shield）
+PASS  abyss_bulwark 家族合法（dark）
+PASS  abyss_bulwark 用途合法（defense）
+PASS  abyss_bulwark 至少一个合法来源
+PASS  abyss_bulwark 来源标签无重复
+PASS  abyss_bulwark 来源合法（elite）
+PASS  abyss_bulwark 来源合法（shop）
+PASS  abyss_bulwark 来源合法（anvil）
+PASS  abyss_bulwark 来源合法（chest）
+PASS  abyss_bulwark 幕次下限合法（2）
+PASS  abyss_bulwark 幕次上限合法（3）
+PASS  abyss_bulwark 幕次区间有序（2–3）
+PASS  abyss_bulwark 机制摘要非占位（71 字）
+PASS  abyss_bulwark 机制摘要无占位词
+PASS  abyss_bulwark 机制摘要写明触发/条件/限制
+PASS  abyss_bulwark 有同机制分组
+PASS  abyss_bulwark 有非 BOSS 获取通道
+PASS  abyss_bulwark 护符有精英/商店/铁砧来源
+PASS  abyss_bulwark 高阶护符有代价或条件触发
+PASS  abyss_gaze_relic 品质合法（relic）
+PASS  abyss_gaze_relic 至少一个家族标签
+PASS  abyss_gaze_relic 家族标签无重复
+PASS  abyss_gaze_relic 家族合法（charge）
+PASS  abyss_gaze_relic 用途合法（utility）
+PASS  abyss_gaze_relic 至少一个合法来源
+PASS  abyss_gaze_relic 来源标签无重复
+PASS  abyss_gaze_relic 来源合法（boss）
+PASS  abyss_gaze_relic 幕次下限合法（3）
+PASS  abyss_gaze_relic 幕次上限合法（3）
+PASS  abyss_gaze_relic 幕次区间有序（3–3）
+PASS  abyss_gaze_relic 机制摘要非占位（57 字）
+PASS  abyss_gaze_relic 机制摘要无占位词
+PASS  abyss_gaze_relic 机制摘要写明触发/条件/限制
+PASS  abyss_gaze_relic 有同机制分组
+PASS  abyss_gaze_relic BOSS 信物只从 BOSS 掉落
+PASS  abyss_gaze_relic 信物幕次匹配对应 BOSS（3）
+PASS  berserker_nail 品质合法（uncommon）
+PASS  berserker_nail 至少一个家族标签
+PASS  berserker_nail 家族标签无重复
+PASS  berserker_nail 家族合法（combo）
+PASS  berserker_nail 家族合法（dark）
+PASS  berserker_nail 用途合法（damage）
+PASS  berserker_nail 至少一个合法来源
+PASS  berserker_nail 来源标签无重复
+PASS  berserker_nail 来源合法（elite）
+PASS  berserker_nail 来源合法（shop）
+PASS  berserker_nail 来源合法（anvil）
+PASS  berserker_nail 来源合法（chest）
+PASS  berserker_nail 幕次下限合法（1）
+PASS  berserker_nail 幕次上限合法（3）
+PASS  berserker_nail 幕次区间有序（1–3）
+PASS  berserker_nail 机制摘要非占位（41 字）
+PASS  berserker_nail 机制摘要无占位词
+PASS  berserker_nail 机制摘要写明触发/条件/限制
+PASS  berserker_nail 有同机制分组
+PASS  berserker_nail 有非 BOSS 获取通道
+PASS  berserker_nail 护符有精英/商店/铁砧来源
+PASS  blood_pact 品质合法（common）
+PASS  blood_pact 至少一个家族标签
+PASS  blood_pact 家族标签无重复
+PASS  blood_pact 家族合法（combo）
+PASS  blood_pact 家族合法（dark）
+PASS  blood_pact 用途合法（damage）
+PASS  blood_pact 至少一个合法来源
+PASS  blood_pact 来源标签无重复
+PASS  blood_pact 来源合法（elite）
+PASS  blood_pact 来源合法（shop）
+PASS  blood_pact 来源合法（anvil）
+PASS  blood_pact 来源合法（chest）
+PASS  blood_pact 幕次下限合法（1）
+PASS  blood_pact 幕次上限合法（3）
+PASS  blood_pact 幕次区间有序（1–3）
+PASS  blood_pact 基础品质从第 1 幕起可获取
+PASS  blood_pact 机制摘要非占位（42 字）
+PASS  blood_pact 机制摘要无占位词
+PASS  blood_pact 机制摘要写明触发/条件/限制
+PASS  blood_pact 有同机制分组
+PASS  blood_pact 有非 BOSS 获取通道
+PASS  blood_pact 护符有精英/商店/铁砧来源
+PASS  bone_splinter 品质合法（common）
+PASS  bone_splinter 至少一个家族标签
+PASS  bone_splinter 家族标签无重复
+PASS  bone_splinter 家族合法（combo）
+PASS  bone_splinter 用途合法（damage）
+PASS  bone_splinter 至少一个合法来源
+PASS  bone_splinter 来源标签无重复
+PASS  bone_splinter 来源合法（elite）
+PASS  bone_splinter 来源合法（shop）
+PASS  bone_splinter 来源合法（anvil）
+PASS  bone_splinter 来源合法（chest）
+PASS  bone_splinter 幕次下限合法（1）
+PASS  bone_splinter 幕次上限合法（3）
+PASS  bone_splinter 幕次区间有序（1–3）
+PASS  bone_splinter 基础品质从第 1 幕起可获取
+PASS  bone_splinter 机制摘要非占位（52 字）
+PASS  bone_splinter 机制摘要无占位词
+PASS  bone_splinter 机制摘要写明触发/条件/限制
+PASS  bone_splinter 有同机制分组
+PASS  bone_splinter 有非 BOSS 获取通道
+PASS  bone_splinter 护符有精英/商店/铁砧来源
+PASS  bulwark_charm 品质合法（uncommon）
+PASS  bulwark_charm 至少一个家族标签
+PASS  bulwark_charm 家族标签无重复
+PASS  bulwark_charm 家族合法（shield）
+PASS  bulwark_charm 用途合法（defense）
+PASS  bulwark_charm 至少一个合法来源
+PASS  bulwark_charm 来源标签无重复
+PASS  bulwark_charm 来源合法（elite）
+PASS  bulwark_charm 来源合法（shop）
+PASS  bulwark_charm 来源合法（anvil）
+PASS  bulwark_charm 来源合法（chest）
+PASS  bulwark_charm 幕次下限合法（1）
+PASS  bulwark_charm 幕次上限合法（3）
+PASS  bulwark_charm 幕次区间有序（1–3）
+PASS  bulwark_charm 机制摘要非占位（56 字）
+PASS  bulwark_charm 机制摘要无占位词
+PASS  bulwark_charm 机制摘要写明触发/条件/限制
+PASS  bulwark_charm 有同机制分组
+PASS  bulwark_charm 有非 BOSS 获取通道
+PASS  bulwark_charm 护符有精英/商店/铁砧来源
+PASS  cinder_heart 品质合法（rare）
+PASS  cinder_heart 至少一个家族标签
+PASS  cinder_heart 家族标签无重复
+PASS  cinder_heart 家族合法（fire）
+PASS  cinder_heart 家族合法（ice）
+PASS  cinder_heart 家族合法（poison）
+PASS  cinder_heart 家族合法（dark）
+PASS  cinder_heart 用途合法（damage）
+PASS  cinder_heart 至少一个合法来源
+PASS  cinder_heart 来源标签无重复
+PASS  cinder_heart 来源合法（elite）
+PASS  cinder_heart 来源合法（shop）
+PASS  cinder_heart 来源合法（anvil）
+PASS  cinder_heart 来源合法（chest）
+PASS  cinder_heart 幕次下限合法（2）
+PASS  cinder_heart 幕次上限合法（3）
+PASS  cinder_heart 幕次区间有序（2–3）
+PASS  cinder_heart 机制摘要非占位（47 字）
+PASS  cinder_heart 机制摘要无占位词
+PASS  cinder_heart 机制摘要写明触发/条件/限制
+PASS  cinder_heart 有同机制分组
+PASS  cinder_heart 有非 BOSS 获取通道
+PASS  cinder_heart 护符有精英/商店/铁砧来源
+PASS  cinder_heart 高阶护符有代价或条件触发
+PASS  counter_shield 品质合法（uncommon）
+PASS  counter_shield 至少一个家族标签
+PASS  counter_shield 家族标签无重复
+PASS  counter_shield 家族合法（shield）
+PASS  counter_shield 用途合法（defense）
+PASS  counter_shield 至少一个合法来源
+PASS  counter_shield 来源标签无重复
+PASS  counter_shield 来源合法（elite）
+PASS  counter_shield 来源合法（shop）
+PASS  counter_shield 来源合法（anvil）
+PASS  counter_shield 来源合法（chest）
+PASS  counter_shield 幕次下限合法（1）
+PASS  counter_shield 幕次上限合法（3）
+PASS  counter_shield 幕次区间有序（1–3）
+PASS  counter_shield 机制摘要非占位（57 字）
+PASS  counter_shield 机制摘要无占位词
+PASS  counter_shield 机制摘要写明触发/条件/限制
+PASS  counter_shield 有同机制分组
+PASS  counter_shield 有非 BOSS 获取通道
+PASS  counter_shield 护符有精英/商店/铁砧来源
+PASS  crown_fragment_relic 品质合法（relic）
+PASS  crown_fragment_relic 至少一个家族标签
+PASS  crown_fragment_relic 家族标签无重复
+PASS  crown_fragment_relic 家族合法（combo）
+PASS  crown_fragment_relic 用途合法（damage）
+PASS  crown_fragment_relic 至少一个合法来源
+PASS  crown_fragment_relic 来源标签无重复
+PASS  crown_fragment_relic 来源合法（boss）
+PASS  crown_fragment_relic 幕次下限合法（3）
+PASS  crown_fragment_relic 幕次上限合法（3）
+PASS  crown_fragment_relic 幕次区间有序（3–3）
+PASS  crown_fragment_relic 机制摘要非占位（58 字）
+PASS  crown_fragment_relic 机制摘要无占位词
+PASS  crown_fragment_relic 机制摘要写明触发/条件/限制
+PASS  crown_fragment_relic 有同机制分组
+PASS  crown_fragment_relic BOSS 信物只从 BOSS 掉落
+PASS  crown_fragment_relic 信物幕次匹配对应 BOSS（3）
+PASS  crush_seal 品质合法（epic）
+PASS  crush_seal 至少一个家族标签
+PASS  crush_seal 家族标签无重复
+PASS  crush_seal 家族合法（combo）
+PASS  crush_seal 用途合法（damage）
+PASS  crush_seal 至少一个合法来源
+PASS  crush_seal 来源标签无重复
+PASS  crush_seal 来源合法（elite）
+PASS  crush_seal 来源合法（shop）
+PASS  crush_seal 来源合法（anvil）
+PASS  crush_seal 来源合法（chest）
+PASS  crush_seal 幕次下限合法（2）
+PASS  crush_seal 幕次上限合法（3）
+PASS  crush_seal 幕次区间有序（2–3）
+PASS  crush_seal 机制摘要非占位（61 字）
+PASS  crush_seal 机制摘要无占位词
+PASS  crush_seal 机制摘要写明触发/条件/限制
+PASS  crush_seal 有同机制分组
+PASS  crush_seal 有非 BOSS 获取通道
+PASS  crush_seal 护符有精英/商店/铁砧来源
+PASS  crush_seal 高阶护符有代价或条件触发
+PASS  dual_core_relic 品质合法（relic）
+PASS  dual_core_relic 至少一个家族标签
+PASS  dual_core_relic 家族标签无重复
+PASS  dual_core_relic 家族合法（charge）
+PASS  dual_core_relic 家族合法（combo）
+PASS  dual_core_relic 用途合法（damage）
+PASS  dual_core_relic 至少一个合法来源
+PASS  dual_core_relic 来源标签无重复
+PASS  dual_core_relic 来源合法（boss）
+PASS  dual_core_relic 幕次下限合法（2）
+PASS  dual_core_relic 幕次上限合法（2）
+PASS  dual_core_relic 幕次区间有序（2–2）
+PASS  dual_core_relic 机制摘要非占位（86 字）
+PASS  dual_core_relic 机制摘要无占位词
+PASS  dual_core_relic 机制摘要写明触发/条件/限制
+PASS  dual_core_relic 有同机制分组
+PASS  dual_core_relic BOSS 信物只从 BOSS 掉落
+PASS  dual_core_relic 信物幕次匹配对应 BOSS（2）
+PASS  element_charm 品质合法（uncommon）
+PASS  element_charm 至少一个家族标签
+PASS  element_charm 家族标签无重复
+PASS  element_charm 家族合法（charge）
+PASS  element_charm 家族合法（combo）
+PASS  element_charm 用途合法（damage）
+PASS  element_charm 至少一个合法来源
+PASS  element_charm 来源标签无重复
+PASS  element_charm 来源合法（elite）
+PASS  element_charm 来源合法（shop）
+PASS  element_charm 来源合法（anvil）
+PASS  element_charm 来源合法（chest）
+PASS  element_charm 幕次下限合法（1）
+PASS  element_charm 幕次上限合法（3）
+PASS  element_charm 幕次区间有序（1–3）
+PASS  element_charm 机制摘要非占位（51 字）
+PASS  element_charm 机制摘要无占位词
+PASS  element_charm 机制摘要写明触发/条件/限制
+PASS  element_charm 有同机制分组
+PASS  element_charm 有非 BOSS 获取通道
+PASS  element_charm 护符有精英/商店/铁砧来源
+PASS  frost_bulwark 品质合法（uncommon）
+PASS  frost_bulwark 至少一个家族标签
+PASS  frost_bulwark 家族标签无重复
+PASS  frost_bulwark 家族合法（shield）
+PASS  frost_bulwark 用途合法（defense）
+PASS  frost_bulwark 至少一个合法来源
+PASS  frost_bulwark 来源标签无重复
+PASS  frost_bulwark 来源合法（elite）
+PASS  frost_bulwark 来源合法（shop）
+PASS  frost_bulwark 来源合法（anvil）
+PASS  frost_bulwark 来源合法（chest）
+PASS  frost_bulwark 幕次下限合法（1）
+PASS  frost_bulwark 幕次上限合法（3）
+PASS  frost_bulwark 幕次区间有序（1–3）
+PASS  frost_bulwark 机制摘要非占位（62 字）
+PASS  frost_bulwark 机制摘要无占位词
+PASS  frost_bulwark 机制摘要写明触发/条件/限制
+PASS  frost_bulwark 有同机制分组
+PASS  frost_bulwark 有非 BOSS 获取通道
+PASS  frost_bulwark 护符有精英/商店/铁砧来源
+PASS  frost_core_relic 品质合法（relic）
+PASS  frost_core_relic 至少一个家族标签
+PASS  frost_core_relic 家族标签无重复
+PASS  frost_core_relic 家族合法（combo）
+PASS  frost_core_relic 用途合法（damage）
+PASS  frost_core_relic 至少一个合法来源
+PASS  frost_core_relic 来源标签无重复
+PASS  frost_core_relic 来源合法（boss）
+PASS  frost_core_relic 幕次下限合法（1）
+PASS  frost_core_relic 幕次上限合法（1）
+PASS  frost_core_relic 幕次区间有序（1–1）
+PASS  frost_core_relic 机制摘要非占位（56 字）
+PASS  frost_core_relic 机制摘要无占位词
+PASS  frost_core_relic 机制摘要写明触发/条件/限制
+PASS  frost_core_relic 有同机制分组
+PASS  frost_core_relic BOSS 信物只从 BOSS 掉落
+PASS  frost_core_relic 信物幕次匹配对应 BOSS（1）
+PASS  gambler_mark 品质合法（common）
+PASS  gambler_mark 至少一个家族标签
+PASS  gambler_mark 家族标签无重复
+PASS  gambler_mark 家族合法（shield）
+PASS  gambler_mark 家族合法（dark）
+PASS  gambler_mark 用途合法（defense）
+PASS  gambler_mark 至少一个合法来源
+PASS  gambler_mark 来源标签无重复
+PASS  gambler_mark 来源合法（elite）
+PASS  gambler_mark 来源合法（shop）
+PASS  gambler_mark 来源合法（anvil）
+PASS  gambler_mark 来源合法（chest）
+PASS  gambler_mark 幕次下限合法（1）
+PASS  gambler_mark 幕次上限合法（3）
+PASS  gambler_mark 幕次区间有序（1–3）
+PASS  gambler_mark 基础品质从第 1 幕起可获取
+PASS  gambler_mark 机制摘要非占位（45 字）
+PASS  gambler_mark 机制摘要无占位词
+PASS  gambler_mark 机制摘要写明触发/条件/限制
+PASS  gambler_mark 有同机制分组
+PASS  gambler_mark 有非 BOSS 获取通道
+PASS  gambler_mark 护符有精英/商店/铁砧来源
+PASS  glass_edge 品质合法（common）
+PASS  glass_edge 至少一个家族标签
+PASS  glass_edge 家族标签无重复
+PASS  glass_edge 家族合法（combo）
+PASS  glass_edge 家族合法（dark）
+PASS  glass_edge 用途合法（damage）
+PASS  glass_edge 至少一个合法来源
+PASS  glass_edge 来源标签无重复
+PASS  glass_edge 来源合法（elite）
+PASS  glass_edge 来源合法（shop）
+PASS  glass_edge 来源合法（anvil）
+PASS  glass_edge 来源合法（chest）
+PASS  glass_edge 幕次下限合法（1）
+PASS  glass_edge 幕次上限合法（3）
+PASS  glass_edge 幕次区间有序（1–3）
+PASS  glass_edge 基础品质从第 1 幕起可获取
+PASS  glass_edge 机制摘要非占位（51 字）
+PASS  glass_edge 机制摘要无占位词
+PASS  glass_edge 机制摘要写明触发/条件/限制
+PASS  glass_edge 有同机制分组
+PASS  glass_edge 有非 BOSS 获取通道
+PASS  glass_edge 护符有精英/商店/铁砧来源
+PASS  guard_charm 品质合法（common）
+PASS  guard_charm 至少一个家族标签
+PASS  guard_charm 家族标签无重复
+PASS  guard_charm 家族合法（shield）
+PASS  guard_charm 用途合法（defense）
+PASS  guard_charm 至少一个合法来源
+PASS  guard_charm 来源标签无重复
+PASS  guard_charm 来源合法（elite）
+PASS  guard_charm 来源合法（shop）
+PASS  guard_charm 来源合法（anvil）
+PASS  guard_charm 来源合法（start）
+PASS  guard_charm 来源合法（chest）
+PASS  guard_charm 幕次下限合法（1）
+PASS  guard_charm 幕次上限合法（3）
+PASS  guard_charm 幕次区间有序（1–3）
+PASS  guard_charm 基础品质从第 1 幕起可获取
+PASS  guard_charm 机制摘要非占位（55 字）
+PASS  guard_charm 机制摘要无占位词
+PASS  guard_charm 机制摘要写明触发/条件/限制
+PASS  guard_charm 有同机制分组
+PASS  guard_charm 有非 BOSS 获取通道
+PASS  guard_charm 护符有精英/商店/铁砧来源
+PASS  hero_emblem_relic 品质合法（relic）
+PASS  hero_emblem_relic 至少一个家族标签
+PASS  hero_emblem_relic 家族标签无重复
+PASS  hero_emblem_relic 家族合法（combo）
+PASS  hero_emblem_relic 用途合法（damage）
+PASS  hero_emblem_relic 至少一个合法来源
+PASS  hero_emblem_relic 来源标签无重复
+PASS  hero_emblem_relic 来源合法（boss）
+PASS  hero_emblem_relic 幕次下限合法（3）
+PASS  hero_emblem_relic 幕次上限合法（3）
+PASS  hero_emblem_relic 幕次区间有序（3–3）
+PASS  hero_emblem_relic 机制摘要非占位（55 字）
+PASS  hero_emblem_relic 机制摘要无占位词
+PASS  hero_emblem_relic 机制摘要写明触发/条件/限制
+PASS  hero_emblem_relic 有同机制分组
+PASS  hero_emblem_relic BOSS 信物只从 BOSS 掉落
+PASS  hero_emblem_relic 信物幕次匹配对应 BOSS（3）
+PASS  innocence_seal_relic 品质合法（relic）
+PASS  innocence_seal_relic 至少一个家族标签
+PASS  innocence_seal_relic 家族标签无重复
+PASS  innocence_seal_relic 家族合法（light）
+PASS  innocence_seal_relic 用途合法（recovery）
+PASS  innocence_seal_relic 至少一个合法来源
+PASS  innocence_seal_relic 来源标签无重复
+PASS  innocence_seal_relic 来源合法（boss）
+PASS  innocence_seal_relic 幕次下限合法（3）
+PASS  innocence_seal_relic 幕次上限合法（3）
+PASS  innocence_seal_relic 幕次区间有序（3–3）
+PASS  innocence_seal_relic 机制摘要非占位（66 字）
+PASS  innocence_seal_relic 机制摘要无占位词
+PASS  innocence_seal_relic 机制摘要写明触发/条件/限制
+PASS  innocence_seal_relic 有同机制分组
+PASS  innocence_seal_relic BOSS 信物只从 BOSS 掉落
+PASS  innocence_seal_relic 信物幕次匹配对应 BOSS（3）
+PASS  law_brand_relic 品质合法（relic）
+PASS  law_brand_relic 至少一个家族标签
+PASS  law_brand_relic 家族标签无重复
+PASS  law_brand_relic 家族合法（combo）
+PASS  law_brand_relic 用途合法（damage）
+PASS  law_brand_relic 至少一个合法来源
+PASS  law_brand_relic 来源标签无重复
+PASS  law_brand_relic 来源合法（boss）
+PASS  law_brand_relic 幕次下限合法（2）
+PASS  law_brand_relic 幕次上限合法（2）
+PASS  law_brand_relic 幕次区间有序（2–2）
+PASS  law_brand_relic 机制摘要非占位（62 字）
+PASS  law_brand_relic 机制摘要无占位词
+PASS  law_brand_relic 机制摘要写明触发/条件/限制
+PASS  law_brand_relic 有同机制分组
+PASS  law_brand_relic BOSS 信物只从 BOSS 掉落
+PASS  law_brand_relic 信物幕次匹配对应 BOSS（2）
+PASS  maze_echo_relic 品质合法（relic）
+PASS  maze_echo_relic 至少一个家族标签
+PASS  maze_echo_relic 家族标签无重复
+PASS  maze_echo_relic 家族合法（reel）
+PASS  maze_echo_relic 用途合法（utility）
+PASS  maze_echo_relic 至少一个合法来源
+PASS  maze_echo_relic 来源标签无重复
+PASS  maze_echo_relic 来源合法（boss）
+PASS  maze_echo_relic 幕次下限合法（2）
+PASS  maze_echo_relic 幕次上限合法（2）
+PASS  maze_echo_relic 幕次区间有序（2–2）
+PASS  maze_echo_relic 机制摘要非占位（63 字）
+PASS  maze_echo_relic 机制摘要无占位词
+PASS  maze_echo_relic 机制摘要写明触发/条件/限制
+PASS  maze_echo_relic 有同机制分组
+PASS  maze_echo_relic BOSS 信物只从 BOSS 掉落
+PASS  maze_echo_relic 信物幕次匹配对应 BOSS（2）
+PASS  mirror_charm 品质合法（rare）
+PASS  mirror_charm 至少一个家族标签
+PASS  mirror_charm 家族标签无重复
+PASS  mirror_charm 家族合法（shield）
+PASS  mirror_charm 家族合法（reel）
+PASS  mirror_charm 家族合法（dark）
+PASS  mirror_charm 用途合法（defense）
+PASS  mirror_charm 至少一个合法来源
+PASS  mirror_charm 来源标签无重复
+PASS  mirror_charm 来源合法（elite）
+PASS  mirror_charm 来源合法（shop）
+PASS  mirror_charm 来源合法（anvil）
+PASS  mirror_charm 来源合法（chest）
+PASS  mirror_charm 幕次下限合法（2）
+PASS  mirror_charm 幕次上限合法（3）
+PASS  mirror_charm 幕次区间有序（2–3）
+PASS  mirror_charm 机制摘要非占位（70 字）
+PASS  mirror_charm 机制摘要无占位词
+PASS  mirror_charm 机制摘要写明触发/条件/限制
+PASS  mirror_charm 有同机制分组
+PASS  mirror_charm 有非 BOSS 获取通道
+PASS  mirror_charm 护符有精英/商店/铁砧来源
+PASS  mirror_charm 高阶护符有代价或条件触发
+PASS  ossuary_charm 品质合法（rare）
+PASS  ossuary_charm 至少一个家族标签
+PASS  ossuary_charm 家族标签无重复
+PASS  ossuary_charm 家族合法（shield）
+PASS  ossuary_charm 家族合法（dark）
+PASS  ossuary_charm 用途合法（defense）
+PASS  ossuary_charm 至少一个合法来源
+PASS  ossuary_charm 来源标签无重复
+PASS  ossuary_charm 来源合法（elite）
+PASS  ossuary_charm 来源合法（shop）
+PASS  ossuary_charm 来源合法（anvil）
+PASS  ossuary_charm 来源合法（chest）
+PASS  ossuary_charm 幕次下限合法（2）
+PASS  ossuary_charm 幕次上限合法（3）
+PASS  ossuary_charm 幕次区间有序（2–3）
+PASS  ossuary_charm 机制摘要非占位（43 字）
+PASS  ossuary_charm 机制摘要无占位词
+PASS  ossuary_charm 机制摘要写明触发/条件/限制
+PASS  ossuary_charm 有同机制分组
+PASS  ossuary_charm 有非 BOSS 获取通道
+PASS  ossuary_charm 护符有精英/商店/铁砧来源
+PASS  ossuary_charm 高阶护符有代价或条件触发
+PASS  pierce_charm 品质合法（uncommon）
+PASS  pierce_charm 至少一个家族标签
+PASS  pierce_charm 家族标签无重复
+PASS  pierce_charm 家族合法（combo）
+PASS  pierce_charm 用途合法（damage）
+PASS  pierce_charm 至少一个合法来源
+PASS  pierce_charm 来源标签无重复
+PASS  pierce_charm 来源合法（elite）
+PASS  pierce_charm 来源合法（shop）
+PASS  pierce_charm 来源合法（anvil）
+PASS  pierce_charm 来源合法（chest）
+PASS  pierce_charm 幕次下限合法（1）
+PASS  pierce_charm 幕次上限合法（3）
+PASS  pierce_charm 幕次区间有序（1–3）
+PASS  pierce_charm 机制摘要非占位（39 字）
+PASS  pierce_charm 机制摘要无占位词
+PASS  pierce_charm 机制摘要写明触发/条件/限制
+PASS  pierce_charm 有同机制分组
+PASS  pierce_charm 有非 BOSS 获取通道
+PASS  pierce_charm 护符有精英/商店/铁砧来源
+PASS  pilgrim_ward 品质合法（common）
+PASS  pilgrim_ward 至少一个家族标签
+PASS  pilgrim_ward 家族标签无重复
+PASS  pilgrim_ward 家族合法（shield）
+PASS  pilgrim_ward 用途合法（defense）
+PASS  pilgrim_ward 至少一个合法来源
+PASS  pilgrim_ward 来源标签无重复
+PASS  pilgrim_ward 来源合法（elite）
+PASS  pilgrim_ward 来源合法（shop）
+PASS  pilgrim_ward 来源合法（anvil）
+PASS  pilgrim_ward 来源合法（start）
+PASS  pilgrim_ward 来源合法（chest）
+PASS  pilgrim_ward 幕次下限合法（1）
+PASS  pilgrim_ward 幕次上限合法（3）
+PASS  pilgrim_ward 幕次区间有序（1–3）
+PASS  pilgrim_ward 基础品质从第 1 幕起可获取
+PASS  pilgrim_ward 机制摘要非占位（44 字）
+PASS  pilgrim_ward 机制摘要无占位词
+PASS  pilgrim_ward 机制摘要写明触发/条件/限制
+PASS  pilgrim_ward 有同机制分组
+PASS  pilgrim_ward 有非 BOSS 获取通道
+PASS  pilgrim_ward 护符有精英/商店/铁砧来源
+PASS  poison_ward 品质合法（uncommon）
+PASS  poison_ward 至少一个家族标签
+PASS  poison_ward 家族标签无重复
+PASS  poison_ward 家族合法（shield）
+PASS  poison_ward 家族合法（poison）
+PASS  poison_ward 用途合法（defense）
+PASS  poison_ward 至少一个合法来源
+PASS  poison_ward 来源标签无重复
+PASS  poison_ward 来源合法（elite）
+PASS  poison_ward 来源合法（shop）
+PASS  poison_ward 来源合法（anvil）
+PASS  poison_ward 来源合法（chest）
+PASS  poison_ward 幕次下限合法（1）
+PASS  poison_ward 幕次上限合法（3）
+PASS  poison_ward 幕次区间有序（1–3）
+PASS  poison_ward 机制摘要非占位（67 字）
+PASS  poison_ward 机制摘要无占位词
+PASS  poison_ward 机制摘要写明触发/条件/限制
+PASS  poison_ward 有同机制分组
+PASS  poison_ward 有非 BOSS 获取通道
+PASS  poison_ward 护符有精英/商店/铁砧来源
+PASS  pyre_sigil 品质合法（rare）
+PASS  pyre_sigil 至少一个家族标签
+PASS  pyre_sigil 家族标签无重复
+PASS  pyre_sigil 家族合法（combo）
+PASS  pyre_sigil 家族合法（dark）
+PASS  pyre_sigil 用途合法（damage）
+PASS  pyre_sigil 至少一个合法来源
+PASS  pyre_sigil 来源标签无重复
+PASS  pyre_sigil 来源合法（elite）
+PASS  pyre_sigil 来源合法（shop）
+PASS  pyre_sigil 来源合法（anvil）
+PASS  pyre_sigil 来源合法（chest）
+PASS  pyre_sigil 幕次下限合法（2）
+PASS  pyre_sigil 幕次上限合法（3）
+PASS  pyre_sigil 幕次区间有序（2–3）
+PASS  pyre_sigil 机制摘要非占位（47 字）
+PASS  pyre_sigil 机制摘要无占位词
+PASS  pyre_sigil 机制摘要写明触发/条件/限制
+PASS  pyre_sigil 有同机制分组
+PASS  pyre_sigil 有非 BOSS 获取通道
+PASS  pyre_sigil 护符有精英/商店/铁砧来源
+PASS  pyre_sigil 高阶护符有代价或条件触发
+PASS  rage_charm 品质合法（rare）
+PASS  rage_charm 至少一个家族标签
+PASS  rage_charm 家族标签无重复
+PASS  rage_charm 家族合法（combo）
+PASS  rage_charm 家族合法（dark）
+PASS  rage_charm 用途合法（damage）
+PASS  rage_charm 至少一个合法来源
+PASS  rage_charm 来源标签无重复
+PASS  rage_charm 来源合法（elite）
+PASS  rage_charm 来源合法（shop）
+PASS  rage_charm 来源合法（anvil）
+PASS  rage_charm 来源合法（chest）
+PASS  rage_charm 幕次下限合法（2）
+PASS  rage_charm 幕次上限合法（3）
+PASS  rage_charm 幕次区间有序（2–3）
+PASS  rage_charm 机制摘要非占位（35 字）
+PASS  rage_charm 机制摘要无占位词
+PASS  rage_charm 机制摘要写明触发/条件/限制
+PASS  rage_charm 有同机制分组
+PASS  rage_charm 有非 BOSS 获取通道
+PASS  rage_charm 护符有精英/商店/铁砧来源
+PASS  rage_charm 高阶护符有代价或条件触发
+PASS  redemption_heart 品质合法（rare）
+PASS  redemption_heart 至少一个家族标签
+PASS  redemption_heart 家族标签无重复
+PASS  redemption_heart 家族合法（light）
+PASS  redemption_heart 家族合法（dark）
+PASS  redemption_heart 用途合法（recovery）
+PASS  redemption_heart 至少一个合法来源
+PASS  redemption_heart 来源标签无重复
+PASS  redemption_heart 来源合法（elite）
+PASS  redemption_heart 来源合法（shop）
+PASS  redemption_heart 来源合法（anvil）
+PASS  redemption_heart 来源合法（chest）
+PASS  redemption_heart 幕次下限合法（2）
+PASS  redemption_heart 幕次上限合法（3）
+PASS  redemption_heart 幕次区间有序（2–3）
+PASS  redemption_heart 机制摘要非占位（73 字）
+PASS  redemption_heart 机制摘要无占位词
+PASS  redemption_heart 机制摘要写明触发/条件/限制
+PASS  redemption_heart 有同机制分组
+PASS  redemption_heart 有非 BOSS 获取通道
+PASS  redemption_heart 护符有精英/商店/铁砧来源
+PASS  redemption_heart 高阶护符有代价或条件触发
+PASS  regen_charm 品质合法（common）
+PASS  regen_charm 至少一个家族标签
+PASS  regen_charm 家族标签无重复
+PASS  regen_charm 家族合法（light）
+PASS  regen_charm 用途合法（recovery）
+PASS  regen_charm 至少一个合法来源
+PASS  regen_charm 来源标签无重复
+PASS  regen_charm 来源合法（elite）
+PASS  regen_charm 来源合法（shop）
+PASS  regen_charm 来源合法（anvil）
+PASS  regen_charm 来源合法（start）
+PASS  regen_charm 来源合法（chest）
+PASS  regen_charm 幕次下限合法（1）
+PASS  regen_charm 幕次上限合法（3）
+PASS  regen_charm 幕次区间有序（1–3）
+PASS  regen_charm 基础品质从第 1 幕起可获取
+PASS  regen_charm 机制摘要非占位（36 字）
+PASS  regen_charm 机制摘要无占位词
+PASS  regen_charm 机制摘要写明触发/条件/限制
+PASS  regen_charm 有同机制分组
+PASS  regen_charm 有非 BOSS 获取通道
+PASS  regen_charm 护符有精英/商店/铁砧来源
+PASS  resist_charm 品质合法（common）
+PASS  resist_charm 至少一个家族标签
+PASS  resist_charm 家族标签无重复
+PASS  resist_charm 家族合法（shield）
+PASS  resist_charm 家族合法（reel）
+PASS  resist_charm 用途合法（defense）
+PASS  resist_charm 至少一个合法来源
+PASS  resist_charm 来源标签无重复
+PASS  resist_charm 来源合法（elite）
+PASS  resist_charm 来源合法（shop）
+PASS  resist_charm 来源合法（anvil）
+PASS  resist_charm 来源合法（start）
+PASS  resist_charm 来源合法（chest）
+PASS  resist_charm 幕次下限合法（1）
+PASS  resist_charm 幕次上限合法（3）
+PASS  resist_charm 幕次区间有序（1–3）
+PASS  resist_charm 基础品质从第 1 幕起可获取
+PASS  resist_charm 机制摘要非占位（30 字）
+PASS  resist_charm 机制摘要无占位词
+PASS  resist_charm 机制摘要写明触发/条件/限制
+PASS  resist_charm 有同机制分组
+PASS  resist_charm 有非 BOSS 获取通道
+PASS  resist_charm 护符有精英/商店/铁砧来源
+PASS  rhythm_shell_relic 品质合法（relic）
+PASS  rhythm_shell_relic 至少一个家族标签
+PASS  rhythm_shell_relic 家族标签无重复
+PASS  rhythm_shell_relic 家族合法（shield）
+PASS  rhythm_shell_relic 用途合法（defense）
+PASS  rhythm_shell_relic 至少一个合法来源
+PASS  rhythm_shell_relic 来源标签无重复
+PASS  rhythm_shell_relic 来源合法（boss）
+PASS  rhythm_shell_relic 幕次下限合法（1）
+PASS  rhythm_shell_relic 幕次上限合法（1）
+PASS  rhythm_shell_relic 幕次区间有序（1–1）
+PASS  rhythm_shell_relic 机制摘要非占位（64 字）
+PASS  rhythm_shell_relic 机制摘要无占位词
+PASS  rhythm_shell_relic 机制摘要写明触发/条件/限制
+PASS  rhythm_shell_relic 有同机制分组
+PASS  rhythm_shell_relic BOSS 信物只从 BOSS 掉落
+PASS  rhythm_shell_relic 信物幕次匹配对应 BOSS（1）
+PASS  scales_of_judgment 品质合法（rare）
+PASS  scales_of_judgment 至少一个家族标签
+PASS  scales_of_judgment 家族标签无重复
+PASS  scales_of_judgment 家族合法（combo）
+PASS  scales_of_judgment 家族合法（dark）
+PASS  scales_of_judgment 用途合法（damage）
+PASS  scales_of_judgment 至少一个合法来源
+PASS  scales_of_judgment 来源标签无重复
+PASS  scales_of_judgment 来源合法（elite）
+PASS  scales_of_judgment 来源合法（shop）
+PASS  scales_of_judgment 来源合法（anvil）
+PASS  scales_of_judgment 来源合法（chest）
+PASS  scales_of_judgment 幕次下限合法（2）
+PASS  scales_of_judgment 幕次上限合法（3）
+PASS  scales_of_judgment 幕次区间有序（2–3）
+PASS  scales_of_judgment 机制摘要非占位（81 字）
+PASS  scales_of_judgment 机制摘要无占位词
+PASS  scales_of_judgment 机制摘要写明触发/条件/限制
+PASS  scales_of_judgment 有同机制分组
+PASS  scales_of_judgment 有非 BOSS 获取通道
+PASS  scales_of_judgment 护符有精英/商店/铁砧来源
+PASS  scales_of_judgment 高阶护符有代价或条件触发
+PASS  sharp_charm 品质合法（uncommon）
+PASS  sharp_charm 至少一个家族标签
+PASS  sharp_charm 家族标签无重复
+PASS  sharp_charm 家族合法（combo）
+PASS  sharp_charm 用途合法（damage）
+PASS  sharp_charm 至少一个合法来源
+PASS  sharp_charm 来源标签无重复
+PASS  sharp_charm 来源合法（elite）
+PASS  sharp_charm 来源合法（shop）
+PASS  sharp_charm 来源合法（anvil）
+PASS  sharp_charm 来源合法（chest）
+PASS  sharp_charm 幕次下限合法（1）
+PASS  sharp_charm 幕次上限合法（3）
+PASS  sharp_charm 幕次区间有序（1–3）
+PASS  sharp_charm 机制摘要非占位（37 字）
+PASS  sharp_charm 机制摘要无占位词
+PASS  sharp_charm 机制摘要写明触发/条件/限制
+PASS  sharp_charm 有同机制分组
+PASS  sharp_charm 有非 BOSS 获取通道
+PASS  sharp_charm 护符有精英/商店/铁砧来源
+PASS  shattered_mirror 品质合法（rare）
+PASS  shattered_mirror 至少一个家族标签
+PASS  shattered_mirror 家族标签无重复
+PASS  shattered_mirror 家族合法（charge）
+PASS  shattered_mirror 家族合法（combo）
+PASS  shattered_mirror 家族合法（dark）
+PASS  shattered_mirror 用途合法（damage）
+PASS  shattered_mirror 至少一个合法来源
+PASS  shattered_mirror 来源标签无重复
+PASS  shattered_mirror 来源合法（elite）
+PASS  shattered_mirror 来源合法（shop）
+PASS  shattered_mirror 来源合法（anvil）
+PASS  shattered_mirror 来源合法（chest）
+PASS  shattered_mirror 幕次下限合法（2）
+PASS  shattered_mirror 幕次上限合法（3）
+PASS  shattered_mirror 幕次区间有序（2–3）
+PASS  shattered_mirror 机制摘要非占位（56 字）
+PASS  shattered_mirror 机制摘要无占位词
+PASS  shattered_mirror 机制摘要写明触发/条件/限制
+PASS  shattered_mirror 有同机制分组
+PASS  shattered_mirror 有非 BOSS 获取通道
+PASS  shattered_mirror 护符有精英/商店/铁砧来源
+PASS  shattered_mirror 高阶护符有代价或条件触发
+PASS  silence_seal_relic 品质合法（relic）
+PASS  silence_seal_relic 至少一个家族标签
+PASS  silence_seal_relic 家族标签无重复
+PASS  silence_seal_relic 家族合法（shield）
+PASS  silence_seal_relic 家族合法（reel）
+PASS  silence_seal_relic 用途合法（defense）
+PASS  silence_seal_relic 至少一个合法来源
+PASS  silence_seal_relic 来源标签无重复
+PASS  silence_seal_relic 来源合法（boss）
+PASS  silence_seal_relic 幕次下限合法（2）
+PASS  silence_seal_relic 幕次上限合法（2）
+PASS  silence_seal_relic 幕次区间有序（2–2）
+PASS  silence_seal_relic 机制摘要非占位（78 字）
+PASS  silence_seal_relic 机制摘要无占位词
+PASS  silence_seal_relic 机制摘要写明触发/条件/限制
+PASS  silence_seal_relic 有同机制分组
+PASS  silence_seal_relic BOSS 信物只从 BOSS 掉落
+PASS  silence_seal_relic 信物幕次匹配对应 BOSS（2）
+PASS  soul_soothe 品质合法（uncommon）
+PASS  soul_soothe 至少一个家族标签
+PASS  soul_soothe 家族标签无重复
+PASS  soul_soothe 家族合法（light）
+PASS  soul_soothe 用途合法（recovery）
+PASS  soul_soothe 至少一个合法来源
+PASS  soul_soothe 来源标签无重复
+PASS  soul_soothe 来源合法（elite）
+PASS  soul_soothe 来源合法（shop）
+PASS  soul_soothe 来源合法（anvil）
+PASS  soul_soothe 来源合法（chest）
+PASS  soul_soothe 幕次下限合法（1）
+PASS  soul_soothe 幕次上限合法（3）
+PASS  soul_soothe 幕次区间有序（1–3）
+PASS  soul_soothe 机制摘要非占位（60 字）
+PASS  soul_soothe 机制摘要无占位词
+PASS  soul_soothe 机制摘要写明触发/条件/限制
+PASS  soul_soothe 有同机制分组
+PASS  soul_soothe 有非 BOSS 获取通道
+PASS  soul_soothe 护符有精英/商店/铁砧来源
+PASS  spore_heart 品质合法（uncommon）
+PASS  spore_heart 至少一个家族标签
+PASS  spore_heart 家族标签无重复
+PASS  spore_heart 家族合法（fire）
+PASS  spore_heart 家族合法（ice）
+PASS  spore_heart 家族合法（poison）
+PASS  spore_heart 家族合法（dark）
+PASS  spore_heart 用途合法（damage）
+PASS  spore_heart 至少一个合法来源
+PASS  spore_heart 来源标签无重复
+PASS  spore_heart 来源合法（elite）
+PASS  spore_heart 来源合法（shop）
+PASS  spore_heart 来源合法（anvil）
+PASS  spore_heart 来源合法（chest）
+PASS  spore_heart 幕次下限合法（1）
+PASS  spore_heart 幕次上限合法（3）
+PASS  spore_heart 幕次区间有序（1–3）
+PASS  spore_heart 机制摘要非占位（44 字）
+PASS  spore_heart 机制摘要无占位词
+PASS  spore_heart 机制摘要写明触发/条件/限制
+PASS  spore_heart 有同机制分组
+PASS  spore_heart 有非 BOSS 获取通道
+PASS  spore_heart 护符有精英/商店/铁砧来源
+PASS  status_charm 品质合法（rare）
+PASS  status_charm 至少一个家族标签
+PASS  status_charm 家族标签无重复
+PASS  status_charm 家族合法（fire）
+PASS  status_charm 家族合法（ice）
+PASS  status_charm 家族合法（poison）
+PASS  status_charm 用途合法（damage）
+PASS  status_charm 至少一个合法来源
+PASS  status_charm 来源标签无重复
+PASS  status_charm 来源合法（elite）
+PASS  status_charm 来源合法（shop）
+PASS  status_charm 来源合法（anvil）
+PASS  status_charm 来源合法（chest）
+PASS  status_charm 幕次下限合法（2）
+PASS  status_charm 幕次上限合法（3）
+PASS  status_charm 幕次区间有序（2–3）
+PASS  status_charm 机制摘要非占位（32 字）
+PASS  status_charm 机制摘要无占位词
+PASS  status_charm 机制摘要写明触发/条件/限制
+PASS  status_charm 有同机制分组
+PASS  status_charm 有非 BOSS 获取通道
+PASS  status_charm 护符有精英/商店/铁砧来源
+PASS  status_charm 高阶护符有代价或条件触发
+PASS  stone_shard_relic 品质合法（relic）
+PASS  stone_shard_relic 至少一个家族标签
+PASS  stone_shard_relic 家族标签无重复
+PASS  stone_shard_relic 家族合法（shield）
+PASS  stone_shard_relic 家族合法（combo）
+PASS  stone_shard_relic 用途合法（defense）
+PASS  stone_shard_relic 至少一个合法来源
+PASS  stone_shard_relic 来源标签无重复
+PASS  stone_shard_relic 来源合法（boss）
+PASS  stone_shard_relic 幕次下限合法（1）
+PASS  stone_shard_relic 幕次上限合法（1）
+PASS  stone_shard_relic 幕次区间有序（1–1）
+PASS  stone_shard_relic 机制摘要非占位（59 字）
+PASS  stone_shard_relic 机制摘要无占位词
+PASS  stone_shard_relic 机制摘要写明触发/条件/限制
+PASS  stone_shard_relic 有同机制分组
+PASS  stone_shard_relic BOSS 信物只从 BOSS 掉落
+PASS  stone_shard_relic 信物幕次匹配对应 BOSS（1）
+PASS  venom_gland_relic 品质合法（relic）
+PASS  venom_gland_relic 至少一个家族标签
+PASS  venom_gland_relic 家族标签无重复
+PASS  venom_gland_relic 家族合法（fire）
+PASS  venom_gland_relic 家族合法（ice）
+PASS  venom_gland_relic 家族合法（poison）
+PASS  venom_gland_relic 用途合法（damage）
+PASS  venom_gland_relic 至少一个合法来源
+PASS  venom_gland_relic 来源标签无重复
+PASS  venom_gland_relic 来源合法（boss）
+PASS  venom_gland_relic 幕次下限合法（1）
+PASS  venom_gland_relic 幕次上限合法（1）
+PASS  venom_gland_relic 幕次区间有序（1–1）
+PASS  venom_gland_relic 机制摘要非占位（50 字）
+PASS  venom_gland_relic 机制摘要无占位词
+PASS  venom_gland_relic 机制摘要写明触发/条件/限制
+PASS  venom_gland_relic 有同机制分组
+PASS  venom_gland_relic BOSS 信物只从 BOSS 掉落
+PASS  venom_gland_relic 信物幕次匹配对应 BOSS（1）
+PASS  void_echo_relic 品质合法（relic）
+PASS  void_echo_relic 至少一个家族标签
+PASS  void_echo_relic 家族标签无重复
+PASS  void_echo_relic 家族合法（fire）
+PASS  void_echo_relic 家族合法（ice）
+PASS  void_echo_relic 家族合法（poison）
+PASS  void_echo_relic 用途合法（damage）
+PASS  void_echo_relic 至少一个合法来源
+PASS  void_echo_relic 来源标签无重复
+PASS  void_echo_relic 来源合法（boss）
+PASS  void_echo_relic 幕次下限合法（2）
+PASS  void_echo_relic 幕次上限合法（2）
+PASS  void_echo_relic 幕次区间有序（2–2）
+PASS  void_echo_relic 机制摘要非占位（63 字）
+PASS  void_echo_relic 机制摘要无占位词
+PASS  void_echo_relic 机制摘要写明触发/条件/限制
+PASS  void_echo_relic 有同机制分组
+PASS  void_echo_relic BOSS 信物只从 BOSS 掉落
+PASS  void_echo_relic 信物幕次匹配对应 BOSS（2）
+PASS  ward_charm 品质合法（uncommon）
+PASS  ward_charm 至少一个家族标签
+PASS  ward_charm 家族标签无重复
+PASS  ward_charm 家族合法（shield）
+PASS  ward_charm 用途合法（defense）
+PASS  ward_charm 至少一个合法来源
+PASS  ward_charm 来源标签无重复
+PASS  ward_charm 来源合法（elite）
+PASS  ward_charm 来源合法（shop）
+PASS  ward_charm 来源合法（anvil）
+PASS  ward_charm 来源合法（chest）
+PASS  ward_charm 幕次下限合法（1）
+PASS  ward_charm 幕次上限合法（3）
+PASS  ward_charm 幕次区间有序（1–3）
+PASS  ward_charm 机制摘要非占位（21 字）
+PASS  ward_charm 机制摘要无占位词
+PASS  ward_charm 机制摘要写明触发/条件/限制
+PASS  ward_charm 有同机制分组
+PASS  ward_charm 有非 BOSS 获取通道
+PASS  ward_charm 护符有精英/商店/铁砧来源
+PASS  absolution_decree 品质合法（rare）
+PASS  absolution_decree 至少一个家族标签
+PASS  absolution_decree 家族标签无重复
+PASS  absolution_decree 家族合法（resource）
+PASS  absolution_decree 家族合法（reel）
+PASS  absolution_decree 用途合法（utility）
+PASS  absolution_decree 至少一个合法来源
+PASS  absolution_decree 来源标签无重复
+PASS  absolution_decree 来源合法（normal）
+PASS  absolution_decree 来源合法（elite）
+PASS  absolution_decree 来源合法（shop）
+PASS  absolution_decree 来源合法（start）
+PASS  absolution_decree 来源合法（chest）
+PASS  absolution_decree 幕次下限合法（2）
+PASS  absolution_decree 幕次上限合法（3）
+PASS  absolution_decree 幕次区间有序（2–3）
+PASS  absolution_decree 机制摘要非占位（55 字）
+PASS  absolution_decree 机制摘要无占位词
+PASS  absolution_decree 机制摘要写明触发/条件/限制
+PASS  absolution_decree 有同机制分组
+PASS  absolution_decree 有非 BOSS 获取通道
+PASS  absolution_decree 消耗品有战斗/商店来源
+PASS  absolution_decree 高阶消耗品有多用途或机制效果
+PASS  acid_solvent 品质合法（uncommon）
+PASS  acid_solvent 至少一个家族标签
+PASS  acid_solvent 家族标签无重复
+PASS  acid_solvent 家族合法（resource）
+PASS  acid_solvent 家族合法（combo）
+PASS  acid_solvent 用途合法（control）
+PASS  acid_solvent 至少一个合法来源
+PASS  acid_solvent 来源标签无重复
+PASS  acid_solvent 来源合法（normal）
+PASS  acid_solvent 来源合法（elite）
+PASS  acid_solvent 来源合法（shop）
+PASS  acid_solvent 来源合法（start）
+PASS  acid_solvent 来源合法（chest）
+PASS  acid_solvent 幕次下限合法（1）
+PASS  acid_solvent 幕次上限合法（3）
+PASS  acid_solvent 幕次区间有序（1–3）
+PASS  acid_solvent 机制摘要非占位（55 字）
+PASS  acid_solvent 机制摘要无占位词
+PASS  acid_solvent 机制摘要写明触发/条件/限制
+PASS  acid_solvent 有同机制分组
+PASS  acid_solvent 有非 BOSS 获取通道
+PASS  acid_solvent 消耗品有战斗/商店来源
+PASS  assault_potion 品质合法（uncommon）
+PASS  assault_potion 至少一个家族标签
+PASS  assault_potion 家族标签无重复
+PASS  assault_potion 家族合法（resource）
+PASS  assault_potion 家族合法（charge）
+PASS  assault_potion 用途合法（damage）
+PASS  assault_potion 至少一个合法来源
+PASS  assault_potion 来源标签无重复
+PASS  assault_potion 来源合法（normal）
+PASS  assault_potion 来源合法（elite）
+PASS  assault_potion 来源合法（shop）
+PASS  assault_potion 来源合法（start）
+PASS  assault_potion 来源合法（chest）
+PASS  assault_potion 幕次下限合法（1）
+PASS  assault_potion 幕次上限合法（3）
+PASS  assault_potion 幕次区间有序（1–3）
+PASS  assault_potion 机制摘要非占位（25 字）
+PASS  assault_potion 机制摘要无占位词
+PASS  assault_potion 机制摘要写明触发/条件/限制
+PASS  assault_potion 有同机制分组
+PASS  assault_potion 有非 BOSS 获取通道
+PASS  assault_potion 消耗品有战斗/商店来源
+PASS  atonement_water 品质合法（rare）
+PASS  atonement_water 至少一个家族标签
+PASS  atonement_water 家族标签无重复
+PASS  atonement_water 家族合法（resource）
+PASS  atonement_water 家族合法（light）
+PASS  atonement_water 用途合法（recovery）
+PASS  atonement_water 至少一个合法来源
+PASS  atonement_water 来源标签无重复
+PASS  atonement_water 来源合法（normal）
+PASS  atonement_water 来源合法（elite）
+PASS  atonement_water 来源合法（shop）
+PASS  atonement_water 来源合法（start）
+PASS  atonement_water 来源合法（chest）
+PASS  atonement_water 幕次下限合法（2）
+PASS  atonement_water 幕次上限合法（3）
+PASS  atonement_water 幕次区间有序（2–3）
+PASS  atonement_water 机制摘要非占位（64 字）
+PASS  atonement_water 机制摘要无占位词
+PASS  atonement_water 机制摘要写明触发/条件/限制
+PASS  atonement_water 有同机制分组
+PASS  atonement_water 有非 BOSS 获取通道
+PASS  atonement_water 消耗品有战斗/商店来源
+PASS  atonement_water 高阶消耗品有多用途或机制效果
+PASS  cleanse_potion 品质合法（uncommon）
+PASS  cleanse_potion 至少一个家族标签
+PASS  cleanse_potion 家族标签无重复
+PASS  cleanse_potion 家族合法（resource）
+PASS  cleanse_potion 家族合法（light）
+PASS  cleanse_potion 用途合法（recovery）
+PASS  cleanse_potion 至少一个合法来源
+PASS  cleanse_potion 来源标签无重复
+PASS  cleanse_potion 来源合法（normal）
+PASS  cleanse_potion 来源合法（elite）
+PASS  cleanse_potion 来源合法（shop）
+PASS  cleanse_potion 来源合法（start）
+PASS  cleanse_potion 来源合法（chest）
+PASS  cleanse_potion 幕次下限合法（1）
+PASS  cleanse_potion 幕次上限合法（3）
+PASS  cleanse_potion 幕次区间有序（1–3）
+PASS  cleanse_potion 机制摘要非占位（56 字）
+PASS  cleanse_potion 机制摘要无占位词
+PASS  cleanse_potion 机制摘要写明触发/条件/限制
+PASS  cleanse_potion 有同机制分组
+PASS  cleanse_potion 有非 BOSS 获取通道
+PASS  cleanse_potion 消耗品有战斗/商店来源
+PASS  dark_essence 品质合法（uncommon）
+PASS  dark_essence 至少一个家族标签
+PASS  dark_essence 家族标签无重复
+PASS  dark_essence 家族合法（resource）
+PASS  dark_essence 家族合法（reel）
+PASS  dark_essence 家族合法（dark）
+PASS  dark_essence 用途合法（damage）
+PASS  dark_essence 至少一个合法来源
+PASS  dark_essence 来源标签无重复
+PASS  dark_essence 来源合法（normal）
+PASS  dark_essence 来源合法（elite）
+PASS  dark_essence 来源合法（shop）
+PASS  dark_essence 来源合法（start）
+PASS  dark_essence 来源合法（chest）
+PASS  dark_essence 幕次下限合法（1）
+PASS  dark_essence 幕次上限合法（3）
+PASS  dark_essence 幕次区间有序（1–3）
+PASS  dark_essence 机制摘要非占位（38 字）
+PASS  dark_essence 机制摘要无占位词
+PASS  dark_essence 机制摘要写明触发/条件/限制
+PASS  dark_essence 有同机制分组
+PASS  dark_essence 有非 BOSS 获取通道
+PASS  dark_essence 消耗品有战斗/商店来源
+PASS  fire_essence 品质合法（uncommon）
+PASS  fire_essence 至少一个家族标签
+PASS  fire_essence 家族标签无重复
+PASS  fire_essence 家族合法（resource）
+PASS  fire_essence 家族合法（reel）
+PASS  fire_essence 家族合法（fire）
+PASS  fire_essence 用途合法（damage）
+PASS  fire_essence 至少一个合法来源
+PASS  fire_essence 来源标签无重复
+PASS  fire_essence 来源合法（normal）
+PASS  fire_essence 来源合法（elite）
+PASS  fire_essence 来源合法（shop）
+PASS  fire_essence 来源合法（start）
+PASS  fire_essence 来源合法（chest）
+PASS  fire_essence 幕次下限合法（1）
+PASS  fire_essence 幕次上限合法（3）
+PASS  fire_essence 幕次区间有序（1–3）
+PASS  fire_essence 机制摘要非占位（38 字）
+PASS  fire_essence 机制摘要无占位词
+PASS  fire_essence 机制摘要写明触发/条件/限制
+PASS  fire_essence 有同机制分组
+PASS  fire_essence 有非 BOSS 获取通道
+PASS  fire_essence 消耗品有战斗/商店来源
+PASS  flame_flask 品质合法（uncommon）
+PASS  flame_flask 至少一个家族标签
+PASS  flame_flask 家族标签无重复
+PASS  flame_flask 家族合法（resource）
+PASS  flame_flask 家族合法（fire）
+PASS  flame_flask 用途合法（damage）
+PASS  flame_flask 至少一个合法来源
+PASS  flame_flask 来源标签无重复
+PASS  flame_flask 来源合法（normal）
+PASS  flame_flask 来源合法（elite）
+PASS  flame_flask 来源合法（shop）
+PASS  flame_flask 来源合法（start）
+PASS  flame_flask 来源合法（chest）
+PASS  flame_flask 幕次下限合法（1）
+PASS  flame_flask 幕次上限合法（3）
+PASS  flame_flask 幕次区间有序（1–3）
+PASS  flame_flask 机制摘要非占位（62 字）
+PASS  flame_flask 机制摘要无占位词
+PASS  flame_flask 机制摘要写明触发/条件/限制
+PASS  flame_flask 有同机制分组
+PASS  flame_flask 有非 BOSS 获取通道
+PASS  flame_flask 消耗品有战斗/商店来源
+PASS  frost_flask 品质合法（uncommon）
+PASS  frost_flask 至少一个家族标签
+PASS  frost_flask 家族标签无重复
+PASS  frost_flask 家族合法（resource）
+PASS  frost_flask 家族合法（ice）
+PASS  frost_flask 用途合法（damage）
+PASS  frost_flask 至少一个合法来源
+PASS  frost_flask 来源标签无重复
+PASS  frost_flask 来源合法（normal）
+PASS  frost_flask 来源合法（elite）
+PASS  frost_flask 来源合法（shop）
+PASS  frost_flask 来源合法（start）
+PASS  frost_flask 来源合法（chest）
+PASS  frost_flask 幕次下限合法（1）
+PASS  frost_flask 幕次上限合法（3）
+PASS  frost_flask 幕次区间有序（1–3）
+PASS  frost_flask 机制摘要非占位（64 字）
+PASS  frost_flask 机制摘要无占位词
+PASS  frost_flask 机制摘要写明触发/条件/限制
+PASS  frost_flask 有同机制分组
+PASS  frost_flask 有非 BOSS 获取通道
+PASS  frost_flask 消耗品有战斗/商店来源
+PASS  greater_heal_potion 品质合法（uncommon）
+PASS  greater_heal_potion 至少一个家族标签
+PASS  greater_heal_potion 家族标签无重复
+PASS  greater_heal_potion 家族合法（resource）
+PASS  greater_heal_potion 家族合法（light）
+PASS  greater_heal_potion 用途合法（recovery）
+PASS  greater_heal_potion 至少一个合法来源
+PASS  greater_heal_potion 来源标签无重复
+PASS  greater_heal_potion 来源合法（normal）
+PASS  greater_heal_potion 来源合法（elite）
+PASS  greater_heal_potion 来源合法（shop）
+PASS  greater_heal_potion 来源合法（start）
+PASS  greater_heal_potion 来源合法（chest）
+PASS  greater_heal_potion 幕次下限合法（1）
+PASS  greater_heal_potion 幕次上限合法（3）
+PASS  greater_heal_potion 幕次区间有序（1–3）
+PASS  greater_heal_potion 机制摘要非占位（51 字）
+PASS  greater_heal_potion 机制摘要无占位词
+PASS  greater_heal_potion 机制摘要写明触发/条件/限制
+PASS  greater_heal_potion 有同机制分组
+PASS  greater_heal_potion 有非 BOSS 获取通道
+PASS  greater_heal_potion 消耗品有战斗/商店来源
+PASS  heal_potion 品质合法（common）
+PASS  heal_potion 至少一个家族标签
+PASS  heal_potion 家族标签无重复
+PASS  heal_potion 家族合法（resource）
+PASS  heal_potion 家族合法（light）
+PASS  heal_potion 用途合法（recovery）
+PASS  heal_potion 至少一个合法来源
+PASS  heal_potion 来源标签无重复
+PASS  heal_potion 来源合法（normal）
+PASS  heal_potion 来源合法（elite）
+PASS  heal_potion 来源合法（shop）
+PASS  heal_potion 来源合法（start）
+PASS  heal_potion 来源合法（chest）
+PASS  heal_potion 幕次下限合法（1）
+PASS  heal_potion 幕次上限合法（3）
+PASS  heal_potion 幕次区间有序（1–3）
+PASS  heal_potion 基础品质从第 1 幕起可获取
+PASS  heal_potion 机制摘要非占位（23 字）
+PASS  heal_potion 机制摘要无占位词
+PASS  heal_potion 机制摘要写明触发/条件/限制
+PASS  heal_potion 有同机制分组
+PASS  heal_potion 有非 BOSS 获取通道
+PASS  heal_potion 消耗品有战斗/商店来源
+PASS  holy_burst 品质合法（rare）
+PASS  holy_burst 至少一个家族标签
+PASS  holy_burst 家族标签无重复
+PASS  holy_burst 家族合法（resource）
+PASS  holy_burst 家族合法（charge）
+PASS  holy_burst 用途合法（damage）
+PASS  holy_burst 至少一个合法来源
+PASS  holy_burst 来源标签无重复
+PASS  holy_burst 来源合法（normal）
+PASS  holy_burst 来源合法（elite）
+PASS  holy_burst 来源合法（shop）
+PASS  holy_burst 来源合法（start）
+PASS  holy_burst 来源合法（chest）
+PASS  holy_burst 幕次下限合法（2）
+PASS  holy_burst 幕次上限合法（3）
+PASS  holy_burst 幕次区间有序（2–3）
+PASS  holy_burst 机制摘要非占位（63 字）
+PASS  holy_burst 机制摘要无占位词
+PASS  holy_burst 机制摘要写明触发/条件/限制
+PASS  holy_burst 有同机制分组
+PASS  holy_burst 有非 BOSS 获取通道
+PASS  holy_burst 消耗品有战斗/商店来源
+PASS  holy_burst 高阶消耗品有多用途或机制效果
+PASS  holy_flask 品质合法（rare）
+PASS  holy_flask 至少一个家族标签
+PASS  holy_flask 家族标签无重复
+PASS  holy_flask 家族合法（resource）
+PASS  holy_flask 家族合法（light）
+PASS  holy_flask 用途合法（damage）
+PASS  holy_flask 至少一个合法来源
+PASS  holy_flask 来源标签无重复
+PASS  holy_flask 来源合法（normal）
+PASS  holy_flask 来源合法（elite）
+PASS  holy_flask 来源合法（shop）
+PASS  holy_flask 来源合法（start）
+PASS  holy_flask 来源合法（chest）
+PASS  holy_flask 幕次下限合法（2）
+PASS  holy_flask 幕次上限合法（3）
+PASS  holy_flask 幕次区间有序（2–3）
+PASS  holy_flask 机制摘要非占位（64 字）
+PASS  holy_flask 机制摘要无占位词
+PASS  holy_flask 机制摘要写明触发/条件/限制
+PASS  holy_flask 有同机制分组
+PASS  holy_flask 有非 BOSS 获取通道
+PASS  holy_flask 消耗品有战斗/商店来源
+PASS  holy_flask 高阶消耗品有多用途或机制效果
+PASS  holy_grail 品质合法（rare）
+PASS  holy_grail 至少一个家族标签
+PASS  holy_grail 家族标签无重复
+PASS  holy_grail 家族合法（resource）
+PASS  holy_grail 家族合法（light）
+PASS  holy_grail 用途合法（recovery）
+PASS  holy_grail 至少一个合法来源
+PASS  holy_grail 来源标签无重复
+PASS  holy_grail 来源合法（normal）
+PASS  holy_grail 来源合法（elite）
+PASS  holy_grail 来源合法（shop）
+PASS  holy_grail 来源合法（start）
+PASS  holy_grail 来源合法（chest）
+PASS  holy_grail 幕次下限合法（2）
+PASS  holy_grail 幕次上限合法（3）
+PASS  holy_grail 幕次区间有序（2–3）
+PASS  holy_grail 机制摘要非占位（67 字）
+PASS  holy_grail 机制摘要无占位词
+PASS  holy_grail 机制摘要写明触发/条件/限制
+PASS  holy_grail 有同机制分组
+PASS  holy_grail 有非 BOSS 获取通道
+PASS  holy_grail 消耗品有战斗/商店来源
+PASS  holy_grail 高阶消耗品有多用途或机制效果
+PASS  ice_essence 品质合法（uncommon）
+PASS  ice_essence 至少一个家族标签
+PASS  ice_essence 家族标签无重复
+PASS  ice_essence 家族合法（resource）
+PASS  ice_essence 家族合法（reel）
+PASS  ice_essence 家族合法（ice）
+PASS  ice_essence 用途合法（damage）
+PASS  ice_essence 至少一个合法来源
+PASS  ice_essence 来源标签无重复
+PASS  ice_essence 来源合法（normal）
+PASS  ice_essence 来源合法（elite）
+PASS  ice_essence 来源合法（shop）
+PASS  ice_essence 来源合法（start）
+PASS  ice_essence 来源合法（chest）
+PASS  ice_essence 幕次下限合法（1）
+PASS  ice_essence 幕次上限合法（3）
+PASS  ice_essence 幕次区间有序（1–3）
+PASS  ice_essence 机制摘要非占位（39 字）
+PASS  ice_essence 机制摘要无占位词
+PASS  ice_essence 机制摘要写明触发/条件/限制
+PASS  ice_essence 有同机制分组
+PASS  ice_essence 有非 BOSS 获取通道
+PASS  ice_essence 消耗品有战斗/商店来源
+PASS  lava_burst_potion 品质合法（rare）
+PASS  lava_burst_potion 至少一个家族标签
+PASS  lava_burst_potion 家族标签无重复
+PASS  lava_burst_potion 家族合法（resource）
+PASS  lava_burst_potion 家族合法（charge）
+PASS  lava_burst_potion 用途合法（damage）
+PASS  lava_burst_potion 至少一个合法来源
+PASS  lava_burst_potion 来源标签无重复
+PASS  lava_burst_potion 来源合法（normal）
+PASS  lava_burst_potion 来源合法（elite）
+PASS  lava_burst_potion 来源合法（shop）
+PASS  lava_burst_potion 来源合法（start）
+PASS  lava_burst_potion 来源合法（chest）
+PASS  lava_burst_potion 幕次下限合法（2）
+PASS  lava_burst_potion 幕次上限合法（3）
+PASS  lava_burst_potion 幕次区间有序（2–3）
+PASS  lava_burst_potion 机制摘要非占位（66 字）
+PASS  lava_burst_potion 机制摘要无占位词
+PASS  lava_burst_potion 机制摘要写明触发/条件/限制
+PASS  lava_burst_potion 有同机制分组
+PASS  lava_burst_potion 有非 BOSS 获取通道
+PASS  lava_burst_potion 消耗品有战斗/商店来源
+PASS  lava_burst_potion 高阶消耗品有多用途或机制效果
+PASS  light_essence 品质合法（uncommon）
+PASS  light_essence 至少一个家族标签
+PASS  light_essence 家族标签无重复
+PASS  light_essence 家族合法（resource）
+PASS  light_essence 家族合法（reel）
+PASS  light_essence 家族合法（light）
+PASS  light_essence 用途合法（damage）
+PASS  light_essence 至少一个合法来源
+PASS  light_essence 来源标签无重复
+PASS  light_essence 来源合法（normal）
+PASS  light_essence 来源合法（elite）
+PASS  light_essence 来源合法（shop）
+PASS  light_essence 来源合法（start）
+PASS  light_essence 来源合法（chest）
+PASS  light_essence 幕次下限合法（1）
+PASS  light_essence 幕次上限合法（3）
+PASS  light_essence 幕次区间有序（1–3）
+PASS  light_essence 机制摘要非占位（38 字）
+PASS  light_essence 机制摘要无占位词
+PASS  light_essence 机制摘要写明触发/条件/限制
+PASS  light_essence 有同机制分组
+PASS  light_essence 有非 BOSS 获取通道
+PASS  light_essence 消耗品有战斗/商店来源
+PASS  poison_essence 品质合法（uncommon）
+PASS  poison_essence 至少一个家族标签
+PASS  poison_essence 家族标签无重复
+PASS  poison_essence 家族合法（resource）
+PASS  poison_essence 家族合法（reel）
+PASS  poison_essence 家族合法（poison）
+PASS  poison_essence 用途合法（damage）
+PASS  poison_essence 至少一个合法来源
+PASS  poison_essence 来源标签无重复
+PASS  poison_essence 来源合法（normal）
+PASS  poison_essence 来源合法（elite）
+PASS  poison_essence 来源合法（shop）
+PASS  poison_essence 来源合法（start）
+PASS  poison_essence 来源合法（chest）
+PASS  poison_essence 幕次下限合法（1）
+PASS  poison_essence 幕次上限合法（3）
+PASS  poison_essence 幕次区间有序（1–3）
+PASS  poison_essence 机制摘要非占位（39 字）
+PASS  poison_essence 机制摘要无占位词
+PASS  poison_essence 机制摘要写明触发/条件/限制
+PASS  poison_essence 有同机制分组
+PASS  poison_essence 有非 BOSS 获取通道
+PASS  poison_essence 消耗品有战斗/商店来源
+PASS  purge_water 品质合法（rare）
+PASS  purge_water 至少一个家族标签
+PASS  purge_water 家族标签无重复
+PASS  purge_water 家族合法（resource）
+PASS  purge_water 家族合法（light）
+PASS  purge_water 用途合法（recovery）
+PASS  purge_water 至少一个合法来源
+PASS  purge_water 来源标签无重复
+PASS  purge_water 来源合法（normal）
+PASS  purge_water 来源合法（elite）
+PASS  purge_water 来源合法（shop）
+PASS  purge_water 来源合法（start）
+PASS  purge_water 来源合法（chest）
+PASS  purge_water 幕次下限合法（2）
+PASS  purge_water 幕次上限合法（3）
+PASS  purge_water 幕次区间有序（2–3）
+PASS  purge_water 机制摘要非占位（57 字）
+PASS  purge_water 机制摘要无占位词
+PASS  purge_water 机制摘要写明触发/条件/限制
+PASS  purge_water 有同机制分组
+PASS  purge_water 有非 BOSS 获取通道
+PASS  purge_water 消耗品有战斗/商店来源
+PASS  purge_water 高阶消耗品有多用途或机制效果
+PASS  purify_potion 品质合法（uncommon）
+PASS  purify_potion 至少一个家族标签
+PASS  purify_potion 家族标签无重复
+PASS  purify_potion 家族合法（resource）
+PASS  purify_potion 用途合法（control）
+PASS  purify_potion 至少一个合法来源
+PASS  purify_potion 来源标签无重复
+PASS  purify_potion 来源合法（normal）
+PASS  purify_potion 来源合法（elite）
+PASS  purify_potion 来源合法（shop）
+PASS  purify_potion 来源合法（start）
+PASS  purify_potion 来源合法（chest）
+PASS  purify_potion 幕次下限合法（1）
+PASS  purify_potion 幕次上限合法（3）
+PASS  purify_potion 幕次区间有序（1–3）
+PASS  purify_potion 机制摘要非占位（20 字）
+PASS  purify_potion 机制摘要无占位词
+PASS  purify_potion 机制摘要写明触发/条件/限制
+PASS  purify_potion 有同机制分组
+PASS  purify_potion 有非 BOSS 获取通道
+PASS  purify_potion 消耗品有战斗/商店来源
+PASS  recaster_storm 品质合法（rare）
+PASS  recaster_storm 至少一个家族标签
+PASS  recaster_storm 家族标签无重复
+PASS  recaster_storm 家族合法（resource）
+PASS  recaster_storm 家族合法（reel）
+PASS  recaster_storm 用途合法（utility）
+PASS  recaster_storm 至少一个合法来源
+PASS  recaster_storm 来源标签无重复
+PASS  recaster_storm 来源合法（normal）
+PASS  recaster_storm 来源合法（elite）
+PASS  recaster_storm 来源合法（shop）
+PASS  recaster_storm 来源合法（start）
+PASS  recaster_storm 来源合法（chest）
+PASS  recaster_storm 幕次下限合法（2）
+PASS  recaster_storm 幕次上限合法（3）
+PASS  recaster_storm 幕次区间有序（2–3）
+PASS  recaster_storm 机制摘要非占位（58 字）
+PASS  recaster_storm 机制摘要无占位词
+PASS  recaster_storm 机制摘要写明触发/条件/限制
+PASS  recaster_storm 有同机制分组
+PASS  recaster_storm 有非 BOSS 获取通道
+PASS  recaster_storm 消耗品有战斗/商店来源
+PASS  recaster_storm 高阶消耗品有多用途或机制效果
+PASS  reroll_scroll 品质合法（common）
+PASS  reroll_scroll 至少一个家族标签
+PASS  reroll_scroll 家族标签无重复
+PASS  reroll_scroll 家族合法（resource）
+PASS  reroll_scroll 家族合法（reel）
+PASS  reroll_scroll 用途合法（utility）
+PASS  reroll_scroll 至少一个合法来源
+PASS  reroll_scroll 来源标签无重复
+PASS  reroll_scroll 来源合法（normal）
+PASS  reroll_scroll 来源合法（elite）
+PASS  reroll_scroll 来源合法（shop）
+PASS  reroll_scroll 来源合法（start）
+PASS  reroll_scroll 来源合法（chest）
+PASS  reroll_scroll 幕次下限合法（1）
+PASS  reroll_scroll 幕次上限合法（3）
+PASS  reroll_scroll 幕次区间有序（1–3）
+PASS  reroll_scroll 基础品质从第 1 幕起可获取
+PASS  reroll_scroll 机制摘要非占位（28 字）
+PASS  reroll_scroll 机制摘要无占位词
+PASS  reroll_scroll 机制摘要写明触发/条件/限制
+PASS  reroll_scroll 有同机制分组
+PASS  reroll_scroll 有非 BOSS 获取通道
+PASS  reroll_scroll 消耗品有战斗/商店来源
+PASS  silencing_draught 品质合法（rare）
+PASS  silencing_draught 至少一个家族标签
+PASS  silencing_draught 家族标签无重复
+PASS  silencing_draught 家族合法（resource）
+PASS  silencing_draught 用途合法（control）
+PASS  silencing_draught 至少一个合法来源
+PASS  silencing_draught 来源标签无重复
+PASS  silencing_draught 来源合法（normal）
+PASS  silencing_draught 来源合法（elite）
+PASS  silencing_draught 来源合法（shop）
+PASS  silencing_draught 来源合法（start）
+PASS  silencing_draught 来源合法（chest）
+PASS  silencing_draught 幕次下限合法（2）
+PASS  silencing_draught 幕次上限合法（3）
+PASS  silencing_draught 幕次区间有序（2–3）
+PASS  silencing_draught 机制摘要非占位（52 字）
+PASS  silencing_draught 机制摘要无占位词
+PASS  silencing_draught 机制摘要写明触发/条件/限制
+PASS  silencing_draught 有同机制分组
+PASS  silencing_draught 有非 BOSS 获取通道
+PASS  silencing_draught 消耗品有战斗/商店来源
+PASS  silencing_draught 高阶消耗品有多用途或机制效果
+PASS  trim_scissors 品质合法（rare）
+PASS  trim_scissors 至少一个家族标签
+PASS  trim_scissors 家族标签无重复
+PASS  trim_scissors 家族合法（resource）
+PASS  trim_scissors 家族合法（reel）
+PASS  trim_scissors 用途合法（utility）
+PASS  trim_scissors 至少一个合法来源
+PASS  trim_scissors 来源标签无重复
+PASS  trim_scissors 来源合法（elite）
+PASS  trim_scissors 来源合法（shop）
+PASS  trim_scissors 幕次下限合法（1）
+PASS  trim_scissors 幕次上限合法（3）
+PASS  trim_scissors 幕次区间有序（1–3）
+PASS  trim_scissors 机制摘要非占位（44 字）
+PASS  trim_scissors 机制摘要无占位词
+PASS  trim_scissors 机制摘要写明触发/条件/限制
+PASS  trim_scissors 有同机制分组
+PASS  trim_scissors 有非 BOSS 获取通道
+PASS  trim_scissors 消耗品有战斗/商店来源
+PASS  trim_scissors 高阶消耗品有多用途或机制效果
+PASS  venom_dagger 品质合法（uncommon）
+PASS  venom_dagger 至少一个家族标签
+PASS  venom_dagger 家族标签无重复
+PASS  venom_dagger 家族合法（resource）
+PASS  venom_dagger 家族合法（poison）
+PASS  venom_dagger 用途合法（damage）
+PASS  venom_dagger 至少一个合法来源
+PASS  venom_dagger 来源标签无重复
+PASS  venom_dagger 来源合法（normal）
+PASS  venom_dagger 来源合法（elite）
+PASS  venom_dagger 来源合法（shop）
+PASS  venom_dagger 来源合法（start）
+PASS  venom_dagger 来源合法（chest）
+PASS  venom_dagger 幕次下限合法（1）
+PASS  venom_dagger 幕次上限合法（3）
+PASS  venom_dagger 幕次区间有序（1–3）
+PASS  venom_dagger 机制摘要非占位（70 字）
+PASS  venom_dagger 机制摘要无占位词
+PASS  venom_dagger 机制摘要写明触发/条件/限制
+PASS  venom_dagger 有同机制分组
+PASS  venom_dagger 有非 BOSS 获取通道
+PASS  venom_dagger 消耗品有战斗/商店来源
+PASS  void_flask 品质合法（rare）
+PASS  void_flask 至少一个家族标签
+PASS  void_flask 家族标签无重复
+PASS  void_flask 家族合法（resource）
+PASS  void_flask 家族合法（dark）
+PASS  void_flask 用途合法（damage）
+PASS  void_flask 至少一个合法来源
+PASS  void_flask 来源标签无重复
+PASS  void_flask 来源合法（normal）
+PASS  void_flask 来源合法（elite）
+PASS  void_flask 来源合法（shop）
+PASS  void_flask 来源合法（start）
+PASS  void_flask 来源合法（chest）
+PASS  void_flask 幕次下限合法（2）
+PASS  void_flask 幕次上限合法（3）
+PASS  void_flask 幕次区间有序（2–3）
+PASS  void_flask 机制摘要非占位（64 字）
+PASS  void_flask 机制摘要无占位词
+PASS  void_flask 机制摘要写明触发/条件/限制
+PASS  void_flask 有同机制分组
+PASS  void_flask 有非 BOSS 获取通道
+PASS  void_flask 消耗品有战斗/商店来源
+PASS  void_flask 高阶消耗品有多用途或机制效果
+PASS  abyssal_nova 品质合法（uncommon）
+PASS  abyssal_nova 至少一个家族标签
+PASS  abyssal_nova 家族标签无重复
+PASS  abyssal_nova 家族合法（dark）
+PASS  abyssal_nova 家族合法（combo）
+PASS  abyssal_nova 用途合法（damage）
+PASS  abyssal_nova 至少一个合法来源
+PASS  abyssal_nova 来源标签无重复
+PASS  abyssal_nova 来源合法（shop）
+PASS  abyssal_nova 来源合法（anvil）
+PASS  abyssal_nova 幕次下限合法（1）
+PASS  abyssal_nova 幕次上限合法（3）
+PASS  abyssal_nova 幕次区间有序（1–3）
+PASS  abyssal_nova 机制摘要非占位（32 字）
+PASS  abyssal_nova 机制摘要无占位词
+PASS  abyssal_nova 机制摘要写明触发/条件/限制
+PASS  abyssal_nova 有同机制分组
+PASS  abyssal_nova 有非 BOSS 获取通道
+PASS  abyssal_nova 技能可由商店/铁砧获得
+PASS  aegis 品质合法（uncommon）
+PASS  aegis 至少一个家族标签
+PASS  aegis 家族标签无重复
+PASS  aegis 家族合法（shield）
+PASS  aegis 家族合法（light）
+PASS  aegis 用途合法（defense）
+PASS  aegis 至少一个合法来源
+PASS  aegis 来源标签无重复
+PASS  aegis 来源合法（shop）
+PASS  aegis 来源合法（anvil）
+PASS  aegis 幕次下限合法（1）
+PASS  aegis 幕次上限合法（3）
+PASS  aegis 幕次区间有序（1–3）
+PASS  aegis 机制摘要非占位（24 字）
+PASS  aegis 机制摘要无占位词
+PASS  aegis 机制摘要写明触发/条件/限制
+PASS  aegis 有同机制分组
+PASS  aegis 有非 BOSS 获取通道
+PASS  aegis 技能可由商店/铁砧获得
+PASS  atonement_light 品质合法（rare）
+PASS  atonement_light 至少一个家族标签
+PASS  atonement_light 家族标签无重复
+PASS  atonement_light 家族合法（light）
+PASS  atonement_light 用途合法（recovery）
+PASS  atonement_light 至少一个合法来源
+PASS  atonement_light 来源标签无重复
+PASS  atonement_light 来源合法（shop）
+PASS  atonement_light 来源合法（anvil）
+PASS  atonement_light 幕次下限合法（2）
+PASS  atonement_light 幕次上限合法（3）
+PASS  atonement_light 幕次区间有序（2–3）
+PASS  atonement_light 机制摘要非占位（61 字）
+PASS  atonement_light 机制摘要无占位词
+PASS  atonement_light 机制摘要写明触发/条件/限制
+PASS  atonement_light 有同机制分组
+PASS  atonement_light 有非 BOSS 获取通道
+PASS  atonement_light 技能可由商店/铁砧获得
+PASS  atonement_light 高阶技能有缓冲/恢复/护盾/三连机制
+PASS  atonement_mark 品质合法（rare）
+PASS  atonement_mark 至少一个家族标签
+PASS  atonement_mark 家族标签无重复
+PASS  atonement_mark 家族合法（charge）
+PASS  atonement_mark 家族合法（combo）
+PASS  atonement_mark 用途合法（utility）
+PASS  atonement_mark 至少一个合法来源
+PASS  atonement_mark 来源标签无重复
+PASS  atonement_mark 来源合法（shop）
+PASS  atonement_mark 来源合法（anvil）
+PASS  atonement_mark 幕次下限合法（2）
+PASS  atonement_mark 幕次上限合法（3）
+PASS  atonement_mark 幕次区间有序（2–3）
+PASS  atonement_mark 机制摘要非占位（58 字）
+PASS  atonement_mark 机制摘要无占位词
+PASS  atonement_mark 机制摘要写明触发/条件/限制
+PASS  atonement_mark 有同机制分组
+PASS  atonement_mark 有非 BOSS 获取通道
+PASS  atonement_mark 技能可由商店/铁砧获得
+PASS  atonement_mark 高阶技能有缓冲/恢复/护盾/三连机制
+PASS  aura_of_order 品质合法（rare）
+PASS  aura_of_order 至少一个家族标签
+PASS  aura_of_order 家族标签无重复
+PASS  aura_of_order 家族合法（shield）
+PASS  aura_of_order 家族合法（charge）
+PASS  aura_of_order 用途合法（defense）
+PASS  aura_of_order 至少一个合法来源
+PASS  aura_of_order 来源标签无重复
+PASS  aura_of_order 来源合法（shop）
+PASS  aura_of_order 来源合法（anvil）
+PASS  aura_of_order 幕次下限合法（2）
+PASS  aura_of_order 幕次上限合法（3）
+PASS  aura_of_order 幕次区间有序（2–3）
+PASS  aura_of_order 机制摘要非占位（65 字）
+PASS  aura_of_order 机制摘要无占位词
+PASS  aura_of_order 机制摘要写明触发/条件/限制
+PASS  aura_of_order 有同机制分组
+PASS  aura_of_order 有非 BOSS 获取通道
+PASS  aura_of_order 技能可由商店/铁砧获得
+PASS  aura_of_order 高阶技能有缓冲/恢复/护盾/三连机制
+PASS  blight 品质合法（uncommon）
+PASS  blight 至少一个家族标签
+PASS  blight 家族标签无重复
+PASS  blight 家族合法（poison）
+PASS  blight 用途合法（control）
+PASS  blight 至少一个合法来源
+PASS  blight 来源标签无重复
+PASS  blight 来源合法（shop）
+PASS  blight 来源合法（anvil）
+PASS  blight 幕次下限合法（1）
+PASS  blight 幕次上限合法（3）
+PASS  blight 幕次区间有序（1–3）
+PASS  blight 机制摘要非占位（23 字）
+PASS  blight 机制摘要无占位词
+PASS  blight 机制摘要写明触发/条件/限制
+PASS  blight 有同机制分组
+PASS  blight 有非 BOSS 获取通道
+PASS  blight 技能可由商店/铁砧获得
+PASS  calm 品质合法（uncommon）
+PASS  calm 至少一个家族标签
+PASS  calm 家族标签无重复
+PASS  calm 家族合法（shield）
+PASS  calm 家族合法（charge）
+PASS  calm 用途合法（defense）
+PASS  calm 至少一个合法来源
+PASS  calm 来源标签无重复
+PASS  calm 来源合法（shop）
+PASS  calm 来源合法（anvil）
+PASS  calm 幕次下限合法（1）
+PASS  calm 幕次上限合法（3）
+PASS  calm 幕次区间有序（1–3）
+PASS  calm 机制摘要非占位（53 字）
+PASS  calm 机制摘要无占位词
+PASS  calm 机制摘要写明触发/条件/限制
+PASS  calm 有同机制分组
+PASS  calm 有非 BOSS 获取通道
+PASS  calm 技能可由商店/铁砧获得
+PASS  chill 品质合法（common）
+PASS  chill 至少一个家族标签
+PASS  chill 家族标签无重复
+PASS  chill 家族合法（ice）
+PASS  chill 用途合法（control）
+PASS  chill 至少一个合法来源
+PASS  chill 来源标签无重复
+PASS  chill 来源合法（shop）
+PASS  chill 来源合法（anvil）
+PASS  chill 幕次下限合法（1）
+PASS  chill 幕次上限合法（3）
+PASS  chill 幕次区间有序（1–3）
+PASS  chill 基础品质从第 1 幕起可获取
+PASS  chill 机制摘要非占位（23 字）
+PASS  chill 机制摘要无占位词
+PASS  chill 机制摘要写明触发/条件/限制
+PASS  chill 有同机制分组
+PASS  chill 有非 BOSS 获取通道
+PASS  chill 技能可由商店/铁砧获得
+PASS  ember 品质合法（uncommon）
+PASS  ember 至少一个家族标签
+PASS  ember 家族标签无重复
+PASS  ember 家族合法（fire）
+PASS  ember 用途合法（control）
+PASS  ember 至少一个合法来源
+PASS  ember 来源标签无重复
+PASS  ember 来源合法（shop）
+PASS  ember 来源合法（anvil）
+PASS  ember 幕次下限合法（1）
+PASS  ember 幕次上限合法（3）
+PASS  ember 幕次区间有序（1–3）
+PASS  ember 机制摘要非占位（53 字）
+PASS  ember 机制摘要无占位词
+PASS  ember 机制摘要写明触发/条件/限制
+PASS  ember 有同机制分组
+PASS  ember 有非 BOSS 获取通道
+PASS  ember 技能可由商店/铁砧获得
+PASS  ember_spark 品质合法（common）
+PASS  ember_spark 至少一个家族标签
+PASS  ember_spark 家族标签无重复
+PASS  ember_spark 家族合法（fire）
+PASS  ember_spark 家族合法（combo）
+PASS  ember_spark 用途合法（damage）
+PASS  ember_spark 至少一个合法来源
+PASS  ember_spark 来源标签无重复
+PASS  ember_spark 来源合法（shop）
+PASS  ember_spark 来源合法（anvil）
+PASS  ember_spark 幕次下限合法（1）
+PASS  ember_spark 幕次上限合法（3）
+PASS  ember_spark 幕次区间有序（1–3）
+PASS  ember_spark 基础品质从第 1 幕起可获取
+PASS  ember_spark 机制摘要非占位（32 字）
+PASS  ember_spark 机制摘要无占位词
+PASS  ember_spark 机制摘要写明触发/条件/限制
+PASS  ember_spark 有同机制分组
+PASS  ember_spark 有非 BOSS 获取通道
+PASS  ember_spark 技能可由商店/铁砧获得
+PASS  fire_breath 品质合法（rare）
+PASS  fire_breath 至少一个家族标签
+PASS  fire_breath 家族标签无重复
+PASS  fire_breath 家族合法（charge）
+PASS  fire_breath 家族合法（combo）
+PASS  fire_breath 用途合法（utility）
+PASS  fire_breath 至少一个合法来源
+PASS  fire_breath 来源标签无重复
+PASS  fire_breath 来源合法（shop）
+PASS  fire_breath 来源合法（anvil）
+PASS  fire_breath 幕次下限合法（2）
+PASS  fire_breath 幕次上限合法（3）
+PASS  fire_breath 幕次区间有序（2–3）
+PASS  fire_breath 机制摘要非占位（67 字）
+PASS  fire_breath 机制摘要无占位词
+PASS  fire_breath 机制摘要写明触发/条件/限制
+PASS  fire_breath 有同机制分组
+PASS  fire_breath 有非 BOSS 获取通道
+PASS  fire_breath 技能可由商店/铁砧获得
+PASS  fire_breath 高阶技能有缓冲/恢复/护盾/三连机制
+PASS  flame_mark 品质合法（uncommon）
+PASS  flame_mark 至少一个家族标签
+PASS  flame_mark 家族标签无重复
+PASS  flame_mark 家族合法（fire）
+PASS  flame_mark 家族合法（combo）
+PASS  flame_mark 用途合法（damage）
+PASS  flame_mark 至少一个合法来源
+PASS  flame_mark 来源标签无重复
+PASS  flame_mark 来源合法（shop）
+PASS  flame_mark 来源合法（anvil）
+PASS  flame_mark 幕次下限合法（1）
+PASS  flame_mark 幕次上限合法（3）
+PASS  flame_mark 幕次区间有序（1–3）
+PASS  flame_mark 机制摘要非占位（46 字）
+PASS  flame_mark 机制摘要无占位词
+PASS  flame_mark 机制摘要写明触发/条件/限制
+PASS  flame_mark 有同机制分组
+PASS  flame_mark 有非 BOSS 获取通道
+PASS  flame_mark 技能可由商店/铁砧获得
+PASS  focus 品质合法（uncommon）
+PASS  focus 至少一个家族标签
+PASS  focus 家族标签无重复
+PASS  focus 家族合法（charge）
+PASS  focus 家族合法（combo）
+PASS  focus 用途合法（utility）
+PASS  focus 至少一个合法来源
+PASS  focus 来源标签无重复
+PASS  focus 来源合法（shop）
+PASS  focus 来源合法（anvil）
+PASS  focus 幕次下限合法（1）
+PASS  focus 幕次上限合法（3）
+PASS  focus 幕次区间有序（1–3）
+PASS  focus 机制摘要非占位（53 字）
+PASS  focus 机制摘要无占位词
+PASS  focus 机制摘要写明触发/条件/限制
+PASS  focus 有同机制分组
+PASS  focus 有非 BOSS 获取通道
+PASS  focus 技能可由商店/铁砧获得
+PASS  frost_shard 品质合法（common）
+PASS  frost_shard 至少一个家族标签
+PASS  frost_shard 家族标签无重复
+PASS  frost_shard 家族合法（ice）
+PASS  frost_shard 家族合法（combo）
+PASS  frost_shard 用途合法（damage）
+PASS  frost_shard 至少一个合法来源
+PASS  frost_shard 来源标签无重复
+PASS  frost_shard 来源合法（shop）
+PASS  frost_shard 来源合法（anvil）
+PASS  frost_shard 幕次下限合法（1）
+PASS  frost_shard 幕次上限合法（3）
+PASS  frost_shard 幕次区间有序（1–3）
+PASS  frost_shard 基础品质从第 1 幕起可获取
+PASS  frost_shard 机制摘要非占位（29 字）
+PASS  frost_shard 机制摘要无占位词
+PASS  frost_shard 机制摘要写明触发/条件/限制
+PASS  frost_shard 有同机制分组
+PASS  frost_shard 有非 BOSS 获取通道
+PASS  frost_shard 技能可由商店/铁砧获得
+PASS  glacier_spear 品质合法（uncommon）
+PASS  glacier_spear 至少一个家族标签
+PASS  glacier_spear 家族标签无重复
+PASS  glacier_spear 家族合法（ice）
+PASS  glacier_spear 家族合法（combo）
+PASS  glacier_spear 用途合法（damage）
+PASS  glacier_spear 至少一个合法来源
+PASS  glacier_spear 来源标签无重复
+PASS  glacier_spear 来源合法（shop）
+PASS  glacier_spear 来源合法（anvil）
+PASS  glacier_spear 幕次下限合法（1）
+PASS  glacier_spear 幕次上限合法（3）
+PASS  glacier_spear 幕次区间有序（1–3）
+PASS  glacier_spear 机制摘要非占位（29 字）
+PASS  glacier_spear 机制摘要无占位词
+PASS  glacier_spear 机制摘要写明触发/条件/限制
+PASS  glacier_spear 有同机制分组
+PASS  glacier_spear 有非 BOSS 获取通道
+PASS  glacier_spear 技能可由商店/铁砧获得
+PASS  guard 品质合法（common）
+PASS  guard 至少一个家族标签
+PASS  guard 家族标签无重复
+PASS  guard 家族合法（shield）
+PASS  guard 用途合法（defense）
+PASS  guard 至少一个合法来源
+PASS  guard 来源标签无重复
+PASS  guard 来源合法（shop）
+PASS  guard 来源合法（anvil）
+PASS  guard 幕次下限合法（1）
+PASS  guard 幕次上限合法（3）
+PASS  guard 幕次区间有序（1–3）
+PASS  guard 基础品质从第 1 幕起可获取
+PASS  guard 机制摘要非占位（23 字）
+PASS  guard 机制摘要无占位词
+PASS  guard 机制摘要写明触发/条件/限制
+PASS  guard 有同机制分组
+PASS  guard 有非 BOSS 获取通道
+PASS  guard 技能可由商店/铁砧获得
+PASS  haste 品质合法（common）
+PASS  haste 至少一个家族标签
+PASS  haste 家族标签无重复
+PASS  haste 家族合法（charge）
+PASS  haste 家族合法（combo）
+PASS  haste 用途合法（utility）
+PASS  haste 至少一个合法来源
+PASS  haste 来源标签无重复
+PASS  haste 来源合法（shop）
+PASS  haste 来源合法（anvil）
+PASS  haste 来源合法（start）
+PASS  haste 幕次下限合法（1）
+PASS  haste 幕次上限合法（3）
+PASS  haste 幕次区间有序（1–3）
+PASS  haste 基础品质从第 1 幕起可获取
+PASS  haste 机制摘要非占位（22 字）
+PASS  haste 机制摘要无占位词
+PASS  haste 机制摘要写明触发/条件/限制
+PASS  haste 有同机制分组
+PASS  haste 有非 BOSS 获取通道
+PASS  haste 技能可由商店/铁砧获得
+PASS  herbal_tonic 品质合法（common）
+PASS  herbal_tonic 至少一个家族标签
+PASS  herbal_tonic 家族标签无重复
+PASS  herbal_tonic 家族合法（light）
+PASS  herbal_tonic 用途合法（recovery）
+PASS  herbal_tonic 至少一个合法来源
+PASS  herbal_tonic 来源标签无重复
+PASS  herbal_tonic 来源合法（shop）
+PASS  herbal_tonic 来源合法（anvil）
+PASS  herbal_tonic 幕次下限合法（1）
+PASS  herbal_tonic 幕次上限合法（3）
+PASS  herbal_tonic 幕次区间有序（1–3）
+PASS  herbal_tonic 基础品质从第 1 幕起可获取
+PASS  herbal_tonic 机制摘要非占位（25 字）
+PASS  herbal_tonic 机制摘要无占位词
+PASS  herbal_tonic 机制摘要写明触发/条件/限制
+PASS  herbal_tonic 有同机制分组
+PASS  herbal_tonic 有非 BOSS 获取通道
+PASS  herbal_tonic 技能可由商店/铁砧获得
+PASS  holy_sear 品质合法（uncommon）
+PASS  holy_sear 至少一个家族标签
+PASS  holy_sear 家族标签无重复
+PASS  holy_sear 家族合法（light）
+PASS  holy_sear 用途合法（control）
+PASS  holy_sear 至少一个合法来源
+PASS  holy_sear 来源标签无重复
+PASS  holy_sear 来源合法（shop）
+PASS  holy_sear 来源合法（anvil）
+PASS  holy_sear 幕次下限合法（1）
+PASS  holy_sear 幕次上限合法（3）
+PASS  holy_sear 幕次区间有序（1–3）
+PASS  holy_sear 机制摘要非占位（36 字）
+PASS  holy_sear 机制摘要无占位词
+PASS  holy_sear 机制摘要写明触发/条件/限制
+PASS  holy_sear 有同机制分组
+PASS  holy_sear 有非 BOSS 获取通道
+PASS  holy_sear 技能可由商店/铁砧获得
+PASS  holy_verdict 品质合法（uncommon）
+PASS  holy_verdict 至少一个家族标签
+PASS  holy_verdict 家族标签无重复
+PASS  holy_verdict 家族合法（light）
+PASS  holy_verdict 家族合法（combo）
+PASS  holy_verdict 用途合法（damage）
+PASS  holy_verdict 至少一个合法来源
+PASS  holy_verdict 来源标签无重复
+PASS  holy_verdict 来源合法（shop）
+PASS  holy_verdict 来源合法（anvil）
+PASS  holy_verdict 幕次下限合法（1）
+PASS  holy_verdict 幕次上限合法（3）
+PASS  holy_verdict 幕次区间有序（1–3）
+PASS  holy_verdict 机制摘要非占位（53 字）
+PASS  holy_verdict 机制摘要无占位词
+PASS  holy_verdict 机制摘要写明触发/条件/限制
+PASS  holy_verdict 有同机制分组
+PASS  holy_verdict 有非 BOSS 获取通道
+PASS  holy_verdict 技能可由商店/铁砧获得
+PASS  ignite 品质合法（common）
+PASS  ignite 至少一个家族标签
+PASS  ignite 家族标签无重复
+PASS  ignite 家族合法（fire）
+PASS  ignite 用途合法（control）
+PASS  ignite 至少一个合法来源
+PASS  ignite 来源标签无重复
+PASS  ignite 来源合法（shop）
+PASS  ignite 来源合法（anvil）
+PASS  ignite 幕次下限合法（1）
+PASS  ignite 幕次上限合法（3）
+PASS  ignite 幕次区间有序（1–3）
+PASS  ignite 基础品质从第 1 幕起可获取
+PASS  ignite 机制摘要非占位（23 字）
+PASS  ignite 机制摘要无占位词
+PASS  ignite 机制摘要写明触发/条件/限制
+PASS  ignite 有同机制分组
+PASS  ignite 有非 BOSS 获取通道
+PASS  ignite 技能可由商店/铁砧获得
+PASS  iron_wall 品质合法（common）
+PASS  iron_wall 至少一个家族标签
+PASS  iron_wall 家族标签无重复
+PASS  iron_wall 家族合法（shield）
+PASS  iron_wall 用途合法（defense）
+PASS  iron_wall 至少一个合法来源
+PASS  iron_wall 来源标签无重复
+PASS  iron_wall 来源合法（shop）
+PASS  iron_wall 来源合法（anvil）
+PASS  iron_wall 幕次下限合法（1）
+PASS  iron_wall 幕次上限合法（3）
+PASS  iron_wall 幕次区间有序（1–3）
+PASS  iron_wall 基础品质从第 1 幕起可获取
+PASS  iron_wall 机制摘要非占位（22 字）
+PASS  iron_wall 机制摘要无占位词
+PASS  iron_wall 机制摘要写明触发/条件/限制
+PASS  iron_wall 有同机制分组
+PASS  iron_wall 有非 BOSS 获取通道
+PASS  iron_wall 技能可由商店/铁砧获得
+PASS  life_siphon 品质合法（common）
+PASS  life_siphon 至少一个家族标签
+PASS  life_siphon 家族标签无重复
+PASS  life_siphon 家族合法（light）
+PASS  life_siphon 家族合法（dark）
+PASS  life_siphon 用途合法（recovery）
+PASS  life_siphon 至少一个合法来源
+PASS  life_siphon 来源标签无重复
+PASS  life_siphon 来源合法（shop）
+PASS  life_siphon 来源合法（anvil）
+PASS  life_siphon 幕次下限合法（1）
+PASS  life_siphon 幕次上限合法（3）
+PASS  life_siphon 幕次区间有序（1–3）
+PASS  life_siphon 基础品质从第 1 幕起可获取
+PASS  life_siphon 机制摘要非占位（24 字）
+PASS  life_siphon 机制摘要无占位词
+PASS  life_siphon 机制摘要写明触发/条件/限制
+PASS  life_siphon 有同机制分组
+PASS  life_siphon 有非 BOSS 获取通道
+PASS  life_siphon 技能可由商店/铁砧获得
+PASS  magic_bolt 品质合法（uncommon）
+PASS  magic_bolt 至少一个家族标签
+PASS  magic_bolt 家族标签无重复
+PASS  magic_bolt 家族合法（light）
+PASS  magic_bolt 家族合法（combo）
+PASS  magic_bolt 用途合法（damage）
+PASS  magic_bolt 至少一个合法来源
+PASS  magic_bolt 来源标签无重复
+PASS  magic_bolt 来源合法（shop）
+PASS  magic_bolt 来源合法（anvil）
+PASS  magic_bolt 来源合法（start）
+PASS  magic_bolt 幕次下限合法（1）
+PASS  magic_bolt 幕次上限合法（3）
+PASS  magic_bolt 幕次区间有序（1–3）
+PASS  magic_bolt 机制摘要非占位（35 字）
+PASS  magic_bolt 机制摘要无占位词
+PASS  magic_bolt 机制摘要写明触发/条件/限制
+PASS  magic_bolt 有同机制分组
+PASS  magic_bolt 有非 BOSS 获取通道
+PASS  magic_bolt 技能可由商店/铁砧获得
+PASS  mend 品质合法（common）
+PASS  mend 至少一个家族标签
+PASS  mend 家族标签无重复
+PASS  mend 家族合法（light）
+PASS  mend 用途合法（recovery）
+PASS  mend 至少一个合法来源
+PASS  mend 来源标签无重复
+PASS  mend 来源合法（shop）
+PASS  mend 来源合法（anvil）
+PASS  mend 幕次下限合法（1）
+PASS  mend 幕次上限合法（3）
+PASS  mend 幕次区间有序（1–3）
+PASS  mend 基础品质从第 1 幕起可获取
+PASS  mend 机制摘要非占位（25 字）
+PASS  mend 机制摘要无占位词
+PASS  mend 机制摘要写明触发/条件/限制
+PASS  mend 有同机制分组
+PASS  mend 有非 BOSS 获取通道
+PASS  mend 技能可由商店/铁砧获得
+PASS  meteor_judgment 品质合法（epic）
+PASS  meteor_judgment 至少一个家族标签
+PASS  meteor_judgment 家族标签无重复
+PASS  meteor_judgment 家族合法（fire）
+PASS  meteor_judgment 家族合法（combo）
+PASS  meteor_judgment 用途合法（damage）
+PASS  meteor_judgment 至少一个合法来源
+PASS  meteor_judgment 来源标签无重复
+PASS  meteor_judgment 来源合法（shop）
+PASS  meteor_judgment 来源合法（anvil）
+PASS  meteor_judgment 幕次下限合法（2）
+PASS  meteor_judgment 幕次上限合法（3）
+PASS  meteor_judgment 幕次区间有序（2–3）
+PASS  meteor_judgment 机制摘要非占位（30 字）
+PASS  meteor_judgment 机制摘要无占位词
+PASS  meteor_judgment 机制摘要写明触发/条件/限制
+PASS  meteor_judgment 有同机制分组
+PASS  meteor_judgment 有非 BOSS 获取通道
+PASS  meteor_judgment 技能可由商店/铁砧获得
+PASS  meteor_judgment 高阶技能有缓冲/恢复/护盾/三连机制
+PASS  miracle 品质合法（epic）
+PASS  miracle 至少一个家族标签
+PASS  miracle 家族标签无重复
+PASS  miracle 家族合法（light）
+PASS  miracle 用途合法（recovery）
+PASS  miracle 至少一个合法来源
+PASS  miracle 来源标签无重复
+PASS  miracle 来源合法（shop）
+PASS  miracle 来源合法（anvil）
+PASS  miracle 幕次下限合法（2）
+PASS  miracle 幕次上限合法（3）
+PASS  miracle 幕次区间有序（2–3）
+PASS  miracle 机制摘要非占位（27 字）
+PASS  miracle 机制摘要无占位词
+PASS  miracle 机制摘要写明触发/条件/限制
+PASS  miracle 有同机制分组
+PASS  miracle 有非 BOSS 获取通道
+PASS  miracle 技能可由商店/铁砧获得
+PASS  miracle 高阶技能有缓冲/恢复/护盾/三连机制
+PASS  nightmare_gaze 品质合法（rare）
+PASS  nightmare_gaze 至少一个家族标签
+PASS  nightmare_gaze 家族标签无重复
+PASS  nightmare_gaze 家族合法（charge）
+PASS  nightmare_gaze 家族合法（combo）
+PASS  nightmare_gaze 用途合法（utility）
+PASS  nightmare_gaze 至少一个合法来源
+PASS  nightmare_gaze 来源标签无重复
+PASS  nightmare_gaze 来源合法（shop）
+PASS  nightmare_gaze 来源合法（anvil）
+PASS  nightmare_gaze 幕次下限合法（2）
+PASS  nightmare_gaze 幕次上限合法（3）
+PASS  nightmare_gaze 幕次区间有序（2–3）
+PASS  nightmare_gaze 机制摘要非占位（53 字）
+PASS  nightmare_gaze 机制摘要无占位词
+PASS  nightmare_gaze 机制摘要写明触发/条件/限制
+PASS  nightmare_gaze 有同机制分组
+PASS  nightmare_gaze 有非 BOSS 获取通道
+PASS  nightmare_gaze 技能可由商店/铁砧获得
+PASS  nightmare_gaze 高阶技能有缓冲/恢复/护盾/三连机制
+PASS  nightmare_veil 品质合法（rare）
+PASS  nightmare_veil 至少一个家族标签
+PASS  nightmare_veil 家族标签无重复
+PASS  nightmare_veil 家族合法（shield）
+PASS  nightmare_veil 家族合法（charge）
+PASS  nightmare_veil 用途合法（defense）
+PASS  nightmare_veil 至少一个合法来源
+PASS  nightmare_veil 来源标签无重复
+PASS  nightmare_veil 来源合法（shop）
+PASS  nightmare_veil 来源合法（anvil）
+PASS  nightmare_veil 幕次下限合法（2）
+PASS  nightmare_veil 幕次上限合法（3）
+PASS  nightmare_veil 幕次区间有序（2–3）
+PASS  nightmare_veil 机制摘要非占位（58 字）
+PASS  nightmare_veil 机制摘要无占位词
+PASS  nightmare_veil 机制摘要写明触发/条件/限制
+PASS  nightmare_veil 有同机制分组
+PASS  nightmare_veil 有非 BOSS 获取通道
+PASS  nightmare_veil 技能可由商店/铁砧获得
+PASS  nightmare_veil 高阶技能有缓冲/恢复/护盾/三连机制
+PASS  plague_orb 品质合法（uncommon）
+PASS  plague_orb 至少一个家族标签
+PASS  plague_orb 家族标签无重复
+PASS  plague_orb 家族合法（poison）
+PASS  plague_orb 家族合法（combo）
+PASS  plague_orb 用途合法（damage）
+PASS  plague_orb 至少一个合法来源
+PASS  plague_orb 来源标签无重复
+PASS  plague_orb 来源合法（shop）
+PASS  plague_orb 来源合法（anvil）
+PASS  plague_orb 幕次下限合法（1）
+PASS  plague_orb 幕次上限合法（3）
+PASS  plague_orb 幕次区间有序（1–3）
+PASS  plague_orb 机制摘要非占位（33 字）
+PASS  plague_orb 机制摘要无占位词
+PASS  plague_orb 机制摘要写明触发/条件/限制
+PASS  plague_orb 有同机制分组
+PASS  plague_orb 有非 BOSS 获取通道
+PASS  plague_orb 技能可由商店/铁砧获得
+PASS  prayer 品质合法（common）
+PASS  prayer 至少一个家族标签
+PASS  prayer 家族标签无重复
+PASS  prayer 家族合法（light）
+PASS  prayer 用途合法（recovery）
+PASS  prayer 至少一个合法来源
+PASS  prayer 来源标签无重复
+PASS  prayer 来源合法（shop）
+PASS  prayer 来源合法（anvil）
+PASS  prayer 幕次下限合法（1）
+PASS  prayer 幕次上限合法（3）
+PASS  prayer 幕次区间有序（1–3）
+PASS  prayer 基础品质从第 1 幕起可获取
+PASS  prayer 机制摘要非占位（25 字）
+PASS  prayer 机制摘要无占位词
+PASS  prayer 机制摘要写明触发/条件/限制
+PASS  prayer 有同机制分组
+PASS  prayer 有非 BOSS 获取通道
+PASS  prayer 技能可由商店/铁砧获得
+PASS  radiant_lance 品质合法（common）
+PASS  radiant_lance 至少一个家族标签
+PASS  radiant_lance 家族标签无重复
+PASS  radiant_lance 家族合法（light）
+PASS  radiant_lance 家族合法（combo）
+PASS  radiant_lance 用途合法（damage）
+PASS  radiant_lance 至少一个合法来源
+PASS  radiant_lance 来源标签无重复
+PASS  radiant_lance 来源合法（shop）
+PASS  radiant_lance 来源合法（anvil）
+PASS  radiant_lance 幕次下限合法（1）
+PASS  radiant_lance 幕次上限合法（3）
+PASS  radiant_lance 幕次区间有序（1–3）
+PASS  radiant_lance 基础品质从第 1 幕起可获取
+PASS  radiant_lance 机制摘要非占位（33 字）
+PASS  radiant_lance 机制摘要无占位词
+PASS  radiant_lance 机制摘要写明触发/条件/限制
+PASS  radiant_lance 有同机制分组
+PASS  radiant_lance 有非 BOSS 获取通道
+PASS  radiant_lance 技能可由商店/铁砧获得
+PASS  rage 品质合法（uncommon）
+PASS  rage 至少一个家族标签
+PASS  rage 家族标签无重复
+PASS  rage 家族合法（charge）
+PASS  rage 家族合法（combo）
+PASS  rage 用途合法（utility）
+PASS  rage 至少一个合法来源
+PASS  rage 来源标签无重复
+PASS  rage 来源合法（shop）
+PASS  rage 来源合法（anvil）
+PASS  rage 来源合法（start）
+PASS  rage 幕次下限合法（1）
+PASS  rage 幕次上限合法（3）
+PASS  rage 幕次区间有序（1–3）
+PASS  rage 机制摘要非占位（18 字）
+PASS  rage 机制摘要无占位词
+PASS  rage 机制摘要写明触发/条件/限制
+PASS  rage 有同机制分组
+PASS  rage 有非 BOSS 获取通道
+PASS  rage 技能可由商店/铁砧获得
+PASS  recovery 品质合法（common）
+PASS  recovery 至少一个家族标签
+PASS  recovery 家族标签无重复
+PASS  recovery 家族合法（light）
+PASS  recovery 用途合法（recovery）
+PASS  recovery 至少一个合法来源
+PASS  recovery 来源标签无重复
+PASS  recovery 来源合法（shop）
+PASS  recovery 来源合法（anvil）
+PASS  recovery 来源合法（start）
+PASS  recovery 幕次下限合法（1）
+PASS  recovery 幕次上限合法（3）
+PASS  recovery 幕次区间有序（1–3）
+PASS  recovery 基础品质从第 1 幕起可获取
+PASS  recovery 机制摘要非占位（44 字）
+PASS  recovery 机制摘要无占位词
+PASS  recovery 机制摘要写明触发/条件/限制
+PASS  recovery 有同机制分组
+PASS  recovery 有非 BOSS 获取通道
+PASS  recovery 技能可由商店/铁砧获得
+PASS  renewal 品质合法（uncommon）
+PASS  renewal 至少一个家族标签
+PASS  renewal 家族标签无重复
+PASS  renewal 家族合法（light）
+PASS  renewal 用途合法（recovery）
+PASS  renewal 至少一个合法来源
+PASS  renewal 来源标签无重复
+PASS  renewal 来源合法（shop）
+PASS  renewal 来源合法（anvil）
+PASS  renewal 幕次下限合法（1）
+PASS  renewal 幕次上限合法（3）
+PASS  renewal 幕次区间有序（1–3）
+PASS  renewal 机制摘要非占位（27 字）
+PASS  renewal 机制摘要无占位词
+PASS  renewal 机制摘要写明触发/条件/限制
+PASS  renewal 有同机制分组
+PASS  renewal 有非 BOSS 获取通道
+PASS  renewal 技能可由商店/铁砧获得
+PASS  sanctuary 品质合法（uncommon）
+PASS  sanctuary 至少一个家族标签
+PASS  sanctuary 家族标签无重复
+PASS  sanctuary 家族合法（shield）
+PASS  sanctuary 家族合法（light）
+PASS  sanctuary 用途合法（defense）
+PASS  sanctuary 至少一个合法来源
+PASS  sanctuary 来源标签无重复
+PASS  sanctuary 来源合法（shop）
+PASS  sanctuary 来源合法（anvil）
+PASS  sanctuary 幕次下限合法（1）
+PASS  sanctuary 幕次上限合法（3）
+PASS  sanctuary 幕次区间有序（1–3）
+PASS  sanctuary 机制摘要非占位（22 字）
+PASS  sanctuary 机制摘要无占位词
+PASS  sanctuary 机制摘要写明触发/条件/限制
+PASS  sanctuary 有同机制分组
+PASS  sanctuary 有非 BOSS 获取通道
+PASS  sanctuary 技能可由商店/铁砧获得
+PASS  shadow_bolt 品质合法（common）
+PASS  shadow_bolt 至少一个家族标签
+PASS  shadow_bolt 家族标签无重复
+PASS  shadow_bolt 家族合法（dark）
+PASS  shadow_bolt 家族合法（combo）
+PASS  shadow_bolt 用途合法（damage）
+PASS  shadow_bolt 至少一个合法来源
+PASS  shadow_bolt 来源标签无重复
+PASS  shadow_bolt 来源合法（shop）
+PASS  shadow_bolt 来源合法（anvil）
+PASS  shadow_bolt 幕次下限合法（1）
+PASS  shadow_bolt 幕次上限合法（3）
+PASS  shadow_bolt 幕次区间有序（1–3）
+PASS  shadow_bolt 基础品质从第 1 幕起可获取
+PASS  shadow_bolt 机制摘要非占位（32 字）
+PASS  shadow_bolt 机制摘要无占位词
+PASS  shadow_bolt 机制摘要写明触发/条件/限制
+PASS  shadow_bolt 有同机制分组
+PASS  shadow_bolt 有非 BOSS 获取通道
+PASS  shadow_bolt 技能可由商店/铁砧获得
+PASS  shadow_curse 品质合法（uncommon）
+PASS  shadow_curse 至少一个家族标签
+PASS  shadow_curse 家族标签无重复
+PASS  shadow_curse 家族合法（dark）
+PASS  shadow_curse 用途合法（control）
+PASS  shadow_curse 至少一个合法来源
+PASS  shadow_curse 来源标签无重复
+PASS  shadow_curse 来源合法（shop）
+PASS  shadow_curse 来源合法（anvil）
+PASS  shadow_curse 幕次下限合法（1）
+PASS  shadow_curse 幕次上限合法（3）
+PASS  shadow_curse 幕次区间有序（1–3）
+PASS  shadow_curse 机制摘要非占位（36 字）
+PASS  shadow_curse 机制摘要无占位词
+PASS  shadow_curse 机制摘要写明触发/条件/限制
+PASS  shadow_curse 有同机制分组
+PASS  shadow_curse 有非 BOSS 获取通道
+PASS  shadow_curse 技能可由商店/铁砧获得
+PASS  shadow_regen 品质合法（rare）
+PASS  shadow_regen 至少一个家族标签
+PASS  shadow_regen 家族标签无重复
+PASS  shadow_regen 家族合法（light）
+PASS  shadow_regen 用途合法（recovery）
+PASS  shadow_regen 至少一个合法来源
+PASS  shadow_regen 来源标签无重复
+PASS  shadow_regen 来源合法（shop）
+PASS  shadow_regen 来源合法（anvil）
+PASS  shadow_regen 幕次下限合法（2）
+PASS  shadow_regen 幕次上限合法（3）
+PASS  shadow_regen 幕次区间有序（2–3）
+PASS  shadow_regen 机制摘要非占位（62 字）
+PASS  shadow_regen 机制摘要无占位词
+PASS  shadow_regen 机制摘要写明触发/条件/限制
+PASS  shadow_regen 有同机制分组
+PASS  shadow_regen 有非 BOSS 获取通道
+PASS  shadow_regen 技能可由商店/铁砧获得
+PASS  shadow_regen 高阶技能有缓冲/恢复/护盾/三连机制
+PASS  stone_shot 品质合法（common）
+PASS  stone_shot 至少一个家族标签
+PASS  stone_shot 家族标签无重复
+PASS  stone_shot 家族合法（combo）
+PASS  stone_shot 用途合法（damage）
+PASS  stone_shot 至少一个合法来源
+PASS  stone_shot 来源标签无重复
+PASS  stone_shot 来源合法（shop）
+PASS  stone_shot 来源合法（anvil）
+PASS  stone_shot 幕次下限合法（1）
+PASS  stone_shot 幕次上限合法（3）
+PASS  stone_shot 幕次区间有序（1–3）
+PASS  stone_shot 基础品质从第 1 幕起可获取
+PASS  stone_shot 机制摘要非占位（26 字）
+PASS  stone_shot 机制摘要无占位词
+PASS  stone_shot 机制摘要写明触发/条件/限制
+PASS  stone_shot 有同机制分组
+PASS  stone_shot 有非 BOSS 获取通道
+PASS  stone_shot 技能可由商店/铁砧获得
+PASS  venom_bolt 品质合法（common）
+PASS  venom_bolt 至少一个家族标签
+PASS  venom_bolt 家族标签无重复
+PASS  venom_bolt 家族合法（poison）
+PASS  venom_bolt 家族合法（combo）
+PASS  venom_bolt 用途合法（damage）
+PASS  venom_bolt 至少一个合法来源
+PASS  venom_bolt 来源标签无重复
+PASS  venom_bolt 来源合法（shop）
+PASS  venom_bolt 来源合法（anvil）
+PASS  venom_bolt 幕次下限合法（1）
+PASS  venom_bolt 幕次上限合法（3）
+PASS  venom_bolt 幕次区间有序（1–3）
+PASS  venom_bolt 基础品质从第 1 幕起可获取
+PASS  venom_bolt 机制摘要非占位（34 字）
+PASS  venom_bolt 机制摘要无占位词
+PASS  venom_bolt 机制摘要写明触发/条件/限制
+PASS  venom_bolt 有同机制分组
+PASS  venom_bolt 有非 BOSS 获取通道
+PASS  venom_bolt 技能可由商店/铁砧获得
+PASS  war_banner 品质合法（uncommon）
+PASS  war_banner 至少一个家族标签
+PASS  war_banner 家族标签无重复
+PASS  war_banner 家族合法（shield）
+PASS  war_banner 家族合法（charge）
+PASS  war_banner 用途合法（defense）
+PASS  war_banner 至少一个合法来源
+PASS  war_banner 来源标签无重复
+PASS  war_banner 来源合法（shop）
+PASS  war_banner 来源合法（anvil）
+PASS  war_banner 幕次下限合法（1）
+PASS  war_banner 幕次上限合法（3）
+PASS  war_banner 幕次区间有序（1–3）
+PASS  war_banner 机制摘要非占位（54 字）
+PASS  war_banner 机制摘要无占位词
+PASS  war_banner 机制摘要写明触发/条件/限制
+PASS  war_banner 有同机制分组
+PASS  war_banner 有非 BOSS 获取通道
+PASS  war_banner 技能可由商店/铁砧获得
+PASS  家族「fire」有基础入口（cinder_hatchet）
+PASS  家族「ice」有基础入口（frost_dagger）
+PASS  家族「poison」有基础入口（acid_flask）
+PASS  家族「light」有基础入口（acolyte_blade）
+PASS  家族「dark」有基础入口（dusk_hatchet）
+PASS  家族「shield」有基础入口（gambler_mark）
+PASS  家族「charge」有基础入口（haste）
+PASS  家族「combo」有基础入口（acid_flask）
+PASS  家族「reel」有基础入口（resist_charm）
+PASS  家族「resource」有基础入口（heal_potion）
+PASS  开局收藏可加载 res://resources/weapon_templates/dagger.tres
+PASS  dagger.tres 标记开局来源
+PASS  dagger.tres 开局件第 1 幕可用
+PASS  开局收藏可加载 res://resources/weapon_templates/fire_sword.tres
+PASS  fire_sword.tres 标记开局来源
+PASS  fire_sword.tres 开局件第 1 幕可用
+PASS  开局收藏可加载 res://resources/weapon_templates/battle_axe.tres
+PASS  battle_axe.tres 标记开局来源
+PASS  battle_axe.tres 开局件第 1 幕可用
+PASS  开局收藏可加载 res://resources/weapon_templates/ice_staff.tres
+PASS  ice_staff.tres 标记开局来源
+PASS  ice_staff.tres 开局件第 1 幕可用
+PASS  开局收藏可加载 res://resources/skills/haste.tres
+PASS  haste.tres 标记开局来源
+PASS  haste.tres 开局件第 1 幕可用
+PASS  开局收藏可加载 res://resources/skills/magic_bolt.tres
+PASS  magic_bolt.tres 标记开局来源
+PASS  magic_bolt.tres 开局件第 1 幕可用
+PASS  开局收藏可加载 res://resources/skills/rage.tres
+PASS  rage.tres 标记开局来源
+PASS  rage.tres 开局件第 1 幕可用
+PASS  开局收藏可加载 res://resources/skills/recovery.tres
+PASS  recovery.tres 标记开局来源
+PASS  recovery.tres 开局件第 1 幕可用
+PASS  开局收藏可加载 res://resources/charms/guard_charm.tres
+PASS  guard_charm.tres 标记开局来源
+PASS  guard_charm.tres 开局件第 1 幕可用
+PASS  开局收藏可加载 res://resources/charms/pilgrim_ward.tres
+PASS  pilgrim_ward.tres 标记开局来源
+PASS  pilgrim_ward.tres 开局件第 1 幕可用
+PASS  开局收藏可加载 res://resources/charms/regen_charm.tres
+PASS  regen_charm.tres 标记开局来源
+PASS  regen_charm.tres 开局件第 1 幕可用
+PASS  开局收藏可加载 res://resources/charms/resist_charm.tres
+PASS  resist_charm.tres 标记开局来源
+PASS  resist_charm.tres 开局件第 1 幕可用
+PASS  BOSS 信物可加载 res://resources/charms/abyss_gaze_relic.tres
+PASS  abyss_gaze_relic.tres 摘要标明 BOSS 信物来源
+PASS  BOSS 信物可加载 res://resources/charms/venom_gland_relic.tres
+PASS  venom_gland_relic.tres 摘要标明 BOSS 信物来源
+PASS  BOSS 信物可加载 res://resources/charms/stone_shard_relic.tres
+PASS  stone_shard_relic.tres 摘要标明 BOSS 信物来源
+PASS  BOSS 信物可加载 res://resources/charms/rhythm_shell_relic.tres
+PASS  rhythm_shell_relic.tres 摘要标明 BOSS 信物来源
+PASS  BOSS 信物可加载 res://resources/charms/frost_core_relic.tres
+PASS  frost_core_relic.tres 摘要标明 BOSS 信物来源
+PASS  BOSS 信物可加载 res://resources/charms/innocence_seal_relic.tres
+PASS  innocence_seal_relic.tres 摘要标明 BOSS 信物来源
+PASS  BOSS 信物可加载 res://resources/charms/hero_emblem_relic.tres
+PASS  hero_emblem_relic.tres 摘要标明 BOSS 信物来源
+PASS  BOSS 信物可加载 res://resources/charms/dual_core_relic.tres
+PASS  dual_core_relic.tres 摘要标明 BOSS 信物来源
+PASS  BOSS 信物可加载 res://resources/charms/maze_echo_relic.tres
+PASS  maze_echo_relic.tres 摘要标明 BOSS 信物来源
+PASS  BOSS 信物可加载 res://resources/charms/void_echo_relic.tres
+PASS  void_echo_relic.tres 摘要标明 BOSS 信物来源
+PASS  BOSS 信物可加载 res://resources/charms/law_brand_relic.tres
+PASS  law_brand_relic.tres 摘要标明 BOSS 信物来源
+PASS  BOSS 信物可加载 res://resources/charms/crown_fragment_relic.tres
+PASS  crown_fragment_relic.tres 摘要标明 BOSS 信物来源
+PASS  BOSS 信物可加载 res://resources/charms/silence_seal_relic.tres
+PASS  silence_seal_relic.tres 摘要标明 BOSS 信物来源
+PASS  eclipse_blade.tres BOSS 池武器标记 boss 来源
+PASS  eclipse_blade.tres BOSS 池武器覆盖其所在 BOSS 的幕次（act2-3，引用幕 [3, 2]）
+PASS  night_scythe.tres BOSS 池武器标记 boss 来源
+PASS  night_scythe.tres BOSS 池武器覆盖其所在 BOSS 的幕次（act1-3，引用幕 [3, 2]）
+PASS  abyss_scythe.tres BOSS 池武器标记 boss 来源
+PASS  abyss_scythe.tres BOSS 池武器覆盖其所在 BOSS 的幕次（act1-3，引用幕 [3]）
+PASS  iron_sword.tres BOSS 池武器标记 boss 来源
+PASS  iron_sword.tres BOSS 池武器覆盖其所在 BOSS 的幕次（act1-3，引用幕 [3, 1, 2]）
+PASS  fire_sword.tres BOSS 池武器标记 boss 来源
+PASS  fire_sword.tres BOSS 池武器覆盖其所在 BOSS 的幕次（act1-3，引用幕 [1, 3]）
+PASS  flame_staff.tres BOSS 池武器标记 boss 来源
+PASS  flame_staff.tres BOSS 池武器覆盖其所在 BOSS 的幕次（act1-3，引用幕 [1]）
+PASS  holy_sword.tres BOSS 池武器标记 boss 来源
+PASS  holy_sword.tres BOSS 池武器覆盖其所在 BOSS 的幕次（act1-3，引用幕 [1, 2]）
+PASS  dawn_bow.tres BOSS 池武器标记 boss 来源
+PASS  dawn_bow.tres BOSS 池武器覆盖其所在 BOSS 的幕次（act1-3，引用幕 [1, 2]）
+PASS  cinder_cleaver.tres BOSS 池武器标记 boss 来源
+PASS  cinder_cleaver.tres BOSS 池武器覆盖其所在 BOSS 的幕次（act1-3，引用幕 [1]）
+PASS  sin_blade.tres BOSS 池武器标记 boss 来源
+PASS  sin_blade.tres BOSS 池武器覆盖其所在 BOSS 的幕次（act1-3，引用幕 [3]）
+PASS  frozen_spear.tres BOSS 池武器标记 boss 来源
+PASS  frozen_spear.tres BOSS 池武器覆盖其所在 BOSS 的幕次（act1-3，引用幕 [2, 3]）
+PASS  absolute_zero.tres BOSS 池武器标记 boss 来源
+PASS  absolute_zero.tres BOSS 池武器覆盖其所在 BOSS 的幕次（act2-3，引用幕 [2, 3]）
+PASS  ice_gun.tres BOSS 池武器标记 boss 来源
+PASS  ice_gun.tres BOSS 池武器覆盖其所在 BOSS 的幕次（act1-3，引用幕 [2, 3]）
+PASS  ice_staff.tres BOSS 池武器标记 boss 来源
+PASS  ice_staff.tres BOSS 池武器覆盖其所在 BOSS 的幕次（act1-3，引用幕 [2]）
+PASS  plague_reaper.tres BOSS 池武器标记 boss 来源
+PASS  plague_reaper.tres BOSS 池武器覆盖其所在 BOSS 的幕次（act2-3，引用幕 [2]）
+PASS  venom_queen.tres BOSS 池武器标记 boss 来源
+PASS  venom_queen.tres BOSS 池武器覆盖其所在 BOSS 的幕次（act2-3，引用幕 [2]）
+PASS  holy_mace.tres BOSS 池武器标记 boss 来源
+PASS  holy_mace.tres BOSS 池武器覆盖其所在 BOSS 的幕次（act1-3，引用幕 [2]）
+PASS  radiant_saber.tres BOSS 池武器标记 boss 来源
+PASS  radiant_saber.tres BOSS 池武器覆盖其所在 BOSS 的幕次（act1-3，引用幕 [2]）
+PASS  shadow_guillotine.tres BOSS 池武器标记 boss 来源
+PASS  shadow_guillotine.tres BOSS 池武器覆盖其所在 BOSS 的幕次（act1-3，引用幕 [2]）
+---
+PASSED 4720 / FAILED 0

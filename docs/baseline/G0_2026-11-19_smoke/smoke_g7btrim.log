@@ -1,0 +1,58 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+WARNING: res://scenes/ui/loadout_scene.tscn:9 - ext_resource, invalid UID: uid://dbrhpr1f4bp17 - using text path instead: res://assets/camp_bg.png
+   at: load (scene/resources/resource_format_text.cpp:501)
+铁砧元进度已载入：点数 104
+已为你预选默认配装（可自由调整后再开战）
+护符已装配：伤害+0 / 开局护盾+0 / 每回合护盾+4 / 每回合回血+0 / 抗扰+0
+🔥 余烬：每回合首次受到火系伤害会回复 6 HP（换元素或集中爆发）
+▶ 回合 1 开始
+▶ 进入房间 1/25：余烬傀儡（HP 85，攻击 12）
+PASS  精简系统已注入
+PASS  初始无精简次数（需「精简剪」授予）
+PASS  授予 1 次后可用
+PASS  有候选时入口状态 ready
+PASS  默认整备有合法候选（5 个）
+PASS  符号候选都是 ≥2 格（有可减空间）
+PASS  金币 / MISS / 废铁不进候选
+PASS  预览：目标符号 4 → 3 格
+PASS  预览：逻辑格数 17 → 16（含 MISS 重算）
+PASS  预览：实际带长按最小带长平铺（32）
+PASS  应用成功（✂ 精简：☣🔥 4→3 格（精简次数不足，需使用「精简剪」））
+PASS  本幕次数用尽
+PASS  用尽后入口状态 used（按钮显示「本幕已用」）
+PASS  精简状态记在 key 上
+PASS  正式建带 32 = 预览口径 32
+PASS  同一幕不能重复精简（候选已无该符号）
+PASS  同一幕再次 apply 被拒（不可刷）
+PASS  线性模式幕号为 1
+PASS  棋盘模式读棋盘幕号（ACT II）
+FAIL  换幕后次数重置为 1
+PASS  用尽后为 0
+PASS  换幕不再自动重置（供给完全由道具决定）
+FAIL  （无技能候选，技能断言跳过）
+PASS  同种子两次建带等长（34 / 34）
+PASS  同种子同精简状态两次建带逐格相同
+PASS  reset_run 后精简状态为空
+PASS  reset_run 后次数记账归零
+PASS  meta（拥有列表 / 里程碑）未被精简改动
+PASS  .tres 文件未被写入
+PASS  精简弹层可打开
+FAIL  反复开关弹层不刷新次数
+FAIL  反复开关后候选仍在
+SCRIPT ERROR: Out of bounds get index '0' (on base: 'Array[Dictionary]')
+   at: _test_ui_entry (res://tests/g7b_trim_test.gd:286)
+   GDScript backtrace (most recent call first):
+       [0] _test_ui_entry (res://tests/g7b_trim_test.gd:286)
+       [1] _run (res://tests/g7b_trim_test.gd:50)
+       [2] _boot (res://tests/g7b_trim_test.gd:68)
+---
+PASSED 28 / FAILED 4
+ERROR: 3 RID allocations of type 'PN13RendererDummy14TextureStorage12DummyTextureE' were leaked at exit.
+ERROR: 1 RID allocations of type 'PN18TextServerAdvanced12FontAdvancedE' were leaked at exit.
+WARNING: 5 RIDs of type "CanvasItem" were leaked.
+   at: _free_rids (servers/rendering/renderer_canvas_cull.cpp:2735)
+WARNING: 31 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2535)
+ERROR: 2 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:822)

@@ -1,0 +1,152 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+WARNING: res://scenes/ui/loadout_scene.tscn:9 - ext_resource, invalid UID: uid://dbrhpr1f4bp17 - using text path instead: res://assets/camp_bg.png
+   at: load (scene/resources/resource_format_text.cpp:501)
+铁砧元进度已载入：点数 104
+已为你预选默认配装（可自由调整后再开战）
+护符已装配：伤害+0 / 开局护盾+0 / 每回合护盾+4 / 每回合回血+0 / 抗扰+0
+✨ 辉光护体：首次受击后获得 10 护甲（仅一次）
+▶ 回合 1 开始
+▶ 进入房间 1/25：辉光游侠（HP 100，攻击 13）
+⚒ 熟练 火焰剑 +1（R1 · 1/3）
+PASS  普通房有效结算：火焰剑 +1 熟练
+PASS  未结算的匕首不获得熟练
+⚒ 熟练 火焰剑 +2（R2 · 3/7）
+✦ 火焰剑 达 R2：可选择一项铭印
+PASS  精英房额外 +1：本房 +2（累计 3）
+⚒ 熟练 火焰剑 +2（R2 · 5/7）
+PASS  BOSS 房额外 +1：本房 +2（累计 5）
+⚒ 熟练 火焰剑 +1（R2 · 6/7）
+PASS  下一房重新计数（累计 6）
+PASS  未装备的武器不获得熟练
+⚒ 熟练 匕首 +2（R1 · 2/3）
+⚒ 追赶 匕首 +1：对齐本局最高熟练 5
+PASS  新武器普通房：基础 +1 + 追赶 +1
+PASS  追赶目标 = 本局其它武器最高熟练
+PASS  替换/获得预览展示追赶目标
+⚒ 熟练 匕首 +3（R2 · 5/7）
+⚒ 追赶 匕首 +1：对齐本局最高熟练 5
+✦ 匕首 达 R2：可选择一项铭印
+PASS  精英房 +3（2 基础 +1 追赶），受每房上限 3
+⚒ 熟练 匕首 +1（R2 · 6/7）
+PASS  追平后按正常 +1，不再追赶
+⚒ 熟练 匕首 +1（R1 · 1/3）
+PASS  开局配装武器不触发追赶
+⚒ 熟练 匕首 +2（R2 · 4/7）
+⚒ 追赶 匕首 +1：对齐本局最高熟练 5
+✦ 匕首 达 R2：可选择一项铭印
+PASS  追赶可跨过 R2 门槛
+PASS  追赶跨过 R2 时进入现有铭印队列（不自动补发铭印）
+PASS  卸下再装保留熟练
+PASS  通用锋铸不跟随武器路径（该槽无成长）
+PASS  新局火焰剑 R1
+⚒ 熟练 火焰剑 +1（R2 · 3/7）
+✦ 火焰剑 达 R2：可选择一项铭印
+PASS  累计 3 → R2，欠 1 次铭印
+⚒ 熟练 火焰剑 +1（R3 · 7/12）
+✦ 火焰剑 达 R3：可选择一项铭印
+PASS  累计 7 → R3，再欠 1 次铭印
+⚒ 熟练 火焰剑 +1（R3 · 11/12）
+PASS  累计 11 仍为 R3
+⚒ 熟练 火焰剑 +1（R4 · 12/12）
+PASS  累计 12 → R4，R4 不再欠铭印
+PASS  锋铸恒在候选中（未达上限）
+PASS  锋铸描述给出当前 → 升级后基础攻击与提升幅度
+PASS  调律目标 = 权重最高且 +1 真实改变格数者（燃烧 5→6 不改格；火斩 3→4 改格）
+PASS  调律在真实改变格数时出现（火焰剑）
+PASS  调律描述包含真实格数变化
+PASS  槽位通用预算用尽后不再出现通用候选（只剩调律：["tune"]）
+PASS  武器池覆盖（90 把）
+PASS  全池候选按原型与有效性给出（异常 0：）
+PASS  每把至少 1 个合法候选（2 个 23 / 1 个 67）
+PASS  HEAVY 全部 2 个候选（22/22）
+PASS  LIGHT 候选给校准、不给锋铸
+PASS  HEAVY 候选给暴虐、不给调律
+PASS  校准前命中 86%
+⚒ 铭印「校准」→ 匕首
+PASS  选择校准成功
+PASS  校准：命中 86% → 91%
+⚒ 铭印「校准」→ 匕首
+PASS  第二次校准成功
+PASS  第二次校准：命中 → 96%
+PASS  校准达 2 次上限后拒绝
+PASS  超过上限后命中不再增长
+PASS  命中 97% 时不提供校准（+5% 会被 100% 吞掉）
+PASS  共享 .tres 的 hit_rate 未被修改
+PASS  暴虐加成初始 0
+⚒ 铭印「暴虐」→ 战斧
+PASS  选择暴虐成功
+PASS  暴虐：暴击倍率 +0.25
+PASS  暴虐写入暴击映射：2.00 → 2.25
+PASS  共享 .tres 的 crit_mult 未被修改
+PASS  清空铭印后暴击映射回落（重型斧已卸下）
+PASS  铭印文案列出槽位校准
+PASS  铭印摘要列出槽位校准
+PASS  铭印总数包含槽位校准
+⚒ 铭印「锋铸」→ 火焰剑
+PASS  选择锋铸成功
+PASS  锋铸：基础攻击加成 +2
+PASS  选定后消耗一次欠选
+PASS  锋铸写入攻击力映射：18 → 20
+PASS  共享 .tres 的 base_power 未被修改
+⚒ 铭印「锋铸」→ 火焰剑
+PASS  显示测试：选择锋铸成功
+PASS  替换摘要显示锋铸后的真实攻击（18→20）
+PASS  替换摘要把槽位锻造单列（锋铸×1）
+PASS  替换摘要包含 R 等级与熟练进度
+PASS  替换预览显示旧武器卸下与熟练保留说明
+PASS  物品 tooltip 显示真实攻击与锋铸
+PASS  显示层不写回共享 .tres 的 base_power
+PASS  调律目标展示的格数变化与真实带子口径一致
+PASS  武器获得写入来源记录
+PASS  来源记录含 ACT 与模式
+PASS  同一来源不重复记录
+PASS  来源记录按件封顶 5 条
+PASS  护符获得写入图鉴
+PASS  护符获得写入来源记录
+⚒ 铭印「调律」→ 火焰剑
+PASS  选择调律成功
+PASS  调律：目标符号火斩 +1
+PASS  池内火焰剑火斩权重 3 → 4
+⚒ 熟练 火焰剑 +1（R2 · 3/7）
+✦ 火焰剑 达 R2：可选择一项铭印
+铁砧点数 +0（本局 0/40，共 104）
+金币 +6（清房 5 + 利息 1，共 31）
+PASS  房间胜利后火焰剑 R2 欠铭印
+PASS  欠铭印时成长位为铭印
+PASS  战后结算待处理
+PASS  铭印未选完前不进入房间间歇
+✦ 习得技艺「回收」：每次房间胜利额外获得 2 金币
+FAIL  选定后写入一次铭印（通用进槽位）
+PASS  欠选队列清空
+PASS  选完铭印后进入房间间歇
+PASS  队列结束后无待选
+✦ 习得技艺「坚韧」：最大 HP +10，并立即恢复 10 HP
+⚒ 熟练 火焰剑 +1（R2 · 3/7）
+✦ 火焰剑 达 R2：可选择一项铭印
+铁砧点数 +0（本局 0/40，共 104）
+金币 +7（清房 5 + 利息 2，共 38）
+PASS  战后结算待处理
+PASS  技艺已授予
+PASS  确认前不进入间歇
+战利品强化：本局符号伤害 +2（共 +2）
+⚒ 熟练 火焰剑 +1（R2 · 4/7）
+铁砧点数 +0（本局 0/40，共 104）
+金币 +7（清房 5 + 利息 2，共 45）
+PASS  未选铭印不保留到下一战斗房
+PASS  未选择铭印时不额外生成铭印
+PASS  武器卡 tooltip 含 R2 熟练等级
+PASS  武器 tooltip 含熟练进度
+PASS  技能卡 tooltip 含已习得技艺
+PASS  玩家区：常驻成长行可见
+PASS  玩家区：常驻成长行显示技艺计数
+---
+PASSED 90 / FAILED 1
+ERROR: 3 RID allocations of type 'PN13RendererDummy14TextureStorage12DummyTextureE' were leaked at exit.
+ERROR: 1 RID allocations of type 'PN18TextServerAdvanced12FontAdvancedE' were leaked at exit.
+WARNING: 5 RIDs of type "CanvasItem" were leaked.
+   at: _free_rids (servers/rendering/renderer_canvas_cull.cpp:2735)
+WARNING: 31 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2535)
+ERROR: 2 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:822)

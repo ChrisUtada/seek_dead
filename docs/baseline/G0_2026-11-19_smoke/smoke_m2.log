@@ -1,0 +1,85 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+WARNING: res://scenes/ui/loadout_scene.tscn:9 - ext_resource, invalid UID: uid://dbrhpr1f4bp17 - using text path instead: res://assets/camp_bg.png
+   at: load (scene/resources/resource_format_text.cpp:501)
+铁砧元进度已载入：点数 104
+已为你预选默认配装（可自由调整后再开战）
+护符已装配：伤害+0 / 开局护盾+0 / 每回合护盾+4 / 每回合回血+0 / 抗扰+0
+❄ 寒鳞：每次受击获得 1 层霜（下一次攻击降低，可连续小攻击削弱）
+▶ 回合 1 开始
+▶ 进入房间 1/25：寒鳞蝠（HP 80，攻击 10）
+PASS  新局保底状态清零
+PASS  前 3 房保底触发强制技艺
+PASS  保底完成后不再强制
+PASS  保底完成后计数不再触发
+PASS  三选一候选为 3 个
+PASS  三选一候选互不相同
+PASS  精打细算不再进入随机技艺池
+PASS  三选一候选覆盖 2 个家族（生存/运筹，目押已迁出）
+PASS  候选 余裕 未拥有
+PASS  候选 余裕 带方向提示（更多资源）
+PASS  候选 余裕 给出可量化效果
+PASS  候选 蓄能 未拥有
+PASS  候选 蓄能 带方向提示（更耐打）
+PASS  候选 蓄能 给出可量化效果
+PASS  候选 回收 未拥有
+PASS  候选 回收 带方向提示（更多资源）
+PASS  候选 回收 给出可量化效果
+✦ 习得技艺「坚韧」：最大 HP +10，并立即恢复 10 HP
+PASS  坚韧可选
+PASS  坚韧：最大 HP +10
+PASS  坚韧：立即恢复 10 HP
+PASS  成长摘要按家族聚合（生存×1）
+PASS  成长明细包含已选技艺名
+PASS  同一技艺不可重复
+PASS  未知技艺拒绝
+✦ 习得技艺「备用药剂」：获得时，腰带上所有消耗品各 +1 次使用次数
+PASS  备用药剂可选
+PASS  备用药剂：腰带各消耗品 +1 次
+PASS  未选守势：无开局护盾
+PASS  守势：每房开局护盾 8
+PASS  无信物时商店无免费刷新
+PASS  商店免费刷新来自信物迷宫回声（+2）
+PASS  无操控授予：废铁改判未就绪
+PASS  无操控授予：废铁转化次数 0
+PASS  reel_controls 授予废铁改判：每房1次
+PASS  reel_controls 授予废铁转化：每回合 1 次
+PASS  slow_ramp 授予后每拍加速度变小（加速变慢）
+🌿 回春：HP 100/125 → 104/125（+4）
+PASS  回春：普通房胜利恢复 4 HP
+🌿 回春：HP 120/125 → 125/125（+5）
+PASS  回春：BOSS 房回血不超上限（120 → 125）
+🌿 回春：HP 100/125 → 108/125（+8）
+PASS  回春：BOSS 房胜利恢复 8 HP
+PASS  未选积蓄：房胜利不给金
+📦 积蓄：金币 +2（共 2）
+PASS  积蓄：普通房胜利 +2 金
+📦 积蓄：金币 +5（共 7）
+PASS  积蓄：BOSS 房胜利 +5 金
+PASS  探针关闭时不结算房胜利技艺
+PASS  废铁改判：本房次数未用
+🔁 废铁改判：第 1 列废铁 → 相邻有效符号（每房1次）
+PASS  废铁改判：废铁落点触发并用掉 1 次
+PASS  废铁改判：每房 1 次用尽
+PASS  next_symbol：下一格为带子位置 +1 的符号
+PASS  next_symbol：末格后循环回到首格
+PASS  next_symbol：空带子返回 null
+铁砧点数 +0（本局 0/40，共 104）
+金币 +5（清房 5 + 利息 0，共 12）
+PASS  普通房胜利进入战后结算
+PASS  战后先展示同层战利品三选一
+PASS  战利品三选一界面可见
+PASS  战利品固定三张同层卡
+PASS  战利品结算前不进入房间间歇
+PASS  新一局：技艺清零
+PASS  新一局：保底状态清零
+---
+PASSED 55 / FAILED 0
+ERROR: 3 RID allocations of type 'PN13RendererDummy14TextureStorage12DummyTextureE' were leaked at exit.
+ERROR: 1 RID allocations of type 'PN18TextServerAdvanced12FontAdvancedE' were leaked at exit.
+WARNING: 5 RIDs of type "CanvasItem" were leaked.
+   at: _free_rids (servers/rendering/renderer_canvas_cull.cpp:2735)
+WARNING: 31 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2535)
+ERROR: 2 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:822)

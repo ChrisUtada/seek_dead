@@ -1,0 +1,49 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+=== A 不完整主题池不能吞掉整组武器 ===
+=== B 同组同品质与无放回 ===
+=== C 强制品质不回退 ===
+=== D 排除已装备后仍能回退 ===
+=== E 整个池为空才允许无武器 ===
+=== F Step 0 审计：非最终 BOSS 的品质覆盖 ===
+WARNING: res://scenes/ui/loadout_scene.tscn:9 - ext_resource, invalid UID: uid://dbrhpr1f4bp17 - using text path instead: res://assets/camp_bg.png
+   at: load (scene/resources/resource_format_text.cpp:501)
+   GDScript backtrace (most recent call first):
+       [0] _boss_rooms (res://tests/boss_loot_quality_test.gd:181)
+       [1] _audit_bosses (res://tests/boss_loot_quality_test.gd:195)
+       [2] _run (res://tests/boss_loot_quality_test.gd:58)
+  [审计] 深渊监视者              act3 覆盖=["epic", "rare", "uncommon", "common"] 可用=["uncommon", "rare", "epic"] 缺失=[]
+  [审计] 酸蚀恶鬼               act1 覆盖=["rare", "epic", "uncommon", "common"] 可用=["uncommon", "rare", "epic"] 缺失=[]
+  [审计] 碎裂石像鬼              act1 覆盖=["uncommon", "rare", "epic", "common"] 可用=["uncommon", "rare", "epic"] 缺失=[]
+  [审计] 茧居石雕               act1 覆盖=["uncommon", "rare", "epic", "common"] 可用=["uncommon", "rare", "epic"] 缺失=[]
+  [审计] 冰封铁瓮               act1 覆盖=["uncommon", "rare", "epic", "common"] 可用=["uncommon", "rare", "epic"] 缺失=[]
+  [审计] 耻辱审判官              act3 覆盖=["epic", "rare", "uncommon", "common"] 可用=["uncommon", "rare", "epic"] 缺失=[]
+  [审计] 躁怒元素使              act2 覆盖=["uncommon", "epic", "rare", "common"] 可用=["uncommon", "rare", "epic"] 缺失=[]
+  [审计] 迷宫低语者              act2 覆盖=["rare", "uncommon", "epic", "common"] 可用=["uncommon", "rare", "epic"] 缺失=[]
+  [审计] 无名虚空               act2 覆盖=["uncommon", "rare", "epic", "common"] 可用=["uncommon", "rare", "epic"] 缺失=[]
+  [审计] 天平审判官              act2 覆盖=["epic", "rare", "uncommon", "common"] 可用=["uncommon", "rare", "epic"] 缺失=[]
+  [审计] 碎裂魔王               act3 覆盖=["uncommon", "epic", "rare", "common"] 可用=["uncommon", "rare", "epic"] 缺失=[]
+  [审计] 呓语教徒               act2 覆盖=["rare", "uncommon", "epic", "common"] 可用=["uncommon", "rare", "epic"] 缺失=[]
+=== G Step 3 真实 BOSS 奖励入口 ===
+铁砧元进度已载入：点数 0
+已为你预选默认配装（可自由调整后再开战）
+=== H Step 4 全品质覆盖后的实际分布 ===
+  [分布] 深渊监视者: uncommon 9.9%(期望10) rare 60.6%(期望60) epic 29.5%(期望30) 
+  [分布] 酸蚀恶鬼: uncommon 10.0%(期望10) rare 60.7%(期望60) epic 29.2%(期望30) 
+  [分布] 碎裂石像鬼: uncommon 9.9%(期望10) rare 59.4%(期望60) epic 30.8%(期望30) 
+  [分布] 茧居石雕: uncommon 9.8%(期望10) rare 60.5%(期望60) epic 29.7%(期望30) 
+  [分布] 冰封铁瓮: uncommon 10.1%(期望10) rare 60.2%(期望60) epic 29.7%(期望30) 
+  [分布] 耻辱审判官: uncommon 9.5%(期望10) rare 60.1%(期望60) epic 30.4%(期望30) 
+  [分布] 躁怒元素使: uncommon 10.6%(期望10) rare 59.6%(期望60) epic 29.8%(期望30) 
+  [分布] 迷宫低语者: uncommon 10.0%(期望10) rare 60.1%(期望60) epic 29.9%(期望30) 
+  [分布] 无名虚空: uncommon 10.0%(期望10) rare 59.7%(期望60) epic 30.3%(期望30) 
+  [分布] 天平审判官: uncommon 9.9%(期望10) rare 60.4%(期望60) epic 29.7%(期望30) 
+  [分布] 碎裂魔王: uncommon 9.9%(期望10) rare 60.1%(期望60) epic 30.0%(期望30) 
+  [分布] 呓语教徒: uncommon 10.1%(期望10) rare 58.8%(期望60) epic 31.1%(期望30) 
+BOSSQUALITY|RESULT PASS (checks=45 fails=0)
+ERROR: 3 RID allocations of type 'PN13RendererDummy14TextureStorage12DummyTextureE' were leaked at exit.
+ERROR: 1 RID allocations of type 'PN18TextServerAdvanced12FontAdvancedE' were leaked at exit.
+WARNING: 5 RIDs of type "CanvasItem" were leaked.
+   at: _free_rids (servers/rendering/renderer_canvas_cull.cpp:2735)
+WARNING: 27 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2535)

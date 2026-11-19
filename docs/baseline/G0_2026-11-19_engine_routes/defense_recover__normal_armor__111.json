@@ -1,0 +1,197 @@
+{
+  "build": "defense_recover",
+  "build_label": "防御恢复（火武+光武，护盾/治疗技能）",
+  "consumable_uses": {
+    "armor_shred": 1
+  },
+  "counter_burst_damage": 0,
+  "counter_triples": 0,
+  "counter_turns": [],
+  "damage_blocked": 12,
+  "damage_taken": 12,
+  "death_turn": -1,
+  "enemy_armor_end": 0,
+  "enemy_armor_start": 20,
+  "enemy_hp_end": -11,
+  "enemy_hp_max": 170,
+  "heal_overflow_shield": 0,
+  "heal_total": 0,
+  "hp_end": 88,
+  "hp_max": 100,
+  "result": "WON",
+  "room": "normal_armor",
+  "room_kind": "normal",
+  "room_name": "毒壳壁垒",
+  "seed": 111,
+  "telemetry": {
+    "avg_spin": 0.081,
+    "avg_ttk": 1.061,
+    "buffer_queues": 0,
+    "consumable_uses": {
+      "armor_shred": 1
+    },
+    "counter_burst_damage": 0,
+    "counter_triples": 0,
+    "damage_blocked": 12,
+    "damage_taken": 12,
+    "enemy_attacks": 2,
+    "forced_stops": 0,
+    "heal_overflow_shield": 0,
+    "heal_total": 0,
+    "reward_pick_rate": 0.0,
+    "reward_picks": {},
+    "rewards_shown": 0,
+    "rooms_cleared": 1,
+    "spin_seconds": 0.243,
+    "spins": 3,
+    "stop_kinds": {
+      "damage": 3,
+      "shield": 4,
+      "special": 2
+    },
+    "stop_outcomes": {
+      "normal": 5,
+      "target": 4
+    },
+    "stop_total": 9,
+    "target_hit_rate": 0.444444444444444,
+    "target_hits": 4,
+    "target_symbol": "res://resources/symbols/guard.tres",
+    "triple_rate": 0.0,
+    "triples": 0,
+    "turns": 3,
+    "weapon_swaps": 0
+  },
+  "triple_turns": [],
+  "triples": 0,
+  "turn_cap": 20,
+  "turn_log": [
+    {
+      "aim": "fire_slash.tres",
+      "armor_end": 0,
+      "armor_start": 8,
+      "charge_start": 0,
+      "consumables": [
+        "armor_shred"
+      ],
+      "counter_burst": 0,
+      "counters": [
+        "护盾",
+        "治疗药",
+        "硬吃 24"
+      ],
+      "damage_dealt": 73,
+      "damage_taken": 6,
+      "enemy_hp_end": 97,
+      "enemy_hp_start": 170,
+      "feedback": "",
+      "frost_start": 0,
+      "grid": [
+        "res://resources/symbols/holy_burn.tres",
+        "res://resources/symbols/holy_slash.tres",
+        "res://resources/symbols/miss.tres"
+      ],
+      "grid_end": [
+        "res://resources/symbols/fire_slash.tres",
+        "res://resources/symbols/guard.tres",
+        "res://resources/symbols/holy_verdict.tres"
+      ],
+      "heal": 0,
+      "hp_end": 94,
+      "hp_start": 100,
+      "intent": "",
+      "poison_start": 0,
+      "shield_end": 0,
+      "shield_start": 0,
+      "situation": "重击 24",
+      "triple": false,
+      "turn": 1,
+      "window": ""
+    },
+    {
+      "aim": "fire_slash.tres",
+      "armor_end": 0,
+      "armor_start": 0,
+      "charge_start": 0,
+      "consumables": [],
+      "counter_burst": 0,
+      "counters": [
+        "输出"
+      ],
+      "damage_dealt": 81,
+      "damage_taken": 6,
+      "enemy_hp_end": 16,
+      "enemy_hp_start": 97,
+      "feedback": "",
+      "frost_start": 0,
+      "grid": [
+        "res://resources/symbols/fire_slash.tres",
+        "res://resources/symbols/guard.tres",
+        "res://resources/symbols/holy_verdict.tres"
+      ],
+      "grid_end": [
+        "res://resources/symbols/holy_verdict.tres",
+        "res://resources/symbols/guard.tres",
+        "res://resources/symbols/fire_slash.tres"
+      ],
+      "heal": 0,
+      "hp_end": 88,
+      "hp_start": 94,
+      "intent": "attack",
+      "poison_start": 0,
+      "shield_end": 0,
+      "shield_start": 0,
+      "situation": "输出窗口",
+      "triple": false,
+      "turn": 2,
+      "window": ""
+    },
+    {
+      "aim": "fire_slash.tres",
+      "armor_end": 0,
+      "armor_start": 0,
+      "charge_start": 0,
+      "consumables": [],
+      "counter_burst": 0,
+      "counters": [
+        "护盾",
+        "治疗",
+        "治疗药",
+        "硬吃 24"
+      ],
+      "damage_dealt": 27,
+      "damage_taken": 0,
+      "enemy_hp_end": -11,
+      "enemy_hp_start": 16,
+      "feedback": "",
+      "frost_start": 0,
+      "grid": [
+        "res://resources/symbols/holy_verdict.tres",
+        "res://resources/symbols/guard.tres",
+        "res://resources/symbols/fire_slash.tres"
+      ],
+      "grid_end": [
+        "res://resources/symbols/fire_slash.tres",
+        "res://resources/symbols/guard.tres",
+        "res://resources/symbols/guard.tres"
+      ],
+      "heal": 0,
+      "hp_end": 88,
+      "hp_start": 88,
+      "intent": "heavy",
+      "poison_start": 0,
+      "shield_end": 18,
+      "shield_start": 0,
+      "situation": "重击 24",
+      "triple": false,
+      "turn": 3,
+      "window": ""
+    }
+  ],
+  "turns": 3,
+  "windows": {
+    "恢复": 0,
+    "爆发": 0,
+    "蓄势": 0
+  }
+}

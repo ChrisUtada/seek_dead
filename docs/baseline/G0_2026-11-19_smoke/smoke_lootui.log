@@ -1,0 +1,144 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+WARNING: res://scenes/ui/loadout_scene.tscn:9 - ext_resource, invalid UID: uid://dbrhpr1f4bp17 - using text path instead: res://assets/camp_bg.png
+   at: load (scene/resources/resource_format_text.cpp:501)
+铁砧元进度已载入：点数 0
+已为你预选默认配装（可自由调整后再开战）
+护符已装配：伤害+0 / 开局护盾+0 / 每回合护盾+4 / 每回合回血+0 / 抗扰+0
+🔒 诡计：首次转轮前锁定 1 列当前符号（照常结算，本轮后解除）
+▶ 回合 1 开始
+🔒 暗影诡匠锁定第 1 列：本轮固定不转，符号照常结算
+▶ 进入房间 1/25：暗影诡匠（HP 95，攻击 14）
+PASS  common 显示「基础」
+PASS  uncommon 显示「进阶」
+PASS  rare 显示「稀有」
+PASS  epic 显示「传说」
+PASS  normal 来源名「普通战」
+PASS  elite 来源名「精英战」
+PASS  chest 来源名「探索宝箱」
+PASS  四级品质颜色互不相同（4）
+铁砧点数 +0（本局 0/40，共 0）
+金币 +6（清房 5 + 利息 1，共 31）
+PASS  战利品屏可见
+PASS  战利品屏根节点在屏内
+PASS  标题写明成长（普通战 · 成长）
+PASS  标题写明来源（普通战）
+PASS  副标题写明成长三选一
+PASS  固定三张同层候选
+PASS  跳过按钮免费且不发奖励（跳过 · 免费）
+PASS  战利品阶段提供重抽
+PASS  首次重抽显示5金币费用
+PASS  金币不足时重抽按钮禁用
+PASS  跳过 / 重抽按钮都在屏内
+PASS  冻结 payload 为 3 项
+PASS  候选 0 带品质名
+FAIL  候选 0 带机制文本
+PASS  候选 0 带条件文本
+PASS  候选 0 带结果文本
+FAIL  候选 0 悬停窗含条件
+FAIL  候选 0 悬停窗含结果
+PASS  候选 1 带品质名
+FAIL  候选 1 带机制文本
+PASS  候选 1 带条件文本
+PASS  候选 1 带结果文本
+FAIL  候选 1 悬停窗含条件
+FAIL  候选 1 悬停窗含结果
+PASS  候选 2 带品质名
+FAIL  候选 2 带机制文本
+PASS  候选 2 带条件文本
+PASS  候选 2 带结果文本
+FAIL  候选 2 悬停窗含条件
+FAIL  候选 2 悬停窗含结果
+PASS  战利品卡 0 内容横向够（min 76.0 / avail 84.0）
+PASS  战利品卡 0 内容纵向够（min 75.0 / avail 96.0）
+PASS  战利品卡 1 内容横向够（min 76.0 / avail 84.0）
+PASS  战利品卡 1 内容纵向够（min 74.0 / avail 96.0）
+PASS  战利品卡 2 内容横向够（min 76.0 / avail 84.0）
+PASS  战利品卡 2 内容纵向够（min 47.0 / avail 96.0）
+PASS  战利品卡组在滚动容器内
+PASS  战利品卡组横向不溢出（min 264.0 / 宽 268.0）
+铁砧点数 +0（本局 0/40，共 0）
+金币 +7（清房 5 + 利息 2，共 38）
+FAIL  三项品质完全相同（）
+PASS  卡面不出现「更高品质 / 推荐」诱导
+铁砧点数 +0（本局 0/40，共 0）
+金币 +7（清房 5 + 利息 2，共 45）
+战利品重抽：金币 -5（下次 10）
+PASS  重抽 1 后品质层不变
+PASS  重抽 1 后跳过金币不变
+PASS  重抽 1 后仍为三项
+战利品重抽：金币 -10（下次 15）
+PASS  重抽 2 后品质层不变
+PASS  重抽 2 后跳过金币不变
+PASS  重抽 2 后仍为三项
+战利品重抽：金币 -15（下次 20）
+PASS  重抽 3 后品质层不变
+PASS  重抽 3 后跳过金币不变
+PASS  重抽 3 后仍为三项
+PASS  重抽 4 后品质层不变
+PASS  重抽 4 后跳过金币不变
+PASS  重抽 4 后仍为三项
+PASS  重抽 5 后品质层不变
+PASS  重抽 5 后跳过金币不变
+PASS  重抽 5 后仍为三项
+PASS  重抽 6 后品质层不变
+PASS  重抽 6 后跳过金币不变
+PASS  重抽 6 后仍为三项
+PASS  重抽不改标题
+PASS  重抽后卡组仍是三张
+PASS  多次重抽确实换过同层候选
+铁砧点数 +0（本局 0/40，共 0）
+金币 +6（清房 5 + 利息 1，共 21）
+PASS  存在可直接结算的候选
+ERROR: String formatting error: unsupported format character.
+   at: validated_evaluate (core/variant/variant_op.h:770)
+   GDScript backtrace (most recent call first):
+       [0] _apply_symbol_effect_bonus (res://scripts/reward/reward_resolver.gd:214)
+       [1] _dispatch (res://scripts/reward/reward_resolver.gd:63)
+       [2] resolve (res://scripts/reward/reward_resolver.gd:40)
+       [3] settle_loot_offer (res://scripts/systems/reward_system.gd:713)
+       [4] _on_loot_offer_chosen (res://scripts/battle/duel_controller.gd:804)
+       [5] _test_click_settles_once (res://tests/loot_ui_test.gd:266)
+       [6] _frames (res://tests/loot_ui_test.gd:85)
+FAIL  第一次点击产生结算变化
+战利品结算失败：already_settled
+PASS  重复点击不二次发奖
+PASS  直接重复结算返回 already_settled（already_settled）
+PASS  已结算后再结算不改变状态
+铁砧点数 +0（本局 0/40，共 0）
+金币 +6（清房 5 + 利息 1，共 27）
+FAIL  跳过本身免费且零收益；后续清房金币独立结算
+PASS  跳过走同一套「已结算」标记
+PASS  跳过后面板收尾
+PASS  再次跳过不二次发奖
+PASS  收尾后奖励屏已隐藏
+铁砧点数 +0（本局 0/40，共 0）
+金币 +6（清房 5 + 利息 1，共 33）
+PASS  ESC 不结算、不发奖
+PASS  ESC 后仍在战利品阶段
+PASS  ESC 不关闭战利品屏
+铁砧点数 +0（本局 0/40，共 0）
+金币 +7（清房 5 + 利息 2，共 40）
+PASS  成长三选一直接不含装备候选
+PASS  成长候选不要求替换武器
+战利品强化：本局符号伤害 +2（共 +2）
+PASS  成长结算不改变双武器配装
+铁砧点数 +0（本局 0/40，共 0）
+金币 +7（清房 5 + 利息 2，共 47）
+战利品重抽：金币 -5（下次 10）
+战利品重抽：金币 -10（下次 15）
+PASS  开关奖励屏不改战利品 RNG 种子
+PASS  开关奖励屏不改房间表
+PASS  开关奖励屏不改棋盘内容
+PASS  找到非最终 BOSS 房
+PASS  BOSS 战利品卡带品质角标（【稀有】暗 夜幕镰刀 新武器 · 进转轮带）
+PASS  BOSS 战利品出现武器候选
+PASS  BOSS 武器候选带品质字段
+---
+LOOTUI|RESULT FAIL (checks=92 fails=12)
+ERROR: 3 RID allocations of type 'PN13RendererDummy14TextureStorage12DummyTextureE' were leaked at exit.
+ERROR: 1 RID allocations of type 'PN18TextServerAdvanced12FontAdvancedE' were leaked at exit.
+WARNING: 5 RIDs of type "CanvasItem" were leaked.
+   at: _free_rids (servers/rendering/renderer_canvas_cull.cpp:2735)
+WARNING: 24 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2535)
