@@ -101,6 +101,13 @@ func compose(snap: RunSnapshot, count: int = 3, debug: bool = false,
 	return draft
 
 
+# 供外部 Provider 用本模块 RNG 取随机索引（不消耗全局 RNG，工程铁律 10）。
+func pick_index(size: int) -> int:
+	if size <= 0:
+		return 0
+	return _rng.randi() % size
+
+
 # 进入新奖励界面：重置付费重抽递增（价格回到 5）
 func reset_reroll_state() -> void:
 	paid_rerolls_used = 0

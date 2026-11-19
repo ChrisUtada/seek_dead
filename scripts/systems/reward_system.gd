@@ -356,6 +356,55 @@ func _make_perk_def(c: Dictionary) -> RewardDefinition:
 	return def
 
 
+# 2026-11-19 P0.2：符号权重强化奖励（动态构造，V1.1 §8.1 / §22）。
+# 目标符号从玩家当前 pool_items 提取（真实 resource_path），不预设静态 .tres。
+# 每张卡指定一个符号；权重通道复用现有 run_symbol_bonus（Resolver 的 run_symbol_bonus 分支）。
+# +3 与现有「符号灌注」奖励一致：cells_for 阈值 2/4，+3 必跨一格（可见变化）；
+# +1 不跨阈值会被 _apply_loot_option 的 no_cell_change 过滤。
+const SYMBOL_WEIGHT_STEP := 3        # 每次灌注的权重增量
+const SYMBOL_WEIGHT_MAX := 6         # 单符号本局灌注上限（最多 2 次，防单一符号无限放大）
+
+func _make_symbol_weight_defs() -> Array:
+	var out: Array = []
+	var seen := {}
+	var pool: Array = _ctrl.pool_items if _ctrl.pool_items != null else []
+	# pool_items 每项为 Dictionary {"name","hit","syms":[[SymbolData,weight,elem,wid,power],...],...}
+	for it in pool:
+		if not (it is Dictionary):
+			continue
+		var syms: Array = it.get("syms", [])
+		for entry in syms:
+			if not (entry is Array) or entry.is_empty():
+				continue
+			var sym = entry[0]
+			if sym == null or not (sym is SymbolData):
+				continue
+			var path: String = sym.resource_path
+			if path.is_empty() or seen.has(path):
+				continue
+			if int(run_symbol_bonus.get(path, 0)) >= SYMBOL_WEIGHT_MAX:
+				continue
+			# 已满格（4格上限）的符号再加权重也无可见变化，跳过
+			if _symbol_cells(sym, 0.0) >= 4:
+				continue
+			seen[path] = true
+			var def := RewardDefinition.new()
+			def.id = "sym_weight_" + path.get_file().get_basename()
+			def.name = "符号强化 · %s" % String(sym.name)
+			def.desc = "提升「%s」的转轮权重（当前灌注 %d/%d）" % [
+				String(sym.name), int(run_symbol_bonus.get(path, 0)), SYMBOL_WEIGHT_MAX]
+			def.rarity = "common"
+			def.base_weight = 1.0
+			def.base_value = 1.0
+			def.tags = ["symbol", "probability", "core_growth"]
+			def.effects = [{"effect_id": "run_symbol_bonus", "params": {
+				"path": path, "weight": SYMBOL_WEIGHT_STEP}}]
+			def.category = "symbol_mod"
+			def.effect_family = "symbol_weight"
+			out.append(def)
+	return out
+
+
 # 重抽沿用同一品质层；每组首次 5 金，之后每次 +5 金。跳过免费且不发奖励。
 func build_loot_offer(source: String, act: int, opts: Dictionary = {}, forced_quality: String = "") -> Dictionary:
 	_loot_settled = false
@@ -370,6 +419,10 @@ func build_loot_offer(source: String, act: int, opts: Dictionary = {}, forced_qu
 		if growth != null and growth.should_offer_perk():
 			for c in growth.roll_choices():
 				extra.append(_make_perk_def(c))
+		# P0.2：符号权重强化注入 1 张（从当前武器符号池动态构造，真实 resource_path）
+		var sym_defs := _make_symbol_weight_defs()
+		if not sym_defs.is_empty():
+			extra.append(sym_defs[_draft_composer.pick_index(sym_defs.size())])
 		_draft_result = _draft_composer.compose(snap, 3, draft_debug, extra)
 		_draft_active = true
 		_loot_view = RewardPresentation.draft_to_view(_draft_result, LootSourceTable.source_label(source))

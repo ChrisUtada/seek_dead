@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RewardDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/reward/reward_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "seed_gold_cache"
+name = "战利品金币"
+desc = "立即获得 12 金币，可在商店购买装备与补给"
+rarity = "common"
+tags = Array[String](["resource.gold", "immediate"])
+base_weight = 1.0
+base_value = 1.0
+effects = [{"effect_id": "gold_add", "params": {"amount": 12}}]
+category = "survival_resource"
+effect_family = "gold_add"
+stack_rule = 0
+max_stack = -1

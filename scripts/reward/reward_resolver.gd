@@ -51,6 +51,10 @@ func _dispatch(reward_id: String, effect_id: String, params: Dictionary) -> Draf
 			return _apply_existing_shield(reward_id, params)
 		"run_power_bonus":
 			return _apply_existing_power(reward_id, params)
+		"run_symbol_bonus":
+			return _apply_existing_symbol_weight(reward_id, params)
+		"gold_add":
+			return _apply_existing_gold(reward_id, params)
 		"flame_affinity":
 			return _apply_flame_affinity(reward_id, params)
 		"pick_perk":
@@ -108,6 +112,44 @@ func _apply_existing_power(reward_id: String, params: Dictionary) -> DraftResult
 		return DraftResult.RewardApplyResult.failure(reward_id, "run_power_bonus", String(res.get("reason", "delegate_failed")))
 	# conversion 返回的是 power 字段，不是 amount
 	return DraftResult.RewardApplyResult.success(reward_id, "run_power_bonus", "本局伤害 +%d" % int(res.get("power", 0)))
+
+
+# 符号权重强化（2026-11-19 P0.2）：复用 reward_system 的 "symbol" 结算入口。
+# params: {"path": "res://resources/symbols/*.tres", "weight": int}
+# 契约：只分发不复制逻辑——合法性（符号存在/weight>0/格数变化）与转轮重建都在旧入口里。
+func _apply_existing_symbol_weight(reward_id: String, params: Dictionary) -> DraftResult.RewardApplyResult:
+	var path := String(params.get("path", ""))
+	var weight := int(params.get("weight", 0))
+	if path.is_empty() or weight <= 0:
+		return DraftResult.RewardApplyResult.failure(reward_id, "run_symbol_bonus", "invalid_params")
+	var res: Dictionary = _ctrl._reward_system._apply_loot_option({
+		"kind": "symbol", "path": path, "weight": weight
+	})
+	if not bool(res.get("ok", false)):
+		return DraftResult.RewardApplyResult.failure(reward_id, "run_symbol_bonus", String(res.get("reason", "delegate_failed")))
+	var before := int(res.get("before", 0))
+	var after := int(res.get("after", 0))
+	var r := DraftResult.RewardApplyResult.success(
+		reward_id, "run_symbol_bonus", "符号权重 +%d（%d→%d 格）" % [weight, before, after])
+	r.state_updates["symbol_path"] = path
+	r.state_updates["symbol_cells"] = [before, after]
+	return r
+
+
+# 金币奖励（2026-11-19 P0.2）：复用 reward_system 的 "item"/grant=gold 结算入口。
+func _apply_existing_gold(reward_id: String, params: Dictionary) -> DraftResult.RewardApplyResult:
+	var amount := int(params.get("amount", 0))
+	if amount <= 0:
+		return DraftResult.RewardApplyResult.failure(reward_id, "gold_add", "invalid_amount")
+	# item 分支要求 path 非空（仅作键，grant=gold 时不读取实际资源）
+	var res: Dictionary = _ctrl._reward_system._apply_loot_option({
+		"kind": "item", "path": "gold", "grant": "gold", "gold": amount
+	})
+	if not bool(res.get("ok", false)):
+		return DraftResult.RewardApplyResult.failure(reward_id, "gold_add", String(res.get("reason", "delegate_failed")))
+	var r := DraftResult.RewardApplyResult.success(reward_id, "gold_add", "金币 +%d" % amount)
+	r.state_updates["gold"] = _ctrl.gold
+	return r
 
 
 # ===== 新效果（P0 状态登记，P1/P3 接入实际系统） =====
