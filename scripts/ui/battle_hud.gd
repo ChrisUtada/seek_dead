@@ -2173,6 +2173,17 @@ func request_weapon_replace(title: String, new_weapon_info: String, on_chosen: C
 			dl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			dl.add_theme_color_override("font_color", Palette.MUTED)
 			_replace_vbox.add_child(dl)
+			# G2-4：构筑得失完整比较——牌谱/签名/元素覆盖的新增与失去。
+			# 改造休眠（换下武器保留铸式但暂停贡献）已由上面的 _weapon_off_info 表达。
+			var build_diff: String = controller.build_swap_build_diff(path, new_path)
+			if build_diff != "":
+				var bd = _label("", TypeScale.TINY)
+				bd.text = "构筑：" + build_diff
+				bd.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+				bd.custom_minimum_size = Vector2(300, 0)
+				bd.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+				bd.add_theme_color_override("font_color", Palette.ACCENT_GOLD)
+				_replace_vbox.add_child(bd)
 		var btn = UI_BUTTON.instantiate()
 		btn.text = "替换「%s」" % controller._shop_name(path, "weapon")
 		btn.custom_minimum_size = Vector2(220, 34)

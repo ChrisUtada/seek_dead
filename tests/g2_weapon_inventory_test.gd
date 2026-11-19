@@ -54,6 +54,7 @@ func _run() -> void:
 	_test_g2g3_sources_write_inventory(duel)
 	_test_g2g3_codex_discovery(duel)
 	_test_g2g3_real_swap_keeps_inventory(duel)
+	_test_g2g4_build_diff(duel)
 
 	duel.meta.clear()
 	for k in meta_backup:
@@ -245,3 +246,24 @@ func _test_g2g3_real_swap_keeps_inventory(duel: DuelController) -> void:
 	_ok(duel.replace_weapon_at_slot(slot, axe), "G2-3 replace_weapon_at_slot succeeds")
 	_ok(not duel.selected_loadout.has(sword), "G2-3 old weapon unequipped")
 	_ok(duel.run_weapon_inventory.has(sword), "G2-3 swapped-out weapon still in run inventory")
+
+
+# G2-4：替换预览的构筑得失只读对比（牌谱/签名/元素覆盖）。
+func _test_g2g4_build_diff(duel: DuelController) -> void:
+	var fire := "res://resources/weapon_templates/fire_sword.tres"
+	var dagger := "res://resources/weapon_templates/dagger.tres"
+	var ice := "res://resources/weapon_templates/ice_staff.tres"
+	# fire_sword 带签名 SIG_FIRE_SWORD；换成 dagger 应失去该签名
+	duel.selected_loadout.assign([fire, dagger])
+	var loadout_before: Array = duel.selected_loadout.duplicate()
+	var diff_lose: String = duel.build_swap_build_diff(fire, ice)
+	_ok(diff_lose != "", "G2-4 build diff not empty when changing signature weapon")
+	_ok(diff_lose.find("失去签名") >= 0, "G2-4 build diff reports lost signature (got: %s)" % diff_lose)
+	# 只读：调用不修改配装
+	_ok(duel.selected_loadout == loadout_before, "G2-4 build diff is read-only (loadout unchanged)")
+	# 元素覆盖：fire 元素换成 ice → 失去火/获得冰
+	_ok(diff_lose.find("火") >= 0 or diff_lose.find("冰") >= 0, "G2-4 build diff reports element coverage change (got: %s)" % diff_lose)
+	# 换入 fire_sword：当前配装设为 [dagger, ice]（都不带 fire 签名），换入 fire 应获得签名
+	duel.selected_loadout.assign([dagger, ice])
+	var diff_gain: String = duel.build_swap_build_diff(dagger, fire)
+	_ok(diff_gain.find("获得签名") >= 0, "G2-4 build diff reports gained signature (got: %s)" % diff_gain)

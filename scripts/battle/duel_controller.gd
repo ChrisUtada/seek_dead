@@ -739,6 +739,91 @@ func board_boss_element() -> String:
 	return "" if r == null else String(r.element)
 
 
+# G2-4：替换预览的「构筑得失」只读对比（旧武器 → 新武器）。
+# 输出：新增/失去的装备牌谱、签名、元素覆盖；改造休眠由弹层的卸下说明覆盖（保留但暂停贡献）。
+# 纯只读，不写任何状态；口径直接调 pattern_system.unlocked_patterns（与真实判定同源）。
+func build_swap_build_diff(old_path: String, new_path: String) -> String:
+	if old_path == "" or new_path == "" or _pattern_system == null:
+		return ""
+	var loadout_new: Array = selected_loadout.duplicate()
+	var idx: int = loadout_new.find(old_path)
+	if idx >= 0:
+		loadout_new[idx] = new_path
+	elif not loadout_new.has(new_path):
+		loadout_new.append(new_path)
+	var tag_cb := Callable(self, "_pattern_tag_of")
+	# {id -> {name, is_sig}}，用 pattern 对象的 track 精确区分签名（不靠 id 前缀猜）
+	var old_patterns: Dictionary = {}
+	var new_patterns: Dictionary = {}
+	for p in _pattern_system.unlocked_patterns(selected_loadout, tag_cb):
+		var ptrack: String = String(p.get("track")) if p.has_method("get") else ""
+		old_patterns[String(p.id)] = {"name": String(p.name), "sig": ptrack == "signature"}
+	for p in _pattern_system.unlocked_patterns(loadout_new, tag_cb):
+		var ptrack: String = String(p.get("track")) if p.has_method("get") else ""
+		new_patterns[String(p.id)] = {"name": String(p.name), "sig": ptrack == "signature"}
+	var parts: Array[String] = []
+	var gained_pat: Array[String] = []
+	var lost_pat: Array[String] = []
+	var gained_sig: Array[String] = []
+	var lost_sig: Array[String] = []
+	for pid in new_patterns:
+		if old_patterns.has(pid):
+			continue
+		var label: String = String(new_patterns[pid]["name"])
+		if bool(new_patterns[pid]["sig"]):
+			gained_sig.append(label)
+		else:
+			gained_pat.append(label)
+	for pid in old_patterns:
+		if new_patterns.has(pid):
+			continue
+		var label: String = String(old_patterns[pid]["name"])
+		if bool(old_patterns[pid]["sig"]):
+			lost_sig.append(label)
+		else:
+			lost_pat.append(label)
+	if not gained_pat.is_empty():
+		parts.append("获得牌谱 " + "、".join(gained_pat))
+	if not lost_pat.is_empty():
+		parts.append("失去牌谱 " + "、".join(lost_pat))
+	if not gained_sig.is_empty():
+		parts.append("获得签名 " + "、".join(gained_sig))
+	if not lost_sig.is_empty():
+		parts.append("失去签名 " + "、".join(lost_sig))
+	# 元素覆盖得失（显式差集，避免依赖 Array.difference 版本差异）
+	var old_elems := _loadout_elements(selected_loadout)
+	var new_elems := _loadout_elements(loadout_new)
+	var gained_e: Array[String] = []
+	var lost_e: Array[String] = []
+	for e in new_elems:
+		if not old_elems.has(e):
+			gained_e.append(e)
+	for e in old_elems:
+		if not new_elems.has(e):
+			lost_e.append(e)
+	if not gained_e.is_empty():
+		parts.append("获得元素 " + "、".join(_elem_labels(gained_e)))
+	if not lost_e.is_empty():
+		parts.append("失去元素 " + "、".join(_elem_labels(lost_e)))
+	return "；".join(parts)
+
+
+func _loadout_elements(loadout: Array) -> Array[String]:
+	var out: Array[String] = []
+	for wp in loadout:
+		var wd: WeaponData = load(String(wp))
+		if wd != null and String(wd.element) != "" and not out.has(String(wd.element)):
+			out.append(String(wd.element))
+	return out
+
+
+func _elem_labels(elems: Array) -> Array[String]:
+	var out: Array[String] = []
+	for e in elems:
+		out.append(ElementCounter.label(String(e)))
+	return out
+
+
 func _weapon_off_info(p: String, slot: int = -1) -> String:
 	var res: WeaponData = load(p)
 	var s_now: int = slot if slot >= 0 else slot_of(p)
