@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1")
 id = "seed_void_resonance"
+enabled = false
 name = "虚空共鸣"
 desc = "本局虚空构筑 +1：让暗系装备/符号/牌谱更容易在后续三选一中出现"
 rarity = "rare"

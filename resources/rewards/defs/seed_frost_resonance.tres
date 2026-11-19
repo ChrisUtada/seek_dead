@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1")
 id = "seed_frost_resonance"
+enabled = false
 name = "冰霜共鸣"
 desc = "本局冰霜构筑 +1：让冰系装备/符号/牌谱更容易在后续三选一中出现"
 rarity = "rare"

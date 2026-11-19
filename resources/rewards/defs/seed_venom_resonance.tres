@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1")
 id = "seed_venom_resonance"
+enabled = false
 name = "剧毒共鸣"
 desc = "本局剧毒构筑 +1：让毒系装备/符号/牌谱更容易在后续三选一中出现"
 rarity = "rare"

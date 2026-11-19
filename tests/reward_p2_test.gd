@@ -47,6 +47,7 @@ func _boot() -> DuelController:
 
 func _run() -> void:
 	_test_seed_defs()
+	_test_resonance_excluded()
 	var duel := await _boot()
 	if duel == null:
 		push_error("P2 boot failed")
@@ -79,6 +80,45 @@ func _test_seed_defs() -> void:
 	_ok(all.size() >= 12, "at least 12 seed defs loaded (got %d)" % all.size())
 	var problems = reg.validate_all()
 	_ok(problems.is_empty(), "all seed defs valid: %s" % str(problems))
+
+
+# G1-B：五张共鸣卡退出正式三选一池（G0 决策 1A：设禁用、保留资源文件）。
+# 验证 composer 的 eligible 池不含它们，且被明确标记 disabled；
+# 资源文件仍可 load、效果逻辑仍可 resolve（见 _test_resolver / _test_p3_build_state）。
+func _test_resonance_excluded() -> void:
+	var reg = load("res://scripts/reward/reward_registry.gd")
+	var resonance_ids := [
+		"seed_flame_resonance", "seed_frost_resonance", "seed_lumen_resonance",
+		"seed_venom_resonance", "seed_void_resonance",
+	]
+	# ① 资源文件保留、可加载
+	for rid in resonance_ids:
+		var d: Resource = load("res://resources/rewards/defs/%s.tres" % rid)
+		_ok(d != null, "%s resource file kept" % rid)
+		_ok(d != null and not d.enabled, "%s enabled=false" % rid)
+	# ② load_all 仍含 5 张（资源未删），但 enabled 全 false
+	var all = reg.load_all()
+	var loaded_res: Array = []
+	for d in all:
+		if d is RewardDefinition and resonance_ids.has(String(d.id)):
+			loaded_res.append(String(d.id))
+	_ok(loaded_res.size() == 5, "5 resonance defs still loadable (got %d)" % loaded_res.size())
+	# ③ 正式 draft 的 eligible 池不含任何共鸣卡
+	var composer = load("res://scripts/reward/draft_composer.gd").new(21)
+	var snap = RunSnapshot.new()
+	snap.survival = {"current_hp": 50, "max_hp": 100, "hp_ratio": 0.5}
+	composer.compose(snap, 3, true)
+	var dbg: Dictionary = composer.last_debug
+	var eligible: Array = dbg.get("eligible_ids", [])
+	for rid in resonance_ids:
+		_ok(not eligible.has(rid), "%s excluded from eligible pool" % rid)
+	# ④ filtered 记录里五张均标记 disabled
+	var filtered: Array = dbg.get("filtered", [])
+	var disabled_count := 0
+	for f in filtered:
+		if f is Dictionary and str(f.get("reason", "")) == "disabled" and resonance_ids.has(str(f.get("id", ""))):
+			disabled_count += 1
+	_ok(disabled_count == 5, "5 resonance cards flagged disabled in filter (got %d)" % disabled_count)
 
 
 func _test_build_draft(duel: DuelController) -> void:
