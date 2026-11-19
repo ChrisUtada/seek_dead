@@ -1,16 +1,15 @@
 extends Node
 
-# L2-G 签名接入定向探针（2026-11-18；2026-11-19 加 ①b）
-# 验证：① 未携带关键武器、未习得 → 签名不生效
-#       ①b 携带关键武器但未习得 → 签名不生效（2026-11-19 移除自动解锁）
-#       ② 三选一习得卡写入 learned_signatures
-#       ③ 习得后（即使没关键武器）签名生效
-#       ④ 每局 learned_signatures 清零
+# L2-G 签名接入定向探针（2026-11-19 改为「全解锁」语义）
+# 验证：① 无专属武器 → 签名不生效（仍需武器）
+#       ② 携带专属武器 + 牌型满足 → 签名自动生效（无需习得）
+#       ③ 无对应牌型 → 不生效
+#       ④ 多把不同武器签名可同时生效（按 base_id 分别查）
 # 运行：Godot --headless --path . res://tests/l2g_signature_probe.tscn
 
 const DUEL_SCENE := "res://scenes/duel/duel.tscn"
-const SIG_CARD := "res://resources/rewards/defs/seed_sig_fire_sword.tres"
 const SIG_ID := "SIG_W01_FIRESWORD"
+const SIG_ICE_ID := "SIG_W02_ZERO"
 const BURN := "res://resources/symbols/burn.tres"
 const FIRE := "res://resources/symbols/ember_spark.tres"
 
@@ -53,54 +52,30 @@ func _ready() -> void:
 
 	var ps = _duel._pattern_system
 	var cards := _make_cards()
-
-	# 签名生效=习得+携带专属武器(key_paths)+牌型满足，三条件缺一不可（2026-11-19 恢复签名语义）
 	var key_loadout := ["res://resources/weapon_templates/fire_sword.tres"]
-	# ① 无 key 无习得 → 不生效
-	_duel.learned_signatures.clear()
-	var sig0 = ps.find_signature("W01", [], cards, _duel.learned_signatures)
-	_check(sig0 == null, "未携带关键武器且未习得时签名不生效")
-	# ①b 携带关键武器但未习得 → 仍不生效
-	var sig_key_only = ps.find_signature("W01", key_loadout, cards, _duel.learned_signatures)
-	_check(sig_key_only == null, "携带关键武器但未习得时签名不生效（习得为必要条件）")
 
-	# 校验 cards 本身能满足 match_rule（排除探针构造问题导致的假阴性）
+	# ① 无专属武器 → 不生效
+	var sig0 = ps.find_signature("W01", [], cards)
+	_check(sig0 == null, "无专属武器时签名不生效")
+
+	# 校验 cards 满足 match_rule（排除探针构造问题导致的假阴性）
 	var sigdef = ps.get_pattern(SIG_ID)
 	_check(sigdef != null, "签名资源可加载（%s）" % SIG_ID)
 	if sigdef != null:
 		var pm = load("res://scripts/battle/pattern_matcher.gd")
 		_check(pm.solve_rule(cards, sigdef.match_rule), "探针 cards 满足签名 match_rule")
 
-	# ② 走三选一习得卡
-	var resolver = load("res://scripts/reward/reward_resolver.gd").new(_duel)
-	var card: Resource = load(SIG_CARD)
-	_check(card != null, "签名解锁卡可加载")
-	if card != null:
-		var result = resolver.resolve(card)
-		_check(bool(result.ok), "三选一习得卡结算成功（%s）" % str(result.reason))
-		_check(_duel.learned_signatures.has(SIG_ID), "习得后写入 learned_signatures")
+	# ② 携带专属武器 + 牌型满足 → 自动生效（无需习得，全解锁）
+	var sig1 = ps.find_signature("W01", key_loadout, cards)
+	_check(sig1 != null and String(sig1.id) == SIG_ID, "携带专属武器+牌型满足时签名自动生效（全解锁）")
 
-	# ③ 习得后但仍无专属武器 → 不生效（签名必须有那把武器，2026-11-19）
-	var sig_no_key = ps.find_signature("W01", [], cards, _duel.learned_signatures)
-	_check(sig_no_key == null, "已习得但未携带专属武器时签名不生效")
-	# ③a 习得 + 携带专属武器 → 生效
-	var sig1 = ps.find_signature("W01", key_loadout, cards, _duel.learned_signatures)
-	_check(sig1 != null and String(sig1.id) == SIG_ID, "习得+携带专属武器时签名生效")
+	# ③ 无对应牌型 → 不生效
+	var sig_no_pattern = ps.find_signature("W01", key_loadout, [])
+	_check(sig_no_pattern == null, "无对应牌型时签名不生效")
 
-	# ③b 扩卡：多张不同元素签名可同时习得（冰 SIG_W02_ZERO）
-	var ice_card: Resource = load("res://resources/rewards/defs/seed_sig_absolute_zero.tres")
-	_check(ice_card != null, "冰签名解锁卡可加载")
-	if ice_card != null:
-		var r2 = resolver.resolve(ice_card)
-		_check(bool(r2.ok), "冰签名卡结算成功")
-		_check(_duel.learned_signatures.has(SIG_ID) and _duel.learned_signatures.has("SIG_W02_ZERO"),
-			"两张不同元素签名可同时习得（%d）" % _duel.learned_signatures.size())
-
-	# ④ 每局清零后失效
-	_duel._reset_run_state()
-	_check(_duel.learned_signatures.is_empty(), "新局 learned_signatures 清零")
-	var sig2 = ps.find_signature("W01", [], cards, _duel.learned_signatures)
-	_check(sig2 == null, "清零后签名重新失效")
+	# ④ 冰签名资源可加载（全解锁后不再依赖习得卡）
+	var ice_def = ps.get_pattern(SIG_ICE_ID)
+	_check(ice_def != null, "冰签名资源可加载")
 
 	_finish()
 

@@ -9,6 +9,8 @@ extends RefCounted
 # 全部按当前有效候选动态计算——无候选的类别权重移除并重新归一化（V1.1 §3.2）。
 
 # 一级类别初始权重（V1.1 §3.1 定案）
+# 2026-11-19：rule_mod 随"签名全解锁"删除全部规则卡后零候选，权重由 §3.2 自动剔除；
+# 权重数值暂不重分配，待重构策划案审查后再定（见 docs/牌谱定位与策划案一致性分析）。
 const CATEGORY_WEIGHT := {
 	"symbol_mod": 25.0,
 	"rule_mod": 25.0,
@@ -19,8 +21,8 @@ const CATEGORY_WEIGHT := {
 	"signature": 5.0,
 }
 
-# P0 关闭的类别（V1.1 §26）：武器、签名——即使有候选也不参与正式生成
-const P0_DISABLED_CATEGORIES := ["weapon", "signature"]
+# 关闭的类别：武器、签名（V1.1 §26）、rule_mod（2026-11-19 规则卡全删）
+const P0_DISABLED_CATEGORIES := ["weapon", "signature", "rule_mod"]
 
 var _rng: RandomNumberGenerator
 

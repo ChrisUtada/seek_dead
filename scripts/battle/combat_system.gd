@@ -395,7 +395,8 @@ func _apply_patterns(acc: Dictionary) -> void:
 		var all_equip: Array = loadout.duplicate()
 		all_equip.append_array(_ctrl.selected_charms)
 		all_equip.append_array(_ctrl.run_relics)   # L2-E：遗物也参与签名牌谱解锁判定（拥有即生效）
-		var sig = _ctrl._pattern_system.find_signature(String(w_pick.id), all_equip, weapon_cards, _ctrl.learned_signatures)
+		# 2026-11-19：签名全解锁，不再传 learned；带专属武器+牌型即自动生效
+		var sig = _ctrl._pattern_system.find_signature(String(w_pick.id), all_equip, weapon_cards)
 		acc["pattern_weapon"] = String(w_pick.id)
 		acc["pattern_equipment"] = String(w_pick.id)   # 兼容既有断言与展示
 		acc["pattern_signature"] = String(sig.id) if sig != null else ""

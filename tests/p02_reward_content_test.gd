@@ -41,7 +41,7 @@ func _boot() -> DuelController:
 func _run() -> void:
 	var problems := RewardRegistry.validate_all()
 	_ok(problems.is_empty(), "all reward defs valid: %s" % str(problems))
-	_ok(RewardRegistry.count() >= 20, "at least 20 seed defs (got %d)" % RewardRegistry.count())
+	_ok(RewardRegistry.count() >= 12, "at least 12 seed defs (got %d)" % RewardRegistry.count())
 
 	var duel := await _boot()
 	if duel == null:

@@ -5,8 +5,8 @@ extends Node
 # 运行：Godot --headless --fixed-fps 60 --path <项目> res://tests/p1_category_diversity_test.tscn
 #
 # 覆盖：修复"7类设计只剩2类在跑"的结构性失衡
-# ① 连续生成 200 组 Draft（600 卡），5 个有效类别全部覆盖
-#    （P1-B/C 补齐 rule_mod/reel_control 后达成；weapon/signature 仍按 P0 关闭）
+# ① 连续生成 200 组 Draft（600 卡），4 个有效类别全部覆盖
+#    （2026-11-19 签名全解锁后 rule_mod 规则卡全删；weapon/signature 仍关闭）
 # ② survival_resource（此前 0 次出现）不再为 0
 # ③ 单一类别不超过总量的 60%（此前 symbol_mod 66.7%）
 # ④ 同一组内同类不超过 MAX_SAME_CATEGORY
@@ -62,7 +62,7 @@ func _run() -> void:
 			if int(cat_count[c]) > 2:
 				group_violations += 1
 
-	_ok(appeared.size() >= 5, "at least 5 categories appear (got %d: %s)" % [
+	_ok(appeared.size() >= 4, "at least 4 categories appear (got %d: %s)" % [
 		appeared.size(), str(appeared)])
 	_ok(int(appeared.get("survival_resource", 0)) > 0, "survival_resource appears (got %d)" % int(appeared.get("survival_resource", 0)))
 	var max_count := 0
