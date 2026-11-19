@@ -55,6 +55,7 @@ func _run() -> void:
 	_test_g2g3_codex_discovery(duel)
 	_test_g2g3_real_swap_keeps_inventory(duel)
 	_test_g2g4_build_diff(duel)
+	await _test_g2g5_settle_once(duel)
 
 	duel.meta.clear()
 	for k in meta_backup:
@@ -267,3 +268,44 @@ func _test_g2g4_build_diff(duel: DuelController) -> void:
 	duel.selected_loadout.assign([dagger, ice])
 	var diff_gain: String = duel.build_swap_build_diff(dagger, fire)
 	_ok(diff_gain.find("获得签名") >= 0, "G2-4 build diff reports gained signature (got: %s)" % diff_gain)
+
+
+# G2-5：settle_loot_replace 只结算一次 + 换下武器保留在本局仓库。
+func _test_g2g5_settle_once(duel: DuelController) -> void:
+	var rs = duel._reward_system
+	var old_weapon := "res://resources/weapon_templates/fire_sword.tres"
+	var new_weapon := "res://resources/weapon_templates/battle_axe.tres"
+	duel.selected_loadout.assign([old_weapon, "res://resources/weapon_templates/dagger.tres"])
+	duel.run_weapon_inventory.clear()
+	duel.run_weapon_inventory.append(old_weapon)
+	duel.run_weapon_inventory.append("res://resources/weapon_templates/dagger.tres")
+	duel.run_weapon_inventory.append(new_weapon)
+	# 直接构造含 weapon_swap 的 draft（保证卡在组内，不依赖 composer 抽取）
+	var swp := RewardDefinition.new()
+	swp.id = "g2_g5_swap"
+	swp.name = "换装"
+	swp.rarity = "common"
+	swp.effects = [{"effect_id": "weapon_swap", "params": {"weapon_path": new_weapon}}]
+	var draft: DraftResult = DraftResult.new([swp], "g2_g5_draft")
+	rs._draft_result = draft
+	rs._draft_active = true
+	rs._loot_settled = false
+	var windex: int = -1
+	for i in range(draft.rewards.size()):
+		if draft.rewards[i].first_effect_id() == "weapon_swap":
+			windex = i
+			break
+	_ok(windex >= 0, "G2-5 draft has weapon_swap card")
+	if windex < 0:
+		return
+	# 首次结算成功
+	var r1: Dictionary = rs.settle_loot_replace(windex, old_weapon)
+	_ok(bool(r1.get("ok", false)), "G2-5 first settle ok: %s" % str(r1.get("reason", "")))
+	_ok(not duel.selected_loadout.has(old_weapon), "G2-5 old weapon unequipped")
+	_ok(duel.selected_loadout.has(new_weapon), "G2-5 new weapon equipped")
+	_ok(duel.run_weapon_inventory.has(old_weapon), "G2-5 swapped-out weapon kept in run inventory")
+	_ok(duel.run_weapon_inventory.has(new_weapon), "G2-5 new weapon in run inventory")
+	# 再次结算必须被拒（函数级守卫）
+	var r2: Dictionary = rs.settle_loot_replace(windex, old_weapon)
+	_ok(not bool(r2.get("ok", false)), "G2-5 duplicate settle rejected")
+	_ok(String(r2.get("reason", "")) == "already_settled", "G2-5 duplicate reason=already_settled (got %s)" % String(r2.get("reason", "")))

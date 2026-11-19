@@ -861,6 +861,10 @@ func settle_loot_skip() -> Dictionary:
 # Step 7：武器槽满时的替换结算——玩家在替换弹层选定旧武器后调用。
 # 与 settle_loot_offer 共享「只结算一次」纪律：成功才置位，取消 / 非法参数不消耗机会。
 func settle_loot_replace(index: int, old_path: String) -> Dictionary:
+	# G2-5：函数级前置守卫——已结算时任何重复点击/重复调用都不得再次替换。
+	# 旧实现只在旧 offer 分支（下方）判 _loot_settled，draft 分支遗漏 → 重复调用可二次替换。
+	if _loot_settled:
+		return {"ok": false, "reason": "already_settled"}
 	if _draft_active:
 		# P1.1①：draft 路径的武器卡——从对应 RewardDefinition 取 weapon_path 走替换
 		if _draft_result == null or index < 0 or index >= _draft_result.rewards.size():
@@ -905,8 +909,6 @@ func settle_loot_replace(index: int, old_path: String) -> Dictionary:
 		return {"ok": true, "kind": "replace", "path": p, "old_path": old_path}
 	if _loot_offer == null:
 		return {"ok": false, "reason": "no_offer"}
-	if _loot_settled:
-		return {"ok": false, "reason": "already_settled"}
 	var opt: Dictionary = _loot_offer.payload_at(index)
 	if opt.is_empty():
 		return {"ok": false, "reason": "invalid_index"}
