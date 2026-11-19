@@ -47,6 +47,8 @@ func _run() -> void:
 	_test_slot_preference()
 	_test_homogeneity()
 	_test_force_skill()
+	_test_g1c_fallback_filter()
+	_test_g1c_refill_no_owned()
 	_test_stress_1000()
 	print("P01GEN RESULT: %d checks, %d fails" % [_checks, _fails])
 	get_tree().quit(1 if _fails > 0 else 0)
@@ -155,6 +157,41 @@ func _test_force_skill() -> void:
 		if d.effective_category() == "skill":
 			has_skill = true
 	_ok(has_skill, "force_skill injects a skill candidate")
+
+
+# G1-C：Fallback 复用完整过滤，不得放回「已拥有 / 满血治疗」卡。
+func _test_g1c_fallback_filter() -> void:
+	var c := DraftComposer.new(4242)
+	# owned 掉两张 reel_control，满血快照 → heal 卡(seed_battle_ready)也应被过滤
+	c.set_owned_ids(["control_mercy", "control_slow_ramp"])
+	var fb: DraftResult = c._fallback(_snap(1.0), 3, "g1c_test")
+	var ids := {}
+	for d in fb.rewards:
+		ids[String(d.id)] = true
+	_ok(not ids.has("control_mercy"), "fallback excludes owned control_mercy")
+	_ok(not ids.has("control_slow_ramp"), "fallback excludes owned control_slow_ramp")
+	_ok(not ids.has("seed_battle_ready"), "fallback excludes full-hp heal card")
+	# 五张共鸣卡(disabled)任何情况都不得进兜底
+	for rid in ["seed_flame_resonance", "seed_frost_resonance", "seed_lumen_resonance", "seed_venom_resonance", "seed_void_resonance"]:
+		_ok(not ids.has(rid), "fallback excludes disabled %s" % rid)
+
+
+# G1-C：主流程「先净化后补足」，补足不得绕过 owned/disabled/满血过滤，且恰好补到 count。
+func _test_g1c_refill_no_owned() -> void:
+	var c := DraftComposer.new(9393)
+	var owned := ["control_mercy", "control_slow_ramp", "seed_gold_cache"]
+	c.set_owned_ids(owned)
+	var draft: DraftResult = c.compose(_snap(1.0), 3, true)
+	# 满血 → heal 卡(seed_battle_ready)过滤；owned 3 张过滤；5 张 disabled 过滤
+	# 合法剩: control_trash_reroll / seed_edge_polish / seed_guardian_ember = 3 张 → 应恰好补足到 3
+	_ok(draft.rewards.size() == 3, "refill reaches 3 cards (got %d)" % draft.rewards.size())
+	var ids := {}
+	for d in draft.rewards:
+		ids[String(d.id)] = true
+	for oid in owned:
+		_ok(not ids.has(oid), "compose excludes owned %s" % oid)
+	_ok(not ids.has("seed_battle_ready"), "compose excludes full-hp heal card")
+	_ok(ids.size() == draft.rewards.size(), "compose draft has no duplicate ids")
 
 
 func _test_stress_1000() -> void:

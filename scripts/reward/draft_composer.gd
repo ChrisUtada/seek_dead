@@ -78,14 +78,26 @@ func compose(snap: RunSnapshot, count: int = 3, debug: bool = false,
 	_last_category_weights = weights.duplicate()
 
 	var picked := _compose_by_slots(groups, weights, count, extra_defs, force_skill)
-	if picked.size() < count:
-		var fb := _fallback(snap, count - picked.size(), "insufficient_candidates")
-		for f in fb.rewards:
-			if not _has_id(picked, f.id):
-				picked.append(f)
 
-	# 最终合法性复核（保证不空屏、不重复、不超同类）
+	# 最终合法性复核（保证不空屏、不重复、不超同类）。
+	# G1-C：先净化，再从「同一批已过滤合法候选」补足到 count。
+	# 旧实现顺序相反（先补后净化），补进来的卡可能被净化剔除 → 静默缩卡。
 	picked = _final_validate(picked, count, snap)
+	var refill_count := 0
+	var refill_shortfall := 0
+	if picked.size() < count:
+		var need := count - picked.size()
+		var exclude := {}
+		for d in picked:
+			exclude[String(d.id)] = true
+		var refill := _pick_distinct(eligible, need, snap, exclude)
+		refill_count = refill.size()
+		for d in refill:
+			picked.append(d)
+		# 补齐后再净化一次（防御：确保同类上限/满血仍成立），结果与预期一致
+		picked = _final_validate(picked, count, snap)
+		# 合法池彻底耗尽时如实记录缺口，供 §6.5 兜底率遥测观测；不造假卡、不放宽过滤
+		refill_shortfall = maxi(0, count - picked.size())
 
 	var draft := DraftResult.new(picked, _make_draft_id())
 	if debug:
@@ -98,6 +110,8 @@ func compose(snap: RunSnapshot, count: int = 3, debug: bool = false,
 			"scores": RewardEvaluator.score_all(eligible, snap, true),  # 信息性，不参与抽样
 			"filtered": _last_filtered.duplicate(true),
 			"picked_ids": picked.map(func(d): return d.id),
+			"refilled": refill_count,
+			"refill_shortfall": refill_shortfall,
 		}
 		draft.debug_metadata = last_debug
 		Debug.log(explain_last())
@@ -354,25 +368,50 @@ func explain_last() -> String:
 	for f in filtered:
 		if f is Dictionary:
 			lines.append("  ✗ 过滤 %s：%s" % [str(f.get("id", "")), str(f.get("reason", ""))])
+	var refill := int(last_debug.get("refilled", 0))
+	var shortfall := int(last_debug.get("refill_shortfall", 0))
+	if refill > 0 or shortfall > 0:
+		lines.append("  补足：补入 %d 张，合法池缺口 %d 张" % [refill, shortfall])
 	lines.append("  入选：%s" % str(last_debug.get("picked_ids", [])))
 	return "\n".join(lines)
 
 
-# 兜底：已验证有效、当前有用的奖励；绝不空屏、绝不假卡
+# 兜底：复用与正式池完全相同的硬过滤（G1-C），绝不空屏、绝不假卡。
+# 旧实现只查 enabled + 满血治疗，会放回「已拥有 / validate 失败 / eligibility 不满足」的卡；
+# 现在统一走 _eligible，杜绝两套过滤口径漂移。
 func _fallback(snap: RunSnapshot, count: int, reason: String) -> DraftResult:
-	var pool := RewardRegistry.load_valid()
-	var out: Array[RewardDefinition] = []
-	for def in pool:
-		if out.size() >= count:
-			break
-		if not def.enabled:
-			continue
-		if def.first_effect_id() == "heal" and snap.hp_ratio() >= 0.999:
-			continue
-		out.append(def)
+	var eligible := _eligible(RewardRegistry.load_valid(), snap)
+	var out := _pick_distinct(eligible, count, snap)
 	var draft := DraftResult.new(out, _make_draft_id())
 	draft.debug_metadata = {"fallback_reason": reason}
 	return draft
+
+
+# 从已过滤的合法候选里按序取 count 张：去重 + 同类上限（兜底/补足共用的硬约束）。
+# 输入必须已经过 _eligible，本函数不再重复 enabled/owned/validate/eligibility 检查，
+# 但保留满血治疗与同类上限这两项「生成中状态可能变化」的防御。
+func _pick_distinct(eligible: Array, count: int, snap: RunSnapshot,
+		exclude_ids: Dictionary = {}) -> Array[RewardDefinition]:
+	var out: Array[RewardDefinition] = []
+	var seen := {}
+	var cat_count := {}
+	for def in eligible:
+		if out.size() >= count:
+			break
+		if not (def is RewardDefinition):
+			continue
+		var id := String(def.id)
+		if seen.has(id) or exclude_ids.has(id):
+			continue
+		if def.first_effect_id() == "heal" and snap.hp_ratio() >= 0.999:
+			continue
+		var cat: String = def.effective_category()
+		if int(cat_count.get(cat, 0)) >= MAX_SAME_CATEGORY:
+			continue
+		out.append(def)
+		seen[id] = true
+		cat_count[cat] = int(cat_count.get(cat, 0)) + 1
+	return out
 
 
 func _make_draft_id() -> String:
