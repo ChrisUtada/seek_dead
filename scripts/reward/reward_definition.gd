@@ -26,6 +26,13 @@ extends Resource
 @export var base_weight: float = 1.0             # 基础出现权重
 @export var base_value: float = 1.0              # 设计基准价值（供 Draft 评分，≠效果数值）
 
+# 2026-11-19 P0.1：一级奖励类别与同质化分组（V1.1 §20 定案）。
+# 新增字段均带兼容默认值——旧 .tres 不写这两项也能通过 validate()。
+# category 为空时由 derive_category() 从 tags/effect_id 推断，保证旧资源仍参与新类别生成。
+@export var category: String = ""                # symbol_mod/rule_mod/reel_control/weapon/skill/survival_resource/signature
+@export var effect_family: String = ""           # 同组去重用的效果族（如 symbol_weight/heal/shield）
+@export var enabled: bool = true                 # 是否参与生成；缺省 true 兼容旧资源
+
 # 效果列表：每项 {"effect_id": String, "params": Dictionary}
 # effect_id 取值：heal / shield_next_battle / run_power_bonus / flame_affinity（原 free_reroll 卡已删除）
 @export var effects: Array[Dictionary] = []
@@ -87,3 +94,52 @@ func first_effect_id() -> String:
 
 func has_tag(tag: String) -> bool:
 	return tags.has(tag)
+
+
+# 一级奖励类别：优先用显式 category；旧资源未填则从 tags/effect_id 推断（兼容默认值）。
+# 推断规则只覆盖已存在的种子卡与技艺卡；推断不出返回空串，由 Composer 归入通用池。
+const VALID_CATEGORIES := ["symbol_mod", "rule_mod", "reel_control", "weapon", "skill", "survival_resource", "signature"]
+
+
+func effective_category() -> String:
+	if VALID_CATEGORIES.has(category):
+		return category
+	return _infer_category()
+
+
+func _infer_category() -> String:
+	# 技艺卡（_make_perk_def 打的标签）
+	if has_tag("growth.perk") or first_effect_id() == "pick_perk":
+		return "skill"
+	# 签名习得
+	if first_effect_id() == "learn_signature" or has_tag("signature"):
+		return "signature"
+	# 武器
+	for t in tags:
+		if String(t).begins_with("weapon") or String(t) == "replacement":
+			return "weapon"
+	# 生存/资源：治疗、护盾、消耗品、金币
+	for t in tags:
+		if String(t).begins_with("survival") or String(t).begins_with("resource"):
+			return "survival_resource"
+	var eid := first_effect_id()
+	if eid in ["heal", "shield", "shield_next_battle", "consumable_add", "gold_add"]:
+		return "survival_resource"
+	# 符号改造 / 中奖规则 / 滚轴操控（新内容会显式填 category；此处仅兜底）
+	for t in tags:
+		var ts := String(t)
+		if ts.begins_with("symbol"):
+			return "symbol_mod"
+		if ts.begins_with("rule") or ts.begins_with("pattern"):
+			return "rule_mod"
+		if ts.begins_with("control") or ts.begins_with("reel"):
+			return "reel_control"
+	return ""
+
+
+# 效果族：显式 effect_family 优先；否则用首个效果 id（同质化检查用）。
+func effective_effect_family() -> String:
+	if not effect_family.is_empty():
+		return effect_family
+	var fid := first_effect_id()
+	return fid if not fid.is_empty() else "unknown"

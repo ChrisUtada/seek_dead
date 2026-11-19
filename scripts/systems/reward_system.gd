@@ -350,6 +350,9 @@ func _make_perk_def(c: Dictionary) -> RewardDefinition:
 	def.base_value = 2.0
 	def.tags = ["growth.perk", "perk." + String(c.get("family", "")), "discovery.perk"]
 	def.effects = [{"effect_id": "pick_perk", "params": {"id": perk_id}}]
+	# 2026-11-19 P0.1：新字段（V1.1 §20），供类别生成与同质化检查使用
+	def.category = "skill"
+	def.effect_family = "perk"
 	return def
 
 
