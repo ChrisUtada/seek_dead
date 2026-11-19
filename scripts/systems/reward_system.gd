@@ -906,9 +906,16 @@ func _apply_growth_option(opt: Dictionary) -> Dictionary:
 			if sym == null or weight <= 0:
 				return {"ok": false, "reason": "invalid_symbol"}
 			var before: int = _symbol_cells(sym, 0.0)
-			run_symbol_bonus[path] = int(run_symbol_bonus.get(path, 0)) + weight
+			var prev_bonus: int = int(run_symbol_bonus.get(path, 0))
+			run_symbol_bonus[path] = prev_bonus + weight
 			var after: int = _symbol_cells(sym, 0.0)
 			if after <= before:
+				# G1-G：失败时恢复本次写入前的原值，消除半状态（正常 Draft 路径由
+				# resolver.preflight 提前拦截 no_cell_change，此处为直接调用旧入口的防御）。
+				if prev_bonus <= 0:
+					run_symbol_bonus.erase(path)
+				else:
+					run_symbol_bonus[path] = prev_bonus
 				return {"ok": false, "reason": "no_cell_change"}
 			_ctrl._build_pool(_ctrl.selected_loadout)
 			_ctrl.reel_system.build_strips()

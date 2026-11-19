@@ -57,6 +57,7 @@ func _run() -> void:
 
 	_test_build_draft(duel)
 	_test_resolver(duel)
+	_test_g1g_transaction(duel)
 	_test_reroll(duel)
 	_test_g1e_full_provider_candidates(duel)
 	_test_g1f_stack_owned_filter(duel)
@@ -159,6 +160,70 @@ func _test_resolver(duel: DuelController) -> void:
 	var rp = resolver.resolve(def_p)
 	_ok(rp.ok, "power resolves ok: %s" % rp.reason)
 	_ok(duel._reward_system.run_power_bonus == before_power + 2, "power +2")
+
+
+# G1-G：结算事务（权威 §6.6 / 拍板 G1-5）：全量预检→冻结计划→不可失败提交。
+# ① preflight 纯只读（失败卡不写任何状态）；② 多效果第二项失败无半状态；
+# ③ 正常卡 preflight 通过并成功；④ 冻结 plan 与 effects 内容一致。
+func _test_g1g_transaction(duel: DuelController) -> void:
+	var resolver = duel._reward_system._draft_resolver
+	# ② 多效果卡：[有效 heal, 无效 gold(amount=0)] → 第二项预检失败，整体失败且 HP 不变
+	duel.player_hp = maxi(1, duel.player_hp_max - 30)
+	var multi := RewardDefinition.new()
+	multi.id = "g1g_multi_fail"
+	multi.name = "多效果失败卡"
+	multi.rarity = "common"
+	multi.category = "survival_resource"
+	multi.effects = [
+		{"effect_id": "heal", "params": {}},
+		{"effect_id": "gold_add", "params": {"amount": 0}},
+	]
+	var hp_before: int = duel.player_hp
+	var gold_before: int = duel.gold
+	# ① preflight 只读：预检失败前后状态必须完全一致
+	var pf: Dictionary = resolver.preflight(multi)
+	_ok(not bool(pf.get("ok", false)), "G1-G preflight rejects bad multi-effect card")
+	_ok(String(pf.get("reason", "")) == "invalid_amount", "G1-G preflight reason=invalid_amount (got %s)" % String(pf.get("reason", "")))
+	_ok(duel.player_hp == hp_before and duel.gold == gold_before, "G1-G preflight is read-only (no state write)")
+	# resolve 也应失败且无半状态
+	var r = resolver.resolve(multi)
+	_ok(not r.ok, "G1-G resolve fails on bad multi-effect card")
+	_ok(duel.player_hp == hp_before, "G1-G no half-state: heal not applied when later effect fails")
+
+	# ③ 正常双效果：[heal, power] → 两项都生效
+	var ok_multi := RewardDefinition.new()
+	ok_multi.id = "g1g_multi_ok"
+	ok_multi.name = "多效果成功卡"
+	ok_multi.rarity = "common"
+	ok_multi.effects = [
+		{"effect_id": "heal", "params": {}},
+		{"effect_id": "run_power_bonus", "params": {"amount": 1}},
+	]
+	var hp2: int = duel.player_hp
+	var pw2: int = duel._reward_system.run_power_bonus
+	duel.player_hp = maxi(1, duel.player_hp_max - 30)
+	hp2 = duel.player_hp
+	var pf_ok: Dictionary = resolver.preflight(ok_multi)
+	_ok(bool(pf_ok.get("ok", false)), "G1-G preflight accepts valid multi-effect card")
+	var plan: Array = pf_ok.get("plan", [])
+	_ok(plan.size() == 2 and String(plan[0].get("effect_id", "")) == "heal", "G1-G frozen plan has both effects")
+	var r_ok = resolver.resolve(ok_multi)
+	_ok(r_ok.ok, "G1-G resolve succeeds on valid multi-effect card")
+	_ok(duel.player_hp > hp2, "G1-G first effect applied")
+	_ok(duel._reward_system.run_power_bonus == pw2 + 1, "G1-G second effect applied")
+
+	# ④ no_cell_change 回滚：直接调旧入口，满格符号失败后 run_symbol_bonus 不变
+	var sym_defs: Array = duel._reward_system._make_symbol_weight_defs()
+	if not sym_defs.is_empty():
+		var spath := String(sym_defs[0].effects[0].get("params", {}).get("path", ""))
+		var sym: SymbolData = load(spath)
+		if sym != null:
+			# 灌到满格后再次灌注应 no_cell_change，且状态不变
+			duel._reward_system.run_symbol_bonus[spath] = duel._reward_system.SYMBOL_WEIGHT_MAX
+			var bonus_before: int = int(duel._reward_system.run_symbol_bonus.get(spath, 0))
+			var bad: Dictionary = duel._reward_system._apply_loot_option({"kind": "symbol", "path": spath, "weight": 3})
+			_ok(not bool(bad.get("ok", false)), "G1-G no_cell_change rejected")
+			_ok(int(duel._reward_system.run_symbol_bonus.get(spath, 0)) == bonus_before, "G1-G no_cell_change leaves state unchanged")
 
 
 func _test_reroll(duel: DuelController) -> void:

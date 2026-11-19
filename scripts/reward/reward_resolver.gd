@@ -24,23 +24,144 @@ func bind_composer(composer: DraftComposer) -> void:
 	_draft_composer = composer
 
 
-# 主入口：验证 → 分发 → 返回结果。
-func resolve(reward: RewardDefinition) -> DraftResult.RewardApplyResult:
-	if reward == null:
-		return DraftResult.RewardApplyResult.failure("", "", "null_reward")
-	var errors := reward.validate()
-	if not errors.is_empty():
-		return DraftResult.RewardApplyResult.failure(reward.id, reward.first_effect_id(), "invalid_definition:" + str(errors))
+# ===========================================================================
+# G1-G 结算事务：全量预检 → 冻结 Apply Plan → 不可失败提交（权威 §6.6）
+# ===========================================================================
+#
+# 契约：
+# - preflight() 纯只读：不写状态/RNG/日志/遥测/UI，只返回 {ok, reason, plan}。
+# - resolve() 先 preflight 全通过，再按冻结的 plan 逐个提交；提交阶段仍由各 _apply_*
+#   做防御性检查，但任何预检已排除的失败都不会发生 → 无半状态。
+# - 不做通用快照回滚（拍板 G1-5）：靠「预检覆盖全部只读失败条件」保证提交不可失败，
+#   而非写一半再撤销。武器替换 needs_replace 属等待玩家输入，不是预检失败（见下）。
 
-	# 多效果卡：逐个分发，任一失败即整体失败（当前 4 张种子卡均为单效果）
+# 主入口（兼容旧调用）：预检 → 提交。
+func resolve(reward: RewardDefinition) -> DraftResult.RewardApplyResult:
+	var pf := preflight(reward)
+	if not bool(pf.get("ok", false)):
+		return DraftResult.RewardApplyResult.failure(
+			reward.id if reward != null else "",
+			String(pf.get("effect_id", "")),
+			String(pf.get("reason", "preflight_failed")))
+	# plan 是冻结的 effects（同一份已验证定义），提交阶段不再读取可变展示状态
+	var plan: Array = pf.get("plan", [])
 	var last: DraftResult.RewardApplyResult = null
-	for effect in reward.effects:
-		var eid := String(effect.get("effect_id", ""))
-		var params: Dictionary = effect.get("params", {})
+	for entry in plan:
+		var eid := String(entry.get("effect_id", ""))
+		var params: Dictionary = entry.get("params", {})
 		last = _dispatch(reward.id, eid, params)
 		if last == null or not last.ok:
+			# 理论上不可达（预检已覆盖只读失败条件）；如实失败，避免假装成功
 			return last if last != null else DraftResult.RewardApplyResult.failure(reward.id, eid, "dispatch_null")
 	return last if last != null else DraftResult.RewardApplyResult.failure(reward.id, "", "no_effects")
+
+
+# 只读预检：返回 {ok: bool, reason: String, effect_id: String, plan: Array}。
+# 纯只读，绝不修改任何状态。plan 为冻结的 effects 深拷贝的引用列表。
+func preflight(reward: RewardDefinition) -> Dictionary:
+	if reward == null:
+		return {"ok": false, "reason": "null_reward", "effect_id": "", "plan": []}
+	var errors := reward.validate()
+	if not errors.is_empty():
+		return {"ok": false, "reason": "invalid_definition:" + str(errors),
+			"effect_id": reward.first_effect_id(), "plan": []}
+	if reward.effects.is_empty():
+		return {"ok": false, "reason": "no_effects", "effect_id": "", "plan": []}
+	# 冻结 Apply Plan：同一份定义的 effects（深拷贝到独立数组，提交阶段不再依赖外部可变引用）
+	var plan: Array = []
+	for effect in reward.effects:
+		plan.append(effect.duplicate(true))
+	# 全量预检：任一 effect 的只读判定失败 → 整卡失败，plan 丢弃（不提交任何一项）
+	for effect in plan:
+		var eid := String(effect.get("effect_id", ""))
+		var params: Dictionary = effect.get("params", {})
+		var err := _preflight_effect(eid, params)
+		if not err.is_empty():
+			return {"ok": false, "reason": err, "effect_id": eid, "plan": []}
+	return {"ok": true, "reason": "", "effect_id": "", "plan": plan}
+
+
+# 单个 effect 的只读合法性判定：失败返回原因串，通过返回空串。
+# 镜像各 _apply_* 的失败条件，保证「预检通过 → 提交不可失败」。
+func _preflight_effect(eid: String, params: Dictionary) -> String:
+	var rs = _ctrl._reward_system
+	match eid:
+		"heal":
+			if float(_ctrl.player_hp) >= float(_ctrl.player_hp_max):
+				return "full_hp"
+			return ""
+		"shield_next_battle":
+			if not params.has("amount"):
+				return "missing_amount"
+			return ""
+		"run_power_bonus":
+			if not params.has("amount"):
+				return "missing_amount"
+			return ""
+		"run_symbol_bonus":
+			var path := String(params.get("path", ""))
+			var weight := int(params.get("weight", 0))
+			if path.is_empty() or weight <= 0:
+				return "invalid_params"
+			if ResourceLoader.load(path) == null:
+				return "invalid_symbol"
+			if int(rs.run_symbol_bonus.get(path, 0)) >= int(RewardSystem.SYMBOL_WEIGHT_MAX):
+				return "symbol_weight_maxed"
+			# no_cell_change 的只读镜像：当前 bonus 已使符号满格（4 格）时再加无可见变化
+			var sym: SymbolData = load(path)
+			if sym != null and rs._symbol_cells(sym, 0.0) >= 4:
+				return "no_cell_change"
+			return ""
+		"gold_add":
+			if int(params.get("amount", 0)) <= 0:
+				return "invalid_amount"
+			return ""
+		"pattern_bonus":
+			var pid := String(params.get("pattern_id", ""))
+			var param_key := String(params.get("param", ""))
+			if pid.is_empty() or param_key.is_empty() or is_zero_approx(float(params.get("delta", 0.0))):
+				return "invalid_params"
+			if _ctrl._pattern_system == null or _ctrl._pattern_system.get_pattern(pid) == null:
+				return "unknown_pattern"
+			return ""
+		"reel_control":
+			var cid := String(params.get("control_id", ""))
+			if not ["trash_reroll", "mercy", "slow_ramp"].has(cid):
+				return "invalid_control_id"
+			if _ctrl.reel_controls.has(cid):
+				return "already_owned"
+			return ""
+		"symbol_effect_bonus":
+			var path := String(params.get("symbol_path", ""))
+			var effect_id := String(params.get("effect", ""))
+			if path.is_empty() or not ["status", "crit", "crit_chance", "power"].has(effect_id) or is_zero_approx(float(params.get("delta", 0.0))):
+				return "invalid_params"
+			if ResourceLoader.load(path) == null:
+				return "unknown_symbol"
+			return ""
+		"weapon_replace":
+			var p := String(params.get("weapon_path", ""))
+			if p.is_empty() or ResourceLoader.load(p) == null:
+				return "invalid_weapon"
+			if _ctrl.selected_loadout.has(p):
+				return "already_equipped"
+			# needs_replace（槽满等玩家选旧武器）不是预检失败：由 settle_loot_replace 等待输入后重新预检
+			return ""
+		"flame_affinity":
+			if int(params.get("amount", 1)) <= 0:
+				return "invalid_amount"
+			return ""
+		"pick_perk":
+			var perk_id := String(params.get("id", ""))
+			if perk_id.is_empty():
+				return "invalid_perk_id"
+			if _ctrl.growth == null:
+				return "growth_missing"
+			if _ctrl.growth.perk_ids.has(perk_id) or _ctrl.growth.perk_name(perk_id) == "":
+				return "perk_not_available"
+			return ""
+		_:
+			return "unknown_effect_id"
 
 
 func _dispatch(reward_id: String, effect_id: String, params: Dictionary) -> DraftResult.RewardApplyResult:
