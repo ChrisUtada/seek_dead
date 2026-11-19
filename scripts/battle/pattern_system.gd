@@ -94,9 +94,12 @@ func resolve_universal(matched_ids: Array, unlocked: Array) -> Array:
 
 
 # 查找某条基础牌谱的生效签名（2026-11-15 Step 5）。
-# 规则：base_pattern_id 匹配 + 签名已被三选一习得（learned）+ 签名自己的组件条件满足。
-# 2026-11-19：移除「携带关键武器即自动解锁」路径——签名必须先习得才生效；
-# 关键武器 key_paths 仅用于描述签名的主题归属，不再是解锁条件。
+# 生效需三条件同时满足（2026-11-19 用户拍板恢复签名语义）：
+#   ① 三选一习得（learned）——签名图纸必须先抽到并习得；
+#   ② 携带专属武器（key_paths）——签名是"那把武器"的专属强化，必须装备它才生效；
+#   ③ 签名自己的 match_rule 牌型满足。
+# 三条件缺一不可。历史变更：b9400af 曾移除 key_paths 携带检查（改成任意同元素武器即可），
+# 2026-11-19 按用户"签名必须有那把武器"的语义恢复。
 # 多条同时可用时取 priority 最高；同优先级按 id 升序，保证确定性。
 func find_signature(base_id: String, loadout: Array, cards: Array, learned: Array = []) -> Variant:
 	if base_id == "":
@@ -107,10 +110,21 @@ func find_signature(base_id: String, loadout: Array, cards: Array, learned: Arra
 			continue
 		if String(p.base_pattern_id) != base_id:
 			continue
-		# 2026-11-19：签名唯一解锁来源 = 三选一习得（learned）。
-		# 不再因携带关键武器自动解锁；loadout 参数保留仅为兼容调用方签名。
+		# 条件①：必须三选一习得
 		if not learned.has(String(p.id)):
 			continue
+		# 条件②：必须携带专属武器（key_paths 任一在 loadout 中即算，与 PatternData.unlocked 同口径）。
+		# 签名 = 那把武器的专属强化，不带它就不生效（2026-11-19 恢复）。
+		var key_paths: Array = p.key_paths
+		if not key_paths.is_empty():
+			var has_key := false
+			for kp in key_paths:
+				if loadout.has(String(kp)):
+					has_key = true
+					break
+			if not has_key:
+				continue
+		# 条件③：签名自己的牌型条件满足
 		if not (p.match_rule as Dictionary).is_empty() \
 				and not PATTERN_MATCHER.solve_rule(cards, p.match_rule):
 			continue

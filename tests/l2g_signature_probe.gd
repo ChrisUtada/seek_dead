@@ -54,14 +54,15 @@ func _ready() -> void:
 	var ps = _duel._pattern_system
 	var cards := _make_cards()
 
-	# ① 无 key 无习得 → 签名不生效
+	# 签名生效=习得+携带专属武器(key_paths)+牌型满足，三条件缺一不可（2026-11-19 恢复签名语义）
+	var key_loadout := ["res://resources/weapon_templates/fire_sword.tres"]
+	# ① 无 key 无习得 → 不生效
 	_duel.learned_signatures.clear()
 	var sig0 = ps.find_signature("W01", [], cards, _duel.learned_signatures)
 	_check(sig0 == null, "未携带关键武器且未习得时签名不生效")
-	# ①b 2026-11-19：携带关键武器但未习得 → 签名仍不生效（移除自动解锁后）
-	var key_loadout := ["res://resources/weapon_templates/fire_sword.tres"]
+	# ①b 携带关键武器但未习得 → 仍不生效
 	var sig_key_only = ps.find_signature("W01", key_loadout, cards, _duel.learned_signatures)
-	_check(sig_key_only == null, "携带关键武器但未习得时签名不生效（不得自动解锁）")
+	_check(sig_key_only == null, "携带关键武器但未习得时签名不生效（习得为必要条件）")
 
 	# 校验 cards 本身能满足 match_rule（排除探针构造问题导致的假阴性）
 	var sigdef = ps.get_pattern(SIG_ID)
@@ -79,9 +80,12 @@ func _ready() -> void:
 		_check(bool(result.ok), "三选一习得卡结算成功（%s）" % str(result.reason))
 		_check(_duel.learned_signatures.has(SIG_ID), "习得后写入 learned_signatures")
 
-	# ③ 习得后（仍无关键武器）签名生效
-	var sig1 = ps.find_signature("W01", [], cards, _duel.learned_signatures)
-	_check(sig1 != null and String(sig1.id) == SIG_ID, "习得后无需关键武器签名即生效")
+	# ③ 习得后但仍无专属武器 → 不生效（签名必须有那把武器，2026-11-19）
+	var sig_no_key = ps.find_signature("W01", [], cards, _duel.learned_signatures)
+	_check(sig_no_key == null, "已习得但未携带专属武器时签名不生效")
+	# ③a 习得 + 携带专属武器 → 生效
+	var sig1 = ps.find_signature("W01", key_loadout, cards, _duel.learned_signatures)
+	_check(sig1 != null and String(sig1.id) == SIG_ID, "习得+携带专属武器时签名生效")
 
 	# ③b 扩卡：多张不同元素签名可同时习得（冰 SIG_W02_ZERO）
 	var ice_card: Resource = load("res://resources/rewards/defs/seed_sig_absolute_zero.tres")

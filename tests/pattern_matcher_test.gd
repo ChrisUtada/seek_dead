@@ -770,22 +770,22 @@ func _test_signatures() -> void:
 		"圣辉长剑 × W04 签名生效（%s）" % String(hv.get("pattern_signature", "")))
 	_check(float(hv["pierce"]) > 0.0, "W04 齐射进入穿透（%.0f）" % float(hv["pierce"]))
 
-	# —— 2026-11-19：签名习得后与携带武器无关 ——
+	# —— 2026-11-19：签名须习得 + 携带专属武器；卸下武器即失效 ——
 	_equip([FIRE_SWORD, FLAME_STAFF])
+	_duel.learned_signatures.append("SIG_W01_FIRESWORD")   # 模拟玩家已习得
 	var with_key: Dictionary = _settle_cards([SYM_BURN, SYM_FIRE_SLASH, SYM_FIRE_SLASH],
 		["fire", "none", "none"], ["fire_sword", "fire_sword", "flame_staff"])
 	_duel.combat._apply_patterns(with_key)
 	_check(String(with_key.get("pattern_signature", "")) == "SIG_W01_FIRESWORD",
-		"携带关键武器时签名生效（%s）" % String(with_key.get("pattern_signature", "")))
-	# 换一对不带关键签名的火武器：签名仍因已习得而生效（不再依赖携带武器）
+		"习得+携带关键武器时签名生效（%s）" % String(with_key.get("pattern_signature", "")))
+	# 换一对不带关键签名的火武器：即便已习得，签名仍因缺少专属武器而失效
 	_equip(["res://resources/weapon_templates/cinder_cleaver.tres",
 		"res://resources/weapon_templates/cinder_hatchet.tres"])
-	_duel.learned_signatures.append("SIG_W01_FIRESWORD")   # 模拟玩家此前已习得
 	var without_key: Dictionary = _settle_cards([SYM_BURN, SYM_FIRE_SLASH, SYM_FIRE_SLASH],
 		["fire", "none", "none"], ["cinder_cleaver", "cinder_cleaver", "cinder_hatchet"])
 	_duel.combat._apply_patterns(without_key)
-	_check(String(without_key.get("pattern_signature", "")) != "",
-		"习得后卸下关键武器签名仍生效（%s）" % String(without_key.get("pattern_signature", "")))
+	_check(String(without_key.get("pattern_signature", "")) == "",
+		"习得但卸下关键武器后签名失效（%s）" % String(without_key.get("pattern_signature", "")))
 	_check(String(without_key.get("pattern_equipment", "")) == "W01",
 		"基础牌谱仍然生效（%s）" % String(without_key.get("pattern_equipment", "")))
 
