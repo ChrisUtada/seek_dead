@@ -14,7 +14,6 @@ func _ready() -> void:
 	await _boot()
 	_test_growth_structure()
 	_test_each_growth_effect()
-	_test_queued_growth_inline()
 	_test_reroll_skip_and_sources()
 	_test_r4_no_training()
 	print("---")
@@ -122,10 +121,9 @@ func _test_each_growth_effect() -> void:
 	view = _offer("perk")
 	idx = _index_of(view, "perk")
 	opt = _duel._reward_system.loot_offer_option(idx)
-	var pending0 := int(_duel.growth.pending_picks)
 	res = _duel._reward_system.settle_loot_offer(idx)
-	_check(bool(res.get("ok", false)) and _duel.growth.perk_ids.has(String(opt.get("perk_id", "")))
-		and int(_duel.growth.pending_picks) == pending0, "技艺直接习得且不污染既有成长队列")
+	_check(bool(res.get("ok", false)) and _duel.growth.perk_ids.has(String(opt.get("perk_id", ""))),
+		"技艺直接习得")
 
 	view = _offer("maxhp")
 	idx = _index_of(view, "maxhp")
@@ -150,20 +148,6 @@ func _test_each_growth_effect() -> void:
 	_check(bool(res.get("ok", false)) and int(_duel.player_hp) == heal_expected, "未满血时休整恢复35%生命")
 
 
-func _test_queued_growth_inline() -> void:
-	_duel._post_battle.reset_run()
-	_duel.growth.pending_picks = 1
-	_duel.room_flow.begin_post_battle()
-	var view: Dictionary = _duel.room_flow.loot_view()
-	var idx := _index_of(view, "queued_growth")
-	_check(idx >= 0, "待选技艺直接并入成长三选一，不打开第二成长页")
-	if idx < 0:
-		return
-	_duel._on_loot_offer_chosen(idx)
-	_check(int(_duel.growth.pending_picks) == 0 and not _duel.room_flow.post_battle_active,
-		"queued成长结算后直接收尾，不再进入第二成长阶段")
-
-
 func _test_reroll_skip_and_sources() -> void:
 	var view: Dictionary = _offer()
 	var q := String(view.get("quality", ""))
@@ -172,11 +156,9 @@ func _test_reroll_skip_and_sources() -> void:
 		and bool(next.get("growth_only", false)), "成长重抽保持品质、成长标记和下一次费用")
 	var gold0 := int(_duel.gold)
 	var power0 := int(_duel._reward_system.run_power_bonus)
-	_duel.growth.pending_picks = 1
 	var skipped: Dictionary = _duel._reward_system.settle_loot_skip()
 	_check(bool(skipped.get("ok", false)) and int(_duel.gold) == gold0
-		and int(_duel._reward_system.run_power_bonus) == power0
-		and int(_duel.growth.pending_picks) == 0, "免费跳过不发收益，未选成长同时放弃")
+		and int(_duel._reward_system.run_power_bonus) == power0, "免费跳过不发收益")
 
 	var chest: Dictionary = _duel._reward_system.build_loot_offer("chest", 1, {}, "common")
 	var chest_items := 0

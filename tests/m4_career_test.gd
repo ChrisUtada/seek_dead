@@ -297,12 +297,10 @@ func _test_run_summary(duel: DuelController) -> void:
 	_check(rs.collection_line().contains("火焰剑"), "局末总结列出本局新增武器")
 	_check(rs.collection_line().contains("新收藏："), "局末总结带新收藏前缀")
 
-	# 成长：等级 + 熟练 + R 等级。
-	duel.growth.level = 3
+	# 成长：熟练 + R 等级（等级已移除）。
 	duel.mastery.mastery.clear()
 	duel.mastery.mastery["res://resources/weapon_templates/dagger.tres"] = 4
 	var gl: String = rs.growth_line()
-	_check(gl.contains("Lv.3"), "局末总结显示本局等级")
 	_check(gl.contains("匕首") and gl.contains("R2"), "局末总结显示熟练与 R 等级")
 
 	# 棋盘路线：骨架/模板 + 已走节点分类计数。

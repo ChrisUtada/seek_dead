@@ -161,16 +161,14 @@ func _test_reroll_no_growth(duel: DuelController) -> void:
 	duel.selected_loadout.assign([FLAME_STAFF])
 	var points0: int = int(duel.mastery.mastery.get(FLAME_STAFF, 0))
 	var owed0: int = duel.mastery.owed.size()
-	var picks0: int = int(duel.growth.pending_picks)
 	var res: Dictionary = duel._reward_system.build_loot_offer("boss", 1,
 		{"theme": [FLAME_STAFF], "categories": ["weapon"]}, "epic")
 	var last: Dictionary = res
 	for i in 20:
 		last = duel._reward_system.reroll_loot_offer()
 	_check(int(duel.mastery.mastery.get(FLAME_STAFF, 0)) == points0
-		and duel.mastery.owed.size() == owed0
-		and int(duel.growth.pending_picks) == picks0,
-		"20 次重抽不改变熟练 / 欠铭印 / 待选技艺")
+		and duel.mastery.owed.size() == owed0,
+		"20 次重抽不改变熟练 / 欠铭印")
 	# 重抽后结算当前展示的选项：仍然只结算一次
 	var now_idx := _option_index(last.get("options", []), "grant", "mastery")
 	var settled: Dictionary = duel._reward_system.settle_loot_offer(now_idx)

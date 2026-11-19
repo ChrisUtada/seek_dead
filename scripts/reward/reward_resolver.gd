@@ -113,8 +113,8 @@ func _apply_existing_power(reward_id: String, params: Dictionary) -> DraftResult
 # ===== 新效果（P0 状态登记，P1/P3 接入实际系统） =====
 
 func _apply_pick_perk(reward_id: String, params: Dictionary) -> DraftResult.RewardApplyResult:
-	# 技艺卡：选中时兑现升级待选（pick 会校验 pending_picks>0 并扣减）。
-	# 若 pending_picks 已为 0（如重复结算），返回失败，避免卡消失但技艺没学到。
+	# 技艺卡：选中即授予（2026-11-19 技艺改概率注入三选一，pick 不再依赖 pending_picks）。
+	# 若技艺已拥有（如重复结算），pick 内部会拒绝，避免重复。
 	var perk_id := String(params.get("id", ""))
 	if perk_id.is_empty():
 		return DraftResult.RewardApplyResult.failure(reward_id, "pick_perk", "invalid_perk_id")

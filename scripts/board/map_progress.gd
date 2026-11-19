@@ -61,26 +61,19 @@ static func build(node: Dictionary, ctrl) -> Dictionary:
 		out["cards"] = ctrl._reward_system.roll_boss_rewards(node.get("room"))
 	else:
 		out["cards"] = ctrl._post_battle.build(String(p["kind"]))
-	out["growth_pending"] = int(ctrl.growth.pending_picks)
 	out["queue_size"] = (ctrl._post_battle.queue as Array).size()
 	return out
 
 
-# 房间胜利：发历练 + 结算回春/积蓄（与 room_flow._settle_victory 同序）。
+# 房间胜利：房间计数 + 结算回春/积蓄（与 room_flow._settle_victory 同序）。
 # 不碰掉落、不改房间数值、不发奖励卡。
 static func apply_victory(node: Dictionary, ctrl) -> Dictionary:
 	var kind := kind_of(node)
 	if kind == "" or ctrl == null:
 		return {"ok": false}
-	var xp_before := int(ctrl.growth.xp)
-	var level_before := int(ctrl.growth.level)
-	ctrl.growth.grant_room_xp(kind)
+	ctrl.growth.note_room_settled()
 	ctrl.growth.apply_victory_perks(kind)
 	return {
 		"ok": true,
 		"kind": kind,
-		"xp_gained": int(ctrl.growth.xp) - xp_before,
-		"level": int(ctrl.growth.level),
-		"level_up": int(ctrl.growth.level) > level_before,
-		"pending": int(ctrl.growth.pending_picks),
 	}

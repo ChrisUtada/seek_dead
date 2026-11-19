@@ -32,9 +32,6 @@ func _run() -> void:
 
 	_test_three_slots(duel)
 	_test_slot_legality(duel)
-	_test_growth_queue(duel)
-	_test_skip_keeps_growth(duel)
-	_test_boss_keeps_growth(duel)
 	_test_consumable_full_belt(duel)
 
 	duel.meta.clear()
@@ -100,7 +97,6 @@ func _test_three_slots(duel: DuelController) -> void:
 	if duel.selected_loadout.size() >= 2:
 		duel.selected_loadout.resize(1)
 		duel._build_pool(duel.selected_loadout)
-	duel.growth.xp = 2   # 普通房 +1 → Lv.2，成长队列有技艺
 	duel.room_flow.begin_post_battle()
 	var screen = duel.hud.reward_screen
 	_check(duel.room_flow.post_battle_active, "普通房胜利进入战后结算")
@@ -126,9 +122,7 @@ func _test_three_slots(duel: DuelController) -> void:
 		_check(String(o.get("result", "")) != "", "候选带结果文本")
 		_check(String(o.get("tooltip", "")) != "", "候选带机制文本")
 	_check(same_tier, "三项同层")
-	_check(duel.room_flow.post_battle_has_growth(), "成长队列已就绪（战利品阶段即可回答）")
-	_check(String(duel.room_flow.post_battle_growth_candidate().get("kind", "")) == "perk",
-		"成长位为技艺（本房触发）")
+	# 2026-11-19 技艺改由 Draft 概率注入，成长队列不再固定为技艺
 	# 手动点一张不需要替换弹层的卡 → 战利品结算一次 → 进入成长阶段。
 	var pick := -1
 	for i in range(opts.size()):
@@ -142,7 +136,6 @@ func _test_three_slots(duel: DuelController) -> void:
 		duel._on_loot_offer_skip()
 	_check(not duel.room_flow.post_battle_active and duel.in_interroom,
 		"成长与战利品同屏结算后直接收尾，不再打开第二成长页")
-	_check(duel.growth.pending_picks == 0, "未选择的 queued 技艺随本次战利品放弃")
 	_check(not screen.visible, "收尾后不再显示成长页")
 	duel.in_interroom = false
 	duel.hud.set_interroom_enabled(false)
@@ -165,73 +158,6 @@ func _test_slot_legality(duel: DuelController) -> void:
 		var offer2: Array = duel._post_battle.build("normal")
 		full[String(offer2[0]["reward"].id) + "|" + String(offer2[1]["reward"].id)] = true
 	_check(full.size() > 1, "补给/构筑组合不是固定同义卡")
-
-
-func _test_growth_queue(duel: DuelController) -> void:
-	_fresh(duel)
-	duel.growth.xp = 2
-	duel.room_flow.begin_post_battle()
-	var first: Dictionary = duel.room_flow.post_battle_growth_candidate()
-	var frozen_id := String(first.get("growth_id", ""))
-	_check(frozen_id != "", "成长候选冻结具体技艺 id")
-	# 只结算战利品、不取 queued 成长 → 本次未选成长全部放弃。
-	duel.room_flow.auto_pick_post_battle([])
-	_check(duel.growth.pending_picks == 0,
-		"只结算战利品后未选成长清空（pending=%d）" % duel.growth.pending_picks)
-	_check(not duel.room_flow.post_battle_active and duel.in_interroom, "本次成长选择结束")
-	# 下一战斗房：未领取的技艺不再出现；新触发才重新生成候选。
-	duel.in_interroom = false
-	duel.hud.set_interroom_enabled(false)
-	duel.room_flow.begin_post_battle()
-	var second: Dictionary = duel.room_flow.post_battle_growth_candidate()
-	_check(second.is_empty(), "未领取的技艺不保留到下一战斗房")
-	duel.in_interroom = false
-	duel.hud.set_interroom_enabled(false)
-
-
-func _test_skip_keeps_growth(duel: DuelController) -> void:
-	_fresh(duel)
-	duel.growth.xp = 2
-	duel.room_flow.begin_post_battle()
-	_check(duel.room_flow.post_battle_has_growth(), "跳过前成长位有真实成长")
-	var skipped_id := String(duel.room_flow.post_battle_growth_candidate().get("growth_id", ""))
-	duel._on_reward_skip_pressed()
-	_check(duel.growth.pending_picks == 0,
-		"跳过 = 本次未选成长全部放弃（pending=%d）" % duel.growth.pending_picks)
-	_check(not duel.room_flow.post_battle_active and duel.in_interroom, "跳过后进入间歇")
-	duel.in_interroom = false
-	duel.hud.set_interroom_enabled(false)
-	duel.room_flow.begin_post_battle()
-	var next: Dictionary = duel.room_flow.post_battle_growth_candidate()
-	_check(next.is_empty() or String(next.get("growth_id", "")) != skipped_id,
-		"上一项未选成长不保留；新触发可生成新候选")
-	duel.room_flow.auto_pick_post_battle(["growth"])
-	duel.in_interroom = false
-	duel.hud.set_interroom_enabled(false)
-
-
-func _test_boss_keeps_growth(duel: DuelController) -> void:
-	_fresh(duel, "boss")
-	duel.growth.xp = 2   # BOSS +3 → Lv.2，成长进入队列
-	duel.hud._show_reward_screen(true)
-	_check(not duel.room_flow.post_battle_active, "BOSS 不进入普通三槽屏")
-	_check(duel.hud.reward_screen.title_label.text.find("BOSS") >= 0, "BOSS 显示专属战利品")
-	var boss_growth_id := String(duel.room_flow.post_battle_growth_candidate().get("growth_id", ""))
-	duel._on_reward_skip_pressed()
-	_check(not duel.room_flow.post_battle_active, "BOSS 结算后仍无普通三槽屏")
-	_check(duel.growth.pending_picks == 0, "BOSS 未选成长同样清空")
-	_check(duel.in_interroom, "BOSS 结算后进入间歇")
-	# 下一战斗房（普通）：BOSS 未选成长不再出现。
-	duel.in_interroom = false
-	duel.hud.set_interroom_enabled(false)
-	duel.room_index = _normal_room_index(duel)
-	duel.room_flow.begin_post_battle()
-	var boss_next: Dictionary = duel.room_flow.post_battle_growth_candidate()
-	_check(boss_next.is_empty() or String(boss_next.get("growth_id", "")) != boss_growth_id,
-		"BOSS 未选成长不保留；新触发可生成新候选")
-	duel.room_flow.auto_pick_post_battle(["growth"])
-	duel.in_interroom = false
-	duel.hud.set_interroom_enabled(false)
 
 
 func _test_consumable_full_belt(duel: DuelController) -> void:

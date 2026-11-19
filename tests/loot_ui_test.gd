@@ -52,7 +52,6 @@ func _run() -> void:
 	await _test_skip_settles_once()
 	await _test_esc_no_settle()
 	await _test_replace_flow()
-	await _test_growth_phase()
 	_test_rng_isolation()
 	_test_boss_quality_badge()
 
@@ -363,35 +362,6 @@ func _first_unowned_weapon() -> String:
 # ---------------------------------------------------------------------------
 # ⑤ 成长阶段
 # ---------------------------------------------------------------------------
-
-func _test_growth_phase() -> void:
-	_fresh()
-	_duel.growth.xp = 2
-	var r := _begin()
-	await _frames(4)
-	_check(_duel.room_flow.post_battle_has_growth(), "本房有真实成长")
-	_check(String(_duel.room_flow.post_battle_growth_candidate().get("kind", "")) == "perk",
-		"成长队列为技艺")
-	# 所有成长同屏结算，未选 queued 项自动保留，不再打开第二成长页。
-	var opts: Array = _duel.room_flow.loot_view().get("options", [])
-	var idx := _pick_settleable(opts)
-	if idx >= 0:
-		_duel._on_loot_offer_chosen(idx)
-	else:
-		_duel._on_loot_offer_skip()
-	_check(not _duel.room_flow.post_battle_active, "成长与战利品同屏后直接收尾")
-	_check(_duel.growth.pending_picks == 0, "未选择的 queued 成长随本次战利品放弃")
-	_check(not r.visible, "收尾后不显示第二成长页")
-	# 再来一次： queued 成长也在同屏被选中并清空
-	_fresh()
-	_duel.growth.xp = 2
-	_begin()
-	await _frames(3)
-	_duel.room_flow.auto_pick_post_battle(["growth"])
-	_check(_duel.growth.perk_ids.size() >= 1 and _duel.growth.pending_picks == 0,
-		"queued成长同屏选中后清空队列")
-	_check(not _duel.room_flow.post_battle_active, "queued成长结算后无需第二页面")
-
 
 # ---------------------------------------------------------------------------
 # ⑦ RNG / 地图隔离

@@ -194,25 +194,14 @@ func _test_p3_build_state(duel: DuelController) -> void:
 
 
 func _test_perk_in_draft(duel: DuelController) -> void:
-	# 升级待选技艺应注入 Draft，选中后兑现（修复 P0-P4 遗留的技艺选不到问题）
+	# 2026-11-19：技艺改概率注入三选一，选中即习得（不再有 pending_picks 门控）。
+	# 本测试直接构造技艺卡验证 resolve→pick 链路；注入概率由 m2_growth_test 覆盖。
 	duel.growth.reset_run()
-	duel.growth.pending_picks = 1
-	var view: Dictionary = duel._reward_system.build_loot_offer("normal", 1, {"growth_only": true})
-	var opts: Array = view.get("options", [])
-	var perk_idx := -1
-	for i in range(opts.size()):
-		if String(opts[i].get("id", "")).begins_with("perk_"):
-			perk_idx = i
-			break
-	_ok(perk_idx >= 0, "perk card injected when pending_picks>0")
-	if perk_idx < 0:
-		duel.growth.reset_run()
-		return
-	var def = duel._reward_system._draft_result.rewards[perk_idx]
+	var def = duel._reward_system._make_perk_def({"id": "tough", "name": "坚韧", "desc": "最大 HP +10", "family": "survive"})
+	_ok(def != null and String(def.id) == "perk_tough", "perk def built")
 	var res = duel._reward_system._draft_resolver.resolve(def)
 	_ok(res.ok, "perk card resolves ok: %s" % res.reason)
-	_ok(duel.growth.pending_picks == 0, "perk pick consumes pending_picks")
-	_ok(duel.growth.perk_ids.size() == 1, "perk learned")
+	_ok(duel.growth.perk_ids.size() == 1, "perk learned by resolve")
 	duel.growth.reset_run()
 
 

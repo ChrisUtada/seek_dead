@@ -55,7 +55,7 @@ func _init(seed_value: int = -1) -> void:
 func compose(snap: RunSnapshot, count: int = 3, debug: bool = false, extra_defs: Array = []) -> DraftResult:
 	var pool := RewardRegistry.load_valid()
 	var eligible := _eligible(pool, snap)
-	# 额外候选（如 pending_picks>0 时注入的技艺卡）并入池
+	# 额外候选（如概率注入的技艺卡）并入池
 	for ed in extra_defs:
 		if ed is RewardDefinition and not eligible.has(ed):
 			eligible.append(ed)

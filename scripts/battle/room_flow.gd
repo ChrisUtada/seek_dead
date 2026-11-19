@@ -177,14 +177,14 @@ func _finish_post_battle(apply_fn: Callable) -> void:
 	_after_victory()
 
 
-# 房间胜利的成长节奏：历练 → 熟练（触发项进入 PostBattleSystem 的成长队列）。
+# 房间胜利的成长节奏：房间计数 → 技艺结算 → 熟练（等级已移除）。
 func _settle_victory() -> void:
 	if _ctrl._telemetry != null:
 		_ctrl._telemetry.on_room_clear()   # M1-06：清房耗时
 	if _ctrl._journal != null:
 		_ctrl._journal.note_battle_end("win")   # G5 工具：战斗胜利（战败由局末收口）
 	var kind := _current_kind()
-	_ctrl.growth.grant_room_xp(kind)   # M2-01：房间胜利发放历练经验（升级即时入账）
+	_ctrl.growth.note_room_settled()  # 累计已结算房间数（技艺注入保底用）
 	_ctrl.growth.apply_victory_perks(kind)   # G7-A S1：回春 / 积蓄（无对应技艺时为空操作）
 	_ctrl.mastery.settle_room(kind)    # M2-02：样板武器按本房有效结算累计熟练
 
@@ -213,8 +213,6 @@ func _snapshot_before() -> void:
 	_summary_before = {
 		"gold": int(_ctrl.gold),
 		"anvil": int(_ctrl.meta.get("anvil_points", 0)),
-		"level": int(_ctrl.growth.level),
-		"xp": int(_ctrl.growth.xp),
 		"charms": _ctrl.selected_charms.duplicate(),
 		"consumables": [],
 	}
@@ -225,8 +223,6 @@ func _snapshot_before() -> void:
 func _finish_battle_summary(is_boss: bool) -> void:
 	var d_gold: int = int(_ctrl.gold) - int(_summary_before.get("gold", 0))
 	var d_anvil: int = int(_ctrl.meta.get("anvil_points", 0)) - int(_summary_before.get("anvil", 0))
-	var d_level: int = int(_ctrl.growth.level) - int(_summary_before.get("level", 1))
-	var d_xp: int = int(_ctrl.growth.xp) - int(_summary_before.get("xp", 0))
 	# 掉落：护符/消耗品的集合差（本场新入账的）
 	var drops: Array[String] = []
 	var before_charms: Array = _summary_before.get("charms", [])
@@ -244,13 +240,11 @@ func _finish_battle_summary(is_boss: bool) -> void:
 	last_battle_summary = {
 		"gold": d_gold,
 		"anvil": d_anvil,
-		"level": d_level,
-		"xp": d_xp,
 		"mastery": "本场武器熟练已结算",   # 熟练按本房有效结算，无单一增量字段
 		"drops": drop_txt,
 		"is_boss": is_boss,
-		"text": "金币 +%d · 历练 Lv%d · 熟练已计 · 铁砧 +%d · 掉落 %s" % [
-			d_gold, _ctrl.growth.level, d_anvil, drop_txt],
+		"text": "金币 +%d · 熟练已计 · 铁砧 +%d · 掉落 %s" % [
+			d_gold, d_anvil, drop_txt],
 	}
 
 
@@ -374,7 +368,7 @@ func loot_view() -> Dictionary:
 
 # P0-2：成长摘要（结算页头 + 确认后日志），让「本局成长方向」可复述。
 func _growth_summary_text() -> String:
-	var bits: Array[String] = [_ctrl.growth.progress_text()]
+	var bits: Array[String] = []
 	if not _ctrl.growth.perk_ids.is_empty():
 		bits.append(_ctrl.growth.summary_line())
 	if _ctrl.mastery.imprint_total() > 0:

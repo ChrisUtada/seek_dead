@@ -3,7 +3,7 @@
 # 运行时经 duel_controller preload 实例化（不注册全局 class_name——headless 测试环境不刷新类缓存）。
 # 职责：
 # - 普通 / 精英房胜利后，按槽位生成三张具体候选：补给、构筑、成长（成长位走队列）。
-# - 成长位来自 GrowthSystem.pending_picks（技艺）与 WeaponMastery.owed（铭印），
+# - 成长位来自 WeaponMastery.owed（铭印）；技艺已改由 Draft 引擎注入，
 #   按触发先后排队；候选在首次展示时冻结（id / 武器 / 符号），确认前不再随机。
 # - 未选择的成长留在队列，进入下一战斗房的成长位；一次胜利最多选中一项。
 # - 无待处理成长时，成长位给「下一房对策」（护盾 / 金币），保持槽位始终可用。
@@ -35,7 +35,6 @@ func reroll_choices() -> void:
 # 任意战利品结算或跳过后，本次未选成长全部放弃，不留到下一战。
 func clear_pending_choices() -> void:
 	queue.clear()
-	_ctrl.growth.pending_picks = 0
 	_ctrl.mastery.owed.clear()
 
 
@@ -123,9 +122,9 @@ func drop(cand: Dictionary) -> void:
 # 成长队列
 # ---------------------------------------------------------------------------
 
-# 与 GrowthSystem.pending_picks / WeaponMastery.owed 对齐：
+# 与 WeaponMastery.owed 对齐（技艺已改由 Draft 引擎概率注入，本队列只管铭印）：
 # - 已选 / 已消耗 / 武器卸下的项移出；
-# - 新触发的技艺先入队，再补本房新触发的铭印（与结算顺序一致：历练 → 熟练）。
+# - 补本房新触发的铭印；技艺不再从这里生成。
 func _sync_queue() -> void:
 	var g = _ctrl.growth
 	var m = _ctrl.mastery
@@ -146,12 +145,6 @@ func _sync_queue() -> void:
 				continue
 			kept.append(e)
 	queue = kept
-	while queued_perks < g.pending_picks:
-		var e := _freeze_perk()
-		if e.is_empty():
-			break
-		queue.append(e)
-		queued_perks += 1
 	var seen := {}
 	for e in queue:
 		if String(e["kind"]) == "imprint":
@@ -207,7 +200,7 @@ func _head() -> Dictionary:
 	for i in range(queue.size()):
 		var e: Dictionary = queue[i]
 		if String(e["kind"]) == "perk":
-			if _ctrl.growth.pending_picks > 0 and not _ctrl.growth.perk_ids.has(String(e["id"])):
+			if not _ctrl.growth.perk_ids.has(String(e["id"])):
 				return {"entry": e, "index": i}
 		else:
 			if _ctrl.mastery.owed.has(String(e["path"])) and _ctrl.selected_loadout.has(String(e["path"])):

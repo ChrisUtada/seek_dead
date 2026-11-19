@@ -37,7 +37,7 @@ func _run() -> void:
 		return
 	var meta_backup: Dictionary = duel.meta.duplicate(true)   # 流程测试会结算铁砧/金币：结束还原
 
-	_test_xp_and_levels(duel)
+	_test_perk_offer(duel)
 	_test_perk_choices(duel)
 	_test_pick_rules(duel)
 	_test_hooks(duel)
@@ -83,42 +83,24 @@ func _fresh(duel: DuelController) -> void:
 	duel.turn_count = 1
 
 
-func _test_xp_and_levels(duel: DuelController) -> void:
+# 2026-11-19：等级/经验已移除，改为验证技艺概率注入（前3房保底 + 15%概率）
+func _test_perk_offer(duel: DuelController) -> void:
 	_fresh(duel)
 	var g = duel.growth
-	g.grant_room_xp("normal")
-	_check(g.xp == 1 and g.level == 1, "普通房 +1 历练经验，仍为 Lv.1")
-	g.grant_room_xp("elite")
-	_check(g.xp == 3 and g.level == 2, "累计 3 经验升 Lv.2")
-	_check(duel.player_hp_max == 105, "Lv.2 最大 HP +5")
-	_check(g.pending_picks == 1, "Lv.2 给 1 次技艺选择")
-	g.grant_room_xp("normal")
-	g.grant_room_xp("elite")
-	_check(g.xp == 6 and g.level == 2, "累计 6 经验仍为 Lv.2")
-	g.grant_room_xp("normal")
-	_check(g.level == 3 and duel.player_hp_max == 110, "累计 7 升 Lv.3，最大 HP 再 +5")
-	_check(g.pending_picks == 1, "Lv.3 不额外给技艺")
-	g.grant_room_xp("boss")
-	_check(g.xp == 10 and g.level == 3, "BOSS 房 +3，累计 10 仍为 Lv.3")
-	g.grant_room_xp("boss")
-	_check(g.xp == 13 and g.level == 4 and duel.player_hp_max == 115, "累计 13 升 Lv.4，最大 HP 再 +5")
-	_check(g.pending_picks == 2, "Lv.4 累计 2 次技艺选择")
-	g.grant_room_xp("boss")
-	_check(g.xp == 16 and g.level == 4, "累计 16 仍为 Lv.4（G7-A：Lv.5 门槛 20）")
-	g.grant_room_xp("elite")
-	g.grant_room_xp("elite")
-	_check(g.xp == 20 and g.level == 5 and duel.player_hp_max == 120, "累计 20 升 Lv.5，最大 HP +5")
-	_check(g.pending_picks == 2, "Lv.5 不额外给技艺")
-	g.grant_room_xp("boss")
-	g.grant_room_xp("boss")
-	g.grant_room_xp("boss")
-	_check(g.xp == 29 and g.level == 5, "累计 29 仍为 Lv.5（Lv.6 门槛 30）")
-	g.grant_room_xp("boss")
-	_check(g.xp == 32 and g.level == 6 and duel.player_hp_max == 125, "累计 30 升 Lv.6，最大 HP 125")
-	_check(g.pending_picks == 3, "Lv.6 累计 3 次技艺选择（上限）")
-	g.grant_room_xp("boss")
-	_check(g.level == 6 and g.pending_picks == 3 and duel.player_hp_max == 125, "Lv.6 封顶：经验累计但不再升级")
-	_check(g.xp == 35, "封顶后经验照常累计（35）")
+	_check(g.rooms_settled == 0 and g.perks_offered == 0, "新局计数清零")
+	# 前 3 房保底：至少提供 1 次技艺（逐房调用 should_offer_perk 模拟战后抽取）
+	var offered := false
+	for i in range(g.PERK_GUARANTEE_ROOMS):
+		g.note_room_settled()
+		if g.should_offer_perk():
+			offered = true
+			break
+	_check(offered, "前 %d 房保底至少提供 1 次技艺" % g.PERK_GUARANTEE_ROOMS)
+	# 技艺池耗尽后不再提供
+	for p in g.PERKS:
+		if not g.perk_ids.has(String(p["id"])):
+			g.pick(String(p["id"]))
+	_check(not g.should_offer_perk(), "技艺池耗尽后不再提供")
 
 
 func _test_perk_choices(duel: DuelController) -> void:
@@ -145,15 +127,12 @@ func _test_perk_choices(duel: DuelController) -> void:
 func _test_pick_rules(duel: DuelController) -> void:
 	_fresh(duel)
 	var g = duel.growth
-	_check(not g.pick("tough"), "无待选次数时拒绝选择")
-	g.pending_picks = 2
 	duel.player_hp = 50
 	_check(g.pick("tough"), "坚韧可选")
 	_check(duel.player_hp_max == 110, "坚韧：最大 HP +10")
 	_check(duel.player_hp == 60, "坚韧：立即恢复 10 HP")
 	_check(g.summary_line().find("生存×1") >= 0, "成长摘要按家族聚合（生存×1）")
 	_check(g.detail_text().find("坚韧") >= 0, "成长明细包含已选技艺名")
-	_check(g.pending_picks == 1, "选定后待选次数 -1")
 	_check(not g.pick("tough"), "同一技艺不可重复")
 	_check(not g.pick("no_such_perk"), "未知技艺拒绝")
 	duel.consumable_slots.clear()
@@ -161,7 +140,6 @@ func _test_pick_rules(duel: DuelController) -> void:
 	duel.consumable_slots.append({"path": "", "item_id": "b", "charges": 2, "uid": 2})
 	_check(g.pick("reserve"), "备用药剂可选")
 	_check(duel.consumable_slots[0]["charges"] == 2 and duel.consumable_slots[1]["charges"] == 3, "备用药剂：腰带各消耗品 +1 次")
-	_check(g.pending_picks == 0, "两次选择后待选次数清零")
 	duel.consumable_slots.clear()
 
 
@@ -301,36 +279,27 @@ func _test_next_symbol(duel: DuelController) -> void:
 	rs.reel_cursor = backup_cursor
 
 
+# 2026-11-19：技艺改由 Draft 引擎概率注入三选一，不再有独立"成长位/待选"流程。
+# 本测试只验证战后流程能正常进入与结算。
 func _test_room_flow_offers_pick(duel: DuelController) -> void:
 	_fresh(duel)
-	var g = duel.growth
-	g.xp = 2   # 任意房型胜利（至少 +1）即升 Lv.2
 	duel.room_index = 0
 	duel.in_interroom = false
 	var screen = duel.hud.reward_screen
 	duel.room_flow.begin_post_battle()
-	_check(g.level == 2 and g.pending_picks == 1, "房间胜利升 Lv.2 后待选 1 次")
 	_check(duel.room_flow.post_battle_active, "普通房胜利进入战后结算")
 	_check(duel.room_flow.post_battle_phase() == "loot", "战后先展示同层战利品三选一")
-	_check(screen.visible and screen.title_label.text.find("成长") >= 0, "成长三选一界面标题正确")
+	_check(screen.visible, "战利品三选一界面可见")
 	_check(screen.reward_grid.get_child_count() == 3, "战利品固定三张同层卡")
 	_check(not duel.in_interroom, "战利品结算前不进入房间间歇")
-	_check(duel.room_flow.post_battle_has_growth(), "有待处理成长时成长队列非空")
-	var cand: Dictionary = duel.room_flow.post_battle_growth_candidate()
-	_check(String(cand.get("kind", "")) == "perk", "成长位为技艺（历练先触发）")
-	duel.room_flow.auto_pick_post_battle(["growth"])
-	_check(g.pending_picks == 0 and g.perk_ids.size() == 1, "确认后待选清零、技艺入列")
-	_check(duel.in_interroom, "确认成长后进入房间间歇")
-	_check(not duel.room_flow.post_battle_active, "确认后无待确认项")
 	duel.in_interroom = false
 	duel.hud.set_interroom_enabled(false)
 
 
 func _test_reset(duel: DuelController) -> void:
-	duel.growth.xp = 9
-	duel.growth.level = 3
 	duel.growth.perk_ids.append("tough")
-	duel.growth.pending_picks = 1
+	duel.growth.rooms_settled = 9
+	duel.growth.perks_offered = 3
 	duel.growth.reset_run()
-	_check(duel.growth.xp == 0 and duel.growth.level == 1, "新一局：经验与等级清零")
-	_check(duel.growth.perk_ids.is_empty() and duel.growth.pending_picks == 0, "新一局：技艺清零")
+	_check(duel.growth.perk_ids.is_empty(), "新一局：技艺清零")
+	_check(duel.growth.rooms_settled == 0 and duel.growth.perks_offered == 0, "新一局：计数清零")

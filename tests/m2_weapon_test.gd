@@ -454,19 +454,17 @@ func _test_merged_settlement(duel: DuelController) -> void:
 			break
 	duel.room_index = idx
 	duel.in_interroom = false
-	duel.growth.xp = 2   # 普通房 +1 → Lv.2，待选技艺
 	m.mastery[FIRE] = 2
 	m.reset_room()
 	_settle_fire(duel)
+	# 2026-11-19：技艺改由 Draft 概率注入，不再由同房战斗自动触发。
+	# 直接授予技艺，验证铭印队列与 tooltip 仍正常。
+	duel.growth.grant_perk("tough")
 	duel.room_flow.begin_post_battle()
 	_check(duel.room_flow.post_battle_active, "战后结算待处理")
-	_check(duel.room_flow.post_battle_has_growth(), "同房触发技艺 + 铭印时成长队列非空")
-	var first: Dictionary = duel.room_flow.post_battle_growth_candidate()
-	_check(String(first.get("kind", "")) == "perk", "成长队列先给技艺（触发顺序）")
-	_check(not duel.in_interroom, "确认前不进入间歇（只打断一次）")
-	duel._on_post_battle_growth_chosen(first)
-	_check(duel.growth.perk_ids.size() == 1 and m.owed.is_empty(), "本次只应用技艺，未选铭印随战利品放弃")
-	_check(duel.in_interroom and not duel.room_flow.post_battle_active, "确认后进入间歇且无残留")
+	_check(duel.growth.perk_ids.size() == 1, "技艺已授予")
+	_check(not duel.in_interroom, "确认前不进入间歇")
+	duel.room_flow.auto_pick_post_battle(["growth"])
 
 	# 下一战斗房：未选铭印不再出现；已选技艺只生效一次。
 	duel.in_interroom = false
@@ -492,11 +490,10 @@ func _test_merged_settlement(duel: DuelController) -> void:
 	_check(fire_card != null and fire_card.tooltip_text.find("熟练") >= 0, "武器 tooltip 含熟练进度")
 	_check(skill_card != null and perk_name != "" and skill_card.tooltip_text.find(perk_name) >= 0,
 		"技能卡 tooltip 含已习得技艺")
-	# P0-2：等级进玩家标题；常驻行显示历练进度与成长计数（艺/铭），不再重复 Lv.
-	_check(duel.hud.player_title.text.find("Lv.2") >= 0, "玩家区：标题显示 Lv.2")
-	_check(duel.hud.player_level_label.visible and duel.hud.player_level_label.text.find("/7") >= 0,
-		"玩家区：常驻成长行显示历练进度")
-	_check(duel.hud.player_level_label.text.find("艺1") >= 0, "玩家区：常驻成长行显示技艺计数")
+	# 2026-11-19 等级已移除：玩家标题固定，常驻行只显示成长计数（艺/铭）
+	duel.hud._refresh_meta()   # 技艺由 grant_perk 直接授予，需手动刷新 HUD
+	_check(duel.hud.player_level_label.visible, "玩家区：常驻成长行可见")
+	_check(duel.hud.player_level_label.text.find("艺") >= 0, "玩家区：常驻成长行显示技艺计数")
 	duel.growth.reset_run()
 	m.reset_run()
 	duel._post_battle.reset_run()

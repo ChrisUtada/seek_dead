@@ -1846,19 +1846,16 @@ func _refresh_meta() -> void:
 	player_hp_icon.modulate = hp_color
 	player_shield_label.text = "盾 %d" % controller.state.player_shield
 	_refresh_vitals()   # 头顶血条/盾条同步刷新
-	# 等级并入玩家标题；P0-2：常驻一行「历练进度 · 艺N 铭N」，让本局成长随时可见（明细进 tooltip）
-	var growth_progress: String = controller.growth.progress_text()
-	player_title.text = "玩家 · Lv.%d" % controller.growth.level
+	# 2026-11-19 等级已移除：玩家标题固定，成长常驻「艺N 铭N」（明细进 tooltip）
+	player_title.text = "玩家"
 	var growth_tags: Array[String] = []
 	if not controller.growth.perk_ids.is_empty():
 		growth_tags.append("艺%d" % controller.growth.perk_ids.size())
 	var imp_total: int = controller.mastery.imprint_total()
 	if imp_total > 0:
 		growth_tags.append("铭%d" % imp_total)
-	var growth_short: String = controller.growth.progress_short()
-	if not growth_tags.is_empty():
-		growth_short += " · " + " ".join(growth_tags)
-	var growth_tip: String = "%s\n%s\n%s" % [growth_progress,
+	var growth_short: String = " ".join(growth_tags)
+	var growth_tip: String = "%s\n%s" % [
 		controller.growth.detail_text(), controller.mastery.summary_line()]
 	player_level_label.text = growth_short
 	player_level_label.visible = true

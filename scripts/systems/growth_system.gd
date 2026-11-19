@@ -1,19 +1,13 @@
 # GrowthSystem — 角色历练与技艺（M2-01 建立，G7-A S1 扩至三幕）
 # 运行时经 duel_controller preload 实例化（不注册全局 class_name——headless 测试环境不刷新类缓存）。
-# 职责：房间胜利发放历练经验 → 升级（最大 HP +5 并恢复）→ 在 Lv.2 / Lv.4 / Lv.6 各给一次技艺三选一。
+# 职责：技艺三选一（概率注入战后奖励池）+ 幕间锻魂。2026-11-19 移除等级/经验/升级。
 # 技艺效果在各自落点读取本系统的查询接口（守势 / 精打细算 / 落点吸附 / 宽判窗口 / 废铁豁免），
 # 只有「坚韧」「备用药剂」「回春」「积蓄」在落点即时结算。整局状态经 reset_run 清零（新一局 / 战败回整备）。
-# 规格见 docs/M0-02_样板范围.md §1（ACT1 样板：Lv.4 / 2 技艺）；
+# 规格见 docs/移除玩家等级_替代方案_2026-11-19.md（等级已移除，技艺改概率注入三选一）；
 # 随机技艺池 8；旧技艺「精打细算」仅作存档兼容，不再进入随机候选。
 
 var _ctrl  # DuelController
 
-const ROOM_XP := {"normal": 1, "elite": 2, "boss": 3}   # 历练经验：只在房间胜利时发放
-const LEVEL_XP := {2: 3, 3: 7, 4: 12, 5: 20, 6: 30}     # 累计经验门槛（G7-A S1：扩至 Lv.6；
-                                                        # 5/6 按三幕 36 经验推算，Lv.5 落在第二幕中段、Lv.6 落在第三幕）
-const LEVEL_MAX := 6                                     # G7-A S1：ACT1 样板 4 → 三幕 6
-const HP_PER_LEVEL := 5                                  # 每级最大 HP +5 并恢复同量
-const PERK_LEVELS := [2, 4, 6]                           # 升到这些等级时获得一次技艺选择（G7-A S1：+Lv.6）
 const FAMILIES := {"survive": "生存", "plan": "运筹", "aim": "目押"}
 # P0-2（2026-11-03）：给每个家族一句「打法方向」，选择前能预判自己走哪条线。
 const FAMILY_HINT := {"survive": "更耐打", "plan": "更多资源", "aim": "更易停中"}
@@ -48,10 +42,14 @@ const ACT_BOON_HP := 20
 
 var enabled: bool = true         # 探针开关（M2-04 对照组）：false 时房间胜利不发历练
 var boon_enabled: bool = true    # 探针开关（S5 复测 A/B）：false 时不发幕间锻魂
-var xp: int = 0
-var level: int = 1
 var perk_ids: Array[String] = []
-var pending_picks: int = 0       # 尚未选择的技艺次数
+var rooms_settled: int = 0       # 本局已结算房间数（技艺注入保底用）
+var perks_offered: int = 0       # 本局已提供技艺选择的次数
+var _rng: RandomNumberGenerator = RandomNumberGenerator.new()  # 本系统独立RNG(不碰全局)
+
+# 技艺注入三选一的参数（2026-11-19 替代等级）
+const PERK_OFFER_CHANCE := 0.15  # 每次战后三选一注入技艺卡的概率
+const PERK_GUARANTEE_ROOMS := 3  # 前 N 房至少提供 1 次技艺选择（保底）
 
 
 func _init(ctrl) -> void:
@@ -60,28 +58,14 @@ func _init(ctrl) -> void:
 
 # 新一局 / 战败回整备：历练与技艺清零（最大 HP 由 LoadoutSystem.reset_run_state 回基础值）。
 func reset_run() -> void:
-	xp = 0
-	level = 1
 	perk_ids.clear()
-	pending_picks = 0
+	rooms_settled = 0
+	perks_offered = 0
+	_rng.seed = hash(Time.get_ticks_usec())
 
 
 func has_perk(id: String) -> bool:
 	return perk_ids.has(id)
-
-
-# 玩家区文案：等级 + 距下一级的历练进度（满级后显示累计）。
-func progress_text() -> String:
-	if level >= LEVEL_MAX:
-		return "Lv.%d · %d（满）" % [level, xp]
-	return "Lv.%d · %d/%d" % [level, xp, int(LEVEL_XP[level + 1])]
-
-
-# 左栏常驻小字：只有历练进度（等级已在玩家标题），满级后显示累计。
-func progress_short() -> String:
-	if level >= LEVEL_MAX:
-		return "%d 满" % xp
-	return "%d/%d" % [xp, int(LEVEL_XP[level + 1])]
 
 
 # P0-2：本局技艺的方向摘要（按固定顺序聚合家族），供 HUD tooltip / 成长结算页头展示。
@@ -111,27 +95,31 @@ func detail_text() -> String:
 	return "\n".join(lines)
 
 
-# 房间胜利：累计经验并逐级升级。返回待选技艺次数（>0 时 RoomFlow 先弹三选一再进间歇）。
-func grant_room_xp(kind: String) -> int:
-	if not enabled:
-		return pending_picks
-	xp += int(ROOM_XP.get(kind, 0))
-	while level < LEVEL_MAX and xp >= int(LEVEL_XP[level + 1]):
-		level += 1
-		var hp_before: int = _ctrl.player_hp_max
-		_ctrl.player_hp_max += HP_PER_LEVEL
-		_ctrl.player_hp = mini(_ctrl.player_hp_max, _ctrl.player_hp + HP_PER_LEVEL)
-		# P0-2：升级必须有可见结果（前 → 后数值 + 飘字），否则只有日志里的 +5 无法形成变强感。
-		_ctrl.hud._log("🎓 历练 Lv.%d：最大 HP %d → %d（立即恢复 %d）" % [level, hp_before, _ctrl.player_hp_max, HP_PER_LEVEL])
-		_ctrl.hud._popup("Lv.%d" % level, Palette.ACCENT_GOLD, _ctrl.hud.player_hp_label)
-		if PERK_LEVELS.has(level):
-			pending_picks += 1
-			_ctrl.hud._log("  ◆ 获得 1 次技艺选择")
-	return pending_picks
+# 房间胜利：只累计已结算房间数（等级已移除，不再发经验/升级）。
+# 注入技艺卡的概率判定见 should_offer_perk()；本函数仅维护保底所需计数。
+func note_room_settled() -> void:
+	if enabled:
+		rooms_settled += 1
+
+
+# 本次战后三选一是否注入技艺卡（2026-11-19 替代原 Lv.2/4/6 触发）。
+# 规则：前 PERK_GUARANTEE_ROOMS 房至少给 1 次（保底），之后每房 PERK_OFFER_CHANCE 概率。
+# 技艺池已耗尽时不再注入。使用本系统独立 RNG，不消耗全局随机序列（工程铁律）。
+func should_offer_perk() -> bool:
+	if not enabled or _unowned_in("").is_empty():
+		return false
+	var guaranteed: bool = rooms_settled <= PERK_GUARANTEE_ROOMS and perks_offered == 0
+	if guaranteed:
+		perks_offered += 1
+		return true
+	var hit: bool = _rng.randf() < PERK_OFFER_CHANCE
+	if hit:
+		perks_offered += 1
+	return hit
 
 
 # G7-A S1（2026-11-08 拍板）：房间胜利后的技艺结算（回春 / 积蓄）。
-# 与 grant_room_xp 同一处调用（room_flow._settle_victory），只读本局状态；
+# 与 note_room_settled 同一处调用（room_flow._settle_victory），只读本局状态；
 # 不发经验、不改房间数值、不碰掉落与 RNG。
 func apply_victory_perks(kind: String) -> void:
 	if not enabled:
@@ -254,20 +242,19 @@ func _unowned_in(family: String) -> Array:
 	return out
 
 
-# 战利品直接授予一项未拥有技艺，不改变既有成长队列。
+# 战利品直接授予一项未拥有技艺。
 func grant_perk(id: String) -> bool:
 	if perk_ids.has(id) or perk_name(id) == "":
 		return false
-	pending_picks += 1
 	return pick(id)
 
 
-# 选定技艺：扣减待选次数，瞬时效果在此结算。非法选择返回 false。
+# 选定技艺：瞬时效果在此结算。非法选择返回 false。
+# 2026-11-19：技艺改由三选一常驻/概率注入，选中即授予，不再需要 pending_picks 门控。
 func pick(id: String) -> bool:
-	if pending_picks <= 0 or perk_ids.has(id) or perk_name(id) == "":
+	if perk_ids.has(id) or perk_name(id) == "":
 		return false
 	perk_ids.append(id)
-	pending_picks -= 1
 	match id:
 		"tough":
 			_ctrl.player_hp_max += 10

@@ -96,11 +96,10 @@ func route_line() -> String:
 	return txt
 
 
-# 本局成长：等级/技艺数 + 熟练（只列本局有结算的武器）+ 铭印方向。
+# 本局成长：技艺数 + 熟练（只列本局有结算的武器）+ 铭印方向。
 func growth_line() -> String:
 	var bits: Array[String] = []
 	if _ctrl.growth != null:
-		bits.append("Lv.%d" % int(_ctrl.growth.level))
 		if not _ctrl.growth.perk_ids.is_empty():
 			bits.append("技艺%d" % _ctrl.growth.perk_ids.size())
 	var ms := _mastery_text()

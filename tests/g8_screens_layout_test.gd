@@ -144,7 +144,6 @@ func _test_reward() -> void:
 	_duel.room_index = _normal_room_index()
 	_duel.in_interroom = false
 	_duel.hud.set_interroom_enabled(false)
-	_duel.growth.xp = 2
 	_duel.room_flow.begin_post_battle()
 	await _frames(6)
 
