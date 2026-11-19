@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RewardDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/reward/reward_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "rule_pierce_up"
+name = "暗影处刑 · 穿透强化"
+desc = "冰火二重触发时穿透比例 +10%（需凑出该牌型）"
+rarity = "uncommon"
+tags = Array[String](["rule", "pattern.ice_fire", "core_growth"])
+base_weight = 1.0
+base_value = 1.5
+effects = [{"effect_id": "pattern_bonus", "params": {"pattern_id": "SIG02", "param": "pierce_ratio", "delta": 0.1}}]
+category = "rule_mod"
+effect_family = "pattern_param"
+stack_rule = 1
+max_stack = 2

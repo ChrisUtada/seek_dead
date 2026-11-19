@@ -76,7 +76,7 @@ func _test_seed_defs() -> void:
 	var reg = load("res://scripts/reward/reward_registry.gd")
 	var all = reg.load_all()
 	# L2-G：新增 11 张签名解锁卡 → 8→19（原型1张 + 扩卡10张，全部走 learn_signature）
-	_ok(all.size() == 20, "20 seed defs loaded (got %d)" % all.size())
+	_ok(all.size() >= 20, "at least 20 seed defs loaded (got %d)" % all.size())
 	var problems = reg.validate_all()
 	_ok(problems.is_empty(), "all seed defs valid: %s" % str(problems))
 

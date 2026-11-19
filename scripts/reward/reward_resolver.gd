@@ -55,6 +55,8 @@ func _dispatch(reward_id: String, effect_id: String, params: Dictionary) -> Draf
 			return _apply_existing_symbol_weight(reward_id, params)
 		"gold_add":
 			return _apply_existing_gold(reward_id, params)
+		"pattern_bonus":
+			return _apply_pattern_bonus(reward_id, params)
 		"flame_affinity":
 			return _apply_flame_affinity(reward_id, params)
 		"pick_perk":
@@ -149,6 +151,27 @@ func _apply_existing_gold(reward_id: String, params: Dictionary) -> DraftResult.
 		return DraftResult.RewardApplyResult.failure(reward_id, "gold_add", String(res.get("reason", "delegate_failed")))
 	var r := DraftResult.RewardApplyResult.success(reward_id, "gold_add", "金币 +%d" % amount)
 	r.state_updates["gold"] = _ctrl.gold
+	return r
+
+
+# 牌谱规则强化（P1-B）：写本局 pattern_param_overrides，不修改共享 .tres。
+# params: {"pattern_id": "...", "param": "damage_mult", "delta": 0.25}
+# PatternEffects.apply 每回合读覆盖并合并到 effect_params。
+func _apply_pattern_bonus(reward_id: String, params: Dictionary) -> DraftResult.RewardApplyResult:
+	var pid := String(params.get("pattern_id", ""))
+	var param_key := String(params.get("param", ""))
+	var delta := float(params.get("delta", 0.0))
+	if pid.is_empty() or param_key.is_empty() or is_zero_approx(delta):
+		return DraftResult.RewardApplyResult.failure(reward_id, "pattern_bonus", "invalid_params")
+	# 校验 pattern_id 存在（避免无效覆盖污染字典）
+	if _ctrl._pattern_system == null or _ctrl._pattern_system.get_pattern(pid) == null:
+		return DraftResult.RewardApplyResult.failure(reward_id, "pattern_bonus", "unknown_pattern")
+	var per_pattern: Dictionary = _ctrl.pattern_param_overrides.get(pid, {})
+	per_pattern[param_key] = float(per_pattern.get(param_key, 0.0)) + delta
+	_ctrl.pattern_param_overrides[pid] = per_pattern
+	var r := DraftResult.RewardApplyResult.success(
+		reward_id, "pattern_bonus", "牌谱强化：%s %s %+g" % [pid, param_key, delta])
+	r.state_updates["pattern_param_overrides"] = _ctrl.pattern_param_overrides.duplicate(true)
 	return r
 
 

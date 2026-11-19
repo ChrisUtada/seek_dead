@@ -26,7 +26,43 @@ const EFFECT_LABELS := {
 }
 
 
+# P1-B：牌谱参数的 Run 级覆盖视图。只代理效果函数用到的 4 个字段，
+# effect_params = 原 .tres 参数 + 本局 override（ delta 叠加），不污染共享资源。
+class ParamOverrideView:
+	extends RefCounted
+	var effect_id: String = ""
+	var effect_params: Dictionary = {}
+	var name: String = ""
+	var unlock_paths: Array[String] = []
+
+
+# 合并本局覆盖：controller.pattern_param_overrides[pattern_id] = {param_key: delta}
+static func _apply_overrides(pattern, ctx: Dictionary):
+	var ctrl = ctx.get("ctrl", null)
+	var overrides: Dictionary = {} if ctrl == null else ctrl.pattern_param_overrides
+	var pid := String(pattern.id)
+	var merged: Dictionary = (pattern.effect_params as Dictionary).duplicate(true)
+	if overrides.has(pid):
+		for key in overrides[pid]:
+			var base_val = merged.get(key, 0.0)
+			var delta = (overrides[pid] as Dictionary)[key]
+			# 保持原参数类型：整数参数用整数加，浮点用浮点加
+			if base_val is int:
+				merged[key] = int(base_val) + int(delta)
+			else:
+				merged[key] = float(base_val) + float(delta)
+	if merged == pattern.effect_params:
+		return pattern   # 无覆盖，直接用原对象（零开销路径）
+	var view := ParamOverrideView.new()
+	view.effect_id = String(pattern.effect_id)
+	view.name = String(pattern.name)
+	view.unlock_paths = pattern.unlock_paths
+	view.effect_params = merged
+	return view
+
+
 static func apply(acc: Dictionary, pattern, ctx: Dictionary) -> void:
+	pattern = _apply_overrides(pattern, ctx)
 	var eid := String(pattern.effect_id)
 	match eid:
 		"flame_resonance":

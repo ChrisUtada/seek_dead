@@ -306,6 +306,9 @@ var reward_choices: Array = []         # 当前展示的 3 个奖励
 var reward_is_boss: bool = false       # 当前奖励是否来自 Boss 房（选完开新局）
 # 战后三选一重构 P3：本局已获元素构筑奖励计数（fire/ice/…），供 BuildState 推导标签；每局清零
 var element_affinity: Dictionary = {}
+# P1-B：本局牌谱参数覆盖（pattern_id -> {param: delta}），由 rule_mod 奖励写入，
+# PatternEffects.apply 每回合读；不修改共享 .tres，随新局清零。
+var pattern_param_overrides: Dictionary = {}
 # L2-E 本局收集品框架：遗物栏（BOSS 信物）——拥有即生效、不占护符槽、每局清零。
 # 与 meta["owned_charms"]（跨局图鉴）分离：图鉴仍跨局，增益只在本局。
 var run_relics: Array[String] = []
@@ -1034,6 +1037,7 @@ func _reset_run_state() -> void:
 	if readability != null:
 		readability.reset_run()   # P1：目标声明与停轮统计随新局重置
 	element_affinity.clear()   # P3：本局元素构筑奖励计数清零
+	pattern_param_overrides.clear()  # P1-B：本局牌谱参数覆盖清零
 	learned_signatures.clear() # L2-G：本局已习得签名清零
 	if hud != null:
 		hud._refresh_p1_ui()
