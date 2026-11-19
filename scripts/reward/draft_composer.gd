@@ -18,12 +18,15 @@ extends RefCounted
 
 const BASE_PAID_REROLL_COST := 5
 
-# 槽位倾向：优先类别顺序（类别不可用时按权重替补）
+# 槽位倾向（P1-A：软偏置，不再硬编码顺序）
+# 偏好类别的权重乘以 SLOT_BIAS，最终仍按归一化权重抽取；
+# 这样保留"Slot A 偏核心 / Slot B 偏战术"的设计意图，但不让 symbol_mod 垄断全部槽位。
 const SLOT_PREFERENCE := [
 	["symbol_mod", "rule_mod"],              # Slot A 核心成长
 	["reel_control", "skill", "rule_mod"],   # Slot B 战术成长
-	["symbol_mod", "rule_mod", "reel_control", "skill", "survival_resource", ""],  # Slot C 开放
+	["symbol_mod", "rule_mod", "reel_control", "skill", "survival_resource"],  # Slot C 开放
 ]
+const SLOT_BIAS := 1.6                      # 偏好类别权重放大系数（软偏置）
 
 # 同质化检查（V1.0 §4.4）：同一组最多同类数
 const MAX_SAME_CATEGORY := 2
@@ -141,10 +144,11 @@ func _compose_by_slots(groups: Dictionary, weights: Dictionary, count: int,
 				_last_slot_trace.append("slot%d:force_skill" % slot)
 
 		if chosen == null:
-			chosen = _draw_for_slot(pref, groups, weights, used_ids, cat_count)
+			# P1-A：按权重+槽位软偏置抽类别，并优先覆盖组内未出现的类别（多样性）
+			chosen = _draw_weighted_with_diversity(pref, groups, weights, used_ids, cat_count)
 
 		if chosen == null:
-			# 替补：从全部合法候选中按权重抽（不严格遵循槽位倾向）
+			# 兜底替补：从全部合法候选中按权重抽
 			chosen = _draw_any(groups, weights, used_ids, cat_count)
 			if chosen != null:
 				_last_slot_trace.append("slot%d:fallback_any" % slot)
@@ -152,7 +156,7 @@ func _compose_by_slots(groups: Dictionary, weights: Dictionary, count: int,
 		if chosen != null:
 			out.append(chosen)
 			used_ids[chosen.id] = true
-			var cat := chosen.effective_category()
+			var cat: String = chosen.effective_category()
 			cat_count[cat] = int(cat_count.get(cat, 0)) + 1
 			if _last_slot_trace.size() <= slot:
 				_last_slot_trace.append("slot%d:%s/%s" % [slot, cat, chosen.id])
@@ -170,20 +174,43 @@ func _compose_by_slots(groups: Dictionary, weights: Dictionary, count: int,
 	return out
 
 
-# 按槽位倾向抽：依次尝试优先类别，跳过已超同类数的类别
-func _draw_for_slot(pref: Array, groups: Dictionary, weights: Dictionary,
+# P1-A：按「归一化权重 × 槽位软偏置 × 多样性因子」抽类别，再从该类别抽卡。
+# 多样性因子：组内尚未出现的类别权重 ×(1+DIVERSITY_BONUS)，已出现的类别不放大，
+# 让 survival 等低权重类别也能进入三选一，而不是被 symbol_mod 垄断。
+const DIVERSITY_BONUS := 1.5
+
+func _draw_weighted_with_diversity(pref: Array, groups: Dictionary, weights: Dictionary,
 		used_ids: Dictionary, cat_count: Dictionary) -> RewardDefinition:
-	for cat in pref:
-		if cat == "":
+	var cats: Array = []
+	var vals: Array[float] = []
+	var total := 0.0
+	for cat in weights:
+		var arr: Array = groups.get(cat, [])
+		if arr.is_empty():
 			continue
 		if int(cat_count.get(cat, 0)) >= MAX_SAME_CATEGORY:
 			continue
-		if (groups.get(cat, []) as Array).is_empty():
-			continue
-		var d := CategoryResolver.draw_from_category(groups, cat, used_ids, _rng)
-		if d != null:
-			return d
-	return null
+		var w := float(weights[cat])
+		if pref.has(cat):
+			w *= SLOT_BIAS
+		if int(cat_count.get(cat, 0)) == 0:
+			w *= (1.0 + DIVERSITY_BONUS)   # 组内未出现 → 放大
+		cats.append(cat)
+		vals.append(w)
+		total += w
+	if total <= 0.0:
+		return null
+	var r := _rng.randf_range(0.0, total)
+	var acc := 0.0
+	var picked: String = ""
+	for i in range(cats.size()):
+		acc += vals[i]
+		if r <= acc:
+			picked = String(cats[i])
+			break
+	if picked == "":
+		picked = String(cats[cats.size() - 1])
+	return CategoryResolver.draw_from_category(groups, picked, used_ids, _rng)
 
 
 # 从全部可用类别按归一化权重抽一张（替补用）
