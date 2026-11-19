@@ -118,6 +118,10 @@ func _draft_extra() -> Array:
 	var sym_defs := _make_symbol_weight_defs()
 	if not sym_defs.is_empty():
 		extra.append(sym_defs[_draft_composer.pick_index(sym_defs.size())])
+	# P1.1②：符号效果强化也注入 1 张（与权重卡并存，均走 composer RNG 不碰全局）
+	var eff_defs := _make_symbol_effect_defs()
+	if not eff_defs.is_empty():
+		extra.append(eff_defs[_draft_composer.pick_index(eff_defs.size())])
 	return extra
 
 
@@ -466,6 +470,60 @@ func _make_symbol_weight_defs() -> Array:
 				"path": path, "weight": SYMBOL_WEIGHT_STEP}}]
 			def.category = "symbol_mod"
 			def.effect_family = "symbol_weight"
+			out.append(def)
+	return out
+
+
+# P1.1② 符号效果强化（V1.1 §5A2）：从当前武器符号池动态构造效果卡。
+# damage 符号 → power/crit/crit_chance；status 符号 → status（状态层数 +N）。
+# 只构造有对应效果的符号，避免"对治疗符号加暴击"这类无效卡。
+func _make_symbol_effect_defs() -> Array:
+	var out: Array = []
+	var seen := {}
+	var pool: Array = _ctrl.pool_items if _ctrl.pool_items != null else []
+	for it in pool:
+		if not (it is Dictionary):
+			continue
+		var syms: Array = it.get("syms", [])
+		for entry in syms:
+			if not (entry is Array) or entry.is_empty():
+				continue
+			var sym = entry[0]
+			if sym == null or not (sym is SymbolData):
+				continue
+			var path: String = sym.resource_path
+			if path.is_empty() or seen.has(path):
+				continue
+			var kind: String = String(sym.kind)
+			var effect_id: String = ""
+			var delta: float = 0.0
+			var effect_name: String = ""
+			if kind == "status":
+				effect_id = "status"; delta = 1.0; effect_name = "状态层数 +1"
+			elif kind == "damage":
+				# 三种效果按符号名确定性选择，避免消耗 RNG（工程铁律）
+				var h: int = absi(path.hash()) % 3
+				if h == 0:
+					effect_id = "power"; delta = 2.0; effect_name = "伤害基数 +2"
+				elif h == 1:
+					effect_id = "crit"; delta = 0.1; effect_name = "三连暴击倍率 +0.1"
+				else:
+					effect_id = "crit_chance"; delta = 0.1; effect_name = "暴击率 +10%"
+			else:
+				continue
+			seen[path] = true
+			var def := RewardDefinition.new()
+			def.id = "sym_effect_" + path.get_file().get_basename()
+			def.name = "符号改造 · %s" % String(sym.name)
+			def.desc = "「%s」：%s" % [String(sym.name), effect_name]
+			def.rarity = "uncommon"
+			def.base_weight = 1.0
+			def.base_value = 1.5
+			def.tags = ["symbol", "effect", "core_growth"]
+			def.effects = [{"effect_id": "symbol_effect_bonus", "params": {
+				"symbol_path": path, "effect": effect_id, "delta": delta}}]
+			def.category = "symbol_mod"
+			def.effect_family = "symbol_effect"
 			out.append(def)
 	return out
 

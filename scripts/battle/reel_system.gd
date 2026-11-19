@@ -738,8 +738,30 @@ func build_pool(loadout: Array) -> void:
 	_ctrl.pool.clear()
 	_ctrl.pool.append_array(flat)
 	_build_sym_src_maps()
+	_apply_symbol_effect_overrides()
 	_ctrl.hud._update_enemy_element()
 	_ctrl.invalidate_state()
+
+
+# P1.1②：把本局符号效果覆盖重新应用到聚合 map（build_pool 每次重建会清空这些 map）。
+# 覆盖写在 symbol_path 键上，combat 的 map.get(sk, map.get(sym.resource_path)) 会读到。
+func _apply_symbol_effect_overrides() -> void:
+	var ov: Dictionary = _ctrl.symbol_effect_overrides
+	if ov.is_empty():
+		return
+	for path in ov:
+		var effects: Dictionary = ov[path]
+		for effect_id in effects:
+			var delta = effects[effect_id]
+			match effect_id:
+				"status":
+					_ctrl._item_status_bonus[path] = int(_ctrl._item_status_bonus.get(path, 0)) + int(delta)
+				"crit":
+					_ctrl._item_crit_map[path] = float(_ctrl._item_crit_map.get(path, 1.0)) + float(delta)
+				"crit_chance":
+					_ctrl._item_crit_chance_map[path] = float(_ctrl._item_crit_chance_map.get(path, 0.0)) + float(delta)
+				"power":
+					_ctrl._weapon_power_map[path] = float(_ctrl._weapon_power_map.get(path, 0.0)) + float(delta)
 
 
 # 2026-11-16：建立两张供 UI 用的旁路表（零结算影响）。

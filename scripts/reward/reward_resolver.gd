@@ -59,6 +59,8 @@ func _dispatch(reward_id: String, effect_id: String, params: Dictionary) -> Draf
 			return _apply_pattern_bonus(reward_id, params)
 		"reel_control":
 			return _apply_reel_control(reward_id, params)
+		"symbol_effect_bonus":
+			return _apply_symbol_effect_bonus(reward_id, params)
 		"flame_affinity":
 			return _apply_flame_affinity(reward_id, params)
 		"pick_perk":
@@ -188,6 +190,29 @@ func _apply_reel_control(reward_id: String, params: Dictionary) -> DraftResult.R
 	_ctrl.reel_controls[cid] = true
 	var r := DraftResult.RewardApplyResult.success(reward_id, "reel_control", "获得操控「%s」" % cid)
 	r.state_updates["reel_controls"] = _ctrl.reel_controls.duplicate(true)
+	return r
+
+
+# 符号效果强化（P1.1②）：写 controller.symbol_effect_overrides，build_pool 重建后重新应用。
+# params: {"symbol_path": "...", "effect": "status"|"crit"|"crit_chance"|"power", "delta": 数值}
+func _apply_symbol_effect_bonus(reward_id: String, params: Dictionary) -> DraftResult.RewardApplyResult:
+	var path := String(params.get("symbol_path", ""))
+	var effect_id := String(params.get("effect", ""))
+	var delta := float(params.get("delta", 0.0))
+	if path.is_empty() or not ["status", "crit", "crit_chance", "power"].has(effect_id) or is_zero_approx(delta):
+		return DraftResult.RewardApplyResult.failure(reward_id, "symbol_effect_bonus", "invalid_params")
+	# 校验符号资源存在（避免无效覆盖）
+	if ResourceLoader.load(path) == null:
+		return DraftResult.RewardApplyResult.failure(reward_id, "symbol_effect_bonus", "unknown_symbol")
+	var per_sym: Dictionary = _ctrl.symbol_effect_overrides.get(path, {})
+	var prev: float = float(per_sym.get(effect_id, 0.0))
+	var added: float = delta
+	# 累加正负不限；但普通效果都应为正，负向由卡牌自己声明负 delta
+	per_sym[effect_id] = prev + added
+	_ctrl.symbol_effect_overrides[path] = per_sym
+	var r := DraftResult.RewardApplyResult.success(
+		reward_id, "symbol_effect_bonus", "符号强化：%s %s %+g" % [path.get_file().get_basename(), effect_id, delta])
+	r.state_updates["symbol_effect_overrides"] = _ctrl.symbol_effect_overrides.duplicate(true)
 	return r
 
 

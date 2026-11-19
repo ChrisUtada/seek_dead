@@ -312,6 +312,9 @@ var pattern_param_overrides: Dictionary = {}
 # P1-C：本局滚轴操控（由 reel_control 奖励授予，如 {"snap":true}），
 # 与技艺里的同名能力共用查询接口；随新局清零。
 var reel_controls: Dictionary = {}
+# P1.1②：本局符号效果覆盖（symbol_path -> {"status"/"crit"/"crit_chance"/"power": delta}），
+# 由 symbol_effect_bonus 奖励写入；build_pool 重建聚合 map 后重新应用，随新局清零。
+var symbol_effect_overrides: Dictionary = {}
 # L2-E 本局收集品框架：遗物栏（BOSS 信物）——拥有即生效、不占护符槽、每局清零。
 # 与 meta["owned_charms"]（跨局图鉴）分离：图鉴仍跨局，增益只在本局。
 var run_relics: Array[String] = []
@@ -1042,6 +1045,7 @@ func _reset_run_state() -> void:
 	element_affinity.clear()   # P3：本局元素构筑奖励计数清零
 	pattern_param_overrides.clear()  # P1-B：本局牌谱参数覆盖清零
 	reel_controls.clear()   # P1-C：本局滚轴操控清零
+	symbol_effect_overrides.clear()  # P1.1②：本局符号效果覆盖清零
 	learned_signatures.clear() # L2-G：本局已习得签名清零
 	if hud != null:
 		hud._refresh_p1_ui()
