@@ -30,12 +30,10 @@ const REGEN_HP := 4
 const REGEN_HP_BOSS := 8
 const HOARD_GOLD := 2
 const HOARD_GOLD_BOSS := 5
-# 命中确定性三能力（snap/wide/mercy）已于 2026-11-19 迁出技艺，唯一归 reel_control 奖励授予；
-# 其数值常量仍被下方操控查询函数使用，故保留。
-const SNAP_PER_TURN := 2        # 落点吸附：每回合最多吸附次数
-const SNAP_RANGE := 2           # 落点吸附：目标符号距视觉中心的格数容差（±2，B方案从±1放宽）
-const MERCY_PER_TURN := 1       # 废铁转化：每回合最多触发次数（B方案：废铁→+金，不再改判）
-# B方案：宽判窗口已移除，改为缓速操控 slow_ramp（在 ReelSystem._accel() 读 reel_controls）
+# 操控能力唯一由 reel_control 奖励授予（技艺侧已迁出）。
+const MERCY_PER_TURN := 1       # 废铁转化：每回合最多触发次数（废铁→+金）
+# 落点吸附已移除（盲目前后N格是干扰、无正面收益）；改为每房1次废铁改判 trash_reroll（在 ReadabilitySystem）
+# 宽判窗口已移除，改为缓速操控 slow_ramp（在 ReelSystem._accel() 读 reel_controls）
 # 2026-11-19 P1.1③ 新增三项生存/运筹型技艺（补 aim 空位，池深保持 8）。
 const SURGE_SHIELD := 5         # 蓄能：每房开局额外护盾
 const RECLAIM_GOLD := 2         # 回收：每房胜利额外金币
@@ -289,16 +287,6 @@ func room_shield() -> int:
 # P1.1③：操控能力唯一由 reel_control 奖励授予（技艺侧已迁出，消除双入口）。
 func _has_control(id: String) -> bool:
 	return _ctrl != null and _ctrl.reel_controls.has(id)
-
-
-# 落点吸附：每回合可用次数（0 = 未拥有）
-func snap_per_turn() -> int:
-	return SNAP_PER_TURN if _has_control("snap") else 0
-
-
-# 落点吸附：目标符号距视觉中心的格数容差
-func snap_range() -> int:
-	return SNAP_RANGE
 
 
 # 废铁转化：每回合可用次数（0 = 未拥有）

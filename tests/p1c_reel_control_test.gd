@@ -1,12 +1,12 @@
 extends Node
 
 # ============================================================================
-# P1-C 滚轴操控奖励测试（headless，2026-11-19）
+# 滚轴操控奖励测试（headless，2026-11-19）
 # 覆盖：
 # ① reel_control Adapter 写入 controller.reel_controls
-# ② 操控查询接口（snap_per_turn/wide_range/mercy_per_turn）反映奖励授予
+# ② 废铁改判（trash_reroll）每房1次查询反映奖励授予
 # ③ 重复授予被拒绝
-# ④ 与技艺同名能力共用查询（不重复实现）
+# ④ 宽判已移除改为 slow_ramp；操控唯一归 reel_controls
 # ⑤ 新局清零
 # ============================================================================
 
@@ -44,28 +44,28 @@ func _run() -> void:
 		return
 	var rs = duel._reward_system
 
-	# 初始：无操控奖励 → 操控全 0
-	_ok(duel.growth.snap_per_turn() == 0, "initial snap=0")
+	# 初始：无操控奖励 → 操控全关
+	_ok(not duel.readability.trash_reroll_ready(), "initial trash_reroll off")
 	_ok(duel.growth.mercy_per_turn() == 0, "initial mercy=0")
 	_ok(not duel.reel_controls.has("slow_ramp"), "initial slow_ramp=off")
 
-	# ① 授予 snap 奖励
+	# ① 授予废铁改判奖励（替换原吸附卡）
 	var def := RewardDefinition.new()
-	def.id = "test_control_snap"
-	def.name = "测试吸附"
+	def.id = "test_trash_reroll"
+	def.name = "测试废铁改判"
 	def.rarity = "common"
-	def.effects = [{"effect_id": "reel_control", "params": {"control_id": "snap"}}]
+	def.effects = [{"effect_id": "reel_control", "params": {"control_id": "trash_reroll"}}]
 	var res = rs._draft_resolver.resolve(def)
 	_ok(res.ok, "reel_control resolve ok: %s" % res.reason)
-	_ok(duel.reel_controls.has("snap"), "snap written to reel_controls")
+	_ok(duel.reel_controls.has("trash_reroll"), "trash_reroll written to reel_controls")
 	# ② 查询接口反映
-	_ok(duel.growth.snap_per_turn() > 0, "snap_per_turn reflects reward")
+	_ok(duel.readability.trash_reroll_ready(), "trash_reroll_ready reflects reward")
 
 	# ③ 重复授予拒绝
 	var dup = rs._draft_resolver.resolve(def)
 	_ok(not dup.ok, "duplicate control rejected")
 
-	# ④ B方案：宽判已移除改为 slow_ramp；操控唯一归 reel_controls
+	# ④ 宽判已移除改为 slow_ramp；操控唯一归 reel_controls
 	_ok(not duel.growth.grant_perk("wide"), "legacy wide perk no longer exists")
 	var slow_def := RewardDefinition.new()
 	slow_def.id = "test_slow"
@@ -79,7 +79,7 @@ func _run() -> void:
 	# ⑤ 新局清零
 	duel._reset_run_state()
 	_ok(duel.reel_controls.is_empty(), "reel_controls cleared on new run")
-	_ok(duel.growth.snap_per_turn() == 0, "snap query back to 0 after reset")
+	_ok(not duel.readability.trash_reroll_ready(), "trash_reroll off after reset")
 
 	print("P1C RESULT: %d checks, %d fails" % [_checks, _fails])
 	get_tree().quit(1 if _fails > 0 else 0)

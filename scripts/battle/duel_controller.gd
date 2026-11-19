@@ -1143,6 +1143,8 @@ func start_room_data(r: RoomData, idx: int, ria_override: int = -1, is_final: bo
 		return
 	room_element_mult = {}                # 元素精华：新房间失效（须在 _build_pool 之前清，否则旧房精华注入新房池）
 	peaceful_win = false                  # 勇者的阴影：和解标志每房复位
+	if readability != null:
+		readability.begin_room()   # 废铁改判：每房1次机会重置
 	if hud != null:
 		hud.reset_enemy_hit_hold()        # 2026-11-16 P0：清掉上一房未释放的掉血影子值
 	mirror_dmg_mult = 1.0                   # 迷面诡匠的伤害削弱不跨房残留

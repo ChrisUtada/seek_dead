@@ -133,8 +133,8 @@ func _draft_extra() -> Array:
 # 避免已选过的操控/技艺卡再次出现（此前只在结算时报 already_owned）。
 func _owned_reward_ids() -> Array:
 	var ids: Array = []
-	# 操控卡：control_snap / control_mercy / control_slow_ramp（B方案：wide→slow_ramp）
-	for cid in ["snap", "mercy", "slow_ramp"]:
+	# 操控卡：control_trash_reroll / control_mercy / control_slow_ramp（B方案：wide→slow_ramp）
+	for cid in ["trash_reroll", "mercy", "slow_ramp"]:
 		if _ctrl.reel_controls.has(cid):
 			ids.append("control_" + cid)
 	# 技艺动态卡：perk_<id>

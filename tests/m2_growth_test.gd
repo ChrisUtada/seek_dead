@@ -155,15 +155,14 @@ func _test_hooks(duel: DuelController) -> void:
 	_check(duel._shop_system.free_reroll_count() == 0, "无信物时商店无免费刷新")
 	duel.charm_free_reroll = 2
 	_check(duel._shop_system.free_reroll_count() == 2, "商店免费刷新来自信物迷宫回声（+2）")
-	# P1.1③：操控能力唯一由 reel_controls 授予，技艺不再授予（旧 aim 三技艺已迁出）
-	_check(g.snap_per_turn() == 0, "无操控授予：吸附次数 0")
+	# 操控能力唯一由 reel_controls 授予
+	_check(not duel.readability.trash_reroll_ready(), "无操控授予：废铁改判未就绪")
 	_check(g.mercy_per_turn() == 0, "无操控授予：废铁转化次数 0")
-	_check(g.snap_range() == 2, "落点吸附容差常量 ±2（B方案放宽）")
 	var accel_before: float = duel.reel_system._accel()
-	duel.reel_controls["snap"] = true
+	duel.reel_controls["trash_reroll"] = true
 	duel.reel_controls["mercy"] = true
 	duel.reel_controls["slow_ramp"] = true
-	_check(g.snap_per_turn() == 2, "reel_controls 授予吸附：每回合 2 次")
+	_check(duel.readability.trash_reroll_ready(), "reel_controls 授予废铁改判：每房1次")
 	_check(g.mercy_per_turn() == 1, "reel_controls 授予废铁转化：每回合 1 次")
 	_check(duel.reel_system._accel() < accel_before, "slow_ramp 授予后每拍加速度变小（加速变慢）")
 	duel.reel_controls.clear()
@@ -213,27 +212,34 @@ func _test_new_perks(duel: DuelController) -> void:
 	var backup_stopped = rs.reel_stopped.duplicate()
 	var backup_target: String = rd.target_symbol_path
 
-	# —— 落点吸附：目标符号在视觉中心 ±1 内，吸附到最近目标格，每回合 2 次 ——
-	# P1.1③：操控唯一由 reel_controls 授予（旧 aim 技艺已迁出）
-	duel.reel_controls["snap"] = true
+	# —— 废铁改判：每房1次，落点是废铁时改判为相邻有效符号（补救型） ——
 	rd.buffer_enabled = false
 	rd.visual_stop = false
 	rd.begin_spin()
-	rd.target_symbol_path = gold_path
-	var strip_ag: Array = [[gold, "none"], [trash, "none"], [trash, "none"]]
-	_check(rd.snap_ready(), "落点吸附：本回合次数未用完")
-	_check(rd.snap_target_index(1, strip_ag) == 0, "落点吸附：视觉中心 1 时目标 gold 在相邻索引 0")
-	var strip_far: Array = [[gold, "none"], [trash, "none"], [trash, "none"], [trash, "none"], [trash, "none"], [trash, "none"], [trash, "none"]]
-	_check(rd.snap_target_index(3, strip_far) == -1, "落点吸附：目标距视觉中心超过 ±2 时不吸附")
-	rd.consume_snap()
-	rd.consume_snap()
-	_check(not rd.snap_ready(), "落点吸附：每回合 2 次用尽")
-	rd.begin_spin()
-	_check(rd.snap_ready(), "落点吸附：下一回合次数重置")
+	duel.reel_controls["trash_reroll"] = true
+	duel.reel_controls.erase("mercy")   # 先移除废铁转化，避免它抢先消耗废铁
+	_check(rd.trash_reroll_ready(), "废铁改判：本房次数未用")
+	var strip_tr2: Array = [[trash, "none"], [gold, "none"]]
+	rs.reel_strips = [strip_tr2]
+	rs.reel_cursor.clear()
+	rs.reel_cursor.append(0)
+	rs.reel_stopped.clear()
+	rs.reel_stopped.append(false)
+	rs._pending_stops.clear()
+	duel.pending_jam_reel = -1
+	duel.pending_lock_reel = -1
+	rs.lock_reel(0)
+	_check(rd.trash_reroll_used == 1, "废铁改判：废铁落点触发并用掉 1 次")
+	_check(not rd.trash_reroll_ready(), "废铁改判：每房 1 次用尽")
+	await get_tree().create_timer(0.45).timeout
+	_check(rs.grid[0][0].resource_path == gold_path, "废铁改判：落子为相邻 gold")
+	# 每房重置
+	rd.begin_room()
+	_check(rd.trash_reroll_ready(), "废铁改判：新一房重置次数")
 
-	# —— B方案废铁转化：落点是废铁时 +2 金（不改判、不抵消空转），每回合 1 次 ——
-	# 先移除落点吸附，避免它把目标 gold 提前吸附走、干扰废铁判定。
-	duel.reel_controls.erase("snap")
+	# —— 废铁转化：落点是废铁时 +2 金（不抵消空转），每回合 1 次 ——
+	duel.reel_controls.erase("trash_reroll")
+	duel.reel_controls["mercy"] = true
 	duel.reel_controls["mercy"] = true
 	rd.begin_spin()
 	rd.target_symbol_path = ""   # 废铁转化不依赖目标符号

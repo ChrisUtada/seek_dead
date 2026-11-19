@@ -521,28 +521,37 @@ func lock_reel(r: int, use_visual: bool = true, reason: String = "player") -> vo
 					idx = vi
 		# 2026-11-17 命中确定性三技艺：只改玩家按停的落点，不动伤害与速度。
 		if reason == "player" and strip != null and not strip.is_empty() and _ctrl.readability != null:
-			var n2: int = strip.size()
-			var vi2: int = _ctrl.hud.visual_center_index(r)
-			if vi2 < 0:
-				vi2 = int(reel_cursor[r]) % n2
-			vi2 %= n2
-			# 落点吸附：目标符号就在视觉中心 ±1 格内，自动吸附到最近的目标格（每回合限次）。
-			if _ctrl.readability.snap_ready():
-				var ti: int = _ctrl.readability.snap_target_index(vi2, strip)
-				if ti >= 0:
-					idx = ti
-					_ctrl.readability.consume_snap()
-					_ctrl.hud._log("🧲 落点吸附：第 %d 列锁定目标符号" % (r + 1))
-			# B方案：废铁转化——废铁不再是"无效格"，而是给一点资源补偿（每回合限次）。
-			# 关键：不把废铁改判为有效符号（那会抹除失败惩罚、过强），
-			# 而是保留废铁格，只看作"变废为宝"的收益提示——感知明确且不破坏风险曲线。
+			# 废铁处理（两张独立操控卡，各有频率上限）：
+			# ① 废铁改判（trash_reroll）：每房1次，废铁 → 相邻最近的有效符号（补救型，有正面收益）
+			# ② 废铁转化（mercy）：每回合1次，废铁 → +2 金（不抵消空转）
 			var sym_now = strip[idx][0] if strip[idx] is Array else strip[idx]
-			if sym_now != null and String(sym_now.kind) == "trash" and _ctrl.readability.mercy_ready():
-				_ctrl.gold += TRASH_TO_GOLD
-				_ctrl.readability.consume_mercy()
-				if _ctrl.hud != null:
-					_ctrl.hud._log("♻️ 废铁转化：第 %d 列废铁 → +%d 金（不抵消空转）" % [r + 1, TRASH_TO_GOLD])
+			if sym_now != null and String(sym_now.kind) == "trash":
+				if _ctrl.readability.trash_reroll_ready():
+					var good: int = _nearest_non_trash(strip, idx)
+					if good >= 0:
+						idx = good
+						_ctrl.readability.consume_trash_reroll()
+						if _ctrl.hud != null:
+							_ctrl.hud._log("🔁 废铁改判：第 %d 列废铁 → 相邻有效符号（每房1次）" % (r + 1))
+				elif _ctrl.readability.mercy_ready():
+					_ctrl.gold += TRASH_TO_GOLD
+					_ctrl.readability.consume_mercy()
+					if _ctrl.hud != null:
+						_ctrl.hud._log("♻️ 废铁转化：第 %d 列废铁 → +%d 金（不抵消空转）" % [r + 1, TRASH_TO_GOLD])
 	_begin_absorb(r, idx, reason)
+
+
+# 从 idx 向两侧找最近的非废铁格（含 idx 自身之外的相邻格）；全废铁返回 -1。
+# 用于"废铁改判"操控：仅在确认落点是废铁时才调用，把坏格换成相邻有效符号。
+func _nearest_non_trash(strip: Array, idx: int) -> int:
+	var n: int = strip.size()
+	for d in range(1, n):
+		for off in [d, -d]:
+			var i: int = (idx + off + n) % n
+			var sym = strip[i][0] if strip[i] is Array else strip[i]
+			if sym != null and String(sym.kind) != "trash" and sym is Resource:
+				return i
+	return -1
 
 
 # Step 2：停轮请求先记录，不立即写格子；0.16–0.20s 减速吸附结束才落子并进入结算

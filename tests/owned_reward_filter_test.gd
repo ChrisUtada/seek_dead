@@ -37,11 +37,11 @@ func _ready() -> void:
 	var rs = duel._reward_system
 
 	# ① 已拥有操控卡不出现：给全部 3 个操控，生成后候选里不应有 control_*
-	duel.reel_controls["snap"] = true
+	duel.reel_controls["trash_reroll"] = true
 	duel.reel_controls["slow_ramp"] = true
 	duel.reel_controls["mercy"] = true
 	var owned: Array = rs._owned_reward_ids()
-	_ok(owned.has("control_snap") and owned.has("control_slow_ramp") and owned.has("control_mercy"),
+	_ok(owned.has("control_trash_reroll") and owned.has("control_slow_ramp") and owned.has("control_mercy"),
 		"owned ids include all controls")
 
 	# 用 composer 验证过滤（直接调 compose，设置 owned_ids）

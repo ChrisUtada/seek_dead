@@ -4,14 +4,14 @@
 
 [resource]
 script = ExtResource("1")
-id = "control_snap"
-name = "操控 · 落点吸附"
-desc = "按停时目标符号在中心±2格内自动吸附停中，每回合 2 次"
+id = "control_trash_reroll"
+name = "操控 · 废铁改判"
+desc = "每房 1 次，按停落在废铁上时改判为相邻有效符号（不盲目干预其他落点）"
 rarity = "common"
 tags = Array[String](["control", "reel.aim", "tactical"])
 base_weight = 1.0
-base_value = 1.5
-effects = [{"effect_id": "reel_control", "params": {"control_id": "snap"}}]
+base_value = 1.0
+effects = [{"effect_id": "reel_control", "params": {"control_id": "trash_reroll"}}]
 category = "reel_control"
 effect_family = "reel_control"
 stack_rule = 0

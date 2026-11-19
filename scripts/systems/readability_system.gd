@@ -49,9 +49,9 @@ var preview_slots := 0
 var visual_stop := false
 var buffer_enabled := false
 var feedback_enabled := false
-# 2026-11-17：命中确定性三技艺的每回合次数计数（替换原「稳手」）。
-var snap_used := 0      # 落点吸附：本回合已用次数
-var mercy_used := 0     # 废铁豁免：本回合已用次数
+# 操控卡次数计数。
+var mercy_used := 0             # 废铁转化：本回合已用次数（+2金）
+var trash_reroll_used := 0      # 废铁改判：本房已用次数（废铁→相邻有效符号，每房1次）
 
 var target_symbol_path := ""
 var target_reason := "输出窗口"
@@ -127,8 +127,8 @@ func reset_run() -> void:
 	target_hits = 0
 	forced_stops = 0
 	buffer_queues = 0
-	snap_used = 0
 	mercy_used = 0
+	trash_reroll_used = 0
 	situation = ""
 	situation_detail = ""
 	counters = []
@@ -137,43 +137,28 @@ func reset_run() -> void:
 		_ctrl._telemetry.target_symbol = target_symbol_path
 
 
+# 新一房：重置废铁改判次数（每房1次）；由 controller._start_room 调用。
+func begin_room() -> void:
+	trash_reroll_used = 0
+
+
 func begin_spin() -> void:
 	stop_results.clear()
-	snap_used = 0
-	mercy_used = 0
+	mercy_used = 0   # 废铁转化每回合重置；废铁改判每房重置（见 begin_room）
 	if _ctrl.hud != null and _ctrl.hud.has_method("_clear_stop_feedback"):
 		_ctrl.hud._clear_stop_feedback()
 
 
-# 2026-11-17 命中确定性三技艺：只影响玩家按停的落点解析，不改速度、预览格数或任何伤害。
-# 落点吸附：本回合次数是否未用完（目标是否在容差内由 snap_target_index 判定）。
-func snap_ready() -> bool:
-	if _ctrl == null or _ctrl.growth == null:
+# 废铁改判：每房1次机会，把废铁落点改判为相邻最近的有效符号（补救型，不盲目干预）。
+# 与"废铁转化+金"是两张独立卡：改判是把坏格变好，转化是把坏格变资源。
+func trash_reroll_ready() -> bool:
+	if _ctrl == null:
 		return false
-	return snap_used < _ctrl.growth.snap_per_turn()
+	return _ctrl.reel_controls.has("trash_reroll") and trash_reroll_used < 1
 
 
-# 返回视觉中心 ±rng 内目标符号所在的列索引；无则 -1。
-func snap_target_index(center: int, strip: Array) -> int:
-	if _ctrl == null or _ctrl.growth == null or strip.is_empty():
-		return -1
-	var target: String = target_symbol_path
-	if target == "":
-		return -1
-	var n: int = strip.size()
-	var rng: int = _ctrl.growth.snap_range()
-	# 先近后远，吸附到最近的目标格
-	for d in range(1, rng + 1):
-		for off in [d, -d]:
-			var i: int = (center + off + n) % n
-			var sym = strip[i][0] if strip[i] is Array else strip[i]
-			if sym != null and String(sym.resource_path) == target:
-				return i
-	return -1
-
-
-func consume_snap() -> void:
-	snap_used += 1
+func consume_trash_reroll() -> void:
+	trash_reroll_used += 1
 
 
 # 废铁豁免：本回合次数未用完时可用（实际是否改判在 lock_reel 判定落点后）
