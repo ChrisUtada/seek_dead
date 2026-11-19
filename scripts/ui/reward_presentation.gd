@@ -91,4 +91,11 @@ static func _condition_text(def: RewardDefinition) -> String:
 		"shield_next_battle": return "下一战生效"
 		"run_power_bonus": return "本局生效"
 		"flame_affinity": return "本局构筑"
-		_: return ""
+		"run_symbol_bonus": return "本局转轮生效"
+		"pattern_bonus": return "凑出对应牌型时生效"
+		"reel_control": return "本局按停生效"
+		"gold_add": return "立即生效"
+		"pick_perk": return "本局生效"
+		"learn_signature": return "需携带专属武器"
+		# P1：新增 effect_id 默认给"本局生效"，避免卡面条件文本空白（数据驱动兜底）
+		_: return "本局生效"

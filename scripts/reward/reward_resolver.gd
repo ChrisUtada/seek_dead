@@ -57,6 +57,8 @@ func _dispatch(reward_id: String, effect_id: String, params: Dictionary) -> Draf
 			return _apply_existing_gold(reward_id, params)
 		"pattern_bonus":
 			return _apply_pattern_bonus(reward_id, params)
+		"reel_control":
+			return _apply_reel_control(reward_id, params)
 		"flame_affinity":
 			return _apply_flame_affinity(reward_id, params)
 		"pick_perk":
@@ -172,6 +174,20 @@ func _apply_pattern_bonus(reward_id: String, params: Dictionary) -> DraftResult.
 	var r := DraftResult.RewardApplyResult.success(
 		reward_id, "pattern_bonus", "牌谱强化：%s %s %+g" % [pid, param_key, delta])
 	r.state_updates["pattern_param_overrides"] = _ctrl.pattern_param_overrides.duplicate(true)
+	return r
+
+
+# 滚轴操控（P1-C）：写 controller.reel_controls，与技艺同名能力共用查询接口。
+# params: {"control_id": "snap"|"wide"|"mercy"}
+func _apply_reel_control(reward_id: String, params: Dictionary) -> DraftResult.RewardApplyResult:
+	var cid := String(params.get("control_id", ""))
+	if not ["snap", "wide", "mercy"].has(cid):
+		return DraftResult.RewardApplyResult.failure(reward_id, "reel_control", "invalid_control_id")
+	if _ctrl.reel_controls.has(cid):
+		return DraftResult.RewardApplyResult.failure(reward_id, "reel_control", "already_owned")
+	_ctrl.reel_controls[cid] = true
+	var r := DraftResult.RewardApplyResult.success(reward_id, "reel_control", "获得操控「%s」" % cid)
+	r.state_updates["reel_controls"] = _ctrl.reel_controls.duplicate(true)
 	return r
 
 

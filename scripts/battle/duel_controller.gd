@@ -309,6 +309,9 @@ var element_affinity: Dictionary = {}
 # P1-B：本局牌谱参数覆盖（pattern_id -> {param: delta}），由 rule_mod 奖励写入，
 # PatternEffects.apply 每回合读；不修改共享 .tres，随新局清零。
 var pattern_param_overrides: Dictionary = {}
+# P1-C：本局滚轴操控（由 reel_control 奖励授予，如 {"snap":true}），
+# 与技艺里的同名能力共用查询接口；随新局清零。
+var reel_controls: Dictionary = {}
 # L2-E 本局收集品框架：遗物栏（BOSS 信物）——拥有即生效、不占护符槽、每局清零。
 # 与 meta["owned_charms"]（跨局图鉴）分离：图鉴仍跨局，增益只在本局。
 var run_relics: Array[String] = []
@@ -1038,6 +1041,7 @@ func _reset_run_state() -> void:
 		readability.reset_run()   # P1：目标声明与停轮统计随新局重置
 	element_affinity.clear()   # P3：本局元素构筑奖励计数清零
 	pattern_param_overrides.clear()  # P1-B：本局牌谱参数覆盖清零
+	reel_controls.clear()   # P1-C：本局滚轴操控清零
 	learned_signatures.clear() # L2-G：本局已习得签名清零
 	if hud != null:
 		hud._refresh_p1_ui()

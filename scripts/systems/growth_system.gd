@@ -264,9 +264,14 @@ func room_shield() -> int:
 	return GUARD_SHIELD if has_perk("guard") else 0
 
 
+# P1-C：操控能力可由技艺或 reel_control 奖励授予，共用同一查询接口。
+func _has_control(id: String) -> bool:
+	return has_perk(id) or (_ctrl != null and _ctrl.reel_controls.has(id))
+
+
 # 落点吸附：每回合可用次数（0 = 未拥有）
 func snap_per_turn() -> int:
-	return SNAP_PER_TURN if has_perk("snap") else 0
+	return SNAP_PER_TURN if _has_control("snap") else 0
 
 
 # 落点吸附：目标符号距视觉中心的格数容差
@@ -276,9 +281,9 @@ func snap_range() -> int:
 
 # 宽判窗口：视觉落点判定容差（未拥有时回落到原 ±1）
 func wide_range() -> int:
-	return WIDE_RANGE if has_perk("wide") else 1
+	return WIDE_RANGE if _has_control("wide") else 1
 
 
 # 废铁豁免：每回合可用次数（0 = 未拥有）
 func mercy_per_turn() -> int:
-	return MERCY_PER_TURN if has_perk("mercy") else 0
+	return MERCY_PER_TURN if _has_control("mercy") else 0
