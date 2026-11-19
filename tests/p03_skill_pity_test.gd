@@ -81,8 +81,15 @@ func _run() -> void:
 	_ok(bool(rr.get("ok", false)), "reroll ok")
 	_ok(_draft_has_skill(duel), "reroll still contains skill under guarantee")
 
-	# ⑤ 结算后一次性完成
-	var settle: Dictionary = duel._reward_system.settle_loot_offer(0)
+	# ⑤ 结算后一次性完成（选一张可结算卡：武器卡槽满会 needs_replace，需跳过）
+	var settle_idx: int = 0
+	var dresult = duel._reward_system._draft_result
+	if dresult != null:
+		for i in range(dresult.rewards.size()):
+			if dresult.rewards[i].first_effect_id() != "weapon_replace":
+				settle_idx = i
+				break
+	var settle: Dictionary = duel._reward_system.settle_loot_offer(settle_idx)
 	_ok(bool(settle.get("ok", false)), "settle ok: %s" % str(settle.get("reason", "")))
 	_ok(rs.skill_offer_guarantee_satisfied, "pity satisfied after settle")
 	_ok(not rs.should_force_skill(), "no more force after satisfied")

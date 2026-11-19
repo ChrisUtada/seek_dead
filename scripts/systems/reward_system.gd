@@ -520,7 +520,7 @@ func _make_symbol_effect_defs() -> Array:
 			def.id = "sym_effect_" + path.get_file().get_basename()
 			def.name = "符号改造 · %s" % String(sym.name)
 			def.desc = "「%s」：%s" % [String(sym.name), effect_name]
-			def.rarity = "uncommon"
+			def.rarity = "common"
 			def.base_weight = 1.0
 			def.base_value = 1.5
 			def.tags = ["symbol", "effect", "core_growth"]

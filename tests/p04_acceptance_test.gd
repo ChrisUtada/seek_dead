@@ -109,10 +109,21 @@ func _test_draft_sanity(duel: DuelController) -> void:
 
 func _test_double_settle(duel: DuelController) -> void:
 	duel._reward_system.build_loot_offer("normal", 1, {"growth_only": true})
+	# 选一张可结算的卡：武器卡槽满会返回 needs_replace，需跳过（测试防重复结算，非测特定卡）
+	var settle_idx: int = -1
+	var result = duel._reward_system._draft_result
+	if result != null:
+		for i in range(result.rewards.size()):
+			if result.rewards[i].first_effect_id() != "weapon_replace":
+				settle_idx = i
+				break
+	_ok(settle_idx >= 0, "found a settleable card")
+	if settle_idx < 0:
+		return
 	var gold_before := int(duel.gold)
-	var first: Dictionary = duel._reward_system.settle_loot_offer(0)
-	_ok(bool(first.get("ok", false)), "first settle ok")
-	var second: Dictionary = duel._reward_system.settle_loot_offer(0)
+	var first: Dictionary = duel._reward_system.settle_loot_offer(settle_idx)
+	_ok(bool(first.get("ok", false)), "first settle ok: %s" % str(first.get("reason", "")))
+	var second: Dictionary = duel._reward_system.settle_loot_offer(settle_idx)
 	_ok(not bool(second.get("ok", false)), "second settle rejected")
 	_ok(String(second.get("reason", "")) == "already_settled", "second settle reason=already_settled")
 	_ok(duel.gold == gold_before + int(first.get("gold", 0)), "gold not doubled by double settle")

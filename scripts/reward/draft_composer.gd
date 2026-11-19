@@ -145,6 +145,7 @@ func _compose_by_slots(groups: Dictionary, weights: Dictionary, count: int,
 
 		if chosen == null:
 			# P1-A：按权重+槽位软偏置抽类别，并优先覆盖组内未出现的类别（多样性）
+			# 稀有度梯度由 CategoryResolver 的 RARITY_DRAW_MULT 在类别内生效（避免类别失衡）
 			chosen = _draw_weighted_with_diversity(pref, groups, weights, used_ids, cat_count)
 
 		if chosen == null:

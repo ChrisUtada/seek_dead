@@ -8,6 +8,17 @@ extends RefCounted
 # 权重只用于"抽哪个类别"，类别内具体奖励仍由 Composer 按 base_weight 抽取。
 # 全部按当前有效候选动态计算——无候选的类别权重移除并重新归一化（V1.1 §3.2）。
 
+# 2026-11-19 修复：类别内抽卡需叠加稀有度梯度（V1.1 §4.2：common 70% / uncommon 25% / rare 5%）。
+# 此前所有卡 base_weight=1.0、rarity 不参与抽取，导致卡池构成（rare5/uncommon4/common3）
+# 直接决定出现率 → common 仅 15%、uncommon 64%，与梯度颠倒。
+# 系数按目标比例归一化（common=1.0 基准）：uncommon=25/70, rare=5/70。
+const RARITY_DRAW_MULT := {
+	"common": 1.0,
+	"uncommon": 20.0 / 70.0,
+	"rare": 5.0 / 70.0,
+	"epic": 5.0 / 70.0,
+}
+
 # 一级类别初始权重（V1.1 §3.1 定案）
 # 2026-11-19：rule_mod 随"签名全解锁"删除全部规则卡后零候选，权重由 §3.2 自动剔除；
 # 权重数值暂不重分配，待重构策划案审查后再定（见 docs/牌谱定位与策划案一致性分析）。
@@ -107,7 +118,9 @@ static func draw_from_category(groups: Dictionary, cat: String, used_ids: Dictio
 		return null
 	var weights: Array[float] = []
 	for d in candidates:
-		weights.append(maxf(0.01, float(d.base_weight)))
+		# 稀有度梯度 × 卡自身 base_weight（V1.1 §4.2）
+		var rmult: float = float(RARITY_DRAW_MULT.get(String(d.rarity), 1.0))
+		weights.append(maxf(0.01, float(d.base_weight) * rmult))
 	var total := 0.0
 	for w in weights:
 		total += w
