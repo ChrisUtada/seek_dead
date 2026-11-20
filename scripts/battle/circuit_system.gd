@@ -170,13 +170,101 @@ func definition(id: String) -> Dictionary:
 	return DEFINITIONS.get(id, {})
 
 
+# G4-4 可达性：该回路声明的事件在当前构筑下是否"可能产生"。
+# 与"本回合是否已触发"不同——可达性是构筑层判定，用于过滤"合法展示但整局无法触发"的死回路。
+# 返回 {ok: bool, reason: String}。
+func is_reachable(id: String) -> Dictionary:
+	var def: Dictionary = DEFINITIONS.get(id, {})
+	if def.is_empty():
+		return {"ok": false, "reason": "unknown_id"}
+	if _ctrl == null:
+		return {"ok": false, "reason": "no_controller"}
+	var event: String = String(def.get("event", ""))
+	var reason: String = _event_source_reason(event)
+	if reason.is_empty():
+		return {"ok": true, "reason": ""}
+	return {"ok": false, "reason": reason}
+
+
+# 事件源可达性判定：当前构筑是否具备产生该事件的条件。
+# 三连→需某符号族格数≥3；状态→需 status 类符号；破甲→需破甲机制或重武器三连。
+func _event_source_reason(event: String) -> String:
+	var pool: Array = _ctrl.pool_items if _ctrl.pool_items != null else []
+	if pool.is_empty():
+		return "event_unreachable:empty_pool"
+	match event:
+		"triple":
+			# 任一符号族的聚合格数 ≥3（用基础权重 round，与 cells_for 同口径）
+			var agg: Dictionary = {}
+			for it in pool:
+				if not (it is Dictionary):
+					continue
+				for s in it.get("syms", []):
+					if not (s is Array) or s.is_empty() or s[0] == null:
+						continue
+					var key: String = String(s[0].resource_path) + "|" + String(s[2])
+					agg[key] = float(agg.get(key, 0.0)) + maxf(0.0, float(s[1]))
+			for k in agg:
+				if ReelSystem.cells_for(float(agg[k])) >= 3:
+					return ""
+			return "event_unreachable:no_triple_source"
+		"status_applied":
+			for it in pool:
+				if not (it is Dictionary):
+					continue
+				for s in it.get("syms", []):
+					if not (s is Array) or s.is_empty() or s[0] == null:
+						continue
+					if String(s[0].kind) == "status" and float(s[1]) > 0.0:
+						return ""
+			return "event_unreachable:no_status_source"
+		"armor_break":
+			# 破甲机制武器（_item_pierce_map 有 true）或重武器三连（选 >=3 格的重武器符号）
+			for k in _ctrl._item_pierce_map:
+				if bool(_ctrl._item_pierce_map[k]):
+					return ""
+			# 重武器三连兜底：有重武器 archetype 的符号族 ≥3 格
+			for it in pool:
+				if not (it is Dictionary):
+					continue
+				for s in it.get("syms", []):
+					if not (s is Array) or s.size() < 4 or s[0] == null:
+						continue
+					var wid: String = String(s[3]) if s.size() > 3 else ""
+					if wid != "" and int(_ctrl._source_archetype_map.get(wid, -1)) == WeaponData.Archetype.HEAVY \
+						and ReelSystem.cells_for(float(s[1])) >= 3:
+						return ""
+			return "event_unreachable:no_pierce_source"
+		_:
+			return "event_unreachable:unknown_event"
+	return ""
+
+
+# G4-4 可达性报告：所有回路的当前可达状态，供 G4-6 门槛验收与构筑摘要。
+func reachability_report() -> Dictionary:
+	var out: Dictionary = {}
+	for id in DEFINITIONS:
+		var r: Dictionary = is_reachable(id)
+		out[id] = {
+			"reachable": bool(r["ok"]),
+			"reason": String(r["reason"]),
+			"owned": inventory.has(id),
+			"equipped": equipped.has(id),
+		}
+	return out
+
+
 func why_not_triggered(id: String) -> String:
-	"""G4-4 调试信息：为什么该回路当前未触发。"""
+	"""G4-4 调试信息：为什么该回路当前未触发（可达性优先于上限与等待事件）。"""
 	if not equipped.has(id):
 		return "not_equipped"
 	var def: Dictionary = DEFINITIONS.get(id, {})
 	if def.is_empty():
 		return "unknown_id"
+	# 可达性优先：事件源构不成的死回路，比"等待事件"更根本
+	var reach: Dictionary = is_reachable(id)
+	if not bool(reach["ok"]):
+		return String(reach["reason"])
 	var limits: Dictionary = def.get("limits", {})
 	if limits.has("spin") and int(_count_spin.get(id, 0)) >= int(limits["spin"]):
 		return "spin_limit"
