@@ -235,7 +235,7 @@ func evaluate() -> void:
 	_phase_defense(acc)
 	_phase_counter(counts, acc)
 	_apply_patterns(acc)
-	_apply_circuits(acc)   # G4-3：本局回路（在牌谱之后、攻击之前，读已收集的本回合事件）
+	_apply_circuits(acc, counts)   # G4-3/G4-6：本局回路（牌谱后、攻击前，读本回合已收集事件）
 	_phase_attack(counts, acc)
 	await _present_turn(acc, counts)
 
@@ -454,7 +454,7 @@ func _apply_patterns(acc: Dictionary) -> void:
 # G4-3：本局回路结算。读本回合已收集的原始事件（三连/状态/破甲），按回路声明赔付。
 # 位置在牌谱之后、攻击之前（G4-1 契约插入点）。回路只响应原始事件，不响应自己的追加结果
 # ——应用赔付时用 begin_resolve/end_resolve 防递归。
-func _apply_circuits(acc: Dictionary) -> void:
+func _apply_circuits(acc: Dictionary, counts: Dictionary) -> void:
 	var c = _ctrl.circuit_system
 	if c == null:
 		return
@@ -466,6 +466,45 @@ func _apply_circuits(acc: Dictionary) -> void:
 		_apply_circuit_fired(c.try_trigger("status_applied"), acc, "status_applied")
 	if acc.get("armor_broken", false):
 		_apply_circuit_fired(c.try_trigger("armor_break"), acc, "armor_break")
+	# G4-6 新增三事件（覆盖牌型/元素/资源三类组合条件）
+	if _has_pair_damage(counts) and not acc.get("triple", false) and not acc.get("counter_triple", false):
+		_apply_circuit_fired(c.try_trigger("pair"), acc, "pair")
+	if _has_three_colors(counts):
+		_apply_circuit_fired(c.try_trigger("tri_color"), acc, "tri_color")
+	if float(acc.get("dmg", 0.0)) > 0.0 and float(acc.get("shield", 0.0)) > 0.0:
+		_apply_circuit_fired(c.try_trigger("damage_and_shield"), acc, "damage_and_shield")
+
+
+# 恰好一对同族伤害（某 damage 符号族恰 2 格，且存在另一不同的有效符号族；不与三连共存）。
+func _has_pair_damage(counts: Dictionary) -> bool:
+	var pair_family := ""
+	for key in counts:
+		var d: Array = counts[key]
+		if String(d[0].kind) != "damage" or int(d[2]) != 2:
+			continue
+		pair_family = String(key)
+		break
+	if pair_family.is_empty():
+		return false
+	for key in counts:
+		var d: Array = counts[key]
+		if String(key) != pair_family and int(d[2]) >= 1:
+			return true
+	return false
+
+
+# 三列三种不同有效元素（方案 §12.2 异色协奏；ROELS=3）。
+func _has_three_colors(counts: Dictionary) -> bool:
+	var elems := {}
+	var total := 0
+	for key in counts:
+		var d: Array = counts[key]
+		var e: String = String(d[1])
+		if e == "none":
+			continue
+		elems[e] = true
+		total += int(d[2])
+	return elems.size() >= 3 and total >= 3
 
 
 func _apply_circuit_fired(ids: Array, acc: Dictionary, event: String) -> void:
@@ -488,6 +527,19 @@ func _apply_circuit_fired(ids: Array, acc: Dictionary, event: String) -> void:
 			"pierce_damage":
 				acc["pierce"] = float(acc.get("pierce", 0.0)) + CIRCUIT_PIERCE_DAMAGE
 				acc["lines"].append("🔁 %s 余波 +%d 穿透" % [String(def.get("name", "回路")), CIRCUIT_PIERCE_DAMAGE])
+			"pair_bonus":
+				# 对子效能 +35%（这里以本回合 dmg 为基准，简化为固定比例加成）
+				var pair_add: float = float(acc.get("dmg", 0.0)) * CIRCUIT_PAIR_RATIO
+				acc["dmg"] = float(acc.get("dmg", 0.0)) + pair_add
+				acc["lines"].append("🔁 %s 对子 +%d%% 效能" % [String(def.get("name", "回路")), int(CIRCUIT_PAIR_RATIO * 100.0)])
+			"tri_color_pierce":
+				var tri_add: float = float(acc.get("dmg", 0.0)) * CIRCUIT_TRI_COLOR_RATIO
+				acc["pierce"] = float(acc.get("pierce", 0.0)) + tri_add
+				acc["lines"].append("🔁 %s 异色 +%d%% 穿透" % [String(def.get("name", "回路")), int(CIRCUIT_TRI_COLOR_RATIO * 100.0)])
+			"damage_shield_pierce":
+				var ds_add: float = float(acc.get("shield", 0.0)) * CIRCUIT_DAMAGE_SHIELD_RATIO
+				acc["pierce"] = float(acc.get("pierce", 0.0)) + ds_add
+				acc["lines"].append("🔁 %s 攻守 +%d%% 护盾穿透" % [String(def.get("name", "回路")), int(CIRCUIT_DAMAGE_SHIELD_RATIO * 100.0)])
 	c.end_resolve()
 	if _ctrl.hud != null:
 		_ctrl.hud._log("🔁 回路触发：%s（%s）" % [str(ids), event])
@@ -496,6 +548,9 @@ func _apply_circuit_fired(ids: Array, acc: Dictionary, event: String) -> void:
 const CIRCUIT_BONUS_DAMAGE := 5.0
 const CIRCUIT_EXTRA_STACK := 1
 const CIRCUIT_PIERCE_DAMAGE := 4.0
+const CIRCUIT_PAIR_RATIO := 0.35        # 对子赔付：对子部分 +35% 效能（方案 §12.2）
+const CIRCUIT_TRI_COLOR_RATIO := 0.20   # 异色协奏：本次伤害 +20% 穿透
+const CIRCUIT_DAMAGE_SHIELD_RATIO := 0.30  # 攻守转换：护盾入账 +30% 穿透
 
 
 # 常驻面板的数据：武器牌谱最多 2 条（避免面板过长），技能术式只显示与当前技能匹配的那条。

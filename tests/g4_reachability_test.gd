@@ -60,15 +60,20 @@ func _ready() -> void:
 	_ok(c.why_not_triggered("circuit_armor_break").begins_with("waiting_for_event"),
 		"可达后 why_not_triggered 报等待事件")
 
-	# ⑤ reachability_report 结构（每个回路含 reachable/reason/owned/equipped）
+	# ⑤ reachability_report 结构（G4-6 升级：顶层 total/combo_classes + circuits 子字典）
 	var report: Dictionary = c.reachability_report()
-	_ok(report.size() == 3, "报告覆盖全部 3 个回路")
-	for id in report:
-		var d: Dictionary = report[id]
-		_ok(d.has("reachable") and d.has("reason") and d.has("owned") and d.has("equipped"),
+	var circuits: Dictionary = report["circuits"]
+	_ok(int(report["total"]) == 6, "报告覆盖全部 6 个回路")
+	_ok(circuits.size() == 6, "circuits 子字典含 6 项")
+	for id in circuits:
+		var d: Dictionary = circuits[id]
+		_ok(d.has("reachable") and d.has("reason") and d.has("owned") and d.has("equipped") and d.has("combo_class"),
 			"报告字段完整：%s" % String(id))
-	_ok(bool(report["circuit_armor_break"]["equipped"]), "报告反映装备状态")
-	_ok(bool(report["circuit_armor_break"]["owned"]), "报告反映拥有状态")
+	_ok(bool(circuits["circuit_armor_break"]["equipped"]), "报告反映装备状态")
+	_ok(bool(circuits["circuit_armor_break"]["owned"]), "报告反映拥有状态")
+	# G4-6 门槛①：≥6 回路、≥4 类组合条件
+	_ok(int(report["total"]) >= 6, "门槛①：回路数 ≥6（%d）" % int(report["total"]))
+	_ok(int(report["combo_class_count"]) >= 4, "门槛①：组合条件类数 ≥4（%d）" % int(report["combo_class_count"]))
 
 	# ⑥ 上限用尽仍报上限（可达性 OK 时）
 	c.reset_run()

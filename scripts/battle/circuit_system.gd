@@ -16,24 +16,39 @@ extends RefCounted
 
 const MAX_SLOTS := 2
 
-# 回路定义表（首版 3 个不同事件原型，G4-3 扩到 ≥6）。
+# 回路定义表（G4-6 扩到 6 个，覆盖 ≥4 类组合条件：三连/状态/破甲/牌型/元素/资源）。
 # event: 白名单触发事件名；payout: 赔付类型（由结算层解释，本系统只记录"该触发"）；
 # limits: {spin, turn, room} 每SPIN/回合/房间上限；chain: 是否允许由追加结果再次触发。
 const DEFINITIONS: Dictionary = {
 	"circuit_triple_echo": {
 		"name": "三连回响", "event": "triple", "target": "damage",
 		"payout": "bonus_damage", "limits": {"spin": 1, "turn": 2, "room": 8}, "chain": false,
-		"desc": "同族三连时追加一次固定伤害回响",
+		"combo_class": "triple", "desc": "同族三连时追加一次固定伤害回响",
 	},
 	"circuit_status_react": {
 		"name": "状态反应", "event": "status_applied", "target": "status",
 		"payout": "extra_stack", "limits": {"spin": 1, "turn": 3, "room": 10}, "chain": false,
-		"desc": "施加状态时额外叠一层",
+		"combo_class": "status", "desc": "施加状态时额外叠一层",
 	},
 	"circuit_armor_break": {
 		"name": "破甲余波", "event": "armor_break", "target": "damage",
 		"payout": "pierce_damage", "limits": {"spin": 1, "turn": 1, "room": 5}, "chain": false,
-		"desc": "破甲时追加穿透伤害",
+		"combo_class": "break", "desc": "破甲时追加穿透伤害",
+	},
+	"circuit_pair": {
+		"name": "对子赔付", "event": "pair", "target": "damage",
+		"payout": "pair_bonus", "limits": {"spin": 1, "turn": 2, "room": 8}, "chain": false,
+		"combo_class": "pattern", "desc": "恰好一对同族伤害时追加 35% 效能（不与三连同时触发）",
+	},
+	"circuit_tri_color": {
+		"name": "异色协奏", "event": "tri_color", "target": "damage",
+		"payout": "tri_color_pierce", "limits": {"spin": 1, "turn": 2, "room": 6}, "chain": false,
+		"combo_class": "element", "desc": "三列三种不同有效元素时追加本次伤害 20% 穿透",
+	},
+	"circuit_damage_shield": {
+		"name": "攻守转换", "event": "damage_and_shield", "target": "damage",
+		"payout": "damage_shield_pierce", "limits": {"spin": 1, "turn": 2, "room": 6}, "chain": false,
+		"combo_class": "resource", "desc": "同 SPIN 同时产生伤害与护盾时追加护盾 30% 穿透",
 	},
 }
 
@@ -235,23 +250,80 @@ func _event_source_reason(event: String) -> String:
 						and ReelSystem.cells_for(float(s[1])) >= 3:
 						return ""
 			return "event_unreachable:no_pierce_source"
+		"pair":
+			# 至少两个不同符号族（能形成"一对+一个不同"）
+			var families := {}
+			for it in pool:
+				if not (it is Dictionary):
+					continue
+				for s in it.get("syms", []):
+					if not (s is Array) or s.is_empty() or s[0] == null:
+						continue
+					if String(s[0].kind) == "damage" and float(s[1]) > 0.0:
+						families[String(s[0].resource_path)] = true
+			return "" if families.size() >= 2 else "event_unreachable:no_pair_source"
+		"tri_color":
+			# 至少 3 种不同有效元素（排除 none）
+			var elems := {}
+			for it in pool:
+				if not (it is Dictionary):
+					continue
+				for s in it.get("syms", []):
+					if not (s is Array) or s.is_empty() or s[0] == null:
+						continue
+					var e: String = String(s[2])
+					if e != "none" and e != "" and float(s[1]) > 0.0:
+						elems[e] = true
+			return "" if elems.size() >= 3 else "event_unreachable:no_tri_color_source"
+		"damage_and_shield":
+			# 同时有 damage 符号与 shield/heal 符号
+			var has_dmg := false
+			var has_def := false
+			for it in pool:
+				if not (it is Dictionary):
+					continue
+				for s in it.get("syms", []):
+					if not (s is Array) or s.is_empty() or s[0] == null:
+						continue
+					var kd: String = String(s[0].kind)
+					if float(s[1]) <= 0.0:
+						continue
+					if kd == "damage":
+						has_dmg = true
+					if kd == "shield" or kd == "heal":
+						has_def = true
+			return "" if has_dmg and has_def else "event_unreachable:no_damage_shield_source"
 		_:
 			return "event_unreachable:unknown_event"
 	return ""
 
 
-# G4-4 可达性报告：所有回路的当前可达状态，供 G4-6 门槛验收与构筑摘要。
+# G4-4/G4-6 可达性报告：所有回路的当前可达状态 + 门槛汇总，供 G4-6 验收与构筑摘要。
 func reachability_report() -> Dictionary:
 	var out: Dictionary = {}
+	var classes := {}
+	var reachable_count := 0
 	for id in DEFINITIONS:
 		var r: Dictionary = is_reachable(id)
+		var def: Dictionary = DEFINITIONS[id]
+		var cc: String = String(def.get("combo_class", "other"))
+		classes[cc] = true
+		if bool(r["ok"]):
+			reachable_count += 1
 		out[id] = {
 			"reachable": bool(r["ok"]),
 			"reason": String(r["reason"]),
 			"owned": inventory.has(id),
 			"equipped": equipped.has(id),
+			"combo_class": cc,
 		}
-	return out
+	return {
+		"circuits": out,
+		"total": DEFINITIONS.size(),
+		"combo_classes": classes.keys(),
+		"combo_class_count": classes.size(),
+		"reachable_count": reachable_count,
+	}
 
 
 func why_not_triggered(id: String) -> String:

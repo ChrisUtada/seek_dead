@@ -35,7 +35,7 @@ func _ready() -> void:
 	var acc1 := combat._new_acc()
 	acc1["triple"] = true
 	acc1["dmg"] = 10.0
-	combat._apply_circuits(acc1)
+	combat._apply_circuits(acc1, {})
 	_ok(float(acc1["dmg"]) > 10.0, "三连回响提升 dmg（10 → %.1f）" % float(acc1["dmg"]))
 	_ok(c.log.size() == 1 and String(c.log[0]["event"]) == "triple", "三连回响写入来源日志")
 
@@ -45,7 +45,7 @@ func _ready() -> void:
 	c.equip("circuit_status_react")
 	var acc2 := combat._new_acc()
 	acc2["status_stacks"] = {"burn": 2}
-	combat._apply_circuits(acc2)
+	combat._apply_circuits(acc2, {})
 	_ok(int(acc2["status_stacks"]["burn"]) > 2, "状态反应提升层数（2 → %d）" % int(acc2["status_stacks"]["burn"]))
 
 	# ③ 破甲余波：armor_broken 事件 → acc.pierce 增加
@@ -54,7 +54,7 @@ func _ready() -> void:
 	c.equip("circuit_armor_break")
 	var acc3 := combat._new_acc()
 	acc3["armor_broken"] = true
-	combat._apply_circuits(acc3)
+	combat._apply_circuits(acc3, {})
 	_ok(float(acc3["pierce"]) > 0.0, "破甲余波提升穿透（%.1f）" % float(acc3["pierce"]))
 
 	# ④ 三个回路同时装备，一次回合各事件独立触发
@@ -65,7 +65,7 @@ func _ready() -> void:
 	var acc4 := combat._new_acc()
 	acc4["triple"] = true
 	acc4["status_stacks"] = {"burn": 1}
-	combat._apply_circuits(acc4)
+	combat._apply_circuits(acc4, {})
 	_ok(float(acc4["dmg"]) > 0.0 and int(acc4["status_stacks"]["burn"]) > 1,
 		"多回路同时触发：dmg 与状态各自提升")
 	_ok(c.log.size() == 2, "多回路各写一条来源日志（%d）" % c.log.size())
@@ -82,8 +82,54 @@ func _ready() -> void:
 	c.acquire("circuit_triple_echo")
 	c.equip("circuit_triple_echo")
 	var acc6 := combat._new_acc()
-	combat._apply_circuits(acc6)
+	combat._apply_circuits(acc6, {})
 	_ok(is_zero_approx(float(acc6["dmg"])) and c.log.is_empty(), "无原始事件时不触发回路")
 
-	print("G4-3 PAYOUT RESULT: %d checks, %d fails" % [_checks, _fails])
+	# ⑦ G4-6 新回路：对子赔付（counts 中一对 damage + 另一族）
+	c.reset_run()
+	c.acquire("circuit_pair")
+	c.equip("circuit_pair")
+	var acc7 := combat._new_acc()
+	acc7["dmg"] = 20.0
+	var burn_sym: SymbolData = load("res://resources/symbols/dagger_slash.tres")
+	var fire_slash_sym: SymbolData = load("res://resources/symbols/fire_slash.tres")
+	var counts7 := {
+		"dagger|none": [burn_sym, "none", 2, {}],
+		"fire_slash|fire": [fire_slash_sym, "fire", 1, {}],
+	}
+	combat._apply_circuits(acc7, counts7)
+	_ok(float(acc7["dmg"]) > 20.0, "对子赔付提升 dmg（20 → %.1f）" % float(acc7["dmg"]))
+
+	# ⑧ 异色协奏：三列三种不同元素
+	c.reset_run()
+	c.acquire("circuit_tri_color")
+	c.equip("circuit_tri_color")
+	var acc8 := combat._new_acc()
+	acc8["dmg"] = 20.0
+	var heal_sym: SymbolData = load("res://resources/symbols/heal.tres")
+	var counts8 := {
+		"burn|fire": [burn_sym, "fire", 1, {}],
+		"frost|ice": [load("res://resources/symbols/frost.tres"), "ice", 1, {}],
+		"heal|none": [heal_sym, "none", 1, {}],
+	}
+	# 用三种有效元素（none 不算），换一个毒符号
+	counts8["heal|none"] = [heal_sym, "void", 1, {}]
+	combat._apply_circuits(acc8, counts8)
+	_ok(float(acc8["pierce"]) > 0.0, "异色协奏提升穿透（%.1f）" % float(acc8["pierce"]))
+
+	# ⑨ 攻守转换：dmg>0 且 shield>0
+	c.reset_run()
+	c.acquire("circuit_damage_shield")
+	c.equip("circuit_damage_shield")
+	var acc9 := combat._new_acc()
+	acc9["dmg"] = 10.0
+	acc9["shield"] = 12.0
+	combat._apply_circuits(acc9, {})
+	_ok(float(acc9["pierce"]) > 0.0, "攻守转换提升穿透（%.1f）" % float(acc9["pierce"]))
+
+	# ⑩ 6 回路均可 acquire/equip（门槛：6 个机制不同回路）
+	c.reset_run()
+	for id in CircuitSystem.DEFINITIONS:
+		_ok(c.acquire(String(id)), "回路可 acquire：%s" % String(id))
+	print("G4-3/G4-6 PAYOUT RESULT: %d checks, %d fails" % [_checks, _fails])
 	get_tree().quit(1 if _fails > 0 else 0)
