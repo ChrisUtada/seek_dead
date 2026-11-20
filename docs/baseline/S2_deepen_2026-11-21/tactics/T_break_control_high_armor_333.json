@@ -1,0 +1,20 @@
+{
+  "blocked": 0,
+  "circuit_triggers": {},
+  "errors": [],
+  "frost_avg": 0.0,
+  "frost_max": 0,
+  "frost_sum": 0.0,
+  "hp_damage_taken": 24,
+  "pattern_triggers": {},
+  "profile": "T_break_control",
+  "raw_attack": 2,
+  "scenario": "high_armor",
+  "seed": 333,
+  "shield_end": 0,
+  "shield_peak": 0,
+  "shield_waste": 0,
+  "strategy": "perfect",
+  "terminal": "WON",
+  "turns": 3
+}

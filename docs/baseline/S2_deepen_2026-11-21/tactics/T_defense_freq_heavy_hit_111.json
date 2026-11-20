@@ -1,0 +1,22 @@
+{
+  "blocked": 84,
+  "circuit_triggers": {
+    "circuit_damage_shield": 19
+  },
+  "errors": [],
+  "frost_avg": 0.0,
+  "frost_max": 0,
+  "frost_sum": 0.0,
+  "hp_damage_taken": 56,
+  "pattern_triggers": {},
+  "profile": "T_defense_freq",
+  "raw_attack": 9,
+  "scenario": "heavy_hit",
+  "seed": 111,
+  "shield_end": 8,
+  "shield_peak": 8,
+  "shield_waste": 0,
+  "strategy": "defense",
+  "terminal": "WON",
+  "turns": 10
+}

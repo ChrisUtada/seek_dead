@@ -251,17 +251,36 @@ func _event_source_reason(event: String) -> String:
 						return ""
 			return "event_unreachable:no_pierce_source"
 		"pair":
-			# 至少两个不同符号族（能形成"一对+一个不同"）
-			var families := {}
+			# 2026-11-21 修复对子可达性 false negative（评审裁定保持真实结算语义）：
+			# 真实 combat_system._has_pair_damage 的条件是「某 damage 族恰 2 格 + 另一个不同的有效符号族 ≥1 格」，
+			# 第三符号不限 kind（状态/护盾亦可，卡面未要求必须是伤害）。
+			# 旧构筑层判定只看「≥2 个 damage 族」，会漏报「damage 对子 + status/shield 第三符号」的构筑。
+			# 新判定与真实语义对齐：≥1 个 damage 族（可凑成一对）+ ≥1 个与之不同的任意有效符号族。
+			var families := {}          # 所有有效符号族（任意 kind）
+			var damage_families := {}   # damage 符号族
 			for it in pool:
 				if not (it is Dictionary):
 					continue
 				for s in it.get("syms", []):
 					if not (s is Array) or s.is_empty() or s[0] == null:
 						continue
-					if String(s[0].kind) == "damage" and float(s[1]) > 0.0:
-						families[String(s[0].resource_path)] = true
-			return "" if families.size() >= 2 else "event_unreachable:no_pair_source"
+					if float(s[1]) <= 0.0:
+						continue
+					var key: String = String(s[0].resource_path)
+					families[key] = true
+					if String(s[0].kind) == "damage":
+						damage_families[key] = true
+			var has_pair_base := not damage_families.is_empty()
+			var has_third := false
+			for dk in damage_families:
+				# 存在一个与某 damage 族不同的有效族（任意 kind）即可作第三符号
+				for fk in families:
+					if String(fk) != String(dk):
+						has_third = true
+						break
+				if has_third:
+					break
+			return "" if has_pair_base and has_third else "event_unreachable:no_pair_source"
 		"tri_color":
 			# 至少 3 种不同有效元素（排除 none）
 			var elems := {}

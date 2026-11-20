@@ -1,0 +1,26 @@
+{
+  "blocked": 0,
+  "circuit_triggers": {
+    "circuit_status_react": 42
+  },
+  "enemy_frost_max": 60,
+  "enemy_frost_sum": 507.0,
+  "errors": [],
+  "frost_avg": 0.0,
+  "frost_max": 0,
+  "frost_seal_mult_min": 0.7,
+  "frost_seal_turns": 1,
+  "frost_sum": 0.0,
+  "hp_damage_taken": 104,
+  "pattern_triggers": {},
+  "profile": "T_frost_control",
+  "raw_attack": 15,
+  "scenario": "high_pressure",
+  "seed": 111,
+  "shield_end": 0,
+  "shield_peak": 0,
+  "shield_waste": 0,
+  "strategy": "frost_control",
+  "terminal": "LOST",
+  "turns": 15
+}

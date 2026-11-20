@@ -85,5 +85,35 @@ func _ready() -> void:
 	_ok(c.why_not_triggered("circuit_triple_echo") == "turn_limit",
 		"可达且上限用尽时报 turn_limit（%s）" % c.why_not_triggered("circuit_triple_echo"))
 
+	# ⑦ 2026-11-21 对子可达性 false negative 修复专项（评审裁定保持真实结算语义）：
+	#    真实 _has_pair_damage = 「某 damage 族恰 2 格 + 另一个不同的有效符号族 ≥1 格（任意 kind）」。
+	#    可达性报告须与真实语义对齐：damage 族 + 任意不同第三族即视为可达。
+	var pair_cases := [
+		{"name": "伤害对子+状态(绝对零度)", "weapon": "res://resources/weapon_templates/absolute_zero.tres",
+		 "dmg": "res://resources/symbols/ice_crystal.tres", "third": "res://resources/symbols/frost.tres", "third_kind": "status"},
+		{"name": "伤害对子+护盾(坚壁钉锤)", "weapon": "res://resources/weapon_templates/mace.tres",
+		 "dmg": "res://resources/symbols/iron_slash.tres", "third": "res://resources/symbols/iron_wall.tres", "third_kind": "shield"},
+		{"name": "两个伤害族(双式军刀)", "weapon": "res://resources/weapon_templates/dueling_saber.tres",
+		 "dmg": "res://resources/symbols/iron_slash.tres", "third": "res://resources/symbols/dagger_slash.tres", "third_kind": "damage"},
+	]
+	for pc in pair_cases:
+		duel.selected_loadout.clear()
+		duel.selected_loadout.append(String(pc["weapon"]))
+		duel._confirm_loadout()
+		duel._build_pool(duel.selected_loadout)
+		var pr: Dictionary = c.is_reachable("circuit_pair")
+		_ok(bool(pr["ok"]), "对子可达性 %s：报告可达（reason=%s）" % [
+			String(pc["name"]), String(pr.get("reason", ""))])
+		# 真实结算判定：构造 counts（某 damage 族恰 2 格 + 第三符号 1 格）
+		var dsym: Resource = load(String(pc["dmg"]))
+		var tsym: Resource = load(String(pc["third"]))
+		var dkey: String = String(dsym.resource_path) + "|" + String(dsym.element)
+		var tkey: String = String(tsym.resource_path) + "|" + String(tsym.element)
+		var counts := {}
+		counts[dkey] = [dsym, String(dsym.element), 2, {"src": 2}]
+		counts[tkey] = [tsym, String(tsym.element), 1, {"src": 1}]
+		_ok(duel.combat._has_pair_damage(counts),
+			"对子真实判定 %s：damage 对子 + %s 触发" % [String(pc["name"]), String(pc["third_kind"])])
+
 	print("G4-4 REACH RESULT: %d checks, %d fails" % [_checks, _fails])
 	get_tree().quit(1 if _fails > 0 else 0)

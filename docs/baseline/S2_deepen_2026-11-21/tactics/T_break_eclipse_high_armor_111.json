@@ -1,0 +1,22 @@
+{
+  "blocked": 0,
+  "circuit_triggers": {
+    "circuit_armor_break": 3
+  },
+  "errors": [],
+  "frost_avg": 0.0,
+  "frost_max": 0,
+  "frost_sum": 0.0,
+  "hp_damage_taken": 28,
+  "pattern_triggers": {},
+  "profile": "T_break_eclipse",
+  "raw_attack": 2,
+  "scenario": "high_armor",
+  "seed": 111,
+  "shield_end": 0,
+  "shield_peak": 0,
+  "shield_waste": 0,
+  "strategy": "perfect",
+  "terminal": "WON",
+  "turns": 3
+}
