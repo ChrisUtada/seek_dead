@@ -1,0 +1,259 @@
+{
+  "core_triggers": {
+    "circuit_triple_echo": 12
+  },
+  "damage_taken": 110.0,
+  "errors": [],
+  "frost_trace": [],
+  "profile": "B_two_dark",
+  "rooms": [
+    {
+      "armor_start": 20,
+      "dmg_taken": 24,
+      "enemy_hp_start": 170,
+      "frost_avg": 0.0,
+      "hp_damage": 251,
+      "hp_start": 100,
+      "kind": "normal",
+      "name": "毒壳壁垒",
+      "shield_total": 0.0,
+      "ttk_turns": 3,
+      "turn_log": [
+        {
+          "armor": 20,
+          "armor_end": 0,
+          "dmg_taken": 12,
+          "enemy_hp": 170,
+          "enemy_hp_end": 98,
+          "frost": 0,
+          "frost_end": 0,
+          "hp": 100,
+          "hp_damage": 72,
+          "hp_end": 88,
+          "shield": 0.0,
+          "turn": 1
+        },
+        {
+          "armor": 0,
+          "armor_end": 0,
+          "dmg_taken": 12,
+          "enemy_hp": 98,
+          "enemy_hp_end": 6,
+          "frost": 0,
+          "frost_end": 0,
+          "hp": 88,
+          "hp_damage": 92,
+          "hp_end": 76,
+          "shield": 0.0,
+          "turn": 2
+        },
+        {
+          "armor": 0,
+          "armor_end": 0,
+          "dmg_taken": 0,
+          "enemy_hp": 6,
+          "enemy_hp_end": -81,
+          "frost": 0,
+          "frost_end": 0,
+          "hp": 76,
+          "hp_damage": 87,
+          "hp_end": 76,
+          "shield": 0.0,
+          "turn": 3
+        }
+      ],
+      "turns": 3
+    },
+    {
+      "armor_start": 0,
+      "dmg_taken": 0,
+      "enemy_hp_start": 86,
+      "frost_avg": 0.0,
+      "hp_damage": 103,
+      "hp_start": 76,
+      "kind": "normal",
+      "name": "寒鳞蝠",
+      "shield_total": 0.0,
+      "ttk_turns": 1,
+      "turn_log": [
+        {
+          "armor": 0,
+          "armor_end": 0,
+          "dmg_taken": 0,
+          "enemy_hp": 86,
+          "enemy_hp_end": -17,
+          "frost": 0,
+          "frost_end": 0,
+          "hp": 76,
+          "hp_damage": 103,
+          "hp_end": 76,
+          "shield": 0.0,
+          "turn": 1
+        }
+      ],
+      "turns": 1
+    },
+    {
+      "armor_start": 0,
+      "dmg_taken": 0,
+      "enemy_hp_start": 87,
+      "frost_avg": 0.0,
+      "hp_damage": 103,
+      "hp_start": 76,
+      "kind": "normal",
+      "name": "锈盲蝠",
+      "shield_total": 0.0,
+      "ttk_turns": 1,
+      "turn_log": [
+        {
+          "armor": 0,
+          "armor_end": 0,
+          "dmg_taken": 0,
+          "enemy_hp": 87,
+          "enemy_hp_end": -16,
+          "frost": 0,
+          "frost_end": 0,
+          "hp": 76,
+          "hp_damage": 103,
+          "hp_end": 76,
+          "shield": 0.0,
+          "turn": 1
+        }
+      ],
+      "turns": 1
+    },
+    {
+      "armor_start": 0,
+      "dmg_taken": 48,
+      "enemy_hp_start": 183,
+      "frost_avg": 0.0,
+      "hp_damage": 261,
+      "hp_start": 76,
+      "kind": "elite",
+      "name": "腐殖巨蠕",
+      "shield_total": 0.0,
+      "ttk_turns": 3,
+      "turn_log": [
+        {
+          "armor": 0,
+          "armor_end": 0,
+          "dmg_taken": 16,
+          "enemy_hp": 183,
+          "enemy_hp_end": 96,
+          "frost": 0,
+          "frost_end": 0,
+          "hp": 76,
+          "hp_damage": 87,
+          "hp_end": 60,
+          "shield": 0.0,
+          "turn": 1
+        },
+        {
+          "armor": 0,
+          "armor_end": 0,
+          "dmg_taken": 32,
+          "enemy_hp": 96,
+          "enemy_hp_end": 9,
+          "frost": 0,
+          "frost_end": 0,
+          "hp": 60,
+          "hp_damage": 87,
+          "hp_end": 28,
+          "shield": 0.0,
+          "turn": 2
+        },
+        {
+          "armor": 0,
+          "armor_end": 0,
+          "dmg_taken": 0,
+          "enemy_hp": 9,
+          "enemy_hp_end": -78,
+          "frost": 0,
+          "frost_end": 0,
+          "hp": 28,
+          "hp_damage": 87,
+          "hp_end": 28,
+          "shield": 0.0,
+          "turn": 3
+        }
+      ],
+      "turns": 3
+    },
+    {
+      "armor_start": 14,
+      "dmg_taken": 6,
+      "enemy_hp_start": 109,
+      "frost_avg": 0.0,
+      "hp_damage": 163,
+      "hp_start": 28,
+      "kind": "normal",
+      "name": "毒孢菌",
+      "shield_total": 0.0,
+      "ttk_turns": 2,
+      "turn_log": [
+        {
+          "armor": 14,
+          "armor_end": 14,
+          "dmg_taken": 12,
+          "enemy_hp": 109,
+          "enemy_hp_end": 22,
+          "frost": 0,
+          "frost_end": 0,
+          "hp": 28,
+          "hp_damage": 87,
+          "hp_end": 16,
+          "shield": 0.0,
+          "turn": 1
+        },
+        {
+          "armor": 14,
+          "armor_end": 3,
+          "dmg_taken": -6,
+          "enemy_hp": 22,
+          "enemy_hp_end": -54,
+          "frost": 0,
+          "frost_end": 0,
+          "hp": 16,
+          "hp_damage": 76,
+          "hp_end": 22,
+          "shield": 0.0,
+          "turn": 2
+        }
+      ],
+      "turns": 2
+    },
+    {
+      "armor_start": 0,
+      "dmg_taken": 32,
+      "enemy_hp_start": 206,
+      "frost_avg": 0.0,
+      "hp_damage": 103,
+      "hp_start": 22,
+      "kind": "normal",
+      "name": "重锤蛮兵",
+      "shield_total": 0.0,
+      "ttk_turns": 1,
+      "turn_log": [
+        {
+          "armor": 0,
+          "armor_end": 0,
+          "dmg_taken": 32,
+          "enemy_hp": 206,
+          "enemy_hp_end": 103,
+          "frost": 0,
+          "frost_end": 0,
+          "hp": 22,
+          "hp_damage": 103,
+          "hp_end": -10,
+          "shield": 0.0,
+          "turn": 1
+        }
+      ],
+      "turns": 1
+    }
+  ],
+  "seed": 333,
+  "shield_total": 0.0,
+  "terminal": "LOST",
+  "turns": 11
+}

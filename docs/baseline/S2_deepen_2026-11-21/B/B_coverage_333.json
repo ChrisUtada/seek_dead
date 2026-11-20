@@ -1,0 +1,215 @@
+{
+  "core_triggers": {
+    "circuit_pair": 2
+  },
+  "damage_taken": 125.0,
+  "errors": [],
+  "frost_trace": [],
+  "profile": "B_coverage",
+  "rooms": [
+    {
+      "armor_start": 20,
+      "dmg_taken": 60,
+      "enemy_hp_start": 170,
+      "frost_avg": 0.0,
+      "hp_damage": 184,
+      "hp_start": 100,
+      "kind": "normal",
+      "name": "毒壳壁垒",
+      "shield_total": 0.0,
+      "ttk_turns": 4,
+      "turn_log": [
+        {
+          "armor": 20,
+          "armor_end": 0,
+          "dmg_taken": 24,
+          "enemy_hp": 170,
+          "enemy_hp_end": 139,
+          "frost": 0,
+          "frost_end": 0,
+          "hp": 100,
+          "hp_damage": 31,
+          "hp_end": 76,
+          "shield": 0.0,
+          "turn": 1
+        },
+        {
+          "armor": 0,
+          "armor_end": 0,
+          "dmg_taken": 24,
+          "enemy_hp": 139,
+          "enemy_hp_end": 88,
+          "frost": 0,
+          "frost_end": 0,
+          "hp": 76,
+          "hp_damage": 51,
+          "hp_end": 52,
+          "shield": 0.0,
+          "turn": 2
+        },
+        {
+          "armor": 0,
+          "armor_end": 0,
+          "dmg_taken": 12,
+          "enemy_hp": 88,
+          "enemy_hp_end": 37,
+          "frost": 0,
+          "frost_end": 0,
+          "hp": 52,
+          "hp_damage": 51,
+          "hp_end": 40,
+          "shield": 0.0,
+          "turn": 3
+        },
+        {
+          "armor": 0,
+          "armor_end": 0,
+          "dmg_taken": 0,
+          "enemy_hp": 37,
+          "enemy_hp_end": -14,
+          "frost": 0,
+          "frost_end": 0,
+          "hp": 40,
+          "hp_damage": 51,
+          "hp_end": 40,
+          "shield": 0.0,
+          "turn": 4
+        }
+      ],
+      "turns": 4
+    },
+    {
+      "armor_start": 0,
+      "dmg_taken": 8,
+      "enemy_hp_start": 86,
+      "frost_avg": 0.0,
+      "hp_damage": 120,
+      "hp_start": 40,
+      "kind": "normal",
+      "name": "寒鳞蝠",
+      "shield_total": 0.0,
+      "ttk_turns": 2,
+      "turn_log": [
+        {
+          "armor": 0,
+          "armor_end": 0,
+          "dmg_taken": 8,
+          "enemy_hp": 86,
+          "enemy_hp_end": 26,
+          "frost": 0,
+          "frost_end": 0,
+          "hp": 40,
+          "hp_damage": 60,
+          "hp_end": 32,
+          "shield": 0.0,
+          "turn": 1
+        },
+        {
+          "armor": 0,
+          "armor_end": 0,
+          "dmg_taken": 0,
+          "enemy_hp": 26,
+          "enemy_hp_end": -34,
+          "frost": 0,
+          "frost_end": 0,
+          "hp": 32,
+          "hp_damage": 60,
+          "hp_end": 32,
+          "shield": 0.0,
+          "turn": 2
+        }
+      ],
+      "turns": 2
+    },
+    {
+      "armor_start": 0,
+      "dmg_taken": 11,
+      "enemy_hp_start": 87,
+      "frost_avg": 0.0,
+      "hp_damage": 87,
+      "hp_start": 32,
+      "kind": "normal",
+      "name": "锈盲蝠",
+      "shield_total": 0.0,
+      "ttk_turns": 2,
+      "turn_log": [
+        {
+          "armor": 0,
+          "armor_end": 0,
+          "dmg_taken": 11,
+          "enemy_hp": 87,
+          "enemy_hp_end": 27,
+          "frost": 0,
+          "frost_end": 0,
+          "hp": 32,
+          "hp_damage": 60,
+          "hp_end": 21,
+          "shield": 0.0,
+          "turn": 1
+        },
+        {
+          "armor": 0,
+          "armor_end": 0,
+          "dmg_taken": 0,
+          "enemy_hp": 27,
+          "enemy_hp_end": 0,
+          "frost": 0,
+          "frost_end": 0,
+          "hp": 21,
+          "hp_damage": 27,
+          "hp_end": 21,
+          "shield": 0.0,
+          "turn": 2
+        }
+      ],
+      "turns": 2
+    },
+    {
+      "armor_start": 0,
+      "dmg_taken": 46,
+      "enemy_hp_start": 183,
+      "frost_avg": 0.0,
+      "hp_damage": 102,
+      "hp_start": 21,
+      "kind": "elite",
+      "name": "腐殖巨蠕",
+      "shield_total": 0.0,
+      "ttk_turns": 2,
+      "turn_log": [
+        {
+          "armor": 0,
+          "armor_end": 0,
+          "dmg_taken": 16,
+          "enemy_hp": 183,
+          "enemy_hp_end": 132,
+          "frost": 0,
+          "frost_end": 0,
+          "hp": 21,
+          "hp_damage": 51,
+          "hp_end": 5,
+          "shield": 0.0,
+          "turn": 1
+        },
+        {
+          "armor": 0,
+          "armor_end": 0,
+          "dmg_taken": 30,
+          "enemy_hp": 132,
+          "enemy_hp_end": 81,
+          "frost": 0,
+          "frost_end": 0,
+          "hp": 5,
+          "hp_damage": 51,
+          "hp_end": -25,
+          "shield": 0.0,
+          "turn": 2
+        }
+      ],
+      "turns": 2
+    }
+  ],
+  "seed": 333,
+  "shield_total": 0.0,
+  "terminal": "LOST",
+  "turns": 10
+}

@@ -1,0 +1,201 @@
+{
+  "core_triggers": {
+    "circuit_pair": 2
+  },
+  "damage_taken": 100.0,
+  "errors": [],
+  "frost_trace": [],
+  "profile": "B_coverage",
+  "rooms": [
+    {
+      "armor_start": 0,
+      "dmg_taken": 14,
+      "enemy_hp_start": 95,
+      "frost_avg": 0.0,
+      "hp_damage": 102,
+      "hp_start": 100,
+      "kind": "normal",
+      "name": "暗影诡匠",
+      "shield_total": 0.0,
+      "ttk_turns": 2,
+      "turn_log": [
+        {
+          "armor": 0,
+          "armor_end": 0,
+          "dmg_taken": 14,
+          "enemy_hp": 95,
+          "enemy_hp_end": 44,
+          "frost": 0,
+          "frost_end": 0,
+          "hp": 100,
+          "hp_damage": 51,
+          "hp_end": 86,
+          "shield": 0.0,
+          "turn": 1
+        },
+        {
+          "armor": 0,
+          "armor_end": 0,
+          "dmg_taken": 0,
+          "enemy_hp": 44,
+          "enemy_hp_end": -7,
+          "frost": 0,
+          "frost_end": 0,
+          "hp": 86,
+          "hp_damage": 51,
+          "hp_end": 86,
+          "shield": 0.0,
+          "turn": 2
+        }
+      ],
+      "turns": 2
+    },
+    {
+      "armor_start": 0,
+      "dmg_taken": 0,
+      "enemy_hp_start": 108,
+      "frost_avg": 0.0,
+      "hp_damage": 115,
+      "hp_start": 86,
+      "kind": "normal",
+      "name": "辉光游侠",
+      "shield_total": 0.0,
+      "ttk_turns": 1,
+      "turn_log": [
+        {
+          "armor": 0,
+          "armor_end": 10,
+          "dmg_taken": 0,
+          "enemy_hp": 108,
+          "enemy_hp_end": -7,
+          "frost": 0,
+          "frost_end": 0,
+          "hp": 86,
+          "hp_damage": 115,
+          "hp_end": 86,
+          "shield": 0.0,
+          "turn": 1
+        }
+      ],
+      "turns": 1
+    },
+    {
+      "armor_start": 0,
+      "dmg_taken": 26,
+      "enemy_hp_start": 105,
+      "frost_avg": 0.0,
+      "hp_damage": 147,
+      "hp_start": 86,
+      "kind": "normal",
+      "name": "窃语咒师",
+      "shield_total": 0.0,
+      "ttk_turns": 3,
+      "turn_log": [
+        {
+          "armor": 0,
+          "armor_end": 0,
+          "dmg_taken": 13,
+          "enemy_hp": 105,
+          "enemy_hp_end": 78,
+          "frost": 0,
+          "frost_end": 0,
+          "hp": 86,
+          "hp_damage": 27,
+          "hp_end": 73,
+          "shield": 0.0,
+          "turn": 1
+        },
+        {
+          "armor": 0,
+          "armor_end": 0,
+          "dmg_taken": 13,
+          "enemy_hp": 78,
+          "enemy_hp_end": 18,
+          "frost": 0,
+          "frost_end": 0,
+          "hp": 73,
+          "hp_damage": 60,
+          "hp_end": 60,
+          "shield": 0.0,
+          "turn": 2
+        },
+        {
+          "armor": 0,
+          "armor_end": 0,
+          "dmg_taken": 0,
+          "enemy_hp": 18,
+          "enemy_hp_end": -42,
+          "frost": 0,
+          "frost_end": 0,
+          "hp": 60,
+          "hp_damage": 60,
+          "hp_end": 60,
+          "shield": 0.0,
+          "turn": 3
+        }
+      ],
+      "turns": 3
+    },
+    {
+      "armor_start": 0,
+      "dmg_taken": 60,
+      "enemy_hp_start": 202,
+      "frost_avg": 0.0,
+      "hp_damage": 153,
+      "hp_start": 60,
+      "kind": "elite",
+      "name": "毒疫术士",
+      "shield_total": 0.0,
+      "ttk_turns": 3,
+      "turn_log": [
+        {
+          "armor": 0,
+          "armor_end": 0,
+          "dmg_taken": 20,
+          "enemy_hp": 202,
+          "enemy_hp_end": 151,
+          "frost": 0,
+          "frost_end": 0,
+          "hp": 60,
+          "hp_damage": 51,
+          "hp_end": 40,
+          "shield": 0.0,
+          "turn": 1
+        },
+        {
+          "armor": 0,
+          "armor_end": 0,
+          "dmg_taken": 21,
+          "enemy_hp": 151,
+          "enemy_hp_end": 100,
+          "frost": 0,
+          "frost_end": 0,
+          "hp": 40,
+          "hp_damage": 51,
+          "hp_end": 19,
+          "shield": 0.0,
+          "turn": 2
+        },
+        {
+          "armor": 0,
+          "armor_end": 0,
+          "dmg_taken": 19,
+          "enemy_hp": 100,
+          "enemy_hp_end": 49,
+          "frost": 0,
+          "frost_end": 0,
+          "hp": 19,
+          "hp_damage": 51,
+          "hp_end": 0,
+          "shield": 0.0,
+          "turn": 3
+        }
+      ],
+      "turns": 3
+    }
+  ],
+  "seed": 111,
+  "shield_total": 0.0,
+  "terminal": "LOST",
+  "turns": 9
+}
