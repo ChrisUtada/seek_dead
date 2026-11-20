@@ -74,10 +74,14 @@ static func compose(weapons: Array, skills: Array, charms: Array, elements = [],
 			cells = maxi(1, cells - cut)
 		total_cells += cells
 		var disp: String = g["sym"].label if g["sym"].label != "" else g["sym"].name
+		# G3-4：共享符号作用范围——single=指定武器来源 / multi=多来源共享。
+		# items 已携带来源名列表，这里显式标记 scope 供规则层与 UI 判断（方案 §5.2 要求"显示作用范围"）。
+		var items_arr: Array = g["items"]
 		rows.append({
 			"key": key, "path": g["sym"].resource_path, "name": disp,
 			"kind": g["sym"].kind, "elem": g["elem"], "weight": float(g["w"]),
-			"cells": cells, "items": g["items"],
+			"cells": cells, "items": items_arr,
+			"source_scope": "single" if items_arr.size() <= 1 else "multi",
 		})
 	rows.sort_custom(func(a, b): return float(a["weight"]) > float(b["weight"]))
 	# MISS：按 miss_w/wsum 折算格数（保底 1）——与 build_strips 同式
