@@ -1,33 +1,38 @@
-[gd_resource type="Resource" script_class="WeaponData" load_steps=5 format=3]
+[gd_resource type="Resource" script_class="WeaponData" load_steps=6 format=3]
 
 [ext_resource type="Script" uid="uid://rshxw30hg44e" path="res://scripts/equipment/weapon_data.gd" id="1"]
 [ext_resource type="Script" uid="uid://b7ejpof4wrtqt" path="res://scripts/battle/symbol_weight.gd" id="sw"]
 [ext_resource type="Resource" path="res://resources/symbols/iron_slash.tres" id="s0"]
+[ext_resource type="Resource" path="res://resources/symbols/dagger_slash.tres" id="s1"]
 
 [sub_resource type="Resource" id="sw0"]
 script = ExtResource("sw")
 symbol = ExtResource("s0")
-weight = 5.0
+weight = 3.0
 
+[sub_resource type="Resource" id="sw1"]
+script = ExtResource("sw")
+symbol = ExtResource("s1")
+weight = 3.0
 
 [resource]
 script = ExtResource("1")
-weapon_name = "决斗军刀"
+weapon_name = "双式军刀"
 category = "weapon"
 rarity = "uncommon"
 crit_chance = 0.12
 crit_mult = 2.0
-base_power = 11
-hit_rate = 0.92
+base_power = 9
+hit_rate = 0.90
 archetype = 0
 weapon_type = 0
-symbols = Array[ExtResource("sw")]([SubResource("sw0")])
+symbols = Array[ExtResource("sw")]([SubResource("sw0"), SubResource("sw1")])
 reel_element = "none"
 element = "none"
 family_tags = Array[String](["combo"])
 role = "damage"
-mechanism_summary = "无属性系轻型近战：铁斩（5权重，无属性伤害）；非三连暴击+12%；同源三连追加50%伤害；命中率92%，基础伤害11。符号需落线触发，未命中为废铁格。"
+mechanism_summary = "对子型轻型近战：铁斩3格与匕斩3格形成两个等权伤害族，可主动追求对子赔付。基础效能9、武器精度90%，以较低三连浓度和单符号峰值换取双目标选择。"
 act_min = 1
 act_max = 3
 source_tags = Array[String](["normal", "elite", "shop", "anvil", "chest"])
-unique_group = "weapon_none_pure_line"
+unique_group = "weapon_none_pair_line"

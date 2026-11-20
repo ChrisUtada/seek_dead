@@ -1,33 +1,38 @@
-[gd_resource type="Resource" script_class="WeaponData" load_steps=5 format=3]
+[gd_resource type="Resource" script_class="WeaponData" load_steps=6 format=3]
 
 [ext_resource type="Script" uid="uid://rshxw30hg44e" path="res://scripts/equipment/weapon_data.gd" id="1"]
 [ext_resource type="Script" uid="uid://b7ejpof4wrtqt" path="res://scripts/battle/symbol_weight.gd" id="sw"]
 [ext_resource type="Resource" path="res://resources/symbols/iron_slash.tres" id="s0"]
+[ext_resource type="Resource" path="res://resources/symbols/iron_wall.tres" id="s1"]
 
 [sub_resource type="Resource" id="sw0"]
 script = ExtResource("sw")
 symbol = ExtResource("s0")
-weight = 5.0
+weight = 3.0
 
+[sub_resource type="Resource" id="sw1"]
+script = ExtResource("sw")
+symbol = ExtResource("s1")
+weight = 3.0
 
 [resource]
 script = ExtResource("1")
-weapon_name = "钉头锤"
+weapon_name = "坚壁钉锤"
 category = "weapon"
 rarity = "common"
 crit_chance = 0.0
 crit_mult = 2.0
-base_power = 14
-hit_rate = 0.77
-archetype = 2
+base_power = 8
+hit_rate = 0.86
+archetype = 1
 weapon_type = 0
-symbols = Array[ExtResource("sw")]([SubResource("sw0")])
+symbols = Array[ExtResource("sw")]([SubResource("sw0"), SubResource("sw1")])
 reel_element = "none"
 element = "none"
-family_tags = Array[String](["combo"])
-role = "damage"
-mechanism_summary = "无属性系重型近战：铁斩（5权重，无属性伤害）；三连清空护甲；命中率77%，基础伤害14。符号需落线触发，未命中为废铁格。"
+family_tags = Array[String](["shield", "combo"])
+role = "defense"
+mechanism_summary = "防御型中型近战：铁斩3格提供输出，铁誓3格提供单格6护盾；可支撑攻守转换。基础效能8、武器精度86%，以较低输出和失去重武器三连破甲换取稳定防护。"
 act_min = 1
 act_max = 3
 source_tags = Array[String](["normal", "elite", "shop", "anvil", "chest"])
-unique_group = "weapon_none_pure_line"
+unique_group = "weapon_none_guard_line"

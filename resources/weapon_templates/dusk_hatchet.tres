@@ -3,31 +3,36 @@
 [ext_resource type="Script" uid="uid://rshxw30hg44e" path="res://scripts/equipment/weapon_data.gd" id="1"]
 [ext_resource type="Script" uid="uid://b7ejpof4wrtqt" path="res://scripts/battle/symbol_weight.gd" id="sw"]
 [ext_resource type="Resource" path="res://resources/symbols/shadow_slash.tres" id="s0"]
+[ext_resource type="Resource" path="res://resources/symbols/dawn_light.tres" id="s1"]
 
 [sub_resource type="Resource" id="sw0"]
 script = ExtResource("sw")
 symbol = ExtResource("s0")
-weight = 5.0
+weight = 3.0
 
+[sub_resource type="Resource" id="sw1"]
+script = ExtResource("sw")
+symbol = ExtResource("s1")
+weight = 3.0
 
 [resource]
 script = ExtResource("1")
-weapon_name = "暮色手斧"
+weapon_name = "暮光手斧"
 category = "weapon"
 rarity = "common"
 crit_chance = 0.05
 crit_mult = 2.0
-base_power = 12
-hit_rate = 0.82
+base_power = 10
+hit_rate = 0.86
 archetype = 1
 weapon_type = 0
-symbols = Array[ExtResource("sw")]([SubResource("sw0")])
-reel_element = "dark"
-element = "dark"
-family_tags = Array[String](["dark", "combo"])
+symbols = Array[ExtResource("sw")]([SubResource("sw0"), SubResource("sw1")])
+reel_element = "none"
+element = "none"
+family_tags = Array[String](["dark", "light", "combo"])
 role = "damage"
-mechanism_summary = "暗系中型近战：暗斩（5权重，暗伤害）；非三连暴击+5%；命中率82%，基础伤害12。符号需落线触发，未命中为废铁格。"
+mechanism_summary = "跨元素中型近战：暗斩3格与晨曦之光3格落线后分别造成暗、光伤害；可针对两类弱点调整目标。基础效能10、武器精度86%，以较低单符号浓度和基础效能换取元素覆盖。"
 act_min = 1
 act_max = 3
 source_tags = Array[String](["normal", "elite", "shop", "anvil", "chest"])
-unique_group = "weapon_dark_pure_line"
+unique_group = "weapon_twilight_coverage_line"
