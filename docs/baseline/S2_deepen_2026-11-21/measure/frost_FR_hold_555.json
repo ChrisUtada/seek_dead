@@ -1,0 +1,76 @@
+{
+  "enemy_frost_sum": 23.0,
+  "hp_damage": 313,
+  "mode": "frost",
+  "profile": "FR_hold",
+  "rows": [
+    {
+      "frost_after": 4,
+      "frost_before": 0,
+      "hp_damage": 0,
+      "pattern_atk_mult": 1.0,
+      "turn": 1
+    },
+    {
+      "frost_after": 3,
+      "frost_before": 4,
+      "hp_damage": 38,
+      "pattern_atk_mult": 1.0,
+      "turn": 2
+    },
+    {
+      "frost_after": 2,
+      "frost_before": 3,
+      "hp_damage": 38,
+      "pattern_atk_mult": 1.0,
+      "turn": 3
+    },
+    {
+      "frost_after": 5,
+      "frost_before": 2,
+      "hp_damage": 0,
+      "pattern_atk_mult": 1.0,
+      "turn": 4
+    },
+    {
+      "frost_after": 4,
+      "frost_before": 5,
+      "hp_damage": 62,
+      "pattern_atk_mult": 1.0,
+      "turn": 5
+    },
+    {
+      "frost_after": 3,
+      "frost_before": 4,
+      "hp_damage": 113,
+      "pattern_atk_mult": 1.0,
+      "turn": 6
+    },
+    {
+      "frost_after": 2,
+      "frost_before": 3,
+      "hp_damage": 62,
+      "pattern_atk_mult": 1.0,
+      "turn": 7
+    }
+  ],
+  "seed": 555,
+  "signature": {
+    "sig_icegun": true,
+    "sig_unlocked": true,
+    "sig_zero": true,
+    "two_ice": true,
+    "unlocked_ids": [
+      "SIG_W02_ZERO",
+      "SIG_W02_ICEGUN",
+      "T01",
+      "T02",
+      "T03",
+      "W02"
+    ],
+    "w02": true
+  },
+  "terminal": "LOST",
+  "turns": 7,
+  "waste_stacks": 4
+}

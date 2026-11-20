@@ -1,0 +1,115 @@
+{
+  "circuit_triggers": {
+    "circuit_damage_shield": 19
+  },
+  "decay_found": false,
+  "mode": "shield",
+  "profile": "SH_defense_guard",
+  "rows": [
+    {
+      "begin": 0,
+      "blocked": 8,
+      "end": 0,
+      "gain": 8,
+      "hp_end": 88,
+      "raw_attack": 1,
+      "remaining": 0,
+      "turn": 1
+    },
+    {
+      "begin": 0,
+      "blocked": 8,
+      "end": 0,
+      "gain": 8,
+      "hp_end": 76,
+      "raw_attack": 1,
+      "remaining": 0,
+      "turn": 2
+    },
+    {
+      "begin": 0,
+      "blocked": 8,
+      "end": 0,
+      "gain": 8,
+      "hp_end": 64,
+      "raw_attack": 1,
+      "remaining": 0,
+      "turn": 3
+    },
+    {
+      "begin": 0,
+      "blocked": 40,
+      "end": 22,
+      "gain": 62,
+      "hp_end": 64,
+      "raw_attack": 1,
+      "remaining": 22,
+      "turn": 4
+    },
+    {
+      "begin": 22,
+      "blocked": 20,
+      "end": 10,
+      "gain": 8,
+      "hp_end": 64,
+      "raw_attack": 1,
+      "remaining": 10,
+      "turn": 5
+    },
+    {
+      "begin": 10,
+      "blocked": 18,
+      "end": 0,
+      "gain": 8,
+      "hp_end": 62,
+      "raw_attack": 1,
+      "remaining": 0,
+      "turn": 6
+    },
+    {
+      "begin": 0,
+      "blocked": 8,
+      "end": 0,
+      "gain": 8,
+      "hp_end": 50,
+      "raw_attack": 1,
+      "remaining": 0,
+      "turn": 7
+    },
+    {
+      "begin": 0,
+      "blocked": 8,
+      "end": 0,
+      "gain": 8,
+      "hp_end": 38,
+      "raw_attack": 1,
+      "remaining": 0,
+      "turn": 8
+    },
+    {
+      "begin": 0,
+      "blocked": 8,
+      "end": 0,
+      "gain": 8,
+      "hp_end": 26,
+      "raw_attack": 1,
+      "remaining": 0,
+      "turn": 9
+    },
+    {
+      "begin": 0,
+      "blocked": 0,
+      "end": 8,
+      "gain": 8,
+      "hp_end": 26,
+      "raw_attack": 0,
+      "remaining": 8,
+      "turn": 10
+    }
+  ],
+  "seed": 555,
+  "shield_cap_found": false,
+  "shield_carry_rooms": 0,
+  "terminal": "WON",
+  "turns": 10
+}

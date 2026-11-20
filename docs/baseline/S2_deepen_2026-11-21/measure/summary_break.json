@@ -1,0 +1,396 @@
+{
+  "generated_at": "2026-11-21T02:15:35",
+  "mode": "break",
+  "note": "修正测量：只采集不调参",
+  "runs": [
+    {
+      "actual_armor": 0,
+      "actual_atk": 18,
+      "actual_hp": 300,
+      "armor_scenario_ok": true,
+      "break_turn": -1,
+      "hp_damage": 344,
+      "mode": "break",
+      "profile": "BR_eclipse_low",
+      "rows": [
+        {
+          "armor_after": 0,
+          "armor_before": 0,
+          "hp_damage": 172,
+          "turn": 1
+        },
+        {
+          "armor_after": 0,
+          "armor_before": 0,
+          "hp_damage": 172,
+          "turn": 2
+        }
+      ],
+      "scenario_armor": 0,
+      "seed": 111,
+      "terminal": "WON",
+      "ttk_turns": 2,
+      "turns": 2
+    },
+    {
+      "actual_armor": 0,
+      "actual_atk": 18,
+      "actual_hp": 300,
+      "armor_scenario_ok": true,
+      "break_turn": -1,
+      "hp_damage": 344,
+      "mode": "break",
+      "profile": "BR_eclipse_low",
+      "rows": [
+        {
+          "armor_after": 0,
+          "armor_before": 0,
+          "hp_damage": 172,
+          "turn": 1
+        },
+        {
+          "armor_after": 0,
+          "armor_before": 0,
+          "hp_damage": 172,
+          "turn": 2
+        }
+      ],
+      "scenario_armor": 0,
+      "seed": 333,
+      "terminal": "WON",
+      "ttk_turns": 2,
+      "turns": 2
+    },
+    {
+      "actual_armor": 0,
+      "actual_atk": 18,
+      "actual_hp": 300,
+      "armor_scenario_ok": true,
+      "break_turn": -1,
+      "hp_damage": 344,
+      "mode": "break",
+      "profile": "BR_eclipse_low",
+      "rows": [
+        {
+          "armor_after": 0,
+          "armor_before": 0,
+          "hp_damage": 172,
+          "turn": 1
+        },
+        {
+          "armor_after": 0,
+          "armor_before": 0,
+          "hp_damage": 172,
+          "turn": 2
+        }
+      ],
+      "scenario_armor": 0,
+      "seed": 555,
+      "terminal": "WON",
+      "ttk_turns": 2,
+      "turns": 2
+    },
+    {
+      "actual_armor": 90,
+      "actual_atk": 18,
+      "actual_hp": 300,
+      "armor_scenario_ok": true,
+      "break_turn": 1,
+      "hp_damage": 344,
+      "mode": "break",
+      "profile": "BR_eclipse_high",
+      "rows": [
+        {
+          "armor_after": 0,
+          "armor_before": 90,
+          "hp_damage": 172,
+          "turn": 1
+        },
+        {
+          "armor_after": 0,
+          "armor_before": 0,
+          "hp_damage": 172,
+          "turn": 2
+        }
+      ],
+      "scenario_armor": 90,
+      "seed": 111,
+      "terminal": "WON",
+      "ttk_turns": 2,
+      "turns": 2
+    },
+    {
+      "actual_armor": 90,
+      "actual_atk": 18,
+      "actual_hp": 300,
+      "armor_scenario_ok": true,
+      "break_turn": 1,
+      "hp_damage": 344,
+      "mode": "break",
+      "profile": "BR_eclipse_high",
+      "rows": [
+        {
+          "armor_after": 0,
+          "armor_before": 90,
+          "hp_damage": 172,
+          "turn": 1
+        },
+        {
+          "armor_after": 0,
+          "armor_before": 0,
+          "hp_damage": 172,
+          "turn": 2
+        }
+      ],
+      "scenario_armor": 90,
+      "seed": 333,
+      "terminal": "WON",
+      "ttk_turns": 2,
+      "turns": 2
+    },
+    {
+      "actual_armor": 90,
+      "actual_atk": 18,
+      "actual_hp": 300,
+      "armor_scenario_ok": true,
+      "break_turn": 1,
+      "hp_damage": 344,
+      "mode": "break",
+      "profile": "BR_eclipse_high",
+      "rows": [
+        {
+          "armor_after": 0,
+          "armor_before": 90,
+          "hp_damage": 172,
+          "turn": 1
+        },
+        {
+          "armor_after": 0,
+          "armor_before": 0,
+          "hp_damage": 172,
+          "turn": 2
+        }
+      ],
+      "scenario_armor": 90,
+      "seed": 555,
+      "terminal": "WON",
+      "ttk_turns": 2,
+      "turns": 2
+    },
+    {
+      "actual_armor": 0,
+      "actual_atk": 18,
+      "actual_hp": 300,
+      "armor_scenario_ok": true,
+      "break_turn": -1,
+      "hp_damage": 414,
+      "mode": "break",
+      "profile": "BR_control_low",
+      "rows": [
+        {
+          "armor_after": 0,
+          "armor_before": 0,
+          "hp_damage": 138,
+          "turn": 1
+        },
+        {
+          "armor_after": 0,
+          "armor_before": 0,
+          "hp_damage": 138,
+          "turn": 2
+        },
+        {
+          "armor_after": 0,
+          "armor_before": 0,
+          "hp_damage": 138,
+          "turn": 3
+        }
+      ],
+      "scenario_armor": 0,
+      "seed": 111,
+      "terminal": "WON",
+      "ttk_turns": 3,
+      "turns": 3
+    },
+    {
+      "actual_armor": 0,
+      "actual_atk": 18,
+      "actual_hp": 300,
+      "armor_scenario_ok": true,
+      "break_turn": -1,
+      "hp_damage": 414,
+      "mode": "break",
+      "profile": "BR_control_low",
+      "rows": [
+        {
+          "armor_after": 0,
+          "armor_before": 0,
+          "hp_damage": 138,
+          "turn": 1
+        },
+        {
+          "armor_after": 0,
+          "armor_before": 0,
+          "hp_damage": 138,
+          "turn": 2
+        },
+        {
+          "armor_after": 0,
+          "armor_before": 0,
+          "hp_damage": 138,
+          "turn": 3
+        }
+      ],
+      "scenario_armor": 0,
+      "seed": 333,
+      "terminal": "WON",
+      "ttk_turns": 3,
+      "turns": 3
+    },
+    {
+      "actual_armor": 0,
+      "actual_atk": 18,
+      "actual_hp": 300,
+      "armor_scenario_ok": true,
+      "break_turn": -1,
+      "hp_damage": 414,
+      "mode": "break",
+      "profile": "BR_control_low",
+      "rows": [
+        {
+          "armor_after": 0,
+          "armor_before": 0,
+          "hp_damage": 138,
+          "turn": 1
+        },
+        {
+          "armor_after": 0,
+          "armor_before": 0,
+          "hp_damage": 138,
+          "turn": 2
+        },
+        {
+          "armor_after": 0,
+          "armor_before": 0,
+          "hp_damage": 138,
+          "turn": 3
+        }
+      ],
+      "scenario_armor": 0,
+      "seed": 555,
+      "terminal": "WON",
+      "ttk_turns": 3,
+      "turns": 3
+    },
+    {
+      "actual_armor": 90,
+      "actual_atk": 18,
+      "actual_hp": 300,
+      "armor_scenario_ok": true,
+      "break_turn": 1,
+      "hp_damage": 414,
+      "mode": "break",
+      "profile": "BR_control_high",
+      "rows": [
+        {
+          "armor_after": 0,
+          "armor_before": 90,
+          "hp_damage": 138,
+          "turn": 1
+        },
+        {
+          "armor_after": 0,
+          "armor_before": 0,
+          "hp_damage": 138,
+          "turn": 2
+        },
+        {
+          "armor_after": 0,
+          "armor_before": 0,
+          "hp_damage": 138,
+          "turn": 3
+        }
+      ],
+      "scenario_armor": 90,
+      "seed": 111,
+      "terminal": "WON",
+      "ttk_turns": 3,
+      "turns": 3
+    },
+    {
+      "actual_armor": 90,
+      "actual_atk": 18,
+      "actual_hp": 300,
+      "armor_scenario_ok": true,
+      "break_turn": 1,
+      "hp_damage": 414,
+      "mode": "break",
+      "profile": "BR_control_high",
+      "rows": [
+        {
+          "armor_after": 0,
+          "armor_before": 90,
+          "hp_damage": 138,
+          "turn": 1
+        },
+        {
+          "armor_after": 0,
+          "armor_before": 0,
+          "hp_damage": 138,
+          "turn": 2
+        },
+        {
+          "armor_after": 0,
+          "armor_before": 0,
+          "hp_damage": 138,
+          "turn": 3
+        }
+      ],
+      "scenario_armor": 90,
+      "seed": 333,
+      "terminal": "WON",
+      "ttk_turns": 3,
+      "turns": 3
+    },
+    {
+      "actual_armor": 90,
+      "actual_atk": 18,
+      "actual_hp": 300,
+      "armor_scenario_ok": true,
+      "break_turn": 1,
+      "hp_damage": 414,
+      "mode": "break",
+      "profile": "BR_control_high",
+      "rows": [
+        {
+          "armor_after": 0,
+          "armor_before": 90,
+          "hp_damage": 138,
+          "turn": 1
+        },
+        {
+          "armor_after": 0,
+          "armor_before": 0,
+          "hp_damage": 138,
+          "turn": 2
+        },
+        {
+          "armor_after": 0,
+          "armor_before": 0,
+          "hp_damage": 138,
+          "turn": 3
+        }
+      ],
+      "scenario_armor": 90,
+      "seed": 555,
+      "terminal": "WON",
+      "ttk_turns": 3,
+      "turns": 3
+    }
+  ],
+  "seeds": [
+    111,
+    333,
+    555
+  ]
+}

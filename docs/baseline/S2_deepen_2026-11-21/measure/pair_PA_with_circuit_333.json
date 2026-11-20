@@ -1,0 +1,51 @@
+{
+  "has_pair_circuit": true,
+  "hp_damage": 0,
+  "mode": "pair",
+  "pair_bonus_damage": 113,
+  "pair_spin_count": 2,
+  "profile": "PA_with_circuit",
+  "rows": [
+    {
+      "hp_damage": 42,
+      "pair_fired": 1,
+      "triple": false,
+      "turn": 1
+    },
+    {
+      "hp_damage": 71,
+      "pair_fired": 1,
+      "triple": false,
+      "turn": 2
+    },
+    {
+      "hp_damage": 52,
+      "pair_fired": 0,
+      "triple": false,
+      "turn": 3
+    },
+    {
+      "hp_damage": 31,
+      "pair_fired": 0,
+      "triple": false,
+      "turn": 4
+    },
+    {
+      "hp_damage": 31,
+      "pair_fired": 0,
+      "triple": false,
+      "turn": 5
+    },
+    {
+      "hp_damage": 31,
+      "pair_fired": 0,
+      "triple": false,
+      "turn": 6
+    }
+  ],
+  "seed": 333,
+  "terminal": "LOST",
+  "triple_count": 0,
+  "ttk_turns": 6,
+  "turns": 6
+}

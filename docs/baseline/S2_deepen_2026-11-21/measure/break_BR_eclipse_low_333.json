@@ -1,0 +1,29 @@
+{
+  "actual_armor": 0,
+  "actual_atk": 18,
+  "actual_hp": 300,
+  "armor_scenario_ok": true,
+  "break_turn": -1,
+  "hp_damage": 344,
+  "mode": "break",
+  "profile": "BR_eclipse_low",
+  "rows": [
+    {
+      "armor_after": 0,
+      "armor_before": 0,
+      "hp_damage": 172,
+      "turn": 1
+    },
+    {
+      "armor_after": 0,
+      "armor_before": 0,
+      "hp_damage": 172,
+      "turn": 2
+    }
+  ],
+  "scenario_armor": 0,
+  "seed": 333,
+  "terminal": "WON",
+  "ttk_turns": 2,
+  "turns": 2
+}

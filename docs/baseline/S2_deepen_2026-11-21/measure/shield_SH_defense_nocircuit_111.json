@@ -1,0 +1,63 @@
+{
+  "circuit_triggers": {},
+  "decay_found": false,
+  "mode": "shield",
+  "profile": "SH_defense_nocircuit",
+  "rows": [
+    {
+      "begin": 0,
+      "blocked": 8,
+      "end": 0,
+      "gain": 8,
+      "hp_end": 88,
+      "raw_attack": 1,
+      "remaining": 0,
+      "turn": 1
+    },
+    {
+      "begin": 0,
+      "blocked": 8,
+      "end": 0,
+      "gain": 8,
+      "hp_end": 76,
+      "raw_attack": 1,
+      "remaining": 0,
+      "turn": 2
+    },
+    {
+      "begin": 0,
+      "blocked": 8,
+      "end": 0,
+      "gain": 8,
+      "hp_end": 64,
+      "raw_attack": 1,
+      "remaining": 0,
+      "turn": 3
+    },
+    {
+      "begin": 0,
+      "blocked": 8,
+      "end": 0,
+      "gain": 8,
+      "hp_end": 52,
+      "raw_attack": 1,
+      "remaining": 0,
+      "turn": 4
+    },
+    {
+      "begin": 0,
+      "blocked": 0,
+      "end": 8,
+      "gain": 8,
+      "hp_end": 52,
+      "raw_attack": 0,
+      "remaining": 8,
+      "turn": 5
+    }
+  ],
+  "seed": 111,
+  "shield_cap_found": false,
+  "shield_carry_rooms": 0,
+  "terminal": "WON",
+  "turns": 5
+}
