@@ -898,7 +898,10 @@ func _collect_weapon_items(loadout: Array) -> void:
 			var sp: String = sw.symbol.resource_path
 			var style_w: float = _ctrl._forge_styles.weight_delta(path, sp) if _ctrl._forge_styles != null else 0.0
 			weight_bonus[sp] = _ctrl.mastery.tune_bonus(path, sp) + style_w
-		var hit: float = clampf(wd.hit_rate + (_ctrl._forge_styles.hit_delta(path) if _ctrl._forge_styles != null else 0.0), 0.0, 1.0)
+		# S2 命中口径统一（2026-11-20 用户裁定 a）：校准铭印（槽位）与铸式命中都必须进入真实建池，
+		# 面板与实际带读同一精度结果。改用 controller 的权威口径 weapon_hit_in_slot（含 forge_style + weapon_slots）。
+		var slot: int = _ctrl.slot_of(path) if _ctrl != null else -1
+		var hit: float = _ctrl.weapon_hit_in_slot(path, slot) if _ctrl != null else clampf(float(wd.hit_rate), 0.0, 1.0)
 		_ctrl.pool_items.append(make_pool_item(wd.weapon_name, hit, weapon_syms(wd, weight_bonus), wd.get("rarity")))
 
 

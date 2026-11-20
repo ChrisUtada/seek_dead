@@ -58,6 +58,9 @@ func _run() -> void:
 	_test_budget_exhausted()
 	await _test_strip_consistency()
 
+	print("=== H S2 校准命中进入真实建池 ===")
+	await _test_calibrate_miss_cells()
+
 	_finish()
 
 
@@ -289,6 +292,51 @@ func _test_strip_consistency() -> void:
 			"有变化" if not lines.is_empty() else "无变化",
 			"变化" if sig_after != sig_before else "未变"])
 	_check(_sym_cells("fire_slash") > 0, "替换后火斩仍在带上（%d 格）" % _sym_cells("fire_slash"))
+
+
+# S2 命中边界裁定 a：校准铭印必须进入真实建池，面板与实际 MISS 格同口径。
+func _test_calibrate_miss_cells() -> void:
+	_new_run([SLOT_A, SLOT_B])
+	# 面板命中 == 建池命中（统一口径的核心断言）
+	var panel_hit: float = _duel.weapon_hit_in_slot(SLOT_A, 0)
+	var pool_hit: float = -1.0
+	for it in _duel.pool_items:
+		if String(it.get("name", "")) == String(_shop_name(SLOT_A)):
+			pool_hit = float(it.get("hit", -1.0))
+			break
+	_check(absf(panel_hit - pool_hit) < 0.0001,
+		"建池命中与面板一致（面板 %.3f / 建池 %.3f）" % [panel_hit, pool_hit])
+	var miss_before: int = _miss_cells()
+	# 给槽位 0 加一次校准（+5% 命中），重建池
+	var ok: bool = _duel.weapon_slots.choose(0, "calibrate") if _duel.weapon_slots != null else false
+	_check(ok, "槽位 0 校准铭印成功")
+	_duel._build_pool(_duel.selected_loadout)
+	var pool_hit2: float = -1.0
+	for it in _duel.pool_items:
+		if String(it.get("name", "")) == String(_shop_name(SLOT_A)):
+			pool_hit2 = float(it.get("hit", -1.0))
+			break
+	_check(pool_hit2 > pool_hit + 0.0001,
+		"校准后建池命中真实上升（%.3f → %.3f）" % [pool_hit, pool_hit2])
+	var miss_after: int = _miss_cells()
+	_check(miss_after <= miss_before,
+		"校准后 MISS 格不增加（%d → %d）" % [miss_before, miss_after])
+
+
+func _shop_name(path: String) -> String:
+	var wd: WeaponData = load(path)
+	return wd.weapon_name if wd != null else path.get_file().get_basename()
+
+
+# 统计真实转轮带上的 MISS 格数（S2 命中口径验证）。
+func _miss_cells() -> int:
+	var n := 0
+	_duel.reel_system.build_strips()
+	for strip in _duel.reel_system.reel_strips:
+		for cell in strip:
+			if cell[0] != null and String(cell[0].resource_path).ends_with("/miss.tres"):
+				n += 1
+	return n
 
 
 # 转轮带符号分布签名：每种符号的总格数，排序后拼接（用于判断「带子是否真的变了」）。
