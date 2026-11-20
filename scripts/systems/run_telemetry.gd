@@ -26,6 +26,8 @@ var buffer_queues := 0          # 进入一拍输入缓冲的次数
 var stop_outcomes: Dictionary = {}   # target/normal/miss/jam/lock/forced -> 次数
 var stop_kinds: Dictionary = {}      # G7-D：玩家主动停中的符号类别 damage/shield/heal/special/status/buff/trash -> 次数
 var consumable_uses: Dictionary = {} # G7-D：消耗品 effect -> 使用次数（多对策模式记录真实选择）
+# G7-5 §11.3：辅助选项来源快照（assist 辅助 / reward 奖励卡 / default），与奖励遥测分开
+var assist_snapshot: Dictionary = {}
 # 2026-11-11 Step 1：三连收益校准专用（只统计，不参与结算）
 var counter_triples := 0        # 克制元素三连触发的核爆次数
 var counter_burst_damage := 0   # 核爆穿透伤害合计
@@ -263,6 +265,8 @@ func summary() -> Dictionary:
 		"stop_kinds": stop_kinds.duplicate(), "consumable_uses": consumable_uses.duplicate(),
 		"counter_triples": counter_triples, "counter_burst_damage": counter_burst_damage,
 		"heal_total": heal_total, "heal_overflow_shield": heal_overflow_shield,
+		# G7-5 §11.3：辅助选项来源与奖励遥测分开记录
+		"assist": assist_snapshot.duplicate(),
 	}
 
 

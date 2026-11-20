@@ -348,6 +348,7 @@ var weapon_slots
 var _pattern_system
 var circuit_system                     # G4 本局回路系统（2槽/触发限制/来源日志；与装备牌谱分开）
 var machine_summary                    # G7-4 统一机器摘要（整备/换装/战后/局末同一口径；纯查询）
+var onboarding                         # G7-5 新手引导与辅助选项（首局四件事 + 辅助来源标注）
 var readability                        # P1 目押可读性原型（速度/预览/视觉落点/缓冲/反馈；不改数值）
 var _telemetry                         # M1-06 局内遥测（内存计数，不落盘/不吃随机；每局清零）
 var _journal                           # G5 工具：自动记录客观项（只读；导出包/--runlog 才落盘）
@@ -431,6 +432,8 @@ func _ready() -> void:
 	circuit_system = CircuitSystem.new(self)
 	# G7-4：统一机器摘要（纯查询，需在子系统注入后创建）
 	machine_summary = MachineSummary.new(self)
+	# G7-5：新手引导与辅助选项
+	onboarding = OnboardingAssist.new(self)
 	# G0-02：物品 tooltip 读取运行时武器状态（锋铸后的真实攻击 / R 等级 / 铭印），
 	# 静态生成器不持有 controller，由这里注入；共享 .tres 不被修改。
 	ItemTooltip.weapon_state_provider = _weapon_tooltip_state
@@ -1236,6 +1239,10 @@ func start_room_data(r: RoomData, idx: int, ria_override: int = -1, is_final: bo
 	if idx == 0 and _codex != null:
 		for wp in selected_loadout:
 			_codex.note_style_use(String(wp))
+	# G7-5：首局引导——进战斗提示"停符号结算"与"武器改变符号带"（不弹窗，走 _log，一次性）。
+	if idx == 0 and onboarding != null:
+		onboarding.hint("stop")
+		onboarding.hint("weapon")
 	room_element_mult = {}                # 元素精华：新房间失效（须在 _build_pool 之前清，否则旧房精华注入新房池）
 	peaceful_win = false                  # 勇者的阴影：和解标志每房复位
 	if readability != null:

@@ -46,6 +46,9 @@ func begin_post_battle() -> void:
 	if post_battle_active:
 		return
 	post_battle_active = true
+	# G7-5：首局引导——战后提示"选择会真实改造机器"（一次性，不弹窗）
+	if _ctrl.onboarding != null:
+		_ctrl.onboarding.hint("draft")
 	# L3 §6.6：先结算再开三选一——本场战果在三选一打开时已全部确定，供界面同屏展示。
 	# 原本 _award_victory 在 finish_room（选完之后）才发，改到这里提前发，确保战果栏数字准确。
 	_snapshot_before()

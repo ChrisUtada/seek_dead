@@ -254,6 +254,9 @@ func finish(reason: String = "") -> void:
 	_data["nodes_total"] = nodes_total
 	_data["nodes_visited"] = _data["route"].size() if _is_board() else _data["battles"].size()
 	if _ctrl._telemetry != null:
+		# G7-5 §11.3：辅助来源与奖励遥测分开记录
+		if _ctrl.onboarding != null:
+			_ctrl._telemetry.assist_snapshot = _ctrl.onboarding.assist_snapshot()
 		_data["telemetry"] = _ctrl._telemetry.summary()
 	_write_files()
 	if _file_logging():
