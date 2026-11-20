@@ -247,12 +247,17 @@ func _finish_battle_summary(is_boss: bool) -> void:
 		if not before_cons.has(p):
 			drops.append("消耗品")
 	var drop_txt: String = "、".join(drops) if not drops.is_empty() else "无"
+	# G7-4：战后复核接入统一机器摘要的可归因行（回路触发/未触发 + 赔付口径）
+	var attribution: Array[String] = []
+	if _ctrl.machine_summary != null:
+		attribution = _ctrl.machine_summary.attribution_lines()
 	last_battle_summary = {
 		"gold": d_gold,
 		"anvil": d_anvil,
 		"mastery": "本场武器熟练已结算",   # 熟练按本房有效结算，无单一增量字段
 		"drops": drop_txt,
 		"is_boss": is_boss,
+		"attribution": attribution,
 		"text": "金币 +%d · 熟练已计 · 铁砧 +%d · 掉落 %s" % [
 			d_gold, d_anvil, drop_txt],
 	}

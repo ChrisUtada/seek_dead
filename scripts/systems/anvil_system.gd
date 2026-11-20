@@ -318,6 +318,8 @@ func _check_collection_milestones() -> void:
 		if pct >= thr and not _ctrl.meta["collection_milestones"].has(i):
 			_ctrl.meta["collection_milestones"].append(i)
 			var bonus = int(BALANCE.anvil_milestone_bonus[i])
-			_ctrl.meta["anvil_points"] += bonus
-			_ctrl.hud._log("收藏里程碑 %.0f%%：铁砧点数 +%d（共 %d）" % [thr * 100, bonus, _ctrl.meta["anvil_points"]])
+			# G7-3：里程碑属于"条件解锁"——改为授予定向解锁额度（按每10点折算≈1次，向上取整至少1次）。
+			var unlocks: int = maxi(1, bonus / 10)
+			_ctrl.meta["directed_unlocks"] = int(_ctrl.meta.get("directed_unlocks", 0)) + unlocks
+			_ctrl.hud._log("收藏里程碑 %.0f%%：定向解锁 +%d（可自选装备）" % [thr * 100, unlocks])
 

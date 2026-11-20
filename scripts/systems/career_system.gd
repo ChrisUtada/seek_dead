@@ -340,6 +340,9 @@ func on_boss_cleared() -> void:
 	var boss_id := _boss_id(room)
 	if boss_id != "" and not _bosses.has(boss_id):
 		_bosses.append(boss_id)
+		# G7-3 条件接线：首次击败该 BOSS → 授予 1 次定向解锁额度（去重靠 _bosses）
+		if _ctrl._anvil_system != null:
+			_ctrl._anvil_system.earn_directed_unlock("boss:%s" % boss_id)
 
 	var before := _unlocked.size()
 	_unlock("first_clear")
@@ -397,6 +400,9 @@ func _unlock(id: String) -> bool:
 		return false
 	_unlocked.append(id)
 	_new_unlocks.append(id)
+	# G7-3 条件接线：生涯成就达成 → 授予 1 次定向解锁额度（_unlock 已去重）
+	if _ctrl._anvil_system != null:
+		_ctrl._anvil_system.earn_directed_unlock("career:%s" % id)
 	return true
 
 

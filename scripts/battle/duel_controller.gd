@@ -1239,6 +1239,9 @@ func start_room_data(r: RoomData, idx: int, ria_override: int = -1, is_final: bo
 	if idx == 0 and _codex != null:
 		for wp in selected_loadout:
 			_codex.note_style_use(String(wp))
+			# G7-3 条件接线：该武器累计出场每满 5 局 → 授予 1 次定向解锁额度
+			if int(_codex.style_uses_of(String(wp))) % 5 == 0 and _anvil_system != null:
+				_anvil_system.earn_directed_unlock("weapon:%s" % String(wp).get_file().get_basename())
 	# G7-5：首局引导——进战斗提示"停符号结算"与"武器改变符号带"（不弹窗，走 _log，一次性）。
 	if idx == 0 and onboarding != null:
 		onboarding.hint("stop")
