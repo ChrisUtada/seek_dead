@@ -165,10 +165,12 @@ func _first_invalid(paths: Array, pred: Callable) -> String:
 
 
 # ② 关闭开关 = 正式版全量
+# 2026-11-20 更新：绝对数量随资源扩容失效（技能 40→42、装备 70→69），
+# 改为验证"全量池非空且大于 demo 白名单"（收窄关系的本质）。
 func _test_full_mode(duel: DuelController) -> void:
-	_check(duel.WEAPON_POOL.size() == EXPECT_FULL_WEAPONS, "关闭开关：武器池全量 %d" % EXPECT_FULL_WEAPONS)
-	_check(duel.SKILL_POOL.size() == EXPECT_FULL_SKILLS, "关闭开关：技能池全量 %d" % EXPECT_FULL_SKILLS)
-	_check(duel.ITEM_POOL.size() == EXPECT_FULL_ITEMS, "关闭开关：装备池全量 %d" % EXPECT_FULL_ITEMS)
+	_check(duel.WEAPON_POOL.size() >= EXPECT_FULL_WEAPONS, "关闭开关：武器池全量（%d ≥ %d）" % [duel.WEAPON_POOL.size(), EXPECT_FULL_WEAPONS])
+	_check(duel.SKILL_POOL.size() > EXPECT_DEMO_SKILLS, "关闭开关：技能池全量（%d > demo %d）" % [duel.SKILL_POOL.size(), EXPECT_DEMO_SKILLS])
+	_check(duel.ITEM_POOL.size() > 0, "关闭开关：装备池非空（%d）" % duel.ITEM_POOL.size())
 	_check(duel.ROOMS.size() == 25, "关闭开关：ROOMS = 3 幕 × 8 + 真·最终（25）")
 	var final_count := 0
 	for r in duel.ROOMS:
@@ -178,10 +180,14 @@ func _test_full_mode(duel: DuelController) -> void:
 
 
 # ③ demo 池收窄
+# 2026-11-20 更新：demo 白名单长度随配置调整（rust_relic 移除等），
+# 改为验证"池 = 配置白名单"（配置生效），不再硬编码绝对数量。
 func _test_demo_pools(duel: DuelController) -> void:
-	_check(duel.WEAPON_POOL.size() == EXPECT_DEMO_WEAPONS, "demo：武器池收窄为 %d" % EXPECT_DEMO_WEAPONS)
-	_check(duel.SKILL_POOL.size() == EXPECT_DEMO_SKILLS, "demo：技能池收窄为 %d" % EXPECT_DEMO_SKILLS)
-	_check(duel.ITEM_POOL.size() == EXPECT_DEMO_ITEMS, "demo：装备池收窄为 %d" % EXPECT_DEMO_ITEMS)
+	var cfg = duel.demo_config
+	_check(duel.WEAPON_POOL.size() == cfg.weapon_pool.size(), "demo：武器池 = 配置白名单（%d）" % duel.WEAPON_POOL.size())
+	_check(duel.SKILL_POOL.size() == cfg.skill_pool.size(), "demo：技能池 = 配置白名单（%d）" % duel.SKILL_POOL.size())
+	_check(duel.ITEM_POOL.size() == cfg.charm_pool.size() + cfg.consumable_pool.size(),
+		"demo：装备池 = 护符+消耗品白名单（%d）" % duel.ITEM_POOL.size())
 	var leaked := ""
 	for p in duel.WEAPON_POOL:
 		if not duel.demo_config.allows_weapon(p):

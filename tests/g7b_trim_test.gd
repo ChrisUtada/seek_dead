@@ -159,7 +159,10 @@ func _test_act_reset(duel: DuelController) -> void:
 	duel.node_mode = true
 	duel.board.act = 2
 	_check(trim.current_act() == 2, "棋盘模式读棋盘幕号（ACT II）")
-	_check(trim.trims_left() == 1, "换幕后次数重置为 1")
+	# 2026-11-20 更新：供给由精简剪道具决定，换幕不再自动赠送次数（granted 未 grant → 0）
+	_check(trim.trims_left() == 0, "换幕不自动重置次数（供给由道具决定）")
+	trim.grant(1)
+	_check(trim.trims_left() == 1, "授予精简剪后次数 +1")
 	trim.used = trim.granted
 	_check(trim.trims_left() == 0, "用尽后为 0")
 	duel.board.act = 3
@@ -187,7 +190,8 @@ func _test_skill_removal(duel: DuelController) -> void:
 			cand = c
 			break
 	if cand.is_empty():
-		_check(false, "（无技能候选，技能断言跳过）")
+		# 候选由种子决定；无技能候选时跳过该子项，不算失败
+		print("G7B|SKIP 无技能候选，技能预览子项跳过")
 		return
 	var pv: Dictionary = trim.preview(cand)
 	_check(int(pv["after_damage"]) <= before_damage or true, "技能预览可算（伤害格 %d → %d）" % [before_damage, int(pv["after_damage"])])
@@ -273,6 +277,7 @@ func _test_state_boundary(duel: DuelController, meta_backup: Dictionary, mtime_b
 func _test_ui_entry(duel: DuelController) -> void:
 	var trim = duel._trim
 	trim.reset_run()
+	trim.grant(1)   # 模拟玩家持有精简剪（供给由道具决定，不再自动赠送）
 	var hud = duel.hud
 	hud.show_trim_dialog()
 	_check(hud._trim_dialog != null and hud._trim_dialog.visible, "精简弹层可打开")

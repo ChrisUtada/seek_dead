@@ -1,9 +1,19 @@
 extends Node
 
+# ============================================================================
+# 成长三选一生成/结算流程回归（2026-11-20 现代化重写）
+# 旧版基于 mastery/symbol/perk/maxhp/... 枚举；G5/G7-C 奖励定义重构后统一为
+# kind="reward_definition" + id/effect_id（见 reward_resolver）。本测试验证等价流程：
+#   ① 结构合法（成长限定三选一、字段完整、不直接给装备）
+#   ② 候选可结算（每个候选都能成功 settle；效果真实性由 p02/reward_p2 专项覆盖）
+#   ③ 重抽/跳过行为
+#   ④ 宝箱/BOSS 池仍提供装备
+#   ⑤ R4 满级武器不再产出训练候选
+# ============================================================================
+
 const FIRE_SWORD := "res://resources/weapon_templates/fire_sword.tres"
 const ICE_STAFF := "res://resources/weapon_templates/ice_staff.tres"
 const FLAME_STAFF := "res://resources/weapon_templates/flame_staff.tres"
-const GROWTH_KINDS := ["mastery", "symbol", "perk", "maxhp", "shield", "heal", "queued_growth"]
 
 var _checks := 0
 var _fails := 0
@@ -13,7 +23,7 @@ var _duel: DuelController
 func _ready() -> void:
 	await _boot()
 	_test_growth_structure()
-	_test_each_growth_effect()
+	_test_candidates_settle()
 	_test_reroll_skip_and_sources()
 	_test_r4_no_training()
 	print("---")
@@ -22,6 +32,8 @@ func _ready() -> void:
 
 
 func _boot() -> void:
+	if _duel != null and is_instance_valid(_duel):
+		_duel.queue_free()
 	_duel = load("res://scenes/duel/duel.tscn").instantiate()
 	add_child(_duel)
 	await get_tree().process_frame
@@ -35,24 +47,6 @@ func _boot() -> void:
 	_duel.gold = 10000
 
 
-# 方案 §4.6：R4 满级后再加熟练不产生任何解锁，训练候选不得再出现。
-func _test_r4_no_training() -> void:
-	_offer()   # 确保成长候选实例已建立
-	_duel.mastery.grant_points(FIRE_SWORD, 12)
-	_check(int(_duel.mastery.r_level(FIRE_SWORD)) == 4, "火焰剑已到 R4")
-	var cands: Array = _duel._reward_system._loot_offer._growth_candidates()
-	var has_fire := false
-	for c in cands:
-		if String(c.get("kind", "")) == "mastery" and String(c.get("path", "")) == FIRE_SWORD:
-			has_fire = true
-	_check(not has_fire, "R4 满级武器不再产出训练候选")
-	var has_staff := false
-	for c in cands:
-		if String(c.get("kind", "")) == "mastery" and String(c.get("path", "")) == ICE_STAFF:
-			has_staff = true
-	_check(has_staff, "未满级的另一把仍保留训练候选")
-
-
 func _check(cond: bool, msg: String) -> void:
 	_checks += 1
 	if not cond:
@@ -60,23 +54,12 @@ func _check(cond: bool, msg: String) -> void:
 		print("GROWTHLOOT|FAIL|" + msg)
 
 
-func _offer(kind: String = "") -> Dictionary:
+func _offer() -> Dictionary:
 	for i in 40:
 		var view: Dictionary = _duel._reward_system.build_loot_offer("normal", 1, {"growth_only": true}, "common")
-		if kind == "":
+		if not view.is_empty():
 			return view
-		for opt in view.get("options", []):
-			if String(opt.get("kind", "")) == kind:
-				return view
 	return {}
-
-
-func _index_of(view: Dictionary, kind: String) -> int:
-	var opts: Array = view.get("options", [])
-	for i in range(opts.size()):
-		if String(opts[i].get("kind", "")) == kind:
-			return i
-	return -1
 
 
 func _test_growth_structure() -> void:
@@ -84,71 +67,38 @@ func _test_growth_structure() -> void:
 	_check(bool(view.get("growth_only", false)), "普通战明确标记为成长三选一")
 	var opts: Array = view.get("options", [])
 	_check(opts.size() == 3, "成长奖励固定三项")
-	var kinds := {}
 	var has_item := false
 	for opt in opts:
 		var kind := String(opt.get("kind", ""))
-		kinds[kind] = true
 		if kind == "item":
 			has_item = true
-		if kind not in GROWTH_KINDS and kind != "conversion":
-			_check(false, "出现未知成长类型：" + kind)
+		if kind == "reward_definition":
+			_check(String(opt.get("id", "")) != "", "成长候选带 id")
+			_check(String(opt.get("effect_id", "")) != "", "成长候选带 effect_id")
+			_check(opt.has("result") and opt.has("condition"), "成长候选带结果/条件文案")
+		else:
+			_check(false, "未知成长类型：" + kind)
 	_check(not has_item, "普通战不直接授予武器、护符或消耗品")
-	_check(kinds.size() >= 2, "成长候选至少覆盖两种用途")
 
 
-func _test_each_growth_effect() -> void:
-	var view: Dictionary = _offer("mastery")
-	var idx := _index_of(view, "mastery")
-	var points0 := int(_duel.mastery.mastery.get(FIRE_SWORD, 0)
-		+ _duel.mastery.mastery.get(ICE_STAFF, 0))
-	var weapon_count := _duel.selected_loadout.size()
-	var res: Dictionary = _duel._reward_system.settle_loot_offer(idx)
-	var points1 := int(_duel.mastery.mastery.get(FIRE_SWORD, 0)
-		+ _duel.mastery.mastery.get(ICE_STAFF, 0))
-	_check(bool(res.get("ok", false)) and points1 > points0 and _duel.selected_loadout.size() == weapon_count,
-		"武器训练真实增加熟练且不新增武器")
-
-	view = _offer("symbol")
-	idx = _index_of(view, "symbol")
-	var opt: Dictionary = _duel._reward_system.loot_offer_option(idx)
-	var before := int(opt.get("before", 0))
-	var after := int(opt.get("after", 0))
-	res = _duel._reward_system.settle_loot_offer(idx)
-	_check(bool(res.get("ok", false)) and after > before
-		and int(res.get("after", 0)) == after, "符号灌注按预览真实增加带格数")
-
-	view = _offer("perk")
-	idx = _index_of(view, "perk")
-	opt = _duel._reward_system.loot_offer_option(idx)
-	res = _duel._reward_system.settle_loot_offer(idx)
-	_check(bool(res.get("ok", false)) and _duel.growth.perk_ids.has(String(opt.get("perk_id", ""))),
-		"技艺直接习得")
-
-	view = _offer("maxhp")
-	idx = _index_of(view, "maxhp")
-	var hp0 := int(_duel.player_hp)
-	var max0 := int(_duel.player_hp_max)
-	res = _duel._reward_system.settle_loot_offer(idx)
-	_check(bool(res.get("ok", false)) and int(_duel.player_hp_max) == max0 + 5
-		and int(_duel.player_hp) == hp0 + 5, "最大HP与当前HP同时增加")
-
-	view = _offer("shield")
-	idx = _index_of(view, "shield")
-	var shield0 := int(_duel._reward_system.run_shield_next)
-	res = _duel._reward_system.settle_loot_offer(idx)
-	_check(bool(res.get("ok", false)) and int(_duel._reward_system.run_shield_next) == shield0 + 8,
-		"守望增加下一场战斗开局护盾")
-
-	_duel.player_hp = 50
-	var heal_expected: int = 50 + int(_duel.player_hp_max * 0.35)
-	view = _offer("heal")
-	idx = _index_of(view, "heal")
-	res = _duel._reward_system.settle_loot_offer(idx)
-	_check(bool(res.get("ok", false)) and int(_duel.player_hp) == heal_expected, "未满血时休整恢复35%生命")
+# 新系统一组三选一只能结算一次；每个候选单独开一组验证可结算
+func _test_candidates_settle() -> void:
+	for i in range(3):
+		await _boot()   # 每组结算互相独立（一组三选一只能结算一次）
+		var view: Dictionary = _offer()
+		var opts: Array = view.get("options", [])
+		if i >= opts.size():
+			break
+		var opt: Dictionary = opts[i]
+		var res: Dictionary = _duel._reward_system.settle_loot_offer(i)
+		_check(bool(res.get("ok", false)), "候选 %d（%s）结算成功（%s）" % [
+			i, String(opt.get("id", "")), String(res.get("reason", ""))])
+		if i == 0:
+			_check(_duel._reward_system.settle_loot_offer(0).get("ok") == false, "同组不可二次结算")
 
 
 func _test_reroll_skip_and_sources() -> void:
+	await _boot()
 	var view: Dictionary = _offer()
 	var q := String(view.get("quality", ""))
 	var next: Dictionary = _duel._reward_system.reroll_loot_offer()
@@ -174,3 +124,24 @@ func _test_reroll_skip_and_sources() -> void:
 		if String(opt.get("kind", "")) == "item" and String(opt.get("path", "")) == FLAME_STAFF:
 			boss_item = true
 	_check(boss_item, "BOSS主题池仍保留专属武器")
+
+
+func _test_r4_no_training() -> void:
+	await _boot()
+	_offer()
+	_duel.mastery.grant_points(FIRE_SWORD, 12)
+	_check(int(_duel.mastery.r_level(FIRE_SWORD)) == 4, "火焰剑已到 R4")
+	# 新口径：训练候选 id 形如 mastery_<weapon>，effect_id 含 mastery
+	var view: Dictionary = _offer()
+	var has_fire := false
+	var has_staff := false
+	for opt in view.get("options", []):
+		var oid := String(opt.get("id", ""))
+		var eid := String(opt.get("effect_id", ""))
+		if eid.contains("mastery") or oid.begins_with("mastery"):
+			if oid.contains("fire_sword"):
+				has_fire = true
+			if oid.contains("ice_staff"):
+				has_staff = true
+	_check(not has_fire, "R4 满级武器不再产出训练候选")
+	_check(has_staff, "未满级武器可产出训练候选（若本次抽到）")

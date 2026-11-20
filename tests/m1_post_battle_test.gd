@@ -112,16 +112,13 @@ func _test_three_slots(duel: DuelController) -> void:
 	var view: Dictionary = duel.room_flow.loot_view()
 	var opts: Array = view.get("options", [])
 	_check(opts.size() == 3, "冻结 payload 为 3 项")
-	var q := String(view.get("quality", ""))
-	var same_tier := true
+	# 2026-11-20 更新：旧 LootOffer 保证整组同品质；新 Draft 系统每张卡品质独立，
+	# 不再保证"三项同层"。改验证每张候选都有合法品质名（见下方 quality_name 断言）。
 	for o in opts:
-		if String(o.get("quality", "")) != q:
-			same_tier = false
 		_check(String(o.get("quality_name", "")) != "", "候选带品质名")
 		_check(String(o.get("condition", "")) != "", "候选带条件文本")
 		_check(String(o.get("result", "")) != "", "候选带结果文本")
 		_check(String(o.get("tooltip", "")) != "", "候选带机制文本")
-	_check(same_tier, "三项同层")
 	# 2026-11-19 技艺改由 Draft 概率注入，成长队列不再固定为技艺
 	# 手动点一张不需要替换弹层的卡 → 战利品结算一次 → 进入成长阶段。
 	var pick := -1

@@ -127,12 +127,19 @@ func _test_tag_coverage() -> void:
 		"非信物护符带 chest 标签（%d 件，缺 %d）" % [charm_ok, charm_bad])
 	_check(relic_leak == 0, "BOSS 信物不带 chest 标签（泄漏 %d）" % relic_leak)
 
+	# 2026-11-20 更新：精简剪刀（trim_scissors）是 G7-B 特殊机制道具，
+	# 设计上只走精英/商店来源，不进宝箱池（见 room_flow TRIM_ITEM_PATH 注释），故不算遗漏。
+	const NO_CHEST_CONSUMABLES := ["trim_scissors.tres"]
 	var consumable_missing := 0
+	var missing_names: Array[String] = []
 	for p in consumables:
 		if not ("chest" in _tags(String(p))):
-			consumable_missing += 1
+			var fname: String = String(p).get_file()
+			if not NO_CHEST_CONSUMABLES.has(fname):
+				consumable_missing += 1
+				missing_names.append(fname)
 	_check(consumables.size() > 0 and consumable_missing == 0,
-		"全部消耗品带 chest 标签（%d 件，缺 %d）" % [consumables.size(), consumable_missing])
+		"消耗品带 chest 标签（%d 件，缺 %d：%s）" % [consumables.size(), consumable_missing, ", ".join(missing_names)])
 
 	var skill_chest := 0
 	for p in skills:

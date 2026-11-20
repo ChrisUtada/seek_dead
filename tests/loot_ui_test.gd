@@ -155,13 +155,12 @@ func _test_loot_screen_layout() -> void:
 	for i in range(opts.size()):
 		var o: Dictionary = opts[i]
 		_check(String(o.get("quality_name", "")) != "", "候选 %d 带品质名" % i)
-		_check(String(o.get("mechanism", "")) != "", "候选 %d 带机制文本" % i)
+		# 2026-11-20 更新：reward_definition 用 tooltip 承载机制（旧 mechanism 字段不再保证存在）
+		_check(String(o.get("mechanism", o.get("tooltip", ""))) != "", "候选 %d 带机制文本" % i)
 		_check(String(o.get("condition", "")) != "", "候选 %d 带条件文本" % i)
 		_check(String(o.get("result", "")) != "", "候选 %d 带结果文本" % i)
-		_check(String(o.get("tooltip", "")).find("条件：") >= 0,
-			"候选 %d 悬停窗含条件" % i)
-		_check(String(o.get("tooltip", "")).find("结果：") >= 0,
-			"候选 %d 悬停窗含结果" % i)
+		# 新 tooltip 为纯描述文本；条件/结果已在独立字段断言，这里只验证 tooltip 有内容
+		_check(String(o.get("tooltip", "")) != "", "候选 %d 悬停窗有描述" % i)
 	# 卡片内容不越出卡片（480×270 固定分辨率）
 	for i in range(r.reward_grid.get_child_count()):
 		_check_card_content("战利品卡 %d" % i, r.reward_grid.get_child(i) as Button)
@@ -179,12 +178,9 @@ func _test_no_rarity_bait() -> void:
 	var r := _begin()
 	await _frames(4)
 	var view: Dictionary = _duel.room_flow.loot_view()
-	var q := String(view.get("quality", ""))
-	var all_same := true
+	# 2026-11-20 更新：新 Draft 系统每张卡品质独立，不再保证三项同层；改验证每卡有合法品质名
 	for o in view.get("options", []):
-		if String((o as Dictionary).get("quality", "")) != q:
-			all_same = false
-	_check(all_same, "三项品质完全相同（%s）" % q)
+		_check(String((o as Dictionary).get("quality_name", "")) != "", "候选带合法品质名")
 	# 同层候选不得出现「更高品质」诱导字样或向上箭头
 	var bait := false
 	for i in range(r.reward_grid.get_child_count()):
@@ -280,20 +276,31 @@ func _test_click_settles_once() -> void:
 
 
 func _snapshot() -> String:
-	return "%d|%s|%s|%s" % [_duel.gold, str(_duel.selected_loadout), str(_duel.selected_charms),
-		str(_duel.consumable_slots.size())]
+	# 2026-11-20 更新：新奖励效果多样（符文/调律/回路/技艺/护盾等），快照需覆盖更多状态，
+	# 否则点了奖励但快照不变会被误判为"未结算"。
+	var cir := ""
+	if _duel.circuit_system != null:
+		cir = str(_duel.circuit_system.equipped)
+	return "%d|%s|%s|%s|%d|%d|%s|%s|%s" % [
+		_duel.gold, str(_duel.selected_loadout), str(_duel.selected_charms),
+		str(_duel.consumable_slots.size()),
+		_duel._reward_system.run_power_bonus, _duel._reward_system.run_shield_next,
+		str(_duel.mastery.imprints), str(_duel.growth.perk_ids), cir]
 
 
 func _test_skip_settles_once() -> void:
 	_fresh()
 	var r := _begin()
 	await _frames(4)
-	var skip_view: Dictionary = _duel.room_flow.loot_view().get("skip", {})
+	# 2026-11-20 更新：跳过预览走 reward_system.loot_offer_skip()（新 API）
+	var skip_view: Dictionary = _duel._reward_system.loot_offer_skip()
 	var power0 := int(_duel._reward_system.run_power_bonus)
+	var gold0 := int(_duel.gold)
 	_duel._on_loot_offer_skip()
 	_check(String(skip_view.get("kind", "")) == "skip"
 		and int(skip_view.get("gold", 0)) == 0 and int(skip_view.get("power", 0)) == 0
-		and int(_duel._reward_system.run_power_bonus) == power0,
+		and int(_duel._reward_system.run_power_bonus) == power0
+		and int(_duel.gold) == gold0,
 		"跳过本身免费且零收益；后续清房金币独立结算")
 	_check(_duel._reward_system._loot_settled, "跳过走同一套「已结算」标记")
 	_check(not _duel.room_flow.post_battle_active, "跳过后面板收尾")

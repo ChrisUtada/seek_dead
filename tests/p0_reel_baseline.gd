@@ -97,11 +97,18 @@ func _measure(sc: Dictionary) -> Dictionary:
 				_duel.mastery.imprints[wp] = row
 
 	# 锋铸：每把最多 2 次（不改变带子，只改基础攻击）。
+	# 2026-11-20 修正：G7-A S2 后 mastery.forge_bonus() 实际读 weapon_slots.forge_bonus(slot)，
+	# 写 mastery.imprints["forge"] 无效（与 G7 门禁探针踩过的坑相同）。
 	if int(sc["forge"]) > 0:
+		var slot := 0
 		for wp in weapons:
+			if _duel.weapon_slots != null and _duel.weapon_slots.valid_slot(slot):
+				for _k in range(int(sc["forge"])):
+					_duel.weapon_slots.choose(slot, "forge")
 			var row: Dictionary = _duel.mastery.imprints.get(wp, {"forge": 0, "tune": {}}).duplicate(true)
 			row["forge"] = int(sc["forge"])
 			_duel.mastery.imprints[wp] = row
+			slot += 1
 
 	# —— 建池 + 建带（固定种子；连续两次验证组成确定性）——
 	_duel.reel_system.build_pool(_duel.selected_loadout)
