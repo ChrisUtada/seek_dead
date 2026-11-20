@@ -498,7 +498,7 @@ func _refresh_career() -> void:
 
 # ---------------------------------------------------------------------------
 # G6-05 横向铸式：底栏入口 + 4 把代表武器（标准 / 变体二选一）。
-# 选择写入 anvil_meta.forge_styles；变体需该武器历史熟练 R2。
+# 选择写入 anvil_meta.forge_styles；变体需该武器累计出场 3 局（G7-1 行为条件，老档 R2 保留）。
 # 每行展示优势、代价、属性差异与真实转轮带格数差异（ReelPreview，同 build_strips 口径）。
 # ---------------------------------------------------------------------------
 func _build_forge_ui() -> void:
@@ -507,7 +507,7 @@ func _build_forge_ui() -> void:
 	_forge_btn = Button.new()
 	_forge_btn.text = "🔨"
 	_forge_btn.add_theme_font_size_override("font_size", 9)
-	_forge_btn.tooltip_text = "横向铸式：4 把代表武器，有得有失（历史熟练 R2 解锁变体）"
+	_forge_btn.tooltip_text = "横向铸式：4 把代表武器，有得有失（累计出场 3 局解锁变体）"
 	_forge_btn.pressed.connect(_toggle_forge)
 	var bar: Node = confirm_btn.get_parent()
 	bar.add_child(_forge_btn)
@@ -571,7 +571,7 @@ func _refresh_forge() -> void:
 	for c in _forge_box.get_children():
 		_forge_box.remove_child(c)
 		c.queue_free()
-	_forge_box.add_child(_forge_label("变体在整备时选择，最多一个；历史熟练达 R2 解锁。标准形态始终可选，铸式有得有失。", 9, Palette.MUTED))
+	_forge_box.add_child(_forge_label("变体在整备时选择，最多一个；该武器累计出场 3 局解锁。标准形态始终可选，铸式有得有失。", 9, Palette.MUTED))
 	var fs = controller._forge_styles
 	for path in fs.supported_paths():
 		_add_forge_section(fs, String(path))
@@ -600,7 +600,7 @@ func _add_forge_section(fs, path: String) -> void:
 	std_btn.pressed.connect(_on_forge_choose.bind(path, ""))
 	row.add_child(std_btn)
 	var style_btn := Button.new()
-	var unlock_suffix := "" if fs.unlocked(path) else "（R2）"
+	var unlock_suffix := "" if fs.unlocked(path) else "（需3局）"
 	style_btn.text = String(d["name"]) + unlock_suffix
 	style_btn.add_theme_font_size_override("font_size", 9)
 	style_btn.disabled = not owned
