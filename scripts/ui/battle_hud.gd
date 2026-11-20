@@ -1913,19 +1913,19 @@ func _refresh_meta() -> void:
 	enemy_armor_label.text = "%d/%d" % [max(controller.state.enemy_armor, 0), controller.state.enemy_armor_max]
 	enemy_armor_label.tooltip_text = "护甲 %d/%d" % [max(controller.state.enemy_armor, 0), controller.state.enemy_armor_max]
 	enemy_status_label.text = "状态: " + ("无" if controller.state.enemy_status.is_empty() else controller.status_system.status_summary(controller.state.enemy_status))
-	# C4-3：BOSS 机制摘要（纯展示字段；空值不占位）；完整机制仍在 tooltip
-	var room_list: Array = controller.state.ROOMS
-	var cur_room: RoomData = room_list[controller.state.room_index] if controller.state.room_index >= 0 and controller.state.room_index < room_list.size() else null
-	var mech_txt: String = String(cur_room.mechanic_summary) if cur_room != null else ""
-	# Step 5：节奏窗口标签（蓄势/爆发/恢复）——与机制摘要同一行，玩家不用读长文即可判断当前时段。
+	# C4-3 / 2026-11-20 修复：机制说明文本过长会撑高敌人面板 VBox，
+	# 遮挡 TopBar 的「商店 / 下一房」按钮。面板上只保留极短的节奏窗口标签，
+	# 完整机制说明移到 tooltip（悬停可查，不占布局）。
 	var rhythm := ""
 	if controller.current_gimmick != null:
 		rhythm = String(controller.current_gimmick.rhythm_window(controller))
-	if rhythm != "":
-		mech_txt = "【%s】%s" % [rhythm, mech_txt] if mech_txt != "" else "【%s】" % rhythm
-	enemy_mechanic_label.text = mech_txt
-	enemy_mechanic_label.visible = mech_txt != ""
-	enemy_mechanic_label.tooltip_text = mech_txt
+	var short_txt: String = "【%s】" % rhythm if rhythm != "" else ""
+	enemy_mechanic_label.text = short_txt
+	enemy_mechanic_label.visible = short_txt != ""
+	var room_list: Array = controller.state.ROOMS
+	var cur_room: RoomData = room_list[controller.state.room_index] if controller.state.room_index >= 0 and controller.state.room_index < room_list.size() else null
+	var mech_txt: String = String(cur_room.mechanic_summary) if cur_room != null else ""
+	enemy_mechanic_label.tooltip_text = ("【%s】\n%s" % [rhythm, mech_txt]) if mech_txt != "" else short_txt
 	match rhythm:
 		"爆发": enemy_mechanic_label.add_theme_color_override("font_color", Palette.POP_DAMAGE)
 		"恢复": enemy_mechanic_label.add_theme_color_override("font_color", Palette.POP_HEAL)
