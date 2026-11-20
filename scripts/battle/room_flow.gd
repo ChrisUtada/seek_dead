@@ -52,6 +52,8 @@ func begin_post_battle() -> void:
 	_settle_victory()
 	_award_victory(false)   # 铁砧/金币/掉落提前结算（原在 finish_room）
 	_finish_battle_summary(false)
+	# ⚠️ G6-1 曾尝试移除精英自动掉克制武器，但安全门实证未通过（ACT2 422→378 < 396 门槛），
+	# 已回退。方案 §7「去堆叠」需配合替代强度来源，不能在无补偿时直接删。
 	_grant_elite_trim()
 	# 成长候选先冻结：战利品阶段的 post_battle_has_growth() 仍要能回答「本房有没有真实成长」。
 	_post_offer = _growth_candidates()
@@ -196,6 +198,9 @@ func _award_victory(is_boss: bool) -> void:
 	_ctrl._anvil_system.award_meta(is_boss)    # M5：房间通关发放铁砧点数
 	_ctrl._meta_store.award_gold(is_boss)    # S6+S8：清房金币 + 利息
 	_ctrl._reward_system.apply_room_drops()   # T8：普通房 12% 掉消耗品 / 精英房保底护符（BOSS 走自身战利品）
+	# G6-2：Boss 遗物胜利时保证入账（不再混入三选一候选）；grant 内部按 run_relics 去重，重复调用安全。
+	if is_boss:
+		_ctrl._reward_system.grant_boss_relic(_ctrl.current_room)
 	if is_boss and _ctrl._career != null:
 		_ctrl._career.on_boss_cleared()        # G6-01：BOSS 通关 → 一次性生涯成就（只记录，不发属性）
 	if is_boss and _ctrl._codex != null:

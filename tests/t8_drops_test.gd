@@ -146,6 +146,7 @@ func _part_b_normal_drop_rate(duel: DuelController) -> void:
 	_check(rate > 0.06 and rate < 0.18, "普通房掉落率 ≈12%%（实测 %.1f%%）" % [rate * 100.0])
 	_check(gold_converted > 0, "腰带满折算金币路径被覆盖（%d 次）" % gold_converted)
 # ③ 精英保底护符：同一局内连续清精英——首 3 次免费开槽入槽（CHARM_CAP=3），此后全部转金币；永不掉信物
+# ⚠️ G6-1 曾尝试移除，但安全门未通过（ACT2 输出跌破 90% 门槛），已回退；保留原精英保底机制。
 func _part_c_elite_guarantee(duel: DuelController) -> void:
 	seed(8003)
 	var room := _room_of_kind(duel, "elite")

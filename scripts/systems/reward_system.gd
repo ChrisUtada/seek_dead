@@ -1226,19 +1226,9 @@ func roll_boss_rewards(room) -> Array:
 			"label": (wd.weapon_name if wd != null else p.get_file().get_basename()),
 			"desc": "新武器 · 进转轮带",
 		})
-	# ② Boss 信物（L2-E 遗物化）：不占护符槽，BOSS 必得！
-	# 旧逻辑「护符槽满则不出」会让打赢 BOSS 却拿不到纪念品（高潮落空）——已废弃。
-	# 信物入独立遗物栏 run_relics（本局拥有即生效、每局清零），图鉴 owned_charms 仍跨局。
-	if room.boss_relic_path != "" and not _ctrl.run_relics.has(room.boss_relic_path):
-		var rd: ItemData = load(room.boss_relic_path)
-		cands.append({
-			"kind": "boss_relic", "path": room.boss_relic_path,
-			"quality": String(rd.rarity) if rd != null else "",
-			"icon": (rd.icon if rd != null else "🏆"),
-			"label": (rd.item_name if rd != null else "Boss 信物"),
-			"desc": "遗物 · 拥有即生效（不占槽）",
-			"tip": (rd.description if rd != null else "专属遗物 · 本局永久生效"),
-		})
+	# ② Boss 信物：G6-2 起改为胜利时自动入账（grant_boss_relic），不再混入三选一候选。
+	# 方案 §7「Boss 遗物自动获得 + 同屏一个主题武器选择，不把必得遗物混入随机三张后可能消失」。
+	# 旧逻辑把信物当候选之一，玩家不选就错过（高潮落空）——已废弃。
 	_loot.shuffle_in_place(cands)   # 展示顺序随机（抽取本身已定层，不消耗地图 RNG）
 	# 空池保底（2026-08-14，docs/BOSS信物_设计方案.md §4）：武器槽满 2 + 无信物或无 Boss 信物掉落
 	# → 两来源全被拦截，注入铁砧点兜底卡，战利品永不空屏（L2-E：护符槽满不再拦截信物）
@@ -1573,6 +1563,27 @@ func apply_boss_reward(cand: Dictionary) -> void:
 	_ctrl.hud._refresh_meta()   # 自包含刷新（同上：新调用路径不依赖外部收尾）
 
 
+# G6-2：Boss 胜利时遗物保证入账（不再作为三选一候选，避免玩家不选就错过）。
+# 入独立遗物栏 run_relics（本局拥有即生效、不占护符槽、每局清零）；
+# 图鉴 owned_charms 跨局保留。返回是否实际新获得。
+func grant_boss_relic(room) -> bool:
+	if room == null:
+		return false
+	var p: String = String(room.boss_relic_path) if room.boss_relic_path != "" else ""
+	if p.is_empty() or _ctrl.run_relics.has(p):
+		return false
+	var rd: ItemData = load(p)
+	_ctrl.run_relics.append(p)
+	if not _ctrl.meta["owned_charms"].has(p):
+		_ctrl.meta["owned_charms"].append(p)
+		_ctrl._anvil_system.check_collection_milestones()
+	var label: String = rd.item_name if rd != null and String(rd.item_name) != "" else p.get_file().get_basename()
+	_ctrl.hud._log("🏆 BOSS 遗物自动入账：%s（不占槽）" % label)
+	_ctrl.hud._popup("🏆 获得遗物 %s" % label, Palette.ACCENT_GOLD, _ctrl.hud._player_sprite_anchor())
+	_ctrl.invalidate_state()
+	return true
+
+
 # 打开奖励屏的语义入口：填充 reward_choices / reward_is_boss（HUD 从 state 快照读取）。
 # 2026-08-09 由 controller._open_reward_screen 迁入（二次拆分 3/4）
 func open_reward_screen(is_boss: bool) -> void:
@@ -1603,9 +1614,11 @@ func apply_room_drops() -> void:
 	if _ctrl.room_index < 0 or _ctrl.room_index >= _ctrl.ROOMS.size():
 		return
 	var kind: String = _ctrl.ROOMS[_ctrl.room_index].kind
+	# ⚠️ G6-1 曾尝试移除精英自动掉护符，但安全门实证未通过（ACT2 422→378 < 396 门槛），
+	# 已回退。方案 §7「去堆叠」需配合替代强度来源，不能在无补偿时直接删。
 	if kind == "elite":
 		_drop_elite_charm()
-	elif kind == "normal" and randf() < BALANCE.drop_consumable_chance_normal:
+	if kind == "normal" and randf() < BALANCE.drop_consumable_chance_normal:
 		var res: Dictionary = _loot.roll("normal", _current_act(), {"category": "active"})
 		if bool(res.get("ok", false)):
 			_grant_drop_consumable(String(res["path"]))

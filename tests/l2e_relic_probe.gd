@@ -50,24 +50,22 @@ func _ready() -> void:
 	_check(cap_before >= _duel._loadout_system.cat_max("passive"), "护符槽已满（%d）" % cap_before)
 	_duel.run_relics.clear()
 
-	# --- ② 槽满时 BOSS 战利品仍含信物候选 ---
+	# --- ② G6-2：信物不再混入三选一候选（避免玩家不选就错过） ---
 	var cands: Array = _duel._reward_system.roll_boss_rewards(room)
-	var relic_cand: Dictionary = {}
+	var has_relic_cand := false
 	for c in cands:
 		if String(c.get("kind", "")) == "boss_relic":
-			relic_cand = c
+			has_relic_cand = true
 			break
-	_check(not relic_cand.is_empty(), "护符槽满时 BOSS 信物仍出现在战利品（必得）")
-	if relic_cand.is_empty():
-		_finish()
-		return
-	_check(String(relic_cand.get("path", "")) == relic_path, "信物候选路径正确")
+	_check(not has_relic_cand, "G6-2 BOSS 信物不再作为三选一候选")
 
-	# --- ③ 领取：入遗物栏、不占槽、图鉴保留 ---
-	_duel._reward_system.apply_boss_reward(relic_cand)
-	_check(_duel.run_relics.has(relic_path), "领取后进入本局遗物栏 run_relics")
-	_check(_duel.selected_charms.size() == cap_before, "领取信物不占护符槽（仍 %d）" % cap_before)
+	# --- ③ 胜利保证入账：入遗物栏、不占槽、图鉴保留 ---
+	var granted: bool = _duel._reward_system.grant_boss_relic(room)
+	_check(granted, "G6-2 胜利时遗物保证入账")
+	_check(_duel.run_relics.has(relic_path), "入账后进入本局遗物栏 run_relics")
+	_check(_duel.selected_charms.size() == cap_before, "遗物不占护符槽（仍 %d）" % cap_before)
 	_check(_duel.meta["owned_charms"].has(relic_path), "跨局图鉴 owned_charms 仍收录")
+	_check(not _duel._reward_system.grant_boss_relic(room), "重复入账被去重")
 
 	# --- ④ 遗物被动本局生效（frost_core_relic: damage_bonus +6）---
 	_duel._apply_charms()

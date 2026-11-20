@@ -1,0 +1,391 @@
+{
+  "boss": "冰封铁瓮",
+  "buffer_queues": 0,
+  "charms_owned": 1,
+  "codex": {
+    "charm": "0/0",
+    "skill": "4/42",
+    "weapon": "23/90"
+  },
+  "consumable_uses": {
+    "heal": 1
+  },
+  "counter_burst_damage": 10,
+  "counter_triples": 1,
+  "damage_blocked": 48,
+  "damage_taken": 164,
+  "enemy_attacks": 7,
+  "errors": [],
+  "growth": {
+    "mastery": "铭印：无",
+    "summary": "技艺：无"
+  },
+  "heal_overflow_shield": 0,
+  "heal_total": 0,
+  "mech": {
+    "dot_frost": 1,
+    "intent_attack": 6,
+    "intent_heavy": 5,
+    "relics_owned_max": 0
+  },
+  "relics_run": 0,
+  "rooms": [
+    {
+      "armor_end": 0,
+      "armor_max_start": 0,
+      "armor_start": 0,
+      "burst_turns": [],
+      "enemy_hp_start": 80,
+      "finished": true,
+      "frost_start": 0,
+      "hp_end": 100,
+      "hp_start": 100,
+      "jam_start": -1,
+      "kind": "normal",
+      "mechanic_summary": "每次受击\n自身+1霜（减攻）",
+      "name": "寒鳞蝠",
+      "recovery_turns": [],
+      "rhythm_seen": false,
+      "trait": "frost_hit",
+      "trait_done": false,
+      "turn_log": [
+        {
+          "armor": 0,
+          "armor_end": 0,
+          "enemy_hp": 80,
+          "enemy_hp_end": -92,
+          "frost": 0,
+          "frost_end": 0,
+          "hp": 100,
+          "hp_end": 100,
+          "turn": 1,
+          "window": ""
+        }
+      ],
+      "turns": 1
+    },
+    {
+      "armor_end": 0,
+      "armor_max_start": 0,
+      "armor_start": 0,
+      "burst_turns": [],
+      "enemy_hp_start": 92,
+      "finished": true,
+      "frost_start": 0,
+      "hp_end": 100,
+      "hp_start": 100,
+      "jam_start": -1,
+      "kind": "normal",
+      "mechanic_summary": "每回合首次受火伤\n回复6HP",
+      "name": "余烬傀儡",
+      "recovery_turns": [],
+      "rhythm_seen": false,
+      "trait": "ember_heal",
+      "trait_done": false,
+      "turn_log": [
+        {
+          "armor": 0,
+          "armor_end": 0,
+          "enemy_hp": 92,
+          "enemy_hp_end": -25,
+          "frost": 0,
+          "frost_end": 0,
+          "hp": 100,
+          "hp_end": 100,
+          "turn": 1,
+          "window": ""
+        }
+      ],
+      "turns": 1
+    },
+    {
+      "armor_end": 0,
+      "armor_max_start": 14,
+      "armor_start": 14,
+      "burst_turns": [],
+      "enemy_hp_start": 105,
+      "finished": true,
+      "frost_start": 0,
+      "hp_end": 100,
+      "hp_start": 100,
+      "jam_start": -1,
+      "kind": "normal",
+      "mechanic_summary": "首次受击\n中毒1层（一次）",
+      "name": "腐化史莱姆",
+      "recovery_turns": [],
+      "rhythm_seen": false,
+      "trait": "poison_hit",
+      "trait_done": true,
+      "turn_log": [
+        {
+          "armor": 14,
+          "armor_end": 0,
+          "enemy_hp": 105,
+          "enemy_hp_end": -12,
+          "frost": 0,
+          "frost_end": 0,
+          "hp": 100,
+          "hp_end": 100,
+          "turn": 1,
+          "window": ""
+        }
+      ],
+      "turns": 1
+    },
+    {
+      "armor_end": 0,
+      "armor_max_start": 0,
+      "armor_start": 0,
+      "burst_turns": [
+        2
+      ],
+      "enemy_hp_start": 252,
+      "finished": true,
+      "frost_start": 0,
+      "hp_end": 57,
+      "hp_start": 100,
+      "jam_start": -1,
+      "kind": "elite",
+      "mechanic_summary": "每3回合叠甲+冻结1列；破甲会立刻解除冻结（特殊三连破甲）。",
+      "name": "寒铁精英",
+      "recovery_turns": [
+        3
+      ],
+      "rhythm_seen": true,
+      "trait": "",
+      "trait_done": false,
+      "turn_log": [
+        {
+          "armor": 0,
+          "armor_end": 4,
+          "enemy_hp": 252,
+          "enemy_hp_end": 114,
+          "frost": 0,
+          "frost_end": 1,
+          "hp": 100,
+          "hp_end": 56,
+          "turn": 1,
+          "window": "蓄势"
+        },
+        {
+          "armor": 4,
+          "armor_end": 0,
+          "enemy_hp": 114,
+          "enemy_hp_end": 72,
+          "frost": 1,
+          "frost_end": 0,
+          "hp": 56,
+          "hp_end": 12,
+          "turn": 2,
+          "window": "爆发"
+        },
+        {
+          "armor": 0,
+          "armor_end": 0,
+          "enemy_hp": 72,
+          "enemy_hp_end": -66,
+          "frost": 0,
+          "frost_end": 0,
+          "hp": 57,
+          "hp_end": 57,
+          "turn": 3,
+          "window": "恢复"
+        }
+      ],
+      "turns": 3
+    },
+    {
+      "armor_end": 0,
+      "armor_max_start": 0,
+      "armor_start": 0,
+      "burst_turns": [],
+      "enemy_hp_start": 136,
+      "finished": true,
+      "frost_start": 0,
+      "hp_end": 54,
+      "hp_start": 57,
+      "jam_start": -1,
+      "kind": "normal",
+      "mechanic_summary": "首次受击后\n获得10护甲（一次）",
+      "name": "辉光游侠",
+      "recovery_turns": [],
+      "rhythm_seen": false,
+      "trait": "first_hit_ward",
+      "trait_done": true,
+      "turn_log": [
+        {
+          "armor": 0,
+          "armor_end": 10,
+          "enemy_hp": 136,
+          "enemy_hp_end": 19,
+          "frost": 0,
+          "frost_end": 0,
+          "hp": 57,
+          "hp_end": 54,
+          "turn": 1,
+          "window": ""
+        },
+        {
+          "armor": 10,
+          "armor_end": 0,
+          "enemy_hp": 19,
+          "enemy_hp_end": -98,
+          "frost": 0,
+          "frost_end": 0,
+          "hp": 54,
+          "hp_end": 54,
+          "turn": 2,
+          "window": ""
+        }
+      ],
+      "turns": 2
+    },
+    {
+      "armor_end": 0,
+      "armor_max_start": 20,
+      "armor_start": 20,
+      "burst_turns": [],
+      "enemy_hp_start": 250,
+      "finished": true,
+      "frost_start": 0,
+      "hp_end": 21,
+      "hp_start": 54,
+      "jam_start": -1,
+      "kind": "normal",
+      "mechanic_summary": "开局20护甲\n破甲后不再获得",
+      "name": "毒壳壁垒",
+      "recovery_turns": [],
+      "rhythm_seen": false,
+      "trait": "shell",
+      "trait_done": false,
+      "turn_log": [
+        {
+          "armor": 20,
+          "armor_end": 0,
+          "enemy_hp": 250,
+          "enemy_hp_end": 133,
+          "frost": 0,
+          "frost_end": 0,
+          "hp": 54,
+          "hp_end": 36,
+          "turn": 1,
+          "window": ""
+        },
+        {
+          "armor": 0,
+          "armor_end": 0,
+          "enemy_hp": 133,
+          "enemy_hp_end": 16,
+          "frost": 0,
+          "frost_end": 0,
+          "hp": 36,
+          "hp_end": 21,
+          "turn": 2,
+          "window": ""
+        },
+        {
+          "armor": 0,
+          "armor_end": 0,
+          "enemy_hp": 16,
+          "enemy_hp_end": -101,
+          "frost": 0,
+          "frost_end": 0,
+          "hp": 21,
+          "hp_end": 21,
+          "turn": 3,
+          "window": ""
+        }
+      ],
+      "turns": 3
+    },
+    {
+      "armor_end": 0,
+      "armor_max_start": 35,
+      "armor_start": 35,
+      "burst_turns": [],
+      "enemy_hp_start": 246,
+      "finished": true,
+      "frost_start": 0,
+      "hp_end": 13,
+      "hp_start": 21,
+      "jam_start": -1,
+      "kind": "elite",
+      "mechanic_summary": "每3回合补甲+冻结，并附加腐蚀（护盾收益-25%）；破甲解除腐蚀。",
+      "name": "锈铁傀儡",
+      "recovery_turns": [],
+      "rhythm_seen": false,
+      "trait": "",
+      "trait_done": false,
+      "turn_log": [
+        {
+          "armor": 35,
+          "armor_end": 0,
+          "enemy_hp": 246,
+          "enemy_hp_end": 108,
+          "frost": 0,
+          "frost_end": 0,
+          "hp": 21,
+          "hp_end": 13,
+          "turn": 1,
+          "window": "蓄势"
+        },
+        {
+          "armor": 0,
+          "armor_end": 0,
+          "enemy_hp": 108,
+          "enemy_hp_end": -30,
+          "frost": 0,
+          "frost_end": 0,
+          "hp": 13,
+          "hp_end": 13,
+          "turn": 2,
+          "window": "蓄势"
+        }
+      ],
+      "turns": 2
+    },
+    {
+      "armor_end": 0,
+      "armor_max_start": 34,
+      "armor_start": 34,
+      "burst_turns": [],
+      "enemy_hp_start": 411,
+      "finished": true,
+      "frost_start": 0,
+      "hp_end": -19,
+      "hp_start": 13,
+      "jam_start": -1,
+      "kind": "boss",
+      "mechanic_summary": "首轮蓄势1回合→爆发\n之后每3回合：蓄势→爆发\n叠甲冻结1~2列→恢复·特殊三连破甲",
+      "name": "冰封铁瓮",
+      "recovery_turns": [],
+      "rhythm_seen": false,
+      "trait": "",
+      "trait_done": false,
+      "turn_log": [
+        {
+          "armor": 34,
+          "armor_end": 0,
+          "enemy_hp": 411,
+          "enemy_hp_end": 273,
+          "frost": 0,
+          "frost_end": 0,
+          "hp": 13,
+          "hp_end": -19,
+          "turn": 1,
+          "window": "蓄势"
+        }
+      ],
+      "turns": 1
+    }
+  ],
+  "seed": 999,
+  "stop_total": 41,
+  "strategy": "tactical",
+  "target_hit_rate": 1.0,
+  "target_hits": 41,
+  "terminal": "LOST",
+  "triples": 13,
+  "turns": 14,
+  "weapon_swaps": 5
+}
