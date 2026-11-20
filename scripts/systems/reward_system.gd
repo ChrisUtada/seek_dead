@@ -476,8 +476,9 @@ func _make_symbol_weight_defs() -> Array:
 				continue
 			if int(run_symbol_bonus.get(path, 0)) >= SYMBOL_WEIGHT_MAX:
 				continue
-			# 已满格（4格上限）的符号再加权重也无可见变化，跳过
-			if _symbol_cells(sym, 0.0) >= 4:
+			# G3-3：灌注后无真实格数变化的符号跳过（旧版写死 4 格上限，
+			# G3-2 真实格数模型上限已升到 MAX_SYMBOL_CELLS，改为动态判定实际变化）
+			if _symbol_cells(sym, float(SYMBOL_WEIGHT_STEP)) <= _symbol_cells(sym, 0.0):
 				continue
 			seen[path] = true
 			var def := RewardDefinition.new()

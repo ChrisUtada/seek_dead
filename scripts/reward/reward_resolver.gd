@@ -107,9 +107,11 @@ func _preflight_effect(eid: String, params: Dictionary) -> String:
 				return "invalid_symbol"
 			if int(rs.run_symbol_bonus.get(path, 0)) >= int(RewardSystem.SYMBOL_WEIGHT_MAX):
 				return "symbol_weight_maxed"
-			# no_cell_change 的只读镜像：当前 bonus 已使符号满格（4 格）时再加无可见变化
+			# G3-3 合法性规则：no_cell_change 只读镜像——灌注后格数必须真实增加。
+			# 旧版写死"当前 ≥4 格"，G3-2 真实格数模型上限已升到 MAX_SYMBOL_CELLS=8，
+			# 继续用 4 会把 5–8 格区间的有效灌注误判为无变化。改为比较灌注前后格数。
 			var sym: SymbolData = load(path)
-			if sym != null and rs._symbol_cells(sym, 0.0) >= 4:
+			if sym != null and rs._symbol_cells(sym, float(weight)) <= rs._symbol_cells(sym, 0.0):
 				return "no_cell_change"
 			return ""
 		"gold_add":
