@@ -25,7 +25,9 @@ func _init(ctrl: DuelController, m: Dictionary) -> void:
 # ---------------------------------------------------------------------------
 
 func load_meta() -> void:
-	var defaults := {"anvil_points": 0, "owned_weapons": [], "owned_charms": [], "owned_consumables": [], "owned_skills": [], "anvil_pity": 0, "collection_milestones": [], "item_sources": {}, "career": {"unlocked": [], "bosses": []}, "codex": {}, "forge_styles": {}}
+	# G7-3：directed_unlocks = 玩家可用的定向解锁次数（条件达成/老档点数折算而来）。
+	# anvil_points 保留字段但退休（不再用于摇奖），仅作历史记录。
+	var defaults := {"anvil_points": 0, "owned_weapons": [], "owned_charms": [], "owned_consumables": [], "owned_skills": [], "anvil_pity": 0, "collection_milestones": [], "item_sources": {}, "career": {"unlocked": [], "bosses": []}, "codex": {}, "forge_styles": {}, "directed_unlocks": 0, "directed_claimed": []}
 	var lb = SaveSystem.load_lobby_data()
 	var had_save := false
 	var parsed: Dictionary = {}
@@ -40,7 +42,18 @@ func load_meta() -> void:
 	# 用固定清单而非目录扫描，避免以后新增技能被老档迁移一次性送完。
 	if had_save and not parsed.has("owned_skills"):
 		meta["owned_skills"] = _existing_paths(LEGACY_SKILLS)
-	_ctrl.hud._log("铁砧元进度已载入：点数 %d" % meta["anvil_points"])
+	# G7-3 老存档迁移：老点数不清空、不回锁；每 10 点折算 1 次定向解锁。
+	# 折算只在首次引入 directed_unlocks 时执行（parsed 无该字段），之后不再重复折算。
+	if had_save and not parsed.has("directed_unlocks"):
+		var legacy_points: int = int(meta.get("anvil_points", 0))
+		var converted: int = legacy_points / 10
+		meta["directed_unlocks"] = int(meta.get("directed_unlocks", 0)) + converted
+		if converted > 0:
+			_ctrl.hud._log("铁砧老档迁移：%d 点折算 %d 次定向解锁（点数保留作历史）" % [legacy_points, converted])
+		# 折算后立即落盘，避免下次启动重复折算老点数。
+		save_meta()
+	_ctrl.hud._log("铁砧元进度已载入：点数 %d（历史）/ 定向解锁 %d" % [
+		int(meta["anvil_points"]), int(meta.get("directed_unlocks", 0))])
 
 
 func save_meta() -> void:

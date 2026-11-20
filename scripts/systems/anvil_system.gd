@@ -50,6 +50,77 @@ func reset_run() -> void:
 
 
 # ---------------------------------------------------------------------------
+# G7-3 定向解锁（条件解锁 + 定向选择，替代随机摇奖）
+# ---------------------------------------------------------------------------
+
+# 当前可用的定向解锁次数（额度 = 条件达成 + 老档点数折算 - 已使用）。
+func available_directed_unlocks() -> int:
+	return maxi(0, int(_ctrl.meta.get("directed_unlocks", 0)))
+
+
+# 条件达成：授予一次定向解锁额度。reason = "boss"/"career"/"weapon_milestone"/"legacy_points"。
+# 由 Boss 击杀、生涯成就达成、武器出场里程碑等外部事件调用。
+func earn_directed_unlock(reason: String) -> bool:
+	if reason.is_empty():
+		return false
+	_ctrl.meta["directed_unlocks"] = int(_ctrl.meta.get("directed_unlocks", 0)) + 1
+	_ctrl._meta_store.save_meta()
+	_ctrl.hud._log("定向解锁 +1（来源：%s，当前 %d）" % [reason, available_directed_unlocks()])
+	return true
+
+
+# 定向解锁候选：全部未拥有的武器/护符/技能（BOSS 信物不进池，同旧池口径）。
+func directed_candidates() -> Array:
+	var out: Array = []
+	for p in _anvil_pool():
+		if _anvil_is_owned(p):
+			continue
+		var d = load(p)
+		var nm: String = ""
+		var rarity: String = "common"
+		if d is WeaponData:
+			nm = String(d.weapon_name)
+			rarity = String(d.rarity)
+		elif d is ItemData:
+			nm = String(d.item_name)
+			rarity = String(d.rarity)
+		elif d is SkillData:
+			nm = String(d.buff_name)
+			rarity = String(d.rarity)
+		if nm.is_empty():
+			nm = p.get_file().get_basename()
+		out.append({"path": p, "name": nm, "rarity": rarity})
+	return out
+
+
+# 定向选择：花 1 次额度，解锁指定内容（不随机、不返还、不空池）。
+# 返回 {ok, reason}。
+func claim_directed_unlock(path: String) -> Dictionary:
+	if available_directed_unlocks() <= 0:
+		return {"ok": false, "reason": "no_unlock_available"}
+	if path.is_empty() or ResourceLoader.load(path) == null:
+		return {"ok": false, "reason": "invalid_path"}
+	if _anvil_is_owned(path):
+		return {"ok": false, "reason": "already_owned"}
+	var valid := false
+	for c in directed_candidates():
+		if String(c["path"]) == path:
+			valid = true
+			break
+	if not valid:
+		return {"ok": false, "reason": "not_in_pool"}
+	_ctrl.meta["directed_unlocks"] = int(_ctrl.meta.get("directed_unlocks", 0)) - 1
+	if not _ctrl.meta.has("directed_claimed") or not (_ctrl.meta["directed_claimed"] is Array):
+		_ctrl.meta["directed_claimed"] = []
+	if not _ctrl.meta["directed_claimed"].has(path):
+		_ctrl.meta["directed_claimed"].append(path)
+	_anvil_grant_owned(path)
+	_ctrl._meta_store.save_meta()
+	_ctrl.hud._log("定向解锁：%s（剩余 %d 次）" % [path.get_file().get_basename(), available_directed_unlocks()])
+	return {"ok": true, "reason": ""}
+
+
+# ---------------------------------------------------------------------------
 # 公开查询（anvil_screen 渲染入口；UI 不再穿透 _anvil_* 私有方法）
 # ---------------------------------------------------------------------------
 
