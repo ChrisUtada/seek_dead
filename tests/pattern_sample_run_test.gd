@@ -296,7 +296,11 @@ func _test_three_enemies() -> void:
 		_duel.player_hp_max = 400
 		_duel._busy = false
 		var hp_before: int = _duel.enemy_hp
-		await _simulate_spin(_duel.turn_flow.on_spin_pressed())
+		# 台账 #5：async 函数 on_spin_pressed() 不能作为表达式传参（Godot 4.7 报
+		# "Trying to call an async function without await"）。改为独立语句启动协程，
+		# 由 _simulate_spin 逐列按停并等待整条流程结束（turn_resolved 且 _busy 归位）。
+		_duel.turn_flow.on_spin_pressed()
+		await _simulate_spin()
 		_check(bool(_duel.turn_resolved), "%s：停列后已结算" % String(entry[0]))
 		_check(not bool(_duel._busy), "%s：流程结束不残留 busy" % String(entry[0]))
 		_report.append("%s（%s，HP %d）：一回合后敌方 HP %d → %d" % [
@@ -305,7 +309,7 @@ func _test_three_enemies() -> void:
 
 
 # 转轮不停就一直转：逐列模拟玩家按停。
-func _simulate_spin(task) -> void:
+func _simulate_spin() -> void:
 	for i in range(3):
 		await get_tree().process_frame
 		await get_tree().process_frame
@@ -313,7 +317,12 @@ func _simulate_spin(task) -> void:
 			return
 		_duel.reel_system.stop_next_reel(false)
 		await get_tree().process_frame
-	await task
+	# 等待 on_spin_pressed 全流程完成：结算相位 + 敌人回合 + 预告（_busy 在末尾归位）。
+	# 上限 1200 帧（约 20 秒 @60fps），避免流程卡死时无限等待。
+	for i in range(1200):
+		if bool(_duel.turn_resolved) and not bool(_duel._busy):
+			return
+		await get_tree().process_frame
 
 
 func _finish() -> void:
