@@ -346,6 +346,7 @@ var mastery                            # M2-02 武器熟练 R1–R4 与铭印（
 var weapon_slots
 # 2026-11-15 转轮凑牌：牌谱系统（装备解锁集 + 优先级）。Step 2 起效果真正生效。
 var _pattern_system
+var circuit_system                     # G4 本局回路系统（2槽/触发限制/来源日志；与装备牌谱分开）
 var readability                        # P1 目押可读性原型（速度/预览/视觉落点/缓冲/反馈；不改数值）
 var _telemetry                         # M1-06 局内遥测（内存计数，不落盘/不吃随机；每局清零）
 var _journal                           # G5 工具：自动记录客观项（只读；导出包/--runlog 才落盘）
@@ -425,6 +426,8 @@ func _ready() -> void:
 	mastery = preload("res://scripts/systems/weapon_mastery.gd").new(self)
 	weapon_slots = preload("res://scripts/systems/weapon_slot_growth.gd").new()
 	_pattern_system = _load_pattern_system()
+	# G4-2：本局回路系统（装备牌谱之外的第二层，最多2槽，按事件触发）
+	circuit_system = CircuitSystem.new(self)
 	# G0-02：物品 tooltip 读取运行时武器状态（锋铸后的真实攻击 / R 等级 / 铭印），
 	# 静态生成器不持有 controller，由这里注入；共享 .tres 不被修改。
 	ItemTooltip.weapon_state_provider = _weapon_tooltip_state
@@ -1130,6 +1133,8 @@ func _reset_run_state() -> void:
 	pattern_param_overrides.clear()  # P1-B：本局牌谱参数覆盖清零
 	reel_controls.clear()   # P1-C：本局滚轴操控清零
 	symbol_effect_overrides.clear()  # P1.1②：本局符号效果覆盖清零
+	if circuit_system != null:
+		circuit_system.reset_run()   # G4：本局回路仓库/槽/日志清零
 	if hud != null:
 		hud._refresh_p1_ui()
 

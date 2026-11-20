@@ -263,10 +263,16 @@ func _test_symbol_prepick(duel: DuelController) -> void:
 	_check(rs.run_symbol_bonus.size() == 1, "一次灌注只影响一个符号")
 	_check(rs._symbol_cells(sym, 0.0) > before, "灌注后该符号的转轮带格数真实增加")
 	# 无有效变化 → 整张符号卡不进候选池
+	# G3-3 真实格数模型：不能再用"低权重 dagger 符号格数满"假设（w=1 灌注 1→4 格仍有效），
+	# 改为把所有候选符号灌到预算上限 SYMBOL_WEIGHT_MAX，此时生成侧跳过全部符号卡。
 	duel.selected_loadout.clear()
 	duel.selected_loadout.append("res://resources/weapon_templates/dagger.tres")
 	duel._build_pool(duel.selected_loadout)
 	rs.run_symbol_bonus.clear()
+	var dagger_defs: Array = rs._make_symbol_weight_defs()
+	for sd in dagger_defs:
+		var spath: String = String(sd.effects[0].get("params", {}).get("path", ""))
+		rs.run_symbol_bonus[spath] = rs.SYMBOL_WEIGHT_MAX
 	var pool: Array = rs.build_reward_pool(2)
 	_check(pool.filter(func(rw): return rw.id == "symbol").is_empty(), "无有效灌注时不出现符号卡")
 
