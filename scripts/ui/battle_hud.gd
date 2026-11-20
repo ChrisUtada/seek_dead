@@ -1857,6 +1857,14 @@ func _refresh_meta() -> void:
 	var growth_short: String = " ".join(growth_tags)
 	var growth_tip: String = "%s\n%s" % [
 		controller.growth.detail_text(), controller.mastery.summary_line()]
+	# G7-4：机器摘要统一口径接入整备页 tooltip（§11.2 整备入口；tooltip 不影响小屏布局）
+	if controller.machine_summary != null:
+		var mlines: Array = controller.machine_summary.lines()
+		if not mlines.is_empty():
+			var mparts: Array[String] = []
+			for l in mlines:
+				mparts.append(String(l))
+			growth_tip += "\n—— 机器摘要 ——\n" + "\n".join(mparts)
 	player_level_label.text = growth_short
 	player_level_label.visible = true
 	player_level_label.tooltip_text = growth_tip
