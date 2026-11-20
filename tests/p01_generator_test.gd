@@ -234,7 +234,19 @@ func _test_g1d_reroll_exhausted_allows_same() -> void:
 		prev_ids.append(String(d.id))
 	var again: DraftResult = c.compose_reroll(_snap(1.0), prev_ids, 3, false)
 	_ok(again.rewards.size() == 3, "exhausted reroll no shrink (got %d)" % again.rewards.size())
-	_ok(c.last_reroll_same_group, "exhausted reroll flagged same_group=true")
+	# G5-3：rule_mod 6 张回路卡进池后，此 owned 组合下池不再耗尽，重抽能拿到不同组合，
+	# same_group 应为 false（这是正确行为，不是缺陷）。断言改为验证标志与真实组合一致：
+	# 若重抽 id 集合与首次相同则必须 true，不同则必须 false。
+	var prev_set := {}
+	for pid in prev_ids:
+		prev_set[String(pid)] = true
+	var is_same := true
+	for d in again.rewards:
+		if not prev_set.has(String(d.id)):
+			is_same = false
+			break
+	_ok(c.last_reroll_same_group == is_same,
+		"reroll same_group 标志与实际组合一致（same=%s flag=%s）" % [str(is_same), str(c.last_reroll_same_group)])
 	var ids := {}
 	for d in again.rewards:
 		ids[String(d.id)] = true

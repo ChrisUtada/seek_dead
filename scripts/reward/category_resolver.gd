@@ -20,8 +20,8 @@ const RARITY_DRAW_MULT := {
 }
 
 # 一级类别初始权重（V1.1 §3.1 定案）
-# 2026-11-19：rule_mod 随"签名全解锁"删除全部规则卡后零候选，权重由 §3.2 自动剔除；
-# 权重数值暂不重分配，待重构策划案审查后再定（见 docs/牌谱定位与策划案一致性分析）。
+# 2026-11-20 G5-3：rule_mod 重新启用——6 个回路卡（circuit_*.tres）提供候选。
+# 权重仍是过渡值（V1.2 目标 12%），待全局权重重构时再统一调整。
 const CATEGORY_WEIGHT := {
 	"symbol_mod": 25.0,
 	"rule_mod": 25.0,
@@ -32,9 +32,10 @@ const CATEGORY_WEIGHT := {
 	"signature": 5.0,
 }
 
-# 关闭的类别：签名（全解锁无习得）、rule_mod（规则卡全删）。
+# 关闭的类别：签名（全解锁无习得）。
 # P1.1①：weapon 已启用（动态武器替换卡），从禁用列表移除。
-const P0_DISABLED_CATEGORIES := ["signature", "rule_mod"]
+# G5-3：rule_mod 已启用——6 个回路卡（circuit_*.tres）进池，effect=circuit_acquire。
+const P0_DISABLED_CATEGORIES := ["signature"]
 
 var _rng: RandomNumberGenerator
 

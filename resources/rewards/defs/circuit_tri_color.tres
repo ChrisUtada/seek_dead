@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RewardDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/reward/reward_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "circuit_tri_color"
+name = "回路 · 异色协奏"
+desc = "三列三种不同有效元素时追加本次伤害 20% 穿透"
+rarity = "rare"
+tags = Array[String](["rule_mod", "circuit", "build"])
+base_weight = 1.0
+base_value = 1.0
+effects = [{"effect_id": "circuit_acquire", "params": {"circuit_id": "circuit_tri_color"}}]
+category = "rule_mod"
+effect_family = "circuit_acquire"
+stack_rule = 0
+max_stack = -1

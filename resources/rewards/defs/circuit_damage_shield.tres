@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RewardDefinition" format=3]
+
+[ext_resource type="Script" path="res://scripts/reward/reward_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "circuit_damage_shield"
+name = "回路 · 攻守转换"
+desc = "同 SPIN 同时产生伤害与护盾时追加护盾 30% 穿透"
+rarity = "uncommon"
+tags = Array[String](["rule_mod", "circuit", "build"])
+base_weight = 1.0
+base_value = 1.0
+effects = [{"effect_id": "circuit_acquire", "params": {"circuit_id": "circuit_damage_shield"}}]
+category = "rule_mod"
+effect_family = "circuit_acquire"
+stack_rule = 0
+max_stack = -1

@@ -133,6 +133,16 @@ func _preflight_effect(eid: String, params: Dictionary) -> String:
 			if _ctrl.reel_controls.has(cid):
 				return "already_owned"
 			return ""
+		"circuit_acquire":
+			# G5-3：回路卡预检——id 合法、未拥有、电路系统可用。
+			var circuit_id := String(params.get("circuit_id", ""))
+			if circuit_id.is_empty() or not CircuitSystem.DEFINITIONS.has(circuit_id):
+				return "invalid_circuit_id"
+			if _ctrl.circuit_system == null:
+				return "no_circuit_system"
+			if _ctrl.circuit_system.inventory.has(circuit_id):
+				return "already_owned"
+			return ""
 		"symbol_effect_bonus":
 			var path := String(params.get("symbol_path", ""))
 			var effect_id := String(params.get("effect", ""))
@@ -185,6 +195,8 @@ func _dispatch(reward_id: String, effect_id: String, params: Dictionary) -> Draf
 			return _apply_pattern_bonus(reward_id, params)
 		"reel_control":
 			return _apply_reel_control(reward_id, params)
+		"circuit_acquire":
+			return _apply_circuit_acquire(reward_id, params)
 		"symbol_effect_bonus":
 			return _apply_symbol_effect_bonus(reward_id, params)
 		"weapon_replace":
@@ -329,6 +341,23 @@ func _apply_reel_control(reward_id: String, params: Dictionary) -> DraftResult.R
 	_ctrl.reel_controls[cid] = true
 	var r := DraftResult.RewardApplyResult.success(reward_id, "reel_control", "获得操控「%s」" % cid)
 	r.state_updates["reel_controls"] = _ctrl.reel_controls.duplicate(true)
+	return r
+
+
+# G5-3：回路卡结算——写入 circuit_system 仓库（不自动装备，2 槽由玩家在构筑界面选择）。
+# params: {"circuit_id": "circuit_xxx"}
+func _apply_circuit_acquire(reward_id: String, params: Dictionary) -> DraftResult.RewardApplyResult:
+	var circuit_id := String(params.get("circuit_id", ""))
+	if circuit_id.is_empty() or not CircuitSystem.DEFINITIONS.has(circuit_id):
+		return DraftResult.RewardApplyResult.failure(reward_id, "circuit_acquire", "invalid_circuit_id")
+	if _ctrl.circuit_system == null:
+		return DraftResult.RewardApplyResult.failure(reward_id, "circuit_acquire", "no_circuit_system")
+	if not _ctrl.circuit_system.acquire(circuit_id):
+		return DraftResult.RewardApplyResult.failure(reward_id, "circuit_acquire", "already_owned")
+	var def: Dictionary = CircuitSystem.DEFINITIONS[circuit_id]
+	var r := DraftResult.RewardApplyResult.success(reward_id, "circuit_acquire",
+		"获得回路「%s」（本局仓库，可在构筑界面装备）" % String(def.get("name", circuit_id)))
+	r.state_updates["circuit_inventory"] = _ctrl.circuit_system.inventory.duplicate(true)
 	return r
 
 
