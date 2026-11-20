@@ -24,7 +24,7 @@ const SKILL_DATA = preload("res://scripts/items/skill_data.gd")
 
 var _checks := 0
 var _fails := 0
-var _weapons: Array = []      # [{path, name, element, symbols: [{sym, kind, elem}]}]
+var _weapons: Array = []      # [{path, name, element, role, family_tags, symbols: [{sym, kind, elem}]}]
 var _skills: Array = []       # [{path, name, kind, buff}]
 var _report: Array = []
 
@@ -54,10 +54,16 @@ func _load_weapons() -> void:
 				"kind": String(sw.symbol.kind),
 				"elem": String(sw.symbol.element),
 			})
+		var fams: Array = []
+		if wd.family_tags is Array:
+			for t in wd.family_tags:
+				fams.append(String(t))
 		_weapons.append({
 			"path": WEAPON_DIR + "/" + f,
 			"name": String(wd.weapon_name),
 			"element": String(wd.element),
+			"role": String(wd.get("role")),
+			"family_tags": fams,
 			"symbols": syms,
 		})
 	_weapons.sort_custom(func(a, b): return String(a["name"]) < String(b["name"]))
@@ -292,15 +298,42 @@ func _test_skill_patterns() -> void:
 func _test_negatives() -> void:
 	var dagger: Dictionary = _find_weapon("匕首")
 	var guard_rule := {"all": [{"kind": "shield"}, {"kind": "shield"}, {}]}
-	# 护盾牌不能当武器牌：任何武器都不带 shield 符号
-	var shield_from_weapon := 0
+	# 2026-11-20 测试契约更新（S2-2 防御武器试点）：
+	# 旧断言「任何武器都不带 shield/heal」已被正式防御武器设计推翻，改为验证新不变量：
+	# ① 普通 damage 角色武器不得携带 shield/heal 符号；
+	# ② 携带 shield/heal 的武器必须有 defense/recovery 等相符角色；
+	# ③ 坚壁钉锤（防御原型）真实含铁誓护盾且 role=defense；
+	# ④ 牌谱可达性反例继续用明确的无护盾配装夹具，不依赖"全项目永远没有防御武器"。
+	var plain_with_guard := 0
+	var guard_without_role := 0
 	for w in _weapons:
+		var has_guard := false
 		for s in (w["symbols"] as Array):
-			if String(s["kind"]) == "shield":
-				shield_from_weapon += 1
-	_check(shield_from_weapon == 0, "没有武器携带护盾符号（%d）——护盾牌只能来自技能" % shield_from_weapon)
-	_check(dagger.is_empty() or not _combo_can(dagger, dagger, guard_rule),
-		"单把武器无法凑出「护盾牌×2」（旧 S05 的假可达条件）")
+			var k := String(s["kind"])
+			if k == "shield" or k == "heal":
+				has_guard = true
+				break
+		if not has_guard:
+			continue
+		var role := String(w.get("role", ""))
+		if role == "damage" or role == "":
+			plain_with_guard += 1
+		if role != "defense" and role != "recovery":
+			guard_without_role += 1
+	_check(plain_with_guard == 0, "普通 damage 武器不带护盾/治疗符号（违规 %d）" % plain_with_guard)
+	_check(guard_without_role == 0, "携带护盾/治疗的武器角色相符（违规 %d）" % guard_without_role)
+	var mace: Dictionary = _find_weapon("坚壁钉锤")
+	var mace_guard := false
+	for s in (mace.get("symbols", []) as Array):
+		if String(s["kind"]) == "shield" and String(s["sym"]).ends_with("iron_wall.tres"):
+			mace_guard = true
+	_check(not mace.is_empty() and String(mace.get("role", "")) == "defense" and mace_guard,
+		"坚壁钉锤为 defense 且真实携带铁誓护盾")
+	# 反例夹具：用明确的无护盾武器（匕首）验证「单把武器无法凑护盾×2」，
+	# 不再依赖"全项目没有防御武器"这一已被推翻的全局假设。
+	_check(not dagger.is_empty() and (dagger.get("symbols", []) as Array).is_empty() == false
+		and not _weapon_has_guard(dagger) and not _combo_can(dagger, dagger, guard_rule),
+		"无护盾夹具（匕首）单把无法凑出「护盾牌×2」")
 
 	# W05 不能要求暗状态符号（6.2 后暗系 DoT 符号已存在，改测牌谱规则本身而非符号声明）
 	var w05: Resource = load("res://resources/patterns/w05_shadow_execution.tres")
@@ -383,6 +416,14 @@ func _find_weapon(name: String) -> Dictionary:
 		if String(w["name"]) == name:
 			return w
 	return {}
+
+
+func _weapon_has_guard(w: Dictionary) -> bool:
+	for s in (w.get("symbols", []) as Array):
+		var k := String(s["kind"])
+		if k == "shield" or k == "heal":
+			return true
+	return false
 
 
 func _finish() -> void:
