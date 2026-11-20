@@ -30,7 +30,10 @@ const _SPIN_BASE_WAIT := 1.0 / 9.0     # 巡航每跳间隔（秒）——9 格/
 const _SPIN_MIN_WAIT := 1.0 / 12.0     # 最快每跳间隔——12 格/秒封顶（Step 3）
 const STARTUP_CPS := 5.0               # 起转初速：给首轮观察留出时间，不改变巡航/封顶
 const STARTUP_RAMP_SECONDS := 0.32     # 二次速度曲线从初速升至巡航，再进入原有逐拍加速
-const _STRIP_MIN_CELLS := 30           # 转轮带最小格数（整份平铺补足，不改变符号占比）
+# G3-5 正式参数（2026-11-20，见 docs/G3-5_带长预算上限契约_2026-11-20.md）：
+# 最小带长 30 = 视觉循环下限；不足时整份 unit 平铺补足，符号占比不变（无隐藏全局补偿）。
+# _STRIP_MIN_CELLS 与 StripTrimSystem.actual_len() 共用同一公式，保证预览=实际。
+const _STRIP_MIN_CELLS := 30
 const _GOLD_CELLS := 2                 # 金币符号常驻格数（经济引擎，与装备频率解耦）
 const ABSORB_DECEL_CELLS := 1.0        # 名义减速格数 d（t = 2d/v 的分子；重标定后真正参与时长计算）
 # 2026-11-12 Step 3：逐列基础停顿（方案 §5）——自动/夺轮停列的基础间隔与递增。
@@ -379,7 +382,10 @@ static func allocate_source_cells(weights: Dictionary, total: int) -> Dictionary
 # 单条 (符号|有效元素) 聚合项的格子数（G3-2 真实格数模型，2026-11-20）。
 # 整数权重直接 = 格数，不再经过 2/3/4 档位——档位模型下连续灌注很快触顶
 # （见 docs/G3-1_一格一权重原型对照结论：治疗 w=1 灌注 [2,3,3,4,4,4...] 第1次后停滞）。
-# 下限 1 防死带（G3-4 核心保护前置）；上限 MAX_SYMBOL_CELLS（G3-5 再正式确定）。
+# 下限 1 防死带（G3-4 核心保护）；上限 MAX_SYMBOL_CELLS=8 是 G3-5 正式定值——
+# G3-1 原型证实整数模型下 w=1→8 每次灌注都有真实格数变化，8 格足以支撑整局改造。
+# 与灌注预算 SYMBOL_WEIGHT_MAX=6（增量上限，最多2次×3）是两个不同口径：
+# 前者是"单符号最终格数天花板"，后者是"本局可灌注的权重增量预算"，不可混用。
 # build_strips、灌注预览、减带预览与 ReelPreview 共用此口径，避免「卡片说 +N 格、实际带子不变」。
 const MAX_SYMBOL_CELLS := 8
 
