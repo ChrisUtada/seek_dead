@@ -14,6 +14,11 @@ var TIME_SCALE := 40.0
 # 在 boot 后直接注入 mastery 状态（而非 bot 战斗中自由领取），确保组间差异可归因。
 var GROWTH_MODE := "mixed"
 const GROWTH_MODES := ["no_growth", "forge", "tune", "mixed"]
+
+# G7-2 换装曲线：在指定房间胜利后把第一把武器换成 --swap-weapon 指定的武器，
+# 验证「无旧成长」换装后输出是否仍达标（方案 §13.4 换装曲线前置）。
+var SWAP_WEAPON := ""       # 空=不换装
+var SWAP_AT_ROOM := 8       # 默认 ACT2 第一房（room index 8）
 const WEAPON_PATHS := [
 	"res://resources/weapon_templates/fire_sword.tres",
 	"res://resources/weapon_templates/ice_staff.tres",
@@ -50,6 +55,10 @@ func _ready() -> void:
 				push_error("G7 gate: 非法成长档位 %s（可选 %s）" % [GROWTH_MODE, str(GROWTH_MODES)])
 				get_tree().quit(2)
 				return
+		elif arg.begins_with("--swap-weapon="):
+			SWAP_WEAPON = arg.substr(14)
+		elif arg.begins_with("--swap-at-room="):
+			SWAP_AT_ROOM = int(arg.substr(15))
 	# 普通/熟练档必须显式给停中率，否则拒绝运行，避免用编造值冒充真人近似
 	for s in STRATEGIES:
 		if (s == "normal" or s == "skilled") and not HIT_RATES.has(s):
@@ -182,6 +191,17 @@ func _run_one(strategy: String, run_seed: int) -> Dictionary:
 			continue
 		if duel.game_state == DuelController.FlowState.WON:
 			_end_room(result, current)
+			# G7-2 换装曲线：到达指定房间后，把第一把武器换成目标武器并重建带子。
+			if SWAP_WEAPON != "" and duel.room_index == SWAP_AT_ROOM \
+				and not bool(result.get("swapped", false)) and ResourceLoader.load(SWAP_WEAPON) != null:
+				var old0: String = duel.selected_loadout[0] if duel.selected_loadout.size() > 0 else ""
+				if not duel.selected_loadout.has(SWAP_WEAPON):
+					duel.selected_loadout[0] = SWAP_WEAPON
+					duel._build_pool(duel.selected_loadout)
+					result["swapped"] = true
+					result["swap_from"] = old0
+					result["swap_to"] = SWAP_WEAPON
+					result["swap_at_room"] = SWAP_AT_ROOM
 			var is_boss_offer := false
 			for c in duel.reward_choices:
 				if String(c.get("kind", "")).begins_with("boss_"):
