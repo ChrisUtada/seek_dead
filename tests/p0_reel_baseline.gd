@@ -18,7 +18,9 @@ const MIN_WAIT := 0.06         # ReelSystem._SPIN_MIN_WAIT
 const ACCEL := 0.0010          # ReelSystem.on_spin_tick 每跳减速
 const STEADY_WAIT := 0.17      # 历史基线参考间隔（原「稳定节奏」技艺值；该技艺已于 2026-11-17 移除，仅保留作对照输出）
 const VISIBLE_AHEAD := 2       # ReelSpinView SLOTS=5、当前格居中 → 前向可见 2 槽
-const TARGET_SYMBOL := "res://resources/symbols/fire_slash.tres"   # 主武器最高权重攻击符号
+# 主武器(fire_sword)最高权重攻击符号 = 燃 w=5（G3-2 真实格数模型下调律 tune_target 也选它）。
+# 旧模型下写死为 fire_slash，改模型后与调律实际目标不一致，故更正为真实最高权重符号。
+const TARGET_SYMBOL := "res://resources/symbols/burn.tres"
 
 const WP := "res://resources/weapon_templates/"
 const SK := "res://resources/skills/"

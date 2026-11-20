@@ -376,17 +376,16 @@ static func allocate_source_cells(weights: Dictionary, total: int) -> Dictionary
 	return out
 
 
-# 单条 (符号|有效元素) 聚合项的格子数。只由聚合权重决定（2 格起，2/4 权重升到 3/4 格）：
-# 符号类型、物品品质、来源数量都不参与——同一符号在 common 与 epic 物品上的带格数完全一致。
-# Step 2 前这里还有「非 damage 的 rare/epic 单源符号封顶 2 格」，会把品质暗中变成频率惩罚，已移除。
-# build_strips、灌注预览与 ReelPreview 共用此口径，避免「卡片说 +N 格、实际带子不变」。
+# 单条 (符号|有效元素) 聚合项的格子数（G3-2 真实格数模型，2026-11-20）。
+# 整数权重直接 = 格数，不再经过 2/3/4 档位——档位模型下连续灌注很快触顶
+# （见 docs/G3-1_一格一权重原型对照结论：治疗 w=1 灌注 [2,3,3,4,4,4...] 第1次后停滞）。
+# 下限 1 防死带（G3-4 核心保护前置）；上限 MAX_SYMBOL_CELLS（G3-5 再正式确定）。
+# build_strips、灌注预览、减带预览与 ReelPreview 共用此口径，避免「卡片说 +N 格、实际带子不变」。
+const MAX_SYMBOL_CELLS := 8
+
+
 static func cells_for(w: float) -> int:
-	var cnt := 2
-	if w >= 4.0:
-		cnt = 4
-	elif w >= 2.0:
-		cnt = 3
-	return cnt
+	return clampi(int(round(maxf(0.0, w))), 1, MAX_SYMBOL_CELLS)
 
 
 # 节拍器回调：推进仍在旋转的转轮并逐步加速。没有自动停止——只有玩家按停才会锁定。

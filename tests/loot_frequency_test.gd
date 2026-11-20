@@ -76,14 +76,15 @@ func _check(cond: bool, msg: String) -> void:
 		print("LOOTFREQ|FAIL|" + msg)
 
 
-# ① 权重档位：类型不参与，只有权重决定格数
+# ① 权重→格数（G3-2 真实格数模型）：类型不参与，整数权重直接 = 格数
 func _test_weight_tiers() -> void:
-	_check(ReelSystem.cells_for(1.0) == 2, "权重 1 → 2 格")
-	_check(ReelSystem.cells_for(1.9) == 2, "权重 1.9 → 2 格")
-	_check(ReelSystem.cells_for(2.0) == 3, "权重 2 → 3 格")
-	_check(ReelSystem.cells_for(3.9) == 3, "权重 3.9 → 3 格")
+	_check(ReelSystem.cells_for(1.0) == 1, "权重 1 → 1 格（真实格数）")
+	_check(ReelSystem.cells_for(1.9) == 2, "权重 1.9 → 2 格（四舍五入）")
+	_check(ReelSystem.cells_for(2.0) == 2, "权重 2 → 2 格")
+	_check(ReelSystem.cells_for(3.9) == 4, "权重 3.9 → 4 格")
 	_check(ReelSystem.cells_for(4.0) == 4, "权重 4 → 4 格")
-	_check(ReelSystem.cells_for(9.0) == 4, "权重 9 → 4 格（封顶 4）")
+	_check(ReelSystem.cells_for(9.0) == 8, "权重 9 → 8 格（封顶 MAX_SYMBOL_CELLS=8）")
+	_check(ReelSystem.cells_for(0.1) == 1, "权重 0.1 → 1 格（下限防死带）")
 
 
 # ② 只改 rarity，带子逐格不变
@@ -106,13 +107,13 @@ func _test_old_cap_removed(duel: DuelController) -> void:
 	duel.selected_loadout.assign([FIRE_SWORD])
 	duel._build_pool(duel.selected_loadout)
 	var rows := _compose_rows(duel)
-	_check(int(rows.get(BURN, -1)) == 4, "火焰剑「燃」权重5 = 4 格（旧封顶为 2）")
+	_check(int(rows.get(BURN, -1)) == 5, "火焰剑「燃」权重5 = 5 格（G3-2 真实格数）")
 	_check(int(rows.get(FIRE_SLASH, -1)) == 3, "火焰剑「火斩」权重3 = 3 格")
 	# 单武器：寒冰刃（rare，霜 权重3）
 	duel.selected_loadout.assign([FROST_BLADE])
 	duel._build_pool(duel.selected_loadout)
 	rows = _compose_rows(duel)
-	_check(int(rows.get(FROST, -1)) == 3, "寒冰刃「霜」权重3 = 3 格（旧封顶为 2）")
+	_check(int(rows.get(FROST, -1)) == 3, "寒冰刃「霜」权重3 = 3 格")
 	# 同权重 common 物品不应更少格：同种子比较 rare / common 的实际带子
 	duel.selected_loadout.assign([FIRE_SWORD])
 	duel._build_pool(duel.selected_loadout)
@@ -124,7 +125,7 @@ func _test_old_cap_removed(duel: DuelController) -> void:
 	var common_count: int = _strip_cells_for(duel, BURN, "fire")
 	_check(rare_count == common_count and rare_count > 0,
 		"火焰剑 rarity=rare / common 时「燃」实际格数相同（%d vs %d）" % [rare_count, common_count])
-	_check(rare_burn == 4, "火焰剑「燃」理论格数 4（旧封顶为 2）")
+	_check(rare_burn == 5, "火焰剑「燃」理论格数 5（G3-2 真实格数）")
 	duel._build_pool(duel.selected_loadout)
 
 
@@ -174,6 +175,7 @@ func _test_trim_still_works(duel: DuelController) -> void:
 	duel.selected_loadout.assign([FIRE_SWORD, FROST_BLADE])
 	duel._build_pool(duel.selected_loadout)
 	duel._trim.reset_run()
+	duel._trim.grant(1)   # 精简次数由道具授予（reset 会清零），测功能须先授予
 	var cands: Array = duel._trim.candidates()
 	_check(not cands.is_empty(), "减带存在合法候选")
 	if cands.is_empty():

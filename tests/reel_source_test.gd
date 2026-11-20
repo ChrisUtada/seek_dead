@@ -69,7 +69,8 @@ func _run() -> void:
 	var duel: DuelController = await _boot()
 	var rs = duel.reel_system
 
-	# 火焰剑权重3、锻炉巨剑权重6：每个基础平铺单元同族4格，分源后各2格。
+	# G3-2 真实格数模型：火焰剑火斩 w=3 → 3格，锻炉巨剑 w=6 → 6格，聚合 w=9 → 9格/平铺单元。
+	# 旧档位模型把 3 和 6 都压成 4 格故"各2格"；真实模型下按权重比 1:2 分配。
 	rs.build_strips()
 	var counts := {"fire_sword": 0, "forge_greatsword": 0, "other": 0}
 	for entry in rs.reel_strips[0]:
@@ -80,11 +81,13 @@ func _run() -> void:
 			counts[src] += 1
 		else:
 			counts["other"] += 1
-	_check(counts["fire_sword"] > 0 and counts["fire_sword"] == counts["forge_greatsword"],
-		"两把武器在平铺后的带子上仍各占相同数量的独立火斩格")
+	_check(counts["fire_sword"] > 0 and counts["forge_greatsword"] > 0,
+		"两把武器在带子上都有独立火斩格: fs=%d fg=%d" % [counts["fire_sword"], counts["forge_greatsword"]])
+	_check(counts["forge_greatsword"] > counts["fire_sword"],
+		"高权重武器分到更多格 (fs=%d fg=%d)" % [counts["fire_sword"], counts["forge_greatsword"]])
 	_check(counts["other"] == 0, "共享火斩没有无来源或错误来源格")
-	_check((counts["fire_sword"] + counts["forge_greatsword"]) % 4 == 0,
-		"每个平铺单元的双武器火斩族总预算仍为4格")
+	# 总格数受 _STRIP_MIN_CELLS 整份平铺影响，不假设固定倍数；占比正确性由 allocate_source_cells 单测覆盖。
+	_check(counts["fire_sword"] + counts["forge_greatsword"] > 0, "双武器火斩总格数 > 0")
 
 	var alloc_a: Dictionary = ReelSystem.allocate_source_cells({"a": 2.0, "b": 2.0}, 4)
 	var alloc_b: Dictionary = ReelSystem.allocate_source_cells({"a": 3.0, "b": 1.0}, 4)
