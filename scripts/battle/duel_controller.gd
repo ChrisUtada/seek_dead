@@ -1229,6 +1229,10 @@ func _start_room(idx: int) -> void:
 func start_room_data(r: RoomData, idx: int, ria_override: int = -1, is_final: bool = false) -> void:
 	if r == null:
 		return
+	# G7-1：每局第一房记录武器出场，供铸式行为条件解锁（跨局累计，老存档不回锁）。
+	if idx == 0 and _codex != null:
+		for wp in selected_loadout:
+			_codex.note_style_use(String(wp))
 	room_element_mult = {}                # 元素精华：新房间失效（须在 _build_pool 之前清，否则旧房精华注入新房池）
 	peaceful_win = false                  # 勇者的阴影：和解标志每房复位
 	if readability != null:

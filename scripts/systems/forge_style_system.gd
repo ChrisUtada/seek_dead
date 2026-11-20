@@ -4,7 +4,8 @@
 # 设计口径（docs/角色与武器成长_整体方案.md §7.3 / docs/棋盘探索_战后成长与局外生涯_制作执行方案.md §8.4）：
 # - 每把武器最多一个铸式；在整备页选择，选择写入 anvil_meta.forge_styles，跨局保留。
 # - 铸式不是永久强化：每项都同时给出优势与代价；标准形态始终可用，不成为绝对劣势。
-# - 解锁条件：该武器在图鉴中的历史最高熟练达到 R2（跨局记录，见 CodexSystem.best_rank_of）。
+# - 解锁条件（G7-1）：该武器累计出场 3 局（行为条件，见 CodexSystem.style_uses_of）；
+#   历史已达 R2 的老存档保留解锁，不回锁。图鉴不再展示 R 等级门槛。
 # - 只做火焰剑 / 匕首 / 战斧 / 霜晶法杖 4 把；不扩展武器数量，不改共享 .tres。
 #
 # 数值全部是「运行时修正」：
@@ -15,7 +16,10 @@
 var _ctrl  # DuelController
 
 const META_KEY := "forge_styles"     # anvil_meta.forge_styles = {武器路径: 铸式 id}
-const UNLOCK_RANK := 2               # 熟练 R2 解锁该武器的变体
+# G7-1：解锁条件改为「行为条件」（该武器累计出场 N 局），与局内熟练数值解耦。
+# 兼容老存档：历史已达 R2 的仍保留解锁（不回锁）。
+const UNLOCK_USES := 3                # 新行为条件：该武器累计出场 3 局
+const LEGACY_UNLOCK_RANK := 2         # 老存档兼容阈值（历史最高 R2）
 const FILE_PREFIX := "res://resources/weapon_templates/"
 const SYM_PREFIX := "res://resources/symbols/"
 
@@ -149,13 +153,22 @@ func current_rank(path: String) -> int:
 func unlocked(path: String) -> bool:
 	if not is_supported(path):
 		return false
-	return current_rank(path) >= UNLOCK_RANK
+	# G7-1：老存档 R2 保留解锁；新条件为累计出场达到 UNLOCK_USES。
+	if current_rank(path) >= LEGACY_UNLOCK_RANK:
+		return true
+	if _ctrl != null and _ctrl._codex != null:
+		return _ctrl._codex.style_uses_of(path) >= UNLOCK_USES
+	return false
 
 
 func unlock_text(path: String) -> String:
 	if unlocked(path):
 		return "已解锁"
-	return "熟练 R%d 解锁（当前 R%d）" % [UNLOCK_RANK, current_rank(path)]
+	# G7-1：图鉴不再展示 R 等级门槛，只显示行为条件进度。
+	var uses := 0
+	if _ctrl != null and _ctrl._codex != null:
+		uses = _ctrl._codex.style_uses_of(path)
+	return "累计出场 %d/%d 局解锁" % [mini(uses, UNLOCK_USES), UNLOCK_USES]
 
 
 # ---- 运行时修正（供 ReelSystem / CombatSystem 读取）----

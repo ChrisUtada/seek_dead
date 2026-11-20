@@ -152,6 +152,20 @@ func uses_of(path: String) -> int:
 	return int(_read_stat(path).get("uses", 0))
 
 
+# G7-1：铸式行为条件——记录武器「本局出场」次数（每局第一房记一次，跨局累计）。
+# 与熟练 R 等级解耦：G7-2 删除局内熟练后，铸式解锁不再依赖历史 R2。
+func note_style_use(path: String) -> void:
+	if path == "":
+		return
+	var st := _stat(path)
+	st["style_uses"] = int(st.get("style_uses", 0)) + 1
+	_save()
+
+
+func style_uses_of(path: String) -> int:
+	return int(_read_stat(path).get("style_uses", 0))
+
+
 func best_rank_of(path: String) -> int:
 	return int(_read_stat(path).get("best_rank", 0))
 

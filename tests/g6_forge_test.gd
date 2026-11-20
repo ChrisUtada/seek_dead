@@ -107,7 +107,10 @@ func _test_defaults(duel: DuelController) -> void:
 	duel._codex = preload("res://scripts/systems/codex_system.gd").new(duel)
 	_check(not fs.unlocked(FIRE), "历史熟练不足时变体锁定")
 	_check(fs.current_rank(FIRE) == 1, "无记录按 R1 展示")
-	_check(fs.unlock_text(FIRE).contains("R2"), "锁定提示写明 R2 条件")
+	# G7-1：解锁条件改为行为条件，图鉴不再展示 R 等级门槛
+	_check(not fs.unlock_text(FIRE).contains("R"), "锁定提示不再写 R 等级门槛（%s）" % fs.unlock_text(FIRE))
+	_check(fs.unlock_text(FIRE).contains("出场") or fs.unlock_text(FIRE).contains("/"),
+		"锁定提示写明行为条件进度（%s）" % fs.unlock_text(FIRE))
 	_check(not fs.set_style(FIRE, "lie_ren"), "未解锁时拒绝选择变体")
 	_check(fs.selected_id(FIRE) == "", "未解锁时仍为标准形态")
 
