@@ -1,0 +1,157 @@
+{
+  "mode": "frostsig",
+  "phase_count": {
+    "base_hit_no_sig": 0,
+    "frost_seal_fired": 11,
+    "no_combo": 0,
+    "sig_no_threshold": 0
+  },
+  "profile": "FS_seek",
+  "seed": 333,
+  "spins": [
+    {
+      "frost_after": 6,
+      "frost_before": 0,
+      "pattern_atk_mult": 0.7,
+      "pattern_equipment": "W02",
+      "pattern_match": [
+        "G03"
+      ],
+      "pattern_signature": "SIG_W02_ZERO",
+      "phase": "frost_seal_fired",
+      "seal_fired": true,
+      "turn": 1
+    },
+    {
+      "frost_after": 10,
+      "frost_before": 6,
+      "pattern_atk_mult": 0.7,
+      "pattern_equipment": "W02",
+      "pattern_match": [
+        "G03"
+      ],
+      "pattern_signature": "SIG_W02_ZERO",
+      "phase": "frost_seal_fired",
+      "seal_fired": true,
+      "turn": 2
+    },
+    {
+      "frost_after": 15,
+      "frost_before": 10,
+      "pattern_atk_mult": 0.7,
+      "pattern_equipment": "W02",
+      "pattern_match": [
+        "G03"
+      ],
+      "pattern_signature": "SIG_W02_ZERO",
+      "phase": "frost_seal_fired",
+      "seal_fired": true,
+      "turn": 3
+    },
+    {
+      "frost_after": 19,
+      "frost_before": 15,
+      "pattern_atk_mult": 0.7,
+      "pattern_equipment": "W02",
+      "pattern_match": [
+        "G03"
+      ],
+      "pattern_signature": "SIG_W02_ZERO",
+      "phase": "frost_seal_fired",
+      "seal_fired": true,
+      "turn": 4
+    },
+    {
+      "frost_after": 24,
+      "frost_before": 19,
+      "pattern_atk_mult": 0.7,
+      "pattern_equipment": "W02",
+      "pattern_match": [
+        "G03"
+      ],
+      "pattern_signature": "SIG_W02_ZERO",
+      "phase": "frost_seal_fired",
+      "seal_fired": true,
+      "turn": 5
+    },
+    {
+      "frost_after": 29,
+      "frost_before": 24,
+      "pattern_atk_mult": 0.7,
+      "pattern_equipment": "W02",
+      "pattern_match": [
+        "G03"
+      ],
+      "pattern_signature": "SIG_W02_ZERO",
+      "phase": "frost_seal_fired",
+      "seal_fired": true,
+      "turn": 6
+    },
+    {
+      "frost_after": 34,
+      "frost_before": 29,
+      "pattern_atk_mult": 0.7,
+      "pattern_equipment": "W02",
+      "pattern_match": [
+        "G03"
+      ],
+      "pattern_signature": "SIG_W02_ZERO",
+      "phase": "frost_seal_fired",
+      "seal_fired": true,
+      "turn": 7
+    },
+    {
+      "frost_after": 38,
+      "frost_before": 34,
+      "pattern_atk_mult": 0.7,
+      "pattern_equipment": "W02",
+      "pattern_match": [
+        "G03"
+      ],
+      "pattern_signature": "SIG_W02_ZERO",
+      "phase": "frost_seal_fired",
+      "seal_fired": true,
+      "turn": 8
+    },
+    {
+      "frost_after": 42,
+      "frost_before": 38,
+      "pattern_atk_mult": 0.7,
+      "pattern_equipment": "W02",
+      "pattern_match": [
+        "G03"
+      ],
+      "pattern_signature": "SIG_W02_ZERO",
+      "phase": "frost_seal_fired",
+      "seal_fired": true,
+      "turn": 9
+    },
+    {
+      "frost_after": 47,
+      "frost_before": 42,
+      "pattern_atk_mult": 0.7,
+      "pattern_equipment": "W02",
+      "pattern_match": [
+        "G03"
+      ],
+      "pattern_signature": "SIG_W02_ZERO",
+      "phase": "frost_seal_fired",
+      "seal_fired": true,
+      "turn": 10
+    },
+    {
+      "frost_after": 53,
+      "frost_before": 47,
+      "pattern_atk_mult": 0.7,
+      "pattern_equipment": "W02",
+      "pattern_match": [
+        "G03"
+      ],
+      "pattern_signature": "SIG_W02_ZERO",
+      "phase": "frost_seal_fired",
+      "seal_fired": true,
+      "turn": 11
+    }
+  ],
+  "terminal": "WON"
+}

@@ -1,0 +1,81 @@
+{
+  "has_circuit": true,
+  "mode": "flow",
+  "profile": "VF_with_circuit",
+  "seed": 111,
+  "spins": [
+    {
+      "armor_after": 0,
+      "armor_before": 0,
+      "dmg": 86.4,
+      "hp_after": 312,
+      "hp_before": 400,
+      "lines": [
+        "   ✦ 牌谱「无锋磨砺」已触发",
+        "🔁 攻守转换 攻守 +30% 护盾穿透"
+      ],
+      "pierce": 2.4,
+      "shield": 8.0,
+      "shield_gain": 8,
+      "turn": 1
+    },
+    {
+      "armor_after": 0,
+      "armor_before": 0,
+      "dmg": 86.4,
+      "hp_after": 224,
+      "hp_before": 312,
+      "lines": [
+        "   ✦ 牌谱「无锋磨砺」已触发",
+        "🔁 攻守转换 攻守 +30% 护盾穿透"
+      ],
+      "pierce": 2.4,
+      "shield": 8.0,
+      "shield_gain": 8,
+      "turn": 2
+    },
+    {
+      "armor_after": 0,
+      "armor_before": 0,
+      "dmg": 86.4,
+      "hp_after": 138,
+      "hp_before": 224,
+      "lines": [
+        "   ✦ 牌谱「无锋磨砺」已触发"
+      ],
+      "pierce": 0.0,
+      "shield": 8.0,
+      "shield_gain": 8,
+      "turn": 3
+    },
+    {
+      "armor_after": 0,
+      "armor_before": 0,
+      "dmg": 86.4,
+      "hp_after": 52,
+      "hp_before": 138,
+      "lines": [
+        "   ✦ 牌谱「无锋磨砺」已触发"
+      ],
+      "pierce": 0.0,
+      "shield": 8.0,
+      "shield_gain": 8,
+      "turn": 4
+    },
+    {
+      "armor_after": 0,
+      "armor_before": 0,
+      "dmg": 86.4,
+      "hp_after": -34,
+      "hp_before": 52,
+      "lines": [
+        "   ✦ 牌谱「无锋磨砺」已触发"
+      ],
+      "pierce": 0.0,
+      "shield": 8.0,
+      "shield_gain": 8,
+      "turn": 5
+    }
+  ],
+  "terminal": "WON"
+}

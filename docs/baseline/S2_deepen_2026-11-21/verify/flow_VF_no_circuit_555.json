@@ -1,0 +1,115 @@
+{
+  "has_circuit": false,
+  "mode": "flow",
+  "profile": "VF_no_circuit",
+  "seed": 555,
+  "spins": [
+    {
+      "armor_after": 0,
+      "armor_before": 0,
+      "dmg": 43.2,
+      "hp_after": 357,
+      "hp_before": 400,
+      "lines": [
+        "   ✦ 牌谱「无锋磨砺」已触发"
+      ],
+      "pierce": 0.0,
+      "shield": 8.0,
+      "shield_gain": 8,
+      "turn": 1
+    },
+    {
+      "armor_after": 0,
+      "armor_before": 0,
+      "dmg": 43.2,
+      "hp_after": 314,
+      "hp_before": 357,
+      "lines": [
+        "   ✦ 牌谱「无锋磨砺」已触发"
+      ],
+      "pierce": 0.0,
+      "shield": 8.0,
+      "shield_gain": 8,
+      "turn": 2
+    },
+    {
+      "armor_after": 0,
+      "armor_before": 0,
+      "dmg": 43.2,
+      "hp_after": 271,
+      "hp_before": 314,
+      "lines": [
+        "   ✦ 牌谱「无锋磨砺」已触发"
+      ],
+      "pierce": 0.0,
+      "shield": 8.0,
+      "shield_gain": 8,
+      "turn": 3
+    },
+    {
+      "armor_after": 0,
+      "armor_before": 0,
+      "dmg": 0.0,
+      "hp_after": 271,
+      "hp_before": 271,
+      "lines": [],
+      "pierce": 0.0,
+      "shield": 62.0,
+      "shield_gain": 62,
+      "turn": 4
+    },
+    {
+      "armor_after": 0,
+      "armor_before": 0,
+      "dmg": 43.2,
+      "hp_after": 228,
+      "hp_before": 271,
+      "lines": [
+        "   ✦ 牌谱「无锋磨砺」已触发"
+      ],
+      "pierce": 0.0,
+      "shield": 8.0,
+      "shield_gain": 8,
+      "turn": 5
+    },
+    {
+      "armor_after": 0,
+      "armor_before": 0,
+      "dmg": 43.2,
+      "hp_after": 185,
+      "hp_before": 228,
+      "lines": [
+        "   ✦ 牌谱「无锋磨砺」已触发"
+      ],
+      "pierce": 0.0,
+      "shield": 8.0,
+      "shield_gain": 8,
+      "turn": 6
+    },
+    {
+      "armor_after": 0,
+      "armor_before": 0,
+      "dmg": 0.0,
+      "hp_after": 185,
+      "hp_before": 185,
+      "lines": [],
+      "pierce": 0.0,
+      "shield": 62.0,
+      "shield_gain": 62,
+      "turn": 7
+    },
+    {
+      "armor_after": 0,
+      "armor_before": 0,
+      "dmg": 0.0,
+      "hp_after": 185,
+      "hp_before": 185,
+      "lines": [],
+      "pierce": 0.0,
+      "shield": 62.0,
+      "shield_gain": 62,
+      "turn": 8
+    }
+  ],
+  "terminal": "TURN_LIMIT"
+}

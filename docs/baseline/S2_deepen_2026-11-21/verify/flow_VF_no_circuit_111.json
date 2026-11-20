@@ -1,0 +1,79 @@
+{
+  "has_circuit": false,
+  "mode": "flow",
+  "profile": "VF_no_circuit",
+  "seed": 111,
+  "spins": [
+    {
+      "armor_after": 0,
+      "armor_before": 0,
+      "dmg": 86.4,
+      "hp_after": 314,
+      "hp_before": 400,
+      "lines": [
+        "   ✦ 牌谱「无锋磨砺」已触发"
+      ],
+      "pierce": 0.0,
+      "shield": 8.0,
+      "shield_gain": 8,
+      "turn": 1
+    },
+    {
+      "armor_after": 0,
+      "armor_before": 0,
+      "dmg": 86.4,
+      "hp_after": 228,
+      "hp_before": 314,
+      "lines": [
+        "   ✦ 牌谱「无锋磨砺」已触发"
+      ],
+      "pierce": 0.0,
+      "shield": 8.0,
+      "shield_gain": 8,
+      "turn": 2
+    },
+    {
+      "armor_after": 0,
+      "armor_before": 0,
+      "dmg": 86.4,
+      "hp_after": 142,
+      "hp_before": 228,
+      "lines": [
+        "   ✦ 牌谱「无锋磨砺」已触发"
+      ],
+      "pierce": 0.0,
+      "shield": 8.0,
+      "shield_gain": 8,
+      "turn": 3
+    },
+    {
+      "armor_after": 0,
+      "armor_before": 0,
+      "dmg": 86.4,
+      "hp_after": 56,
+      "hp_before": 142,
+      "lines": [
+        "   ✦ 牌谱「无锋磨砺」已触发"
+      ],
+      "pierce": 0.0,
+      "shield": 8.0,
+      "shield_gain": 8,
+      "turn": 4
+    },
+    {
+      "armor_after": 0,
+      "armor_before": 0,
+      "dmg": 86.4,
+      "hp_after": -30,
+      "hp_before": 56,
+      "lines": [
+        "   ✦ 牌谱「无锋磨砺」已触发"
+      ],
+      "pierce": 0.0,
+      "shield": 8.0,
+      "shield_gain": 8,
+      "turn": 5
+    }
+  ],
+  "terminal": "WON"
+}

@@ -1,0 +1,101 @@
+{
+  "actual_armor": 90,
+  "mode": "breakvar",
+  "pierce_on": true,
+  "profile": "BV_pierce_on_high",
+  "seed": 111,
+  "spins": [
+    {
+      "armor_after": 0,
+      "armor_before": 90,
+      "armor_broken": true,
+      "diag_pierce_keys": [
+        "res://resources/symbols/ice_shot.tres",
+        "res://resources/symbols/ice_shot.tres|ice_gun",
+        "res://resources/symbols/ice_shot.tres|short_sword"
+      ],
+      "diag_source_keys": [
+        "ice_gun"
+      ],
+      "dmg": 42.9,
+      "hp_after": 235,
+      "pierce": 23.1,
+      "triple": true,
+      "turn": 1
+    },
+    {
+      "armor_after": 0,
+      "armor_before": 0,
+      "armor_broken": false,
+      "diag_pierce_keys": [
+        "res://resources/symbols/ice_shot.tres",
+        "res://resources/symbols/ice_shot.tres|ice_gun",
+        "res://resources/symbols/ice_shot.tres|short_sword"
+      ],
+      "diag_source_keys": [
+        "ice_gun"
+      ],
+      "dmg": 42.9,
+      "hp_after": 170,
+      "pierce": 23.1,
+      "triple": true,
+      "turn": 2
+    },
+    {
+      "armor_after": 0,
+      "armor_before": 0,
+      "armor_broken": false,
+      "diag_pierce_keys": [
+        "res://resources/symbols/ice_shot.tres",
+        "res://resources/symbols/ice_shot.tres|ice_gun",
+        "res://resources/symbols/ice_shot.tres|short_sword"
+      ],
+      "diag_source_keys": [
+        "ice_gun"
+      ],
+      "dmg": 42.9,
+      "hp_after": 105,
+      "pierce": 23.1,
+      "triple": true,
+      "turn": 3
+    },
+    {
+      "armor_after": 0,
+      "armor_before": 0,
+      "armor_broken": false,
+      "diag_pierce_keys": [
+        "res://resources/symbols/ice_shot.tres",
+        "res://resources/symbols/ice_shot.tres|ice_gun",
+        "res://resources/symbols/ice_shot.tres|short_sword"
+      ],
+      "diag_source_keys": [
+        "ice_gun"
+      ],
+      "dmg": 42.9,
+      "hp_after": 40,
+      "pierce": 23.1,
+      "triple": true,
+      "turn": 4
+    },
+    {
+      "armor_after": 0,
+      "armor_before": 0,
+      "armor_broken": false,
+      "diag_pierce_keys": [
+        "res://resources/symbols/ice_shot.tres",
+        "res://resources/symbols/ice_shot.tres|ice_gun",
+        "res://resources/symbols/ice_shot.tres|short_sword"
+      ],
+      "diag_source_keys": [
+        "ice_gun"
+      ],
+      "dmg": 42.9,
+      "hp_after": -25,
+      "pierce": 23.1,
+      "triple": true,
+      "turn": 5
+    }
+  ],
+  "terminal": "WON",
+  "ttk_turns": 5
+}

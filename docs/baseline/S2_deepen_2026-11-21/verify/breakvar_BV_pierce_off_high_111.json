@@ -1,0 +1,95 @@
+{
+  "actual_armor": 90,
+  "mode": "breakvar",
+  "pierce_on": false,
+  "profile": "BV_pierce_off_high",
+  "seed": 111,
+  "spins": [
+    {
+      "armor_after": 48,
+      "armor_before": 90,
+      "armor_broken": false,
+      "diag_pierce_keys": [],
+      "diag_source_keys": [
+        "ice_gun"
+      ],
+      "dmg": 42.9,
+      "hp_after": 277,
+      "pierce": 23.1,
+      "triple": true,
+      "turn": 1
+    },
+    {
+      "armor_after": 6,
+      "armor_before": 48,
+      "armor_broken": false,
+      "diag_pierce_keys": [],
+      "diag_source_keys": [
+        "ice_gun"
+      ],
+      "dmg": 42.9,
+      "hp_after": 254,
+      "pierce": 23.1,
+      "triple": true,
+      "turn": 2
+    },
+    {
+      "armor_after": 0,
+      "armor_before": 6,
+      "armor_broken": false,
+      "diag_pierce_keys": [],
+      "diag_source_keys": [
+        "ice_gun"
+      ],
+      "dmg": 42.9,
+      "hp_after": 195,
+      "pierce": 23.1,
+      "triple": true,
+      "turn": 3
+    },
+    {
+      "armor_after": 0,
+      "armor_before": 0,
+      "armor_broken": false,
+      "diag_pierce_keys": [],
+      "diag_source_keys": [
+        "ice_gun"
+      ],
+      "dmg": 42.9,
+      "hp_after": 130,
+      "pierce": 23.1,
+      "triple": true,
+      "turn": 4
+    },
+    {
+      "armor_after": 0,
+      "armor_before": 0,
+      "armor_broken": false,
+      "diag_pierce_keys": [],
+      "diag_source_keys": [
+        "ice_gun"
+      ],
+      "dmg": 42.9,
+      "hp_after": 65,
+      "pierce": 23.1,
+      "triple": true,
+      "turn": 5
+    },
+    {
+      "armor_after": 0,
+      "armor_before": 0,
+      "armor_broken": false,
+      "diag_pierce_keys": [],
+      "diag_source_keys": [
+        "ice_gun"
+      ],
+      "dmg": 42.9,
+      "hp_after": -45,
+      "pierce": 23.1,
+      "triple": true,
+      "turn": 6
+    }
+  ],
+  "terminal": "WON",
+  "ttk_turns": 6
+}
