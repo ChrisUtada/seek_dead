@@ -235,6 +235,7 @@ func evaluate() -> void:
 	_phase_defense(acc)
 	_phase_counter(counts, acc)
 	_apply_patterns(acc)
+	_apply_circuits(acc)   # G4-3：本局回路（在牌谱之后、攻击之前，读已收集的本回合事件）
 	_phase_attack(counts, acc)
 	await _present_turn(acc, counts)
 
@@ -448,6 +449,53 @@ func _apply_patterns(acc: Dictionary) -> void:
 		var n := int(acc["pattern_status"][st])
 		if n > 0:
 			_ctrl.add_enemy_status(st, n)
+
+
+# G4-3：本局回路结算。读本回合已收集的原始事件（三连/状态/破甲），按回路声明赔付。
+# 位置在牌谱之后、攻击之前（G4-1 契约插入点）。回路只响应原始事件，不响应自己的追加结果
+# ——应用赔付时用 begin_resolve/end_resolve 防递归。
+func _apply_circuits(acc: Dictionary) -> void:
+	var c = _ctrl.circuit_system
+	if c == null:
+		return
+	c.reset_spin()   # 每 SPIN 重置回路的每SPIN上限计数
+	# 原始事件→回路触发事件（与 CircuitSystem.DEFINITIONS 的 event 字段对应）
+	if acc.get("triple", false) or acc.get("counter_triple", false) or acc.get("heal_triple", false):
+		_apply_circuit_fired(c.try_trigger("triple"), acc, "triple")
+	if not acc.get("status_stacks", {}).is_empty():
+		_apply_circuit_fired(c.try_trigger("status_applied"), acc, "status_applied")
+	if acc.get("armor_broken", false):
+		_apply_circuit_fired(c.try_trigger("armor_break"), acc, "armor_break")
+
+
+func _apply_circuit_fired(ids: Array, acc: Dictionary, event: String) -> void:
+	if ids.is_empty() or _ctrl.circuit_system == null:
+		return
+	var c = _ctrl.circuit_system
+	c.begin_resolve()
+	for id in ids:
+		var def: Dictionary = c.definition(id)
+		var payout: String = String(def.get("payout", ""))
+		match payout:
+			"bonus_damage":
+				acc["dmg"] = float(acc.get("dmg", 0.0)) + CIRCUIT_BONUS_DAMAGE
+				acc["lines"].append("🔁 %s 回响 +%d 伤害" % [String(def.get("name", "回路")), CIRCUIT_BONUS_DAMAGE])
+			"extra_stack":
+				var stacks: Dictionary = acc.get("status_stacks", {})
+				for st in stacks.keys():
+					stacks[st] = int(stacks[st]) + CIRCUIT_EXTRA_STACK
+				acc["lines"].append("🔁 %s 状态反应 +%d 层" % [String(def.get("name", "回路")), CIRCUIT_EXTRA_STACK])
+			"pierce_damage":
+				acc["pierce"] = float(acc.get("pierce", 0.0)) + CIRCUIT_PIERCE_DAMAGE
+				acc["lines"].append("🔁 %s 余波 +%d 穿透" % [String(def.get("name", "回路")), CIRCUIT_PIERCE_DAMAGE])
+	c.end_resolve()
+	if _ctrl.hud != null:
+		_ctrl.hud._log("🔁 回路触发：%s（%s）" % [str(ids), event])
+
+
+const CIRCUIT_BONUS_DAMAGE := 5.0
+const CIRCUIT_EXTRA_STACK := 1
+const CIRCUIT_PIERCE_DAMAGE := 4.0
 
 
 # 常驻面板的数据：武器牌谱最多 2 条（避免面板过长），技能术式只显示与当前技能匹配的那条。
@@ -1008,6 +1056,8 @@ func on_counter(kind: String, pierce_need: int = 3, acc: Dictionary = {}) -> voi
 		var tag := "special %s破甲" % ("三连" if pierce_need >= 3 else "二连")
 		_ctrl.hud._log("💥 %s！护甲清零（%d）" % [tag if kind == "special" else "克制同族连线", cleared])
 		_ctrl.enemy_armor = 0
+		if not acc.is_empty():
+			acc["armor_broken"] = true   # G4-3：供回路"破甲余波"事件监听（原始事件，非回路追加）
 		if _ctrl._career != null:
 			_ctrl._career.note_armor_break()   # G6-01：仅记录 BOSS 房破甲（不改结算）
 		_ctrl.notify_armor_break()   # 2026-11-12 Step 1：腐蚀解除 + gimmick「首次破甲」触发
