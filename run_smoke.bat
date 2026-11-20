@@ -5,7 +5,6 @@ REM Usage: run_smoke.bat [godot console exe]
 REM   default: D:\Godot\Godot_v4.7-stable_win64.exe\Godot_v4.7-stable_win64_console.exe
 REM Exit code: 0 = all green, 1 = any failure. Logs go to %TEMP%\smoke_*.log
 REM Suites: L0 intent gating / L0 boss loot theme / L1 lint / L2+L3 full smoke /
-REM         T8 drops / T7 acquisition weighting / curriculum / charge / M1 reward suite / M2 growth / M2 weapon mastery / M3 binding suites / M4 demo config / P1 readability / M1 post-battle / M2 ACT1 board / M4 career / G6 codex / G6 forge / G5 run journal / G8 loadout layout / G7-A three-act chain / G7-B active strip-trim / G8-05 four-screen layout / G7-C skill collection semantics / G7-D decision depth / Normal enemy early traits / Elite-BOSS rhythm windows / Reel clock Step 1 continuous time and landing / Reel absorb Step 2 deferred stop and settle / Reel pacing Step 3 speed, stagger and spin duration / Reel feedback Step 4 stop-cell pulse, tiered colors and combo cap / Step 1 shared triggers and debuffs / Step 4 elite combos / Step 5 boss rhythm / Step 1 loot taxonomy / Reel shared-symbol sources / Weapon archetypes and combo rules / Step 2 loot frequency independence / Step 3 loot source table and pool / Step 4 loot offer three-choice / Step 5 loot exploration source and shop categories / Step 6 duplicate mastery and codex source / Step 7 loot UI display and interaction / Step 8 loot balance statistics and family paths / Step 6 monster counterplay two valid counters and bare-build clears / Growth loot choices and real effects / Map grid Step 1 14x9 greybox and route reachability / Map Step 0.5 act chain and dev gate / Map Step 0.5 node registry and loot sources / Map grid builder adjacency and room bindings / Map Step 2 movement, wait, revisit, camera and save-restore / Map Step 3 patrol cycles, next-step preview and boss reachability / Map Step 4 armor-break trap trigger, armor preview and one-shot settle / Map Step 5B battle routing, three-choice growth and queue kept / Board UI 14x9 full map and 480x270 bounds / Map Step 7 route acceptance and time model / Weapon slot growth ownership
 REM Save safety: user:// is redirected to %TEMP%\seek_dead_smoke_appdata so no
 REM             test can read or write the real lobby_data.json. Wiped each run.
 REM ============================================================================
@@ -23,7 +22,7 @@ if not exist "%GODOT%" (
 set FAIL=0
 cd /d "%~dp0"
 
-echo [1/63] L0 intent act-gating regression ...
+echo [1/52] L0 intent act-gating regression ...
 "%GODOT%" --headless --fixed-fps 60 --path . --script res://tests/p0a_intent_act_gate_test.gd > "%TEMP%\smoke_p0a.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
@@ -31,7 +30,7 @@ if errorlevel 1 (
 ) else (
   echo   ok
 )
-echo [2/63] L0 boss loot theme regression ...
+echo [2/52] L0 boss loot theme regression ...
 "%GODOT%" --headless --fixed-fps 60 --path . --script res://tests/p0b_boss_loot_theme_test.gd > "%TEMP%\smoke_p0b.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
@@ -40,7 +39,7 @@ if errorlevel 1 (
   echo   ok
 )
 
-echo [3/63] L1 content and math lint ...
+echo [3/52] L1 content and math lint ...
 "%GODOT%" --headless --fixed-fps 60 --path . --script res://tests/smoke_lint.gd > "%TEMP%\smoke_lint.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
@@ -49,7 +48,7 @@ if errorlevel 1 (
   echo   ok
 )
 
-echo [4/63] L2+L3 full-run smoke and boss phase probes, about 40s ...
+echo [4/52] L2+L3 full-run smoke and boss phase probes, about 40s ...
 "%GODOT%" --headless --fixed-fps 60 --path . res://tests/smoke_root.tscn > "%TEMP%\smoke_full.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
@@ -59,7 +58,7 @@ if errorlevel 1 (
 )
 findstr /C:"SMOKE|RESULT" "%TEMP%\smoke_full.log"
 
-echo [5/63] T8 drop channels regression, about 60s ...
+echo [5/52] T8 drop channels regression, about 60s ...
 "%GODOT%" --headless --fixed-fps 60 --path . res://tests/t8_drops_test.tscn > "%TEMP%\smoke_t8.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
@@ -68,7 +67,7 @@ if errorlevel 1 (
   echo   ok
 )
 
-echo [6/63] T7 acquisition weighting regression, about 60s ...
+echo [6/52] T7 acquisition weighting regression, about 60s ...
 "%GODOT%" --headless --fixed-fps 60 --path . res://tests/t7_acquisition_test.tscn > "%TEMP%\smoke_t7.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
@@ -78,7 +77,7 @@ if errorlevel 1 (
 )
 
 
-echo [7/63] curriculum mini-mechanics regression ...
+echo [7/52] curriculum mini-mechanics regression ...
 "%GODOT%" --headless --fixed-fps 60 --path . res://tests/curriculum_test.tscn > "%TEMP%\smoke_curr.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
@@ -88,7 +87,7 @@ if errorlevel 1 (
 )
 
 
-echo [8/63] charge gating micro-probe ...
+echo [8/52] charge gating micro-probe ...
 "%GODOT%" --headless --fixed-fps 60 --path . res://tests/charge_rule_test.tscn > "%TEMP%\smoke_chg.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
@@ -97,7 +96,7 @@ if errorlevel 1 (
   echo   ok
 )
 
-echo [9/63] M1 reward reach / prepick / collection / preview / telemetry ...
+echo [9/52] M1 reward reach / prepick / collection / preview / telemetry ...
 "%GODOT%" --headless --fixed-fps 60 --path . res://tests/m1_reward_reach_test.tscn > "%TEMP%\smoke_m1.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
@@ -106,7 +105,7 @@ if errorlevel 1 (
   echo   ok
 )
 
-echo [10/63] M2 growth / perk choices / hooks ...
+echo [10/52] M2 growth / perk choices / hooks ...
 "%GODOT%" --headless --fixed-fps 60 --path . res://tests/m2_growth_test.tscn > "%TEMP%\smoke_m2.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
@@ -115,7 +114,7 @@ if errorlevel 1 (
   echo   ok
 )
 
-echo [11/63] M2-02 weapon mastery / imprints ...
+echo [11/52] M2-02 weapon mastery / imprints ...
 "%GODOT%" --headless --fixed-fps 60 --path . res://tests/m2_weapon_test.tscn > "%TEMP%\smoke_m2w.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
@@ -124,7 +123,7 @@ if errorlevel 1 (
   echo   ok
 )
 
-echo [12/63] M3 entity / symbol art binding ...
+echo [12/52] M3 entity / symbol art binding ...
 "%GODOT%" --headless --fixed-fps 60 --path . res://tests/m3_binding_test.tscn > "%TEMP%\smoke_m3b.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
@@ -133,7 +132,7 @@ if errorlevel 1 (
   echo   ok
 )
 
-echo [13/63] M4-01 ACT1 demo config / whitelist / growth coverage ...
+echo [13/52] M4-01 ACT1 demo config / whitelist / growth coverage ...
 "%GODOT%" --headless --fixed-fps 60 --path . res://tests/m4_demo_test.tscn > "%TEMP%\smoke_m4.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
@@ -142,7 +141,7 @@ if errorlevel 1 (
   echo   ok
 )
 
-echo [14/63] P1 reel readability presets / visual stop / buffer / telemetry ...
+echo [14/52] P1 reel readability presets / visual stop / buffer / telemetry ...
 "%GODOT%" --headless --fixed-fps 60 --path . res://tests/p1_readability_test.tscn > "%TEMP%\smoke_p1.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
@@ -151,7 +150,7 @@ if errorlevel 1 (
   echo   ok
 )
 
-echo [15/63] M1 post-battle: same-tier loot three-choice then growth phase / queue / boss carryover ...
+echo [15/52] M1 post-battle: same-tier loot three-choice then growth phase / queue / boss carryover ...
 "%GODOT%" --headless --fixed-fps 60 --path . res://tests/m1_post_battle_test.tscn > "%TEMP%\smoke_m1pb.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
@@ -160,16 +159,16 @@ if errorlevel 1 (
   echo   ok
 )
 
-echo [16/63] Board map topology: 14x9 structure / adjacency moves / patrol block / tri-act finals ...
-"%GODOT%" --headless --fixed-fps 60 --path . res://tests/m2_board_test.tscn > "%TEMP%\smoke_m2board.log" 2>&1
+echo [16/52] Branch map: current forked map / adjacency / node bindings / reachability ...
+"%GODOT%" --headless --fixed-fps 60 --path . res://tests/branch_map_test.tscn > "%TEMP%\branch_map_test.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
-  echo   FAIL -- see %TEMP%\smoke_m2board.log
+  echo   FAIL -- see %TEMP%\branch_map_test.log
 ) else (
   echo   ok
 )
 
-echo [17/63] G6-01 career achievements / one-time unlock / old save ...
+echo [17/52] G6-01 career achievements / one-time unlock / old save ...
 "%GODOT%" --headless --fixed-fps 60 --path . res://tests/m4_career_test.tscn > "%TEMP%\smoke_m4career.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
@@ -178,7 +177,7 @@ if errorlevel 1 (
   echo   ok
 )
 
-echo [18/63] G6-04 codex detail / sources / uses / mastery / imprints ...
+echo [18/52] G6-04 codex detail / sources / uses / mastery / imprints ...
 "%GODOT%" --headless --fixed-fps 60 --path . res://tests/g6_codex_test.tscn > "%TEMP%\smoke_g6codex.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
@@ -187,7 +186,7 @@ if errorlevel 1 (
   echo   ok
 )
 
-echo [19/63] G6-05 forge styles / 4 weapons / tradeoffs / real reel diff ...
+echo [19/52] G6-05 forge styles / 4 weapons / tradeoffs / real reel diff ...
 "%GODOT%" --headless --fixed-fps 60 --path . res://tests/g6_forge_test.tscn > "%TEMP%\smoke_g6forge.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
@@ -196,7 +195,7 @@ if errorlevel 1 (
   echo   ok
 )
 
-echo [20/63] G5 run journal / JSON + prefilled record ...
+echo [20/52] G5 run journal / JSON + prefilled record ...
 REM Needs --runlog because the journal only writes files in the export build or with this flag;
 REM user:// is redirected to %TEMP% at the top, so nothing here can touch the real save.
 "%GODOT%" --headless --fixed-fps 60 --path . res://tests/g5_journal_test.tscn -- --runlog > "%TEMP%\smoke_g5journal.log" 2>&1
@@ -206,7 +205,7 @@ if errorlevel 1 (
 ) else (
   echo   ok
 )
-echo [21/63] G8 loadout screen layout / card fit / bottom bar / dialogs ...
+echo [21/52] G8 loadout screen layout / card fit / bottom bar / dialogs ...
 "%GODOT%" --headless --fixed-fps 60 --path . res://tests/g8_loadout_layout_test.tscn > "%TEMP%\smoke_g8layout.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
@@ -215,16 +214,16 @@ if errorlevel 1 (
   echo   ok
 )
 
-echo [22/63] G7-A S4 three-act chain / per-act boards / state carryover ... about 70s
-"%GODOT%" --headless --fixed-fps 60 --path . res://tests/g7_run3_test.tscn > "%TEMP%\smoke_g7run3.log" 2>&1
+echo [22/52] G5 six-route slice: ACT1 core circuits / acquisition / trigger ...
+"%GODOT%" --headless --fixed-fps 60 --path . res://tests/g5_routes_slice_test.tscn > "%TEMP%\smoke_g5routes.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
-  echo   FAIL -- see %TEMP%\smoke_g7run3.log
+  echo   FAIL -- see %TEMP%\smoke_g5routes.log
 ) else (
   echo   ok
 )
 
-echo [23/63] G7-B B1/B2 active strip-trim rules / preview = real band / per-act cap ...
+echo [23/52] G7-B B1/B2 active strip-trim rules / preview = real band / per-act cap ...
 "%GODOT%" --headless --fixed-fps 60 --path . res://tests/g7b_trim_test.tscn > "%TEMP%\smoke_g7btrim.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
@@ -233,7 +232,7 @@ if errorlevel 1 (
   echo   ok
 )
 
-echo [24/63] G8-05 shop / reward / anvil+codex / meta screen layout ...
+echo [24/52] G8-05 shop / reward / anvil+codex / meta screen layout ...
 "%GODOT%" --headless --fixed-fps 60 --path . res://tests/g8_screens_layout_test.tscn > "%TEMP%\smoke_g8screens.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
@@ -242,7 +241,7 @@ if errorlevel 1 (
   echo   ok
 )
 
-echo [25/63] G7-C skill collection semantics (owned_skills / anvil+shop / codex) ...
+echo [25/52] G7-C skill collection semantics (owned_skills / anvil+shop / codex) ...
 "%GODOT%" --headless --fixed-fps 60 --path . res://tests/g7c_skills_test.tscn > "%TEMP%\smoke_g7cskills.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
@@ -251,7 +250,7 @@ if errorlevel 1 (
   echo   ok
 )
 
-echo [26/63] G7-D decision depth: situation + real counters / telemetry / elite-BOSS rhythm ...
+echo [26/52] G7-D decision depth: situation + real counters / telemetry / elite-BOSS rhythm ...
 "%GODOT%" --headless --fixed-fps 60 --path . res://tests/g7d_decision_test.tscn > "%TEMP%\smoke_g7ddecision.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
@@ -260,7 +259,7 @@ if errorlevel 1 (
   echo   ok
 )
 
-echo [27/63] Normal enemy early traits / one trait each / no HP lock ...
+echo [27/52] Normal enemy early traits / one trait each / no HP lock ...
 "%GODOT%" --headless --fixed-fps 60 --path . res://tests/normal_trait_test.tscn > "%TEMP%\smoke_normaltrait.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
@@ -269,17 +268,7 @@ if errorlevel 1 (
   echo   ok
 )
 
-echo [28/63] Elite/BOSS rhythm windows: windup-burst-recovery / multi-answer hints / board samples ...
-"%GODOT%" --headless --fixed-fps 60 --path . res://tests/rhythm_windows_test.tscn > "%TEMP%\smoke_rhythm.log" 2>&1
-if errorlevel 1 (
-  set FAIL=1
-  echo   FAIL -- see %TEMP%\smoke_rhythm.log
-) else (
-  echo   ok
-)
-
-
-echo [29/63] Reel clock Step 1: continuous position / landing / fps independence / no RNG ...
+echo [28/52] Reel clock Step 1: continuous position / landing / fps independence / no RNG ...
 "%GODOT%" --headless --fixed-fps 60 --path . --script res://tests/reel_clock_test.gd > "%TEMP%\smoke_reelclock.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
@@ -288,7 +277,7 @@ if errorlevel 1 (
   echo   ok
 )
 
-echo [30/63] Reel absorb Step 2: deferred stop / settle once / manual-auto / RNG ...
+echo [29/52] Reel absorb Step 2: deferred stop / settle once / manual-auto / RNG ...
 "%GODOT%" --headless --fixed-fps 60 --path . res://tests/reel_absorb_test.tscn > "%TEMP%\smoke_reelabsorb.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
@@ -297,7 +286,7 @@ if errorlevel 1 (
   echo   ok
 )
 
-echo [31/63] Reel pacing Step 3: cruise 8-10 / cap 10-12 / auto-stop stagger / spin duration ...
+echo [30/52] Reel pacing Step 3: cruise 8-10 / cap 10-12 / auto-stop stagger / spin duration ...
 "%GODOT%" --headless --fixed-fps 60 --path . res://tests/reel_pacing_test.tscn > "%TEMP%\smoke_reelpacing.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
@@ -306,7 +295,7 @@ if errorlevel 1 (
   echo   ok
 )
 
-echo [32/63] Reel feedback Step 4: stop-cell pulse / tiered colors / combo cap / no input block ...
+echo [31/52] Reel feedback Step 4: stop-cell pulse / tiered colors / combo cap / no input block ...
 "%GODOT%" --headless --fixed-fps 60 --path . res://tests/reel_feedback_test.tscn > "%TEMP%\smoke_reelfeedback.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
@@ -315,7 +304,7 @@ if errorlevel 1 (
   echo   ok
 )
 
-echo [33/63] Step 1 shared triggers / debuffs: weak-vulnerable-corrode-drain-healblock-blind-entangle-backlash-strip / purify-cleanse split / no RNG ...
+echo [32/52] Step 1 shared triggers / debuffs: weak-vulnerable-corrode-drain-healblock-blind-entangle-backlash-strip / purify-cleanse split / no RNG ...
 "%GODOT%" --headless --fixed-fps 60 --path . res://tests/step1_module_test.tscn > "%TEMP%\smoke_step1.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
@@ -324,7 +313,7 @@ if errorlevel 1 (
   echo   ok
 )
 
-echo [34/63] Step 4 elite combos: per-elite pressure/recovery / D1-D4 differentiation / summaries / no HP lock ...
+echo [33/52] Step 4 elite combos: per-elite pressure/recovery / D1-D4 differentiation / summaries / no HP lock ...
 "%GODOT%" --headless --fixed-fps 60 --path . res://tests/elite_combo_test.tscn > "%TEMP%\smoke_elitecombo.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
@@ -333,7 +322,7 @@ if errorlevel 1 (
   echo   ok
 )
 
-echo [35/63] Step 5 boss rhythm: 13 bosses / real recovery window / act pools / shadow reconciliation ...
+echo [34/52] Step 5 boss rhythm: 13 bosses / real recovery window / act pools / shadow reconciliation ...
 "%GODOT%" --headless --fixed-fps 60 --path . res://tests/boss_rhythm_test.tscn > "%TEMP%\smoke_bossrhythm.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
@@ -342,7 +331,7 @@ if errorlevel 1 (
   echo   ok
 )
 
-echo [36/63] Step 1 loot taxonomy: 200 items / families / sources / high-tier mechanics / base entries ...
+echo [35/52] Step 1 loot taxonomy: 200 items / families / sources / high-tier mechanics / base entries ...
 "%GODOT%" --headless --fixed-fps 60 --path . res://tests/item_taxonomy_test.tscn > "%TEMP%\smoke_taxonomy.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
@@ -351,7 +340,7 @@ if errorlevel 1 (
   echo   ok
 )
 
-echo [37/63] Reel shared-symbol sources: family cell budget / full weapon icons / source damage-crit-pierce / combo charge once ...
+echo [36/52] Reel shared-symbol sources: family cell budget / full weapon icons / source damage-crit-pierce / combo charge once ...
 "%GODOT%" --headless --fixed-fps 60 --path . res://tests/reel_source_test.tscn > "%TEMP%\smoke_reelsource.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
@@ -360,7 +349,7 @@ if errorlevel 1 (
   echo   ok
 )
 
-echo [38/63] Weapon archetypes: source-family-element combos / light combo / heavy armor break / ranged pierce / magic charge-status ...
+echo [37/52] Weapon archetypes: source-family-element combos / light combo / heavy armor break / ranged pierce / magic charge-status ...
 "%GODOT%" --headless --fixed-fps 60 --path . res://tests/weapon_archetype_test.tscn > "%TEMP%\smoke_weaponarch.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
@@ -369,7 +358,7 @@ if errorlevel 1 (
   echo   ok
 )
 
-echo [39/63] Step 2 loot frequency: rarity never changes cells / old rare-epic cap removed / infusion-strip / mastery keeps rarity ...
+echo [38/52] Step 2 loot frequency: rarity never changes cells / old rare-epic cap removed / infusion-strip / mastery keeps rarity ...
 "%GODOT%" --headless --fixed-fps 60 --path . res://tests/loot_frequency_test.tscn > "%TEMP%\smoke_lootfreq.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
@@ -378,7 +367,7 @@ if errorlevel 1 (
   echo   ok
 )
 
-echo [40/63] Step 3 loot source table and pool: per-source quality weights / legality filters / same-tier roll / RNG isolation / shop ladder ...
+echo [39/52] Step 3 loot source table and pool: per-source quality weights / legality filters / same-tier roll / RNG isolation / shop ladder ...
 "%GODOT%" --headless --fixed-fps 60 --path . res://tests/loot_source_pool_test.tscn > "%TEMP%\smoke_lootpool.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
@@ -387,7 +376,7 @@ if errorlevel 1 (
   echo   ok
 )
 
-echo [41/63] Step 4 loot offer: exactly three same-tier options / two purposes / frozen conversions / reroll keeps quality / skip frozen ...
+echo [40/52] Step 4 loot offer: exactly three same-tier options / two purposes / frozen conversions / reroll keeps quality / skip frozen ...
 "%GODOT%" --headless --fixed-fps 60 --path . res://tests/loot_offer_test.tscn > "%TEMP%\smoke_lootoffer.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
@@ -396,7 +385,7 @@ if errorlevel 1 (
   echo   ok
 )
 
-echo [42/63] Step 5 loot explore: chest tags / source table legality / frozen board items / shop category ladder ...
+echo [41/52] Step 5 loot explore: chest tags / source table legality / frozen board items / shop category ladder ...
 "%GODOT%" --headless --fixed-fps 60 --path . res://tests/loot_explore_test.tscn > "%TEMP%\smoke_lootexplore.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
@@ -405,7 +394,7 @@ if errorlevel 1 (
   echo   ok
 )
 
-echo [43/63] Step 6 loot growth: duplicate weapon mastery / settle once / growth queue untouched / codex source ...
+echo [42/52] Step 6 loot growth: duplicate weapon mastery / settle once / growth queue untouched / codex source ...
 "%GODOT%" --headless --fixed-fps 60 --path . res://tests/loot_growth_test.tscn > "%TEMP%\smoke_lootgrowth.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
@@ -414,7 +403,7 @@ if errorlevel 1 (
   echo   ok
 )
 
-echo [44/63] Step 7 loot UI: four-tier labels and colors / same-tier cards / reroll / replace / defer / no double grant ...
+echo [43/52] Step 7 loot UI: four-tier labels and colors / same-tier cards / reroll / replace / defer / no double grant ...
 "%GODOT%" --headless --fixed-fps 60 --path . res://tests/loot_ui_test.tscn > "%TEMP%\smoke_lootui.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
@@ -423,7 +412,7 @@ if errorlevel 1 (
   echo   ok
 )
 
-echo [45/63] Step 8 loot balance: source distribution 10k / offer invariants / dominance / tier usability / family paths / draft policies ...
+echo [44/52] Step 8 loot balance: source distribution 10k / offer invariants / dominance / tier usability / family paths / draft policies ...
 "%GODOT%" --headless --fixed-fps 60 --path . res://tests/loot_balance_test.tscn > "%TEMP%\smoke_lootbal.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
@@ -432,7 +421,7 @@ if errorlevel 1 (
   echo   ok
 )
 
-echo [46/63] Step 6 monster counterplay: two valid counters per pressure / 61 bare-build clears / dual builds ...
+echo [45/52] Step 6 monster counterplay: two valid counters per pressure / 61 bare-build clears / dual builds ...
 "%GODOT%" --headless --fixed-fps 60 --path . res://tests/counterplay_test.tscn > "%TEMP%\smoke_counterplay.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
@@ -441,7 +430,7 @@ if errorlevel 1 (
   echo   ok
 )
 
-echo [47/63] Growth loot: no direct gear / mastery-symbol-perk-hp-shield-heal / reroll cost / free skip / explore-boss items ...
+echo [46/52] Growth loot: no direct gear / mastery-symbol-perk-hp-shield-heal / reroll cost / free skip / explore-boss items ...
 "%GODOT%" --headless --fixed-fps 60 --path . res://tests/growth_loot_offer_test.tscn > "%TEMP%\smoke_growthloot.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
@@ -450,97 +439,7 @@ if errorlevel 1 (
   echo   ok
 )
 
-echo [48/63] Map grid Step 1: 14x9 greybox / budget / reachable routes / fixed seed / validate guards ...
-"%GODOT%" --headless --fixed-fps 60 --path . res://tests/map_grid_test.tscn > "%TEMP%\smoke_mapgrid.log" 2>&1
-if errorlevel 1 (
-  set FAIL=1
-  echo   FAIL -- see %TEMP%\smoke_mapgrid.log
-) else (
-  echo   ok
-)
-
-echo [49/63] Map Step 0.5 act chain: config-driven boss final / ACT I-II continue / no ACT IV / dev gate ...
-"%GODOT%" --headless --fixed-fps 60 --path . res://tests/map_act_chain_test.tscn > "%TEMP%\smoke_mapact.log" 2>&1
-if errorlevel 1 (
-  set FAIL=1
-  echo   FAIL -- see %TEMP%\smoke_mapact.log
-) else (
-  echo   ok
-)
-
-echo [50/63] Map Step 0.5 loot explore: node registry / real sources / frozen fields / no double settle ...
-"%GODOT%" --headless --fixed-fps 60 --path . res://tests/map_loot_explore_test.tscn > "%TEMP%\smoke_maploot.log" 2>&1
-if errorlevel 1 (
-  set FAIL=1
-  echo   FAIL -- see %TEMP%\smoke_maploot.log
-) else (
-  echo   ok
-)
-
-echo [51/63] Map grid builder: 61 nodes / bidirectional adjacency / 16 room bindings / fixed seed ...
-"%GODOT%" --headless --fixed-fps 60 --path . res://tests/map_builder_test.tscn > "%TEMP%\smoke_mapbuilder.log" 2>&1
-if errorlevel 1 (
-  set FAIL=1
-  echo   FAIL -- see %TEMP%\smoke_mapbuilder.log
-) else (
-  echo   ok
-)
-
-echo [52/63] Map Step 2 movement: adjacency gate / wait once / revisit no double settle / camera 9x7 / save-restore ...
-"%GODOT%" --headless --fixed-fps 60 --path . res://tests/map_move_test.tscn > "%TEMP%\smoke_mapmove.log" 2>&1
-if errorlevel 1 (
-  set FAIL=1
-  echo   FAIL -- see %TEMP%\smoke_mapmove.log
-) else (
-  echo   ok
-)
-
-echo [53/63] Map Step 3 patrol: frozen cycles / preview matches move / occupy and bump / order / boss never blocked ...
-"%GODOT%" --headless --fixed-fps 60 --path . res://tests/map_patrol_test.tscn > "%TEMP%\smoke_mappatrol.log" 2>&1
-if errorlevel 1 (
-  set FAIL=1
-  echo   FAIL -- see %TEMP%\smoke_mappatrol.log
-) else (
-  echo   ok
-)
-
-echo [54/63] Map Step 4 armor-break trap: trigger once / preview equals combat / no instant kill / player safe ...
-"%GODOT%" --headless --fixed-fps 60 --path . res://tests/map_trap_test.tscn > "%TEMP%\smoke_maptrap.log" 2>&1
-if errorlevel 1 (
-  set FAIL=1
-  echo   FAIL -- see %TEMP%\smoke_maptrap.log
-) else (
-  echo   ok
-)
-
-echo [55/63] Map Step 5B progress: battle/elite/boss routing / three-choice growth / queue kept / defeat no reward ...
-"%GODOT%" --headless --fixed-fps 60 --path . res://tests/map_progress_test.tscn > "%TEMP%\smoke_mapprogress.log" 2>&1
-if errorlevel 1 (
-  set FAIL=1
-  echo   FAIL -- see %TEMP%\smoke_mapprogress.log
-) else (
-  echo   ok
-)
-
-echo [56/63] Board UI: 14x9 full map / three-region panel / current-situation cards / 480x270 bounds ...
-"%GODOT%" --headless --fixed-fps 60 --path . res://tests/board_ui_test.tscn > "%TEMP%\smoke_boardui.log" 2>&1
-if errorlevel 1 (
-  set FAIL=1
-  echo   FAIL -- see %TEMP%\smoke_boardui.log
-) else (
-  echo   ok
-)
-
-echo [57/63] Map Step 7 acceptance: fixed-seed budget / three routes / repeat state / time model / armor link ...
-"%GODOT%" --headless --fixed-fps 60 --path . res://tests/map_route_test.tscn > "%TEMP%\smoke_maproute.log" 2>&1
-if errorlevel 1 (
-  set FAIL=1
-  echo   FAIL -- see %TEMP%\smoke_maproute.log
-) else (
-  echo   ok
-)
-
-echo [58/63] Weapon slot growth: general imprints follow slot / swap inherits / no copy / tune stays on weapon ...
+echo [47/52] Weapon slot growth: general imprints follow slot / swap inherits / no copy / tune stays on weapon ...
 "%GODOT%" --headless --fixed-fps 60 --path . res://tests/weapon_slot_growth_test.tscn > "%TEMP%\smoke_slotgrowth.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
@@ -549,7 +448,7 @@ if errorlevel 1 (
   echo   ok
 )
 
-echo [59/63] Boss loot quality: empty-tier fallback / same-quality group / forced tier / exclude fallback / real boss entry ...
+echo [48/52] Boss loot quality: empty-tier fallback / same-quality group / forced tier / exclude fallback / real boss entry ...
 "%GODOT%" --headless --fixed-fps 60 --path . res://tests/boss_loot_quality_test.tscn > "%TEMP%\smoke_bossquality.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
@@ -558,7 +457,7 @@ if errorlevel 1 (
   echo   ok
 )
 
-echo [60/63] Pattern system: G01-G03 / W01-W06 / T01-T03 / signatures / banner / tray / effect settlement ...
+echo [49/52] Pattern system: G01-G03 / W01-W06 / T01-T03 / signatures / banner / tray / effect settlement ...
 "%GODOT%" --headless --fixed-fps 60 --path . res://tests/pattern_matcher_test.tscn > "%TEMP%\smoke_patternmatch.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
@@ -567,7 +466,7 @@ if errorlevel 1 (
   echo   ok
 )
 
-echo [61/63] Pattern flow baseline: stop-then-settle / no post-settle swap window / single settle entry ...
+echo [50/52] Pattern flow baseline: stop-then-settle / no post-settle swap window / single settle entry ...
 "%GODOT%" --headless --fixed-fps 60 --path . res://tests/pattern_flow_test.tscn > "%TEMP%\smoke_patternflow.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
@@ -576,7 +475,7 @@ if errorlevel 1 (
   echo   ok
 )
 
-echo [62/63] Pattern sample run: builds x 300 rounds trigger rate / 1000-round composition rate / three enemy tiers ...
+echo [51/52] Pattern sample run: builds x 300 rounds trigger rate / 1000-round composition rate / three enemy tiers ...
 "%GODOT%" --headless --fixed-fps 60 --path . res://tests/pattern_sample_run_test.tscn > "%TEMP%\smoke_patternsample.log" 2>&1
 if errorlevel 1 (
   set FAIL=1
@@ -585,7 +484,7 @@ if errorlevel 1 (
   echo   ok
 )
 
-echo [63/63] Pattern reachability: 2 weapons + 1 skill + 1 charm / 12 contents real Build examples / negatives ...
+echo [52/52] Pattern reachability: 2 weapons + 1 skill + 1 charm / 12 contents real Build examples / negatives ...
 "%GODOT%" --headless --fixed-fps 60 --path . res://tests/pattern_reachability_test.tscn > "%TEMP%\smoke_patternreach.log" 2>&1
 if errorlevel 1 (
   set FAIL=1

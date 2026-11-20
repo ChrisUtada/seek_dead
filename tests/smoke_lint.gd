@@ -63,7 +63,11 @@ func _check_dirs() -> void:
 
 
 # 武器三层模型的内容约束（M6-01 B01 起逐批守护）：
-# 火/冰/毒武器必须带本系状态；光/暗/无武器零状态（2026-08-14 已结案的平衡决策）。
+# 火/冰/毒武器必须带本系状态；无元素武器零状态。
+# 2026-11-20 更新：光/暗武器"零状态"旧断言已作废——commit 7d47177「光暗 DoT 补武器挂载」
+# 是正式批准的设计变更（详见 docs/G0_3d_全量回归结果_2026-11-19.md:67），
+# 光系 holy_burn / 暗系 shadow_blight 现为合法状态符号。光/暗武器改为"允许带本系 DoT"，
+# 不再强制零状态；但仍不允许带火/冰/毒等非本系状态（避免属性语义串线）。
 func _check_weapon_content() -> void:
 	for fp in _all_tres("res://resources/weapon_templates"):
 		var wd: WeaponData = load(fp)
@@ -80,11 +84,23 @@ func _check_weapon_content() -> void:
 			if sw.symbol.kind == "status":
 				statuses[sw.symbol.status_type] = true
 		_check(has_symbol, "武器至少 1 个符号 %s" % fp)
-		const STATUS_OF := {"fire": "burn", "ice": "frost", "poison": "poison"}
-		if STATUS_OF.has(wd.element):
+		# 火/冰/毒：必须带本系状态（既有约束）。
+		# 光/暗：7d47177 补入本系 DoT（holy_burn / shadow_blight）后允许带状态，但非强制——
+		#        若带状态则必须全是本系，禁止非本系状态串线；纯 damage 光暗武器同样合法。
+		# 无元素：零状态。
+		const STATUS_OF := {"fire": "burn", "ice": "frost", "poison": "poison",
+			"light": "holy_burn", "dark": "shadow_blight"}
+		if wd.element in ["fire", "ice", "poison"]:
 			_check(statuses.has(STATUS_OF[wd.element]), "元素武器带本系状态 %s (%s)" % [fp, wd.element])
-		elif wd.element in ["light", "dark", "none"]:
-			_check(statuses.is_empty(), "光/暗/无武器零状态 %s" % fp)
+		elif wd.element in ["light", "dark"]:
+			if not statuses.is_empty():
+				var alien := false
+				for st in statuses:
+					if String(st) != String(STATUS_OF[wd.element]):
+						alien = true
+				_check(not alien, "光/暗武器状态均为本系 DoT %s (%s)" % [fp, wd.element])
+		elif wd.element == "none":
+			_check(statuses.is_empty(), "无元素武器零状态 %s" % fp)
 
 
 # M6-C4：护符/消耗品内容约束（混合护符首次启用 downside_effect）。
@@ -92,7 +108,9 @@ func _check_items() -> void:
 	const PASSIVE_EFFECTS := ["damage_bonus", "room_shield", "shield", "interference_resist", "damage_mult",
 		"armor_pierce", "element_boost", "status_boost", "dot_reduce", "thorns", "dot_amp", "free_reroll",
 		"charge_start", "first_hit", "heal"]
-	const ACTIVE_EFFECTS := ["purify", "cleanse", "heal", "assault", "reroll", "element", "attack", "armor_shred"]
+	# 2026-11-20 更新：trim_belt 由 commit 3998678「精简带子改为道具化」正式引入，
+	# 旧枚举漏登记导致合法道具被误判；补入合法 effect 列表。
+	const ACTIVE_EFFECTS := ["purify", "cleanse", "heal", "assault", "reroll", "element", "attack", "armor_shred", "trim_belt"]
 	const DOWNSIDE_MULT_EFFECTS := ["damage_mult", "element_boost", "status_boost", "thorns", "first_hit"]
 	var seen_ids := {}
 	for fp in _all_tres("res://resources/charms") + _all_tres("res://resources/consumables"):
