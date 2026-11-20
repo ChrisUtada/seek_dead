@@ -40,6 +40,19 @@ func lines() -> Array[String]:
 	return out
 
 
+# G7-4：从 MachineSummary 取统一机器摘要单行（与整备/换装/战后同口径）。
+func machine_line() -> String:
+	if _ctrl == null or _ctrl.machine_summary == null:
+		return ""
+	var lines: Array = _ctrl.machine_summary.lines()
+	if lines.is_empty():
+		return ""
+	var parts: Array[String] = []
+	for l in lines:
+		parts.append(String(l))
+	return "机器摘要｜" + " · ".join(parts)
+
+
 # 本局路线：棋盘模式给骨架/模板/尾路主题/各节点计数；线性模式给房型计数与终局 BOSS。
 func route_line() -> String:
 	if _ctrl.node_mode and _ctrl.board != null and _ctrl.board.generated:
