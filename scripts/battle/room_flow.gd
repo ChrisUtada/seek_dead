@@ -481,6 +481,8 @@ func on_overlay_button_pressed() -> void:
 # 战败回整备：落盘保进度 → 清上局勾选/腰带/成长 → 解除终态 → 重开整备页。
 func return_to_loadout() -> void:
 	_ctrl._meta_store.save_meta()
+	# S4-2：仅清整备页可见的本局残留，不调用完整 reset_run_state（避免快照双调漏算新收藏）
+	_ctrl._loadout_system.reset_loadout_visible_state()
 	# 泛型数组属性跨对象只能 clear()/assign()，不能整体赋 []（运行时类型检查会拒绝）
 	_ctrl.selected_loadout.clear()
 	_ctrl.selected_skills.clear()

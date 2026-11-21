@@ -280,8 +280,29 @@ func full_reset() -> void:
 	_ctrl.invalidate_state()
 
 
-# 新一局公共状态重置（不含开战）：full_reset 与战败回整备共用——槽位成长/金币/商店/奖励回到初始，
-# 避免战败后整备页显示上局商店扩槽的上限（突破限制错觉）。
+# S4-2：回整备时清理「整备页会读到」的本局残留，字段级最小范围。
+# 不调用 reset_run_state()：其 _run_summary.snapshot() 非幂等，回整备快照→铁砧花点→再配装
+# 二次快照会漏算本局新收藏；也不触发 journal.start_run / note_act_boon。
+# 整备页读取证据：cat_max()(loadout_scene.gd:245,295)、
+# _refresh_preview()(loadout_scene.gd:665)、strip_diff()(forge_style_system.gd:227-230)。
+func reset_loadout_visible_state() -> void:
+	# 商店扩槽：整备页槽位条/计数直接显示，必须回基线
+	_ctrl.loadout_max = int(_ctrl.SLOT_INIT["weapon"])
+	_ctrl.skill_max = int(_ctrl.SLOT_INIT["skill"])
+	_ctrl.charm_max = int(_ctrl.SLOT_INIT["passive"])
+	# 预览/铸式按需读取的本局层
+	_ctrl._reward_system.run_symbol_bonus = {}
+	_ctrl.mastery.reset_run()
+	_ctrl.deprived_level = 0
+	_ctrl.room_element_mult = {}
+	_ctrl.pending_chaos = false
+	_ctrl.pending_armor_break = false
+	_ctrl.boss_trash = 0
+
+
+# 新一局公共状态重置（不含开战）：由 full_reset 调用（战败回整备只做上面的字段级最小清理，
+# 不调用本方法，避免 _run_summary.snapshot() 二次快照漏算本局新收藏）。
+# 槽位成长/金币/商店/奖励等全部回到初始。
 func reset_run_state() -> void:
 	_ctrl._anvil_system.reset_run()   # 本局铁砧点数 drip 累计清零
 	_ctrl.train_points = 0            # ⚠ 已废弃字段清零（训练点系统 2026-08-14 移除，保留字段兼容旧存档）
