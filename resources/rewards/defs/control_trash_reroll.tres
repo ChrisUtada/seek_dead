@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "control_trash_reroll"
 name = "操控 · 废铁改判"
-desc = "每房 1 次，按停落在废铁上时改判为相邻有效符号（不盲目干预其他落点）"
+desc = "每房 1 次，按停落在未命中或废铁（无效格）上时改判为相邻有效符号（不盲目干预其他落点）"
 rarity = "common"
 tags = Array[String](["control", "reel.aim", "tactical"])
 base_weight = 1.0

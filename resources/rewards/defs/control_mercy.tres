@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "control_mercy"
 name = "操控 · 废铁转化"
-desc = "按停落在废铁上时，废铁转化为 +2 金币（不改变落点），每回合 1 次"
+desc = "按停落在未命中或废铁（无效格）上时，无效格转化为 +2 金币（不改变落点），每回合 1 次"
 rarity = "common"
 tags = Array[String](["control", "reel.aim", "tactical"])
 base_weight = 1.0

@@ -254,7 +254,7 @@ func _kind_name(kind: String) -> String:
 		"status":  return "状态"
 		"special": return "特殊"
 		"skill":    return "技能"
-		"trash":   return "废铁"
+		"trash":   return "无效格"   # F-03：统称（含未命中/废铁两来源）
 		_:         return kind
 
 func _source_tag(kind: String) -> String:
@@ -895,6 +895,10 @@ func _on_cell_hover(reel: int, row: int) -> void:
 		# Phase C：增益符号显示效果与持续回合，而非属性克制
 		var vtxt = ("×%.1f" % s.buff_value) if s.buff_effect == "damage_mult" else ("+%d" % int(s.buff_value))
 		detail = "技能 · %s %s · 持续 %d 回合" % [controller.status_system.buff_effect_name(s.buff_effect), vtxt, s.buff_turns]
+	elif s.kind == "trash":
+		# F-03：无效格按来源区分说明，不把武器精度不足的 MISS 写成敌方注入的废铁。
+		var src := "敌方机制注入的无效格" if String(s.name) == "废铁" else "武器精度不足导致的无效格"
+		detail = "%s · %s（不结算、不参与牌型）" % [String(s.name), src]
 	else:
 		detail = "%s · %s%s" % [_kind_name(s.kind), (ElementCounter.label(elem) if elem != "none" else "无属性"), rel_text]
 	# 定位到格子上方并夹紧 HUD 边界

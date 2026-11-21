@@ -537,12 +537,14 @@ func lock_reel(r: int, use_visual: bool = true, reason: String = "player") -> vo
 						idx = good
 						_ctrl.readability.consume_trash_reroll()
 						if _ctrl.hud != null:
-							_ctrl.hud._log("🔁 废铁改判：第 %d 列废铁 → 相邻有效符号（每房1次）" % (r + 1))
+							var src_name := String(sym_now.name) if sym_now != null else "无效格"
+							_ctrl.hud._log("🔁 废铁改判：第 %d 列%s（无效格） → 相邻有效符号（每房1次）" % [r + 1, src_name])
 				elif _ctrl.readability.mercy_ready():
 					_ctrl.gold += TRASH_TO_GOLD
 					_ctrl.readability.consume_mercy()
 					if _ctrl.hud != null:
-						_ctrl.hud._log("♻️ 废铁转化：第 %d 列废铁 → +%d 金（不抵消空转）" % [r + 1, TRASH_TO_GOLD])
+						var src_name := String(sym_now.name) if sym_now != null else "无效格"
+						_ctrl.hud._log("♻️ 废铁转化：第 %d 列%s（无效格） → +%d 金（不抵消空转）" % [r + 1, src_name, TRASH_TO_GOLD])
 	_begin_absorb(r, idx, reason)
 
 

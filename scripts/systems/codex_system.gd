@@ -20,7 +20,7 @@ const KIND_LABEL := {"weapon": "武器", "passive": "护符", "active": "消耗�
 const KIND_ICON := {"weapon": "🗡", "passive": "📿", "active": "🧪", "skill": "✨"}
 const SYMBOL_KIND_LABEL := {
 	"damage": "伤害", "shield": "护盾", "heal": "回复", "status": "状态",
-	"special": "特殊", "buff": "增益", "trash": "废铁",
+	"special": "特殊", "buff": "增益", "trash": "无效格",   # F-03：统称无效格（含未命中/废铁两来源）
 }
 const STATUS_LABEL := {"burn": "灼烧", "frost": "霜冻", "poison": "中毒", "holy_burn": "圣灼", "shadow_blight": "蚀影"}
 const RARITY_LABEL := {"common": "普通", "uncommon": "精良", "rare": "稀有", "epic": "史诗"}
