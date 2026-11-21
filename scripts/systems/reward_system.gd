@@ -623,14 +623,18 @@ func _make_weapon_acquire_defs() -> Array:
 		var p: String = String(path)
 		if p.is_empty() or _ctrl.run_weapon_inventory.has(p):
 			continue
-		if ResourceLoader.load(p) == null:
+		var weapon: Resource = ResourceLoader.load(p)
+		if weapon == null:
 			continue
 		var wname := _weapon_display_name(p)
 		var def := RewardDefinition.new()
 		def.id = "weapon_acquire_" + p.get_file().get_basename()
 		def.name = "新武器 · %s" % wname
 		def.desc = "获得新武器「%s」并加入本局仓库（首次发现另记图鉴）" % wname
-		def.rarity = "uncommon"
+		# F-01：卡面品质必须反映真实武器稀有度，不再统一伪装成 uncommon。
+		# WeaponData.rarity 与 RewardDefinition.rarity 同为 common/uncommon/rare/epic 四档。
+		var true_rarity := String(weapon.get("rarity")) if weapon.has_method("get") else ""
+		def.rarity = true_rarity if ["common", "uncommon", "rare", "epic"].has(true_rarity) else "common"
 		def.base_weight = 1.0
 		def.base_value = 1.5
 		def.tags = ["weapon", "acquire", "new_drop", "core_growth"]

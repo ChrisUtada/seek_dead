@@ -127,6 +127,13 @@ func _test_g2g2_generation_split(duel: DuelController) -> void:
 	_ok(String(ad.first_effect_id()) == "weapon_acquire", "G2-2 acquire def effect=weapon_acquire")
 	var awp := String(ad.effects[0].get("params", {}).get("weapon_path", ""))
 	_ok(not duel.run_weapon_inventory.has(awp), "G2-2 acquire candidate not yet in run inventory")
+	# F-01：acquire 卡面品质必须来自真实 WeaponData.rarity，不再统一伪装成 uncommon
+	var aw := load(awp)
+	_ok(aw != null and String(ad.rarity) == String(aw.get("rarity")),
+		"F-01 acquire rarity 与武器真实稀有度一致（%s，实测 %s）" % [String(aw.get("rarity")) if aw != null else "?", String(ad.rarity)])
+	# F-01：swap 是仓库服务，统一 common，不冒充新品质掉落
+	for d in swap_defs:
+		_ok(String(d.rarity) == "common", "F-01 swap 标为 common（仓库服务非新品质掉落）")
 	# _draft_extra 两池都含
 	var extra: Array = rs._draft_extra()
 	var has_swap := false
