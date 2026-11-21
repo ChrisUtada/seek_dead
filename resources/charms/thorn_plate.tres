@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[ext_resource type="Texture2D" path="res://assets/icons/items/icon_bulwark_charm.png" id="ico"]
+[resource]
+script = ExtResource("1")
+rarity = "uncommon"
+category = "passive"
+item_id = "thorn_plate"
+icon_tex = ExtResource("ico")
+item_name = "荆棘胸甲"
+description = "倒刺内衬：敌人攻击你时反弹 15% 伤害给它（穿透护甲）；代价是每回合护盾 -3。"
+icon = ""
+effect = "thorns"
+mult_value = 0.15
+downside_effect = "shield"
+downside_value = 3
+family_tags = Array[String](["shield", "dark"])
+role = "defense"
+mechanism_summary = "反伤护符（非信物）：敌人攻击你时反弹 15% 伤害（穿透护甲），适合以承伤换输出的防御构筑；代价是每回合护盾 -3，纯堆盾路线收益下降。"
+act_min = 1
+act_max = 3
+source_tags = Array[String](["elite", "shop", "chest"])
+unique_group = "charm_thorn_plate"

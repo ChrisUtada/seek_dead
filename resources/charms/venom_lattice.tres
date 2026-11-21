@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1"]
+
+[ext_resource type="Texture2D" path="res://assets/icons/items/icon_poison_essence.png" id="ico"]
+[resource]
+script = ExtResource("1")
+rarity = "uncommon"
+category = "passive"
+item_id = "venom_lattice"
+icon_tex = ExtResource("ico")
+item_name = "蚀纹符"
+description = "毒纹蚀刻：你给敌人挂的灼烧/霜冻/毒层数 +1，DoT 爆发门槛 -1；代价是全局伤害 ×0.9。"
+icon = ""
+effect = "dot_amp"
+value = 1
+downside_effect = "damage_mult"
+downside_mult = 0.9
+family_tags = Array[String](["fire", "ice", "poison"])
+role = "damage"
+mechanism_summary = "挂层护符（非信物）：DoT 挂层 +1 且爆发门槛 -1，加速状态控制路线的 DoT 引爆；代价是全局伤害 ×0.9，直伤爆发路线收益下降。"
+act_min = 1
+act_max = 3
+source_tags = Array[String](["elite", "shop", "chest"])
+unique_group = "charm_venom_lattice"
