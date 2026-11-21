@@ -62,10 +62,20 @@ func _initialize() -> void:
 	var cocoon: RoomData = rooms.filter(func(r): return r.resource_path.contains("cocoon_sentinel"))[0]
 	var cocoon_seen := _roll_types(sys, cocoon)
 	_check(cocoon_seen.has("jam"), "BOSS 显式表不受限：茧居 Act1 仍出注废，实测 %s" % [cocoon_seen.keys()])
+	# A. 呓语教徒是「BOSS 显式意图表覆盖」样例：whispering_cultist.tres 显式配 attack/lock，
+	#    应原样生效、不受幕门禁与默认分档影响（该显式配置由 28830a6 引入）。
 	var cultist: RoomData = rooms.filter(func(r): return r.resource_path.contains("whispering_cultist"))[0]
 	var cultist_seen := _roll_types(sys, cultist)
-	_check(_only(cultist_seen, ["attack", "heavy"]) and not cultist_seen.has("auto_stop"),
-		"BOSS 默认表（呓语教徒空房间表）仍走 boss 表：实测 %s" % [cultist_seen.keys()])
+	_check(_only(cultist_seen, ["attack", "lock"]) and cultist_seen.has("attack") and cultist_seen.has("lock"),
+		"BOSS 显式表：呓语教徒 attack/lock 均出现且无 heavy/jam/chaos/auto_stop，实测 %s" % [cultist_seen.keys()])
+
+	# B. 合成空 Boss 房才是「默认表回退」样例：不配 intents，走 boss 默认表 attack/heavy。
+	var boss_default := RoomData.new()
+	boss_default.act = 1
+	boss_default.kind = "boss"
+	var boss_seen := _roll_types(sys, boss_default)
+	_check(_only(boss_seen, ["attack", "heavy"]) and not boss_seen.has("auto_stop"),
+		"BOSS 默认表：合成空 Boss 房仍走 boss 表，实测 %s" % [boss_seen.keys()])
 
 	# ⑤ 净化折扣仍在：抗扰拉满（rf=0）→ 可净化意图权重归零，Act3 默认表只剩攻/重
 	sys._ctrl._interf_resist_rf = 0.0
