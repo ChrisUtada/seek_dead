@@ -187,7 +187,7 @@ func _part_b_boss_source(duel: DuelController) -> void:
 		_check(absf(a - b) <= float(BOSS_ROLLS) * 0.03,
 			"boss %s 不受幕次偏置（act1 %.0f vs act3 %.0f）" % [q, a, b])
 
-	# 真·最终 BOSS：空主题 → 无武器候选，注入铁砧兜底卡
+	# S5-3+：真·最终 BOSS 空主题 → 明确空状态卡（原铁砧兜底已停用）
 	var fin: RoomData = null
 	for r in duel.ALL_ROOMS:
 		if r.final_boss:
@@ -199,8 +199,8 @@ func _part_b_boss_source(duel: DuelController) -> void:
 	fin.boss_relic_path = ""
 	duel.selected_charms.clear()
 	var cands: Array = duel._reward_system.roll_boss_rewards(fin)
-	_check(cands.size() == 1 and String(cands[0].get("kind", "")) == "boss_anvil",
-		"真·最终 BOSS 空主题 → 铁砧兜底卡")
+	_check(cands.size() == 1 and String(cands[0].get("kind", "")) == "boss_empty",
+		"真·最终 BOSS 空主题 → 明确空状态卡（非铁砧结晶）")
 
 
 func _check(cond: bool, label: String) -> void:

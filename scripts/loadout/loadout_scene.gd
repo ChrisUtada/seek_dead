@@ -723,9 +723,10 @@ func _sync_card_selection() -> void:
 
 
 func _update_loadout_anvil() -> void:
-	# S5-3：铁砧点数已停用，不再显示可增长的点数（旧字段仅作历史保留）
+	# S7：铁砧已删除，隐藏无用标签（S5-4 的长文案曾撑宽底栏导致 480×270 右边距不足）
 	if anvil_label != null:
-		anvil_label.text = "铁砧已停用（定向解锁请用生涯）"
+		anvil_label.text = ""
+		anvil_label.visible = false
 
 
 # 铁砧授予等 owned 变化后，整备页开着时立即重建副屏（隐藏时由 show_screen 自动重建）
