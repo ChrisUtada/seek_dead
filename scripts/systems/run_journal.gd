@@ -12,7 +12,7 @@ extends RefCounted
 #   run_YYYY-MM-DDTHH-MM-SS.json  结构化数据（供汇总脚本）
 #   run_YYYY-MM-DDTHH-MM-SS.txt   预填的记录表（客观项已填）
 
-const SCHEMA := 1
+const SCHEMA := 2   # S3-2a：新增 reward_drafts 完整事件流；schema 1 老 JSON 仍由汇总器兼容读取
 const OUT_DIR := "user://runs"
 const SPECIAL_TYPES := ["treasure", "shrine", "armory"]
 const RUN_SUMMARY := preload("res://scripts/systems/run_summary.gd")
@@ -258,6 +258,8 @@ func finish(reason: String = "") -> void:
 		if _ctrl.onboarding != null:
 			_ctrl._telemetry.assist_snapshot = _ctrl.onboarding.assist_snapshot()
 		_data["telemetry"] = _ctrl._telemetry.summary()
+		# S3-2a：完整 Draft 事件流落盘（不受内存 64 条上限截断）
+		_data["reward_drafts"] = _ctrl._telemetry.draft_events_all.duplicate(true)
 	_write_files()
 	if _file_logging():
 		var abs_txt := ProjectSettings.globalize_path(_txt_path)

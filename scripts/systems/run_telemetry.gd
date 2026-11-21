@@ -65,11 +65,14 @@ func reset() -> void:
 	heal_total = 0
 	heal_overflow_shield = 0
 	draft_shown = 0
+	draft_selected = 0
+	draft_cards_shown = 0
 	draft_rerolled = 0
 	draft_free_rerolls = 0
 	draft_reroll_same_group = 0   # G1-D：重抽后返回完全相同三张的次数（§6.5 相同组率）
 	draft_skipped = 0
 	draft_events = []
+	draft_events_all = []
 	_spin_started = -1
 	_room_started = -1
 
@@ -166,23 +169,33 @@ func on_reward_pick(id: String) -> void:
 
 # ===== P2 新 Draft 引擎事件（复用本遥测载体，不另建 Singleton） =====
 var draft_shown := 0
+var draft_selected := 0            # S3-2a：Draft 选择次数（与旧 rewards_shown/reward_pick_rate 分源）
+var draft_cards_shown := 0         # S3-2a：Draft 实际展示卡数累计=展示率分母；重抽新组合也计入，跳过也计展示
 var draft_rerolled := 0
 var draft_free_rerolls := 0
 var draft_reroll_same_group := 0   # G1-D：重抽后返回完全相同三张的次数（§6.5 相同组率）
 var draft_skipped := 0
-var draft_events: Array[Dictionary] = []   # 开发环境详细记录，最多保留 64 条
+var draft_events: Array[Dictionary] = []   # 内存调试：最近 64 条（不落盘）
+var draft_events_all: Array[Dictionary] = [] # S3-2a：完整事件流，供局末 JSON 落盘（不受 64 条上限截断）
 
-func on_reward_draft_shown(draft_id: String, ids: Array, hp_ratio: float, tags: Array = []) -> void:
+func on_reward_draft_shown(draft_id: String, ids: Array, hp_ratio: float, tags: Array = [],
+		room: int = -1, act: int = -1, source: String = "normal", candidates: Array = []) -> void:
 	draft_shown += 1
+	# S3-2a：展示率分母=每次展示的实际候选数；重抽新组合/跳过都计入展示。
+	draft_cards_shown += int(ids.size())
 	_draft_event({
 		"event": "reward_draft_generated", "draft_id": draft_id,
 		"reward_ids": ids, "hp_ratio": hp_ratio, "build_tags": tags,
+		"room": room, "act": act, "source": source, "candidates": candidates,
 	})
 
-func on_reward_selected(draft_id: String, reward_id: String, effect_id: String, hp_ratio: float) -> void:
+func on_reward_selected(draft_id: String, reward_id: String, effect_id: String, hp_ratio: float,
+		snapshot: Dictionary = {}) -> void:
+	draft_selected += 1
 	_draft_event({
 		"event": "reward_selected", "draft_id": draft_id,
 		"reward_id": reward_id, "effect_id": effect_id, "hp_ratio": hp_ratio,
+		"snapshot": snapshot,
 	})
 
 func on_reward_rerolled(draft_id: String, free: bool, cost: int, same_group: bool = false) -> void:
@@ -220,9 +233,11 @@ func on_run_outcome(win: bool, death_room: int, build_tags: Array) -> void:
 	})
 
 func _draft_event(e: Dictionary) -> void:
+	# 内存调试保留最近 64 条；完整事件流另有 draft_events_all 供局末 JSON 落盘。
 	if draft_events.size() >= 64:
 		draft_events.pop_front()
 	draft_events.append(e)
+	draft_events_all.append(e.duplicate(true))
 
 
 func triple_rate() -> float:
@@ -259,6 +274,11 @@ func summary() -> Dictionary:
 		"rooms_cleared": room_times.size(), "avg_ttk": avg_ttk(),
 		"weapon_swaps": weapon_swaps, "rewards_shown": rewards_shown,
 		"reward_pick_rate": reward_pick_rate(), "reward_picks": reward_picks.duplicate(),
+		# S3-2a：Draft 事件与旧奖励路径分源；详细事件由 run_journal 的 reward_drafts 落盘。
+		"draft_shown": draft_shown, "draft_selected": draft_selected,
+		"draft_cards_shown": draft_cards_shown, "draft_skipped": draft_skipped,
+		"draft_rerolled": draft_rerolled, "draft_free_rerolls": draft_free_rerolls,
+		"draft_reroll_same_group": draft_reroll_same_group,
 		"target_symbol": target_symbol, "stop_total": stop_total, "target_hits": target_hits,
 		"target_hit_rate": target_hit_rate(), "forced_stops": forced_stops,
 		"buffer_queues": buffer_queues, "stop_outcomes": stop_outcomes.duplicate(),

@@ -679,9 +679,17 @@ func build_loot_offer(source: String, act: int, opts: Dictionary = {}, forced_qu
 		_loot_view["reroll_paid"] = 0
 		if _ctrl._telemetry != null:
 			var ids: Array = []
+			var candidates: Array = []
 			for d in _draft_result.rewards:
 				ids.append(d.id)
-			_ctrl._telemetry.on_reward_draft_shown(_draft_result.draft_id, ids, snap.hp_ratio())
+				candidates.append({
+					"id": String(d.id), "category": String(d.category),
+					"rarity": String(d.rarity), "target": String(d.effect_family),
+				})
+			var room_idx: int = int(_ctrl.room_index)
+			var act_idx: int = int(_ctrl.current_act)
+			_ctrl._telemetry.on_reward_draft_shown(_draft_result.draft_id, ids, snap.hp_ratio(),
+				[], room_idx, act_idx, String(source), candidates)
 		return _loot_view
 
 	# 旧路径：BOSS / 探索 / 商店（本次不重构）
@@ -730,6 +738,15 @@ func reroll_loot_offer() -> Dictionary:
 		_loot_view["reroll_same_group"] = same_group   # §6.5 相同组率遥测（展示侧亦可见）
 		if _ctrl._telemetry != null:
 			_ctrl._telemetry.on_reward_rerolled(_draft_result.draft_id, false, cost, same_group)
+			# S3-2a：重抽后的新组合也是一次展示，计入展示分母（跳过同样计展示不计选择）
+			var reroll_ids: Array = []
+			var reroll_candidates: Array = []
+			for d in _draft_result.rewards:
+				reroll_ids.append(String(d.id))
+				reroll_candidates.append({"id": String(d.id), "category": String(d.category),
+					"rarity": String(d.rarity), "target": String(d.effect_family)})
+			_ctrl._telemetry.on_reward_draft_shown(_draft_result.draft_id, reroll_ids, snap.hp_ratio(),
+				[], int(_ctrl.room_index), int(_ctrl.current_act), "reroll", reroll_candidates)
 		_ctrl.hud._log("战利品重抽：金币 -%d（下次 %d）" % [cost, _draft_composer.paid_reroll_cost])
 		_ctrl.invalidate_state()
 		return _loot_view
@@ -804,7 +821,13 @@ func settle_loot_offer(index: int) -> Dictionary:
 		_ctrl._post_battle.clear_pending_choices()
 		if _ctrl._telemetry != null:
 			var snap = RunStateAnalyzer.capture(_ctrl)
-			_ctrl._telemetry.on_reward_selected(_draft_result.draft_id, def.id, apply_res.effect_id, snap.hp_ratio())
+			# S3-2a：选择时状态快照（武器/回路/HP/金币）；只记状态不建胜负因果
+			var snap_d := {}
+			snap_d["hp"] = int(_ctrl.player_hp)
+			snap_d["gold"] = int(_ctrl.gold)
+			snap_d["weapons"] = (_ctrl.selected_loadout.duplicate() if _ctrl.selected_loadout is Array else [])
+			snap_d["circuits"] = (_ctrl.circuit_system.inventory.duplicate() if _ctrl.circuit_system != null else [])
+			_ctrl._telemetry.on_reward_selected(_draft_result.draft_id, def.id, apply_res.effect_id, snap.hp_ratio(), snap_d)
 			_ctrl._telemetry.on_reward_applied(def.id, apply_res.effect_id, apply_res.summary)
 		# 转回旧格式供调用方（controller 只读 ok/kind）
 		return {"ok": true, "kind": apply_res.effect_id, "summary": apply_res.summary,
