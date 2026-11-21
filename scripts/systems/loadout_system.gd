@@ -52,6 +52,34 @@ func sel_arr(cat: String) -> Array:
 	return []
 
 
+# F-16（2026-11-22 修正）：本局持有判据的唯一权威——商店卡面与购买函数都调它。
+# 语义：局外解锁（meta.owned_*）≠ 本局持有；只看当前装备 + 本局仓库。
+#   武器：当前装备 selected_loadout ∪ 本局仓库 run_weapon_inventory
+#   护符/技能：当前装备 sel_arr（无独立本局仓库）
+#   消耗品：走腰带实例，可重复，不适用唯一判据（调用方单独处理）
+func is_held_this_run(kind: String, path: String) -> bool:
+	if path == "":
+		return false
+	if kind == "weapon":
+		return _ctrl.selected_loadout.has(path) or _ctrl.run_weapon_inventory.has(path)
+	if kind == "passive" or kind == "skill":
+		return sel_arr(kind).has(path)
+	return false
+
+
+# 本局持有的展示文案：已装备 / 仓库已有（武器在仓库但未装备）；非唯一类返回空。
+func held_status_text(kind: String, path: String) -> String:
+	if kind == "weapon":
+		if _ctrl.selected_loadout.has(path):
+			return "已装备"
+		if _ctrl.run_weapon_inventory.has(path):
+			return "仓库已有"
+	elif kind == "passive" or kind == "skill":
+		if sel_arr(kind).has(path):
+			return "已装备"
+	return ""
+
+
 # 该类【当前】上限（随商店「买即开槽」成长）
 func cat_max(cat: String) -> int:
 	match cat:

@@ -34,9 +34,9 @@ func _ready() -> void:
 	var owned_path: String = _duel.selected_loadout[0]
 	var offer := {"path": owned_path, "kind": "weapon", "name": "已装备武器", "price": 10, "sold": false}
 	var card: Button = _duel.hud._cards.shop_card(offer)
-	_ok(card.disabled, "商店已拥有武器卡禁用")
-	_ok(String((card.get_node("Center/VBox/StatusLabel") as Label).text).contains("已拥有"),
-		"商店已拥有武器卡显示已拥有")
+	_ok(card.disabled, "商店已装备武器卡禁用")
+	_ok(String((card.get_node("Center/VBox/StatusLabel") as Label).text).contains("已装备"),
+		"商店已装备武器卡显示已装备")
 	var gold_before: int = _duel.gold
 	var arr_before: int = _duel.selected_loadout.size()
 	_duel._shop_system.on_shop_buy_pressed(offer)

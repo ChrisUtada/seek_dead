@@ -1498,12 +1498,23 @@ func _linear_chest_open(_ignored = null) -> void:
 		_reward_system.remember_weapon(p)   # 只进本局仓库，不强制装备
 		msg = "宝箱：获得 %s（已入本局武器仓库）" % _shop_name(p, "weapon")
 	elif cat == "passive":
-		if selected_charms.has(p) or selected_charms.size() >= _loadout_system.cat_cap("passive"):
+		# 与棋盘护符格/正常获取路径同口径：按当前可用槽位（cat_max）判断，未到硬天花板才扩槽；
+		# append 后写来源并 _apply_charms() 刷新被动，避免「卡面持有/槽位上限/实际效果」不一致。
+		if selected_charms.has(p):
 			gold += _sell_price("passive", p)
-			msg = "宝箱：护符槽不可用，折算金币"
-		else:
+			msg = "宝箱：护符已持有，折算金币"
+		elif selected_charms.size() >= _loadout_system.cat_max("passive"):
+			var cap: int = int(_loadout_system.cat_cap("passive"))
+			if selected_charms.size() < cap and _loadout_system.can_grow_slot("passive"):
+				_loadout_system.grow_slot("passive")
+			else:
+				gold += _sell_price("passive", p)
+				msg = "宝箱：护符槽已满，折算金币"
+		if msg == "":
 			selected_charms.append(p)
-			msg = "宝箱：获得护符 %s" % _shop_name(p, "passive")
+			_reward_system.remember_charm(p)
+			_apply_charms()
+			msg = "宝箱：获得护符 %s（已生效）" % _shop_name(p, "passive")
 	elif cat == "active":
 		var cd = load(p)
 		if cd != null and consumable_slots.size() < CONSUMABLE_CAP:

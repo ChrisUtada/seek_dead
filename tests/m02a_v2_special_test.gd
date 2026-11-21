@@ -31,6 +31,7 @@ func _ready() -> void:
 	_test_chest_grant()
 	_test_chest_once()
 	_test_weapon_to_inventory()
+	_test_chest_charm_slot_and_effect()
 	_test_event_exchange()
 	_test_event_cancel()
 	_test_no_battle_reward()
@@ -72,6 +73,32 @@ func _test_weapon_to_inventory() -> void:
 	_duel._linear_chest_open()
 	_ok(_duel.run_weapon_inventory.size() == inv0 + 1, "宝箱武器进本局仓库（+%d）" % (inv0 + 1))
 	_ok(_duel.selected_loadout.size() == equip0, "宝箱武器不强制装备")
+
+# 宝箱护符链（F-16 相关独立缺陷）：按当前可用槽位扩槽、入槽、_apply_charms 生效，
+# 而非硬上限 3 判断 / 只 append 不刷新。
+func _test_chest_charm_slot_and_effect() -> void:
+	_duel.room_index = 2
+	_duel._linear_special_done = false
+	_duel.charm_max = 1
+	_duel.selected_charms.clear()
+	# 先占满 1 格（charm_max=1），再让宝箱给第二件 → 应自动扩槽到 2
+	_duel.selected_charms.append("res://resources/charms/rage_charm.tres")
+	_duel._apply_charms()
+	var r: RoomData = _duel.ROOMS[2]
+	r.kind = "chest"
+	var charm_path := "res://resources/charms/guard_charm.tres"
+	r.gimmick_params = {"special_kind": "chest", "category": "passive", "item_path": charm_path}
+	_duel.start_room_data(r, 2)
+	_duel._linear_chest_open()
+	_ok(_duel.charm_max == 2, "宝箱护符：槽位从 1 扩到 2（实测 %d）" % _duel.charm_max)
+	_ok(_duel.selected_charms.has(charm_path), "宝箱护符：已入槽")
+	# _apply_charms 生效：charm_shield_trickle 应为 guard_charm 的 shield=4
+	_ok(_duel.charm_shield_trickle >= 4, "宝箱护符：被动已刷新（shield_trickle=%d）" % _duel.charm_shield_trickle)
+	var in_breakdown := false
+	for b in _duel.charm_breakdown:
+		if String((b as Dictionary).get("path", "")) == charm_path:
+			in_breakdown = true
+	_ok(in_breakdown, "宝箱护符：进入被动归因 breakdown")
 
 # 事件：收益/代价一致（付金币换最大 HP）。
 func _test_event_exchange() -> void:

@@ -3063,6 +3063,14 @@ func _refresh_relic_row() -> void:
 		rsb.border_color = Palette.ACCENT_GOLD
 		rsb.set_border_width_all(1)
 		slot.add_theme_stylebox_override("panel", rsb)
+		# 与护符行区分：遗物是独立栏、不占护符槽（金框 + hover 说明），避免误读为第 4 个护符。
+		var rname: String = cpath.get_file().get_basename()
+		if d != null:
+			var rn = d.get("item_name")
+			if rn != null and String(rn) != "":
+				rname = String(rn)
+		slot.tooltip_text = "BOSS 遗物：%s\n独立遗物栏，拥有即生效，不占护符槽（上限 3）。" % rname
+		slot.mouse_filter = Control.MOUSE_FILTER_STOP   # 允许 hover 出 tooltip
 		slot.add_child(tr)
 		relic_icons.append({"path": cpath, "node": tr})
 

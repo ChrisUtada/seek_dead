@@ -252,10 +252,13 @@ func on_shop_buy_pressed(offer: Dictionary, source: String = "shop") -> void:
 		offer["sold"] = true
 		_ctrl.invalidate_state()
 		return
-	var arr = _ctrl._loadout_system.sel_arr(kind)
-	if arr.has(offer["path"]):
-		_ctrl.hud._log("已拥有 %s，无法重复购买" % offer["name"])
+	# F-16（2026-11-22 修正）：购买校验与卡面同源——只看本局持有（当前装备+本局仓库），
+	# 局外解锁不算；直接调用购买函数也必须拒绝本局重复物品，不依赖按钮禁用。
+	if _ctrl._loadout_system.is_held_this_run(kind, offer["path"]):
+		_ctrl.hud._log("%s%s，无法重复购买" % [
+			_ctrl._loadout_system.held_status_text(kind, offer["path"]), offer["name"]])
 		return
+	var arr = _ctrl._loadout_system.sel_arr(kind)
 	var w = arr.size()
 	var cap = _ctrl._loadout_system.cat_max(kind)            # 该类当前上限
 	# 「买即开槽」（四类通用）：该类槽满时，只要还能扩（进池类无天花板 / 不进池类未触顶），
