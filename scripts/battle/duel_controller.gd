@@ -236,6 +236,9 @@ var mirror_dmg_mult: float = 1.0       # 迷面诡匠镜面夺盾的无盾兜底
 var enemy_atk = 14
 # N-03（2026-11-21）：本回合只读伤害分解账本。结算层顺带产出，HUD/测试只读，不重算、不反写数值。
 var damage_preview = DAMAGE_PREVIEW.new()
+# N-04（2026-11-21）：演出快速跳过标志。仅压缩 _present_turn 的等待，不改结算/RNG；
+# 玩家演出中按回车置位（每次结算开始自动清零）。
+var presentation_skip: bool = false
 var _interf_resist_rf := 1.0             # T20：抗扰减免系数（干扰类意图权重 × 此值，_start_room 计算）
 var enemy_status: Dictionary = {}      # status_type(str) -> 叠加层数(int)
 # 2026-11-16 DoT 相位：结算中/敌人回合新挂的层，本回合敌人回合末不 tick，下一回合起才结算。
@@ -1861,6 +1864,11 @@ func _input(event) -> void:
 			reel_system.stop_next_reel()
 		else:
 			_on_spin_pressed()
+	# N-04：演出中按回车快速跳过（只跳演出等待，不跳结算/RNG）。_busy 期间才响应，
+	# 避免与停轮/SPIN 的空格输入冲突。
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ENTER:
+		if _busy:
+			presentation_skip = true
 
 
 ## P-审计 P1（2026-08-24）：不可击杀锁血统一收口。

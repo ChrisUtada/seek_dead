@@ -46,6 +46,9 @@ var _pending_damage_charms: Array = []
 const CELL_PRESENT_STEP := 0.42      # 逐格播报：每格亮起 + 出数后的停留
 const ATTACK_FLASH_HOLD := 0.36     # 攻击格齐亮后、总伤害数字出现前的停顿
 const TURN_TAIL_HOLD := 0.85        # 播报结束到敌方回合之间的留白
+# N-04（2026-11-21）：牌谱提示时序——只在牌谱实际触发时增加短停顿，普通 SPIN 零额外等待。
+const PATTERN_BANNER_HOLD := 0.34   # 牌谱名称短提示：先看清牌型，再看到伤害数字
+const PATTERN_CONTRIB_HOLD := 0.30  # 符号/牌谱追加贡献 → 总伤害之间的短停顿
 
 
 # 收益类飘字：本回合第一条立刻弹，之后每条前插一个短间隔。
@@ -236,6 +239,8 @@ func evaluate() -> void:
 	_intent_defense_mult = HEAVY_INTENT_DEFENSE_MULT if String(_ctrl.enemy_intent.get("type", "")) == "heavy" else 1.0
 	var acc := _new_acc()
 	_reset_turn_state()
+	# N-04：每次结算从干净跳过标志起步（演出中按回车置位，只作用本回合）。
+	_ctrl.presentation_skip = false
 	# N-03：每次结算都从干净账本起步（含 free_spin 重转），避免上一回合的分解值残留。
 	if _ctrl.damage_preview != null:
 		_ctrl.damage_preview.reset(_ctrl.turn_count)
@@ -905,6 +910,43 @@ func _gain_text_of_reel(reel: int, acc: Dictionary) -> Dictionary:
 	return {}
 
 
+# N-04：演出等待统一走这里——快速跳过只把「等待时长」压到 0，不改任何结算/数值/RNG。
+# 跳过标志由 duel_controller.presentation_skip 提供（按键触发，演出中按一次即生效到本回合结束）。
+func _present_wait(tree: SceneTree, seconds: float) -> void:
+	if seconds <= 0.0:
+		return
+	if _ctrl.presentation_skip:
+		# 压到最小一帧，保证 await 链仍推进（不原地卡死），但不产生可感知等待。
+		await tree.process_frame
+		return
+	await tree.create_timer(seconds).timeout
+
+# N-04：牌谱追加贡献的只读展示文案。数据来自结算时 pattern_effects 写入 acc["lines"] 的行，
+# 这里只是筛选/拼接，不重算数值、不改 acc。无牌谱贡献行时返回空串（该步跳过、零额外等待）。
+func _pattern_contrib_text(acc: Dictionary) -> String:
+	var lines: Array = acc.get("lines", [])
+	var parts: Array[String] = []
+	for l in lines:
+		var s := String(l).strip_edges()
+		# pattern_effects 的贡献行统一带「✦」或「牌谱」前缀；伤害分解行是「🔍 伤害分解」不算。
+		if s.begins_with("✦") or s.contains("牌谱「") or s.contains("共鸣") or s.contains("连携") \
+				or s.contains("处刑") or s.contains("磨砺") or s.contains("术式") or s.contains("圣辉") \
+				or s.contains("二重") or s.contains("爆发连携"):
+			parts.append(s)
+	if parts.is_empty():
+		return ""
+	return "✦ " + " / ".join(parts)
+
+# N-04：牌谱横幅串行显示——按入队顺序逐条展示，每条之间留短间隔，避免单例横幅互相覆盖。
+# 普通 SPIN（banners 为空）不进入此函数，零额外等待。
+func _present_banners(tree: SceneTree, banners: Array) -> void:
+	for i in banners.size():
+		var b: Dictionary = banners[i]
+		_ctrl.hud.show_pattern_banner_seq(String(b.get("text", "")), b.get("color", Palette.POP_DAMAGE), i)
+		if i < banners.size() - 1:
+			await _present_wait(tree, PATTERN_BANNER_HOLD)
+
+
 func _present_turn(acc: Dictionary, counts: Dictionary) -> void:
 	var tree: SceneTree = _ctrl.get_tree()
 
@@ -915,7 +957,7 @@ func _present_turn(acc: Dictionary, counts: Dictionary) -> void:
 	# ① 护符（玩家侧）先闪 → 报它的分量（守备/回春涓流不由任何格子提供，必须早于读格）
 	if not _pending_defense_charms.is_empty():
 		_ctrl.hud.pulse_charm_card(_pending_defense_charms)
-		await tree.create_timer(CHARM_FLASH_HOLD).timeout
+		await _present_wait(tree, CHARM_FLASH_HOLD)
 		var cs: int = int(acc.get("charm_shield", 0))
 		var ch: int = int(acc.get("charm_heal", 0))
 		if cs > 0:
@@ -924,7 +966,7 @@ func _present_turn(acc: Dictionary, counts: Dictionary) -> void:
 			_ctrl.hud._popup("❤+%d" % ch, Palette.POP_HEAL, _ctrl.hud._player_sprite_anchor())
 		if cs > 0 or ch > 0:
 			_ctrl.hud._refresh_meta()
-			await tree.create_timer(POPUP_BEAT).timeout
+			await _present_wait(tree, POPUP_BEAT)
 
 	# ② 读格：左 → 右，逐个亮起并出数；攻击格跳过（留给 ④）
 	var attack_reels: Array = []
@@ -937,29 +979,42 @@ func _present_turn(acc: Dictionary, counts: Dictionary) -> void:
 		if not g.is_empty():
 			_ctrl.hud._popup(String(g["text"]), g["color"], _ctrl.hud._player_sprite_anchor())
 			_ctrl.hud._refresh_meta()
-		await tree.create_timer(CELL_PRESENT_STEP).timeout
+		await _present_wait(tree, CELL_PRESENT_STEP)
 
 	# ②b 无格子归属的玩家侧飘字（增益授予）——放在读格之后，避免抢在转轮前面
 	for pp in acc["pending_player_pops"]:
 		_ctrl.hud._popup(String(pp["text"]), pp["color"], _ctrl.hud._player_sprite_anchor())
 	if not (acc["pending_player_pops"] as Array).is_empty():
 		_ctrl.hud._refresh_meta()
-		await tree.create_timer(POPUP_BEAT).timeout
+		await _present_wait(tree, POPUP_BEAT)
 
 	# ③ 护符（伤害侧）
 	if not _pending_damage_charms.is_empty():
 		_ctrl.hud.pulse_charm_card(_pending_damage_charms)
-		await tree.create_timer(CHARM_FLASH_HOLD).timeout
+		await _present_wait(tree, CHARM_FLASH_HOLD)
 
-	# ④ 攻击格齐亮 → 牌型横幅 + 挥砍 + 总伤害同帧（一次组合攻击，不再先弹牌型再单独攻击）
+	# ④ N-04 牌谱提示时序（只在牌谱实际触发时增加短停顿，普通 SPIN 零额外等待）：
+	#    最后一列停稳（turn_flow 已 await spin_finished）
+	#      → 牌谱名称短提示（横幅，逐条串行不覆盖）
+	#      → 符号与牌谱追加贡献
+	#      → 总伤害
 	var total: int = int(acc.get("total_damage", 0))
+	var has_banners: bool = not banners.is_empty()
 	if not attack_reels.is_empty():
 		_ctrl.hud.sweep_light_cells_together(attack_reels)
-		await tree.create_timer(ATTACK_FLASH_HOLD).timeout
+		await _present_wait(tree, ATTACK_FLASH_HOLD)
+	# —— 牌谱名称短提示（先看清牌型）——
+	if has_banners:
+		await _present_banners(tree, banners)
+		await _present_wait(tree, PATTERN_BANNER_HOLD)
+	# —— 符号与牌谱追加贡献（把「大数字从哪来」先讲清楚）——
+	if has_banners:
+		var contrib: String = _pattern_contrib_text(acc)
+		if contrib != "":
+			_ctrl.hud._popup(contrib, Palette.POP_BUFF, _ctrl.hud._enemy_sprite_anchor())
+			await _present_wait(tree, PATTERN_CONTRIB_HOLD)
+	# —— 总伤害（最后才看到大数字）——
 	if total > 0:
-		# 牌型横幅并入攻击帧：名字与伤害数字同时出现，读作「这一下是什么牌型打出来的」
-		for b in banners:
-			_ctrl.hud.show_pattern_banner(String(b["text"]), b["color"])
 		if _ctrl.hud.animator != null:
 			# 仅玩家武器攻击播斩击粒子；敌人掉血闸口的 play_enemy_attack 不播（with_slash 默认 false）
 			_ctrl.hud.animator.play_attack("player", "enemy", true)
@@ -967,17 +1022,15 @@ func _present_turn(acc: Dictionary, counts: Dictionary) -> void:
 		_ctrl.hud.release_enemy_preview()
 		_ctrl.hud._popup("-%d%s" % [total, String(acc.get("elem_tag", ""))], Palette.POP_DAMAGE, _ctrl.hud._enemy_sprite_anchor())
 		_ctrl.hud._refresh_meta()
-		await tree.create_timer(CELL_PRESENT_STEP).timeout
-	elif not banners.is_empty():
-		# 纯增益/防御牌谱（本回合无攻击伤害）：横幅仍要出现，否则牌型触发零反馈
-		for b in banners:
-			_ctrl.hud.show_pattern_banner(String(b["text"]), b["color"])
-		await tree.create_timer(POPUP_BEAT).timeout
+		await _present_wait(tree, CELL_PRESENT_STEP)
+	elif has_banners:
+		# 纯增益/防御牌谱（本回合无攻击伤害）：横幅 + 贡献已播，留一个短收尾
+		await _present_wait(tree, POPUP_BEAT)
 	# ④b 敌人侧后续飘字（元素爆发 / 克制核爆）——跟在总伤害之后
 	for ep in acc["pending_enemy_pops"]:
 		_ctrl.hud._popup(String(ep["text"]), ep["color"], _ctrl.hud._enemy_sprite_anchor())
 	if not (acc["pending_enemy_pops"] as Array).is_empty():
-		await tree.create_timer(POPUP_BEAT).timeout
+		await _present_wait(tree, POPUP_BEAT)
 	if not (acc["status_stacks"] as Dictionary).is_empty():
 		_ctrl.hud._popup(_ctrl.status_system.status_summary(acc["status_stacks"]), Palette.POP_STATUS, _ctrl.hud._enemy_sprite_anchor())
 
@@ -988,7 +1041,7 @@ func _present_turn(acc: Dictionary, counts: Dictionary) -> void:
 	_ctrl.hud._show_turn_feedback(counts, total, bool(acc.get("triple", false)), _ctrl._elem_triple,
 		int(acc.get("shield_gain", 0)), int(acc.get("heal_gain", 0)), int(acc.get("heal_overflow_shield", 0)),
 		_turn_armor_cleared, _turn_counter_burst, _turn_charge_burst)
-	await tree.create_timer(TURN_TAIL_HOLD).timeout
+	await _present_wait(tree, TURN_TAIL_HOLD)
 
 
 
