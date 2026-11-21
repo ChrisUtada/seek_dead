@@ -195,6 +195,9 @@ var selected_loadout: Array[String] = []          # 玩家勾选的武器路径�
 # G2-1 本局武器仓库：本局实际拥有（开局携带 + weapon_acquire 获得 + 换下保留）的武器路径。
 # 与 meta["owned_weapons"]（局外永久解锁/图鉴资格）严格分离：本字段不落盘，每局重置。
 var run_weapon_inventory: Array[String] = []
+# F-09：本局商店定价种子（每局重置一次，不消耗战斗/奖励 RNG）。
+# 仅用于按物品路径确定性生成价格 jitter：同局同物品同价，跨局/跨物品仍有变化。
+var shop_run_seed: int = 0
 var selected_consumables: Array[String] = []      # 玩家勾选的消耗品路径
 var selected_charms: Array[String] = []           # 玩家勾选的护符路径
 var selected_skills: Array[String] = []           # 玩家勾选的主动技能路径（Phase C 重构：原「增益」改名「技能」）
@@ -1126,6 +1129,7 @@ func _full_reset() -> void:
 # 新一局公共状态重置（不含开战）：已迁至 LoadoutSystem.reset_run_state（P2 架构还债，2026-08-24）——单行转发。
 func _reset_run_state() -> void:
 	_loadout_system.reset_run_state()
+	shop_run_seed = maxi(1, Time.get_ticks_msec())   # F-09：每局固定一次，不消耗 RNG
 	if weapon_slots != null:
 		weapon_slots.reset_run()   # 只清本局槽位成长，不动图鉴 / 历史最高熟练 / 横向铸式
 	if room_flow != null:

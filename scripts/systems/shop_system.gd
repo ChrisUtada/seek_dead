@@ -128,7 +128,15 @@ func shop_price(kind: String, owned: int = -1, item_path: String = "") -> int:
 		if res != null and "rarity" in res:
 			rarity = String(res.get("rarity"))
 	base = int(round(float(base) * float(SHOP_CONFIG.rarity_price_mult.get(rarity, 1.0))))
-	var price = base + randi_range(SHOP_CONFIG.jitter_min, SHOP_CONFIG.jitter_max)
+	# F-09：按 run 种子 + 物品路径确定性生成 jitter，替代随机 randi_range。
+	# 同局同物品始终同价；不同物品/不同局仍有变化；分布仍为 [min,max] 均匀，经济基线不变。
+	# 不消耗战斗/奖励 RNG——反复打开商店或重生成货架不再改变随机流。
+	var jitter_min: int = int(SHOP_CONFIG.jitter_min)
+	var jitter_max: int = int(SHOP_CONFIG.jitter_max)
+	var span: int = maxi(1, jitter_max - jitter_min + 1)
+	var h: int = String(item_path).hash() ^ int(_ctrl.shop_run_seed)
+	var jitter: int = jitter_min + posmod(h, span)
+	var price = base + jitter
 	var step = SHOP_CONFIG.step_price.get(kind, SHOP_CONFIG.fallback_step)
 	price += max(0, owned - int(_ctrl.SLOT_INIT.get(kind, 1)) + 1) * step
 	return max(SHOP_CONFIG.price_floor, price)
