@@ -19,7 +19,7 @@ const CONSUMABLE_DIR := "res://resources/consumables"
 const SKILL_DIR := "res://resources/skills"
 const ROOM_DIR := "res://resources/rooms"
 
-const EXPECT_COUNTS := {"weapon": 90, "charm": 43, "consumable": 26, "skill": 42}
+const EXPECT_COUNTS := {"weapon": 90, "charm": 45, "consumable": 26, "skill": 42}   # S6：#14 补齐后 43→45
 
 const CONDITIONAL_CHARM_EFFECTS: Array[String] = [
 	"armor_pierce", "element_boost", "status_boost", "first_hit",
