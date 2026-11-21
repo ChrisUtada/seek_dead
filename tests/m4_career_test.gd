@@ -281,7 +281,7 @@ func _test_directed_unlock(duel: DuelController) -> void:
 	_check(duel._career.unlock_charges() == 0, "界面选择后机会清零")
 	_check(_owned_has(duel, ui_pick), "界面选择写入拥有池")
 	_check(not ms.title_label.text.contains("生涯解锁"), "解锁后回到原元进度结算")
-	_check(ms.meta_grid.get_child_count() == 1, "原元进度仍显示铁砧点卡")
+	_check(ms.meta_grid.get_child_count() == 0 and ms.sub_label.text.contains("已结算完毕"), "S5-3：局末不再发铁砧点，显示明确空状态")
 
 
 func _test_run_summary(duel: DuelController) -> void:

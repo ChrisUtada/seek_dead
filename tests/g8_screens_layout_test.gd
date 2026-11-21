@@ -207,27 +207,17 @@ func _test_reward() -> void:
 # --- 铁砧 + 图鉴 --------------------------------------------------------
 
 func _test_anvil() -> void:
+	# S5-3：旧摇奖屏显示入口已屏蔽，不应再出现可继续摇奖的假入口
 	_duel.hud._show_anvil_screen()
 	await _frames(6)
 	var a: AnvilScreen = _duel.hud.anvil_screen
-	_check(a.visible, "铁砧屏可见")
-	_check_in_screen("铁砧屏根节点", a)
-	_check_label_fits("铁砧标题", a.title_label)
-	_check_label_fits("铁砧点数行", a.points_label)
-	_check_label_fits("铁砧副标题", a.sub_label)
-	_check_label_fits("铁砧图鉴信息行", a.info_label)
-	var content: Control = a.title_label.get_parent()
-	_check(a.roll_btn.size.x + a.back_btn.size.x <= content.size.x + EPS, "铁砧底部按钮不横向溢出")
-	_check_in_screen("铁砧摇动按钮", a.roll_btn)
-	_check_in_screen("铁砧返回按钮", a.back_btn)
-	# 三连格子：横向排布不越界
-	_check(a.reel_box.get_combined_minimum_size().x <= content.size.x + EPS,
-		"铁砧三连格不横向溢出（min %.1f / 宽 %.1f）" % [
-			a.reel_box.get_combined_minimum_size().x, content.size.x])
-
+	_check(a != null, "anvil_screen 节点仍存在（兼容层）")
+	_check(not a.visible, "S5-3：摇奖屏显示入口已禁用")
+	_check(a.roll_btn.disabled, "S5-3：摇动按钮已禁用")
+	var ms = _duel.hud.meta_screen
+	_check(ms != null, "meta_screen 存在")
 	_duel.hud.hide_anvil_screen()
 	await _frames(3)
-
 
 # --- 局末 ---------------------------------------------------------------
 

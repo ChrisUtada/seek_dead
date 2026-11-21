@@ -28,20 +28,10 @@ func _init(ctrl: DuelController) -> void:
 # 公共编排入口
 # ---------------------------------------------------------------------------
 
-# 纯 gacha 一次：扣点 → 摇单格 → 结算 → 写 last_anvil_drops（单格结果）→ 落盘。
-# 返回 drops 数组（单格）；点数不足时日志并返回空数组（调用方据此提前 return）。
+# S5-3：gacha 已禁用。返回空数组，零副作用——不扣点、不消耗 RNG、不写收藏、
+# 不改保底、不写存档。定向解锁兼容转发（available/earn/candidates/claim）不受影响。
 func roll_anvil() -> Array:
-	if _ctrl.meta["anvil_points"] < BALANCE.anvil_roll_cost:
-		_ctrl.hud._log("铁砧点数不足（需 %d）" % BALANCE.anvil_roll_cost)
-		return []
-	_ctrl.meta["anvil_points"] -= BALANCE.anvil_roll_cost
-	var result = _roll_anvil_cell()           # 摇出单格结果（含 blank 可能）
-	_resolve_anvil_drop(result)               # 结算一次：授予 / 返还 / 保底计数
-	result["cell"] = 0
-	var drops: Array[Dictionary] = [result]
-	last_anvil_drops = drops
-	_ctrl._meta_store.save_meta()
-	return drops
+	return []
 
 
 # 新一局清零本局 drip 累计（对应原 _full_reset 的 anvil_run_awarded = 0）。
@@ -108,6 +98,8 @@ func collection_info() -> Dictionary:
 # ---------------------------------------------------------------------------
 
 func award_meta(is_boss: bool) -> void:
+	# S5-3：清房点数 drip 已关闭，不再产生任何点数。
+	return
 	# 三拍板（2026-08-24）：里程碑加权制——普通房 0 / 精英 3 / BOSS 5 / 真·最终 8。
 	# 通关局 29 点≈3 抽 vs 死亡局（Act2 中）≈1 抽，激励「活得更久赚更多」；cap 40 保留为防刷保险。
 	var amt: int = BALANCE.anvil_award_boss
@@ -242,7 +234,7 @@ func _resolve_anvil_drop(d: Dictionary) -> void:
 	var p = d["path"]
 	if _anvil_is_owned(p):
 		var rb = int(BALANCE.anvil_dupe_refund.get(d["rarity"], BALANCE.anvil_dupe_refund["common"]))
-		_ctrl.meta["anvil_points"] += rb
+		# S5-3：不再返还点数（gacha 已禁用）
 		_ctrl.meta["anvil_pity"] += 1
 		d["is_new"] = false
 		_ctrl.hud._log("铁砧重复：%s（%s，返还 %d 点）" % [d["name"], d["rarity"], rb])

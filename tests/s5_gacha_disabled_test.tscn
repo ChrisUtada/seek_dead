@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://tests/s5_gacha_disabled_test.gd" id="1"]
+
+[node name="S5GachaDisabledTest" type="Node"]
+script = ExtResource("1")

@@ -723,8 +723,9 @@ func _sync_card_selection() -> void:
 
 
 func _update_loadout_anvil() -> void:
+	# S5-3：铁砧点数已停用，不再显示可增长的点数（旧字段仅作历史保留）
 	if anvil_label != null:
-		anvil_label.text = "点数:%d" % controller.state.meta["anvil_points"]
+		anvil_label.text = "铁砧已停用（定向解锁请用生涯）"
 
 
 # 铁砧授予等 owned 变化后，整备页开着时立即重建副屏（隐藏时由 show_screen 自动重建）

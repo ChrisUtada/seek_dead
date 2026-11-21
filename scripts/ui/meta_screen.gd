@@ -8,7 +8,6 @@ class_name MetaScreen
 var controller          # DuelController
 var hud: BattleHud      # 用于调用共享卡片构造器与信号转发
 var codex_panel: CodexPanel = null
-var _anvil_link: Button = null   # S5-2 临时：摇奖兼容入口（S5-3 删除）
 var _back_btn: Button = null     # 整备模式返回
 
 @onready var bg = $Bg
@@ -28,25 +27,20 @@ func configure(ctrl, h: BattleHud) -> void:
 	add_child(codex_panel)
 	codex_panel.configure(ctrl, $Margin/Content)
 	$Margin/Content.move_child(codex_panel.get_button(), 0)  # 图鉴按钮置顶
-	# S5-2 临时兼容入口 + 整备返回（均不依赖摇奖节点生命周期）
-	_anvil_link = Button.new()
-	_anvil_link.text = "🔨 摇奖(兼容)"
-	_anvil_link.add_theme_font_size_override("font_size", 9)
-	_anvil_link.pressed.connect(func(): hud._show_anvil_screen())
-	$Margin/Content.add_child(_anvil_link)
+	# S5-3：临时摇奖兼容入口已移除（不再显示"可继续摇奖"假入口）
 	_back_btn = Button.new()
 	_back_btn.text = "← 返回整备"
 	_back_btn.add_theme_font_size_override("font_size", 9)
 	_back_btn.pressed.connect(func(): hud.anvil_back_requested.emit())
 	$Margin/Content.add_child(_back_btn)
 	title_label.text = "★ 一局结束 · 元进度结算"
-	sub_label.text = "铁砧点数用于铁砧抽取装备（跨局保留）；更多元进度候选待 GAME+ 上线后恢复。"
+	# S5-3：铁砧点数已停用，不再显示点数相关文案
+	sub_label.text = "本局已结算；定向解锁与图鉴可继续在生涯界面查看。"
 
 # 局末入口：有定向余额先展示生涯三选一，否则进入元进度结算。
 func show_choice() -> void:
 	_clear_grid()
 	_claiming = false
-	if _anvil_link != null: _anvil_link.visible = false
 	if _back_btn != null: _back_btn.visible = false
 	if controller._career != null and controller._career.available_directed() > 0:
 		var cands: Array = controller._career.directed_candidates()
@@ -60,7 +54,6 @@ func show_choice() -> void:
 func show_career() -> void:
 	_clear_grid()
 	_claiming = false
-	if _anvil_link != null: _anvil_link.visible = true
 	if _back_btn != null: _back_btn.visible = true
 	title_label.text = "★ 生涯 · 定向解锁与图鉴"
 	var bal: int = controller._career.available_directed() if controller._career != null else 0
@@ -93,7 +86,7 @@ func _show_meta() -> void:
 	var choices = controller._reward_system.roll_meta_choices()
 	if controller.demo_active():
 		title_label.text = "★ ACT1 试玩结束"
-		sub_label.text = "感谢试玩！本局获得已结算并跨局保留。\n确认后回整备：可用铁砧点数、看图鉴、换配装再开一局。"
+		sub_label.text = "感谢试玩！本局获得已结算并跨局保留。\n确认后回整备：看生涯图鉴、换配装再开一局。"
 	elif choices.size() <= 1:
 		title_label.text = "★ 一局结束 · 本局获得"
 		sub_label.text = "以下奖励已直接结算（跨局保留）"
@@ -110,8 +103,12 @@ func _show_meta() -> void:
 	if controller._run_summary != null:
 		for line in controller._run_summary.lines():
 			sub_label.text += "\n" + String(line)
-	for opt in choices:
-		meta_grid.add_child(hud._make_meta_card(opt))
+	if choices.is_empty():
+		# S5-3：局末不再有铁砧点候选，给出明确空状态，不空屏
+		sub_label.text += "\n本局元进度已结算完毕，无需额外选择。"
+	else:
+		for opt in choices:
+			meta_grid.add_child(hud._make_meta_card(opt))
 	visible = true
 
 # S5-2：claim 成功后由 controller 回调，统一刷新（不重复扣额）。

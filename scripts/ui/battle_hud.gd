@@ -842,7 +842,8 @@ func _build_anvil_screen() -> void:
 
 
 func _show_anvil_screen() -> void:
-	anvil_screen.show_screen()
+	# S5-3：旧摇奖屏不再显示（保留节点但屏蔽显示入口）
+	return
 
 
 func _build_overlay() -> void:

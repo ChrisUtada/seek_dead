@@ -168,21 +168,16 @@ func _draft_has_skill(result) -> bool:
 # ---------------------------------------------------------------------------
 
 func roll_meta_choices() -> Array:
-	# T6：武器/护符/命中率等 per-item 旋钮入口已退役（§6 铁砧纯 gacha 定案）。
-	# 元进度当前只有「铁砧点数」一个真实结果，避免伪装成三选一给出假选项。
-	var meta_pool := [{
-		"kind": "anvil", "path": "",
-		"icon": "🔨", "label": "铁砧点数 +%d" % BALANCE.meta_anvil_bonus,
-		"desc": "永久铁砧点数，用于铁砧抽取装备（盘外成长）",
-	}]
-	return meta_pool.slice(0, BALANCE.meta_choice_count)   # 候选不足时全出
+	# S5-3：铁砧点数已停用，局末不再产生点数卡；返回空，由 meta_screen 显示明确空状态。
+	return []
 
 
 func on_meta_choice_chosen(opt: Dictionary) -> void:
 	match opt["kind"]:
 		"anvil":
-			_ctrl.meta["anvil_points"] += BALANCE.meta_anvil_bonus
-			_ctrl.hud._log("元进度：铁砧点数 +%d（共 %d）" % [BALANCE.meta_anvil_bonus, _ctrl.meta["anvil_points"]])
+			# S5-3：不再发放铁砧点数（保留兼容分支，防止旧调用报错）
+			if _ctrl.hud != null:
+				_ctrl.hud._log("元进度：铁砧点数已停用（本次不发放）")
 	_ctrl._meta_store.save_meta()   # 元进度持久落盘；开新局（_full_reset）由 controller 编排层负责
 
 
@@ -1193,7 +1188,7 @@ func _weighted_pick(pool: Array, _act: int) -> RewardData:
 func roll_elite_rewards() -> Array:
 	var out := []
 	for rw in _ctrl.ELITE_REWARD_POOL:
-		if rw.id == "elite_gold" or rw.id == "elite_anvil":
+		if rw.id == "elite_gold":   # S5-3：elite_anvil 已停用
 			out.append(rw)
 	var act: int = _ctrl.ROOMS[_ctrl.room_index].act if (_ctrl.room_index >= 0 and _ctrl.room_index < _ctrl.ROOMS.size()) else 1
 	var high_pool: Array = []
@@ -1273,9 +1268,10 @@ func roll_boss_rewards(room) -> Array:
 	# 空池保底（2026-08-14，docs/BOSS信物_设计方案.md §4）：武器槽满 2 + 无信物或无 Boss 信物掉落
 	# → 两来源全被拦截，注入铁砧点兜底卡，战利品永不空屏（L2-E：护符槽满不再拦截信物）
 	if cands.is_empty():
-		cands.append({"kind": "boss_anvil", "path": "", "icon": "🔨",
-			"label": "铁砧结晶", "desc": "铁砧点数 +%d（跨局）" % BALANCE.boss_anvil_bonus,
-			"tip": "敌库已空（武器/护符槽满），改赏铁砧点数"})
+		# S5-3：不再用铁砧点数兜底；给出明确空状态结算，不新增奖励池、不空屏。
+		cands.append({"kind": "boss_empty", "path": "", "icon": "✓",
+			"label": "战利品已收齐", "desc": "本房无可掉落的未拥有内容，直接结算",
+			"tip": "武器与护符槽已满，且无未获得遗物"})
 	var out := []
 	for i in min(3, cands.size()):
 		out.append(cands[i])
@@ -1323,7 +1319,7 @@ func _slot_supply_pool(kind: String) -> Array:
 	if _ctrl.player_hp < _ctrl.player_hp_max:
 		ids.push_front("heal")
 	if kind == "elite":
-		ids.append_array(["elite_gold", "elite_anvil", "elite_ward"])
+		ids.append_array(["elite_gold", "elite_ward"])   # S5-3：elite_anvil 已停用
 	return _rewards_by_ids(ids)
 
 
@@ -1458,9 +1454,9 @@ func apply_reward(id: String, index: int = -1) -> void:
 			_ctrl.hud._log("精英战利：金币 +%d（共 %d）" % [rd.value, _ctrl.gold])
 			_ctrl.hud._popup("💰+%d" % rd.value, Palette.POP_GOLD, _ctrl.hud._player_sprite_anchor())
 		"elite_anvil":
-			_ctrl.meta["anvil_points"] += rd.value
-			_ctrl.hud._log("精英战利：铁砧点数 +%d（共 %d）" % [rd.value, _ctrl.meta["anvil_points"]])
-			_ctrl.hud._popup("🔨铁砧点+%d" % rd.value, Palette.ACCENT_GOLD, _ctrl.hud._player_sprite_anchor())
+			# S5-3：精英铁砧点已停用（保留兼容分支，防止旧调用报错）
+			if _ctrl.hud != null:
+				_ctrl.hud._log("精英战利：铁砧点数已停用（本次不发放）")
 		"elite_ward":
 			run_shield_next += rd.value
 			_ctrl.hud._log("精英战利：下一房 +%d 护盾" % rd.value)
@@ -1595,10 +1591,13 @@ func apply_boss_reward(cand: Dictionary) -> void:
 				_ctrl.hud._popup("🏆 获得遗物 %s" % cand.get("label", p), Palette.ACCENT_GOLD, _ctrl.hud._player_sprite_anchor())
 		# 空池兜底（2026-08-14）：武器槽满且无可掉信物时的铁砧点补偿（L2-E：护符槽满不再拦截）
 		"boss_anvil":
-			_ctrl.meta["anvil_points"] += BALANCE.boss_anvil_bonus
-			_ctrl._meta_store.save_meta()   # 跨局货币立即落盘
-			_ctrl.hud._log("BOSS 战利品：铁砧点数 +%d（共 %d）" % [BALANCE.boss_anvil_bonus, _ctrl.meta["anvil_points"]])
-			_ctrl.hud._popup("🔨铁砧点+%d" % BALANCE.boss_anvil_bonus, Palette.ACCENT_GOLD, _ctrl.hud._player_sprite_anchor())
+			# S5-3：铁砧点数兜底已停用（保留兼容分支，防止旧调用报错）
+			if _ctrl.hud != null:
+				_ctrl.hud._log("BOSS 战利品：铁砧点数已停用（本次不发放）")
+		"boss_empty":
+			# S5-3：明确空状态，直接结算，不发奖励
+			if _ctrl.hud != null:
+				_ctrl.hud._log("BOSS 战利品：全部已收齐（空状态结算）")
 	_ctrl.invalidate_state()
 	_ctrl.hud._refresh_meta()   # 自包含刷新（同上：新调用路径不依赖外部收尾）
 

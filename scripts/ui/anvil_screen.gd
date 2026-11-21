@@ -31,7 +31,8 @@ func configure(ctrl, h: BattleHud) -> void:
 	title_label.text = "🔨 铁砧 · 摇奖（兼容）"
 	sub_label.text = "消耗点数摇一次，单格揭晓装备（物品与稀有度随机）"
 	# 摇/返回按钮为静态节点（anvil_screen.tscn），这里只填动态文案 + 接线
-	roll_btn.text = "🔨 摇动 (%d点)" % controller.BALANCE.anvil_roll_cost
+	roll_btn.text = "🔨 摇奖已停用"
+	roll_btn.disabled = true   # S5-3：禁用摇奖入口
 	roll_btn.connect("pressed", _on_roll_pressed)
 	back_btn.connect("pressed", hud.anvil_back_requested.emit)
 
@@ -62,6 +63,10 @@ func refresh() -> void:
 		for d in controller._anvil_system.last_anvil_drops:
 			reel_box.add_child(_make_cell(d))
 func _on_roll_pressed() -> void:
+	# S5-3：摇奖入口已禁用，显示明确文案，不触发任何状态变化
+	sub_label.text = "铁砧摇奖已停用；定向解锁请使用生涯界面。"
+	roll_btn.disabled = true
+	return
 	if _spinning:
 		# 转动中：按钮变为「停止」，一键停止转轮
 		_stop_all = true
