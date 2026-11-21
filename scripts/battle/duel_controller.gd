@@ -71,7 +71,7 @@ const CONSUMABLE_CAP := 4   # 消耗品腰带上限（不进池，硬限；每�
 const CHARM_CAP      := 3   # 护符槽天花板（不进池、唯一收集乘区，严格硬限）
 var LOADOUT_MIN: int = BALANCE.loadout_min   # 武器最小携带数（T22：来自平衡配置）
 # 房间序列排序权重：normal/elite 在前、boss 殿后（同档按路径稳定排序）
-const ROOM_KIND_RANK := {"normal": 0, "elite": 0, "boss": 2}
+const ROOM_KIND_RANK := {"normal": 0, "elite": 0, "chest": 1, "event": 1, "camp": 1, "boss": 2}
 # 各类当前上限：每局从初始配额起步（武器 2 起步 + loadout_min=2 强制双武），商店「买即开槽」逐步逼近天花板（武器硬限 2 / 技能硬限 3，_full_reset 重置）
 var loadout_max: int = int(BALANCE.slot_init["weapon"])
 var skill_max: int = int(BALANCE.slot_init["skill"])
@@ -348,6 +348,9 @@ var _camp_offers: Array = []           # G2-01：营地补给货架（休整后�
 # M-02a：线性营地只结算一次的守卫 + 当前营地房索引（营地是非战斗节点）。
 var _linear_camp_idx: int = -1
 var _linear_camp_done: bool = false
+# 新版 M-02a：宝箱/事件只结算一次的守卫。
+var _linear_special_idx: int = -1
+var _linear_special_done: bool = false
 var _reward_system                     # 奖励子系统 RewardSystem（步骤4抽出；_ready 实例化并注入 self）
 var _post_battle                       # M1 战后成长三槽 PostBattleSystem（补给/构筑/成长队列）
 var _loadout_system                    # 整备子系统 LoadoutSystem（步骤5抽出；_ready 实例化并注入 self）
@@ -1259,6 +1262,10 @@ func start_room_data(r: RoomData, idx: int, ria_override: int = -1, is_final: bo
 	if r.kind == "camp":
 		_start_linear_camp(idx)
 		return
+	# 新版 M-02a §3：宝箱/事件是非战斗特殊房——前置分流，绝不生成敌人/触发战斗奖励。
+	if r.kind == "chest" or r.kind == "event":
+		_start_linear_special(idx)
+		return
 	# M-02a：进入非营地房时，清掉可能残留的营地二选一弹层（bot/快速推进未点选时防遮挡）。
 	if hud != null:
 		hud.hide_linear_camp()
@@ -1437,6 +1444,164 @@ func _board_shop() -> void:
 	_roll_shop()
 	hud._show_shop_screen()
 	hud._log("🛒 棋盘商店：离开后节点消耗")
+
+
+# ---------------------------------------------------------------------------
+# 新版 M-02a §3：宝箱/事件非战斗特殊房入口。步骤 2 先建最小可用骨架（进房间歇态、不软锁），
+# 具体类型冻结/保密与宝箱/事件结算在步骤 3/4 填充。绝不生成敌人、不触发任何战斗奖励。
+# ---------------------------------------------------------------------------
+func _start_linear_special(idx: int) -> void:
+	var r: RoomData = ROOMS[idx]
+	_linear_special_idx = idx
+	_linear_special_done = false
+	room_index = idx
+	current_room = r
+	current_act = int(r.act)
+	in_interroom = true
+	invalidate_state()
+	hud.set_interroom_enabled(false)   # 特殊房结算期间不暴露下一房按钮
+	var params: Dictionary = r.gimmick_params
+	if r.kind == "chest":
+		# 宝箱：内容在生成时冻结，进入时才揭示（房间列表只显示「宝箱」）。
+		hud.request_special_room(r.kind, _linear_chest_desc(params), [], _linear_chest_open, Callable())
+	elif r.kind == "event":
+		var opts: Array = params.get("options", [])
+		if opts.is_empty():
+			# 无合法选项：明确空状态，给继续入口，不空屏不软锁。
+			hud.request_special_room(r.kind, "事件：没有合法选项，可直接继续", [], Callable(), _linear_event_skip)
+		else:
+			hud.request_special_room(r.kind, "事件：" + String(params.get("id", "")),
+				opts, _linear_event_choose, _linear_event_cancel)
+
+# 宝箱内容描述（揭示用；从冻结的 gimmick_params 读，不重算）。
+func _linear_chest_desc(params: Dictionary) -> String:
+	var cat: String = String(params.get("category", ""))
+	if cat == "gold":
+		return "宝箱：开启获得金币 +%d（无可领取物品时的兜底）" % int(params.get("fallback_gold", 0))
+	var p: String = String(params.get("item_path", ""))
+	return "宝箱：开启获得 %s（%s）" % [_shop_name(p, cat), cat]
+
+# 宝箱开启：只结算一次，直接授予冻结物品，随后直接进下一房。武器进仓库不强制换装。
+func _linear_chest_open(_ignored = null) -> void:
+	if _linear_special_done:
+		return
+	_linear_special_done = true
+	var params: Dictionary = ROOMS[_linear_special_idx].gimmick_params
+	var cat: String = String(params.get("category", ""))
+	var p: String = String(params.get("item_path", ""))
+	var msg: String = ""
+	if cat == "gold" or p == "":
+		var g: int = int(params.get("fallback_gold", 15))
+		gold += g
+		msg = "宝箱：金币兜底 +%d" % g
+	elif cat == "weapon":
+		_reward_system.remember_weapon(p)   # 只进本局仓库，不强制装备
+		msg = "宝箱：获得 %s（已入本局武器仓库）" % _shop_name(p, "weapon")
+	elif cat == "passive":
+		if selected_charms.has(p) or selected_charms.size() >= _loadout_system.cat_cap("passive"):
+			gold += _sell_price("passive", p)
+			msg = "宝箱：护符槽不可用，折算金币"
+		else:
+			selected_charms.append(p)
+			msg = "宝箱：获得护符 %s" % _shop_name(p, "passive")
+	elif cat == "active":
+		var cd = load(p)
+		if cd != null and consumable_slots.size() < CONSUMABLE_CAP:
+			_consumable_uid += 1
+			consumable_slots.append({"path": p, "item_id": cd.item_id, "charges": cd.charges,
+				"uid": "c%d" % _consumable_uid})
+			msg = "宝箱：获得 %s（入腰带）" % String(cd.item_name)
+		else:
+			var refund := _sell_price("active", p)
+			gold += refund
+			msg = "宝箱：腰带不可用，折算金币 +%d" % refund
+	else:
+		msg = "宝箱：内容失效，折算金币"
+	hud._log(msg)
+	invalidate_state()
+	hud._refresh_meta()
+	_special_advance()
+
+# 事件二选一：收益/代价/对象来自冻结选项；确认后只结算一次，进房间歇态。
+func _linear_event_choose(index: int) -> void:
+	if _linear_special_done:
+		return
+	var params: Dictionary = ROOMS[_linear_special_idx].gimmick_params
+	var opts: Array = params.get("options", [])
+	if index < 0 or index >= opts.size():
+		return
+	_linear_special_done = true
+	var o: Dictionary = opts[index]
+	var give: String = String(o.get("give", ""))
+	var give_amt: int = int(o.get("give_amount", 0))
+	var get: String = String(o.get("get", ""))
+	var get_amt: int = int(o.get("get_amount", 0))
+	# 拒绝交易：无代价无收益，直接结算。
+	if give == "" and get == "":
+		hud._log("事件：拒绝交易，无变化")
+		_special_settle()
+		return
+	# 合法性：代价不足则不给选项（UI 已过滤，这里二次守护）。
+	if give == "hp" and player_hp <= give_amt:
+		hud._log("事件：生命不足以支付代价，交易取消")
+		_special_settle()
+		return
+	if give == "gold" and gold < give_amt:
+		hud._log("事件：金币不足，交易取消")
+		_special_settle()
+		return
+	_apply_event_exchange(give, give_amt, get, get_amt)
+	_special_settle()
+
+func _apply_event_exchange(give: String, give_amt: int, get: String, get_amt: int) -> void:
+	var parts: Array[String] = []
+	if give == "hp":
+		player_hp = maxi(0, player_hp - give_amt)
+		parts.append("生命 -%d" % give_amt)
+	elif give == "gold":
+		gold = maxi(0, gold - give_amt)
+		parts.append("金币 -%d" % give_amt)
+	if get == "gold":
+		gold += get_amt
+		parts.append("金币 +%d" % get_amt)
+	elif get == "maxhp":
+		player_hp_max += get_amt
+		player_hp += get_amt
+		parts.append("最大生命 +%d" % get_amt)
+	elif get == "shield":
+		_reward_system.run_shield_next += get_amt
+		parts.append("下战护盾 +%d" % get_amt)
+	hud._log("事件交易：" + "，".join(parts))
+	invalidate_state()
+	hud._refresh_meta()
+
+# 取消不推进：重开事件弹层（不结算）。
+func _linear_event_cancel(_ignored = null) -> void:
+	if _linear_special_done:
+		return
+	var params: Dictionary = ROOMS[_linear_special_idx].gimmick_params
+	hud.request_special_room("event", "事件：" + String(params.get("id", "")),
+		params.get("options", []), _linear_event_choose, _linear_event_cancel)
+
+# 事件无可选项时直接继续。
+func _linear_event_skip(_ignored = null) -> void:
+	if _linear_special_done:
+		return
+	_linear_special_done = true
+	hud._log("事件：无合法选项，直接继续")
+	_special_settle()
+
+# 宝箱后直接进下一房；事件后进房间歇态（让玩家看到结果再决定商店/下一房）。
+func _special_advance() -> void:
+	hud.hide_special_room()
+	in_interroom = false
+	_start_room(_linear_special_idx + 1)
+
+func _special_settle() -> void:
+	hud.hide_special_room()
+	in_interroom = true
+	hud.set_interroom_enabled(true)
+	hud._log("特殊房结算完成：可开商店，或进入下一房")
 
 
 # ---------------------------------------------------------------------------

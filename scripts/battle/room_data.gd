@@ -14,7 +14,7 @@ extends Resource
 # 检查器下拉：@export_enum 需字面量（Godot 限制），词汇与 ElementCounter.ELEMENT_ENUM 同步，
 # 漂移由 duel_controller._ready 的 is_valid_element 启动校验兜底。
 @export_enum("none", "fire:火", "ice:冰", "poison:毒", "light:光", "dark:暗") var element: String = "none"  # 元素（弱/抗由 ElementCounter 推导，不存冗余字段）
-@export_enum("normal", "elite", "camp", "boss") var kind: String = "normal"    # 房间类型（camp=Boss 前非战斗营地，M-02a；boss 由 _is_boss_room 判定专属机制）
+@export_enum("normal", "elite", "chest", "event", "camp", "boss") var kind: String = "normal"    # 房间类型（chest/event=宝箱/事件非战斗房，camp=Boss 前营地；M-02a）
 @export var gimmick_script: Script      # BOSS 专属机制脚本（extends BossGimmick）；非 BOSS 房留空。_start_room 实例化并赋值 current_gimmick
 @export var gimmick_params: Dictionary = {}  # T24：gimmick 参数字典（如 rust_armor 的 interval/per_stack/max_stacks）；空 = gimmick 默认值
 @export var act: int = 1                # 幕号（1/2/3）；_build_run 按幕分组抽房（每幕 5 normal + 2 elite + 1 常规 boss）

@@ -2458,13 +2458,19 @@ func request_linear_camp(can_trim: bool, rest_need: int, on_rest: Callable, on_t
 	rest_btn.disabled = rest_need <= 0
 	rest_btn.pressed.connect(_on_linear_camp_rest)
 	_linear_camp_vbox.add_child(rest_btn)
-	# 整理：无合法候选时不提供假选项（按钮不显示），避免空选择软锁。
+	# 整理：无合法候选时显示明确空状态，不给假选项（新版 M-02a §6）。
 	if can_trim:
 		var trim_btn = UI_BUTTON.instantiate()
 		trim_btn.text = "整理 · 精简 1 个符号 / 卸除 1 个技能"
 		trim_btn.custom_minimum_size = Vector2(280, 32)
 		trim_btn.pressed.connect(_on_linear_camp_trim)
 		_linear_camp_vbox.add_child(trim_btn)
+	else:
+		var trim_none = _label("整理：当前没有合法精简目标或可卸技能（空状态）", TypeScale.TINY)
+		trim_none.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		trim_none.custom_minimum_size = Vector2(320, 0)
+		trim_none.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_linear_camp_vbox.add_child(trim_none)
 	# 明确继续入口：不选也可直接进房间歇态（再进 Boss）。
 	var cont_btn = UI_BUTTON.instantiate()
 	cont_btn.text = "继续（进入 Boss 前整备）"
@@ -2476,6 +2482,87 @@ func request_linear_camp(can_trim: bool, rest_need: int, on_rest: Callable, on_t
 func hide_linear_camp() -> void:
 	if _linear_camp_dialog != null:
 		_linear_camp_dialog.visible = false
+
+
+# ---------------------------------------------------------------------------
+# 新版 M-02a §3/§4/§5：宝箱 / 事件特殊房弹层。
+# 宝箱显示一个「开启」按钮；事件按冻结的 options 逐项显示（每项展示收益/代价/对象）。
+# 只负责展示与选择，不做任何结算；幂等由 controller 侧守卫。
+# ---------------------------------------------------------------------------
+var _special_dialog: PanelContainer = null
+var _special_vbox: VBoxContainer = null
+var _special_action_cb: Callable = Callable()
+var _special_cancel_cb: Callable = Callable()
+
+func request_special_room(kind: String, desc: String, options: Array, action_cb: Callable, cancel_cb: Callable) -> void:
+	_special_action_cb = action_cb
+	_special_cancel_cb = cancel_cb
+	if _special_dialog == null:
+		_special_dialog = PanelContainer.new()
+		_special_dialog.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		_special_dialog.z_index = 95
+		var sb = StyleBoxFlat.new()
+		sb.bg_color = Palette.BG_OVERLAY
+		_special_dialog.add_theme_stylebox_override("panel", sb)
+		var center = CenterContainer.new()
+		center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		var dlg = PanelContainer.new()
+		var sb2 = StyleBoxFlat.new()
+		sb2.bg_color = Palette.PANEL_BG
+		sb2.border_color = Palette.ACCENT_GOLD
+		sb2.set_border_width_all(2)
+		dlg.add_theme_stylebox_override("panel", sb2)
+		_special_vbox = VBoxContainer.new()
+		_special_vbox.add_theme_constant_override("separation", 6)
+		dlg.add_child(_special_vbox)
+		center.add_child(dlg)
+		_special_dialog.add_child(center)
+		get_parent().add_child(_special_dialog)
+	for c in _special_vbox.get_children():
+		_special_vbox.remove_child(c)
+		c.queue_free()
+	var title_lbl = _label("宝箱" if kind == "chest" else "事件", TypeScale.OVERLAY)
+	title_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_special_vbox.add_child(title_lbl)
+	var desc_lbl = _label(desc, TypeScale.TINY)
+	desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	desc_lbl.custom_minimum_size = Vector2(320, 0)
+	desc_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_special_vbox.add_child(desc_lbl)
+	if kind == "chest":
+		var open_btn = UI_BUTTON.instantiate()
+		open_btn.text = "开启宝箱"
+		open_btn.custom_minimum_size = Vector2(280, 32)
+		open_btn.pressed.connect(_on_special_action.bind(0))
+		_special_vbox.add_child(open_btn)
+	else:
+		for i in options.size():
+			var o: Dictionary = options[i]
+			var btn = UI_BUTTON.instantiate()
+			btn.text = String(o.get("label", "选项 %d" % (i + 1)))
+			btn.custom_minimum_size = Vector2(320, 32)
+			btn.pressed.connect(_on_special_action.bind(i))
+			_special_vbox.add_child(btn)
+	if cancel_cb.is_valid():
+		var cancel_btn = UI_BUTTON.instantiate()
+		cancel_btn.text = "取消 / 继续"
+		cancel_btn.custom_minimum_size = Vector2(160, 30)
+		cancel_btn.pressed.connect(_on_special_cancel)
+		_special_vbox.add_child(cancel_btn)
+	_special_dialog.visible = true
+
+func _on_special_action(index: int) -> void:
+	hide_special_room()
+	if _special_action_cb.is_valid():
+		_special_action_cb.call(index)
+
+func _on_special_cancel() -> void:
+	if _special_cancel_cb.is_valid():
+		_special_cancel_cb.call()
+
+func hide_special_room() -> void:
+	if _special_dialog != null:
+		_special_dialog.visible = false
 
 func _on_linear_camp_rest() -> void:
 	hide_linear_camp()

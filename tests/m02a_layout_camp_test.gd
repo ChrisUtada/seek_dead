@@ -41,7 +41,8 @@ func _ready() -> void:
 
 	_finish()
 
-const EXPECT_KINDS: Array = ["normal", "normal", "elite", "normal", "normal", "elite", "camp", "boss"]
+# 新版 M-02a §2：3 普通 + 2 精英 + 1 宝箱/事件 + 1 营地 + 1 Boss。
+const EXPECT_KINDS: Array = ["normal", "normal", "SPECIAL", "elite", "normal", "elite", "camp", "boss"]
 
 # 1. 三幕固定顺序（真·最终房单独追加在末尾，不计入幕内 8 房）。
 func _test_layout() -> void:
@@ -51,7 +52,10 @@ func _test_layout() -> void:
 		var base: int = (act - 1) * 8
 		var got: Array = []
 		for i in 8:
-			got.append(String((rooms[base + i] as RoomData).kind))
+			var k: String = String((rooms[base + i] as RoomData).kind)
+			if k == "chest" or k == "event":
+				k = "SPECIAL"
+			got.append(k)
 		_ok(got == EXPECT_KINDS, "幕 %d 固定顺序（实测 %s）" % [act, str(got)])
 		# 营地 act 与 BOSS act 正确
 		_ok(int((rooms[base + 6] as RoomData).act) == act, "幕 %d 营地 act=%d" % [act, act])

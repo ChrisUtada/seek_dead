@@ -65,7 +65,7 @@ extends Resource
 
 # —— T25 关卡结构（2026-08-09 房数重排：一局 24 房 = 3 幕 × 每幕 8 房 + 真·最终通关后战）——
 @export var run_acts: int = 3                                     # 幕数
-@export var run_act_layout: Array = ["normal", "normal", "elite", "normal", "normal", "elite", "camp", "boss"]   # 每幕 8 房：4 普通 + 2 精英 + 1 营地(非战斗) + 1 常规 BOSS 战（M-02a §10.1）
+@export var run_act_layout: Array = ["normal", "normal", "special", "elite", "normal", "elite", "camp", "boss"]   # 每幕 8 房：3 普通 + 2 精英 + 1 宝箱/事件(非战斗) + 1 营地 + 1 BOSS（新版 M-02a §2）
 @export var run_boss_weights: Dictionary = {"fixed": 6, "rotating": 3, "hidden": 2}   # 常规 BOSS「4 候选选 1」角色权重（固定首领默认高权重；隐秘=幕内全清后开启，恒可入选）
 @export var run_include_final_boss: bool = true                    # 真·最终（RoomData.final_boss 房）通关 Act3 后追加为整局最后一间（当前无内容，槽位预留）
 

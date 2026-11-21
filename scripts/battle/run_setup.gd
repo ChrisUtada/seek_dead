@@ -31,6 +31,11 @@ func build_run() -> Array[RoomData]:
 			by_act[a] = {"normal": [], "elite": [], "boss": []}
 		by_act[a][r.kind].append(r)
 	var run: Array[RoomData] = []
+	# 新版 M-02a：特殊房的受控 RNG——独立 RandomNumberGenerator，不消耗全局 RNG；
+	# 用每局固定一次的 shop_run_seed 播种，保证同种子同输入下类型/内容可复现。
+	var special_rng := RandomNumberGenerator.new()
+	special_rng.seed = maxi(1, int(_ctrl.shop_run_seed) ^ 0x5A17)
+	var used_events: Array = []   # §5：同一事件一局内不重复
 	# M4-01：demo.act_only 时只跑 ACT1（ALL_ROOMS 已在 controller 侧收窄，这里再显式兜底）
 	var acts := int(_ctrl.BALANCE.run_acts)
 	if _ctrl.demo_active() and _ctrl.demo_config.act_only:
@@ -48,6 +53,14 @@ func build_run() -> Array[RoomData]:
 			# 用内存哨兵 RoomData（不落 resources/rooms/，避免污染 ALL_ROOMS 的房数断言与 BOSS 抽取池）。
 			if kind == "camp":
 				run.append(_make_camp_room(a))
+				continue
+			# 新版 M-02a §2：第 3 房是宝箱或事件（非战斗），生成时冻结类型，内容由步骤 3 填充。
+			if kind == "special":
+				var sp: RoomData = _make_special_room(a, special_rng, used_events)
+				run.append(sp)
+				var sp_eid: String = String(sp.gimmick_params.get("id", ""))
+				if sp_eid != "" and not used_events.has(sp_eid):
+					used_events.append(sp_eid)
 				continue
 			if not pools.has(kind) or pools[kind].is_empty():
 				continue
@@ -75,6 +88,83 @@ func _make_camp_room(act: int) -> RoomData:
 	r.gimmick_script = null
 	r.mechanic_summary = "休整或整理，然后面对本幕 Boss"
 	return r
+
+
+# 新版 M-02a §2/§3：第 3 房宝箱或事件哨兵（非战斗）。纯内存构造，不落 resources/rooms/。
+# 生成时冻结类型与具体内容到 gimmick_params（只读快照，展示/结算/日志共用），进入时才向玩家揭示。
+func _make_special_room(act: int, rng: RandomNumberGenerator, used_events: Array = []) -> RoomData:
+	var r := RoomData.new()
+	var is_chest: bool = rng.randi_range(0, 1) == 0
+	r.name = "宝箱" if is_chest else "事件"
+	r.kind = "chest" if is_chest else "event"
+	r.act = act
+	r.hp = 0
+	r.atk = 0
+	r.armor = 0
+	r.element = "none"
+	r.archetype = null
+	r.intents = []
+	r.gimmick_script = null
+	r.mechanic_summary = "特殊房（进入时揭示内容）"
+	if is_chest:
+		r.gimmick_params = _freeze_chest(act, rng)
+	else:
+		r.gimmick_params = _freeze_event(act, rng, used_events)
+	return r
+
+
+# §4：宝箱冻结一件合法物品（宝箱品质表，过滤本局已拥有武器/护符，消耗品可重复）。
+# 空池走明确金币兜底并记录兜底率。冻结后不再变化，重复进入不会刷新。
+func _freeze_chest(act: int, rng: RandomNumberGenerator) -> Dictionary:
+	var exclude: Array = []
+	exclude.append_array(_ctrl.run_weapon_inventory)
+	exclude.append_array(_ctrl.selected_charms)
+	var cat: Array = ["weapon", "passive", "active"]
+	cat.shuffle()
+	for c in cat:
+		var path: String = _ctrl._reward_system.pick_explore_loot(String(c), act, rng, exclude)
+		if path != "":
+			return {"special_kind": "chest", "category": String(c), "item_path": path, "fallback_gold": 0}
+	# 空池兜底：金币（固定额，记录兜底）
+	return {"special_kind": "chest", "category": "gold", "item_path": "",
+		"fallback_gold": 15, "fallback": true}
+
+
+# §5：事件冻结一个二选一（收益/代价/对象明确）。内置小表按 RNG 取，按幕过滤不合法项。
+# 同一事件一局内不重复：由调用方在生成时按已用 id 过滤（见 build_run 的 used_events）。
+func _freeze_event(act: int, rng: RandomNumberGenerator, used_events: Array = []) -> Dictionary:
+	var pool: Array = _event_pool(act)
+	var fresh: Array = []
+	for ev in pool:
+		if not used_events.has(String(ev.get("id", ""))):
+			fresh.append(ev)
+	pool = fresh
+	if pool.is_empty():
+		return {"special_kind": "event", "id": "none", "options": [], "empty": true}
+	var ev: Dictionary = pool[rng.randi_range(0, pool.size() - 1)]
+	return {"special_kind": "event", "id": String(ev.get("id", "")),
+		"options": (ev.get("options", []) as Array).duplicate(true), "empty": false}
+
+
+# 事件定义（内置纯数据，不新增资源系统）。每个选项含收益/代价/对象，确认前可完整展示。
+# 只做 HP/金币之间的交易，不做随机扣血/给物，不做纯数值填充。
+func _event_pool(act: int) -> Array:
+	var all: Array = [
+		{"id": "blood_pact", "min_act": 1, "options": [
+			{"label": "献祭生命换金币", "give": "hp", "give_amount": 15, "get": "gold", "get_amount": 30},
+			{"label": "拒绝交易", "give": "", "give_amount": 0, "get": "", "get_amount": 0}]},
+		{"id": "coin_pact", "min_act": 1, "options": [
+			{"label": "付金币换最大生命", "give": "gold", "give_amount": 25, "get": "maxhp", "get_amount": 8},
+			{"label": "拒绝交易", "give": "", "give_amount": 0, "get": "", "get_amount": 0}]},
+		{"id": "ember_pact", "min_act": 2, "options": [
+			{"label": "献祭生命换护盾", "give": "hp", "give_amount": 20, "get": "shield", "get_amount": 18},
+			{"label": "拒绝交易", "give": "", "give_amount": 0, "get": "", "get_amount": 0}]},
+	]
+	var out: Array = []
+	for ev in all:
+		if act >= int(ev.get("min_act", 1)):
+			out.append(ev)
+	return out
 
 
 # 常规 BOSS 抽取（4 候选选 1）：fixed 固定首领默认高权重、rotating 轮替随机、
