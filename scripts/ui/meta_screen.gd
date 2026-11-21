@@ -12,6 +12,11 @@ var controller          # DuelController
 var hud: BattleHud      # 用于调用共享卡片构造器与信号转发
 var codex_panel: CodexPanel = null
 var _back_btn: Button = null     # 整备模式返回
+# S5-5：确定性候选队列分页——全量候选都可翻页看到，不必先领掉前面若干件。
+var _page := 0
+var _pager: HBoxContainer = null
+var _page_label: Label = null
+var _all_cands: Array = []
 
 @onready var bg = $Bg
 @onready var title_label = $Margin/Content/TitleLabel
@@ -36,6 +41,24 @@ func configure(ctrl, h: BattleHud) -> void:
 	_back_btn.add_theme_font_size_override("font_size", 9)
 	_back_btn.pressed.connect(func(): back_to_loadout_requested.emit())
 	$Margin/Content.add_child(_back_btn)
+	# S5-5：分页控件（上一页/页码/下一页），翻页不消耗额度
+	_pager = HBoxContainer.new()
+	_pager.add_theme_constant_override("separation", 6)
+	var prev := Button.new()
+	prev.text = "◀ 上一页"
+	prev.add_theme_font_size_override("font_size", 9)
+	prev.pressed.connect(_prev_page)
+	_page_label = Label.new()
+	_page_label.add_theme_font_size_override("font_size", 9)
+	var next := Button.new()
+	next.text = "下一页 ▶"
+	next.add_theme_font_size_override("font_size", 9)
+	next.pressed.connect(_next_page)
+	_pager.add_child(prev)
+	_pager.add_child(_page_label)
+	_pager.add_child(next)
+	$Margin/Content.add_child(_pager)
+	_pager.visible = false
 	title_label.text = "★ 一局结束 · 元进度结算"
 	# S5-3：铁砧点数已停用，不再显示点数相关文案
 	sub_label.text = "本局已结算；定向解锁与图鉴可继续在生涯界面查看。"
@@ -44,11 +67,12 @@ func configure(ctrl, h: BattleHud) -> void:
 func show_choice() -> void:
 	_clear_grid()
 	_claiming = false
+	_page = 0
 	if _back_btn != null: _back_btn.visible = false
 	if controller._career != null and controller._career.available_directed() > 0:
 		var cands: Array = controller._career.directed_candidates()
 		if not cands.is_empty():
-			_show_unlock(cands.slice(0, 3))
+			_show_unlock(cands)
 			visible = true
 			return
 	_show_meta()
@@ -67,11 +91,12 @@ func show_career() -> void:
 	var cands: Array = controller._career.directed_candidates()
 	if cands.is_empty():
 		sub_label.text = "当前余额 %d 次，但全部候选已拥有（空池）。" % bal
+		if _pager != null: _pager.visible = false
 		visible = true
 		return
-	sub_label.text = "余额 %d 次 · 选择一件写入图鉴与开局拥有池（含技艺）。" % bal
-	for cand in cands.slice(0, 3):
-		meta_grid.add_child(hud._make_unlock_card(cand))
+	_page = 0
+	_show_unlock(cands)
+	sub_label.text = "余额 %d 次 · 可翻页浏览全部候选，选择一件写入拥有池（含技艺）。" % bal
 	visible = true
 
 func _clear_grid() -> void:
@@ -80,10 +105,36 @@ func _clear_grid() -> void:
 		c.queue_free()
 
 func _show_unlock(cands: Array) -> void:
-	title_label.text = "★ 生涯解锁 · 未拥有装备三选一"
-	sub_label.text = "选择一件，直接写入图鉴与开局拥有池。\n本次机会来自生涯成就，不是额外货币。"
-	for cand in cands:
-		meta_grid.add_child(hud._make_unlock_card(cand))
+	# S5-5：保存全量候选，按页展示；翻页不消耗额度，任何目标都可直接翻到。
+	_all_cands = cands
+	title_label.text = "★ 生涯解锁 · 未拥有装备（可翻页）"
+	if sub_label.text.is_empty() or not sub_label.text.contains("余额"):
+		sub_label.text = "选择一件，直接写入图鉴与开局拥有池。\n可翻页浏览全部候选，不限前三项。"
+	_show_page()
+
+func _show_page() -> void:
+	_clear_grid()
+	if _all_cands.is_empty():
+		if _pager != null: _pager.visible = false
+		return
+	var pages: int = ceili(float(_all_cands.size()) / 3.0)
+	_page = clampi(_page, 0, pages - 1)
+	var start: int = _page * 3
+	var end: int = mini(start + 3, _all_cands.size())
+	for i in range(start, end):
+		meta_grid.add_child(hud._make_unlock_card(_all_cands[i]))
+	if _pager != null:
+		_pager.visible = pages > 1
+		if _page_label != null:
+			_page_label.text = "第 %d/%d 页 · 共 %d 件" % [_page + 1, pages, _all_cands.size()]
+
+func _prev_page() -> void:
+	_page -= 1
+	_show_page()
+
+func _next_page() -> void:
+	_page += 1
+	_show_page()
 
 func _show_meta() -> void:
 	var choices = controller._reward_system.roll_meta_choices()
