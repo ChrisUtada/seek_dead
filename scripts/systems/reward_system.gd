@@ -144,6 +144,11 @@ func _owned_reward_ids() -> Array:
 	if _ctrl.growth != null:
 		for pid in _ctrl.growth.perk_ids:
 			ids.append("perk_" + String(pid))
+	# 回路卡：已拥有（含已装备，装备必先拥有）的回路不再作为候选。
+	# S3-1b：生成侧过滤，与 Resolver preflight 的 already_owned 形成双保险。
+	if _ctrl.circuit_system != null:
+		for cid in _ctrl.circuit_system.inventory:
+			ids.append(String(cid))
 	# 符号权重/效果卡已满的符号（SYMBOL_WEIGHT_MAX）由 _make_*_defs 自身跳过，无需在此重复
 	return ids
 
