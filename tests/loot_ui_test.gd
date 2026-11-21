@@ -226,9 +226,15 @@ func _test_reroll_keeps_quality() -> void:
 
 
 func _paths(view: Dictionary) -> Array:
+	# 2026-11-21：候选有两类——旧物品候选读 path/conversion，新 Draft 的
+	# reward_definition 只有 id。比较稳定奖励标识，不取展示标题或字符串化字典。
 	var out: Array = []
 	for o in view.get("options", []):
-		out.append(String((o as Dictionary).get("path", "")) + "|" + String((o as Dictionary).get("conversion", "")))
+		var d := o as Dictionary
+		if String(d.get("kind", "")) == "reward_definition":
+			out.append("rd:" + String(d.get("id", "")))
+		else:
+			out.append(String(d.get("path", "")) + "|" + String(d.get("conversion", "")))
 	return out
 
 
@@ -281,11 +287,17 @@ func _snapshot() -> String:
 	var cir := ""
 	if _duel.circuit_system != null:
 		cir = str(_duel.circuit_system.equipped)
-	return "%d|%s|%s|%s|%d|%d|%s|%s|%s" % [
-		_duel.gold, str(_duel.selected_loadout), str(_duel.selected_charms),
+	# 2026-11-21：一次补全 reward_definition 新效果写入的本局状态字段，
+	# 避免"点了确实结算但旧快照看不到"的假失败（reel_control / symbol_weight /
+	# symbol_effect / pattern_bonus / flame_affinity / 既有治疗均未覆盖）。
+	return "%d|%d|%s|%s|%s|%d|%d|%s|%s|%s|%s|%s|%s|%s|%s" % [
+		_duel.gold, _duel.player_hp, str(_duel.selected_loadout), str(_duel.selected_charms),
 		str(_duel.consumable_slots.size()),
 		_duel._reward_system.run_power_bonus, _duel._reward_system.run_shield_next,
-		str(_duel.mastery.imprints), str(_duel.growth.perk_ids), cir]
+		str(_duel.mastery.imprints), str(_duel.growth.perk_ids), cir,
+		str(_duel.reel_controls), str(_duel._reward_system.run_symbol_bonus),
+		str(_duel.symbol_effect_overrides), str(_duel.pattern_param_overrides),
+		str(_duel.element_affinity)]
 
 
 func _test_skip_settles_once() -> void:
