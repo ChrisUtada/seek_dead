@@ -45,7 +45,12 @@ var _ctrl: DuelController
 var _unlocked: Array[String] = []
 var _bosses: Array[String] = []
 var _new_unlocks: Array[String] = []
-var _unlock_charges := 0
+# S5-1：生涯成为唯一定向解锁账本。
+# _directed_balance 为唯一可用余额（旧 anvil.directed_unlocks 与 career.unlock_charges 迁移后归一）。
+var _directed_balance := 0
+var _directed_claimed: Array[String] = []
+# 迁移标记：meta.career.directed_v1 为 true 时不再重复折算老档
+const MIGRATION_FLAG := "directed_v1"
 
 # 每局临时状态（不落盘）
 var _elite_route_seen := false
@@ -78,15 +83,57 @@ func _load() -> void:
 			var sb := String(b)
 			if sb != "" and not _bosses.has(sb):
 				_bosses.append(sb)
-	_unlock_charges = maxi(0, int(raw.get("unlock_charges", 0)))
+	# S5-1：读取统一余额；兼容旧存档 unlock_charges 字段（历史证据）。
+	_directed_balance = maxi(0, int(raw.get("directed_balance", raw.get("unlock_charges", 0))))
+	var claimed = raw.get("directed_claimed", [])
+	if claimed is Array:
+		for p in claimed:
+			var sp := String(p)
+			if sp != "" and not _directed_claimed.has(sp):
+				_directed_claimed.append(sp)
+	_migrate_legacy_directed(raw)
 	_write()
+
+
+# S5-1 老档一次性迁移：把 anvil.directed_unlocks 与 career.unlock_charges 归一到生涯单账本。
+# 口径（不宣称完美去重）：余额取两边较大值而非求和（BOSS/首通曾双写）；
+# directed_claimed / collection_milestones / 生涯成就与 Boss 记录并集；不恢复已消耗历史额度。
+# 老点数每 10 点折算 1 次（若 meta_store 尚未折算则在此补算），迁移成功后写 flag，重复加载不再发放。
+func _migrate_legacy_directed(raw: Dictionary) -> void:
+	if bool(raw.get(MIGRATION_FLAG, false)):
+		return
+	var old_anvil: int = maxi(0, int(_ctrl.meta.get("directed_unlocks", 0)))
+	var old_career: int = maxi(0, int(raw.get("unlock_charges", 0)))
+	_directed_balance = maxi(_directed_balance, maxi(old_anvil, old_career))
+	# 老点数折算（若 meta_store 的 G7-3 折算已写 directed_unlocks 则不再重复计算）
+	var legacy_points: int = int(_ctrl.meta.get("anvil_points", 0))
+	var converted: int = legacy_points / 10
+	if old_anvil <= 0 and old_career <= 0 and converted > 0:
+		_directed_balance = maxi(_directed_balance, converted)
+	# 已领取记录并集：anvil.directed_claimed + meta.collection_milestones（后者作为已达成标记，非额度）
+	var old_claimed = _ctrl.meta.get("directed_claimed", [])
+	if old_claimed is Array:
+		for p in (old_claimed as Array):
+			var sp := String(p)
+			if sp != "" and not _directed_claimed.has(sp):
+				_directed_claimed.append(sp)
+	# 写迁移标记到 meta.career
+	raw[MIGRATION_FLAG] = true
+	if _ctrl.hud != null:
+		_ctrl.hud._log("生涯定向解锁迁移：旧账本 %d/%d、老点 %d → 统一余额 %d（取较大值，不求和）" % [
+			old_anvil, old_career, legacy_points, _directed_balance])
+	# 立即落盘，防重复迁移
+	_save()
 
 
 func _write() -> void:
 	_ctrl.meta[META_KEY] = {
 		"unlocked": _unlocked.duplicate(),
 		"bosses": _bosses.duplicate(),
-		"unlock_charges": _unlock_charges,
+		"directed_balance": _directed_balance,
+		"directed_claimed": _directed_claimed.duplicate(),
+		"unlock_charges": _directed_balance,   # S5-1：旧字段镜像统一余额（只读兼容，不再独立更新）
+		MIGRATION_FLAG: true,
 	}
 
 
@@ -161,17 +208,114 @@ func take_new_unlocks() -> Array[String]:
 # ---------------------------------------------------------------------------
 
 func unlock_charges() -> int:
-	return _unlock_charges
+	return _directed_balance
 
 
 func has_unlock_charge() -> bool:
-	return _unlock_charges > 0
+	return _directed_balance > 0
+
+
+# S5-1：生涯统一账本 API。旧 AnvilSystem 定向 API 转发到此处，避免双写双领。
+func available_directed() -> int:
+	return _directed_balance
+
+
+func earn_directed(reason: String) -> bool:
+	if reason.is_empty():
+		return false
+	_directed_balance += 1
+	_save()
+	if _ctrl.hud != null:
+		_ctrl.hud._log("定向解锁 +1（来源：%s，当前 %d）" % [reason, _directed_balance])
+	return true
+
+
+# 确定性全候选：全部未拥有的武器/护符/技能（含技能，排除 BOSS 信物），按已有候选格式返回。
+func directed_candidates() -> Array:
+	var out: Array = []
+	var owned_w: Array = _ctrl.meta.get("owned_weapons", [])
+	var owned_c: Array = _ctrl.meta.get("owned_charms", [])
+	var owned_a: Array = _ctrl.meta.get("owned_consumables", [])
+	var owned_s: Array = _ctrl.meta.get("owned_skills", [])
+	for p in _ctrl.WEAPON_POOL:
+		if owned_w.has(p): continue
+		var d = load(String(p))
+		if d == null: continue
+		out.append(_candidate_entry(String(p)))
+	for p in _ctrl.ITEM_POOL:
+		var d = load(String(p))
+		if not (d is ItemData): continue
+		if _ctrl._meta_store._is_boss_relic(d, String(p)): continue
+		if d.category == "passive" and owned_c.has(p): continue
+		if d.category == "active" and owned_a.has(p): continue
+		out.append(_candidate_entry(String(p)))
+	for p in _ctrl.SKILL_POOL:
+		if owned_s.has(p): continue
+		out.append(_candidate_entry(String(p)))
+	return out
+
+
+# 唯一 claim：花 1 次额度解锁指定内容，返回 {ok, reason}。
+func claim_directed(path: String) -> Dictionary:
+	if _directed_balance <= 0:
+		return {"ok": false, "reason": "no_unlock_available"}
+	if path.is_empty() or ResourceLoader.load(path) == null:
+		return {"ok": false, "reason": "invalid_path"}
+	var valid := false
+	for c in directed_candidates():
+		if String(c["path"]) == path:
+			valid = true
+			break
+	if not valid:
+		# 明确空池/无效原因，区分已拥有与不在池
+		if _is_owned_path(path):
+			return {"ok": false, "reason": "already_owned"}
+		return {"ok": false, "reason": "not_in_pool"}
+	if not _directed_claimed.has(path):
+		_directed_claimed.append(path)
+	# S5-1 过渡兼容：顶层 directed_claimed 镜像（真源在 meta.career.directed_claimed，S5-4 清理）
+	var legacy_claimed = _ctrl.meta.get("directed_claimed", [])
+	if not (legacy_claimed is Array): legacy_claimed = []
+	if not (legacy_claimed as Array).has(path):
+		(legacy_claimed as Array).append(path)
+		_ctrl.meta["directed_claimed"] = legacy_claimed
+	_grant_directed_owned(path)
+	_directed_balance -= 1
+	_save()
+	if _ctrl.hud != null:
+		_ctrl.hud._log("定向解锁：%s（剩余 %d 次）" % [path.get_file().get_basename(), _directed_balance])
+	return {"ok": true, "reason": ""}
+
+
+func _is_owned_path(path: String) -> bool:
+	var res = load(path)
+	if res is WeaponData: return (_ctrl.meta.get("owned_weapons", []) as Array).has(path)
+	if res is SkillData: return (_ctrl.meta.get("owned_skills", []) as Array).has(path)
+	if res is ItemData:
+		if res.category == "passive": return (_ctrl.meta.get("owned_charms", []) as Array).has(path)
+		if res.category == "active": return (_ctrl.meta.get("owned_consumables", []) as Array).has(path)
+	return false
+
+
+func _grant_directed_owned(path: String) -> void:
+	var res = load(path)
+	var key := ""
+	if res is WeaponData: key = "owned_weapons"
+	elif res is SkillData: key = "owned_skills"
+	elif res is ItemData:
+		if res.category == "passive": key = "owned_charms"
+		elif res.category == "active": key = "owned_consumables"
+	if key == "": return
+	var arr: Array = _ctrl.meta.get(key, [])
+	if not arr.has(path):
+		arr.append(path)
+		_ctrl.meta[key] = arr
 
 
 # 3 个合法未拥有候选：优先武器/护符/消耗品各一，再补齐；排除 BOSS 信物。
 func roll_unlock_candidates(n: int = 3) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
-	if _unlock_charges <= 0:
+	if _directed_balance <= 0:
 		return out
 	var pool := _unlock_pool()
 	if pool.is_empty():
@@ -199,33 +343,8 @@ func roll_unlock_candidates(n: int = 3) -> Array[Dictionary]:
 
 # 选中后立即写入图鉴与开局拥有池；一次机会只结算一次。
 func grant_unlock(path: String) -> bool:
-	if _unlock_charges <= 0 or path == "":
-		return false
-	var res = load(path)
-	if res == null:
-		return false
-	var key := ""
-	if res is WeaponData:
-		key = "owned_weapons"
-	elif res is ItemData:
-		if _ctrl._meta_store._is_boss_relic(res, path):
-			return false
-		if res.category == "passive":
-			key = "owned_charms"
-		elif res.category == "active":
-			key = "owned_consumables"
-	if key == "":
-		return false
-	var arr: Array = _ctrl.meta.get(key, [])
-	if arr.has(path):
-		return false
-	arr.append(path)
-	_ctrl.meta[key] = arr
-	_unlock_charges -= 1
-	if _ctrl._anvil_system != null:
-		_ctrl._anvil_system.check_collection_milestones()
-	_save()
-	return true
+	# S5-1：统一转发到生涯单账本 claim，避免与 anvil claim 双领。
+	return bool(claim_directed(path).get("ok", false))
 
 
 func _unlock_pool() -> Array[String]:
@@ -279,6 +398,13 @@ func _candidate_entry(path: String) -> Dictionary:
 		var elem := ElementCounter.label(String(res.element))
 		var elem_txt := "" if elem == "" or elem == "无" else " · " + elem
 		desc = "武器%s · 攻%d · 命中%d%%" % [elem_txt, int(res.base_power), int(round(res.hit_rate * 100.0))]
+	elif res is SkillData:
+		# S5-1：技能候选（SkillData 无 item_name 字段）
+		name = String(res.get("buff_name")) if res.get("buff_name") != null else path.get_file().get_basename()
+		desc = "技艺"
+		var sd = String(res.get("description")) if res.get("description") != null else ""
+		if sd.length() > 28: sd = sd.left(28) + "…"
+		if sd != "": desc += " · " + sd
 	else:
 		name = String(res.item_name)
 		icon = String(res.icon) if String(res.icon) != "" else "◆"
@@ -340,9 +466,8 @@ func on_boss_cleared() -> void:
 	var boss_id := _boss_id(room)
 	if boss_id != "" and not _bosses.has(boss_id):
 		_bosses.append(boss_id)
-		# G7-3 条件接线：首次击败该 BOSS → 授予 1 次定向解锁额度（去重靠 _bosses）
-		if _ctrl._anvil_system != null:
-			_ctrl._anvil_system.earn_directed_unlock("boss:%s" % boss_id)
+		# S5-1：BOSS 首杀额度统一由下方成就（first_clear 等）发放，
+		# 不再单独 +1——原 BOSS 首杀与首通成就属同一事件的两笔账（双写）。
 
 	var before := _unlocked.size()
 	_unlock("first_clear")
@@ -370,8 +495,7 @@ func on_boss_cleared() -> void:
 	for i in range(before, _unlocked.size()):
 		var id := _unlocked[i]
 		_announce(id)
-		if id == "first_clear" or id == "four_hunters":
-			_unlock_charges += 1   # 每个里程碑一次「未拥有装备三选一」；不新增货币
+		# S5-1：里程碑额度由 _unlock() 内 earn_directed 统一发放，不再独立 +1（消灭双写）
 
 	# 每场 BOSS 的临时标记只对本场有效；精英路线是本局标记，留给 reset_run。
 	_boss_armor_break = false
@@ -385,8 +509,7 @@ func record_boss(boss_id: String) -> bool:
 		return false
 	_bosses.append(boss_id)
 	if _bosses.size() >= 4:
-		if _unlock("four_hunters"):
-			_unlock_charges += 1
+		_unlock("four_hunters")   # S5-1：额度由 _unlock() 内 earn_directed 统一发放
 	_save()
 	return true
 
@@ -400,9 +523,9 @@ func _unlock(id: String) -> bool:
 		return false
 	_unlocked.append(id)
 	_new_unlocks.append(id)
-	# G7-3 条件接线：生涯成就达成 → 授予 1 次定向解锁额度（_unlock 已去重）
-	if _ctrl._anvil_system != null:
-		_ctrl._anvil_system.earn_directed_unlock("career:%s" % id)
+	# S5-1：仅定向额度类成就发放（对齐原 first_clear/four_hunters 语义，避免全成就滥发）
+	if id == "first_clear" or id == "four_hunters":
+		earn_directed("career:%s" % id)
 	return true
 
 

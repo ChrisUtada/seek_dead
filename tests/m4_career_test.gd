@@ -75,7 +75,8 @@ func _check(cond: bool, msg: String) -> void:
 
 
 func _reset_career(duel: DuelController) -> void:
-	duel.meta["career"] = {"unlocked": [], "bosses": []}
+	duel.meta["career"] = {"unlocked": [], "bosses": [], "directed_v1": true, "directed_balance": 0, "directed_claimed": []}
+	duel.meta["directed_unlocks"] = 0
 	duel._career = preload("res://scripts/systems/career_system.gd").new(duel)
 	duel._telemetry.reset()
 	duel.peaceful_win = false
@@ -328,9 +329,9 @@ func _test_run_summary(duel: DuelController) -> void:
 	_check(ll.contains("线性") and ll.contains("BOSS"), "线性模式给房型计数")
 
 	# 下一局建议：生涯目标 + 剩余解锁机会。
-	duel._career._unlock_charges = 1
+	duel._career._directed_balance = 1
 	_check(rs.next_line().contains("定向解锁"), "下一局建议提示剩余解锁机会")
-	duel._career._unlock_charges = 0
+	duel._career._directed_balance = 0
 
 	# 元进度屏集成：四行摘要都进入副标题。
 	duel.hud.meta_screen.show_choice()

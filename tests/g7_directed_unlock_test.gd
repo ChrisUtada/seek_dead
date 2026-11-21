@@ -52,7 +52,7 @@ func _ready() -> void:
 	var bad: Dictionary = an.claim_directed_unlock("res://nope.tres")
 	_ok(not bool(bad["ok"]), "非法路径被拒")
 	# 直接清零额度测无额度拒绝
-	duel.meta["directed_unlocks"] = 0
+	duel._career._directed_balance = 0
 	var noq: Dictionary = an.claim_directed_unlock(String(cands[1]["path"]))
 	_ok(not bool(noq["ok"]) and String(noq["reason"]) == "no_unlock_available", "无额度被拒")
 

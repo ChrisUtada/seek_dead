@@ -55,69 +55,28 @@ func reset_run() -> void:
 
 # 当前可用的定向解锁次数（额度 = 条件达成 + 老档点数折算 - 已使用）。
 func available_directed_unlocks() -> int:
-	return maxi(0, int(_ctrl.meta.get("directed_unlocks", 0)))
+	# S5-1：兼容转发到生涯单账本（旧 UI 与生涯 UI 读同一余额）
+	return _ctrl._career.available_directed() if _ctrl._career != null else maxi(0, int(_ctrl.meta.get("directed_unlocks", 0)))
 
 
 # 条件达成：授予一次定向解锁额度。reason = "boss"/"career"/"weapon_milestone"/"legacy_points"。
 # 由 Boss 击杀、生涯成就达成、武器出场里程碑等外部事件调用。
 func earn_directed_unlock(reason: String) -> bool:
-	if reason.is_empty():
-		return false
-	_ctrl.meta["directed_unlocks"] = int(_ctrl.meta.get("directed_unlocks", 0)) + 1
-	_ctrl._meta_store.save_meta()
-	_ctrl.hud._log("定向解锁 +1（来源：%s，当前 %d）" % [reason, available_directed_unlocks()])
-	return true
+	# S5-1：兼容转发到生涯单账本，不再独立写 anvil 余额（消灭双写）
+	return _ctrl._career.earn_directed(reason) if _ctrl._career != null else false
 
 
 # 定向解锁候选：全部未拥有的武器/护符/技能（BOSS 信物不进池，同旧池口径）。
 func directed_candidates() -> Array:
-	var out: Array = []
-	for p in _anvil_pool():
-		if _anvil_is_owned(p):
-			continue
-		var d = load(p)
-		var nm: String = ""
-		var rarity: String = "common"
-		if d is WeaponData:
-			nm = String(d.weapon_name)
-			rarity = String(d.rarity)
-		elif d is ItemData:
-			nm = String(d.item_name)
-			rarity = String(d.rarity)
-		elif d is SkillData:
-			nm = String(d.buff_name)
-			rarity = String(d.rarity)
-		if nm.is_empty():
-			nm = p.get_file().get_basename()
-		out.append({"path": p, "name": nm, "rarity": rarity})
-	return out
+	# S5-1：兼容转发到生涯候选池（含技能、确定性、已拥有过滤）
+	return _ctrl._career.directed_candidates() if _ctrl._career != null else []
 
 
 # 定向选择：花 1 次额度，解锁指定内容（不随机、不返还、不空池）。
 # 返回 {ok, reason}。
 func claim_directed_unlock(path: String) -> Dictionary:
-	if available_directed_unlocks() <= 0:
-		return {"ok": false, "reason": "no_unlock_available"}
-	if path.is_empty() or ResourceLoader.load(path) == null:
-		return {"ok": false, "reason": "invalid_path"}
-	if _anvil_is_owned(path):
-		return {"ok": false, "reason": "already_owned"}
-	var valid := false
-	for c in directed_candidates():
-		if String(c["path"]) == path:
-			valid = true
-			break
-	if not valid:
-		return {"ok": false, "reason": "not_in_pool"}
-	_ctrl.meta["directed_unlocks"] = int(_ctrl.meta.get("directed_unlocks", 0)) - 1
-	if not _ctrl.meta.has("directed_claimed") or not (_ctrl.meta["directed_claimed"] is Array):
-		_ctrl.meta["directed_claimed"] = []
-	if not _ctrl.meta["directed_claimed"].has(path):
-		_ctrl.meta["directed_claimed"].append(path)
-	_anvil_grant_owned(path)
-	_ctrl._meta_store.save_meta()
-	_ctrl.hud._log("定向解锁：%s（剩余 %d 次）" % [path.get_file().get_basename(), available_directed_unlocks()])
-	return {"ok": true, "reason": ""}
+	# S5-1：兼容转发到生涯唯一 claim（旧 UI 与生涯 UI 不会各领一次）
+	return _ctrl._career.claim_directed(path) if _ctrl._career != null else {"ok": false, "reason": "no_career"}
 
 
 # ---------------------------------------------------------------------------
@@ -320,6 +279,8 @@ func _check_collection_milestones() -> void:
 			var bonus = int(BALANCE.anvil_milestone_bonus[i])
 			# G7-3：里程碑属于"条件解锁"——改为授予定向解锁额度（按每10点折算≈1次，向上取整至少1次）。
 			var unlocks: int = maxi(1, bonus / 10)
-			_ctrl.meta["directed_unlocks"] = int(_ctrl.meta.get("directed_unlocks", 0)) + unlocks
+			# S5-1：里程碑额度写生涯单账本（不再写旧 anvil 余额，避免迁移后丢失）
+			for j in range(unlocks):
+				earn_directed_unlock("milestone")
 			_ctrl.hud._log("收藏里程碑 %.0f%%：定向解锁 +%d（可自选装备）" % [thr * 100, unlocks])
 
