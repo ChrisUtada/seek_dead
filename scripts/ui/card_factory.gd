@@ -332,9 +332,15 @@ func shop_card(offer: Dictionary) -> Button:
 	var weapon_replace: bool = (offer["kind"] == "weapon" and cur >= cap and not can_grow_slot)
 	if weapon_replace:
 		slot_full = false
-	# F-16：唯一类（武器/护符/技能）已在仓库或已装备 → 保留展示但标"已拥有"并禁用购买。
-	# 消耗品允许同类重复持有，不走此判断；即时资源不在商店货位。
-	var already_owned: bool = (not is_active) and _ctrl._loadout_system.sel_arr(offer["kind"]).has(offer["path"])
+	# F-16：唯一类（武器/护符/技能）为永久收藏唯一 → 判据须含 meta.owned_*（局外已拥有、
+	# 当前未装备的物品也禁止重复购买），并集本局 sel_arr（本局已获得）。消耗品不走此判断。
+	var already_owned: bool = false
+	if not is_active:
+		var owned_key: String = String({"weapon": "owned_weapons", "passive": "owned_charms", "skill": "owned_skills"}.get(offer["kind"], ""))
+		if owned_key != "" and (_ctrl.meta.get(owned_key, []) as Array).has(offer["path"]):
+			already_owned = true
+		if _ctrl._loadout_system.sel_arr(offer["kind"]).has(offer["path"]):
+			already_owned = true
 	var can_buy = (not offer["sold"]) and (not already_owned) and _ctrl.state.gold >= price and not slot_full
 	var status: String
 	if offer["sold"]:
