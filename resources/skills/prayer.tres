@@ -20,5 +20,5 @@ role = "recovery"
 mechanism_summary = "落线触发：祈祷落线：回复生命；三连治疗溢出转护盾。"
 act_min = 1
 act_max = 3
-source_tags = Array[String](["shop", "anvil"])
+source_tags = Array[String](["shop"])
 unique_group = "skill_light_heal"

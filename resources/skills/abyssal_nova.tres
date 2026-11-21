@@ -20,5 +20,5 @@ role = "damage"
 mechanism_summary = "落线触发：深渊新星落线：高伤 dark 属性伤害，克制火系敌人。"
 act_min = 1
 act_max = 3
-source_tags = Array[String](["shop", "anvil"])
+source_tags = Array[String](["shop"])
 unique_group = "skill_dark_damage"

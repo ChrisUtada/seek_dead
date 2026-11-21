@@ -22,5 +22,5 @@ role = "utility"
 mechanism_summary = "落线触发：炎息入轮：总伤害 ×1.3（2 回合）——躁怒元素使 P2 火武窗口增伤，与熔火爆裂/充能组合拳（与狂怒 ×1.5 区分）。"
 act_min = 2
 act_max = 3
-source_tags = Array[String](["shop", "anvil"])
+source_tags = Array[String](["shop"])
 unique_group = "skill_charge_buff"

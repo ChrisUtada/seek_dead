@@ -20,5 +20,5 @@ role = "defense"
 mechanism_summary = "落线触发：秩序之光入轮：护盾 +10 持续 2 回合（覆盖定心 8/不屈战旗 6）——天平审判官 P2 重击 + 锁槽期生存窗口。"
 act_min = 2
 act_max = 3
-source_tags = Array[String](["shop", "anvil"])
+source_tags = Array[String](["shop"])
 unique_group = "skill_shield_buff"

@@ -22,5 +22,5 @@ role = "utility"
 mechanism_summary = "落线触发：怒符入轮：伤害符号 +3。"
 act_min = 1
 act_max = 3
-source_tags = Array[String](["shop", "anvil", "start"])
+source_tags = Array[String](["shop", "start"])
 unique_group = "skill_charge_buff"

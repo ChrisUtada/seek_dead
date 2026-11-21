@@ -14,9 +14,9 @@ const ROLES: Array[String] = [
 	"damage", "defense", "recovery", "control", "resource", "utility", "conversion",
 ]
 
-# normal/elite/boss/chest/event 对应来源；shop/anvil/start 为现有确定性或开局渠道。
+# S6-2a：anvil 已移除（铁砧 gacha 删除后无生产路径）；start 为开局渠道。
 const SOURCES: Array[String] = [
-	"normal", "elite", "boss", "chest", "event", "shop", "anvil", "start",
+	"normal", "elite", "boss", "chest", "event", "shop", "start",
 ]
 
 const RARITIES: Array[String] = ["common", "uncommon", "rare", "epic", "relic"]
@@ -51,7 +51,6 @@ const SOURCE_LABEL := {
 	"chest": "探索宝箱",
 	"event": "特殊事件",
 	"shop": "商店",
-	"anvil": "铁砧",
 	"start": "开局收藏",
 }
 

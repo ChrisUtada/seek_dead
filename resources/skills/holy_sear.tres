@@ -22,5 +22,5 @@ role = "control"
 mechanism_summary = "落线触发：圣灼落线——光属性 DoT，层数达阈值爆发（L3 §6.2）。"
 act_min = 1
 act_max = 3
-source_tags = Array[String](["shop", "anvil"])
+source_tags = Array[String](["shop"])
 unique_group = "skill_light_status"

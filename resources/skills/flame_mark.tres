@@ -22,5 +22,5 @@ role = "damage"
 mechanism_summary = "落线触发：火印落线：造成 fire 属性伤害——开局第二火源（T30 配套：冰封铁瓮弱火）。"
 act_min = 1
 act_max = 3
-source_tags = Array[String](["shop", "anvil"])
+source_tags = Array[String](["shop"])
 unique_group = "skill_fire_damage"

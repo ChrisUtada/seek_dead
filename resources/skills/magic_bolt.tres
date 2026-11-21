@@ -22,5 +22,5 @@ role = "damage"
 mechanism_summary = "落线触发：奥术迸流：落线时造成 light 属性伤害（命中率随技能）。"
 act_min = 1
 act_max = 3
-source_tags = Array[String](["shop", "anvil", "start"])
+source_tags = Array[String](["shop", "start"])
 unique_group = "skill_light_damage"

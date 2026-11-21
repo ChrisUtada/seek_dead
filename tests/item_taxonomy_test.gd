@@ -177,16 +177,16 @@ func _check_item(entry: Dictionary) -> void:
 		_check(amin == int(_relic_act[path]) and amax == int(_relic_act[path]),
 			"%s 信物幕次匹配对应 BOSS（%d）" % [label, int(_relic_act[path])])
 	else:
-		_check(_has_any_source(sources, ["normal", "elite", "shop", "anvil", "start"]),
+		_check(_has_any_source(sources, ["normal", "elite", "shop", "start"]),
 			"%s 有非 BOSS 获取通道" % label)
 		if kind == "weapon":
-			_check(_has_any_source(sources, ["shop", "anvil"]), "%s 武器可由商店/铁砧获得" % label)
+			_check(_has_any_source(sources, ["shop"]), "%s 武器可由商店获得" % label)
 			_check(_boss_weapons.has(path) == _has_any_source(sources, ["boss"]),
 				"%s BOSS 池来源标记与房间配置一致" % label)
 		elif kind == "skill":
-			_check(_has_any_source(sources, ["shop", "anvil"]), "%s 技能可由商店/铁砧获得" % label)
+			_check(_has_any_source(sources, ["shop"]), "%s 技能可由商店获得" % label)
 		elif kind == "charm":
-			_check(_has_any_source(sources, ["elite", "shop", "anvil"]), "%s 护符有精英/商店/铁砧来源" % label)
+			_check(_has_any_source(sources, ["elite", "shop"]), "%s 护符有精英/商店来源" % label)
 		else:
 			_check(_has_any_source(sources, ["normal", "shop"]), "%s 消耗品有战斗/商店来源" % label)
 

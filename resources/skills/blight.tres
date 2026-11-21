@@ -20,5 +20,5 @@ role = "control"
 mechanism_summary = "落线触发：枯萎落线：对敌人叠加中毒，持续削血。"
 act_min = 1
 act_max = 3
-source_tags = Array[String](["shop", "anvil"])
+source_tags = Array[String](["shop"])
 unique_group = "skill_poison_status"

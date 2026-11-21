@@ -34,5 +34,5 @@ role = "damage"
 mechanism_summary = "对子型轻型近战：铁斩3格与匕斩3格形成两个等权伤害族，可主动追求对子赔付。基础效能9、武器精度90%，以较低三连浓度和单符号峰值换取双目标选择。"
 act_min = 1
 act_max = 3
-source_tags = Array[String](["normal", "elite", "shop", "anvil", "chest"])
+source_tags = Array[String](["normal", "elite", "shop", "chest"])
 unique_group = "weapon_none_pair_line"

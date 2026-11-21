@@ -34,5 +34,5 @@ role = "defense"
 mechanism_summary = "防御型中型近战：铁斩3格提供输出，铁誓3格提供单格6护盾；可支撑攻守转换。基础效能8、武器精度86%，以较低输出和失去重武器三连破甲换取稳定防护。"
 act_min = 1
 act_max = 3
-source_tags = Array[String](["normal", "elite", "shop", "anvil", "chest"])
+source_tags = Array[String](["normal", "elite", "shop", "chest"])
 unique_group = "weapon_none_guard_line"

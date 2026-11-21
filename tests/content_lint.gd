@@ -25,7 +25,7 @@ const BUFF_EFFECTS := ["", "power", "shield", "regen", "damage_mult"]
 # StatusSystem.STATUS_DEFS 的键（状态 id，非元素）
 const STATUS_TYPES := ["", "burn", "frost", "poison", "frozen", "holy_burn", "shadow_blight"]
 const RARITIES := ["common", "uncommon", "rare", "epic", "relic"]
-const SOURCES := ["normal", "elite", "boss", "chest", "event", "shop", "anvil", "start"]
+const SOURCES := ["normal", "elite", "boss", "chest", "event", "shop", "start"]   # S6-2a：anvil 已移除
 const ROLES := ["damage", "defense", "recovery", "control", "resource", "utility", "conversion"]
 
 var _fails := 0
@@ -152,10 +152,10 @@ func _check_text_hooks(all: Array[String]) -> void:
 		if f == null: continue
 		var text := f.get_as_text()
 		f.close()
-		# "连锁放大" 无 combat hook；"处决线" 无字段（当前若出现应提示）
-		if text.contains("连锁放大") or text.contains("处决线"):
+		# "连锁放大"无 combat hook → warn；"处决线"由 shadow_execution effect_id 落地（pattern_effects.gd:170）→ 不 warn
+		if text.contains("连锁放大"):
 			no_hook += 1
-			_warn(false, "文案可能无代码落点 %s（连锁放大/处决线）" % fp.get_file())
+			_warn(false, "文案无代码落点 %s（连锁放大无 hook）" % fp.get_file())
 	print("CONTENT_LINT|TEXT_NO_HOOK count=%d" % no_hook)
 
 
@@ -179,5 +179,5 @@ func _check_anvil_sources(all: Array[String]) -> void:
 					others.contains("\"boss\"") or others.contains("\"shop\"") or
 					others.contains("\"chest\"") or others.contains("\"start\"") or others.contains("\"event\"")):
 					anvil_only += 1
-	_ok(anvil_only == 0, "无资源以 anvil 为唯一来源（%d）" % anvil_only)
-	print("CONTENT_LINT|ANVIL_TAGS legacy=%d anvil_only=%d (S5后无生产路径,待清理)" % [with_anvil, anvil_only])
+	_ok(with_anvil == 0 and anvil_only == 0, "S6-2a：资源 source_tags 无 anvil 残留（legacy=%d, only=%d）" % [with_anvil, anvil_only])
+	print("CONTENT_LINT|ANVIL_TAGS legacy=%d anvil_only=%d (S6-2a 已清理)" % [with_anvil, anvil_only])

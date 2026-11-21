@@ -34,5 +34,5 @@ role = "damage"
 mechanism_summary = "跨元素中型近战：暗斩3格与晨曦之光3格落线后分别造成暗、光伤害；可针对两类弱点调整目标。基础效能10、武器精度86%，以较低单符号浓度和基础效能换取元素覆盖。"
 act_min = 1
 act_max = 3
-source_tags = Array[String](["normal", "elite", "shop", "anvil", "chest"])
+source_tags = Array[String](["normal", "elite", "shop", "chest"])
 unique_group = "weapon_twilight_coverage_line"

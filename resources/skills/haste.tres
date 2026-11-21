@@ -20,5 +20,5 @@ role = "utility"
 mechanism_summary = "落线触发：迅符入轮：本回合总伤害 ×1.5。"
 act_min = 1
 act_max = 3
-source_tags = Array[String](["shop", "anvil", "start"])
+source_tags = Array[String](["shop", "start"])
 unique_group = "skill_charge_buff"

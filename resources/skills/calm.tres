@@ -22,5 +22,5 @@ role = "defense"
 mechanism_summary = "落线触发：定心符入轮：本回合起护盾 +8（持续 2 回合）——P2 高攻窗口容错，与守备/铁誓叠加稳字流。"
 act_min = 1
 act_max = 3
-source_tags = Array[String](["shop", "anvil"])
+source_tags = Array[String](["shop"])
 unique_group = "skill_shield_buff"

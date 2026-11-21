@@ -21,5 +21,5 @@ role = "damage"
 mechanism_summary = "落线触发：陨星审判落线：高伤 fire 属性伤害；三连破甲。"
 act_min = 2
 act_max = 3
-source_tags = Array[String](["shop", "anvil"])
+source_tags = Array[String](["shop"])
 unique_group = "skill_fire_damage"

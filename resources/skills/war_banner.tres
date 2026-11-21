@@ -22,5 +22,5 @@ role = "defense"
 mechanism_summary = "落线触发：战旗入轮：本回合起护盾 +6（持续 2 回合）——反弹压制流：对冲石屑自噬伤害，与守备/铁誓叠加。"
 act_min = 1
 act_max = 3
-source_tags = Array[String](["shop", "anvil"])
+source_tags = Array[String](["shop"])
 unique_group = "skill_shield_buff"

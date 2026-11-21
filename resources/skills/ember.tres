@@ -22,5 +22,5 @@ role = "control"
 mechanism_summary = "落线触发：余烬落线：挂灼烧 DoT——burn 无视护甲，碎裂魔王 P2 叠盾期跨阶段削血（草案克制解）。"
 act_min = 1
 act_max = 3
-source_tags = Array[String](["shop", "anvil"])
+source_tags = Array[String](["shop"])
 unique_group = "skill_fire_status"
