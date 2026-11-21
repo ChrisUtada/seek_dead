@@ -7,6 +7,8 @@ script = ExtResource("1")
 id = "seed_edge_polish"
 name = "锋锐打磨"
 desc = "本局所有符号伤害 +2"
+# S3-1a：落实 S1-03，退出常规主池；保留资源与历史记录，幕间锻魂基准另由 growth_system 提供。
+enabled = false
 rarity = "common"
 tags = Array[String](["offense.power", "scaling"])
 base_weight = 1.0

@@ -184,8 +184,8 @@ func _test_g1c_refill_no_owned() -> void:
 	var owned := ["control_mercy", "control_slow_ramp", "seed_gold_cache"]
 	c.set_owned_ids(owned)
 	var draft: DraftResult = c.compose(_snap(1.0), 3, true)
-	# 满血 → heal 卡(seed_battle_ready)过滤；owned 3 张过滤；5 张 disabled 过滤
-	# 合法剩: control_trash_reroll / seed_edge_polish / seed_guardian_ember = 3 张 → 应恰好补足到 3
+	# 满血 → heal 卡(seed_battle_ready)过滤；owned 3 张过滤；disabled 过滤（含 S3-1a 退出的 seed_edge_polish）
+	# 合法池缩小后由兜底补足到 3（不静默减少候选、不造无效卡）→ 应恰好补足到 3
 	_ok(draft.rewards.size() == 3, "refill reaches 3 cards (got %d)" % draft.rewards.size())
 	var ids := {}
 	for d in draft.rewards:
