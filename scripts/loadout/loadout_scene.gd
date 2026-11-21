@@ -181,13 +181,14 @@ func _on_char_pressed(cat: String) -> void:
 
 
 func _on_anvil_pressed() -> void:
-	# 铁砧是 hud 的子覆盖层：先显 hud 再开，并隐藏本 2D 场景
-	# ⚠ CanvasLayer（UILayer=layer 10）不随父级 visible 级联——必须显式隐藏，否则武器栏/确认按钮盖在铁砧上
+	# S5-2：整备入口归一 → 生涯定向解锁 + 图鉴（meta_screen）。
+	# 摇奖界面暂保留兼容，入口改由 meta_screen 的临时按钮提供；S5-3 正式关闭。
+	# ⚠ CanvasLayer（UILayer=layer 10）不随父级 visible 级联——必须显式隐藏，否则武器栏/确认按钮盖在覆盖层上
 	visible = false
 	if _ui_layer != null:
 		_ui_layer.visible = false
 	hud.show()
-	hud._show_anvil_screen()
+	hud._show_career_screen()
 
 
 func _open_sub(cat: String) -> void:

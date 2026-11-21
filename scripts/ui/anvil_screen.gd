@@ -12,22 +12,6 @@ var _spinning := false
 var _stop_all := false
 const _SPIN_AUTO_STOP := 4.0   # 手动按停超时兜底（防软锁：不点也会停）
 
-# G6-04 图鉴详情覆盖层（运行时构建，不改 anvil_screen.tscn）
-var _codex_btn: Button = null
-var _codex_panel: PanelContainer = null
-var _codex_list: VBoxContainer = null
-var _codex_detail: VBoxContainer = null
-var _codex_kind := "weapon"
-var _codex_sel := ""
-
-# G7-3 定向解锁 UI（动态创建，不改 tscn——避免实例内覆盖子节点被 Godot 剥离）
-var _directed_box: VBoxContainer = null
-var _directed_count: Label = null
-var _directed_list: VBoxContainer = null
-var _mode_btn: Button = null
-var _mode := "directed"   # "directed" 定向解锁（主）/ "gacha" 旧摇奖（兼容）
-const UI_BTN = preload("res://scenes/ui/ui_button.tscn")
-
 @onready var bg = $Bg
 @onready var title_label = $Margin/Content/TitleLabel
 @onready var points_label = $Margin/Content/PointsLabel
@@ -37,102 +21,19 @@ const UI_BTN = preload("res://scenes/ui/ui_button.tscn")
 @onready var roll_btn = $Margin/Content/Bot/RollBtn
 @onready var back_btn = $Margin/Content/Bot/BackBtn
 
-# G7-3：动态构建定向解锁区块（插到 PointsLabel 之后、SubLabel 之前）。
-func _build_directed_ui() -> void:
-	if _directed_box != null:
-		return
-	_directed_box = VBoxContainer.new()
-	_directed_box.name = "DirectedBox"
-	_directed_box.add_theme_constant_override("separation", 2)
-	_directed_count = Label.new()
-	_directed_count.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_directed_list = VBoxContainer.new()
-	_directed_list.add_theme_constant_override("separation", 1)
-	_directed_box.add_child(_directed_count)
-	_directed_box.add_child(_directed_list)
-	# 插到 Content 里 PointsLabel 之后（move 到 SubLabel 之前）
-	var content: VBoxContainer = points_label.get_parent() as VBoxContainer
-	if content != null:
-		content.add_child(_directed_box)
-		var sub_node := content.get_node_or_null("SubLabel")
-		if sub_node != null:
-			content.move_child(_directed_box, sub_node.get_index())
-		else:
-			content.move_child(_directed_box, content.get_child_count() - 1)
-	# 模式切换按钮（放 Bot 容器，BackBtn 之前）
-	var bot: HBoxContainer = back_btn.get_parent() as HBoxContainer
-	if bot != null:
-		_mode_btn = UI_BTN.instantiate() as Button
-		_mode_btn.custom_minimum_size = Vector2(100, 40)
-		_mode_btn.text = "旧摇奖"
-		_mode_btn.pressed.connect(_on_mode_toggle)
-		bot.add_child(_mode_btn)
-		bot.move_child(_mode_btn, back_btn.get_index())
-
-
-func _on_mode_toggle() -> void:
-	_mode = "gacha" if _mode == "directed" else "directed"
-	refresh()
-
-
-# G7-3：刷新定向解锁候选（最多 4 条，紧凑适配 480x270）。
-func _refresh_directed() -> void:
-	if _directed_box == null:
-		return
-	var an = controller._anvil_system
-	var avail: int = an.available_directed_unlocks()
-	_directed_count.text = "定向额度 %d" % avail
-	for c in _directed_list.get_children():
-		_directed_list.remove_child(c)
-		c.queue_free()
-	var cands: Array = an.directed_candidates()
-	if avail <= 0:
-		var hint := Label.new()
-		hint.text = "暂无额度：击败 Boss / 生涯成就 / 武器里程碑可获得"
-		hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		_directed_list.add_child(hint)
-		return
-	if cands.is_empty():
-		var hint := Label.new()
-		hint.text = "无可解锁内容（全池已拥有）"
-		hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		_directed_list.add_child(hint)
-		return
-	# 480x270 小屏：最多 3 条候选，文案精简（顶部区块过高会挤出标题）
-	for i in range(mini(3, cands.size())):
-		var c: Dictionary = cands[i]
-		var btn := UI_BTN.instantiate() as Button
-		btn.custom_minimum_size = Vector2(0, 26)
-		btn.text = "＋ %s" % String(c["name"])
-		var path: String = String(c["path"])
-		btn.pressed.connect(func(): _on_directed_claim(path))
-		_directed_list.add_child(btn)
-
-
-func _on_directed_claim(path: String) -> void:
-	var an = controller._anvil_system
-	var res: Dictionary = an.claim_directed_unlock(path)
-	if bool(res["ok"]):
-		sub_label.text = "定向解锁成功：%s" % path.get_file().get_basename()
-	else:
-		sub_label.text = "解锁失败：%s" % String(res["reason"])
-	refresh()
-
 
 func configure(ctrl, h: BattleHud) -> void:
 	controller = ctrl
 	hud = h
 	bg.color = Palette.BG_ANVIL
-	# G7-3：定向解锁为主路径，旧摇奖降级为兼容入口
-	title_label.text = "🔨 铁砧 · 定向解锁"
-	sub_label.text = "达成条件获得额度，自选一件未拥有装备（下方旧摇奖保留兼容）"
-	# G7-3：动态构建定向解锁区块（插在标题区之后）
-	_build_directed_ui()
+	# S5-2：本屏降级为纯摇奖兼容层；定向解锁与图鉴已归一到 meta_screen。
+	# S5-3 将正式关闭 gacha / 点数 / drip，届时本屏整体删除。
+	title_label.text = "🔨 铁砧 · 摇奖（兼容）"
+	sub_label.text = "消耗点数摇一次，单格揭晓装备（物品与稀有度随机）"
 	# 摇/返回按钮为静态节点（anvil_screen.tscn），这里只填动态文案 + 接线
 	roll_btn.text = "🔨 摇动 (%d点)" % controller.BALANCE.anvil_roll_cost
 	roll_btn.connect("pressed", _on_roll_pressed)
 	back_btn.connect("pressed", hud.anvil_back_requested.emit)
-	_build_codex_ui()
 
 func show_screen() -> void:
 	refresh()
@@ -145,23 +46,6 @@ func refresh() -> void:
 	var meta = controller.state.meta
 	var info = controller._anvil_system.collection_info()
 	points_label.text = "历史点数: %d" % int(meta["anvil_points"])
-	_refresh_directed()
-	# G7-3/G7-4：两种模式互斥显示，避免 480x270 小屏内容超屏裁切
-	var directed_mode: bool = (_mode == "directed")
-	if _directed_box != null:
-		_directed_box.visible = directed_mode
-	if reel_box != null:
-		reel_box.visible = not directed_mode
-	if info_label != null:
-		info_label.visible = not directed_mode
-	if roll_btn != null:
-		roll_btn.visible = not directed_mode
-	if _mode_btn != null:
-		_mode_btn.text = "旧摇奖" if directed_mode else "定向解锁"
-	if sub_label != null:
-		sub_label.text = "达成条件获得额度，自选一件未拥有装备" if directed_mode \
-			else "消耗点数摇一次，单格揭晓一件装备"
-
 	var pity = meta["anvil_pity"]
 	var pity_txt = ""
 	if info["not_yet"] > 0 and pity >= controller.BALANCE.anvil_pity_max:
@@ -264,187 +148,6 @@ func _make_cell(d: Dictionary) -> Control:
 		if p != "":
 			cell.tooltip_text = ItemTooltip.for_resource(load(p))   # 物品悬停信息窗（ItemTooltip 生成器）
 	return cell
-
-# ---------------------------------------------------------------------------
-# G6-04 图鉴详情：分类列表 + 详情（路线 / 机制 / 来源 / 使用 / 熟练 / 铭印）。
-# 数据全部来自 CodexSystem（只读资源 + meta.codex / item_sources），本屏不改存档。
-# ---------------------------------------------------------------------------
-func _build_codex_ui() -> void:
-	if _codex_panel != null:
-		return
-	_codex_btn = Button.new()
-	_codex_btn.text = "📖 图鉴"
-	_codex_btn.custom_minimum_size = Vector2(78, 40)
-	_codex_btn.add_theme_font_size_override("font_size", 9)
-	_codex_btn.tooltip_text = "查看装备路线 / 机制 / 真实来源 / 使用次数 / 最高熟练 / 铭印"
-	_codex_btn.pressed.connect(_toggle_codex)
-	var bot: Node = roll_btn.get_parent()
-	bot.add_child(_codex_btn)
-	bot.move_child(_codex_btn, 0)
-
-	_codex_panel = PanelContainer.new()
-	_codex_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_codex_panel.z_index = 60
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Palette.PANEL_BG
-	sb.border_color = Palette.ACCENT_GOLD
-	sb.set_border_width_all(1)
-	_codex_panel.add_theme_stylebox_override("panel", sb)
-	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 8)
-	margin.add_theme_constant_override("margin_top", 6)
-	margin.add_theme_constant_override("margin_right", 8)
-	margin.add_theme_constant_override("margin_bottom", 6)
-	var root := VBoxContainer.new()
-	root.add_theme_constant_override("separation", 4)
-	var head := HBoxContainer.new()
-	var title := Label.new()
-	title.text = "📖 图鉴"
-	title.add_theme_font_size_override("font_size", 11)
-	title.add_theme_color_override("font_color", Palette.ACCENT_GOLD)
-	head.add_child(title)
-	var spacer := Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	head.add_child(spacer)
-	var close := Button.new()
-	close.text = "✕ 关闭"
-	close.add_theme_font_size_override("font_size", 9)
-	close.pressed.connect(func() -> void: _codex_panel.visible = false)
-	head.add_child(close)
-	root.add_child(head)
-
-	var tabs := HBoxContainer.new()
-	tabs.add_theme_constant_override("separation", 4)
-	var tab_labels := {"weapon": "武器", "skill": "技能", "passive": "护符", "active": "消耗品"}
-	for k in ["weapon", "skill", "passive", "active"]:
-		var b := Button.new()
-		b.text = String(tab_labels[k])
-		b.add_theme_font_size_override("font_size", 9)
-		b.pressed.connect(_set_codex_kind.bind(String(k)))
-		tabs.add_child(b)
-	root.add_child(tabs)
-
-	var body := HBoxContainer.new()
-	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	body.add_theme_constant_override("separation", 6)
-	var left_scroll := ScrollContainer.new()
-	left_scroll.custom_minimum_size = Vector2(168, 0)
-	left_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	_codex_list = VBoxContainer.new()
-	_codex_list.add_theme_constant_override("separation", 1)
-	_codex_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	left_scroll.add_child(_codex_list)
-	body.add_child(left_scroll)
-	var right_scroll := ScrollContainer.new()
-	right_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	right_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	_codex_detail = VBoxContainer.new()
-	_codex_detail.add_theme_constant_override("separation", 2)
-	_codex_detail.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	right_scroll.add_child(_codex_detail)
-	body.add_child(right_scroll)
-	root.add_child(body)
-
-	margin.add_child(root)
-	_codex_panel.add_child(margin)
-	add_child(_codex_panel)
-	_codex_panel.visible = false
-
-
-func _toggle_codex() -> void:
-	if _codex_panel == null:
-		return
-	_codex_panel.visible = not _codex_panel.visible
-	if _codex_panel.visible:
-		_refresh_codex()
-
-
-func _set_codex_kind(kind: String) -> void:
-	_codex_kind = kind
-	_codex_sel = ""
-	_refresh_codex()
-
-
-func _refresh_codex() -> void:
-	if _codex_list == null or controller._codex == null:
-		return
-	for c in _codex_list.get_children():
-		_codex_list.remove_child(c)
-		c.queue_free()
-	var entries: Array = controller._codex.list_entries(_codex_kind)
-	var owned := 0
-	for e in entries:
-		if bool(e.get("owned", false)):
-			owned += 1
-	var head := Label.new()
-	head.text = "已拥有 %d / %d" % [owned, entries.size()]
-	head.add_theme_font_size_override("font_size", 9)
-	head.add_theme_color_override("font_color", Palette.ACCENT_GOLD)
-	_codex_list.add_child(head)
-	for e in entries:
-		var row := Button.new()
-		var mark := "✓" if bool(e.get("owned", false)) else "·"
-		var txt := "%s %s" % [mark, String(e.get("name", ""))]
-		if int(e.get("rank", 0)) > 0:
-			txt += " R%d" % int(e["rank"])
-		row.text = txt
-		row.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		row.add_theme_font_size_override("font_size", 9)
-		row.custom_minimum_size = Vector2(158, 0)
-		row.disabled = not bool(e.get("owned", false))
-		row.tooltip_text = "使用 %d 次" % int(e.get("uses", 0))
-		row.pressed.connect(_select_codex.bind(String(e.get("path", ""))))
-		_codex_list.add_child(row)
-	# 默认选中第一件已拥有，打开即有内容。
-	if _codex_sel == "":
-		for e in entries:
-			if bool(e.get("owned", false)):
-				_codex_sel = String(e.get("path", ""))
-				break
-	_refresh_codex_detail()
-
-
-func _select_codex(path: String) -> void:
-	if path == "":
-		return
-	_codex_sel = path
-	_refresh_codex_detail()
-
-
-func _refresh_codex_detail() -> void:
-	if _codex_detail == null:
-		return
-	for c in _codex_detail.get_children():
-		_codex_detail.remove_child(c)
-		c.queue_free()
-	if _codex_sel == "":
-		var empty := Label.new()
-		empty.text = "选择左侧装备查看详情"
-		empty.add_theme_font_size_override("font_size", 9)
-		empty.add_theme_color_override("font_color", Palette.MUTED)
-		_codex_detail.add_child(empty)
-		return
-	var title := Label.new()
-	title.text = _codex_name(_codex_sel)
-	title.add_theme_font_size_override("font_size", 10)
-	title.add_theme_color_override("font_color", Palette.ACCENT_GOLD)
-	_codex_detail.add_child(title)
-	for line in controller._codex.detail_lines(_codex_sel):
-		var l := Label.new()
-		l.text = String(line)
-		l.add_theme_font_size_override("font_size", 9)
-		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		l.custom_minimum_size = Vector2(258, 0)
-		_codex_detail.add_child(l)
-
-
-func _codex_name(path: String) -> String:
-	var res = load(path)
-	if res is WeaponData:
-		return String(res.weapon_name)
-	if res is ItemData:
-		return String(res.item_name)
-	return path.get_file().get_basename()
 
 
 func hide_screen() -> void:

@@ -518,5 +518,6 @@ func on_anvil_roll_pressed() -> void:
 
 func on_anvil_back_pressed() -> void:
 	_ctrl.hud.hide_anvil_screen()
-	_ctrl.hud._show_loadout_screen()   # 铁砧返回后重建整备 2D 场景（loadout 内会 hud.hide()）
+	_ctrl.hud.hide_meta_screen()       # S5-2：整备生涯入口也走此返回，需一并收起
+	_ctrl.hud._show_loadout_screen()   # 返回后重建整备 2D 场景（loadout 内会 hud.hide()）
 	_ctrl.hud._update_loadout_anvil()

@@ -1018,20 +1018,31 @@ func _on_meta_choice_chosen(opt: Dictionary) -> void:
 	room_flow.on_meta_choice_chosen(opt)
 
 
-# G6-02：生涯定向解锁 → 写入拥有池/图鉴 → 继续原有局末元进度结算。
+# S5-2：生涯定向解锁（唯一入口 meta_screen）→ 写入拥有池/图鉴 → 刷新界面。
+# 连续点击防护由 meta_screen.begin_claim() 把守；claim 走 CareerSystem 唯一 API。
 func _on_career_unlock_chosen(path: String) -> void:
-	if _career == null or not _career.grant_unlock(path):
-		hud._log("生涯解锁：选择失败（候选已失效）")
+	var ms = hud.meta_screen
+	if ms != null and not ms.begin_claim():
+		return
+	var r: Dictionary = _career.claim_directed(path) if _career != null else {"ok": false, "reason": "no_career"}
+	if not bool(r.get("ok", false)):
+		if ms != null: ms.on_claim_resolved(false)
+		hud._log("生涯解锁：选择失败（%s）" % String(r.get("reason", "候选已失效")))
 		return
 	var res = load(path)
 	var nm := path.get_file().get_basename()
 	if res is WeaponData:
 		nm = String(res.weapon_name)
+	elif res is SkillData:
+		nm = String(res.get("buff_name")) if res.get("buff_name") != null else nm
 	elif res is ItemData:
 		nm = String(res.item_name)
 	hud._log("生涯解锁：获得 %s（已写入图鉴与开局拥有池）" % nm)
 	hud._refresh_meta()
-	hud._show_meta_choice()   # 解锁机会已消耗 → 回到铁砧点结算
+	if ms != null:
+		ms.on_claim_resolved(true)   # 统一刷新；不再另行 _show_meta_choice
+	else:
+		hud._show_meta_choice()
 
 
 func _confirm_loadout() -> void:

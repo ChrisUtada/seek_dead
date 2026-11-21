@@ -243,7 +243,7 @@ func _test_directed_unlock(duel: DuelController) -> void:
 	duel._career.on_boss_cleared()
 	_check(duel._career.unlock_charges() == 1, "首次通关获得 1 次定向解锁")
 
-	var cands: Array = duel._career.roll_unlock_candidates(3)
+	var cands: Array = duel._career.directed_candidates().slice(0, 3)
 	_check(cands.size() == 3, "定向解锁给出 3 个候选")
 	var seen := {}
 	for c in cands:
@@ -259,7 +259,7 @@ func _test_directed_unlock(duel: DuelController) -> void:
 	_check(duel._career.grant_unlock(pick), "选中后写入拥有池")
 	_check(duel._career.unlock_charges() == 0, "解锁机会消耗一次")
 	_check(_owned_has(duel, pick), "选中物品进入对应拥有池")
-	_check(duel._career.roll_unlock_candidates(3).is_empty(), "无机会时不再给出候选")
+	_check(duel._career.available_directed() == 0, "无机会时余额归零（不再发候选）")
 
 	# 四席猎手里程碑同样给一次机会。
 	_reset_career(duel)
@@ -276,7 +276,7 @@ func _test_directed_unlock(duel: DuelController) -> void:
 	_check(ms.visible, "局末解锁屏可见")
 	_check(ms.title_label.text.contains("生涯解锁"), "局末先显示生涯解锁标题")
 	_check(ms.meta_grid.get_child_count() == 3, "局末解锁屏显示 3 张卡")
-	var ui_pick := String(duel._career.roll_unlock_candidates(3)[0].get("path", ""))
+	var ui_pick := String(duel._career.directed_candidates()[0].get("path", ""))
 	duel._on_career_unlock_chosen(ui_pick)
 	_check(duel._career.unlock_charges() == 0, "界面选择后机会清零")
 	_check(_owned_has(duel, ui_pick), "界面选择写入拥有池")

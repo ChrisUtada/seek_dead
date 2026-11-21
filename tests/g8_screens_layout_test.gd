@@ -225,34 +225,6 @@ func _test_anvil() -> void:
 		"铁砧三连格不横向溢出（min %.1f / 宽 %.1f）" % [
 			a.reel_box.get_combined_minimum_size().x, content.size.x])
 
-	# 图鉴面板（G6-04，运行时构建）
-	a._toggle_codex()
-	await _frames(6)
-	_check(a._codex_panel != null and a._codex_panel.visible, "图鉴面板可打开")
-	_check_in_screen("图鉴面板", a._codex_panel)
-	var list_scroll: ScrollContainer = a._codex_list.get_parent()
-	var detail_scroll: ScrollContainer = a._codex_detail.get_parent()
-	_check(list_scroll != null and detail_scroll != null, "图鉴列表/详情在滚动容器内")
-	if list_scroll != null and detail_scroll != null:
-		var row: HBoxContainer = list_scroll.get_parent() as HBoxContainer
-		if row != null:
-			_check(row.get_combined_minimum_size().x <= row.size.x + EPS,
-				"图鉴列表+详情横向不溢出（min %.1f / 宽 %.1f）" % [
-					row.get_combined_minimum_size().x, row.size.x])
-		var list_min: Vector2 = a._codex_list.get_combined_minimum_size()
-		_check(list_min.y <= list_scroll.size.y + EPS
-			or list_scroll.vertical_scroll_mode != ScrollContainer.SCROLL_MODE_DISABLED,
-			"图鉴列表纵向可达（min %.1f / 视口 %.1f）" % [list_min.y, list_scroll.size.y])
-		var detail_min: Vector2 = a._codex_detail.get_combined_minimum_size()
-		_check(detail_min.y <= detail_scroll.size.y + EPS
-			or detail_scroll.vertical_scroll_mode != ScrollContainer.SCROLL_MODE_DISABLED,
-			"图鉴详情纵向可达（min %.1f / 视口 %.1f）" % [detail_min.y, detail_scroll.size.y])
-	# 图鉴详情标签不横向溢出
-	for c in a._codex_detail.get_children():
-		if c is Label:
-			_check_label_fits("图鉴详情行", c as Label)
-	a._toggle_codex()
-	await _frames(3)
 	_duel.hud.hide_anvil_screen()
 	await _frames(3)
 
@@ -261,7 +233,7 @@ func _test_anvil() -> void:
 
 func _test_meta() -> void:
 	if _duel._career != null:
-		_duel._career._unlock_charges = 0
+		_duel._career._directed_balance = 0
 	_duel.hud._show_meta_choice()
 	await _frames(6)
 	var m: MetaScreen = _duel.hud.meta_screen
@@ -277,6 +249,27 @@ func _test_meta() -> void:
 	_check_grid_fits("局末卡组", m.meta_grid)
 	for i in range(m.meta_grid.get_child_count()):
 		_check_card_content("局末卡 %d" % i, m.meta_grid.get_child(i) as Button)
+	# S5-2：图鉴从 meta_screen 独立打开，不依赖摇奖节点
+	if m.codex_panel != null:
+		m.codex_panel.open()
+		await _frames(6)
+		_check(m.codex_panel.is_open(), "图鉴面板可独立打开")
+		_check_in_screen("图鉴面板", m.codex_panel)
+		var cp: CodexPanel = m.codex_panel
+		var list_scroll: ScrollContainer = cp._list.get_parent()
+		var detail_scroll: ScrollContainer = cp._detail.get_parent()
+		_check(list_scroll != null and detail_scroll != null, "图鉴列表/详情在滚动容器内")
+		if list_scroll != null and detail_scroll != null:
+			var row: HBoxContainer = list_scroll.get_parent() as HBoxContainer
+			if row != null:
+				_check(row.get_combined_minimum_size().x <= row.size.x + EPS,
+					"图鉴列表+详情横向不溢出（min %.1f / 宽 %.1f）" % [
+						row.get_combined_minimum_size().x, row.size.x])
+			for c in cp._detail.get_children():
+				if c is Label:
+					_check_label_fits("图鉴详情行", c as Label)
+		m.codex_panel.close()
+		await _frames(3)
 	_duel.hud.hide_meta_screen()
 	await _frames(3)
 

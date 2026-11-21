@@ -796,6 +796,10 @@ func _build_meta_screen() -> void:
 func _show_meta_choice() -> void:
 	meta_screen.show_choice()
 
+# S5-2：整备页入口 → 生涯定向解锁与图鉴统一界面（meta_screen）
+func _show_career_screen() -> void:
+	meta_screen.show_career()
+
 
 func _make_meta_card(opt: Dictionary) -> Button:
 	return _cards.meta_card(opt)

@@ -26,38 +26,25 @@ func _ready() -> void:
 	duel._confirm_loadout()
 	await get_tree().process_frame
 
-	# ① G7-3：anvil_screen 定向解锁区块已动态构建
+	# ① S5-2：定向解锁 UI 已归一到 meta_screen，anvil_screen 降级为纯摇奖兼容层
 	var anvil = duel.hud.anvil_screen
-	_ok(anvil != null, "anvil_screen 存在")
-	anvil.show_screen()
+	_ok(anvil != null, "anvil_screen 仍存在（兼容摇奖）")
+	_ok(anvil.get_node_or_null("Margin/Content/DirectedBox") == null, "anvil_screen 不再有独立定向 UI")
+	var ms = duel.hud.meta_screen
+	_ok(ms != null and ms.codex_panel != null, "meta_screen 承载图鉴组件")
+	duel._career.earn_directed("test")
+	ms.show_career()
 	await get_tree().process_frame
-	var box: Node = anvil.get_node_or_null("Margin/Content/DirectedBox")
-	_ok(box != null, "DirectedBox 已动态创建")
-	if box != null:
-		# 动态节点的实际名字：第一个 Label / 第二个 VBox
-		var labels: Array = []
-		for c in box.get_children():
-			if c is Label:
-				labels.append(c)
-		_ok(labels.size() >= 1, "额度标签存在")
-		if labels.size() > 0:
-			_ok(String(labels[0].text).contains("定向额度"), "额度文案正确（%s）" % String(labels[0].text))
-
-	# ② 有额度时候选按钮可领取
-	duel._anvil_system.earn_directed_unlock("test")
-	anvil.refresh()
-	await get_tree().process_frame
-	var list: Node = box.get_child(1) if box.get_child_count() > 1 else null
 	var btns: Array = []
-	if list != null:
-		for c in list.get_children():
-			if c is Button:
-				btns.append(c)
-	_ok(btns.size() > 0, "有额度时候选按钮出现（%d）" % btns.size())
+	for c in ms.meta_grid.get_children():
+		if c is Button: btns.append(c)
+	_ok(btns.size() > 0, "meta_screen 有额度时候选按钮出现（%d）" % btns.size())
+	var before: int = duel._career.available_directed()
 	if btns.size() > 0:
-		var before: int = duel._anvil_system.available_directed_unlocks()
 		btns[0].pressed.emit()
-		_ok(duel._anvil_system.available_directed_unlocks() == before - 1, "点按钮消耗额度")
+		await get_tree().process_frame
+		_ok(duel._career.available_directed() == before - 1, "点 meta_screen 按钮消耗额度一次")
+		_ok(duel._anvil_system.available_directed_unlocks() == duel._career.available_directed(), "旧 API 与新账本同余额")
 
 	# ③ G7-4：整备页 tooltip 含机器摘要
 	duel.hud._refresh_meta()
