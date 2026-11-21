@@ -146,10 +146,16 @@ func _preflight_effect(eid: String, params: Dictionary) -> String:
 		"symbol_effect_bonus":
 			var path := String(params.get("symbol_path", ""))
 			var effect_id := String(params.get("effect", ""))
-			if path.is_empty() or not ["status", "crit", "crit_chance", "power"].has(effect_id) or is_zero_approx(float(params.get("delta", 0.0))):
+			var delta: float = float(params.get("delta", 0.0))
+			if path.is_empty() or not ["status", "crit", "crit_chance", "power"].has(effect_id) or is_zero_approx(delta):
 				return "invalid_params"
 			if ResourceLoader.load(path) == null:
 				return "unknown_symbol"
+			# F-16：满层镜像判定（与 _apply_symbol_effect_bonus 一致），次数由累计 delta 推导。
+			var per_sym: Dictionary = _ctrl.symbol_effect_overrides.get(path, {})
+			var prev: float = float(per_sym.get(effect_id, 0.0))
+			if not is_zero_approx(delta) and int(round(prev / delta)) >= 3:
+				return "symbol_effect_maxed"
 			return ""
 		"weapon_replace", "weapon_swap", "weapon_acquire":
 			var p := String(params.get("weapon_path", ""))
@@ -374,6 +380,11 @@ func _apply_symbol_effect_bonus(reward_id: String, params: Dictionary) -> DraftR
 		return DraftResult.RewardApplyResult.failure(reward_id, "symbol_effect_bonus", "unknown_symbol")
 	var per_sym: Dictionary = _ctrl.symbol_effect_overrides.get(path, {})
 	var prev: float = float(per_sym.get(effect_id, 0.0))
+	# F-16：结算端满层安全网（防 reroll 缓存旧 def 绕过生成端过滤）。
+	# 次数由累计 delta / 单次 delta 推导，复用现有账本。
+	var max_stacks: int = 3
+	if not is_zero_approx(delta) and int(round(prev / delta)) >= max_stacks:
+		return DraftResult.RewardApplyResult.failure(reward_id, "symbol_effect_bonus", "symbol_effect_maxed")
 	var added: float = delta
 	# 累加正负不限；但普通效果都应为正，负向由卡牌自己声明负 delta
 	per_sym[effect_id] = prev + added

@@ -332,10 +332,15 @@ func shop_card(offer: Dictionary) -> Button:
 	var weapon_replace: bool = (offer["kind"] == "weapon" and cur >= cap and not can_grow_slot)
 	if weapon_replace:
 		slot_full = false
-	var can_buy = (not offer["sold"]) and _ctrl.state.gold >= price and not slot_full
+	# F-16：唯一类（武器/护符/技能）已在仓库或已装备 → 保留展示但标"已拥有"并禁用购买。
+	# 消耗品允许同类重复持有，不走此判断；即时资源不在商店货位。
+	var already_owned: bool = (not is_active) and _ctrl._loadout_system.sel_arr(offer["kind"]).has(offer["path"])
+	var can_buy = (not offer["sold"]) and (not already_owned) and _ctrl.state.gold >= price and not slot_full
 	var status: String
 	if offer["sold"]:
 		status = "已购入"
+	elif already_owned:
+		status = "已拥有"
 	elif _ctrl.state.gold < price:
 		status = "金币不足"
 	elif weapon_replace:
@@ -348,7 +353,7 @@ func shop_card(offer: Dictionary) -> Button:
 	else:
 		status = "%d 金" % price
 	var col: Color = Palette.ACCENT_GOLD
-	if offer["sold"]:
+	if offer["sold"] or already_owned:
 		col = Palette.MUTED_DIM
 	elif not can_buy:
 		col = Palette.ENEMY

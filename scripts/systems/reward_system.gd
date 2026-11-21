@@ -455,6 +455,9 @@ func _make_perk_def(c: Dictionary) -> RewardDefinition:
 # +1 不跨阈值会被 _apply_loot_option 的 no_cell_change 过滤。
 const SYMBOL_WEIGHT_STEP := 3        # 每次灌注的权重增量
 const SYMBOL_WEIGHT_MAX := 6         # 单符号本局灌注上限（最多 2 次，防单一符号无限放大）
+# F-16：符号效果改造同样可叠加但需上限。按"次数"计（每次固定 delta），
+# 用累计 delta / delta 推次数，复用 symbol_effect_overrides 账本，不建平行账本。
+const SYMBOL_EFFECT_MAX_STACKS := 3
 
 func _make_symbol_weight_defs() -> Array:
 	var out: Array = []
@@ -535,11 +538,19 @@ func _make_symbol_effect_defs() -> Array:
 					effect_id = "crit_chance"; delta = 0.1; effect_name = "暴击率 +10%"
 			else:
 				continue
+			# F-16：满层过滤——层数由现有 symbol_effect_overrides 账本推导（累计 delta / 单次 delta）。
+			var cur_stacks: int = 0
+			if _ctrl.symbol_effect_overrides.has(path):
+				var per: Dictionary = _ctrl.symbol_effect_overrides.get(path, {})
+				if per.has(effect_id) and not is_zero_approx(delta):
+					cur_stacks = int(round(float(per.get(effect_id, 0.0)) / delta))
+			if cur_stacks >= SYMBOL_EFFECT_MAX_STACKS:
+				continue
 			seen[path] = true
 			var def := RewardDefinition.new()
 			def.id = "sym_effect_" + path.get_file().get_basename()
 			def.name = "符号改造 · %s" % String(sym.name)
-			def.desc = "「%s」：%s" % [String(sym.name), effect_name]
+			def.desc = "「%s」：%s（当前 %d/%d 层）" % [String(sym.name), effect_name, cur_stacks, SYMBOL_EFFECT_MAX_STACKS]
 			def.rarity = "common"
 			def.base_weight = 1.0
 			def.base_value = 1.5
