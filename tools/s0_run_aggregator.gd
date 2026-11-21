@@ -266,6 +266,8 @@ func _aggregate_rewards(records: Array) -> Dictionary:
 	var rerolled_total := 0
 	var same_group_total := 0
 	var apply_fail_total := 0
+	var waiting_replace_total := 0
+	var already_settled_total := 0
 	var circuit_trigger_total := 0
 	var acquire_total := 0
 	var swap_total := 0
@@ -316,7 +318,13 @@ func _aggregate_rewards(records: Array) -> Dictionary:
 				if rid.begins_with("weapon_acquire"): acquire_total += 1
 				elif rid.begins_with("weapon_swap"): swap_total += 1
 			elif kind == "reward_apply_failed":
-				apply_fail_total += 1
+				# S3-4：老数据里 needs_replace 曾被误记失败，这里排除，不当真实失败
+				if String(ev.get("reason", "")) != "needs_replace":
+					apply_fail_total += 1
+			elif kind == "reward_waiting_replace":
+				waiting_replace_total += 1
+			elif kind == "reward_already_settled":
+				already_settled_total += 1
 			elif kind == "reward_applied" and String(ev.get("reward_id", "")).begins_with("circuit_"):
 				circuit_trigger_total += 1
 	# 每个 id / 类别补选择率
@@ -339,6 +347,8 @@ func _aggregate_rewards(records: Array) -> Dictionary:
 		"draft_reroll_rate": rate.call(rerolled_total, shown_total),
 		"draft_same_group_rate": rate.call(same_group_total, maxi(1, rerolled_total)),
 		"reward_apply_failed": apply_fail_total,
+		"reward_waiting_replace": waiting_replace_total,
+		"reward_already_settled": already_settled_total,
 		"circuit_acquired_applied": circuit_trigger_total,
 		"weapon_acquire_total": acquire_total,
 		"weapon_swap_total": swap_total,
@@ -404,7 +414,8 @@ func _markdown(records: Array, agg: Dictionary) -> String:
 		s += "| 选择率 / 跳过率 / 重抽率 | %s / %s / %s |\n" % [pr.call("draft_select_rate"), pr.call("draft_skip_rate"), pr.call("draft_reroll_rate")]
 		s += "| 同组重抽率 | %s |\n" % pr.call("draft_same_group_rate")
 		s += "| 武器获取 acquire / 换装 swap | %d / %d |\n" % [int(agg.get("weapon_acquire_total", 0)), int(agg.get("weapon_swap_total", 0))]
-		s += "| 结算失败数 / 回路获得后应用数 | %d / %d |\n" % [int(agg.get("reward_apply_failed", 0)), int(agg.get("circuit_acquired_applied", 0))]
+		s += "| 结算失败数（真实）/ 回路获得后应用数 | %d / %d |\n" % [int(agg.get("reward_apply_failed", 0)), int(agg.get("circuit_acquired_applied", 0))]
+		s += "| 等待换装 / 重复点击（均不计失败） | %d / %d |\n" % [int(agg.get("reward_waiting_replace", 0)), int(agg.get("reward_already_settled", 0))]
 		s += "\n### 按类别（展示 / 选择 / 选择率）\n\n"
 		var bc: Dictionary = agg.get("by_cat", {})
 		for c in bc:

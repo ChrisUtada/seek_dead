@@ -71,6 +71,8 @@ func reset() -> void:
 	draft_free_rerolls = 0
 	draft_reroll_same_group = 0   # G1-D：重抽后返回完全相同三张的次数（§6.5 相同组率）
 	draft_skipped = 0
+	draft_waiting_replace = 0
+	draft_already_settled = 0
 	draft_events = []
 	draft_events_all = []
 	_spin_started = -1
@@ -175,6 +177,8 @@ var draft_rerolled := 0
 var draft_free_rerolls := 0
 var draft_reroll_same_group := 0   # G1-D：重抽后返回完全相同三张的次数（§6.5 相同组率）
 var draft_skipped := 0
+var draft_waiting_replace := 0     # S3-4：needs_replace=等待玩家选旧武器，非失败（不计入 apply_failed）
+var draft_already_settled := 0     # S3-4：重复点击守卫，另列不与无效奖励混算
 var draft_events: Array[Dictionary] = []   # 内存调试：最近 64 条（不落盘）
 var draft_events_all: Array[Dictionary] = [] # S3-2a：完整事件流，供局末 JSON 落盘（不受 64 条上限截断）
 
@@ -212,6 +216,19 @@ func on_reward_rerolled(draft_id: String, free: bool, cost: int, same_group: boo
 func on_reward_skipped(draft_id: String, ids: Array) -> void:
 	draft_skipped += 1
 	_draft_event({"event": "reward_skipped", "draft_id": draft_id, "reward_ids": ids})
+
+# S3-4：needs_replace 是等待玩家在替换弹层选旧武器，不是结算失败。
+func on_reward_waiting_replace(draft_id: String, reward_id: String) -> void:
+	draft_waiting_replace += 1
+	_draft_event({
+		"event": "reward_waiting_replace", "draft_id": draft_id,
+		"reward_id": reward_id,
+	})
+
+# S3-4：重复点击守卫另列，不与无效奖励混算。
+func on_reward_already_settled(reward_id: String = "") -> void:
+	draft_already_settled += 1
+	_draft_event({"event": "reward_already_settled", "reward_id": reward_id})
 
 func on_reward_apply_failed(reward_id: String, effect_id: String, reason: String) -> void:
 	_draft_event({
@@ -279,6 +296,8 @@ func summary() -> Dictionary:
 		"draft_cards_shown": draft_cards_shown, "draft_skipped": draft_skipped,
 		"draft_rerolled": draft_rerolled, "draft_free_rerolls": draft_free_rerolls,
 		"draft_reroll_same_group": draft_reroll_same_group,
+		"draft_waiting_replace": draft_waiting_replace,
+		"draft_already_settled": draft_already_settled,
 		"target_symbol": target_symbol, "stop_total": stop_total, "target_hits": target_hits,
 		"target_hit_rate": target_hit_rate(), "forced_stops": forced_stops,
 		"buffer_queues": buffer_queues, "stop_outcomes": stop_outcomes.duplicate(),

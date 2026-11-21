@@ -799,9 +799,15 @@ func loot_offer_skip() -> Dictionary:
 
 # Step 6：结算一组三选一中的一个选项。展示时冻结的 payload 即结算值；
 # 同一组只结算一次（重复点击 / 回访不会二次发奖），失败时不消耗结算机会。
+func _note_already_settled() -> void:
+	if _ctrl._telemetry != null:
+		_ctrl._telemetry.on_reward_already_settled()
+
+
 # 返回 {ok, reason, kind, path?, gold?, power?, mastery?}
 func settle_loot_offer(index: int) -> Dictionary:
 	if _loot_settled:
+		_note_already_settled()
 		return {"ok": false, "reason": "already_settled"}
 
 	# P2 新路径：DraftResult → Resolver（效果执行仍委托旧结算）
@@ -812,7 +818,11 @@ func settle_loot_offer(index: int) -> Dictionary:
 		var apply_res = _draft_resolver.resolve(def)
 		if not apply_res.ok:
 			if _ctrl._telemetry != null:
-				_ctrl._telemetry.on_reward_apply_failed(def.id, apply_res.effect_id, apply_res.reason)
+				# S3-4：needs_replace=等待玩家选旧武器，不是结算失败，不计入 apply_failed
+				if String(apply_res.reason) == "needs_replace":
+					_ctrl._telemetry.on_reward_waiting_replace(_draft_result.draft_id, def.id)
+				else:
+					_ctrl._telemetry.on_reward_apply_failed(def.id, apply_res.effect_id, apply_res.reason)
 			return {"ok": false, "reason": apply_res.reason, "effect_id": apply_res.effect_id}
 		_loot_settled = true
 		# P0.3：技艺候选展示并最终结算后，一次性保底完成（含保底房重抽后的 Draft）
@@ -861,6 +871,7 @@ func settle_loot_queued_growth(cand: Dictionary) -> Dictionary:
 # Step 6：免费跳过战利品——不发金币、强化或物品，同样只结算一次。
 func settle_loot_skip() -> Dictionary:
 	if _loot_settled:
+		_note_already_settled()
 		return {"ok": false, "reason": "already_settled"}
 	if _draft_active:
 		_loot_settled = true
@@ -893,6 +904,7 @@ func settle_loot_replace(index: int, old_path: String) -> Dictionary:
 	# G2-5：函数级前置守卫——已结算时任何重复点击/重复调用都不得再次替换。
 	# 旧实现只在旧 offer 分支（下方）判 _loot_settled，draft 分支遗漏 → 重复调用可二次替换。
 	if _loot_settled:
+		_note_already_settled()
 		return {"ok": false, "reason": "already_settled"}
 	if _draft_active:
 		# P1.1①：draft 路径的武器卡——从对应 RewardDefinition 取 weapon_path 走替换
