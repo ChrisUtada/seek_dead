@@ -44,7 +44,12 @@ func build_run() -> Array[RoomData]:
 			arr.shuffle()
 			pools[k] = arr
 		for kind in _ctrl.BALANCE.run_act_layout:
-			if pools[kind].is_empty():
+			# M-02a（§10.1）：camp 是 Boss 前非战斗营地，不从怪物池抽取、不生成敌人。
+			# 用内存哨兵 RoomData（不落 resources/rooms/，避免污染 ALL_ROOMS 的房数断言与 BOSS 抽取池）。
+			if kind == "camp":
+				run.append(_make_camp_room(a))
+				continue
+			if not pools.has(kind) or pools[kind].is_empty():
 				continue
 			var pick: RoomData = pick_boss(pools["boss"]) if kind == "boss" else pools[kind].pop_back()
 			run.append(pick)
@@ -52,6 +57,24 @@ func build_run() -> Array[RoomData]:
 		if not (_ctrl.demo_active() and _ctrl.demo_config.act_only):
 			run.append(final_boss)
 	return run
+
+
+# M-02a（§10.1）：Boss 前营地哨兵房。纯内存构造，不进 resources/rooms/、不生成敌人。
+# 所有战斗字段留空，start_room_data 依 kind=="camp" 前置分流到线性营地流程（非战斗节点）。
+func _make_camp_room(act: int) -> RoomData:
+	var r := RoomData.new()
+	r.name = "营地"
+	r.kind = "camp"
+	r.act = act
+	r.hp = 0
+	r.atk = 0
+	r.armor = 0
+	r.element = "none"
+	r.archetype = null
+	r.intents = []
+	r.gimmick_script = null
+	r.mechanic_summary = "休整或整理，然后面对本幕 Boss"
+	return r
 
 
 # 常规 BOSS 抽取（4 候选选 1）：fixed 固定首领默认高权重、rotating 轮替随机、

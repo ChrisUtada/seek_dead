@@ -2406,6 +2406,93 @@ func hide_camp_supply() -> void:
 		_camp_dialog.visible = false
 
 
+# ---------------------------------------------------------------------------
+# M-02a（§10.2）：Boss 前营地二选一。休整（回 25% HP）/ 整理（精简符号或卸技能），
+# 完成后进房间歇态（可开商店 / 下一房进 Boss）。只负责展示与选择，不做任何战斗结算。
+# 满血仍给整理选项；无合法整理候选时不显示假的整理按钮；提供明确「继续」入口不空屏。
+# ---------------------------------------------------------------------------
+var _linear_camp_dialog: PanelContainer = null
+var _linear_camp_vbox: VBoxContainer = null
+var _camp_rest_cb: Callable = Callable()
+var _camp_trim_cb: Callable = Callable()
+var _camp_continue_cb: Callable = Callable()
+
+func request_linear_camp(can_trim: bool, rest_need: int, on_rest: Callable, on_trim: Callable, on_continue: Callable) -> void:
+	_camp_rest_cb = on_rest
+	_camp_trim_cb = on_trim
+	_camp_continue_cb = on_continue
+	if _linear_camp_dialog == null:
+		_linear_camp_dialog = PanelContainer.new()
+		_linear_camp_dialog.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		_linear_camp_dialog.z_index = 95
+		var sb = StyleBoxFlat.new()
+		sb.bg_color = Palette.BG_OVERLAY
+		_linear_camp_dialog.add_theme_stylebox_override("panel", sb)
+		var center = CenterContainer.new()
+		center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		var dlg = PanelContainer.new()
+		var sb2 = StyleBoxFlat.new()
+		sb2.bg_color = Palette.PANEL_BG
+		sb2.border_color = Palette.ACCENT_GOLD
+		sb2.set_border_width_all(2)
+		dlg.add_theme_stylebox_override("panel", sb2)
+		_linear_camp_vbox = VBoxContainer.new()
+		_linear_camp_vbox.add_theme_constant_override("separation", 6)
+		dlg.add_child(_linear_camp_vbox)
+		center.add_child(dlg)
+		_linear_camp_dialog.add_child(center)
+		get_parent().add_child(_linear_camp_dialog)
+	for c in _linear_camp_vbox.get_children():
+		_linear_camp_vbox.remove_child(c)
+		c.queue_free()
+	var title_lbl = _label("营地", TypeScale.OVERLAY)
+	title_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_linear_camp_vbox.add_child(title_lbl)
+	var hint = _label("Boss 前可休整或整理（二选一），也可直接继续。", TypeScale.TINY)
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_linear_camp_vbox.add_child(hint)
+	# 休整：满血时显示「无需恢复」并禁用（不误导），残血可用。
+	var rest_btn = UI_BUTTON.instantiate()
+	rest_btn.text = "休整 · 恢复 25%% 最大 HP%s" % ("（已满血，无需恢复）" if rest_need <= 0 else "（+%d）" % rest_need)
+	rest_btn.custom_minimum_size = Vector2(280, 32)
+	rest_btn.disabled = rest_need <= 0
+	rest_btn.pressed.connect(_on_linear_camp_rest)
+	_linear_camp_vbox.add_child(rest_btn)
+	# 整理：无合法候选时不提供假选项（按钮不显示），避免空选择软锁。
+	if can_trim:
+		var trim_btn = UI_BUTTON.instantiate()
+		trim_btn.text = "整理 · 精简 1 个符号 / 卸除 1 个技能"
+		trim_btn.custom_minimum_size = Vector2(280, 32)
+		trim_btn.pressed.connect(_on_linear_camp_trim)
+		_linear_camp_vbox.add_child(trim_btn)
+	# 明确继续入口：不选也可直接进房间歇态（再进 Boss）。
+	var cont_btn = UI_BUTTON.instantiate()
+	cont_btn.text = "继续（进入 Boss 前整备）"
+	cont_btn.custom_minimum_size = Vector2(280, 30)
+	cont_btn.pressed.connect(_on_linear_camp_continue)
+	_linear_camp_vbox.add_child(cont_btn)
+	_linear_camp_dialog.visible = true
+
+func hide_linear_camp() -> void:
+	if _linear_camp_dialog != null:
+		_linear_camp_dialog.visible = false
+
+func _on_linear_camp_rest() -> void:
+	hide_linear_camp()
+	if _camp_rest_cb.is_valid():
+		_camp_rest_cb.call()
+
+func _on_linear_camp_trim() -> void:
+	hide_linear_camp()
+	if _camp_trim_cb.is_valid():
+		_camp_trim_cb.call()
+
+func _on_linear_camp_continue() -> void:
+	hide_linear_camp()
+	if _camp_continue_cb.is_valid():
+		_camp_continue_cb.call()
+
+
 # ============================================================================
 # G7-B B3 灰盒入口：主动减带（符号精简 / 技能卸除）
 # 棋盘屏按钮与线性间歇按钮共用这一个弹层；候选 / 预览 / 应用全走 StripTrimSystem，
@@ -2417,11 +2504,14 @@ var _trim_vbox: VBoxContainer = null
 var _trim_preview: Label = null
 var _trim_confirm: Button = null
 var _trim_pending: Dictionary = {}
+# M-02a：营地整理完成后的回调（可选）；普通间歇态精简不传，行为不变。
+var _trim_done_cb: Callable = Callable()
 
 
-func show_trim_dialog() -> void:
+func show_trim_dialog(done_cb: Callable = Callable()) -> void:
 	if controller == null or controller._trim == null:
 		return
+	_trim_done_cb = done_cb
 	if _trim_dialog == null:
 		_trim_dialog = PanelContainer.new()
 		_trim_dialog.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -2491,9 +2581,18 @@ func show_trim_dialog() -> void:
 	var close = UI_BUTTON.instantiate()
 	close.text = "取消"
 	close.custom_minimum_size = Vector2(90, 30)
-	close.pressed.connect(hide_trim_dialog)
+	close.pressed.connect(_on_trim_cancel_pressed)
 	row.add_child(close)
 	_trim_dialog.visible = true
+
+
+func _on_trim_cancel_pressed() -> void:
+	hide_trim_dialog()
+	# M-02a：营地整理取消 → 不推进、不结算；回调由营地侧决定（通常仅重开营地选择）。
+	if _trim_done_cb.is_valid():
+		var cb := _trim_done_cb
+		_trim_done_cb = Callable()
+		cb.call(false)
 
 
 func hide_trim_dialog() -> void:
@@ -2551,6 +2650,11 @@ func _on_trim_confirm_pressed() -> void:
 	if branch_screen != null and branch_screen.visible:
 		branch_screen.refresh()
 	_refresh_trim_entry()
+	# M-02a：营地整理确认 → 结算已完成，回调推进到营地后续（只结算一次）。
+	if _trim_done_cb.is_valid():
+		var cb := _trim_done_cb
+		_trim_done_cb = Callable()
+		cb.call(true)
 
 
 # 间歇态精简入口（2026-11-17：精简已改为消耗品「精简剪」授予次数）

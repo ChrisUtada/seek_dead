@@ -345,6 +345,9 @@ var _forge_styles                     # G6-05：4 把武器的横向铸式（整
 var _trim                             # G7-B B1：主动减带（符号精简 / 技能卸除，每幕 1 次，只改本局状态）
 var _shop_system                       # 商店子系统 ShopSystem（步骤3抽出；_ready 实例化并注入 self）
 var _camp_offers: Array = []           # G2-01：营地补给货架（休整后一次性购买）
+# M-02a：线性营地只结算一次的守卫 + 当前营地房索引（营地是非战斗节点）。
+var _linear_camp_idx: int = -1
+var _linear_camp_done: bool = false
 var _reward_system                     # 奖励子系统 RewardSystem（步骤4抽出；_ready 实例化并注入 self）
 var _post_battle                       # M1 战后成长三槽 PostBattleSystem（补给/构筑/成长队列）
 var _loadout_system                    # 整备子系统 LoadoutSystem（步骤5抽出；_ready 实例化并注入 self）
@@ -1251,6 +1254,14 @@ func _start_room(idx: int) -> void:
 func start_room_data(r: RoomData, idx: int, ria_override: int = -1, is_final: bool = false) -> void:
 	if r == null:
 		return
+	# M-02a（§10.2）：营地是非战斗节点——前置分流到线性营地流程，绝不进入下方建池/敌人/gimmick 逻辑，
+	# 因此不触发清房金币、熟练、掉落、战后三选一、战斗回合与 DoT 结算。
+	if r.kind == "camp":
+		_start_linear_camp(idx)
+		return
+	# M-02a：进入非营地房时，清掉可能残留的营地二选一弹层（bot/快速推进未点选时防遮挡）。
+	if hud != null:
+		hud.hide_linear_camp()
 	# G7-1：每局第一房记录武器出场，供铸式行为条件解锁（跨局累计，老存档不回锁）。
 	if idx == 0 and _codex != null:
 		for wp in selected_loadout:
@@ -1426,6 +1437,86 @@ func _board_shop() -> void:
 	_roll_shop()
 	hud._show_shop_screen()
 	hud._log("🛒 棋盘商店：离开后节点消耗")
+
+
+# ---------------------------------------------------------------------------
+# M-02a（§10.2）：Boss 前线性营地——非战斗节点，二选一（休整 / 整理）。
+# 只复用现有回血与 StripTrimSystem，不新增系统；绝不触发清房金币/熟练/掉落/Draft/战斗结算。
+# 选择完成后进入房间歇态（可开商店 / 下一房进真 Boss）；只结算一次（_linear_camp_done 守卫）。
+# ---------------------------------------------------------------------------
+func _start_linear_camp(idx: int) -> void:
+	_linear_camp_idx = idx
+	_linear_camp_done = false
+	room_index = idx
+	current_room = ROOMS[idx]
+	current_act = int(ROOMS[idx].act)
+	# 营地是歇态：启用商店/下一房按钮，不重置本局成长。
+	in_interroom = true
+	_shop_system.reroll_used = 0
+	hud._hide_overlay()
+	hud.set_interroom_enabled(false)   # 弹层选择期间先不暴露下一房按钮，选完再开
+	var heal_need: int = maxi(0, player_hp_max - player_hp)
+	# 整理可用性：授予 1 次后有合法候选（符号可减或技能可卸）才算可整理，不给假选项。
+	_trim.grant(1)
+	var can_trim: bool = not _trim.candidates().is_empty()
+	if not can_trim:
+		_trim.granted = maxi(0, _trim.granted - 1)   # 无候选则收回授予，避免残留次数
+	hud.request_linear_camp(can_trim, mini(heal_need, int(ceil(float(player_hp_max) * 0.25))),
+		_linear_camp_rest, _linear_camp_trim, _linear_camp_continue)
+	invalidate_state()
+
+
+# 休整：恢复 25% 最大 HP（复用棋盘 _board_rest 的同一公式），满血显示无需恢复。
+func _linear_camp_rest() -> void:
+	if _linear_camp_done:
+		return
+	var heal := int(ceil(float(player_hp_max) * 0.25))
+	var before := player_hp
+	player_hp = mini(player_hp_max, player_hp + heal)
+	hud._log("营地休整：HP %d/%d → %d/%d（+%d）" % [before, player_hp_max, player_hp, player_hp_max, player_hp - before])
+	_linear_camp_settle()
+
+
+# 整理：弹出现有精简弹层（已 grant 1 次），选一个或多个候选后回调推进。
+# 取消不推进、不结算（done_cb(false) → 重开营地二选一）。
+func _linear_camp_trim() -> void:
+	if _linear_camp_done:
+		return
+	hud.show_trim_dialog(_linear_camp_trim_done)
+
+
+func _linear_camp_trim_done(success: bool) -> void:
+	if _linear_camp_done:
+		return
+	if not success:
+		# 取消：不消耗次数，重开营地二选一（未结算、不推进）。
+		var heal_need: int = maxi(0, player_hp_max - player_hp)
+		var can_trim: bool = not _trim.candidates().is_empty()
+		hud.request_linear_camp(can_trim, mini(heal_need, int(ceil(float(player_hp_max) * 0.25))),
+			_linear_camp_rest, _linear_camp_trim, _linear_camp_continue)
+		return
+	_linear_camp_settle()
+
+
+# 直接继续（不选择）：不空屏、不软锁。
+func _linear_camp_continue() -> void:
+	if _linear_camp_done:
+		return
+	hud._log("营地：直接继续")
+	_linear_camp_settle()
+
+
+# 营地结算收口（仅一次）：进入房间歇态，可开商店或直接进下一房（真 Boss）。
+# 注意：这里只做 UI/流程推进，不调用任何战后奖励、熟练、掉落或战斗结算函数。
+func _linear_camp_settle() -> void:
+	if _linear_camp_done:
+		return
+	_linear_camp_done = true
+	invalidate_state()
+	hud._refresh_meta()
+	_roll_shop()                       # 营地后可开现有商店（每房一次货架）
+	hud.set_interroom_enabled(true)    # 商店 / 下一房按钮出现；下一房 = 本幕 Boss
+	hud._log("营地结束：可开商店，或进入本幕 Boss")
 
 
 func _board_rest() -> void:
