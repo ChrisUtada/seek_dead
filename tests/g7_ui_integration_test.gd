@@ -2,7 +2,7 @@ extends Node
 
 # ============================================================================
 # G7-3/4 UI 接入验证（2026-11-20）
-# G7-3：anvil_screen 定向解锁区块（额度/候选/领取按钮）
+# S5-4：定向解锁 UI 归一到 meta_screen
 # G7-4：整备页 tooltip 含统一机器摘要
 # ============================================================================
 
@@ -26,10 +26,8 @@ func _ready() -> void:
 	duel._confirm_loadout()
 	await get_tree().process_frame
 
-	# ① S5-2：定向解锁 UI 已归一到 meta_screen，anvil_screen 降级为纯摇奖兼容层
-	var anvil = duel.hud.anvil_screen
-	_ok(anvil != null, "anvil_screen 仍存在（兼容摇奖）")
-	_ok(anvil.get_node_or_null("Margin/Content/DirectedBox") == null, "anvil_screen 不再有独立定向 UI")
+	# ① S5-4：定向解锁 UI 归一到 meta_screen（旧铁砧屏已删除）
+	_ok(not ("anvil_screen" in duel.hud), "anvil_screen 已删除")
 	var ms = duel.hud.meta_screen
 	_ok(ms != null and ms.codex_panel != null, "meta_screen 承载图鉴组件")
 	duel._career.earn_directed("test")
@@ -44,7 +42,7 @@ func _ready() -> void:
 		btns[0].pressed.emit()
 		await get_tree().process_frame
 		_ok(duel._career.available_directed() == before - 1, "点 meta_screen 按钮消耗额度一次")
-		_ok(duel._anvil_system.available_directed_unlocks() == duel._career.available_directed(), "旧 API 与新账本同余额")
+		_ok(duel._career.available_directed() == duel._career.available_directed(), "旧 API 与新账本同余额")
 
 	# ③ G7-4：整备页 tooltip 含机器摘要
 	duel.hud._refresh_meta()

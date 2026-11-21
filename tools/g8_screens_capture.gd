@@ -69,19 +69,19 @@ func _run() -> void:
 		await _shot("04_reward_boss")
 		_duel.hud.hide_reward_screen()
 
-	# ---- 铁砧 + 图鉴 ----
-	_duel.hud._show_anvil_screen()
+	# ---- 生涯 + 图鉴（S5-4：原铁砧屏已移除）----
+	_duel.hud._show_career_screen()
 	await _wait(0.4)
-	await _shot("05_anvil")
-	var a: AnvilScreen = _duel.hud.anvil_screen
-	a._toggle_codex()
+	await _shot("05_career")
+	var cp = _duel.hud.meta_screen.codex_panel
+	cp.open()
 	await _wait(0.35)
-	await _shot("06_anvil_codex_weapon")
-	a._set_codex_kind("passive")
+	await _shot("06_codex_weapon")
+	cp._set_kind("passive")
 	await _wait(0.25)
-	await _shot("07_anvil_codex_passive")
-	a._toggle_codex()
-	_duel.hud.hide_anvil_screen()
+	await _shot("07_codex_passive")
+	cp.close()
+	_duel.hud.hide_meta_screen()
 
 	# ---- 局末 ----
 	if _duel._career != null:

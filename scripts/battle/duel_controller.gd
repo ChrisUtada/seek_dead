@@ -8,7 +8,7 @@ extends Control
 # 全代码 UI（Control 树），可直接作为 duel.tscn 脚本运行（F6）或由 RoomManager 进入。
 #
 # 拆分（docs/[已完成]duel_controller拆分方案B.md）：M0–M6 历史增量注释已清理；职责分区——
-#   存档 MetaStore / 铁砧 AnvilSystem / 商店 ShopSystem / 奖励 RewardSystem / 整备 LoadoutSystem
+#   存档 MetaStore / 商店 ShopSystem / 奖励 RewardSystem / 整备 LoadoutSystem
 #   均为 RefCounted 子系统（scripts/systems/），本文件只留编排 + 薄转发 + 战斗核心。
 #   各子系统 _init(ctrl: DuelController) 注入本 controller，_ctrl 均已标类型（编译期检查）。
 # ============================================================================
@@ -326,7 +326,6 @@ var run_relics: Array[String] = []
 # M5 元进度（铁砧锻造 + 存档持久化，跨局保留）
 # 已退役键（元进度三选一退化为仅 anvil）：weapon_upgrades / weapon_base_bonus / weapon_hit_bonus / charm_upgrades / interference_resist / first_clears
 var meta: Dictionary = {"anvil_points": 0, "owned_weapons": [], "owned_charms": [], "owned_consumables": [], "owned_skills": [], "anvil_pity": 0, "collection_milestones": [], "item_sources": {}, "career": {"unlocked": [], "bosses": []}, "codex": {}, "forge_styles": {}}
-var _anvil_system                     # 铁砧锻造子系统 AnvilSystem（步骤2抽出；_ready 实例化并注入 self）
 const ANVIL_SAVE_KEY := "anvil_meta"   # 铁砧元进度存于 SaveSystem.lobby_data
 var _meta_store                        # 存档子系统 MetaStore（步骤1抽出；_ready 实例化并注入 self + meta）
 var _career                            # G6-01：生涯成就子系统 CareerSystem（只读局内事件，跨局记录）
@@ -417,7 +416,6 @@ func _ready() -> void:
 	add_child(hud)
 	hud.controller = self
 	_meta_store = preload("res://scripts/systems/meta_store.gd").new(self, meta)
-	_anvil_system = preload("res://scripts/systems/anvil_system.gd").new(self)
 	_shop_system = preload("res://scripts/systems/shop_system.gd").new(self)
 	_reward_system = preload("res://scripts/systems/reward_system.gd").new(self)
 	_post_battle = preload("res://scripts/systems/post_battle_system.gd").new(self)
@@ -482,7 +480,7 @@ func _ready() -> void:
 	hud.overlay_button_pressed.connect(_on_overlay_button_pressed)
 	hud.consumable_used.connect(_on_consumable_pressed)
 	hud.shop_leave_requested.connect(_on_shop_leave_pressed)
-	hud.anvil_back_requested.connect(_on_anvil_back_pressed)
+	hud.meta_screen.back_to_loadout_requested.connect(_on_anvil_back_pressed)
 
 
 # M4-01：ACT1 Demo 内容收窄（关闭时零影响）。只过滤池，不删除存档已有内容。
@@ -1117,12 +1115,8 @@ func _on_next_room_pressed() -> void:
 	room_flow.on_next_room_pressed()
 
 
-func _on_anvil_roll_pressed() -> void:
-	room_flow.on_anvil_roll_pressed()
-
-
 func _on_anvil_back_pressed() -> void:
-	room_flow.on_anvil_back_pressed()
+	room_flow.on_back_to_loadout()
 
 
 func _full_reset() -> void:
@@ -1251,7 +1245,7 @@ func start_room_data(r: RoomData, idx: int, ria_override: int = -1, is_final: bo
 		for wp in selected_loadout:
 			_codex.note_style_use(String(wp))
 			# G7-3 条件接线：该武器累计出场每满 5 局 → 授予 1 次定向解锁额度
-			if int(_codex.style_uses_of(String(wp))) % 5 == 0 and _anvil_system != null:
+			if int(_codex.style_uses_of(String(wp))) % 5 == 0:
 				_career.earn_directed("weapon:%s" % String(wp).get_file().get_basename())
 	# G7-5：首局引导——进战斗提示"停符号结算"与"武器改变符号带"（不弹窗，走 _log，一次性）。
 	if idx == 0 and onboarding != null:

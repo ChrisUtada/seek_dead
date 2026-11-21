@@ -29,14 +29,14 @@ func _ready() -> void:
 	duel.meta["collection_milestones"] = []
 
 	# ① 成就达成 → 定向额度（去重）
-	var before: int = duel._anvil_system.available_directed_unlocks()
+	var before: int = duel._career.available_directed()
 	duel._career._unlock("first_clear")
-	_ok(duel._anvil_system.available_directed_unlocks() == before + 1, "成就达成 +1 额度")
+	_ok(duel._career.available_directed() == before + 1, "成就达成 +1 额度")
 	duel._career._unlock("first_clear")
-	_ok(duel._anvil_system.available_directed_unlocks() == before + 1, "重复解锁不重复给额度")
+	_ok(duel._career.available_directed() == before + 1, "重复解锁不重复给额度")
 
 	# ② 武器出场里程碑（每5局）→ 额度
-	before = duel._anvil_system.available_directed_unlocks()
+	before = duel._career.available_directed()
 	duel.meta["codex"] = {}
 	duel._codex = preload("res://scripts/systems/codex_system.gd").new(duel)
 	for i in range(5):
@@ -46,15 +46,15 @@ func _ready() -> void:
 		"武器出场累计 5")
 
 	# ③ 收藏里程碑 → 定向额度（而非点数）
-	before = duel._anvil_system.available_directed_unlocks()
+	before = duel._career.available_directed()
 	var points_before: int = int(duel.meta.get("anvil_points", 0))
 	# 把收藏进度拉满，触发里程碑
-	var pool: Array = duel._anvil_system._anvil_pool()
+	var pool: Array = duel._career.collection_pool()
 	for p in pool:
-		duel._anvil_system._anvil_grant_owned(p)
-	duel._anvil_system.check_collection_milestones()
-	_ok(duel._anvil_system.available_directed_unlocks() > before, "收藏里程碑授予定向额度（%d→%d）" % [
-		before, duel._anvil_system.available_directed_unlocks()])
+		duel._career.grant_collection_owned(p)
+	duel._career.check_collection_milestones()
+	_ok(duel._career.available_directed() > before, "收藏里程碑授予定向额度（%d→%d）" % [
+		before, duel._career.available_directed()])
 	_ok(int(duel.meta.get("anvil_points", 0)) == points_before, "里程碑不再加历史点数")
 
 	# ④ 战后复核可归因字段

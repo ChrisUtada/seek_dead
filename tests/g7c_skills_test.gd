@@ -102,7 +102,7 @@ func _test_new_save(duel: DuelController) -> void:
 
 
 func _test_anvil(duel: DuelController, meta_backup: Dictionary) -> void:
-	var pool: Array = duel._anvil_system._anvil_pool()
+	var pool: Array = duel._career.collection_pool()
 	var has_skill := false
 	for p in pool:
 		if duel.SKILL_POOL.has(p):
@@ -111,12 +111,12 @@ func _test_anvil(duel: DuelController, meta_backup: Dictionary) -> void:
 	_check(has_skill, "铁砧池包含技能")
 	_check(pool.size() == duel.WEAPON_POOL.size() + _passive_count(duel) + duel.SKILL_POOL.size(),
 		"铁砧池 = 武器 + 非信物护符 + 技能（%d）" % pool.size())
-	_check(duel._anvil_system._anvil_is_owned(STARTERS[0]), "初始技能判定为已拥有")
+	_check(duel._career.is_collection_owned(STARTERS[0]), "初始技能判定为已拥有")
 	var unowned := _first_unowned_skill(duel)
 	_check(unowned != "", "存在未拥有技能用于授予测试")
 	if unowned != "":
-		_check(not duel._anvil_system._anvil_is_owned(unowned), "未拥有技能判定为未拥有")
-		duel._anvil_system._anvil_grant_owned(unowned)
+		_check(not duel._career.is_collection_owned(unowned), "未拥有技能判定为未拥有")
+		duel._career.grant_collection_owned(unowned)
 		_check(duel.meta["owned_skills"].has(unowned), "铁砧授予写入 owned_skills")
 		_check(not duel.meta["owned_weapons"].has(unowned), "铁砧授予不写入 owned_weapons")
 		_restore_meta(duel, meta_backup)

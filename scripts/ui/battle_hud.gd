@@ -17,7 +17,6 @@ const POPUP_POOL = preload("res://scripts/ui/popup_pool.gd")
 const SYMBOL_TOOLTIP = preload("res://scripts/ui/symbol_tooltip.gd")
 const META_SCENE = preload("res://scenes/ui/meta_screen.tscn")
 const REWARD_SCENE = preload("res://scenes/ui/reward_screen.tscn")
-const ANVIL_SCENE = preload("res://scenes/ui/anvil_screen.tscn")
 const SHOP_SCENE = preload("res://scenes/ui/shop_screen.tscn")
 const LOADOUT_SCENE = preload("res://scenes/ui/loadout_scene.tscn")
 const BRANCH_SCREEN = preload("res://scripts/board/branch_screen.gd")   # 分岔路线图 UI（唯一地图）
@@ -30,7 +29,7 @@ var _cards       # CardFactory（build_all 内实例化；只造控件，不持�
 # HUD 只发「用户想做什么」，不调用 controller 私有方法、不读 controller 字段名。
 signal spin_requested                         # 点击「旋转」按钮
 signal reel_clicked(col: int)                # 点击某一列转轮
-# @warning_ignore 以下信号由子屏（shop_screen/anvil_screen/reward_screen）emit、
+# @warning_ignore 以下信号由子屏（shop_screen/reward_screen）emit、
 # controller connect——跨文件连接，静态分析器误报 UNUSED_SIGNAL。
 @warning_ignore("unused_signal")
 signal buy_requested(offer: Dictionary)      # 商店购入
@@ -66,8 +65,6 @@ signal consumable_used(uid: String)           # 使用腰带消耗品
 @warning_ignore("unused_signal")
 signal shop_leave_requested                   # 离开商店（回房间歇态）
 @warning_ignore("unused_signal")
-signal anvil_back_requested                   # 铁砧返回整备
-@warning_ignore("unused_signal")
 signal shop_card_pressed(offer: Dictionary)   # 商店卡片点击（shop_screen 拦截：武器满 2 弹替换）
 @warning_ignore("unused_signal")
 signal buy_replace_requested(offer: Dictionary, old_path: String)   # 替换购买（2026-08-07：武器槽上限 2 后的换装）
@@ -85,7 +82,6 @@ func build_all() -> void:
 	_build_loadout_screen()
 	_build_branch_screen()     # 分岔路线图 UI（唯一地图）
 	_build_reward_screen()
-	_build_anvil_screen()
 	_build_shop_screen()
 	_build_meta_screen()
 	_show_loadout_screen()
@@ -123,7 +119,6 @@ func shop_screen_is_open() -> bool:
 func set_shop_button_text(t: String) -> void:
 	if interroom_shop_btn != null:
 		interroom_shop_btn.text = t
-func hide_anvil_screen() -> void: anvil_screen.hide_screen()
 
 # ---- UI 节点引用 ----
 var cells = []   # 展示用 Button 引用 [reel][row]
@@ -156,7 +151,6 @@ var reward_screen                       # 奖励三选一覆盖层（reward_scre
 var meta_screen                         # 每局结束元进度结算覆盖层（meta_screen.tscn 实例）
 
 var shop_screen                         # 商店覆盖层（shop_screen.tscn 实例）
-var anvil_screen                        # 铁砧锻造覆盖层（anvil_screen.tscn 实例）
 
 # 房间歇态按钮（opt-in 商店 + 下一房）：静态节点在 battle_hud.tscn TopBar，默认禁用，间歇态由 controller 点亮
 @onready var interroom_shop_btn = $Margin/Content/TopBar/ShopBtn
@@ -832,18 +826,6 @@ func _make_shop_card(offer: Dictionary) -> Button:
 # 商店「卖出」区：四列列出已持有物品，点击回收约50%金币并释放槽位
 func _make_sell_card(title_text: String, sub_text: String, disabled: bool, cb: Callable, res: Resource = null) -> Button:
 	return _cards.sell_card(title_text, sub_text, disabled, cb, res)
-
-
-func _build_anvil_screen() -> void:
-	anvil_screen = ANVIL_SCENE.instantiate()
-	add_child(anvil_screen)   # 必须先入树：configure 内访问 @onready 节点
-	anvil_screen.configure(controller, self)
-	anvil_screen.hide_screen()
-
-
-func _show_anvil_screen() -> void:
-	# S5-3：旧摇奖屏不再显示（保留节点但屏蔽显示入口）
-	return
 
 
 func _build_overlay() -> void:

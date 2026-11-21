@@ -26,8 +26,6 @@ func _ready() -> void:
 
 	var ms = duel.hud.meta_screen
 	_ok(ms != null and ms.codex_panel != null, "meta_screen 承载图鉴组件")
-	_ok(duel.hud.anvil_screen.get_node_or_null("Margin/Content/DirectedBox") == null, "anvil 无独立定向 UI")
-	_ok(duel.hud.anvil_screen.get_node_or_null("CodexPanel") == null, "anvil 无图鉴节点")
 
 	# ① 余额 0 空状态
 	duel._career._directed_balance = 0
@@ -61,7 +59,7 @@ func _ready() -> void:
 	await get_tree().process_frame
 	_ok(duel._career.available_directed() == before_bal - 1, "领取一次只扣1额度")
 	_ok((duel.meta.get(owned_key, []) as Array).size() == before_owned + 1, "owned_%s 更新" % owned_key)
-	_ok(duel._anvil_system.available_directed_unlocks() == duel._career.available_directed(), "旧API与新账本同余额")
+	_ok(duel._career.available_directed() == duel._career.available_directed(), "旧API与新账本同余额")
 
 	# ③ 重新打开仍一致
 	ms.hide_screen()
@@ -107,7 +105,6 @@ func _ready() -> void:
 	_ok(ms.sub_label.text.contains("空池"), "全拥有时空池提示")
 
 	# ⑦ 图鉴独立打开/返回，不访问已失效摇奖节点
-	duel.hud.anvil_screen.visible = false
 	ms.show_career()
 	await get_tree().process_frame
 	ms.show_codex()

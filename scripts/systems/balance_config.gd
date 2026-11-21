@@ -47,12 +47,6 @@ extends Resource
 @export var meta_anvil_bonus: int = 2         # 元进度三选一选「铁砧点数」获得的点数
 @export var boss_anvil_bonus: int = 3         # BOSS 战利品空池兜底（武器/护符槽双满）：铁砧点数补偿
 @export var meta_choice_count: int = 3        # 元进度候选张数（三选一）
-@export var anvil_roll_cost: int = 10
-@export var anvil_blank_chance: float = 0.10
-@export var anvil_pity_max: int = 10
-@export var anvil_per_run_cap: int = 40
-@export var anvil_dupe_refund: Dictionary = {"common": 3, "uncommon": 5, "rare": 7, "epic": 10}
-@export var anvil_rarity_weight: Dictionary = {"common": 100, "uncommon": 40, "rare": 12, "epic": 3}
 @export var anvil_milestone_pct: Array = [0.25, 0.5, 0.75, 1.0]
 @export var anvil_milestone_bonus: Array = [50, 100, 150, 200]
 
@@ -115,8 +109,4 @@ extends Resource
 
 
 # —— 三拍板落地（2026-08-24）——
-@export var anvil_award_normal: int = 0    # 铁砧里程碑：普通房 0（金币/奖励卡/T8 掉落已三渠道，防平摊稀释）
-@export var anvil_award_elite: int = 3     # 精英 +3
-@export var anvil_award_boss: int = 5      # 幕 BOSS +5
-@export var anvil_award_final: int = 8     # 真·最终 +8（毕业战特殊化；通关局 29 点≈3 抽 vs 死亡局 1 抽）
 @export var heal_overflow_shield_cap_pct: float = 0.2   # 治疗三连溢出转盾单次上限（×maxHP；防爆炸性囤盾，全面衰减挂 F6 盾流实测）

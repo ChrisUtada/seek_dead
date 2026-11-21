@@ -163,15 +163,14 @@ func _test_ui(duel: DuelController) -> void:
 	_check(locked > 0, "未拥有装备以占位形式保留")
 	_check(String(entries[0].get("name", "")) != "？？？", "已拥有条目显示真实名称")
 
-	var anvil = duel.hud.anvil_screen
-	anvil.show_screen()
-	anvil._toggle_codex()
-	_check(anvil._codex_panel != null and anvil._codex_panel.visible, "铁砧屏可打开图鉴面板")
-	_check(anvil._codex_list.get_child_count() == entries.size() + 1, "图鉴列表含标题与全部条目")
-	_check(anvil._codex_detail.get_child_count() > 1, "默认选中已拥有装备并展示详情")
-	anvil._set_codex_kind("passive")
-	_check(anvil._codex_kind == "passive", "图鉴可切换护符分类")
-	anvil._toggle_codex()
+	var cp = duel.hud.meta_screen.codex_panel
+	cp.open()
+	_check(cp.is_open(), "meta_screen 图鉴组件可独立打开")
+	_check(cp._list.get_child_count() == entries.size() + 1, "图鉴列表含标题与全部条目")
+	_check(cp._detail.get_child_count() > 1, "默认选中已拥有装备并展示详情")
+	cp._set_kind("passive")
+	_check(cp._kind == "passive", "图鉴可切换护符分类")
+	cp.close()
 
 
 func _joined(lines: Array) -> String:

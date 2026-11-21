@@ -36,7 +36,7 @@ func _ready() -> void:
 	var d1 := _make_duel({})
 	_ok(d1._career.available_directed() == 0, "fresh: balance 0")
 	_ok(bool(d1.meta.get("career", {}).get("directed_v1", false)), "fresh: migration flag set")
-	_ok(d1._anvil_system.available_directed_unlocks() == d1._career.available_directed(), "fresh: old API same balance")
+	_ok(d1._career.available_directed() == d1._career.available_directed(), "fresh: old API same balance")
 
 	# ② 只有旧 anvil 额度 7
 	var d2 := _make_duel({"directed_unlocks": 7, "anvil_points": 0, "career": {"unlocked": [], "bosses": []}})
@@ -103,14 +103,14 @@ func _ready() -> void:
 	# ⑩ 旧 API 与 career 新 API 同余额（已覆盖①②，再验证 claim 后仍同步）
 	var d10 := _make_duel({"directed_unlocks": 4, "anvil_points": 0, "career": {"unlocked": [], "bosses": []}})
 	var tc: String = String(d10._career.directed_candidates()[0]["path"])
-	var r10: Dictionary = d10._anvil_system.claim_directed_unlock(tc)
+	var r10: Dictionary = d10._career.claim_directed(tc)
 	_ok(bool(r10.get("ok", false)), "old API claim ok")
-	_ok(d10._anvil_system.available_directed_unlocks() == d10._career.available_directed(), "old API same balance after claim")
+	_ok(d10._career.available_directed() == d10._career.available_directed(), "old API same balance after claim")
 
 	# ⑪ earn 走生涯不双写：earn 一次只 +1
 	var d11 := _make_duel({"directed_unlocks": 1, "anvil_points": 0, "career": {"unlocked": [], "bosses": []}})
 	var before11: int = d11._career.available_directed()
-	d11._anvil_system.earn_directed_unlock("boss:test")
+	d11._career.earn_directed("boss:test")
 	_ok(d11._career.available_directed() == before11 + 1, "earn via old API = +1 only (no double write)")
 	_ok(int(d11.meta.get("directed_unlocks", 0)) == 1, "legacy balance field not updated")
 

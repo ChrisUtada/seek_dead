@@ -16,6 +16,8 @@ extends RefCounted
 const META_KEY := "career"
 const STATUS_DAMAGE_TARGET := 25   # 「状态使徒」单场 BOSS 战状态伤害门槛
 const GUARD_TARGET := 40           # 「坚守」本局累计格挡门槛
+# S5-4：收藏里程碑常量从 AnvilSystem 迁入 CareerSystem（配置字段沿用 balance_config）
+const BALANCE = preload("res://resources/config/balance_config.tres")
 
 # 顺序 = 生涯面板展示顺序 = next_goal_hint 的优先顺序。
 const DEFINITIONS := [
@@ -561,3 +563,70 @@ func _equipped_elements() -> Array[String]:
 			if e != "" and e != "none":
 				out.append(e)
 	return out
+
+
+# ---------------------------------------------------------------------------
+# S5-4：收藏查询与里程碑基座（原 AnvilSystem 共享功能迁入）
+# 供商店/奖励/BOSS 战利品写入收藏后结算里程碑；图鉴/整备只读收藏度。
+# ---------------------------------------------------------------------------
+
+func collection_pool() -> Array:
+	var pool := []
+	for p in _ctrl.WEAPON_POOL:
+		pool.append(p)
+	for p in _ctrl.ITEM_POOL:
+		var d = load(p)
+		if d is ItemData and d.category == "passive":
+			if _ctrl._meta_store._is_boss_relic(d, p):
+				continue
+			pool.append(p)
+	for p in _ctrl.SKILL_POOL:
+		pool.append(p)
+	return pool
+
+
+func is_collection_owned(p: String) -> bool:
+	return _ctrl.meta["owned_weapons"].has(p) or _ctrl.meta["owned_charms"].has(p) \
+		or _ctrl.meta["owned_consumables"].has(p) or _ctrl.meta["owned_skills"].has(p)
+
+
+func grant_collection_owned(p: String) -> void:
+	var res = load(p)
+	if res is WeaponData:
+		if not _ctrl.meta["owned_weapons"].has(p):
+			_ctrl.meta["owned_weapons"].append(p)
+	elif res is SkillData:
+		if not _ctrl.meta["owned_skills"].has(p):
+			_ctrl.meta["owned_skills"].append(p)
+		_ctrl._meta_store.record_source(p, _ctrl._item_source())
+	elif res is ItemData:
+		if res.category == "passive":
+			_ctrl._reward_system.remember_charm(p)
+		else:
+			if not _ctrl.meta["owned_consumables"].has(p):
+				_ctrl.meta["owned_consumables"].append(p)
+
+
+func collection_pct() -> float:
+	var pool = collection_pool()
+	if pool.is_empty():
+		return 1.0
+	var owned := 0
+	for p in pool:
+		if is_collection_owned(p):
+			owned += 1
+	return float(owned) / float(pool.size())
+
+
+func check_collection_milestones() -> void:
+	var pct = collection_pct()
+	for i in BALANCE.anvil_milestone_pct.size():
+		var thr = BALANCE.anvil_milestone_pct[i]
+		if pct >= thr and not _ctrl.meta["collection_milestones"].has(i):
+			_ctrl.meta["collection_milestones"].append(i)
+			var bonus = int(BALANCE.anvil_milestone_bonus[i])
+			var unlocks: int = maxi(1, bonus / 10)
+			for j in range(unlocks):
+				earn_directed("milestone")
+			if _ctrl.hud != null:
+				_ctrl.hud._log("收藏里程碑 %.0f%%：定向解锁 +%d（可自选装备）" % [thr * 100, unlocks])

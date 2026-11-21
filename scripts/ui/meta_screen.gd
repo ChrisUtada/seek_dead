@@ -1,6 +1,9 @@
 extends Control
 class_name MetaScreen
 
+# S5-4：返回整备信号（原 anvil_back_requested 归一到 meta_screen）
+signal back_to_loadout_requested
+
 # meta_screen — 元进度 / 生涯定向解锁 / 图鉴 的统一覆盖层（S5-2 入口归一）
 # 静态骨架由 meta_screen.tscn 提供；本脚本负责显隐 / 填数据 / 发信号。
 # S5-2：定向候选/余额/claim/技能全部读 CareerSystem；图鉴用独立 CodexPanel（不依赖摇奖节点）。
@@ -31,7 +34,7 @@ func configure(ctrl, h: BattleHud) -> void:
 	_back_btn = Button.new()
 	_back_btn.text = "← 返回整备"
 	_back_btn.add_theme_font_size_override("font_size", 9)
-	_back_btn.pressed.connect(func(): hud.anvil_back_requested.emit())
+	_back_btn.pressed.connect(func(): back_to_loadout_requested.emit())
 	$Margin/Content.add_child(_back_btn)
 	title_label.text = "★ 一局结束 · 元进度结算"
 	# S5-3：铁砧点数已停用，不再显示点数相关文案

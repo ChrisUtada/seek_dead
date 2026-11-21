@@ -196,9 +196,8 @@ func _settle_victory() -> void:
 	_ctrl.mastery.settle_room(kind)    # M2-02：样板武器按本房有效结算累计熟练
 
 
-# 与选择无关的清房收益：铁砧点 / 金币 / T8 掉落。
+# 与选择无关的清房收益：金币 / T8 掉落（S5-3 起不再发铁砧点）。
 func _award_victory(is_boss: bool) -> void:
-	_ctrl._anvil_system.award_meta(is_boss)    # M5：房间通关发放铁砧点数
 	_ctrl._meta_store.award_gold(is_boss)    # S6+S8：清房金币 + 利息
 	_ctrl._reward_system.apply_room_drops()   # T8：普通房 12% 掉消耗品 / 精英房保底护符（BOSS 走自身战利品）
 	# G6-2：Boss 遗物胜利时保证入账（不再混入三选一候选）；grant 内部按 run_relics 去重，重复调用安全。
@@ -222,7 +221,6 @@ func prepare_boss_summary() -> void:
 func _snapshot_before() -> void:
 	_summary_before = {
 		"gold": int(_ctrl.gold),
-		"anvil": int(_ctrl.meta.get("anvil_points", 0)),
 		"charms": _ctrl.selected_charms.duplicate(),
 		"consumables": [],
 	}
@@ -232,7 +230,6 @@ func _snapshot_before() -> void:
 
 func _finish_battle_summary(is_boss: bool) -> void:
 	var d_gold: int = int(_ctrl.gold) - int(_summary_before.get("gold", 0))
-	var d_anvil: int = int(_ctrl.meta.get("anvil_points", 0)) - int(_summary_before.get("anvil", 0))
 	# 掉落：护符/消耗品的集合差（本场新入账的）
 	var drops: Array[String] = []
 	var before_charms: Array = _summary_before.get("charms", [])
@@ -253,13 +250,12 @@ func _finish_battle_summary(is_boss: bool) -> void:
 		attribution = _ctrl.machine_summary.attribution_lines()
 	last_battle_summary = {
 		"gold": d_gold,
-		"anvil": d_anvil,
 		"mastery": "本场武器熟练已结算",   # 熟练按本房有效结算，无单一增量字段
 		"drops": drop_txt,
 		"is_boss": is_boss,
 		"attribution": attribution,
-		"text": "金币 +%d · 熟练已计 · 铁砧 +%d · 掉落 %s" % [
-			d_gold, d_anvil, drop_txt],
+		"text": "金币 +%d · 熟练已计 · 掉落 %s" % [
+			d_gold, drop_txt],
 	}
 
 
@@ -505,19 +501,8 @@ func retreat_run() -> void:
 	return_to_loadout()
 
 
-# 铁砧纯 gacha 入口：委托 AnvilSystem 完成扣点→摇→结算→写 last_anvil_drops→落盘。
-func on_anvil_roll_pressed() -> void:
-	var drops = _ctrl._anvil_system.roll_anvil()
-	if drops.is_empty():
-		return   # 点数不足（已在子系统内日志）
-	# 注意：不在此处刷新铁砧屏——由 anvil_screen 旋转动画收尾后自行 refresh
-	_ctrl.hud._refresh_meta()
-	_ctrl.hud._refresh_loadout_cards()
-	_ctrl.hud._update_loadout_anvil()
-
-
-func on_anvil_back_pressed() -> void:
-	_ctrl.hud.hide_anvil_screen()
-	_ctrl.hud.hide_meta_screen()       # S5-2：整备生涯入口也走此返回，需一并收起
+# S5-4：返回整备（原 on_anvil_back_pressed 归一命名）
+func on_back_to_loadout() -> void:
+	_ctrl.hud.hide_meta_screen()
 	_ctrl.hud._show_loadout_screen()   # 返回后重建整备 2D 场景（loadout 内会 hud.hide()）
 	_ctrl.hud._update_loadout_anvil()

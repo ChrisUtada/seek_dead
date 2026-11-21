@@ -17,22 +17,12 @@ func _ready() -> void:
 	await get_tree().process_frame
 	# 给 3 次定向额度，让候选按钮可见
 	for i in range(3):
-		duel._anvil_system.earn_directed_unlock("capture_test")
+		duel._career.earn_directed("capture_test")
 	await get_tree().process_frame
-	var anvil = duel.hud.anvil_screen
-	anvil.show_screen()
+	duel.hud._show_career_screen()
 	await get_tree().process_frame
 	await get_tree().process_frame
-	# 截图整屏（480x270 viewport 会被窗口放大，取实际视口）
 	var img := get_viewport().get_texture().get_image()
-	img.save_png(ProjectSettings.globalize_path(OUT + "/anvil_directed.png"))
-	print("G7 UI CAPTURED: ", OUT, "/anvil_directed.png")
-	# 再截一张旧摇奖模式（验证互斥切换）
-	if anvil.has_method("_on_mode_toggle"):
-		anvil._on_mode_toggle()
-		await get_tree().process_frame
-		await get_tree().process_frame
-		var img2 := get_viewport().get_texture().get_image()
-		img2.save_png(ProjectSettings.globalize_path(OUT + "/anvil_gacha.png"))
-		print("G7 UI CAPTURED: ", OUT, "/anvil_gacha.png")
+	img.save_png(ProjectSettings.globalize_path(OUT + "/career_directed.png"))
+	print("G7 UI CAPTURED: ", OUT, "/career_directed.png")
 	get_tree().quit(0)

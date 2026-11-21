@@ -304,7 +304,6 @@ func reset_loadout_visible_state() -> void:
 # 不调用本方法，避免 _run_summary.snapshot() 二次快照漏算本局新收藏）。
 # 槽位成长/金币/商店/奖励等全部回到初始。
 func reset_run_state() -> void:
-	_ctrl._anvil_system.reset_run()   # 本局铁砧点数 drip 累计清零
 	_ctrl.train_points = 0            # ⚠ 已废弃字段清零（训练点系统 2026-08-14 移除，保留字段兼容旧存档）
 	# 2026-08-14 fix：新一局生命上限回基础值——体魄/局内奖励（maxhp/maxhp_heal）不跨局，
 	# 否则战败回整备再出发时 player_hp_max 沿用上局膨胀值（曾出现 280+/100 的"HP 未重置"）。

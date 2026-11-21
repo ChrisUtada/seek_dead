@@ -139,10 +139,10 @@ func _run() -> void:
 	_duel.hud.hide_reward_screen()
 	await _wait(0.2)
 
-	_duel.hud._show_anvil_screen()
+	_duel.hud._show_career_screen()
 	await _wait(0.45)
-	await _shot("06_anvil_960")
-	_duel.hud.hide_anvil_screen()
+	await _shot("06_career_960")
+	_duel.hud.hide_meta_screen()
 	await _wait(0.2)
 
 	_duel.hud._show_meta_choice()

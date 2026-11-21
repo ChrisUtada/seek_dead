@@ -236,7 +236,7 @@ func _test_shop_anvil_filtered(duel: DuelController) -> void:
 	_check(bad == "", "demo：商店 6 次刷新全部在白名单内" + ("" if bad == "" else "：" + bad))
 
 	var anvil_bad := ""
-	for p in duel._anvil_system._anvil_pool():
+	for p in duel._career.collection_pool():
 		var d = load(p)
 		var ok: bool = (d is WeaponData and duel.demo_config.allows_weapon(p)) \
 			or (d is SkillData and duel.demo_config.allows_skill(p)) \

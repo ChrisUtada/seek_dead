@@ -42,7 +42,6 @@ func _run() -> void:
 
 	await _test_shop()
 	await _test_reward()
-	await _test_anvil()
 	await _test_meta()
 
 	_duel.meta.clear()
@@ -206,18 +205,7 @@ func _test_reward() -> void:
 
 # --- 铁砧 + 图鉴 --------------------------------------------------------
 
-func _test_anvil() -> void:
-	# S5-3：旧摇奖屏显示入口已屏蔽，不应再出现可继续摇奖的假入口
-	_duel.hud._show_anvil_screen()
-	await _frames(6)
-	var a: AnvilScreen = _duel.hud.anvil_screen
-	_check(a != null, "anvil_screen 节点仍存在（兼容层）")
-	_check(not a.visible, "S5-3：摇奖屏显示入口已禁用")
-	_check(a.roll_btn.disabled, "S5-3：摇动按钮已禁用")
-	var ms = _duel.hud.meta_screen
-	_check(ms != null, "meta_screen 存在")
-	_duel.hud.hide_anvil_screen()
-	await _frames(3)
+
 
 # --- 局末 ---------------------------------------------------------------
 

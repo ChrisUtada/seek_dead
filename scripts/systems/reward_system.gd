@@ -1160,7 +1160,7 @@ func remember_weapon(path: String, loot_source: String = "") -> void:
 	var first_unlock: bool = not _ctrl.meta["owned_weapons"].has(path)
 	if first_unlock:
 		_ctrl.meta["owned_weapons"].append(path)
-		_ctrl._anvil_system.check_collection_milestones()   # M1-03：按真实收集进度结算图鉴里程碑
+		_ctrl._career.check_collection_milestones()   # M1-03：按真实收集进度结算图鉴里程碑
 	_ctrl._meta_store.record_source(path, _ctrl._item_source(loot_source))   # G2-01：来源记录
 	# G2-3：图鉴「首次发现」独立标记（不依赖解锁资格；重复获得只更新来源，不重复记发现）
 	if _ctrl._codex != null:
@@ -1583,7 +1583,7 @@ func apply_boss_reward(cand: Dictionary) -> void:
 				# 增益走本局遗物栏，图鉴归属不因此改变。
 				if not _ctrl.meta["owned_charms"].has(p):
 					_ctrl.meta["owned_charms"].append(p)
-					_ctrl._anvil_system.check_collection_milestones()   # M1-03
+					_ctrl._career.check_collection_milestones()   # M1-03
 					_ctrl._meta_store.save_meta()
 				_ctrl._meta_store.record_source(p, _ctrl._item_source())   # G2-01：来源记录
 				_ctrl._apply_charms()                     # 重算被动：护符 + 本局遗物（L2-E）
@@ -1615,7 +1615,7 @@ func grant_boss_relic(room) -> bool:
 	_ctrl.run_relics.append(p)
 	if not _ctrl.meta["owned_charms"].has(p):
 		_ctrl.meta["owned_charms"].append(p)
-		_ctrl._anvil_system.check_collection_milestones()
+		_ctrl._career.check_collection_milestones()
 	var label: String = rd.item_name if rd != null and String(rd.item_name) != "" else p.get_file().get_basename()
 	_ctrl.hud._log("🏆 BOSS 遗物自动入账：%s（不占槽）" % label)
 	_ctrl.hud._popup("🏆 获得遗物 %s" % label, Palette.ACCENT_GOLD, _ctrl.hud._player_sprite_anchor())

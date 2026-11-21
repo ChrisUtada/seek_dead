@@ -341,7 +341,7 @@ func _test_starter_seed(duel: DuelController) -> void:
 	_check(duel.meta["owned_weapons"].has("res://resources/weapon_templates/iron_sword.tres"), "老档已获得的武器不被删除")
 	_check(duel.meta["owned_weapons"].has("res://resources/weapon_templates/dagger.tres"), "老档补足基础武器子集")
 	_check(duel.meta["owned_consumables"].size() > 0, "基础消耗品已播种")
-	var pct: float = duel._anvil_system._anvil_collection_pct()
+	var pct: float = duel._career.collection_pct()
 	_check(pct < 0.5, "新档初始图鉴完成度 < 50%（存在真实未解锁内容）")
 	for k in backup:
 		duel.meta[k] = backup[k]

@@ -62,11 +62,11 @@ func _run() -> void:
 	_duel.hud.hide_reward_screen()
 	await _wait(0.2)
 
-	# 05 铁砧
-	_duel.hud._show_anvil_screen()
+	# 05 生涯/图鉴（S5-4：原铁砧屏已移除）
+	_duel.hud._show_career_screen()
 	await _wait(0.45)
-	await _shot("05_anvil")
-	_duel.hud.hide_anvil_screen()
+	await _shot("05_career")
+	_duel.hud.hide_meta_screen()
 	await _wait(0.2)
 
 	# 06 元进度/结算
@@ -130,7 +130,7 @@ func _dump_run() -> void:
 	_lines.append("")
 	_lines.append("### 关键平衡值（balance_config 实值）")
 	for k in ["player_dmg_mult", "player_hp_base", "ante_act_step_atk", "ante_room_step_atk",
-			"ante_act_step_hp", "ante_room_step_hp", "charge_max", "loadout_min", "anvil_roll_cost"]:
+			"ante_act_step_hp", "ante_room_step_hp", "charge_max", "loadout_min", "meta_anvil_bonus"]:
 		_lines.append("%s = %s" % [k, str(_duel.BALANCE.get(k))])
 	_lines.append("")
 

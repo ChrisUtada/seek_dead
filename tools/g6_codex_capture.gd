@@ -57,13 +57,11 @@ func _run() -> void:
 			break
 	_duel._codex.record_run(_duel.mastery)
 
-	var anvil = _duel.hud.anvil_screen
-	anvil.show_screen()
+	var cp = _duel.hud.meta_screen.codex_panel
+	cp.open()
 	await _wait(0.3)
-	anvil._toggle_codex()
-	await _wait(0.3)
-	anvil._codex_sel = sample
-	anvil._refresh_codex_detail()
+	cp._sel = sample
+	cp._refresh_detail()
 	await _wait(0.2)
 	await _shot("01_codex_480")
 	get_window().size = Vector2i(960, 540)

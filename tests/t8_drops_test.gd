@@ -36,7 +36,6 @@ func _run() -> void:
 	_part_c_elite_guarantee(duel)
 	_part_d_boss_isolated(duel)
 	_part_e_reward_belt_guard(duel)
-	_part_f_anvil_milestones(duel)
 
 	print("---")
 	print("PASSED %d / FAILED %d" % [_checks - _fails, _fails])
@@ -221,22 +220,3 @@ func _part_e_reward_belt_guard(duel: DuelController) -> void:
 
 
 # ⑥ S5-3：铁砧点数 drip 已关闭，普通/精英/Boss/最终清房都不再产生点数
-func _part_f_anvil_milestones(duel: DuelController) -> void:
-	seed(8006)
-	duel._reset_run_state()
-	for kind in ["normal", "elite", "boss"]:
-		var room := _room_of_kind(duel, kind)
-		_setup_room(duel, room)
-		var a0: int = int(duel.meta["anvil_points"])
-		duel._anvil_system.award_meta(room.kind == "boss")
-		_check(int(duel.meta["anvil_points"]) - a0 == 0,
-			"%s 清房不再产生点数（实测 %+d）" % [kind, int(duel.meta["anvil_points"]) - a0])
-	var fin: RoomData = null
-	for r in duel.ALL_ROOMS:
-		if r.final_boss:
-			fin = r
-			break
-	_setup_room(duel, fin)
-	var a1: int = int(duel.meta["anvil_points"])
-	duel._anvil_system.award_meta(true)
-	_check(int(duel.meta["anvil_points"]) - a1 == 0, "真·最终不再产生点数（实测 %+d）" % (int(duel.meta["anvil_points"]) - a1))

@@ -63,7 +63,7 @@ func on_shop_buy_replace_pressed(offer: Dictionary, old_path: String, source: St
 		return
 	if not _ctrl.meta["owned_weapons"].has(offer["path"]):
 		_ctrl.meta["owned_weapons"].append(offer["path"])
-		_ctrl._anvil_system.check_collection_milestones()
+		_ctrl._career.check_collection_milestones()
 	_ctrl._meta_store.record_source(offer["path"], _ctrl._item_source())   # G2-01：替换购买也记来源
 	paid_price[offer["path"]] = buy_price
 	offer["sold"] = true
@@ -273,7 +273,7 @@ func on_shop_buy_pressed(offer: Dictionary, source: String = "shop") -> void:
 		if not _ctrl.meta[owned_key].has(offer["path"]):
 			_ctrl.meta[owned_key].append(offer["path"])
 			# M1-03：图鉴里程碑按真实收集进度结算（商店新件也计入，不再只在铁砧处触发）
-			_ctrl._anvil_system.check_collection_milestones()
+			_ctrl._career.check_collection_milestones()
 		_ctrl._meta_store.record_source(offer["path"], _ctrl._item_source())   # G2-01：来源记录
 	paid_price[offer["path"]] = buy_price   # 记录实际购入价，卖出时返还约50%
 	offer["sold"] = true
