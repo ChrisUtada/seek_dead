@@ -47,6 +47,9 @@ const ACT_BOON_HP := 20
 var enabled: bool = true         # 探针开关（M2-04 对照组）：false 时房间胜利不发历练
 var boon_enabled: bool = true    # 探针开关（S5 复测 A/B）：false 时不发幕间锻魂
 var perk_ids: Array[String] = []
+# S4-1：仅本局有效的幕间锻魂幂等账本。以 act 号为键，同幕重复调用直接返回；
+# 不入局外存档，新一局由 reset_run() 清空。Journal 不另建账本，以本集合为唯一守卫。
+var granted_acts: Dictionary = {}
 
 
 
@@ -57,6 +60,7 @@ func _init(ctrl) -> void:
 # 新一局 / 战败回整备：历练与技艺清零（最大 HP 由 LoadoutSystem.reset_run_state 回基础值）。
 func reset_run() -> void:
 	perk_ids.clear()
+	granted_acts.clear()   # S4-1：新一局清空，按新生命周期可重新发放
 
 
 func has_perk(id: String) -> bool:
@@ -134,6 +138,10 @@ func apply_victory_perks(kind: String) -> void:
 func grant_act_boon(act: int) -> void:
 	if not enabled or not boon_enabled or act < 2:
 		return
+	# S4-1：同幕幂等守卫——已发过直接返回，不重复加数值、不重复记 Journal。
+	if granted_acts.has(act):
+		return
+	granted_acts[act] = true
 	var hp_before: int = _ctrl.player_hp
 	var hp_max_before: int = _ctrl.player_hp_max
 	var power_before: int = int(_ctrl._reward_system.run_power_bonus)
