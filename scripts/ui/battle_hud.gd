@@ -1650,7 +1650,10 @@ func _shield_len_of(value: int, hp_max: int) -> float:
 
 func _refresh_vitals() -> void:
 	var hp_max: int = max(1, controller.state.player_hp_max)
-	var shown_hp: int = _hp_display_hold if _hp_display_hold >= 0 else int(controller.state.player_hp)
+	# 幽灵值只在「真实 HP 尚未超过影子」（敌人攻击扣血尚未到命中帧）时显示；
+	# 一旦治疗使真实 HP 高于影子，就跟随真实值——否则治疗会被延迟表现遮蔽（血条不涨）。
+	var real_hp: int = int(controller.state.player_hp)
+	var shown_hp: int = _hp_display_hold if (_hp_display_hold >= 0 and real_hp <= _hp_display_hold) else real_hp
 	var pv_r: float = float(shown_hp) / float(hp_max)
 	var pv_sl: float = _shield_len_of(int(controller.state.player_shield), hp_max)
 	_apply_hp_bar(player_hp_bar, player_vitals, pv_r, _pv_hp_prev, pv_sl)
@@ -1928,7 +1931,8 @@ func _refresh_meta() -> void:
 	gold_label.tooltip_text = "金币"
 	weapons_title.text = "武器 %d/%d" % [controller.state.selected_loadout.size(), controller._loadout_system.cat_cap("weapon")]
 	# Step 5 信息层级：HP 是左栏第一重点（生命绿；≤35% 转危险红）；护盾有值才单独占一行（护盾蓝）
-	var hp_now: int = _hp_display_hold if _hp_display_hold >= 0 else int(controller.state.player_hp)
+	var real_hp: int = int(controller.state.player_hp)
+	var hp_now: int = _hp_display_hold if (_hp_display_hold >= 0 and real_hp <= _hp_display_hold) else real_hp
 	var hp_max: int = max(1, controller.state.player_hp_max)
 	var hp_color: Color = Palette.POP_DAMAGE if float(hp_now) / float(hp_max) <= 0.35 else Palette.POP_HEAL
 	player_hp_label.text = "%d/%d" % [hp_now, controller.state.player_hp_max]
