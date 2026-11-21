@@ -1,0 +1,1509 @@
+{
+	"act": 1,
+	"act_boons": [],
+	"acts": [],
+	"battles": [],
+	"battles_count": 0,
+	"camp": [],
+	"consumables": [],
+	"duration_sec": 1.6,
+	"ended_at": "2026-11-21T11:17:07",
+	"first_pick": {},
+	"growth": [],
+	"loadout_end": [
+		"蚀日之刃",
+		"短剑"
+	],
+	"loadout_start": [
+		"蚀日之刃",
+		"短剑"
+	],
+	"mode": "linear",
+	"nodes_total": 25,
+	"nodes_visited": 0,
+	"probe_note": "S3-3测试配装:TEST_eclipse_blade",
+	"probe_test_loadout": [
+		"res://resources/weapon_templates/eclipse_blade.tres",
+		"res://resources/weapon_templates/short_sword.tres"
+	],
+	"resolution": "0x0",
+	"result": "clear",
+	"reward_drafts": [
+		{
+			"act": 1,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "symbol_mod",
+					"id": "sym_weight_shadow_slash",
+					"rarity": "common",
+					"target": "symbol_weight"
+				},
+				{
+					"category": "survival_resource",
+					"id": "seed_gold_cache",
+					"rarity": "common",
+					"target": "gold_add"
+				},
+				{
+					"category": "rule_mod",
+					"id": "circuit_triple_echo",
+					"rarity": "common",
+					"target": "circuit_acquire"
+				}
+			],
+			"draft_id": "draft_2623046165",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"sym_weight_shadow_slash",
+				"seed_gold_cache",
+				"circuit_triple_echo"
+			],
+			"room": 0,
+			"source": "normal"
+		},
+		{
+			"draft_id": "draft_2623046165",
+			"event": "reward_skipped",
+			"reward_ids": [
+				"sym_weight_shadow_slash",
+				"seed_gold_cache",
+				"circuit_triple_echo"
+			]
+		},
+		{
+			"act": 1,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "rule_mod",
+					"id": "circuit_pair",
+					"rarity": "uncommon",
+					"target": "circuit_acquire"
+				},
+				{
+					"category": "reel_control",
+					"id": "control_mercy",
+					"rarity": "common",
+					"target": "reel_control"
+				},
+				{
+					"category": "rule_mod",
+					"id": "circuit_armor_break",
+					"rarity": "uncommon",
+					"target": "circuit_acquire"
+				}
+			],
+			"draft_id": "draft_1817432489",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"circuit_pair",
+				"control_mercy",
+				"circuit_armor_break"
+			],
+			"room": 1,
+			"source": "normal"
+		},
+		{
+			"draft_id": "draft_1817432489",
+			"effect_id": "circuit_acquire",
+			"event": "reward_selected",
+			"hp_ratio": 1.0,
+			"reward_id": "circuit_pair",
+			"snapshot": {
+				"circuits": [
+					"circuit_pair"
+				],
+				"gold": 100,
+				"hp": 100,
+				"weapons": [
+					"res://resources/weapon_templates/eclipse_blade.tres",
+					"res://resources/weapon_templates/short_sword.tres"
+				]
+			}
+		},
+		{
+			"effect_id": "circuit_acquire",
+			"event": "reward_applied",
+			"reward_id": "circuit_pair",
+			"summary": "获得回路「对子赔付」（本局仓库，可在构筑界面装备）"
+		},
+		{
+			"act": 1,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "skill",
+					"id": "perk_tough",
+					"rarity": "uncommon",
+					"target": "perk"
+				},
+				{
+					"category": "symbol_mod",
+					"id": "sym_effect_iron_slash",
+					"rarity": "common",
+					"target": "symbol_effect"
+				},
+				{
+					"category": "weapon",
+					"id": "weapon_acquire_dagger",
+					"rarity": "uncommon",
+					"target": "weapon_acquire"
+				}
+			],
+			"draft_id": "draft_1711314667",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"perk_tough",
+				"sym_effect_iron_slash",
+				"weapon_acquire_dagger"
+			],
+			"room": 2,
+			"source": "normal"
+		},
+		{
+			"cost": 5,
+			"draft_id": "draft_1961911838",
+			"event": "reward_rerolled",
+			"free": false,
+			"same_group": false
+		},
+		{
+			"act": 1,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "symbol_mod",
+					"id": "sym_weight_heal",
+					"rarity": "common",
+					"target": "symbol_weight"
+				},
+				{
+					"category": "reel_control",
+					"id": "control_mercy",
+					"rarity": "common",
+					"target": "reel_control"
+				},
+				{
+					"category": "rule_mod",
+					"id": "circuit_triple_echo",
+					"rarity": "common",
+					"target": "circuit_acquire"
+				}
+			],
+			"draft_id": "draft_1961911838",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"sym_weight_heal",
+				"control_mercy",
+				"circuit_triple_echo"
+			],
+			"room": 2,
+			"source": "reroll"
+		},
+		{
+			"draft_id": "draft_1961911838",
+			"effect_id": "run_symbol_bonus",
+			"event": "reward_selected",
+			"hp_ratio": 1.0,
+			"reward_id": "sym_weight_heal",
+			"snapshot": {
+				"circuits": [
+					"circuit_pair"
+				],
+				"gold": 95,
+				"hp": 100,
+				"weapons": [
+					"res://resources/weapon_templates/eclipse_blade.tres",
+					"res://resources/weapon_templates/short_sword.tres"
+				]
+			}
+		},
+		{
+			"effect_id": "run_symbol_bonus",
+			"event": "reward_applied",
+			"reward_id": "sym_weight_heal",
+			"summary": "符号权重 +3（1→4 格）"
+		},
+		{
+			"act": 1,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "rule_mod",
+					"id": "circuit_damage_shield",
+					"rarity": "uncommon",
+					"target": "circuit_acquire"
+				},
+				{
+					"category": "rule_mod",
+					"id": "circuit_triple_echo",
+					"rarity": "common",
+					"target": "circuit_acquire"
+				},
+				{
+					"category": "skill",
+					"id": "perk_reserve",
+					"rarity": "uncommon",
+					"target": "perk"
+				}
+			],
+			"draft_id": "draft_185936702",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"circuit_damage_shield",
+				"circuit_triple_echo",
+				"perk_reserve"
+			],
+			"room": 3,
+			"source": "normal"
+		},
+		{
+			"cost": 5,
+			"draft_id": "draft_1755831460",
+			"event": "reward_rerolled",
+			"free": false,
+			"same_group": false
+		},
+		{
+			"act": 1,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "weapon",
+					"id": "weapon_acquire_dagger",
+					"rarity": "uncommon",
+					"target": "weapon_acquire"
+				},
+				{
+					"category": "symbol_mod",
+					"id": "sym_weight_shadow_slash",
+					"rarity": "common",
+					"target": "symbol_weight"
+				},
+				{
+					"category": "rule_mod",
+					"id": "circuit_triple_echo",
+					"rarity": "common",
+					"target": "circuit_acquire"
+				}
+			],
+			"draft_id": "draft_1755831460",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"weapon_acquire_dagger",
+				"sym_weight_shadow_slash",
+				"circuit_triple_echo"
+			],
+			"room": 3,
+			"source": "reroll"
+		},
+		{
+			"draft_id": "draft_1755831460",
+			"event": "reward_skipped",
+			"reward_ids": [
+				"weapon_acquire_dagger",
+				"sym_weight_shadow_slash",
+				"circuit_triple_echo"
+			]
+		},
+		{
+			"act": 1,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "rule_mod",
+					"id": "circuit_triple_echo",
+					"rarity": "common",
+					"target": "circuit_acquire"
+				},
+				{
+					"category": "survival_resource",
+					"id": "seed_gold_cache",
+					"rarity": "common",
+					"target": "gold_add"
+				},
+				{
+					"category": "rule_mod",
+					"id": "circuit_status_react",
+					"rarity": "common",
+					"target": "circuit_acquire"
+				}
+			],
+			"draft_id": "draft_1314749166",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"circuit_triple_echo",
+				"seed_gold_cache",
+				"circuit_status_react"
+			],
+			"room": 4,
+			"source": "normal"
+		},
+		{
+			"draft_id": "draft_1314749166",
+			"event": "reward_skipped",
+			"reward_ids": [
+				"circuit_triple_echo",
+				"seed_gold_cache",
+				"circuit_status_react"
+			]
+		},
+		{
+			"act": 1,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "reel_control",
+					"id": "control_mercy",
+					"rarity": "common",
+					"target": "reel_control"
+				},
+				{
+					"category": "rule_mod",
+					"id": "circuit_triple_echo",
+					"rarity": "common",
+					"target": "circuit_acquire"
+				},
+				{
+					"category": "survival_resource",
+					"id": "seed_gold_cache",
+					"rarity": "common",
+					"target": "gold_add"
+				}
+			],
+			"draft_id": "draft_1445578767",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"control_mercy",
+				"circuit_triple_echo",
+				"seed_gold_cache"
+			],
+			"room": 5,
+			"source": "normal"
+		},
+		{
+			"draft_id": "draft_1445578767",
+			"effect_id": "reel_control",
+			"event": "reward_selected",
+			"hp_ratio": 1.0,
+			"reward_id": "control_mercy",
+			"snapshot": {
+				"circuits": [
+					"circuit_pair"
+				],
+				"gold": 100,
+				"hp": 100,
+				"weapons": [
+					"res://resources/weapon_templates/eclipse_blade.tres",
+					"res://resources/weapon_templates/short_sword.tres"
+				]
+			}
+		},
+		{
+			"effect_id": "reel_control",
+			"event": "reward_applied",
+			"reward_id": "control_mercy",
+			"summary": "获得操控「mercy」"
+		},
+		{
+			"act": 1,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "symbol_mod",
+					"id": "sym_effect_shadow_blight",
+					"rarity": "common",
+					"target": "symbol_effect"
+				},
+				{
+					"category": "rule_mod",
+					"id": "circuit_damage_shield",
+					"rarity": "uncommon",
+					"target": "circuit_acquire"
+				},
+				{
+					"category": "survival_resource",
+					"id": "seed_gold_cache",
+					"rarity": "common",
+					"target": "gold_add"
+				}
+			],
+			"draft_id": "draft_11579790",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"sym_effect_shadow_blight",
+				"circuit_damage_shield",
+				"seed_gold_cache"
+			],
+			"room": 6,
+			"source": "normal"
+		},
+		{
+			"cost": 5,
+			"draft_id": "draft_885005123",
+			"event": "reward_rerolled",
+			"free": false,
+			"same_group": false
+		},
+		{
+			"act": 1,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "survival_resource",
+					"id": "seed_gold_cache",
+					"rarity": "common",
+					"target": "gold_add"
+				},
+				{
+					"category": "weapon",
+					"id": "weapon_acquire_dagger",
+					"rarity": "uncommon",
+					"target": "weapon_acquire"
+				},
+				{
+					"category": "survival_resource",
+					"id": "seed_guardian_ember",
+					"rarity": "uncommon",
+					"target": "shield"
+				}
+			],
+			"draft_id": "draft_885005123",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"seed_gold_cache",
+				"weapon_acquire_dagger",
+				"seed_guardian_ember"
+			],
+			"room": 6,
+			"source": "reroll"
+		},
+		{
+			"draft_id": "draft_885005123",
+			"effect_id": "gold_add",
+			"event": "reward_selected",
+			"hp_ratio": 1.0,
+			"reward_id": "seed_gold_cache",
+			"snapshot": {
+				"circuits": [
+					"circuit_pair"
+				],
+				"gold": 107,
+				"hp": 100,
+				"weapons": [
+					"res://resources/weapon_templates/eclipse_blade.tres",
+					"res://resources/weapon_templates/short_sword.tres"
+				]
+			}
+		},
+		{
+			"effect_id": "gold_add",
+			"event": "reward_applied",
+			"reward_id": "seed_gold_cache",
+			"summary": "金币 +12"
+		},
+		{
+			"act": 1,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "weapon",
+					"id": "weapon_acquire_dagger",
+					"rarity": "uncommon",
+					"target": "weapon_acquire"
+				},
+				{
+					"category": "reel_control",
+					"id": "control_trash_reroll",
+					"rarity": "common",
+					"target": "reel_control"
+				},
+				{
+					"category": "rule_mod",
+					"id": "circuit_armor_break",
+					"rarity": "uncommon",
+					"target": "circuit_acquire"
+				}
+			],
+			"draft_id": "draft_2795441431",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"weapon_acquire_dagger",
+				"control_trash_reroll",
+				"circuit_armor_break"
+			],
+			"room": 7,
+			"source": "normal"
+		},
+		{
+			"cost": 5,
+			"draft_id": "draft_2889436336",
+			"event": "reward_rerolled",
+			"free": false,
+			"same_group": false
+		},
+		{
+			"act": 1,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "symbol_mod",
+					"id": "sym_weight_shadow_slash",
+					"rarity": "common",
+					"target": "symbol_weight"
+				},
+				{
+					"category": "weapon",
+					"id": "weapon_acquire_dagger",
+					"rarity": "uncommon",
+					"target": "weapon_acquire"
+				},
+				{
+					"category": "rule_mod",
+					"id": "circuit_triple_echo",
+					"rarity": "common",
+					"target": "circuit_acquire"
+				}
+			],
+			"draft_id": "draft_2889436336",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"sym_weight_shadow_slash",
+				"weapon_acquire_dagger",
+				"circuit_triple_echo"
+			],
+			"room": 7,
+			"source": "reroll"
+		},
+		{
+			"draft_id": "draft_2889436336",
+			"event": "reward_skipped",
+			"reward_ids": [
+				"sym_weight_shadow_slash",
+				"weapon_acquire_dagger",
+				"circuit_triple_echo"
+			]
+		},
+		{
+			"act": 2,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "rule_mod",
+					"id": "circuit_triple_echo",
+					"rarity": "common",
+					"target": "circuit_acquire"
+				},
+				{
+					"category": "weapon",
+					"id": "weapon_acquire_dagger",
+					"rarity": "uncommon",
+					"target": "weapon_acquire"
+				},
+				{
+					"category": "symbol_mod",
+					"id": "sym_effect_shadow_slash",
+					"rarity": "common",
+					"target": "symbol_effect"
+				}
+			],
+			"draft_id": "draft_2390863525",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"circuit_triple_echo",
+				"weapon_acquire_dagger",
+				"sym_effect_shadow_slash"
+			],
+			"room": 8,
+			"source": "normal"
+		},
+		{
+			"draft_id": "draft_2390863525",
+			"event": "reward_skipped",
+			"reward_ids": [
+				"circuit_triple_echo",
+				"weapon_acquire_dagger",
+				"sym_effect_shadow_slash"
+			]
+		},
+		{
+			"act": 2,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "rule_mod",
+					"id": "circuit_triple_echo",
+					"rarity": "common",
+					"target": "circuit_acquire"
+				},
+				{
+					"category": "reel_control",
+					"id": "control_slow_ramp",
+					"rarity": "common",
+					"target": "reel_control"
+				},
+				{
+					"category": "rule_mod",
+					"id": "circuit_armor_break",
+					"rarity": "uncommon",
+					"target": "circuit_acquire"
+				}
+			],
+			"draft_id": "draft_3176006985",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"circuit_triple_echo",
+				"control_slow_ramp",
+				"circuit_armor_break"
+			],
+			"room": 9,
+			"source": "normal"
+		},
+		{
+			"draft_id": "draft_3176006985",
+			"effect_id": "circuit_acquire",
+			"event": "reward_selected",
+			"hp_ratio": 1.0,
+			"reward_id": "circuit_triple_echo",
+			"snapshot": {
+				"circuits": [
+					"circuit_pair",
+					"circuit_triple_echo"
+				],
+				"gold": 100,
+				"hp": 100,
+				"weapons": [
+					"res://resources/weapon_templates/eclipse_blade.tres",
+					"res://resources/weapon_templates/short_sword.tres"
+				]
+			}
+		},
+		{
+			"effect_id": "circuit_acquire",
+			"event": "reward_applied",
+			"reward_id": "circuit_triple_echo",
+			"summary": "获得回路「三连回响」（本局仓库，可在构筑界面装备）"
+		},
+		{
+			"act": 2,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "symbol_mod",
+					"id": "sym_effect_iron_slash",
+					"rarity": "common",
+					"target": "symbol_effect"
+				},
+				{
+					"category": "skill",
+					"id": "perk_surge",
+					"rarity": "uncommon",
+					"target": "perk"
+				},
+				{
+					"category": "rule_mod",
+					"id": "circuit_status_react",
+					"rarity": "common",
+					"target": "circuit_acquire"
+				}
+			],
+			"draft_id": "draft_236668584",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"sym_effect_iron_slash",
+				"perk_surge",
+				"circuit_status_react"
+			],
+			"room": 10,
+			"source": "normal"
+		},
+		{
+			"cost": 5,
+			"draft_id": "draft_884966605",
+			"event": "reward_rerolled",
+			"free": false,
+			"same_group": false
+		},
+		{
+			"act": 2,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "reel_control",
+					"id": "control_trash_reroll",
+					"rarity": "common",
+					"target": "reel_control"
+				},
+				{
+					"category": "weapon",
+					"id": "weapon_acquire_dagger",
+					"rarity": "uncommon",
+					"target": "weapon_acquire"
+				},
+				{
+					"category": "symbol_mod",
+					"id": "sym_effect_iron_slash",
+					"rarity": "common",
+					"target": "symbol_effect"
+				}
+			],
+			"draft_id": "draft_884966605",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"control_trash_reroll",
+				"weapon_acquire_dagger",
+				"sym_effect_iron_slash"
+			],
+			"room": 10,
+			"source": "reroll"
+		},
+		{
+			"draft_id": "draft_884966605",
+			"effect_id": "reel_control",
+			"event": "reward_selected",
+			"hp_ratio": 1.0,
+			"reward_id": "control_trash_reroll",
+			"snapshot": {
+				"circuits": [
+					"circuit_pair",
+					"circuit_triple_echo"
+				],
+				"gold": 95,
+				"hp": 100,
+				"weapons": [
+					"res://resources/weapon_templates/eclipse_blade.tres",
+					"res://resources/weapon_templates/short_sword.tres"
+				]
+			}
+		},
+		{
+			"effect_id": "reel_control",
+			"event": "reward_applied",
+			"reward_id": "control_trash_reroll",
+			"summary": "获得操控「trash_reroll」"
+		},
+		{
+			"act": 2,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "rule_mod",
+					"id": "circuit_status_react",
+					"rarity": "common",
+					"target": "circuit_acquire"
+				},
+				{
+					"category": "skill",
+					"id": "perk_reserve",
+					"rarity": "uncommon",
+					"target": "perk"
+				},
+				{
+					"category": "reel_control",
+					"id": "control_slow_ramp",
+					"rarity": "common",
+					"target": "reel_control"
+				}
+			],
+			"draft_id": "draft_1020893483",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"circuit_status_react",
+				"perk_reserve",
+				"control_slow_ramp"
+			],
+			"room": 11,
+			"source": "normal"
+		},
+		{
+			"cost": 5,
+			"draft_id": "draft_3509926452",
+			"event": "reward_rerolled",
+			"free": false,
+			"same_group": false
+		},
+		{
+			"act": 2,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "reel_control",
+					"id": "control_slow_ramp",
+					"rarity": "common",
+					"target": "reel_control"
+				},
+				{
+					"category": "skill",
+					"id": "perk_hoard",
+					"rarity": "uncommon",
+					"target": "perk"
+				},
+				{
+					"category": "symbol_mod",
+					"id": "sym_weight_shadow_slash",
+					"rarity": "common",
+					"target": "symbol_weight"
+				}
+			],
+			"draft_id": "draft_3509926452",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"control_slow_ramp",
+				"perk_hoard",
+				"sym_weight_shadow_slash"
+			],
+			"room": 11,
+			"source": "reroll"
+		},
+		{
+			"draft_id": "draft_3509926452",
+			"event": "reward_skipped",
+			"reward_ids": [
+				"control_slow_ramp",
+				"perk_hoard",
+				"sym_weight_shadow_slash"
+			]
+		},
+		{
+			"act": 2,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "rule_mod",
+					"id": "circuit_tri_color",
+					"rarity": "rare",
+					"target": "circuit_acquire"
+				},
+				{
+					"category": "weapon",
+					"id": "weapon_acquire_dagger",
+					"rarity": "uncommon",
+					"target": "weapon_acquire"
+				},
+				{
+					"category": "skill",
+					"id": "perk_reclaim",
+					"rarity": "uncommon",
+					"target": "perk"
+				}
+			],
+			"draft_id": "draft_2265491113",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"circuit_tri_color",
+				"weapon_acquire_dagger",
+				"perk_reclaim"
+			],
+			"room": 12,
+			"source": "normal"
+		},
+		{
+			"draft_id": "draft_2265491113",
+			"event": "reward_skipped",
+			"reward_ids": [
+				"circuit_tri_color",
+				"weapon_acquire_dagger",
+				"perk_reclaim"
+			]
+		},
+		{
+			"act": 2,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "symbol_mod",
+					"id": "seed_edge_polish",
+					"rarity": "common",
+					"target": "run_power_bonus"
+				},
+				{
+					"category": "reel_control",
+					"id": "control_slow_ramp",
+					"rarity": "common",
+					"target": "reel_control"
+				},
+				{
+					"category": "rule_mod",
+					"id": "circuit_status_react",
+					"rarity": "common",
+					"target": "circuit_acquire"
+				}
+			],
+			"draft_id": "draft_2461351153",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"seed_edge_polish",
+				"control_slow_ramp",
+				"circuit_status_react"
+			],
+			"room": 13,
+			"source": "normal"
+		},
+		{
+			"draft_id": "draft_2461351153",
+			"effect_id": "run_power_bonus",
+			"event": "reward_selected",
+			"hp_ratio": 1.0,
+			"reward_id": "seed_edge_polish",
+			"snapshot": {
+				"circuits": [
+					"circuit_pair",
+					"circuit_triple_echo"
+				],
+				"gold": 100,
+				"hp": 100,
+				"weapons": [
+					"res://resources/weapon_templates/eclipse_blade.tres",
+					"res://resources/weapon_templates/short_sword.tres"
+				]
+			}
+		},
+		{
+			"effect_id": "run_power_bonus",
+			"event": "reward_applied",
+			"reward_id": "seed_edge_polish",
+			"summary": "本局伤害 +2"
+		},
+		{
+			"act": 2,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "survival_resource",
+					"id": "seed_gold_cache",
+					"rarity": "common",
+					"target": "gold_add"
+				},
+				{
+					"category": "symbol_mod",
+					"id": "sym_weight_heal",
+					"rarity": "common",
+					"target": "symbol_weight"
+				},
+				{
+					"category": "weapon",
+					"id": "weapon_acquire_dagger",
+					"rarity": "uncommon",
+					"target": "weapon_acquire"
+				}
+			],
+			"draft_id": "draft_1997490228",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"seed_gold_cache",
+				"sym_weight_heal",
+				"weapon_acquire_dagger"
+			],
+			"room": 14,
+			"source": "normal"
+		},
+		{
+			"cost": 5,
+			"draft_id": "draft_3357467124",
+			"event": "reward_rerolled",
+			"free": false,
+			"same_group": false
+		},
+		{
+			"act": 2,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "symbol_mod",
+					"id": "sym_weight_heal",
+					"rarity": "common",
+					"target": "symbol_weight"
+				},
+				{
+					"category": "rule_mod",
+					"id": "circuit_status_react",
+					"rarity": "common",
+					"target": "circuit_acquire"
+				},
+				{
+					"category": "reel_control",
+					"id": "control_slow_ramp",
+					"rarity": "common",
+					"target": "reel_control"
+				}
+			],
+			"draft_id": "draft_3357467124",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"sym_weight_heal",
+				"circuit_status_react",
+				"control_slow_ramp"
+			],
+			"room": 14,
+			"source": "reroll"
+		},
+		{
+			"draft_id": "draft_3357467124",
+			"effect_id": "run_symbol_bonus",
+			"event": "reward_selected",
+			"hp_ratio": 1.0,
+			"reward_id": "sym_weight_heal",
+			"snapshot": {
+				"circuits": [
+					"circuit_pair",
+					"circuit_triple_echo"
+				],
+				"gold": 95,
+				"hp": 100,
+				"weapons": [
+					"res://resources/weapon_templates/eclipse_blade.tres",
+					"res://resources/weapon_templates/short_sword.tres"
+				]
+			}
+		},
+		{
+			"effect_id": "run_symbol_bonus",
+			"event": "reward_applied",
+			"reward_id": "sym_weight_heal",
+			"summary": "符号权重 +3（4→7 格）"
+		},
+		{
+			"act": 2,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "weapon",
+					"id": "weapon_acquire_dagger",
+					"rarity": "uncommon",
+					"target": "weapon_acquire"
+				},
+				{
+					"category": "reel_control",
+					"id": "control_slow_ramp",
+					"rarity": "common",
+					"target": "reel_control"
+				},
+				{
+					"category": "symbol_mod",
+					"id": "sym_effect_iron_slash",
+					"rarity": "common",
+					"target": "symbol_effect"
+				}
+			],
+			"draft_id": "draft_2946259813",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"weapon_acquire_dagger",
+				"control_slow_ramp",
+				"sym_effect_iron_slash"
+			],
+			"room": 15,
+			"source": "normal"
+		},
+		{
+			"cost": 5,
+			"draft_id": "draft_1463076049",
+			"event": "reward_rerolled",
+			"free": false,
+			"same_group": false
+		},
+		{
+			"act": 2,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "rule_mod",
+					"id": "circuit_armor_break",
+					"rarity": "uncommon",
+					"target": "circuit_acquire"
+				},
+				{
+					"category": "weapon",
+					"id": "weapon_acquire_dagger",
+					"rarity": "uncommon",
+					"target": "weapon_acquire"
+				},
+				{
+					"category": "symbol_mod",
+					"id": "sym_effect_shadow_slash",
+					"rarity": "common",
+					"target": "symbol_effect"
+				}
+			],
+			"draft_id": "draft_1463076049",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"circuit_armor_break",
+				"weapon_acquire_dagger",
+				"sym_effect_shadow_slash"
+			],
+			"room": 15,
+			"source": "reroll"
+		},
+		{
+			"draft_id": "draft_1463076049",
+			"event": "reward_skipped",
+			"reward_ids": [
+				"circuit_armor_break",
+				"weapon_acquire_dagger",
+				"sym_effect_shadow_slash"
+			]
+		},
+		{
+			"act": 3,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "rule_mod",
+					"id": "circuit_status_react",
+					"rarity": "common",
+					"target": "circuit_acquire"
+				},
+				{
+					"category": "weapon",
+					"id": "weapon_acquire_dagger",
+					"rarity": "uncommon",
+					"target": "weapon_acquire"
+				},
+				{
+					"category": "survival_resource",
+					"id": "seed_gold_cache",
+					"rarity": "common",
+					"target": "gold_add"
+				}
+			],
+			"draft_id": "draft_1668709047",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"circuit_status_react",
+				"weapon_acquire_dagger",
+				"seed_gold_cache"
+			],
+			"room": 16,
+			"source": "normal"
+		},
+		{
+			"draft_id": "draft_1668709047",
+			"event": "reward_skipped",
+			"reward_ids": [
+				"circuit_status_react",
+				"weapon_acquire_dagger",
+				"seed_gold_cache"
+			]
+		},
+		{
+			"act": 3,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "rule_mod",
+					"id": "circuit_status_react",
+					"rarity": "common",
+					"target": "circuit_acquire"
+				},
+				{
+					"category": "survival_resource",
+					"id": "seed_gold_cache",
+					"rarity": "common",
+					"target": "gold_add"
+				},
+				{
+					"category": "symbol_mod",
+					"id": "seed_edge_polish",
+					"rarity": "common",
+					"target": "run_power_bonus"
+				}
+			],
+			"draft_id": "draft_375898885",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"circuit_status_react",
+				"seed_gold_cache",
+				"seed_edge_polish"
+			],
+			"room": 17,
+			"source": "normal"
+		},
+		{
+			"draft_id": "draft_375898885",
+			"effect_id": "circuit_acquire",
+			"event": "reward_selected",
+			"hp_ratio": 1.0,
+			"reward_id": "circuit_status_react",
+			"snapshot": {
+				"circuits": [
+					"circuit_pair",
+					"circuit_triple_echo",
+					"circuit_status_react"
+				],
+				"gold": 100,
+				"hp": 100,
+				"weapons": [
+					"res://resources/weapon_templates/eclipse_blade.tres",
+					"res://resources/weapon_templates/short_sword.tres"
+				]
+			}
+		},
+		{
+			"effect_id": "circuit_acquire",
+			"event": "reward_applied",
+			"reward_id": "circuit_status_react",
+			"summary": "获得回路「状态反应」（本局仓库，可在构筑界面装备）"
+		},
+		{
+			"act": 3,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "symbol_mod",
+					"id": "sym_effect_iron_slash",
+					"rarity": "common",
+					"target": "symbol_effect"
+				},
+				{
+					"category": "rule_mod",
+					"id": "circuit_armor_break",
+					"rarity": "uncommon",
+					"target": "circuit_acquire"
+				},
+				{
+					"category": "reel_control",
+					"id": "control_slow_ramp",
+					"rarity": "common",
+					"target": "reel_control"
+				}
+			],
+			"draft_id": "draft_4285870316",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"sym_effect_iron_slash",
+				"circuit_armor_break",
+				"control_slow_ramp"
+			],
+			"room": 18,
+			"source": "normal"
+		},
+		{
+			"cost": 5,
+			"draft_id": "draft_3200463034",
+			"event": "reward_rerolled",
+			"free": false,
+			"same_group": false
+		},
+		{
+			"act": 3,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "symbol_mod",
+					"id": "sym_weight_shadow_blight",
+					"rarity": "common",
+					"target": "symbol_weight"
+				},
+				{
+					"category": "reel_control",
+					"id": "control_slow_ramp",
+					"rarity": "common",
+					"target": "reel_control"
+				},
+				{
+					"category": "skill",
+					"id": "perk_hoard",
+					"rarity": "uncommon",
+					"target": "perk"
+				}
+			],
+			"draft_id": "draft_3200463034",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"sym_weight_shadow_blight",
+				"control_slow_ramp",
+				"perk_hoard"
+			],
+			"room": 18,
+			"source": "reroll"
+		},
+		{
+			"draft_id": "draft_3200463034",
+			"effect_id": "run_symbol_bonus",
+			"event": "reward_selected",
+			"hp_ratio": 1.0,
+			"reward_id": "sym_weight_shadow_blight",
+			"snapshot": {
+				"circuits": [
+					"circuit_pair",
+					"circuit_triple_echo",
+					"circuit_status_react"
+				],
+				"gold": 95,
+				"hp": 100,
+				"weapons": [
+					"res://resources/weapon_templates/eclipse_blade.tres",
+					"res://resources/weapon_templates/short_sword.tres"
+				]
+			}
+		},
+		{
+			"effect_id": "run_symbol_bonus",
+			"event": "reward_applied",
+			"reward_id": "sym_weight_shadow_blight",
+			"summary": "符号权重 +3（4→7 格）"
+		},
+		{
+			"act": 3,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "rule_mod",
+					"id": "circuit_damage_shield",
+					"rarity": "uncommon",
+					"target": "circuit_acquire"
+				},
+				{
+					"category": "reel_control",
+					"id": "control_slow_ramp",
+					"rarity": "common",
+					"target": "reel_control"
+				},
+				{
+					"category": "survival_resource",
+					"id": "seed_gold_cache",
+					"rarity": "common",
+					"target": "gold_add"
+				}
+			],
+			"draft_id": "draft_3608076737",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"circuit_damage_shield",
+				"control_slow_ramp",
+				"seed_gold_cache"
+			],
+			"room": 19,
+			"source": "normal"
+		},
+		{
+			"cost": 5,
+			"draft_id": "draft_3828062404",
+			"event": "reward_rerolled",
+			"free": false,
+			"same_group": false
+		},
+		{
+			"act": 3,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "symbol_mod",
+					"id": "sym_weight_shadow_blight",
+					"rarity": "common",
+					"target": "symbol_weight"
+				},
+				{
+					"category": "rule_mod",
+					"id": "circuit_damage_shield",
+					"rarity": "uncommon",
+					"target": "circuit_acquire"
+				},
+				{
+					"category": "weapon",
+					"id": "weapon_acquire_dagger",
+					"rarity": "uncommon",
+					"target": "weapon_acquire"
+				}
+			],
+			"draft_id": "draft_3828062404",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"sym_weight_shadow_blight",
+				"circuit_damage_shield",
+				"weapon_acquire_dagger"
+			],
+			"room": 19,
+			"source": "reroll"
+		},
+		{
+			"draft_id": "draft_3828062404",
+			"event": "reward_skipped",
+			"reward_ids": [
+				"sym_weight_shadow_blight",
+				"circuit_damage_shield",
+				"weapon_acquire_dagger"
+			]
+		}
+	],
+	"route": [],
+	"schema": 2,
+	"shop": [],
+	"special": [],
+	"started_at": "2026-11-21T11:17:06",
+	"telemetry": {
+		"assist": {
+			"preset": "control",
+			"preview_slots": 0,
+			"source": "default"
+		},
+		"avg_spin": 0.0,
+		"avg_ttk": 0.0,
+		"buffer_queues": 0,
+		"consumable_uses": {},
+		"counter_burst_damage": 0,
+		"counter_triples": 0,
+		"damage_blocked": 0,
+		"damage_taken": 0,
+		"draft_cards_shown": 90,
+		"draft_free_rerolls": 0,
+		"draft_reroll_same_group": 0,
+		"draft_rerolled": 10,
+		"draft_selected": 10,
+		"draft_shown": 30,
+		"draft_skipped": 10,
+		"enemy_attacks": 0,
+		"forced_stops": 0,
+		"heal_overflow_shield": 0,
+		"heal_total": 0,
+		"reward_pick_rate": 0.0,
+		"reward_picks": {},
+		"rewards_shown": 0,
+		"rooms_cleared": 0,
+		"spin_seconds": 0.0,
+		"spins": 0,
+		"stop_kinds": {},
+		"stop_outcomes": {},
+		"stop_total": 0,
+		"target_hit_rate": 0.0,
+		"target_hits": 0,
+		"target_symbol": "res://resources/symbols/shadow_slash.tres",
+		"triple_rate": 0.0,
+		"triples": 0,
+		"turns": 0,
+		"weapon_swaps": 0
+	},
+	"weapon_changes": []
+}

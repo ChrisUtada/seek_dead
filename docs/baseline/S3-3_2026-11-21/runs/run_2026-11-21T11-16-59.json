@@ -1,0 +1,1481 @@
+{
+	"act": 1,
+	"act_boons": [],
+	"acts": [],
+	"battles": [],
+	"battles_count": 0,
+	"camp": [],
+	"consumables": [],
+	"duration_sec": 2.1,
+	"ended_at": "2026-11-21T11:17:01",
+	"first_pick": {},
+	"growth": [],
+	"loadout_end": [
+		"冰霜枪",
+		"绝对零度"
+	],
+	"loadout_start": [
+		"冰霜枪",
+		"绝对零度"
+	],
+	"mode": "linear",
+	"nodes_total": 25,
+	"nodes_visited": 0,
+	"probe_note": "S3-3测试配装:TEST_ice_gun",
+	"probe_test_loadout": [
+		"res://resources/weapon_templates/ice_gun.tres",
+		"res://resources/weapon_templates/absolute_zero.tres"
+	],
+	"resolution": "0x0",
+	"result": "clear",
+	"reward_drafts": [
+		{
+			"act": 1,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "skill",
+					"id": "perk_hoard",
+					"rarity": "uncommon",
+					"target": "perk"
+				},
+				{
+					"category": "survival_resource",
+					"id": "seed_gold_cache",
+					"rarity": "common",
+					"target": "gold_add"
+				},
+				{
+					"category": "rule_mod",
+					"id": "circuit_status_react",
+					"rarity": "common",
+					"target": "circuit_acquire"
+				}
+			],
+			"draft_id": "draft_3199890335",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"perk_hoard",
+				"seed_gold_cache",
+				"circuit_status_react"
+			],
+			"room": 0,
+			"source": "normal"
+		},
+		{
+			"draft_id": "draft_3199890335",
+			"event": "reward_skipped",
+			"reward_ids": [
+				"perk_hoard",
+				"seed_gold_cache",
+				"circuit_status_react"
+			]
+		},
+		{
+			"act": 1,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "reel_control",
+					"id": "control_mercy",
+					"rarity": "common",
+					"target": "reel_control"
+				},
+				{
+					"category": "symbol_mod",
+					"id": "sym_effect_frost",
+					"rarity": "common",
+					"target": "symbol_effect"
+				},
+				{
+					"category": "survival_resource",
+					"id": "seed_gold_cache",
+					"rarity": "common",
+					"target": "gold_add"
+				}
+			],
+			"draft_id": "draft_1520732913",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"control_mercy",
+				"sym_effect_frost",
+				"seed_gold_cache"
+			],
+			"room": 1,
+			"source": "normal"
+		},
+		{
+			"draft_id": "draft_1520732913",
+			"effect_id": "reel_control",
+			"event": "reward_selected",
+			"hp_ratio": 1.0,
+			"reward_id": "control_mercy",
+			"snapshot": {
+				"circuits": [],
+				"gold": 100,
+				"hp": 100,
+				"weapons": [
+					"res://resources/weapon_templates/ice_gun.tres",
+					"res://resources/weapon_templates/absolute_zero.tres"
+				]
+			}
+		},
+		{
+			"effect_id": "reel_control",
+			"event": "reward_applied",
+			"reward_id": "control_mercy",
+			"summary": "获得操控「mercy」"
+		},
+		{
+			"act": 1,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "symbol_mod",
+					"id": "sym_effect_ice_shot",
+					"rarity": "common",
+					"target": "symbol_effect"
+				},
+				{
+					"category": "reel_control",
+					"id": "control_trash_reroll",
+					"rarity": "common",
+					"target": "reel_control"
+				},
+				{
+					"category": "survival_resource",
+					"id": "seed_gold_cache",
+					"rarity": "common",
+					"target": "gold_add"
+				}
+			],
+			"draft_id": "draft_2771474569",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"sym_effect_ice_shot",
+				"control_trash_reroll",
+				"seed_gold_cache"
+			],
+			"room": 2,
+			"source": "normal"
+		},
+		{
+			"cost": 5,
+			"draft_id": "draft_3241955685",
+			"event": "reward_rerolled",
+			"free": false,
+			"same_group": false
+		},
+		{
+			"act": 1,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "weapon",
+					"id": "weapon_acquire_dagger",
+					"rarity": "uncommon",
+					"target": "weapon_acquire"
+				},
+				{
+					"category": "rule_mod",
+					"id": "circuit_status_react",
+					"rarity": "common",
+					"target": "circuit_acquire"
+				},
+				{
+					"category": "symbol_mod",
+					"id": "sym_weight_ice_crystal",
+					"rarity": "common",
+					"target": "symbol_weight"
+				}
+			],
+			"draft_id": "draft_3241955685",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"weapon_acquire_dagger",
+				"circuit_status_react",
+				"sym_weight_ice_crystal"
+			],
+			"room": 2,
+			"source": "reroll"
+		},
+		{
+			"effect_id": "weapon_acquire",
+			"event": "reward_apply_failed",
+			"reason": "needs_replace",
+			"reward_id": "weapon_acquire_dagger"
+		},
+		{
+			"draft_id": "draft_3241955685",
+			"event": "reward_skipped",
+			"reward_ids": [
+				"weapon_acquire_dagger",
+				"circuit_status_react",
+				"sym_weight_ice_crystal"
+			]
+		},
+		{
+			"act": 1,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "rule_mod",
+					"id": "circuit_triple_echo",
+					"rarity": "common",
+					"target": "circuit_acquire"
+				},
+				{
+					"category": "reel_control",
+					"id": "control_trash_reroll",
+					"rarity": "common",
+					"target": "reel_control"
+				},
+				{
+					"category": "skill",
+					"id": "perk_spare",
+					"rarity": "uncommon",
+					"target": "perk"
+				}
+			],
+			"draft_id": "draft_4116804790",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"circuit_triple_echo",
+				"control_trash_reroll",
+				"perk_spare"
+			],
+			"room": 3,
+			"source": "normal"
+		},
+		{
+			"cost": 5,
+			"draft_id": "draft_1811675544",
+			"event": "reward_rerolled",
+			"free": false,
+			"same_group": false
+		},
+		{
+			"act": 1,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "symbol_mod",
+					"id": "sym_effect_frost",
+					"rarity": "common",
+					"target": "symbol_effect"
+				},
+				{
+					"category": "rule_mod",
+					"id": "circuit_status_react",
+					"rarity": "common",
+					"target": "circuit_acquire"
+				},
+				{
+					"category": "symbol_mod",
+					"id": "sym_weight_ice_shot",
+					"rarity": "common",
+					"target": "symbol_weight"
+				}
+			],
+			"draft_id": "draft_1811675544",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"sym_effect_frost",
+				"circuit_status_react",
+				"sym_weight_ice_shot"
+			],
+			"room": 3,
+			"source": "reroll"
+		},
+		{
+			"draft_id": "draft_1811675544",
+			"event": "reward_skipped",
+			"reward_ids": [
+				"sym_effect_frost",
+				"circuit_status_react",
+				"sym_weight_ice_shot"
+			]
+		},
+		{
+			"act": 1,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "symbol_mod",
+					"id": "sym_weight_frost",
+					"rarity": "common",
+					"target": "symbol_weight"
+				},
+				{
+					"category": "reel_control",
+					"id": "control_trash_reroll",
+					"rarity": "common",
+					"target": "reel_control"
+				},
+				{
+					"category": "rule_mod",
+					"id": "circuit_status_react",
+					"rarity": "common",
+					"target": "circuit_acquire"
+				}
+			],
+			"draft_id": "draft_1505565585",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"sym_weight_frost",
+				"control_trash_reroll",
+				"circuit_status_react"
+			],
+			"room": 4,
+			"source": "normal"
+		},
+		{
+			"draft_id": "draft_1505565585",
+			"event": "reward_skipped",
+			"reward_ids": [
+				"sym_weight_frost",
+				"control_trash_reroll",
+				"circuit_status_react"
+			]
+		},
+		{
+			"act": 1,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "weapon",
+					"id": "weapon_acquire_fire_sword",
+					"rarity": "uncommon",
+					"target": "weapon_acquire"
+				},
+				{
+					"category": "symbol_mod",
+					"id": "sym_weight_ice_shot",
+					"rarity": "common",
+					"target": "symbol_weight"
+				},
+				{
+					"category": "rule_mod",
+					"id": "circuit_armor_break",
+					"rarity": "uncommon",
+					"target": "circuit_acquire"
+				}
+			],
+			"draft_id": "draft_2159429997",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"weapon_acquire_fire_sword",
+				"sym_weight_ice_shot",
+				"circuit_armor_break"
+			],
+			"room": 5,
+			"source": "normal"
+		},
+		{
+			"effect_id": "weapon_acquire",
+			"event": "reward_apply_failed",
+			"reason": "needs_replace",
+			"reward_id": "weapon_acquire_fire_sword"
+		},
+		{
+			"draft_id": "draft_2159429997",
+			"event": "reward_skipped",
+			"reward_ids": [
+				"weapon_acquire_fire_sword",
+				"sym_weight_ice_shot",
+				"circuit_armor_break"
+			]
+		},
+		{
+			"act": 1,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "symbol_mod",
+					"id": "sym_weight_ice_crystal",
+					"rarity": "common",
+					"target": "symbol_weight"
+				},
+				{
+					"category": "rule_mod",
+					"id": "circuit_armor_break",
+					"rarity": "uncommon",
+					"target": "circuit_acquire"
+				},
+				{
+					"category": "weapon",
+					"id": "weapon_swap_fire_sword",
+					"rarity": "common",
+					"target": "weapon_swap"
+				}
+			],
+			"draft_id": "draft_4047042805",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"sym_weight_ice_crystal",
+				"circuit_armor_break",
+				"weapon_swap_fire_sword"
+			],
+			"room": 6,
+			"source": "normal"
+		},
+		{
+			"cost": 5,
+			"draft_id": "draft_4249888160",
+			"event": "reward_rerolled",
+			"free": false,
+			"same_group": false
+		},
+		{
+			"act": 1,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "rule_mod",
+					"id": "circuit_status_react",
+					"rarity": "common",
+					"target": "circuit_acquire"
+				},
+				{
+					"category": "symbol_mod",
+					"id": "sym_weight_heal",
+					"rarity": "common",
+					"target": "symbol_weight"
+				},
+				{
+					"category": "rule_mod",
+					"id": "circuit_pair",
+					"rarity": "uncommon",
+					"target": "circuit_acquire"
+				}
+			],
+			"draft_id": "draft_4249888160",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"circuit_status_react",
+				"sym_weight_heal",
+				"circuit_pair"
+			],
+			"room": 6,
+			"source": "reroll"
+		},
+		{
+			"draft_id": "draft_4249888160",
+			"effect_id": "circuit_acquire",
+			"event": "reward_selected",
+			"hp_ratio": 1.0,
+			"reward_id": "circuit_status_react",
+			"snapshot": {
+				"circuits": [
+					"circuit_status_react"
+				],
+				"gold": 95,
+				"hp": 100,
+				"weapons": [
+					"res://resources/weapon_templates/ice_gun.tres",
+					"res://resources/weapon_templates/absolute_zero.tres"
+				]
+			}
+		},
+		{
+			"effect_id": "circuit_acquire",
+			"event": "reward_applied",
+			"reward_id": "circuit_status_react",
+			"summary": "获得回路「状态反应」（本局仓库，可在构筑界面装备）"
+		},
+		{
+			"act": 1,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "weapon",
+					"id": "weapon_swap_dagger",
+					"rarity": "common",
+					"target": "weapon_swap"
+				},
+				{
+					"category": "reel_control",
+					"id": "control_trash_reroll",
+					"rarity": "common",
+					"target": "reel_control"
+				},
+				{
+					"category": "rule_mod",
+					"id": "circuit_tri_color",
+					"rarity": "rare",
+					"target": "circuit_acquire"
+				}
+			],
+			"draft_id": "draft_2656682846",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"weapon_swap_dagger",
+				"control_trash_reroll",
+				"circuit_tri_color"
+			],
+			"room": 7,
+			"source": "normal"
+		},
+		{
+			"cost": 5,
+			"draft_id": "draft_2407810066",
+			"event": "reward_rerolled",
+			"free": false,
+			"same_group": false
+		},
+		{
+			"act": 1,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "weapon",
+					"id": "weapon_swap_fire_sword",
+					"rarity": "common",
+					"target": "weapon_swap"
+				},
+				{
+					"category": "reel_control",
+					"id": "control_slow_ramp",
+					"rarity": "common",
+					"target": "reel_control"
+				},
+				{
+					"category": "rule_mod",
+					"id": "circuit_triple_echo",
+					"rarity": "common",
+					"target": "circuit_acquire"
+				}
+			],
+			"draft_id": "draft_2407810066",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"weapon_swap_fire_sword",
+				"control_slow_ramp",
+				"circuit_triple_echo"
+			],
+			"room": 7,
+			"source": "reroll"
+		},
+		{
+			"draft_id": "draft_2407810066",
+			"event": "reward_skipped",
+			"reward_ids": [
+				"weapon_swap_fire_sword",
+				"control_slow_ramp",
+				"circuit_triple_echo"
+			]
+		},
+		{
+			"act": 2,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "symbol_mod",
+					"id": "seed_edge_polish",
+					"rarity": "common",
+					"target": "run_power_bonus"
+				},
+				{
+					"category": "reel_control",
+					"id": "control_slow_ramp",
+					"rarity": "common",
+					"target": "reel_control"
+				},
+				{
+					"category": "symbol_mod",
+					"id": "sym_effect_frost",
+					"rarity": "common",
+					"target": "symbol_effect"
+				}
+			],
+			"draft_id": "draft_599181998",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"seed_edge_polish",
+				"control_slow_ramp",
+				"sym_effect_frost"
+			],
+			"room": 8,
+			"source": "normal"
+		},
+		{
+			"draft_id": "draft_599181998",
+			"event": "reward_skipped",
+			"reward_ids": [
+				"seed_edge_polish",
+				"control_slow_ramp",
+				"sym_effect_frost"
+			]
+		},
+		{
+			"act": 2,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "symbol_mod",
+					"id": "sym_effect_ice_shot",
+					"rarity": "common",
+					"target": "symbol_effect"
+				},
+				{
+					"category": "survival_resource",
+					"id": "seed_gold_cache",
+					"rarity": "common",
+					"target": "gold_add"
+				},
+				{
+					"category": "reel_control",
+					"id": "control_trash_reroll",
+					"rarity": "common",
+					"target": "reel_control"
+				}
+			],
+			"draft_id": "draft_3108076189",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"sym_effect_ice_shot",
+				"seed_gold_cache",
+				"control_trash_reroll"
+			],
+			"room": 9,
+			"source": "normal"
+		},
+		{
+			"draft_id": "draft_3108076189",
+			"effect_id": "symbol_effect_bonus",
+			"event": "reward_selected",
+			"hp_ratio": 1.0,
+			"reward_id": "sym_effect_ice_shot",
+			"snapshot": {
+				"circuits": [
+					"circuit_status_react"
+				],
+				"gold": 100,
+				"hp": 100,
+				"weapons": [
+					"res://resources/weapon_templates/ice_gun.tres",
+					"res://resources/weapon_templates/absolute_zero.tres"
+				]
+			}
+		},
+		{
+			"effect_id": "symbol_effect_bonus",
+			"event": "reward_applied",
+			"reward_id": "sym_effect_ice_shot",
+			"summary": "符号强化：ice_shot crit_chance +0.10"
+		},
+		{
+			"act": 2,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "symbol_mod",
+					"id": "sym_effect_ice_shot",
+					"rarity": "common",
+					"target": "symbol_effect"
+				},
+				{
+					"category": "survival_resource",
+					"id": "seed_gold_cache",
+					"rarity": "common",
+					"target": "gold_add"
+				},
+				{
+					"category": "symbol_mod",
+					"id": "sym_weight_ice_shot",
+					"rarity": "common",
+					"target": "symbol_weight"
+				}
+			],
+			"draft_id": "draft_1230792978",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"sym_effect_ice_shot",
+				"seed_gold_cache",
+				"sym_weight_ice_shot"
+			],
+			"room": 10,
+			"source": "normal"
+		},
+		{
+			"cost": 5,
+			"draft_id": "draft_1780453",
+			"event": "reward_rerolled",
+			"free": false,
+			"same_group": false
+		},
+		{
+			"act": 2,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "weapon",
+					"id": "weapon_swap_dagger",
+					"rarity": "common",
+					"target": "weapon_swap"
+				},
+				{
+					"category": "rule_mod",
+					"id": "circuit_triple_echo",
+					"rarity": "common",
+					"target": "circuit_acquire"
+				},
+				{
+					"category": "skill",
+					"id": "perk_surge",
+					"rarity": "uncommon",
+					"target": "perk"
+				}
+			],
+			"draft_id": "draft_1780453",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"weapon_swap_dagger",
+				"circuit_triple_echo",
+				"perk_surge"
+			],
+			"room": 10,
+			"source": "reroll"
+		},
+		{
+			"effect_id": "weapon_swap",
+			"event": "reward_apply_failed",
+			"reason": "needs_replace",
+			"reward_id": "weapon_swap_dagger"
+		},
+		{
+			"draft_id": "draft_1780453",
+			"event": "reward_skipped",
+			"reward_ids": [
+				"weapon_swap_dagger",
+				"circuit_triple_echo",
+				"perk_surge"
+			]
+		},
+		{
+			"act": 2,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "rule_mod",
+					"id": "circuit_triple_echo",
+					"rarity": "common",
+					"target": "circuit_acquire"
+				},
+				{
+					"category": "reel_control",
+					"id": "control_trash_reroll",
+					"rarity": "common",
+					"target": "reel_control"
+				},
+				{
+					"category": "rule_mod",
+					"id": "circuit_damage_shield",
+					"rarity": "uncommon",
+					"target": "circuit_acquire"
+				}
+			],
+			"draft_id": "draft_1501579843",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"circuit_triple_echo",
+				"control_trash_reroll",
+				"circuit_damage_shield"
+			],
+			"room": 11,
+			"source": "normal"
+		},
+		{
+			"cost": 5,
+			"draft_id": "draft_2315293844",
+			"event": "reward_rerolled",
+			"free": false,
+			"same_group": false
+		},
+		{
+			"act": 2,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "symbol_mod",
+					"id": "sym_effect_ice_shot",
+					"rarity": "common",
+					"target": "symbol_effect"
+				},
+				{
+					"category": "rule_mod",
+					"id": "circuit_damage_shield",
+					"rarity": "uncommon",
+					"target": "circuit_acquire"
+				},
+				{
+					"category": "weapon",
+					"id": "weapon_swap_fire_sword",
+					"rarity": "common",
+					"target": "weapon_swap"
+				}
+			],
+			"draft_id": "draft_2315293844",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"sym_effect_ice_shot",
+				"circuit_damage_shield",
+				"weapon_swap_fire_sword"
+			],
+			"room": 11,
+			"source": "reroll"
+		},
+		{
+			"draft_id": "draft_2315293844",
+			"event": "reward_skipped",
+			"reward_ids": [
+				"sym_effect_ice_shot",
+				"circuit_damage_shield",
+				"weapon_swap_fire_sword"
+			]
+		},
+		{
+			"act": 2,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "symbol_mod",
+					"id": "sym_effect_frost",
+					"rarity": "common",
+					"target": "symbol_effect"
+				},
+				{
+					"category": "reel_control",
+					"id": "control_slow_ramp",
+					"rarity": "common",
+					"target": "reel_control"
+				},
+				{
+					"category": "rule_mod",
+					"id": "circuit_pair",
+					"rarity": "uncommon",
+					"target": "circuit_acquire"
+				}
+			],
+			"draft_id": "draft_685786156",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"sym_effect_frost",
+				"control_slow_ramp",
+				"circuit_pair"
+			],
+			"room": 12,
+			"source": "normal"
+		},
+		{
+			"draft_id": "draft_685786156",
+			"event": "reward_skipped",
+			"reward_ids": [
+				"sym_effect_frost",
+				"control_slow_ramp",
+				"circuit_pair"
+			]
+		},
+		{
+			"act": 2,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "rule_mod",
+					"id": "circuit_pair",
+					"rarity": "uncommon",
+					"target": "circuit_acquire"
+				},
+				{
+					"category": "reel_control",
+					"id": "control_trash_reroll",
+					"rarity": "common",
+					"target": "reel_control"
+				},
+				{
+					"category": "reel_control",
+					"id": "control_slow_ramp",
+					"rarity": "common",
+					"target": "reel_control"
+				}
+			],
+			"draft_id": "draft_2617829789",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"circuit_pair",
+				"control_trash_reroll",
+				"control_slow_ramp"
+			],
+			"room": 13,
+			"source": "normal"
+		},
+		{
+			"draft_id": "draft_2617829789",
+			"effect_id": "circuit_acquire",
+			"event": "reward_selected",
+			"hp_ratio": 1.0,
+			"reward_id": "circuit_pair",
+			"snapshot": {
+				"circuits": [
+					"circuit_status_react",
+					"circuit_pair"
+				],
+				"gold": 100,
+				"hp": 100,
+				"weapons": [
+					"res://resources/weapon_templates/ice_gun.tres",
+					"res://resources/weapon_templates/absolute_zero.tres"
+				]
+			}
+		},
+		{
+			"effect_id": "circuit_acquire",
+			"event": "reward_applied",
+			"reward_id": "circuit_pair",
+			"summary": "获得回路「对子赔付」（本局仓库，可在构筑界面装备）"
+		},
+		{
+			"act": 2,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "rule_mod",
+					"id": "circuit_triple_echo",
+					"rarity": "common",
+					"target": "circuit_acquire"
+				},
+				{
+					"category": "symbol_mod",
+					"id": "sym_weight_heal",
+					"rarity": "common",
+					"target": "symbol_weight"
+				},
+				{
+					"category": "survival_resource",
+					"id": "seed_gold_cache",
+					"rarity": "common",
+					"target": "gold_add"
+				}
+			],
+			"draft_id": "draft_3477426344",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"circuit_triple_echo",
+				"sym_weight_heal",
+				"seed_gold_cache"
+			],
+			"room": 14,
+			"source": "normal"
+		},
+		{
+			"cost": 5,
+			"draft_id": "draft_1648923587",
+			"event": "reward_rerolled",
+			"free": false,
+			"same_group": false
+		},
+		{
+			"act": 2,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "rule_mod",
+					"id": "circuit_damage_shield",
+					"rarity": "uncommon",
+					"target": "circuit_acquire"
+				},
+				{
+					"category": "skill",
+					"id": "perk_guard",
+					"rarity": "uncommon",
+					"target": "perk"
+				},
+				{
+					"category": "survival_resource",
+					"id": "seed_guardian_ember",
+					"rarity": "uncommon",
+					"target": "shield"
+				}
+			],
+			"draft_id": "draft_1648923587",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"circuit_damage_shield",
+				"perk_guard",
+				"seed_guardian_ember"
+			],
+			"room": 14,
+			"source": "reroll"
+		},
+		{
+			"draft_id": "draft_1648923587",
+			"effect_id": "circuit_acquire",
+			"event": "reward_selected",
+			"hp_ratio": 1.0,
+			"reward_id": "circuit_damage_shield",
+			"snapshot": {
+				"circuits": [
+					"circuit_status_react",
+					"circuit_pair",
+					"circuit_damage_shield"
+				],
+				"gold": 95,
+				"hp": 100,
+				"weapons": [
+					"res://resources/weapon_templates/ice_gun.tres",
+					"res://resources/weapon_templates/absolute_zero.tres"
+				]
+			}
+		},
+		{
+			"effect_id": "circuit_acquire",
+			"event": "reward_applied",
+			"reward_id": "circuit_damage_shield",
+			"summary": "获得回路「攻守转换」（本局仓库，可在构筑界面装备）"
+		},
+		{
+			"act": 2,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "symbol_mod",
+					"id": "sym_weight_frost",
+					"rarity": "common",
+					"target": "symbol_weight"
+				},
+				{
+					"category": "rule_mod",
+					"id": "circuit_armor_break",
+					"rarity": "uncommon",
+					"target": "circuit_acquire"
+				},
+				{
+					"category": "weapon",
+					"id": "weapon_swap_fire_sword",
+					"rarity": "common",
+					"target": "weapon_swap"
+				}
+			],
+			"draft_id": "draft_263680499",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"sym_weight_frost",
+				"circuit_armor_break",
+				"weapon_swap_fire_sword"
+			],
+			"room": 15,
+			"source": "normal"
+		},
+		{
+			"cost": 5,
+			"draft_id": "draft_1535428192",
+			"event": "reward_rerolled",
+			"free": false,
+			"same_group": false
+		},
+		{
+			"act": 2,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "weapon",
+					"id": "weapon_swap_dagger",
+					"rarity": "common",
+					"target": "weapon_swap"
+				},
+				{
+					"category": "reel_control",
+					"id": "control_trash_reroll",
+					"rarity": "common",
+					"target": "reel_control"
+				},
+				{
+					"category": "skill",
+					"id": "perk_guard",
+					"rarity": "uncommon",
+					"target": "perk"
+				}
+			],
+			"draft_id": "draft_1535428192",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"weapon_swap_dagger",
+				"control_trash_reroll",
+				"perk_guard"
+			],
+			"room": 15,
+			"source": "reroll"
+		},
+		{
+			"draft_id": "draft_1535428192",
+			"event": "reward_skipped",
+			"reward_ids": [
+				"weapon_swap_dagger",
+				"control_trash_reroll",
+				"perk_guard"
+			]
+		},
+		{
+			"act": 3,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "reel_control",
+					"id": "control_slow_ramp",
+					"rarity": "common",
+					"target": "reel_control"
+				},
+				{
+					"category": "symbol_mod",
+					"id": "sym_weight_heal",
+					"rarity": "common",
+					"target": "symbol_weight"
+				},
+				{
+					"category": "rule_mod",
+					"id": "circuit_triple_echo",
+					"rarity": "common",
+					"target": "circuit_acquire"
+				}
+			],
+			"draft_id": "draft_3306258005",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"control_slow_ramp",
+				"sym_weight_heal",
+				"circuit_triple_echo"
+			],
+			"room": 16,
+			"source": "normal"
+		},
+		{
+			"draft_id": "draft_3306258005",
+			"event": "reward_skipped",
+			"reward_ids": [
+				"control_slow_ramp",
+				"sym_weight_heal",
+				"circuit_triple_echo"
+			]
+		},
+		{
+			"act": 3,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "rule_mod",
+					"id": "circuit_triple_echo",
+					"rarity": "common",
+					"target": "circuit_acquire"
+				},
+				{
+					"category": "reel_control",
+					"id": "control_slow_ramp",
+					"rarity": "common",
+					"target": "reel_control"
+				},
+				{
+					"category": "symbol_mod",
+					"id": "sym_weight_heal",
+					"rarity": "common",
+					"target": "symbol_weight"
+				}
+			],
+			"draft_id": "draft_3441739693",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"circuit_triple_echo",
+				"control_slow_ramp",
+				"sym_weight_heal"
+			],
+			"room": 17,
+			"source": "normal"
+		},
+		{
+			"draft_id": "draft_3441739693",
+			"effect_id": "circuit_acquire",
+			"event": "reward_selected",
+			"hp_ratio": 1.0,
+			"reward_id": "circuit_triple_echo",
+			"snapshot": {
+				"circuits": [
+					"circuit_status_react",
+					"circuit_pair",
+					"circuit_damage_shield",
+					"circuit_triple_echo"
+				],
+				"gold": 100,
+				"hp": 100,
+				"weapons": [
+					"res://resources/weapon_templates/ice_gun.tres",
+					"res://resources/weapon_templates/absolute_zero.tres"
+				]
+			}
+		},
+		{
+			"effect_id": "circuit_acquire",
+			"event": "reward_applied",
+			"reward_id": "circuit_triple_echo",
+			"summary": "获得回路「三连回响」（本局仓库，可在构筑界面装备）"
+		},
+		{
+			"act": 3,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "symbol_mod",
+					"id": "seed_edge_polish",
+					"rarity": "common",
+					"target": "run_power_bonus"
+				},
+				{
+					"category": "skill",
+					"id": "perk_spare",
+					"rarity": "uncommon",
+					"target": "perk"
+				},
+				{
+					"category": "reel_control",
+					"id": "control_slow_ramp",
+					"rarity": "common",
+					"target": "reel_control"
+				}
+			],
+			"draft_id": "draft_1273072968",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"seed_edge_polish",
+				"perk_spare",
+				"control_slow_ramp"
+			],
+			"room": 18,
+			"source": "normal"
+		},
+		{
+			"cost": 5,
+			"draft_id": "draft_1563898713",
+			"event": "reward_rerolled",
+			"free": false,
+			"same_group": false
+		},
+		{
+			"act": 3,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "symbol_mod",
+					"id": "sym_weight_frost",
+					"rarity": "common",
+					"target": "symbol_weight"
+				},
+				{
+					"category": "symbol_mod",
+					"id": "sym_effect_frost",
+					"rarity": "common",
+					"target": "symbol_effect"
+				},
+				{
+					"category": "reel_control",
+					"id": "control_slow_ramp",
+					"rarity": "common",
+					"target": "reel_control"
+				}
+			],
+			"draft_id": "draft_1563898713",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"sym_weight_frost",
+				"sym_effect_frost",
+				"control_slow_ramp"
+			],
+			"room": 18,
+			"source": "reroll"
+		},
+		{
+			"draft_id": "draft_1563898713",
+			"effect_id": "run_symbol_bonus",
+			"event": "reward_selected",
+			"hp_ratio": 1.0,
+			"reward_id": "sym_weight_frost",
+			"snapshot": {
+				"circuits": [
+					"circuit_status_react",
+					"circuit_pair",
+					"circuit_damage_shield",
+					"circuit_triple_echo"
+				],
+				"gold": 95,
+				"hp": 100,
+				"weapons": [
+					"res://resources/weapon_templates/ice_gun.tres",
+					"res://resources/weapon_templates/absolute_zero.tres"
+				]
+			}
+		},
+		{
+			"effect_id": "run_symbol_bonus",
+			"event": "reward_applied",
+			"reward_id": "sym_weight_frost",
+			"summary": "符号权重 +3（6→8 格）"
+		},
+		{
+			"act": 3,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "reel_control",
+					"id": "control_slow_ramp",
+					"rarity": "common",
+					"target": "reel_control"
+				},
+				{
+					"category": "symbol_mod",
+					"id": "sym_effect_ice_shot",
+					"rarity": "common",
+					"target": "symbol_effect"
+				},
+				{
+					"category": "rule_mod",
+					"id": "circuit_armor_break",
+					"rarity": "uncommon",
+					"target": "circuit_acquire"
+				}
+			],
+			"draft_id": "draft_472998117",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"control_slow_ramp",
+				"sym_effect_ice_shot",
+				"circuit_armor_break"
+			],
+			"room": 19,
+			"source": "normal"
+		},
+		{
+			"cost": 5,
+			"draft_id": "draft_3970312789",
+			"event": "reward_rerolled",
+			"free": false,
+			"same_group": false
+		},
+		{
+			"act": 3,
+			"build_tags": [],
+			"candidates": [
+				{
+					"category": "symbol_mod",
+					"id": "sym_weight_ice_crystal",
+					"rarity": "common",
+					"target": "symbol_weight"
+				},
+				{
+					"category": "reel_control",
+					"id": "control_trash_reroll",
+					"rarity": "common",
+					"target": "reel_control"
+				},
+				{
+					"category": "weapon",
+					"id": "weapon_swap_dagger",
+					"rarity": "common",
+					"target": "weapon_swap"
+				}
+			],
+			"draft_id": "draft_3970312789",
+			"event": "reward_draft_generated",
+			"hp_ratio": 1.0,
+			"reward_ids": [
+				"sym_weight_ice_crystal",
+				"control_trash_reroll",
+				"weapon_swap_dagger"
+			],
+			"room": 19,
+			"source": "reroll"
+		},
+		{
+			"draft_id": "draft_3970312789",
+			"event": "reward_skipped",
+			"reward_ids": [
+				"sym_weight_ice_crystal",
+				"control_trash_reroll",
+				"weapon_swap_dagger"
+			]
+		}
+	],
+	"route": [],
+	"schema": 2,
+	"shop": [],
+	"special": [],
+	"started_at": "2026-11-21T11:16:59",
+	"telemetry": {
+		"assist": {
+			"preset": "control",
+			"preview_slots": 0,
+			"source": "default"
+		},
+		"avg_spin": 0.0,
+		"avg_ttk": 0.0,
+		"buffer_queues": 0,
+		"consumable_uses": {},
+		"counter_burst_damage": 0,
+		"counter_triples": 0,
+		"damage_blocked": 0,
+		"damage_taken": 0,
+		"draft_cards_shown": 90,
+		"draft_free_rerolls": 0,
+		"draft_reroll_same_group": 0,
+		"draft_rerolled": 10,
+		"draft_selected": 7,
+		"draft_shown": 30,
+		"draft_skipped": 13,
+		"enemy_attacks": 0,
+		"forced_stops": 0,
+		"heal_overflow_shield": 0,
+		"heal_total": 0,
+		"reward_pick_rate": 0.0,
+		"reward_picks": {},
+		"rewards_shown": 0,
+		"rooms_cleared": 0,
+		"spin_seconds": 0.0,
+		"spins": 0,
+		"stop_kinds": {},
+		"stop_outcomes": {},
+		"stop_total": 0,
+		"target_hit_rate": 0.0,
+		"target_hits": 0,
+		"target_symbol": "res://resources/symbols/ice_shot.tres",
+		"triple_rate": 0.0,
+		"triples": 0,
+		"turns": 0,
+		"weapon_swaps": 0
+	},
+	"weapon_changes": []
+}
