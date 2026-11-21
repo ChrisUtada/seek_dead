@@ -31,6 +31,8 @@ const DEMO_CONFIG = preload("res://resources/config/demo_config.tres")
 var demo_config = DEMO_CONFIG   # 无 class_name：避免 headless 首次加载的全局类缓存依赖
 # M2：ACT1 棋盘灰盒开关（resources/config/board_config.tres，enabled 或命令行 --board 启用）
 const BOARD_CONFIG = preload("res://resources/config/board_config.tres")
+# N-03：只读伤害分解账本类（不注册 class_name，避免 headless 类缓存）
+const DAMAGE_PREVIEW = preload("res://scripts/battle/damage_preview.gd")
 var board_config = BOARD_CONFIG
 const NODE_START_FEEDBACK := "起点：掷骰前进"
 
@@ -232,6 +234,8 @@ var enemy_armor_max = 0                # 护甲上限（扁平池；来自 RoomD
 var enemy_armor = 0                    # 当前护甲：伤害先破甲后掉血；0 = 无护甲
 var mirror_dmg_mult: float = 1.0       # 迷面诡匠镜面夺盾的无盾兜底：下回合伤害乘区（一次性）
 var enemy_atk = 14
+# N-03（2026-11-21）：本回合只读伤害分解账本。结算层顺带产出，HUD/测试只读，不重算、不反写数值。
+var damage_preview = DAMAGE_PREVIEW.new()
 var _interf_resist_rf := 1.0             # T20：抗扰减免系数（干扰类意图权重 × 此值，_start_room 计算）
 var enemy_status: Dictionary = {}      # status_type(str) -> 叠加层数(int)
 # 2026-11-16 DoT 相位：结算中/敌人回合新挂的层，本回合敌人回合末不 tick，下一回合起才结算。
@@ -1261,6 +1265,8 @@ func start_room_data(r: RoomData, idx: int, ria_override: int = -1, is_final: bo
 		readability.begin_room()   # 废铁改判：每房1次机会重置
 	if hud != null:
 		hud.reset_enemy_hit_hold()        # 2026-11-16 P0：清掉上一房未释放的掉血影子值
+	if damage_preview != null:
+		damage_preview.reset(turn_count)  # N-03：清掉上一房残留的伤害分解账本
 	mirror_dmg_mult = 1.0                   # 迷面诡匠的伤害削弱不跨房残留
 	_apply_charms()                         # S7：每次开房重算护符被动（含商店购入的护符）
 	_build_pool(selected_loadout)           # S7：重建符号池（含商店购入的武器）

@@ -72,6 +72,8 @@ var enemy_hp: int = 120
 var enemy_atk: int = 14            # 敌人攻击力（快照完整性；HUD 未来展示用）
 var enemy_armor: int = 0
 var charm_max: int = 1
+# N-03（2026-11-21）：只读伤害分解账本（结算层顺带产出，UI/测试只读不重算）。
+var damage_preview = null   # DamagePreview；房间未结算时为 null
 
 
 # P2 架构还债（2026-08-24）：快照构建从 duel_controller._build_state 迁入——
@@ -141,4 +143,5 @@ static func build(ctrl) -> BattleState:
 	s.enemy_atk = ctrl.enemy_atk
 	s.enemy_armor = ctrl.enemy_armor
 	s.charm_max = ctrl.charm_max
+	s.damage_preview = ctrl.damage_preview
 	return s

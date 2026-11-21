@@ -218,6 +218,12 @@ var _hp_display_hold: int = -1   # >=0 时血条/数字显示此值；-1 = 跟�
 var _hit_release_token: int = 0  # 多段伤害聚合 + 防止旧 timer 误释放
 var _hit_pending_text: String = ""
 
+# N-03（2026-11-21）：敌人侧幽灵值——玩家出手结算后真实 HP/护甲已落地，
+# 但命中帧前血条/数字仍显示结算前的快照，命中帧才切到真实值。
+# 与玩家侧 _hp_display_hold 对称；值来自账本 enemy_hp_before/enemy_armor_before（不重算）。
+var _ev_hp_display_hold: int = -1      # >=0 时敌人 HP 显示此幽灵值；-1 = 跟随真实 enemy_hp
+var _ev_armor_display_hold: int = -1   # >=0 时敌人护甲显示此幽灵值；-1 = 跟随真实 enemy_armor
+
 var panel_view                       # P2（2026-08-24）：左栏玩家面板视图逻辑（player_panel_view.gd）
 var overlay
 var overlay_label
@@ -1624,8 +1630,11 @@ func _refresh_vitals() -> void:
 	_recenter_vitals(player_vitals, player_hp_bar)
 
 	var ev_max: int = max(1, controller.state.enemy_hp_max)
-	var ev_r: float = float(controller.state.enemy_hp) / float(ev_max)
-	var ev_sl: float = _shield_len_of(int(controller.state.enemy_armor), ev_max)
+	# N-03：命中帧前读敌人幽灵值（结算前快照），命中帧释放后才跟随真实值。
+	var ev_shown_hp: int = _ev_hp_display_hold if _ev_hp_display_hold >= 0 else int(controller.state.enemy_hp)
+	var ev_shown_armor: int = _ev_armor_display_hold if _ev_armor_display_hold >= 0 else int(controller.state.enemy_armor)
+	var ev_r: float = float(ev_shown_hp) / float(ev_max)
+	var ev_sl: float = _shield_len_of(ev_shown_armor, ev_max)
 	_apply_hp_bar(enemy_hp_bar, enemy_vitals, ev_r, _ev_hp_prev, ev_sl)
 	_ev_hp_prev = ev_r
 	_recenter_vitals(enemy_vitals, enemy_hp_bar)
@@ -1683,6 +1692,8 @@ func _release_enemy_hit() -> void:
 	if _hit_pending_text != "":
 		_popup(_hit_pending_text, Palette.POP_DAMAGE, anchor)
 		_hit_pending_text = ""
+	# N-03：命中帧弹玩家侧分项（原始攻击 / 盾挡 / 实际损失 / 穿透），账本聚合值，不重算。
+	_player_hit_breakdown_popup()
 	if animator != null:
 		animator.enemy_hit_shake()
 
@@ -1692,6 +1703,67 @@ func reset_enemy_hit_hold() -> void:
 	_hit_release_token += 1
 	_hp_display_hold = -1
 	_hit_pending_text = ""
+	_ev_hp_display_hold = -1
+	_ev_armor_display_hold = -1
+
+
+# ---------------------------------------------------------------------------
+# N-03（2026-11-21）：敌人侧「攻击前血量预览」。
+# 结算层（combat_system._capture_enemy_preview）在真实扣血后顺带产出只读账本，
+# 这里只做表现：命中帧前 HP/护甲显示结算前的幽灵快照，命中帧才切到真实值。
+# 幽灵值取自账本 before 快照，绝不重新计算伤害。
+# ---------------------------------------------------------------------------
+
+# 结算完成后调用：把敌人 HP/护甲压到结算前的幽灵快照（命中帧前显示旧值）。
+func hold_enemy_preview() -> void:
+	var pv = controller.damage_preview if controller != null else null
+	if pv == null or not pv.has_enemy_attack():
+		return
+	_ev_hp_display_hold = max(0, pv.enemy_hp_before)
+	_ev_armor_display_hold = max(0, pv.enemy_armor_before)
+	_refresh_meta()   # 立刻把幽灵值渲染到血条/数字（真实值已落地但暂不显示）
+
+
+# 命中帧调用（玩家总伤害飘字那一刻）：清幽灵值 → 血条/数字掉到真实值 + 分项飘字。
+# 多段攻击在账本里已聚合成一条总预览，这里只弹一次，不逐段扣血。
+func release_enemy_preview() -> void:
+	if _ev_hp_display_hold < 0 and _ev_armor_display_hold < 0:
+		return
+	_ev_hp_display_hold = -1
+	_ev_armor_display_hold = -1
+	_refresh_meta()
+	var pv = controller.damage_preview if controller != null else null
+	if pv == null:
+		return
+	# 分项聚合飘字：护甲损失 / HP 损失 / 穿透伤害（账本值，不重算）
+	var parts: Array[String] = []
+	if pv.enemy_armor_loss > 0:
+		parts.append("甲-%d" % pv.enemy_armor_loss)
+	if pv.enemy_hp_loss > 0:
+		parts.append("血-%d" % pv.enemy_hp_loss)
+	if pv.enemy_pierce_damage > 0:
+		parts.append("穿-%d" % pv.enemy_pierce_damage)
+	if not parts.is_empty():
+		_popup(" ".join(parts), Palette.POP_DAMAGE, _enemy_sprite_anchor())
+	# 屏震与掉血同拍（沿用玩家侧受击屏震）
+	if animator != null:
+		animator.enemy_hit_shake()
+
+
+# 玩家侧受击命中帧（_release_enemy_hit）顺带弹分项飘字：原始攻击/盾挡/实际损失。
+# 账本里已聚合多段，这里只弹一次；数值全部读账本，不重算。
+func _player_hit_breakdown_popup() -> void:
+	var pv = controller.damage_preview if controller != null else null
+	if pv == null or not pv.has_player_attack():
+		return
+	var parts: Array[String] = []
+	parts.append("攻%d" % pv.player_raw_attack)
+	if pv.player_shield_blocked > 0:
+		parts.append("盾挡%d" % pv.player_shield_blocked)
+	parts.append("受%d" % pv.player_hp_loss)
+	if pv.player_pierce_bypass > 0:
+		parts.append("穿%d" % pv.player_pierce_bypass)
+	_popup(" ".join(parts), Palette.POP_DAMAGE, _player_sprite_anchor(), true)
 
 
 # 敌人立绘切换（RoomData.art 数据驱动）：旧图退场（淡出+缩小）→ 换图 → 新图入场（淡入复位）。

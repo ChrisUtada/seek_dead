@@ -68,7 +68,11 @@ func _do_attack(it: Dictionary) -> void:
 	if pct > 0.0:
 		var pierce: int = int(round(float(raw) * pct))
 		if pierce > 0:
+			var hp_before_pierce: int = int(_ctrl.player_hp)
 			_ctrl.player_hp = maxi(0, int(_ctrl.player_hp) - pierce)
+			# N-03：护盾穿透旁路绕过 enemy_deal_damage，故单独入账，否则预览会漏掉这段伤害。
+			if _ctrl.damage_preview != null:
+				_ctrl.damage_preview.add_player_pierce(hp_before_pierce, pierce)
 			_ctrl.hud._popup("🗡穿透 -%d" % pierce, Palette.POP_DAMAGE, _ctrl.hud._player_sprite_anchor())
 			_ctrl.hud._log("🗡 穿透护盾：%d 点直接命中（本次攻击 %d 的 %d%%）" % [pierce, raw, int(round(pct * 100.0))])
 	_ctrl.combat.enemy_deal_damage(raw, "attack")

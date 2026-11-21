@@ -61,6 +61,14 @@ var _turn_armor_cleared := 0
 var _turn_counter_burst := 0
 var _turn_charge_burst := 0
 
+# N-03（2026-11-21）：敌人侧伤害分解账本（本回合累计，结算时顺带记，UI 只读不重算）。
+# apply_enemy_damage 是敌人 HP/护甲的唯一变更点，分解值在这里记，保证「预览 = 结算」。
+# 整段清甲（on_counter / release_element_burst 的 enemy_armor=0）已由 _turn_armor_cleared 记，
+# 这里的 _turn_enemy_armor_consumed 只记非穿透伤害真正吃掉的护甲，两者相加 = 敌人护甲总损失。
+var _turn_enemy_armor_consumed := 0
+var _turn_enemy_pierce_damage := 0
+var _turn_enemy_hp_direct := 0
+
 
 func _init(ctrl) -> void:
 	_ctrl = ctrl
@@ -228,6 +236,13 @@ func evaluate() -> void:
 	_intent_defense_mult = HEAVY_INTENT_DEFENSE_MULT if String(_ctrl.enemy_intent.get("type", "")) == "heavy" else 1.0
 	var acc := _new_acc()
 	_reset_turn_state()
+	# N-03：每次结算都从干净账本起步（含 free_spin 重转），避免上一回合的分解值残留。
+	if _ctrl.damage_preview != null:
+		_ctrl.damage_preview.reset(_ctrl.turn_count)
+	# N-03：记录玩家整段结算链出手前的敌人真实 HP/护甲快照（含破甲/核爆/爆发/血锁）。
+	# 账本的唯一产出点在 _capture_enemy_preview —— 用 before/after 真实差，保证「预览 = 结算」。
+	var enemy_hp_before: int = int(_ctrl.enemy_hp)
+	var enemy_armor_before: int = int(_ctrl.enemy_armor)
 	# 2026-11-16 顺序优化：结算与表现彻底分离。
 	# 先跑完全部结算（不产生任何飘字/等待），再交给 _present_turn 按「读格 → 攻击齐亮」回放。
 	# 三连/连线倍率依赖整行，必须先算完才知道每格的分量，所以只能「先算后放」。
@@ -237,6 +252,10 @@ func evaluate() -> void:
 	_apply_patterns(acc)
 	_apply_circuits(acc, counts)   # G4-3/G4-6：本局回路（牌谱后、攻击前，读本回合已收集事件）
 	_phase_attack(counts, acc)
+	# N-03：玩家结算链全部结束（含 hp_floor 血锁收口）后，写入敌人侧分解账本。
+	_capture_enemy_preview(enemy_hp_before, enemy_armor_before)
+	# N-03：结算值已落地，但命中帧前先压幽灵快照（显示旧 HP/护甲），命中帧才切真实值。
+	_ctrl.hud.hold_enemy_preview()
 	await _present_turn(acc, counts)
 
 
@@ -259,6 +278,28 @@ func _new_acc() -> Dictionary:
 		"pending_player_pops": [], "pending_enemy_pops": [], "pending_banners": [] }
 
 
+# N-03：玩家结算链全部跑完后，用「结算前快照 vs 结算后真实值」写入敌人侧只读账本。
+# 分解口径：
+#   护甲损失 = 结算前护甲 - 结算后护甲（涵盖非穿透吃甲 + 整段清甲，不重算）
+#   HP 损失  = 结算前 HP - 结算后 HP - 穿透伤害（非穿透溢出部分）
+#   穿透伤害 = apply_enemy_damage 顺带记的 pierce 累加（直击 HP，不吃甲）
+# 三项均为真实结算差，UI 只读展示；血锁（hp_floor）已包含在 after 里，故预览永远与最终一致。
+func _capture_enemy_preview(hp_before: int, armor_before: int) -> void:
+	var pv = _ctrl.damage_preview
+	if pv == null:
+		return
+	var armor_after: int = max(0, int(_ctrl.enemy_armor))
+	var hp_after: int = max(0, int(_ctrl.enemy_hp))
+	var armor_loss: int = max(0, armor_before - armor_after)
+	var hp_lost_total: int = max(0, hp_before - hp_after)
+	var pierce: int = _turn_enemy_pierce_damage
+	var hp_loss_normal: int = max(0, hp_lost_total - pierce)
+	pv.enemy_hp_before = hp_before
+	pv.enemy_armor_before = armor_before
+	pv.enemy_armor_loss = armor_loss
+	pv.enemy_hp_loss = hp_loss_normal
+	pv.enemy_pierce_damage = pierce
+
 func _reset_turn_state() -> void:
 	_popup_fired_this_turn = false
 	_pending_defense_charms = []
@@ -272,6 +313,9 @@ func _reset_turn_state() -> void:
 	_turn_armor_cleared = 0
 	_turn_counter_burst = 0
 	_turn_charge_burst = 0
+	_turn_enemy_armor_consumed = 0
+	_turn_enemy_pierce_damage = 0
+	_turn_enemy_hp_direct = 0
 	if _ctrl != null:
 		_ctrl._pattern_enemy_atk_mult = 1.0   # W02 的敌方攻击乘区每回合重置
 
@@ -919,6 +963,8 @@ func _present_turn(acc: Dictionary, counts: Dictionary) -> void:
 		if _ctrl.hud.animator != null:
 			# 仅玩家武器攻击播斩击粒子；敌人掉血闸口的 play_enemy_attack 不播（with_slash 默认 false）
 			_ctrl.hud.animator.play_attack("player", "enemy", true)
+		# N-03：命中帧一到才把敌人幽灵值切成真实值 + 弹分项飘字（护甲/HP/穿透）。
+		_ctrl.hud.release_enemy_preview()
 		_ctrl.hud._popup("-%d%s" % [total, String(acc.get("elem_tag", ""))], Palette.POP_DAMAGE, _ctrl.hud._enemy_sprite_anchor())
 		_ctrl.hud._refresh_meta()
 		await tree.create_timer(CELL_PRESENT_STEP).timeout
@@ -935,6 +981,9 @@ func _present_turn(acc: Dictionary, counts: Dictionary) -> void:
 	if not (acc["status_stacks"] as Dictionary).is_empty():
 		_ctrl.hud._popup(_ctrl.status_system.status_summary(acc["status_stacks"]), Palette.POP_STATUS, _ctrl.hud._enemy_sprite_anchor())
 
+	# N-03 兜底：若本回合有破甲但无伤害（total=0，上面 total>0 分支未释放），
+	# 或纯增益/空转导致幽灵值残留，统一在此释放，保证任何路径都不跨帧残留幽灵值。
+	_ctrl.hud.release_enemy_preview()
 	# ⑤ 收尾：底部短反馈 → 留出阅读时间
 	_ctrl.hud._show_turn_feedback(counts, total, bool(acc.get("triple", false)), _ctrl._elem_triple,
 		int(acc.get("shield_gain", 0)), int(acc.get("heal_gain", 0)), int(acc.get("heal_overflow_shield", 0)),
@@ -1060,6 +1109,11 @@ func enemy_deal_damage(raw: int, reason: String = "attack", src_tag: String = ""
 	var dealt = max(0, eff - blocked)
 	var hp_before_hit := int(_ctrl.player_hp)   # P0：扣血前 HP，供 HUD 显示影子值（不反推，避免乘区误差）
 	_ctrl.player_hp -= dealt
+	# N-03：闸口分解值顺带记入只读账本（eff=原始攻击/blocked=盾挡/dealt=HP损失）。
+	# 只记 reason=="attack"——DoT/反弹是即时伤害、无「攻击前预览」，不入账避免污染。
+	# 多段攻击（主攻击+追加）均走 attack，由 add_player_segment 聚合，hp_before 只在第一段记录。
+	if reason == "attack" and _ctrl.damage_preview != null:
+		_ctrl.damage_preview.add_player_segment(hp_before_hit, eff, blocked, dealt)
 	if _ctrl._telemetry != null:
 		_ctrl._telemetry.on_player_hit(eff, blocked, dealt)   # M1-06：意图出手/承伤/格挡
 	if dealt > 0:
@@ -1087,17 +1141,22 @@ func enemy_deal_damage(raw: int, reason: String = "attack", src_tag: String = ""
 
 
 # 对敌人造成伤害（先破甲后掉血）：非穿透先扣护甲、溢出进 HP；穿透直接扣 HP。返回实际造成的总值。
+# N-03：在本唯一变更点顺带记分解值（只读账本），UI/测试不再重算——这是「预览 = 结算」的保证。
 func apply_enemy_damage(amount: float, pierce: bool) -> float:
 	var dmg = max(0, int(round(amount)))
 	if dmg <= 0:
 		return 0.0
 	if pierce:
 		_ctrl.enemy_hp -= dmg
+		_turn_enemy_pierce_damage += dmg   # 穿透伤害（直击 HP，不吃护甲）
+		_turn_enemy_hp_direct += dmg
 		return float(dmg)
 	var to_armor = min(_ctrl.enemy_armor, float(dmg))
 	_ctrl.enemy_armor -= to_armor
+	_turn_enemy_armor_consumed += int(to_armor)   # 非穿透伤害真正吃掉的护甲
 	var to_hp = dmg - to_armor
 	_ctrl.enemy_hp -= to_hp
+	_turn_enemy_hp_direct += int(to_hp)
 	return float(dmg)
 
 
