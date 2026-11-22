@@ -118,14 +118,27 @@ func on_consumable_used(ctrl, effect: String) -> void:
 	if _phase3 and effect in ["heal", "purify", "cleanse"]:
 		ctrl.resolve_peaceful_win()
 
+# P0-FINAL：阶段推进与血锁的唯一入口，on_damaged 与 hp_floor 共用，不复制第二套状态机。
+# 依据「当前 enemy_hp 比例」而非「单次扣血事件」推进，覆盖直击/穿透/DoT/元素爆发所有扣血路径，
+# 包括从 20% 以上一击压到 0 的跨阈值场景（旧 on_damaged 用 return 早退会漏掉 P3）。
 func on_damaged(ctrl, _dmg: int) -> void:
-	if not _phase2 and _phase2_hp_ratio > 0.0 and ctrl.enemy_hp <= int(float(ctrl.enemy_hp_max) * _phase2_hp_ratio):
+	_sync_phase_by_hp(ctrl)
+
+
+func _sync_phase_by_hp(ctrl) -> void:
+	if ctrl == null:
+		return
+	var hp2: int = int(float(ctrl.enemy_hp_max) * _phase2_hp_ratio)
+	var hp3: int = int(float(ctrl.enemy_hp_max) * _phase3_hp_ratio)
+	# P2：一次推进，标志位保证不重复触发。
+	if not _phase2 and _phase2_hp_ratio > 0.0 and ctrl.enemy_hp <= hp2:
 		_phase2 = true
 		ctrl.hud._log("🌗 深渊镜像：投影升级——追加 Act3 机制，你的符号将被回敬")
 		ctrl.hud._popup("🌗 深渊镜像！", Palette.POP_STATUS, ctrl.hud._enemy_sprite_anchor())
 		ctrl.hud._refresh_meta()
-		return
-	if _phase2 and not _phase3 and _phase3_hp_ratio > 0.0 and ctrl.enemy_hp <= int(float(ctrl.enemy_hp_max) * _phase3_hp_ratio):
+	# P3：HP 触及 P3 阈值即进入并锁 1。不再因 P2 刚触发而 return 早退——
+	# P0-FINAL 要求致死前置拦截，跨阈值一击也必须立即进入 P3，禁止先归 0 再锁血。
+	if _phase2 and not _phase3 and _phase3_hp_ratio > 0.0 and ctrl.enemy_hp <= hp3:
 		_phase3 = true
 		ctrl.enemy_hp = maxi(1, ctrl.enemy_hp)   # 非暴力：HP 锁 1，无法击杀
 		ctrl.enemy_intent = {"data": null, "type": "none", "value": 0}
@@ -133,10 +146,12 @@ func on_damaged(ctrl, _dmg: int) -> void:
 		ctrl.hud._log("🌕 勇者放下武器，走向投影——达成和解（任意三连 / 治疗符号 / 恢复净化消耗品）即通关")
 		ctrl.hud._popup("🌕 放下武器……", Palette.POP_HEAL, ctrl.hud._enemy_sprite_anchor())
 		ctrl.hud._refresh_meta()
-		return
 	if _phase3:
 		ctrl.enemy_hp = maxi(1, ctrl.enemy_hp)   # 非暴力：锁 1 兜底（防 DoT/爆炸等旁路击杀）
 
-# P-审计 P1：P3 血锁统一收口——任何扣血路径（含元素爆发/DoT 旁路）结束后由 controller 调用。
+
+# P0-FINAL：致死前置拦截。任何扣血路径（直击/穿透/DoT/元素爆发）收口时由 controller 调用。
+# 先按当前 HP 推进阶段（可能刚进入 P3），再声明血锁下限，禁止先归 0 再锁、禁止直接击杀跳过和解。
 func hp_floor(ctrl) -> int:
+	_sync_phase_by_hp(ctrl)
 	return 1 if _phase3 else -1

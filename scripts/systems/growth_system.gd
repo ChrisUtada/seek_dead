@@ -39,13 +39,13 @@ const SURGE_SHIELD := 5         # 蓄能：每房开局额外护盾
 const RECLAIM_GOLD := 2         # 回收：每房胜利额外金币
 const SPARE_GOLD := 3           # 余裕：满血时每房胜利额外金币
 const GUARD_SHIELD := 8
-# G7-A S5 后续（2026-11-09）：幕间锻魂——进入 ACT II / ACT III 时自动发放一次。
-# 只改本局运行时状态（本局符号伤害 + 最大 HP），不改敌人 / ante / 存档；ACT I 不发放。
+# 幕间锻魂——进入 ACT II / ACT III 时自动发放一次。
+# T1.7 收口：仅保留本局符号伤害 +8（C1 方案）。原 +20 最大 HP 与同步回血已移除——
+# 36 种子 A/B 证明：+8 伤害通过缩短击杀时间提供更有效生存余量，额外 HP 属冗余支撑。
+# 只改本局运行时状态，不改敌人 / ante / 存档；ACT I 不发放。
 const ACT_BOON_POWER := 8
-const ACT_BOON_HP := 20
 
 var enabled: bool = true         # 探针开关（M2-04 对照组）：false 时房间胜利不发历练
-var boon_enabled: bool = true    # 探针开关（S5 复测 A/B）：false 时不发幕间锻魂
 var perk_ids: Array[String] = []
 # S4-1：仅本局有效的幕间锻魂幂等账本。以 act 号为键，同幕重复调用直接返回；
 # 不入局外存档，新一局由 reset_run() 清空。Journal 不另建账本，以本集合为唯一守卫。
@@ -106,11 +106,17 @@ func apply_victory_perks(kind: String) -> void:
 		var before: int = _ctrl.player_hp
 		_ctrl.player_hp = mini(_ctrl.player_hp_max, before + amount)
 		var healed: int = _ctrl.player_hp - before
+		if _ctrl._telemetry != null:
+			_ctrl._telemetry.on_heal(healed, 0, "regen")   # T1.8 分来源观测
 		if healed > 0 and _ctrl.hud != null:
 			_ctrl.hud._log("🌿 回春：HP %d/%d → %d/%d（+%d）" % [
 				before, _ctrl.player_hp_max, _ctrl.player_hp, _ctrl.player_hp_max, healed])
 			_ctrl.hud._popup("❤+%d" % healed, Palette.POP_HEAL, _ctrl.hud._player_sprite_anchor())
 		_ctrl.invalidate_state()
+		# T0-4：真实治疗入口必须主动刷新 HUD（标签/血条），否则 invalidate_state 只失效缓存不重绘。
+		# _refresh_meta 内部已含 invalidate_state，并让 _refresh_vitals 按真实 HP 处理影子遮蔽。
+		if _ctrl.hud != null:
+			_ctrl.hud._refresh_meta()
 	if has_perk("hoard"):
 		var gold: int = HOARD_GOLD_BOSS if is_boss else HOARD_GOLD
 		_ctrl.gold += gold
@@ -136,27 +142,26 @@ func apply_victory_perks(kind: String) -> void:
 # 仅 act >= 2 生效，因此 ACT I 开局与单幕局（advance_act 永不被调用）行为不变。
 # 复用 reward_system.run_power_bonus（与「攻击研磨」同一本局加成层），不新增状态字段。
 func grant_act_boon(act: int) -> void:
-	if not enabled or not boon_enabled or act < 2:
+	if not enabled or act < 2:
 		return
 	# S4-1：同幕幂等守卫——已发过直接返回，不重复加数值、不重复记 Journal。
 	if granted_acts.has(act):
 		return
 	granted_acts[act] = true
-	var hp_before: int = _ctrl.player_hp
-	var hp_max_before: int = _ctrl.player_hp_max
 	var power_before: int = int(_ctrl._reward_system.run_power_bonus)
+	# T1.7 收口：仅 +8 本局符号伤害；不再改最大 HP / 当前 HP。
 	_ctrl._reward_system.run_power_bonus += ACT_BOON_POWER
-	_ctrl.player_hp_max += ACT_BOON_HP
-	_ctrl.player_hp = mini(_ctrl.player_hp_max, hp_before + ACT_BOON_HP)
-	var healed: int = _ctrl.player_hp - hp_before
 	if _ctrl.hud != null:
-		_ctrl.hud._log("◆ 幕间锻魂：本局符号伤害 +%d（%d → %d） · 最大 HP %d → %d（HP +%d）" % [
-			ACT_BOON_POWER, power_before, _ctrl._reward_system.run_power_bonus,
-			hp_max_before, _ctrl.player_hp_max, healed])
+		_ctrl.hud._log("◆ 幕间锻魂：本局符号伤害 +%d（%d → %d）" % [
+			ACT_BOON_POWER, power_before, _ctrl._reward_system.run_power_bonus])
 		_ctrl.hud._popup("锻魂 +%d" % ACT_BOON_POWER, Palette.ACCENT_GOLD, _ctrl.hud.player_hp_label)
 	if _ctrl._journal != null:
-		_ctrl._journal.note_act_boon(act, ACT_BOON_POWER, ACT_BOON_HP)
+		_ctrl._journal.note_act_boon(act, ACT_BOON_POWER, 0)   # hp 记 0：C1 后不再发 HP
 	_ctrl.invalidate_state()
+	# HUD 刷新入口保留（T0-4）：虽不再改 HP，仍主动重绘标签/血条，
+	# 确保受击影子期不遮蔽真实 HP——「刷新不得因收口而失效」。
+	if _ctrl.hud != null:
+		_ctrl.hud._refresh_meta()
 
 
 # 三选一候选：按家族打乱后各取一个未拥有技艺（候选覆盖不同家族，不出现同义卡）。
@@ -248,14 +253,23 @@ func pick(id: String) -> bool:
 	perk_ids.append(id)
 	match id:
 		"tough":
+			var hp_before_tough: int = _ctrl.player_hp
 			_ctrl.player_hp_max += 10
 			_ctrl.player_hp = mini(_ctrl.player_hp_max, _ctrl.player_hp + 10)
+			if _ctrl._telemetry != null:
+				_ctrl._telemetry.on_heal(_ctrl.player_hp - hp_before_tough, 0, "regen")   # T1.8 观测
 		"reserve":
 			for slot in _ctrl.consumable_slots:
 				slot["charges"] += 1
 	if _ctrl._journal != null:
 		_ctrl._journal.note_growth(id, perk_name(id))   # G5 工具：自动记录成长选择
 	_ctrl.hud._log("✦ 习得技艺「%s」：%s" % [perk_name(id), perk_desc(id)])
+	# T0-4：坚韧改了最大 HP/当前 HP，必须让 BattleState 快照失效并主动重绘 HUD。
+	# 只对改 HP 的瞬时技艺刷新，避免影响「备用药剂」等不改血条的技艺路径。
+	if id == "tough":
+		_ctrl.invalidate_state()
+		if _ctrl.hud != null:
+			_ctrl.hud._refresh_meta()
 	return true
 
 

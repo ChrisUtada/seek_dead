@@ -120,7 +120,13 @@ func _freeze_chest(act: int, rng: RandomNumberGenerator) -> Dictionary:
 	exclude.append_array(_ctrl.run_weapon_inventory)
 	exclude.append_array(_ctrl.selected_charms)
 	var cat: Array = ["weapon", "passive", "active"]
-	cat.shuffle()
+	# T0-2：类别洗牌必须走特殊房专用 RNG，不消耗全局战斗/奖励随机流。
+	# 用 Fisher-Yates 替代 Array.shuffle()（后者走全局 randomize() 流，会污染全局序列）。
+	for i in range(cat.size() - 1, 0, -1):
+		var j: int = rng.randi_range(0, i)
+		var tmp = cat[i]
+		cat[i] = cat[j]
+		cat[j] = tmp
 	for c in cat:
 		var path: String = _ctrl._reward_system.pick_explore_loot(String(c), act, rng, exclude)
 		if path != "":
@@ -194,19 +200,29 @@ func sort_rooms(rms: Array) -> Array:
 
 
 # Ante 难度曲线纯函数：RoomData.hp/atk 视为基础值，按「幕间台阶 × 幕内爬升」缩放。
-# act = RoomData.act（1/2/3）；幕内位置 = 本房之前与本房同幕房数 - 1。
-# M2：棋盘入口可显式传 ria_override（棋盘节点分配时已确定幕内位置），线性路径传 -1 保持原扫描口径。
+# act = RoomData.act（1/2/3）；幕内战斗序号 = 本房之前（含本房）同幕「实际战斗房」数 - 1。
+# T0-6：幕内爬升只数战斗房（normal/elite/boss），宝箱/事件/营地不占强度序号；
+#       Boss 作为幕末最后一个战斗房，自然取到本幕战斗序号基准，不因非战斗节点额外提高。
+# M2：棋盘入口可显式传 ria_override（棋盘节点分配时已确定位置），线性路径传 -1 走战斗序号扫描。
 func ante_scale(r: RoomData, idx: int, ria_override: int = -1) -> Dictionary:
 	var rooms: Array[RoomData] = _ctrl.ROOMS
 	var a = r.act
-	var ria = ria_override   # room-in-act：同幕内序号（0 起）
+	var ria = ria_override   # battle-in-act：同幕内实际战斗序号（0 起）
 	if ria < 0:
 		ria = 0
 		for i in range(idx + 1):
-			if rooms[i].act == a:
-				ria += 1
+			if rooms[i].act != a:
+				continue
+			if _is_noncombat_kind(String(rooms[i].kind)):
+				continue   # 宝箱/事件/营地不计入强度序号
+			ria += 1
 		ria -= 1
 	return {
 		"hp_scale": pow(_ctrl.BALANCE.ante_act_step_hp, a - 1) * pow(_ctrl.BALANCE.ante_room_step_hp, ria),
 		"atk_scale": pow(_ctrl.BALANCE.ante_act_step_atk, a - 1) * pow(_ctrl.BALANCE.ante_room_step_atk, ria),
 	}
+
+
+# T0-6：非战斗房型（不占敌人强度序号）。与 ROOM_KIND_RANK 的 1 档一致，但显式列出避免偶合。
+static func _is_noncombat_kind(kind: String) -> bool:
+	return kind == "chest" or kind == "event" or kind == "camp"

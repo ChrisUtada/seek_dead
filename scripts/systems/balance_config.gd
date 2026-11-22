@@ -84,18 +84,22 @@ extends Resource
 	"chest": {"common": 35, "uncommon": 40, "rare": 22, "epic": 3},
 }
 # 商店不做随机品质：按幕次给出确定性货架阶梯（Step 3 起；Step 5 再加类别确定性）。
+# T1.5 契约返工：货架 6→4 格（每幕 4 格：1 武器 + 消耗品 + 技能 + 护符/随机构筑），
+# 减少武器过度供应；武器格仅在每幕配额（ShopSystem.ACT_WEAPON_QUOTA=2）内出现，
+# 超额时由 shop_system 把武器格替换为合法非武器商品，不缩水格数。
 @export var loot_shop_ladder: Dictionary = {
-	1: ["common", "common", "common", "uncommon", "uncommon", "rare"],
-	2: ["common", "common", "uncommon", "uncommon", "rare", "rare"],
-	3: ["common", "uncommon", "uncommon", "rare", "rare", "epic"],
+	1: ["common", "common", "uncommon", "rare"],
+	2: ["common", "uncommon", "uncommon", "rare"],
+	3: ["common", "uncommon", "rare", "epic"],
 }
 # 商店每格的确定性类别（与 loot_shop_ladder 同下标；Step 5）。
 # 类别按幕次固定，品质按阶梯固定，具体物品仍由专用 RNG 抽取；不与战斗来源表共用随机逻辑。
 # 指定类别在该层无候选时（例如 act1 稀有消耗品尚未解锁）回退到该层任意类别，保证货架格数不缩水。
+# T1.5 返工：每幕 4 格，仅 1 个武器格；武器机会的每幕上限由 ShopSystem 配额控制。
 @export var loot_shop_categories: Dictionary = {
-	1: ["weapon", "active", "skill", "passive", "active", "weapon"],
-	2: ["weapon", "active", "passive", "skill", "weapon", "passive"],
-	3: ["weapon", "passive", "active", "skill", "weapon", "weapon"],
+	1: ["weapon", "active", "skill", "passive"],
+	2: ["weapon", "active", "passive", "skill"],
+	3: ["weapon", "passive", "active", "skill"],
 }
 
 # —— 四级品质战利品 · 同层转化（Step 4，docs/... §4.3）——

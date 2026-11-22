@@ -187,13 +187,21 @@ func refresh_loot_offer(view: Dictionary) -> void:
 
 func _refresh_loot_actions(view: Dictionary) -> void:
 	if _reroll_btn != null:
-		var cost := int(view.get("reroll_cost", 5))
-		var is_draft := not String(view.get("draft_id", "")).is_empty()
-		_reroll_btn.visible = true
-		_reroll_btn.text = "重抽 · %d金" % cost
-		_reroll_btn.disabled = controller.gold < cost
-		_reroll_btn.tooltip_text = ("重新生成三选一，品质由新 Draft 决定" if is_draft
-			else "支付 %d 金币，更换同层候选；不会提高品质" % cost)
+		var is_elite: bool = bool(view.get("elite_draft", false))
+		if is_elite:
+			# T1.4：精英强化 Draft 的三张高价值候选固定，不可重抽——禁用并明确标注不可用状态
+			_reroll_btn.visible = true
+			_reroll_btn.disabled = true
+			_reroll_btn.text = "不可重抽"
+			_reroll_btn.tooltip_text = "精英强化为固定三选一，不可重抽；请从三项引擎改造中选择一项"
+		else:
+			var cost := int(view.get("reroll_cost", 5))
+			var is_draft := not String(view.get("draft_id", "")).is_empty()
+			_reroll_btn.visible = true
+			_reroll_btn.text = "重抽 · %d金" % cost
+			_reroll_btn.disabled = controller.gold < cost
+			_reroll_btn.tooltip_text = ("重新生成三选一，品质由新 Draft 决定" if is_draft
+				else "支付 %d 金币，更换同层候选；不会提高品质" % cost)
 	if _skip_btn != null:
 		_skip_btn.text = "跳过 · 免费"
 

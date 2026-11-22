@@ -84,7 +84,7 @@ func _part_a_shop_ladder(duel: DuelController) -> void:
 	for act in [1, 2, 3]:
 		duel.current_act = act
 		var ladder: Array = LootSourceTable.shop_tiers(act)
-		_check(ladder.size() == 6, "act%d 商店阶梯为 6 格" % act)
+		_check(ladder.size() == 4, "act%d 商店阶梯为 4 格（T1.5 返工后）" % act)
 		var want := {"common": 0, "uncommon": 0, "rare": 0, "epic": 0}
 		for q in ladder:
 			want[String(q)] = int(want.get(String(q), 0)) + 1
@@ -99,28 +99,39 @@ func _part_a_shop_ladder(duel: DuelController) -> void:
 					relic_violations += 1
 				if duel.selected_charms.has(String(o["path"])) or duel.selected_skills.has(String(o["path"])):
 					selected_violations += 1
-			if duel._shop_system.shop_offers.size() != 6:
+			if duel._shop_system.shop_offers.size() != 4:
 				size_bad += 1
 			if not _same_counts(_quality_counts(paths), want):
 				mismatches += 1
 		_check(mismatches == 0, "act%d 货架品质构成 == 阶梯（%d 轮偏差 %d）" % [act, SHOP_ROLLS, mismatches])
-		_check(size_bad == 0, "act%d 货架恒为 6 格（异常 %d 轮）" % [act, size_bad])
+		_check(size_bad == 0, "act%d 货架恒为 4 格（异常 %d 轮）" % [act, size_bad])
 	_check(relic_violations == 0, "商店永不上架 BOSS 信物（违规 %d）" % relic_violations)
 	_check(selected_violations == 0, "已带护符/技能不上架（违规 %d）" % selected_violations)
 
-	# Step 5：类别序列按幕次确定（指定类别空池时回退，但货架格数不变）
+	# Step 5：新契约（T1.5 返工）下，货架恒 4 格、每格类别合法、武器格 ≤1。
+	# 类别序列不再恒等于配置——非武器格空池时回退到合法非武器商品（且不再回退到武器），
+	# 武器格由每幕配额控制（T15 专项覆盖）。这里验证 loot_pool 层输出的稳定性与合法性。
+	var allowed_kinds := ["weapon", "passive", "active", "skill"]
 	for act in [1, 2, 3]:
 		duel.current_act = act
 		var want_cats: Array = LootSourceTable.shop_categories(act)
-		var cat_bad := 0
+		var bad := 0
 		for i in SHOP_ROLLS:
-			duel._shop_system.roll_shop()
+			var ladder: Array = duel._reward_system.roll_shop_ladder(act, {"categories": want_cats, "no_weapon_fallback": true})
 			var got: Array = []
-			for o in duel._shop_system.shop_offers:
-				got.append(String(o["kind"]))
-			if got != want_cats:
-				cat_bad += 1
-		_check(cat_bad == 0, "act%d 货架类别序列 == 配置（%d 轮偏差 %d）" % [act, SHOP_ROLLS, cat_bad])
+			for slot in ladder:
+				if bool(slot.get("ok", false)):
+					got.append(duel._shop_system._shop_kind(String(slot.get("path", ""))))
+			var weapon_cnt: int = 0
+			var legal := got.size() == 4
+			for k in got:
+				if not (String(k) in allowed_kinds):
+					legal = false
+				if String(k) == "weapon":
+					weapon_cnt += 1
+			if not legal or weapon_cnt > 1:
+				bad += 1
+		_check(bad == 0, "act%d 货架恒4格且类别合法、武器格≤1（%d 轮偏差 %d）" % [act, SHOP_ROLLS, bad])
 
 	# 固定专用种子 → 货架路径序列可复现（质量阶梯本身确定，只验证抽取可复现）
 	duel.current_act = 2

@@ -91,7 +91,7 @@ static func roll_quality(source: String, act: int, rng: RandomNumberGenerator) -
 	return QUALITIES[QUALITIES.size() - 1]
 
 
-# 商店货架的确定性品质阶梯（每幕 6 格；不足/越界返回空数组）。
+# 商店货架的确定性品质阶梯（每幕 4 格；T1.5 返工 6→4；不足/越界返回空数组）。
 static func shop_tiers(act: int) -> Array:
 	if not is_valid_act(act):
 		return []

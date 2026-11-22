@@ -2497,10 +2497,14 @@ var _special_dialog: PanelContainer = null
 var _special_vbox: VBoxContainer = null
 var _special_action_cb: Callable = Callable()
 var _special_cancel_cb: Callable = Callable()
+var _special_abandon_cb: Callable = Callable()   # T0-3：放弃事件回调（可选）
 
-func request_special_room(kind: String, desc: String, options: Array, action_cb: Callable, cancel_cb: Callable) -> void:
+# T0-2：action_label 仅用于宝箱揭示阶段的「确认继续」按钮；留空沿用原「开启宝箱」。
+# T0-3：abandon_cb 仅用于事件「放弃」按钮；留空不显示放弃入口。
+func request_special_room(kind: String, desc: String, options: Array, action_cb: Callable, cancel_cb: Callable, action_label: String = "", abandon_cb: Callable = Callable()) -> void:
 	_special_action_cb = action_cb
 	_special_cancel_cb = cancel_cb
+	_special_abandon_cb = abandon_cb
 	if _special_dialog == null:
 		_special_dialog = PanelContainer.new()
 		_special_dialog.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -2535,25 +2539,54 @@ func request_special_room(kind: String, desc: String, options: Array, action_cb:
 	_special_vbox.add_child(desc_lbl)
 	if kind == "chest":
 		var open_btn = UI_BUTTON.instantiate()
-		open_btn.text = "开启宝箱"
+		open_btn.text = action_label if action_label != "" else "开启宝箱"
 		open_btn.custom_minimum_size = Vector2(280, 32)
 		open_btn.pressed.connect(_on_special_action.bind(0))
 		_special_vbox.add_child(open_btn)
 	else:
+		# T0-3：事件选项按当前支付能力禁用并说明原因，不展示到选择后才失败。
 		for i in options.size():
 			var o: Dictionary = options[i]
 			var btn = UI_BUTTON.instantiate()
-			btn.text = String(o.get("label", "选项 %d" % (i + 1)))
+			var label: String = String(o.get("label", "选项 %d" % (i + 1)))
+			var reason: String = _event_option_shortage(o)
+			if reason != "":
+				btn.text = label + "（" + reason + "）"
+				btn.disabled = true
+			else:
+				btn.text = label
 			btn.custom_minimum_size = Vector2(320, 32)
 			btn.pressed.connect(_on_special_action.bind(i))
 			_special_vbox.add_child(btn)
 	if cancel_cb.is_valid():
+		# T0-3：取消与放弃语义相反，不得共用文案。
+		# 取消 = 留在事件页继续比较；放弃 = 不获得不支付并推进。
 		var cancel_btn = UI_BUTTON.instantiate()
-		cancel_btn.text = "取消 / 继续"
+		# 无选项事件：取消槽位承载的是「继续」；有选项事件才是「取消查看」。
+		cancel_btn.text = "继续" if options.is_empty() else "取消查看"
 		cancel_btn.custom_minimum_size = Vector2(160, 30)
 		cancel_btn.pressed.connect(_on_special_cancel)
 		_special_vbox.add_child(cancel_btn)
+		if _special_abandon_cb.is_valid():
+			var abandon_btn = UI_BUTTON.instantiate()
+			abandon_btn.text = "放弃事件（直接继续）"
+			abandon_btn.custom_minimum_size = Vector2(180, 30)
+			abandon_btn.pressed.connect(_on_special_abandon)
+			_special_vbox.add_child(abandon_btn)
 	_special_dialog.visible = true
+
+# T0-3：事件选项支付能力判定。返回禁用原因（空串=可用）。
+# 与控制器 _linear_event_choose 的二次守护同口径：HP / 金币不足。
+func _event_option_shortage(o: Dictionary) -> String:
+	var give: String = String(o.get("give", ""))
+	var amt: int = int(o.get("give_amount", 0))
+	if give == "" or amt <= 0 or controller == null:
+		return ""
+	if give == "hp" and int(controller.player_hp) <= amt:
+		return "生命不足"
+	if give == "gold" and int(controller.gold) < amt:
+		return "金币不足"
+	return ""
 
 func _on_special_action(index: int) -> void:
 	hide_special_room()
@@ -2563,6 +2596,11 @@ func _on_special_action(index: int) -> void:
 func _on_special_cancel() -> void:
 	if _special_cancel_cb.is_valid():
 		_special_cancel_cb.call()
+
+func _on_special_abandon() -> void:
+	hide_special_room()
+	if _special_abandon_cb.is_valid():
+		_special_abandon_cb.call()
 
 func hide_special_room() -> void:
 	if _special_dialog != null:

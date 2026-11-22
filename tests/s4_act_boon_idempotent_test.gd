@@ -45,8 +45,9 @@ func _ready() -> void:
 	if duel._journal != null and duel._journal._data.has("act_boons"):
 		boons2 = (duel._journal._data["act_boons"] as Array).size()
 	_ok(after2_power == base_power + g.ACT_BOON_POWER, "ACT2 first: power +8")
-	_ok(after2_hpmax == base_hp_max + g.ACT_BOON_HP, "ACT2 first: hp_max +20")
-	_ok(after2_hp == mini(after2_hpmax, base_hp + g.ACT_BOON_HP), "ACT2 first: hp healed")
+	# T1.7 收口：锻魂不再改 HP
+	_ok(after2_hpmax == base_hp_max, "ACT2 first: hp_max unchanged")
+	_ok(after2_hp == base_hp, "ACT2 first: hp unchanged")
 	_ok(boons2 == boons0 + 1, "ACT2 first: journal +1 record")
 	_ok(g.granted_acts.has(2), "granted_acts has act 2")
 
@@ -63,7 +64,7 @@ func _ready() -> void:
 	# ACT3 首次仍正常发放
 	g.grant_act_boon(3)
 	_ok(int(rs.run_power_bonus) == after2_power + g.ACT_BOON_POWER, "ACT3 first: power +8 again")
-	_ok(int(duel.player_hp_max) == after2_hpmax + g.ACT_BOON_HP, "ACT3 first: hp_max +20 again")
+	_ok(int(duel.player_hp_max) == after2_hpmax, "ACT3 first: hp_max unchanged again")
 	_ok(g.granted_acts.has(3), "granted_acts has act 3")
 	var boons3: int = 0
 	if duel._journal != null and duel._journal._data.has("act_boons"):

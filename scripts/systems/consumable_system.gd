@@ -157,6 +157,8 @@ func use_heal(data: Resource) -> void:
 	var before := int(_ctrl.player_hp)
 	_ctrl.player_hp = mini(_ctrl.player_hp_max, _ctrl.player_hp + amount)
 	var gain := int(_ctrl.player_hp) - before
+	if _ctrl._telemetry != null:
+		_ctrl._telemetry.on_heal(gain, 0, "consumable")   # T1.8 分来源观测
 	_ctrl.hud._log("%s：回复 %d HP（现 %d）" % [data.item_name, amount, _ctrl.player_hp])
 	_ctrl.hud._show_action_feedback(("恢复+%d" % gain) if gain > 0 else "恢复：已满")
 

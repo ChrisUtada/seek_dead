@@ -12,15 +12,36 @@ func _init(ctrl) -> void:
 	_ctrl = ctrl
 
 
+# T0-4A：统一异步死亡收口。普通攻击 / DoT / 免费重转 / 回合开始尸体收口 / Boss 击杀
+# 全部走这里：先明确归零并记 WON，播放敌人死亡溶解并等待真实 tween 完成，最后只开一次奖励。
+# 不改伤害、胜负判定、奖励内容、RNG 或战后结算次数；快速跳过只压缩溶解时长到终态。
+func _settle_kill_async(log_msg: String) -> void:
+	# 幂等：已被判胜（例如 DoT 与 evaluate 同回合双触发）不再重复收口。
+	if _ctrl.game_state == _ctrl.FlowState.WON:
+		return
+	_ctrl.hud._log(log_msg)
+	_ctrl.game_state = _ctrl.FlowState.WON
+	_ctrl.invalidate_state()
+	_ctrl.hud._refresh_meta()   # 敌人 HP/血条明确归零（真实值），死亡溶解叠在其上
+	_ctrl.hud._popup("击败", Palette.ACCENT_GOLD, _ctrl.hud._enemy_sprite_anchor())
+	# 死亡溶解：复用 play_kill，await 真实 tween 完成；非致命回合不会进到这里。
+	var animator = _ctrl.hud.animator
+	if animator != null:
+		var tw = animator.play_kill(_ctrl.presentation_skip)
+		if tw != null:
+			await tw.finished
+	_ctrl.hud._show_reward_screen(_ctrl._is_boss_room(_ctrl.room_index))
+	_ctrl.hud._refresh_meta()
+	_ctrl._busy = false
+
+
 # 回合开始：持续效果衰减（frozen 先衰减再挂新层）→ 敌人声明意图 → gimmick 回合钩子 → 冻结列声明。
 func begin_player_turn() -> void:
 	# P-审计补充（2026-08-24）：上一回合收尾阶段的 DoT/爆炸击杀不经过任何胜利检查点，
 	# 会留下「尸体局」软锁——在此统一收口声明胜利。
 	if _ctrl.enemy_hp <= 0 and _ctrl.game_state == DuelController.FlowState.PLAYING and not _ctrl.peaceful_win:
-		_ctrl.hud._log("★ 击败 %s！（状态结算）" % _ctrl.enemy_name)
-		_ctrl.game_state = DuelController.FlowState.WON
-		_ctrl.invalidate_state()
-		_ctrl.hud._show_reward_screen(_ctrl._is_boss_room(_ctrl.room_index))
+		# T0-4A：统一死亡收口（异步），不在尸体上直接开奖励。
+		_settle_kill_async("★ 击败 %s！（状态结算）" % _ctrl.enemy_name)
 		return
 	if _ctrl.game_state != _ctrl.FlowState.PLAYING:
 		return
@@ -97,12 +118,8 @@ func on_spin_pressed() -> void:
 		_ctrl._busy = false
 		return
 	if _ctrl.enemy_hp <= 0:
-		_ctrl.hud._log("★ 击败 %s！" % _ctrl.enemy_name)
-		_ctrl.game_state = _ctrl.FlowState.WON
-		_ctrl.invalidate_state()
-		_ctrl.hud._show_reward_screen(_ctrl._is_boss_room(_ctrl.room_index))
-		_ctrl.hud._refresh_meta()
-		_ctrl._busy = false
+		# T0-4A：统一死亡收口——播放死亡溶解、等演出完成再开奖励。
+		await _settle_kill_async("★ 击败 %s！" % _ctrl.enemy_name)
 		return
 
 	# 阶段 3：敌人行动（先让玩家看清敌人刚掉的血）
@@ -121,11 +138,8 @@ func on_spin_pressed() -> void:
 	# 2026-11-16 P0：DoT 已前置到敌人回合开始。若敌人被状态伤害击倒，
 	# 先判胜利再播演出——否则会出现「尸体还在放攻击特效」。
 	if _ctrl.enemy_hp <= 0:
-		_ctrl.hud._log("★ 击败 %s！（状态结算）" % _ctrl.enemy_name)
-		_ctrl.game_state = _ctrl.FlowState.WON
-		_ctrl.invalidate_state()
-		_ctrl.hud._show_reward_screen(_ctrl._is_boss_room(_ctrl.room_index))
-		_ctrl._busy = false
+		# T0-4A：DoT 击杀同样走统一死亡收口。
+		await _settle_kill_async("★ 击败 %s！（状态结算）" % _ctrl.enemy_name)
 		return
 	# 属性攻击演出：喷出 → 命中爆发 → 地面冰锥。不播完就推进回合会「一秒糊过去」，
 	# 所以在这里等足时长（0 = 该元素暂无素材，直接过）。
@@ -165,10 +179,9 @@ func free_spin() -> void:
 	await _ctrl.get_tree().create_timer(0.15).timeout
 	await _ctrl.combat.evaluate()
 	if _ctrl.enemy_hp <= 0:
-		_ctrl.hud._log("★ 重转触发击败 %s！" % _ctrl.enemy_name)
-		_ctrl.game_state = _ctrl.FlowState.WON
-		_ctrl.invalidate_state()
-		_ctrl.hud._show_reward_screen(_ctrl._is_boss_room(_ctrl.room_index))
+		# T0-4A：免费重转击杀同样走统一死亡收口（Boss 战利品也经此）。
+		await _settle_kill_async("★ 重转触发击败 %s！" % _ctrl.enemy_name)
+		return
 	_ctrl.hud._refresh_meta()
 	_ctrl._busy = false
 

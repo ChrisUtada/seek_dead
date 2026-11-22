@@ -161,13 +161,16 @@ func play_counter(kind: String) -> void:
 		_shake(7.0)
 
 
-# P2：击杀溶解（方法备好，接入点待定：won overlay 时序复杂，留后续挂接）
-func play_kill() -> void:
+# T0-4A：击杀溶解。返回 Tween 供统一死亡收口 await 真实完成（不再"备好未接入"）。
+# skip=true（演出快速跳过）时压到近零时长，但仍把 alpha/scale 收到终值，不残留半透明尸体。
+func play_kill(skip: bool = false) -> Tween:
 	if enemy_sprite == null:
-		return
-	var tw = create_tween()
-	tw.tween_property(enemy_sprite, "modulate:a", 0.0, 0.5)
-	tw.parallel().tween_property(enemy_sprite, "scale", Vector2(0.2, 0.2), 0.5)
+		return null
+	var dur: float = 0.001 if skip else 0.5
+	var tw := create_tween()
+	tw.tween_property(enemy_sprite, "modulate:a", 0.0, dur)
+	tw.parallel().tween_property(enemy_sprite, "scale", Vector2(0.2, 0.2), dur)
+	return tw
 
 
 func _center_pivot(c: Control) -> void:

@@ -21,7 +21,11 @@ extends Resource
 @export var icon: Texture2D = null               # 图标资源
 @export var art: Texture2D = null                # 卡面美术，空则用 icon
 
-@export var rarity: String = "common"            # common|uncommon|rare|epic（战利品品质四档）
+@export var rarity: String = "common"            # common|uncommon|rare|epic（战利品品质四档，卡面展示用）
+# W-01A：抽取权重专用品质覆盖。空 = 用 rarity 算权重；非空 = 用此档算权重。
+# 用于「卡面继承真实品质、但抽取权重保持原值」的武器卡（显示与抽取解耦）。
+# 不是第二套卡面品质：卡面始终读 rarity，仅 CategoryResolver 抽卡时读此字段。
+@export var draw_rarity_override: String = ""
 @export var tags: Array[String] = []             # 开放标签：weapon / element.fire / build.fire / survival.* 等
 @export var base_weight: float = 1.0             # 基础出现权重
 @export var base_value: float = 1.0              # 设计基准价值（供 Draft 评分，≠效果数值）

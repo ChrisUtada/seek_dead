@@ -2,17 +2,12 @@ class_name ShopConfig
 extends Resource
 
 # 商店经济配置（resources/config/shop_config.tres）——从 shop_system.gd 的内联字典抽出。
-# 价格模型：price = base + jitter + max(0, 已持数 - 初始配额 + 1) * step，再夹 price_floor。
-# base 按类定起点、step 按类定递增斜率（护符最大：唯一收集乘区须最贵；增益次之；武器居中；消耗品最低）。
-# 数值与节奏闸门说明见 shop_system.gd 头注释与 shop_price 的注释。
+# 价格模型（固定目录价，T1.2）：price = base × rarity_price_mult[稀有度]，再夹 price_floor。
+# 同稀有度同价、跨局同价、不随持有数递增。数值说明见 shop_system.gd 的 shop_price 注释。
 
 @export var base_price: Dictionary = {"weapon": 8, "passive": 10, "active": 5, "skill": 6}
-@export var step_price: Dictionary = {"weapon": 5, "passive": 8, "active": 4, "skill": 6}
 @export var rarity_price_mult: Dictionary = {"common": 1.0, "uncommon": 1.6, "rare": 2.4, "epic": 3.6}   # L1 经济：稀有度定价阶梯（武器 rare 8×2.4≈19、epic 8×3.6≈29；原 3.0/5.0=24/40 对低产出偏高）
 @export var fallback_base: int = 6   # 未收录类别的兜底 base
-@export var fallback_step: int = 4   # 未收录类别的兜底 step
-@export var jitter_min: int = -1     # 每次报价的随机浮动下限
-@export var jitter_max: int = 2      # 每次报价的随机浮动上限
 @export var price_floor: int = 3     # 价格下限（防零价/负价）
 @export var sell_refund_ratio: float = 0.5   # 卖出返还实际购入价的比例（过高会刷金，过低换装几乎免费）
 @export var free_item_sell_price: int = 3    # 无购入价物品（BOSS/宝箱免费掉落、腰带满折算）的固定卖出价——堵住"免费掉落变现"白嫖

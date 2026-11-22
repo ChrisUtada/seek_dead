@@ -107,6 +107,17 @@ func draw_category(weights: Dictionary) -> String:
 	return String(keys[keys.size() - 1])
 
 
+# W-01A：单张卡的最终有效抽取权重 =  rarity 梯度系数 × base_weight。
+# 若设置 draw_rarity_override，则用覆盖档算梯度（卡面仍读 rarity）——显示与抽取解耦。
+# 抽取与测试共用此函数，避免两处各写一遍权重公式。
+static func effective_draw_weight(def: RewardDefinition) -> float:
+	var draw_rarity: String = String(def.draw_rarity_override)
+	if draw_rarity.is_empty():
+		draw_rarity = String(def.rarity)
+	var rmult: float = float(RARITY_DRAW_MULT.get(draw_rarity, 1.0))
+	return maxf(0.01, float(def.base_weight) * rmult)
+
+
 # 从某类别里按 base_weight 无放回抽一张（调用方维护 used_ids 去重）。
 static func draw_from_category(groups: Dictionary, cat: String, used_ids: Dictionary, rng: RandomNumberGenerator) -> RewardDefinition:
 	var arr: Array = groups.get(cat, [])
@@ -119,9 +130,7 @@ static func draw_from_category(groups: Dictionary, cat: String, used_ids: Dictio
 		return null
 	var weights: Array[float] = []
 	for d in candidates:
-		# 稀有度梯度 × 卡自身 base_weight（V1.1 §4.2）
-		var rmult: float = float(RARITY_DRAW_MULT.get(String(d.rarity), 1.0))
-		weights.append(maxf(0.01, float(d.base_weight) * rmult))
+		weights.append(effective_draw_weight(d))
 	var total := 0.0
 	for w in weights:
 		total += w

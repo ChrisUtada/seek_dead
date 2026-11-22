@@ -10,7 +10,7 @@ extends RefCounted
 # - 跨系统联动（授予后刷新 UI 等）留在 controller 编排层；本子系统不互调其他子系统。
 # - ctrl 标类型 DuelController（已加 class_name），成员访问获得编译期检查。
 # - 3117c6d 修复保持：买入仅 kind=="weapon"/"passive" 写 owned_*，skill 跳过（防 SkillData 进 owned_weapons 崩溃）。
-# - 商店经济（价格表 / 随机浮动 / 下限 / 返现比）收敛于 ShopConfig Resource（resources/config/shop_config.tres），
+# - 商店经济（固定目录价 / 价格下限 / 返现比 / 刷新费）收敛于 ShopConfig Resource（resources/config/shop_config.tres），
 #   策划可直接在 Inspector 调参，不再改代码。
 # ⚠ 2026-08-14：训练点/四轨升级系统（GoldUpgradeDef / track_level / gold_upgrade_* / train_screen）已整体移除。
 
@@ -21,6 +21,15 @@ var _ctrl: DuelController          # DuelController 实例（类型标注，编�
 var shop_offers: Array[Dictionary] = []            # 当前商店货架（随机刷新）
 var reroll_used := 0               # 本房间歇期已刷新次数（_enter_interroom 清零；价格 = reroll_base + used×step，上限 reroll_max）
 var paid_price: Dictionary = {}        # path/uid -> 实际购入价（卖出返还约 50%；新一局清空）
+
+# T1.5 / N-09：每幕武器候选机会配额。
+# 按「实际生成的武器候选」计数，不是购买次数——玩家跳过/买不起也算该次机会已出现。
+# 计数按 current_act 自动分段（换幕时配额自动重置），无需改动 advance_act / 线性换幕路径。
+const ACT_WEAPON_QUOTA := 2
+var quota_act: int = -1             # 当前计数所属的幕（-1=未初始化）
+var quota_room: int = -1            # 上次计入配额的房间（同房重复 roll/reroll 不重复计数）
+var quota_room_start: int = 0       # 进入 quota_room 时的武器配额基线（同房重复 roll 复用它）
+var weapon_quota_used: int = 0      # 本幕已生成的武器候选数
 
 func _init(ctrl: DuelController) -> void:
 	_ctrl = ctrl
@@ -33,6 +42,10 @@ func _init(ctrl: DuelController) -> void:
 func reset_run() -> void:
 	paid_price = {}
 	reroll_used = 0
+	quota_act = -1
+	quota_room = -1
+	quota_room_start = 0
+	weapon_quota_used = 0
 
 
 # ---------------------------------------------------------------------------
@@ -107,19 +120,10 @@ func _journal_shop_note(offer: Dictionary, price: int, source: String) -> void:
 		_ctrl._journal.note_shop(nm, kind, price)
 
 
+# owned 参数保留仅为兼容既有调用面（固定目录价后不再参与定价）。
 func shop_price(kind: String, owned: int = -1, item_path: String = "") -> int:
-	if owned < 0:
-		# 消耗品按【腰带实占数】递增价（含商店重复购买同类），而非去重勾选数
-		if kind == "active":
-			owned = _ctrl.consumable_slots.size()
-		else:
-			owned = _ctrl._loadout_system.sel_arr(kind).size()
-	# 金币是「买即开槽」的节奏闸门：价格随「当前持有数」递增。
-	# 售出物品会减少持有数 → 重购价格回落，换装成本自然来自买卖价差（防刷价）。
-	# 加价起点对齐各类初始配额（填满初始空位仍原价，从首次扩槽起逐级加价）。
-	# 步进差异：护符最大（唯一收集乘区、须最贵）；增益次之（进池挤占转轮带最凶）；
-	# 武器居中；消耗品最低。数值见 ShopConfig（resources/config/shop_config.tres）。
-	# T6/T21：稀有度定价阶梯——base × rarity_price_mult[物品稀有度]（epic 武器 8×5=40，一局买不起两把）
+	# T6/T21：稀有度定价阶梯——base × rarity_price_mult[物品稀有度]。
+	# 数值见 ShopConfig（resources/config/shop_config.tres）。
 	var base = SHOP_CONFIG.base_price.get(kind, SHOP_CONFIG.fallback_base)
 	var rarity := "common"
 	# 消耗品按腰带 uid（如 c1）传入时非资源路径——跳过 load（回落 common），避免刷报错
@@ -128,18 +132,11 @@ func shop_price(kind: String, owned: int = -1, item_path: String = "") -> int:
 		if res != null and "rarity" in res:
 			rarity = String(res.get("rarity"))
 	base = int(round(float(base) * float(SHOP_CONFIG.rarity_price_mult.get(rarity, 1.0))))
-	# F-09：按 run 种子 + 物品路径确定性生成 jitter，替代随机 randi_range。
-	# 同局同物品始终同价；不同物品/不同局仍有变化；分布仍为 [min,max] 均匀，经济基线不变。
-	# 不消耗战斗/奖励 RNG——反复打开商店或重生成货架不再改变随机流。
-	var jitter_min: int = int(SHOP_CONFIG.jitter_min)
-	var jitter_max: int = int(SHOP_CONFIG.jitter_max)
-	var span: int = maxi(1, jitter_max - jitter_min + 1)
-	var h: int = String(item_path).hash() ^ int(_ctrl.shop_run_seed)
-	var jitter: int = jitter_min + posmod(h, span)
-	var price = base + jitter
-	var step = SHOP_CONFIG.step_price.get(kind, SHOP_CONFIG.fallback_step)
-	price += max(0, owned - int(_ctrl.SLOT_INIT.get(kind, 1)) + 1) * step
-	return max(SHOP_CONFIG.price_floor, price)
+	# 固定目录价（T1.2）：价格 = base × 稀有度阶梯，跨物品/跨局同稀有度同价，玩家可预测。
+	# 移除原 jitter（按 run 种子+路径 hash）与 step 递增（原「买即开槽」加价）——
+	# 前者让跨局价格漂移、后者把开槽费暗含在报价里，二者都与「固定目录价」冲突。
+	# owned / shop_run_seed 不再参与定价；item_path 仅用于读稀有度阶梯。参数保留以兼容既有调用面。
+	return max(SHOP_CONFIG.price_floor, base)
 
 
 func shop_name(path: String, kind: String) -> String:
@@ -152,16 +149,47 @@ func shop_name(path: String, kind: String) -> String:
 		_:        return (d as ItemData).item_name if d is ItemData else path.get_file().get_basename()
 
 
-func roll_shop() -> void:
+func roll_shop(keep_weapons: bool = false) -> void:
 	# Step 3：货架品质不再按物品稀有度加权随机，改读来源表配套的确定性阶梯
-	# （每幕 6 格：越深rare/epic越多，见 BalanceConfig.loot_shop_ladder）。
+	# （每幕 4 格：越深rare/epic越多，见 BalanceConfig.loot_shop_ladder；T1.5 返工 6→4）。
 	# 保留旧过滤语义：本局已带护符/技能不上架；BOSS 信物不进商店；消耗品允许同类重复。
 	var act: int = maxi(1, mini(3, int(_ctrl.current_act)))
+	# T1.5：按幕自动重置武器候选配额（线性/地图换幕路径都覆盖）
+	if act != quota_act:
+		quota_act = act
+		weapon_quota_used = 0
+		quota_room = -1
+		quota_room_start = 0
+	# T1.5：区分「新房首次 roll」与「同房重复 roll/reroll」。
+	# 同一房间内重复 roll（含 reroll）复用进入该房时的配额基线，保证同种子可复现、
+	# 且不会因反复开关商店/刷新而累积消耗武器机会。
+	var is_new_room: bool = (int(_ctrl.room_index) != quota_room)
+	var is_fresh: bool = is_new_room and not keep_weapons
+	var base_used: int = weapon_quota_used if is_fresh else quota_room_start
 	var exclude: Array = []
 	exclude.append_array(_ctrl.selected_charms)
 	exclude.append_array(_ctrl.selected_skills)
-	var ladder: Array = _ctrl._reward_system.roll_shop_ladder(act, {"exclude": exclude})
+	# T1.5：每幕最多 ACT_WEAPON_QUOTA 次武器候选机会——按实际生成的武器候选计数。
+	# 超额的武器格改为非武器类别（active），保证普通护符/技能/消耗品不被挤出货架。
+	var cats: Array = LootSourceTable.shop_categories(act).duplicate()
+	var remaining: int = maxi(0, ACT_WEAPON_QUOTA - base_used)
+	for i in range(cats.size()):
+		if String(cats[i]) != "weapon":
+			continue
+		if remaining > 0:
+			remaining -= 1
+		else:
+			cats[i] = "active"   # 配额用尽 → 该格改非武器，不占武器机会
+	# T1.5：reroll 时冻结武器对象——保存旧武器 offer，生成后放回原武器格，不新增/刷新武器。
+	var frozen_weapons: Array[Dictionary] = []
+	if keep_weapons:
+		for o in shop_offers:
+			if String(o.get("kind", "")) == "weapon":
+				frozen_weapons.append((o as Dictionary).duplicate())
+	var shop_opts: Dictionary = {"exclude": exclude, "categories": cats, "no_weapon_fallback": true}
+	var ladder: Array = _ctrl._reward_system.roll_shop_ladder(act, shop_opts)
 	shop_offers = []
+	var frozen_idx: int = 0
 	for slot in ladder:
 		if not bool(slot.get("ok", false)):
 			continue
@@ -169,9 +197,30 @@ func roll_shop() -> void:
 		var kind := _shop_kind(p)
 		if kind == "":
 			continue
-		# 2026-08-10 fix：报价在货架生成时锁定（offer["price"]）——显示与购买统一读它，
-		# 否则每次调用 shop_price() 的随机 jitter 会让价格点击后跳动
-		shop_offers.append({"path": p, "kind": kind, "name": shop_name(p, kind), "price": shop_price(kind, -1, p), "sold": false})
+		# 报价在货架生成时锁定（offer["price"]）——显示与购买统一读它；
+		# 固定目录价下 shop_price 已是确定性纯函数，锁定报价仍保留，避免显示/结算走两套取值。
+		if kind == "weapon" and frozen_idx < frozen_weapons.size():
+			shop_offers.append(frozen_weapons[frozen_idx])   # 冻结对象：reroll 不换武器
+			frozen_idx += 1
+		else:
+			shop_offers.append({"path": p, "kind": kind, "name": shop_name(p, kind), "price": shop_price(kind, -1, p), "sold": false})
+	# 仅「新房首次 roll」计入配额；跳过/买不起也算该次机会已出现
+	var fresh_weapons: int = 0
+	for o in shop_offers:
+		if String(o.get("kind", "")) == "weapon":
+			fresh_weapons += 1
+	if is_fresh:
+		weapon_quota_used += fresh_weapons
+		quota_room = int(_ctrl.room_index)
+		quota_room_start = weapon_quota_used - fresh_weapons
+	elif is_new_room:
+		# 同房外但非 fresh（如 reroll 时跨房，罕见）：只同步房间标记，不重复计数
+		quota_room = int(_ctrl.room_index)
+		quota_room_start = weapon_quota_used
+	# 若新货架武器格少于冻结数（配额已满场景），把剩余冻结武器补回，确保对象不丢失
+	while frozen_idx < frozen_weapons.size():
+		shop_offers.append(frozen_weapons[frozen_idx])
+		frozen_idx += 1
 	_ctrl.invalidate_state()
 
 
@@ -215,8 +264,8 @@ func on_shop_reroll_pressed() -> void:
 		return
 	_ctrl.gold -= price
 	reroll_used += 1
-	roll_shop()
-	_ctrl.hud._log("🔄 刷新货架（-%d 金，余 %d；下次刷新 %d 金）" % [price, _ctrl.gold, reroll_price()])
+	roll_shop(true)   # T1.5：reroll 只重抽非武器格，武器对象与价格冻结
+	_ctrl.hud._log("🔄 刷新货架（-%d 金，余 %d；武器格已冻结）" % [price, _ctrl.gold])
 	_ctrl.invalidate_state()
 
 
@@ -266,7 +315,7 @@ func on_shop_buy_pressed(offer: Dictionary, source: String = "shop") -> void:
 	if w >= cap and not _ctrl._loadout_system.can_grow_slot(kind):
 		_ctrl.hud._log("%s槽位已满 %d/%s（已达天花板），无法购买" % [_ctrl._loadout_system.cat_name(kind), w, _ctrl._loadout_system.cap_text(kind)])
 		return
-	buy_price = offer.get("price", shop_price(kind, -1, offer["path"]))       # 2026-08-10 fix：读货架锁定报价（原每次重算含 jitter 随机 → 点击后价格跳动）
+	buy_price = offer.get("price", shop_price(kind, -1, offer["path"]))       # 读货架锁定报价，保证显示价=扣款价
 	if _ctrl.gold < buy_price:
 		_ctrl.hud._log("金币不足（需 %d）" % buy_price)
 		return

@@ -33,6 +33,9 @@ var counter_triples := 0        # 克制元素三连触发的核爆次数
 var counter_burst_damage := 0   # 核爆穿透伤害合计
 var heal_total := 0             # 实际回复 HP 合计（不含溢出）
 var heal_overflow_shield := 0   # 治疗三连溢出转护盾合计
+# T1.8 观测：分来源治疗量（HP 实际增量），key = consumable/camp/shrine/regen/reward/symbol。
+# 只读统计，不参与任何结算；heal_total 仍是全量合计。
+var heal_by_source: Dictionary = {}
 
 var _spin_started := -1
 var _room_started := -1
@@ -64,6 +67,7 @@ func reset() -> void:
 	counter_burst_damage = 0
 	heal_total = 0
 	heal_overflow_shield = 0
+	heal_by_source = {}
 	draft_shown = 0
 	draft_selected = 0
 	draft_cards_shown = 0
@@ -134,9 +138,13 @@ func on_counter_burst(damage: int) -> void:
 
 
 # Step 1：治疗实际入账与三连溢出转盾— 只统计，不改结算。
-func on_heal(hp_gain: int, overflow_shield: int) -> void:
+func on_heal(hp_gain: int, overflow_shield: int, source: String = "symbol") -> void:
 	heal_total += hp_gain
 	heal_overflow_shield += overflow_shield
+	# T1.8：分来源记账（只读观测，不改数值）
+	if hp_gain > 0:
+		var key: String = source if not source.is_empty() else "other"
+		heal_by_source[key] = int(heal_by_source.get(key, 0)) + hp_gain
 
 
 func on_room_start() -> void:
@@ -304,6 +312,7 @@ func summary() -> Dictionary:
 		"stop_kinds": stop_kinds.duplicate(), "consumable_uses": consumable_uses.duplicate(),
 		"counter_triples": counter_triples, "counter_burst_damage": counter_burst_damage,
 		"heal_total": heal_total, "heal_overflow_shield": heal_overflow_shield,
+		"heal_by_source": heal_by_source.duplicate(),
 		# G7-5 §11.3：辅助选项来源与奖励遥测分开记录
 		"assist": assist_snapshot.duplicate(),
 	}

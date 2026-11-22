@@ -128,7 +128,7 @@ func _test_tag_coverage() -> void:
 	_check(relic_leak == 0, "BOSS 信物不带 chest 标签（泄漏 %d）" % relic_leak)
 
 	# 2026-11-20 更新：精简剪刀（trim_scissors）是 G7-B 特殊机制道具，
-	# 设计上只走精英/商店来源，不进宝箱池（见 room_flow TRIM_ITEM_PATH 注释），故不算遗漏。
+	# 设计上只走商店来源（见 shop_system TRIM_ITEM_PATH），不进宝箱池，故不算遗漏。
 	const NO_CHEST_CONSUMABLES := ["trim_scissors.tres"]
 	var consumable_missing := 0
 	var missing_names: Array[String] = []
@@ -343,12 +343,17 @@ func _test_shop_category_config() -> void:
 	for act in [1, 2, 3]:
 		var cats: Array = LootSourceTable.shop_categories(act)
 		var tiers: Array = LootSourceTable.shop_tiers(act)
-		var ok := cats.size() == 6 and cats.size() == tiers.size()
+		# T1.5 返工：货架 4 格，且每幕配置仅 1 个武器格（其余武器机会由 ShopSystem 配额控制）
+		var weapon_cnt: int = 0
+		for c in cats:
+			if String(c) == "weapon":
+				weapon_cnt += 1
+		var ok := cats.size() == 4 and cats.size() == tiers.size() and weapon_cnt == 1
 		if ok:
 			for c in cats:
 				if not (String(c) in allowed):
 					ok = false
-		_check(ok, "act%d 商店类别序列 6 格且与品质阶梯对齐" % act)
+		_check(ok, "act%d 商店类别序列 4 格、1 武器格且与品质阶梯对齐" % act)
 	_check(LootSourceTable.shop_categories(4).is_empty(), "非法幕次商店类别为空")
 
 

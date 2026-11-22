@@ -51,22 +51,22 @@ var SKILL_POOL: Array[String] = []
 #   任一类满槽绝不影响其他类，杜绝旧 TOTAL_MAX 时代「带满护符就买不了武器」的误判）。
 # 【成长方式】统一「买即开槽」：商店购买某类物品时，若该类当前槽位已满且未触天花板，
 #   本次购买直接把该类上限 +1（不单独售卖抽象的「槽扩展」商品）。
-#   节奏闸门 = 同类价格随已持数递增（见 _shop_price 的 step 表）。
+#   节奏闸门 = 固定目录价（同类同价，见 _shop_price）+ 各类硬上限；不再随持数递增。
 # 【天花板：按「进池 / 不进池」分野，不按类别拍脑袋】
 #   · 进池类（武器 weapon）→ **硬上限 2**（2026-08-07 拍板：主手+副手，商店不可买第 3 把，
 #     cat_cap("weapon")=2；原「UNCAPPED + 稀释自刹车」语义已失效，哨兵常量仅留给逻辑分支复用）。
 #     武器符号挤进同一条转轮带；硬限 2 后武器符号密度恒定，稀释只来自技能种类（封顶 3）/
 #     MISS / 废铁注入 / 符号灌注（见 docs/[已完成]整备结构_技能槽上限与频率规范.md §4.3）。
-#     再叠加金币线性递增价（见 _shop_price），越买越贵，双闸门足矣。
+#     武器硬限 2 已是主闸门，固定目录价（同类同价）为辅，双闸门足矣。
 #   · 技能 skill（2026-08-10 起退出 UNCAPPED）→ 硬上限 3（初始 1 → 商店买到 3）。
 #     武器硬限 2 把，若技能无上限则技能符号（功能/buff）无限挤占主输出带子——不对称稀释
 #     （见 docs/[已完成]整备结构_技能槽上限与频率规范.md）。
 #   · 不进池类（消耗品 active · 护符 passive）→ **硬天花板**（2 / 3）。
 #     它们不进转轮、零稀释代价、没有任何自然刹车（尤其护符是「唯一收集乘区」，
 #     纯收益、越多越强），故必须硬限量，否则乘区无限叠加直接崩坏数值。
-# 初始配额（每局开局值；_full_reset 与 _shop_price 的加价起点均以此为准；weapon=2 + loadout_min=2 强制双武器，见 balance_config.slot_init）
+# 初始配额（每局开局值；_full_reset 以此为准；weapon=2 + loadout_min=2 强制双武器，见 balance_config.slot_init）
 var SLOT_INIT: Dictionary = BALANCE.slot_init
-const UNCAPPED := -1        # 天花板哨兵值：该类无上限，仅由稀释效应 + 金币递增价约束
+const UNCAPPED := -1        # 天花板哨兵值：该类无上限，仅由稀释效应约束（当前类别均已设硬上限，哨兵仅供逻辑分支）
 const CONSUMABLE_CAP := 4   # 消耗品腰带上限（不进池，硬限；每格独立持有、允许同类重复占格）
 const CHARM_CAP      := 3   # 护符槽天花板（不进池、唯一收集乘区，严格硬限）
 var LOADOUT_MIN: int = BALANCE.loadout_min   # 武器最小携带数（T22：来自平衡配置）
@@ -197,8 +197,9 @@ var selected_loadout: Array[String] = []          # 玩家勾选的武器路径�
 # G2-1 本局武器仓库：本局实际拥有（开局携带 + weapon_acquire 获得 + 换下保留）的武器路径。
 # 与 meta["owned_weapons"]（局外永久解锁/图鉴资格）严格分离：本字段不落盘，每局重置。
 var run_weapon_inventory: Array[String] = []
-# F-09：本局商店定价种子（每局重置一次，不消耗战斗/奖励 RNG）。
-# 仅用于按物品路径确定性生成价格 jitter：同局同物品同价，跨局/跨物品仍有变化。
+# 本局固定种子（每局重置一次，不消耗战斗/奖励 RNG）。
+# 固定目录价后不再参与定价；现仅供 RunSetup 的特殊房 RNG 播种（special_rng.seed = seed ^ 0x5A17），
+# 保证同种子同输入下特殊房类型/内容可复现。名称保留沿用，勿删。
 var shop_run_seed: int = 0
 var selected_consumables: Array[String] = []      # 玩家勾选的消耗品路径
 var selected_charms: Array[String] = []           # 玩家勾选的护符路径
@@ -348,6 +349,10 @@ var _camp_offers: Array = []           # G2-01：营地补给货架（休整后�
 # M-02a：线性营地只结算一次的守卫 + 当前营地房索引（营地是非战斗节点）。
 var _linear_camp_idx: int = -1
 var _linear_camp_done: bool = false
+# T0-1：本次营地授予的「整理机会」是否仍在次数池中且尚未被整理消耗。
+# 休整/继续（含取消整理后休整/继续）时若仍为 true 必须回收，避免二选一变成「回血后再整理」。
+# 与玩家自有次数隔离：只回收本次 grant(1) 的这一份，不碰其他来源的剩余次数。
+var _linear_camp_op_granted: bool = false
 # 新版 M-02a：宝箱/事件只结算一次的守卫。
 var _linear_special_idx: int = -1
 var _linear_special_done: bool = false
@@ -968,43 +973,6 @@ func _on_boss_reward_chosen(cand: Dictionary) -> void:
 	_finish_room(func(): _reward_system.apply_boss_reward(cand), true)
 
 
-# L3 P1：精英战专属武器发放——槽未满直接入槽；槽满走替换弹层（复用 BOSS 武器替换流程）。
-func grant_elite_weapon(path: String) -> void:
-	if path == "" or selected_loadout.has(path):
-		return
-	var wd: Resource = load(path)
-	var wnamev = wd.get("weapon_name") if wd != null else null
-	var wname: String = String(wnamev) if wnamev != null else path.get_file().get_basename()
-	if selected_loadout.size() >= _loadout_system.cat_cap("weapon"):
-		hud.request_weapon_replace("精英主题武器：替换武器", _weapon_info(path, 0), func(old_path: String) -> void:
-			_apply_elite_weapon_replace(path, old_path), path)
-		return
-	_loadout_system.grow_slot("weapon")
-	selected_loadout.append(path)
-	_reward_system.remember_weapon(path, "elite")
-	if _telemetry != null:
-		_telemetry.on_reward_pick("elite_weapon")
-	_build_pool(selected_loadout)
-	hud._log("精英战利品：获得主题武器「%s」" % wname)
-	hud._popup("⚔ %s" % wname, Palette.POP_GOLD, hud._player_sprite_anchor())
-
-
-func _apply_elite_weapon_replace(p: String, old_path: String) -> void:
-	if p == "" or not selected_loadout.has(old_path) or selected_loadout.has(p):
-		return
-	var old_name = _shop_name(old_path, "weapon")
-	var slot: int = selected_loadout.find(old_path)
-	if slot < 0 or not replace_weapon_at_slot(slot, p):
-		return
-	_reward_system.remember_weapon(p, "elite")
-	if _telemetry != null:
-		_telemetry.on_weapon_swap()
-	if _journal != null:
-		_journal.note_weapon_change(String(old_name), _shop_name(p, "weapon"), "精英战利品")
-	_build_pool(selected_loadout)
-	hud._log("精英武器替换：%s → %s" % [old_name, _shop_name(p, "weapon")])
-
-
 func _apply_boss_weapon_replace(p: String, old_path: String) -> void:
 	if p == "" or not selected_loadout.has(old_path) or selected_loadout.has(p):
 		_finish_room(Callable(), true)
@@ -1131,6 +1099,19 @@ func _on_next_room_pressed() -> void:
 	room_flow.on_next_room_pressed()
 
 
+# T0-5：线性模式幕间锻魂——进入下一房前检测即将进入的真实 ACT 变化。
+# 触发依据是 RoomData.act 相对当前 current_act 变大（不是房间下标），沿用 granted_acts 幂等。
+# ACT1 开局 act 不变大不触发；最终 Boss 追加房 act 与 ACT3 相同，幂等守卫挡住不双发。
+# 地图模式由 advance_act() 负责锻魂，这里不介入，避免双发。
+func _maybe_grant_linear_act_boon(next_idx: int) -> void:
+	if node_mode or next_idx <= 0 or next_idx >= ROOMS.size():
+		return
+	var next_act: int = int((ROOMS[next_idx] as RoomData).act)
+	if next_act <= int(current_act):
+		return
+	growth.grant_act_boon(next_act)
+
+
 func _on_anvil_back_pressed() -> void:
 	room_flow.on_back_to_loadout()
 
@@ -1142,7 +1123,8 @@ func _full_reset() -> void:
 # 新一局公共状态重置（不含开战）：已迁至 LoadoutSystem.reset_run_state（P2 架构还债，2026-08-24）——单行转发。
 func _reset_run_state() -> void:
 	_loadout_system.reset_run_state()
-	shop_run_seed = maxi(1, Time.get_ticks_msec())   # F-09：每局固定一次，不消耗 RNG
+	_linear_camp_op_granted = false   # T0-1：跨局防御，避免上局中途退出的营地挂起标记污染新局
+	shop_run_seed = maxi(1, Time.get_ticks_msec())   # 每局固定一次，不消耗 RNG；供特殊房 RNG 播种（固定目录价后不再用于定价）
 	if weapon_slots != null:
 		weapon_slots.reset_run()   # 只清本局槽位成长，不动图鉴 / 历史最高熟练 / 横向铸式
 	if room_flow != null:
@@ -1462,26 +1444,39 @@ func _start_linear_special(idx: int) -> void:
 	hud.set_interroom_enabled(false)   # 特殊房结算期间不暴露下一房按钮
 	var params: Dictionary = r.gimmick_params
 	if r.kind == "chest":
-		# 宝箱：内容在生成时冻结，进入时才揭示（房间列表只显示「宝箱」）。
-		hud.request_special_room(r.kind, _linear_chest_desc(params), [], _linear_chest_open, Callable())
+		# T0-2：开启前只显示宝箱与「开启」按钮，不泄露物品名/品质/效果。
+		# 内容已在生成时冻结（gimmick_params）；玩家主动开启后才揭示。
+		hud.request_special_room(r.kind, "宝箱：未开启，内容未知。点击开启揭示。", [], _linear_chest_reveal, Callable())
 	elif r.kind == "event":
 		var opts: Array = params.get("options", [])
 		if opts.is_empty():
 			# 无合法选项：明确空状态，给继续入口，不空屏不软锁。
 			hud.request_special_room(r.kind, "事件：没有合法选项，可直接继续", [], Callable(), _linear_event_skip)
 		else:
+			# T0-3：传入放弃回调，HUD 显示独立的「放弃事件」按钮（与取消语义相反）。
 			hud.request_special_room(r.kind, "事件：" + String(params.get("id", "")),
-				opts, _linear_event_choose, _linear_event_cancel)
+				opts, _linear_event_choose, _linear_event_cancel, "", _linear_event_abandon)
 
 # 宝箱内容描述（揭示用；从冻结的 gimmick_params 读，不重算）。
 func _linear_chest_desc(params: Dictionary) -> String:
 	var cat: String = String(params.get("category", ""))
 	if cat == "gold":
-		return "宝箱：开启获得金币 +%d（无可领取物品时的兜底）" % int(params.get("fallback_gold", 0))
+		return "宝箱：获得金币 +%d（无可领取物品时的兜底）" % int(params.get("fallback_gold", 0))
 	var p: String = String(params.get("item_path", ""))
-	return "宝箱：开启获得 %s（%s）" % [_shop_name(p, cat), cat]
+	return "宝箱：获得 %s" % _shop_name(p, cat)
 
-# 宝箱开启：只结算一次，直接授予冻结物品，随后直接进下一房。武器进仓库不强制换装。
+# T0-2 揭示阶段：玩家主动开启后，展示冻结的实际物品，等待确认。
+# 不结算、不推进、不重复生成；同一冻结对象贯穿揭示/日志/入仓/入槽。
+func _linear_chest_reveal(_ignored = null) -> void:
+	if _linear_special_done:
+		return
+	var params: Dictionary = ROOMS[_linear_special_idx].gimmick_params
+	var desc: String = _linear_chest_desc(params)
+	# 揭示弹层的「确认继续」按钮回调指向真正的结算（只一次）。
+	hud.request_special_room("chest", desc, [], _linear_chest_open, Callable(), "确认继续")
+
+# 宝箱确认：只结算一次，授予冻结物品，随后直接进下一房。武器进仓库不强制换装。
+# 直接调用（既有测试/工具路径）也只结算一次。
 func _linear_chest_open(_ignored = null) -> void:
 	if _linear_special_done:
 		return
@@ -1541,27 +1536,34 @@ func _linear_event_choose(index: int) -> void:
 	var opts: Array = params.get("options", [])
 	if index < 0 or index >= opts.size():
 		return
-	_linear_special_done = true
 	var o: Dictionary = opts[index]
 	var give: String = String(o.get("give", ""))
 	var give_amt: int = int(o.get("give_amount", 0))
 	var get: String = String(o.get("get", ""))
 	var get_amt: int = int(o.get("get_amount", 0))
+	# T0-3 二次守护：支付不足时不结算、不推进，留在事件页允许重选。
+	# UI 已禁用这类选项；此处防绕过 UI 的直接调用。
+	if give == "hp" and player_hp <= give_amt:
+		hud._log("事件：生命不足以支付代价，未推进，可重新选择")
+		return
+	if give == "gold" and gold < give_amt:
+		hud._log("事件：金币不足，未推进，可重新选择")
+		return
+	_linear_special_done = true
 	# 拒绝交易：无代价无收益，直接结算。
 	if give == "" and get == "":
 		hud._log("事件：拒绝交易，无变化")
 		_special_settle()
 		return
-	# 合法性：代价不足则不给选项（UI 已过滤，这里二次守护）。
-	if give == "hp" and player_hp <= give_amt:
-		hud._log("事件：生命不足以支付代价，交易取消")
-		_special_settle()
-		return
-	if give == "gold" and gold < give_amt:
-		hud._log("事件：金币不足，交易取消")
-		_special_settle()
-		return
 	_apply_event_exchange(give, give_amt, get, get_amt)
+	_special_settle()
+
+# T0-3：明确放弃事件——不获得、不支付，推进；只结算一次。
+func _linear_event_abandon(_ignored = null) -> void:
+	if _linear_special_done:
+		return
+	_linear_special_done = true
+	hud._log("事件：放弃事件，无收益无代价")
 	_special_settle()
 
 func _apply_event_exchange(give: String, give_amt: int, get: String, get_amt: int) -> void:
@@ -1587,12 +1589,13 @@ func _apply_event_exchange(give: String, give_amt: int, get: String, get_amt: in
 	hud._refresh_meta()
 
 # 取消不推进：重开事件弹层（不结算）。
+# T0-3 审查修正：重建时必须保留放弃入口；冻结选项原样传回，支付禁用由 HUD 按当前资源重算。
 func _linear_event_cancel(_ignored = null) -> void:
 	if _linear_special_done:
 		return
 	var params: Dictionary = ROOMS[_linear_special_idx].gimmick_params
 	hud.request_special_room("event", "事件：" + String(params.get("id", "")),
-		params.get("options", []), _linear_event_choose, _linear_event_cancel)
+		params.get("options", []), _linear_event_choose, _linear_event_cancel, "", _linear_event_abandon)
 
 # 事件无可选项时直接继续。
 func _linear_event_skip(_ignored = null) -> void:
@@ -1623,6 +1626,7 @@ func _special_settle() -> void:
 func _start_linear_camp(idx: int) -> void:
 	_linear_camp_idx = idx
 	_linear_camp_done = false
+	_linear_camp_op_granted = false   # T0-1：每次进营地先清零，下面是本次唯一授予点
 	room_index = idx
 	current_room = ROOMS[idx]
 	current_act = int(ROOMS[idx].act)
@@ -1634,9 +1638,11 @@ func _start_linear_camp(idx: int) -> void:
 	var heal_need: int = maxi(0, player_hp_max - player_hp)
 	# 整理可用性：授予 1 次后有合法候选（符号可减或技能可卸）才算可整理，不给假选项。
 	_trim.grant(1)
+	_linear_camp_op_granted = true   # T0-1：本次机会已入池；整理消耗或结算回收前保持挂起
 	var can_trim: bool = not _trim.candidates().is_empty()
 	if not can_trim:
 		_trim.granted = maxi(0, _trim.granted - 1)   # 无候选则收回授予，避免残留次数
+		_linear_camp_op_granted = false              # 授予已撤回，无需再回收
 	hud.request_linear_camp(can_trim, mini(heal_need, int(ceil(float(player_hp_max) * 0.25))),
 		_linear_camp_rest, _linear_camp_trim, _linear_camp_continue)
 	invalidate_state()
@@ -1649,6 +1655,8 @@ func _linear_camp_rest() -> void:
 	var heal := int(ceil(float(player_hp_max) * 0.25))
 	var before := player_hp
 	player_hp = mini(player_hp_max, player_hp + heal)
+	if _telemetry != null:
+		_telemetry.on_heal(player_hp - before, 0, "camp")   # T1.8 分来源观测
 	hud._log("营地休整：HP %d/%d → %d/%d（+%d）" % [before, player_hp_max, player_hp, player_hp_max, player_hp - before])
 	_linear_camp_settle()
 
@@ -1665,12 +1673,15 @@ func _linear_camp_trim_done(success: bool) -> void:
 	if _linear_camp_done:
 		return
 	if not success:
-		# 取消：不消耗次数，重开营地二选一（未结算、不推进）。
+		# 取消：不消耗次数、不回收机会，重开营地二选一（未结算、不推进）。
+		# 本次机会仍挂起，最终选择休整/继续时在 settle 统一回收。
 		var heal_need: int = maxi(0, player_hp_max - player_hp)
 		var can_trim: bool = not _trim.candidates().is_empty()
 		hud.request_linear_camp(can_trim, mini(heal_need, int(ceil(float(player_hp_max) * 0.25))),
 			_linear_camp_rest, _linear_camp_trim, _linear_camp_continue)
 		return
+	# 整理成功：本次机会已被 apply() 消耗（used+1），清除挂起标记，结算时不再回收。
+	_linear_camp_op_granted = false
 	_linear_camp_settle()
 
 
@@ -1688,6 +1699,11 @@ func _linear_camp_settle() -> void:
 	if _linear_camp_done:
 		return
 	_linear_camp_done = true
+	# T0-1：本次营地机会若未被整理消耗（休整/继续，含取消后休整/继续），回收这一份。
+	# 只减 granted 一份、不碰 used：玩家自有来源的剩余次数保持不变。
+	if _linear_camp_op_granted:
+		_trim.granted = maxi(0, _trim.granted - 1)
+		_linear_camp_op_granted = false
 	invalidate_state()
 	hud._refresh_meta()
 	_roll_shop()                       # 营地后可开现有商店（每房一次货架）
@@ -1699,6 +1715,8 @@ func _board_rest() -> void:
 	var heal := int(ceil(float(player_hp_max) * 0.25))
 	var before := player_hp
 	player_hp = mini(player_hp_max, player_hp + heal)
+	if _telemetry != null:
+		_telemetry.on_heal(player_hp - before, 0, "camp")   # T1.8 分来源观测
 	var msg := ""
 	if player_hp == before:
 		msg = "休整：HP 已满，无需休整"
@@ -1824,6 +1842,8 @@ func _board_shrine(node: Dictionary) -> void:
 				_journal.note_special("shrine", "金币 +15")
 			_board_node_gold(15, "神龛：金币")
 			return
+	if _telemetry != null:
+		_telemetry.on_heal(player_hp - before_hp, 0, "shrine")   # T1.8 分来源观测
 	if _journal != null:
 		_journal.note_special("shrine", msg.trim_prefix("神龛："))
 	board.set_feedback(msg)

@@ -24,24 +24,6 @@ var _phase := ""                  # "" | "loot" | "growth"
 var _loot_view: Dictionary = {}
 
 
-# B 方案：精英战必掉「精简剪」，保证每幕至少一次瘦身机会。
-const TRIM_ITEM_PATH := "res://resources/consumables/trim_scissors.tres"   # L3 P1 弃用：精英奖励改为克制元素武器，常量保留兼容
-
-
-# L3 P1：精英战专属奖励——必给一把「克制本房 element」的武器（Build 组件身份）。
-# 例：冰精英给火武器（克冰+毒），而非同元素冰武器（打冰敌人×0.85劣势）。
-# 替换原「精简剪」消耗品；武器槽满时由 controller 弹替换弹层（复用 BOSS 武器替换流程）。
-func _grant_elite_trim() -> void:
-	if _ctrl.current_room == null or String(_ctrl.current_room.kind) != "elite":
-		return
-	var act: int = int(_ctrl.current_room.act)
-	var path: String = _ctrl._reward_system.roll_elite_element_weapon(act)
-	if path == "":
-		_ctrl.hud._log("精英战利品：无可掉落的主题武器（池空），跳过")
-		return
-	_ctrl.grant_elite_weapon(path)
-
-
 func begin_post_battle() -> void:
 	if post_battle_active:
 		return
@@ -55,9 +37,8 @@ func begin_post_battle() -> void:
 	_settle_victory()
 	_award_victory(false)   # 铁砧/金币/掉落提前结算（原在 finish_room）
 	_finish_battle_summary(false)
-	# ⚠️ G6-1 曾尝试移除精英自动掉克制武器，但安全门实证未通过（ACT2 422→378 < 396 门槛），
-	# 已回退。方案 §7「去堆叠」需配合替代强度来源，不能在无补偿时直接删。
-	_grant_elite_trim()
+	# T1.6 正式收口：克制武器不再自动发放——它作为精英三选一的第 1 张候选出现，
+	# 玩家以「放弃一次强化」为代价换取克制武器（机会成本替代旧的自动赠送+强化双供给）。
 	# 成长候选先冻结：战利品阶段的 post_battle_has_growth() 仍要能回答「本房有没有真实成长」。
 	_post_offer = _growth_candidates()
 	_start_loot_phase()
@@ -73,7 +54,11 @@ func reset_flow() -> void:
 
 func _start_loot_phase() -> void:
 	_phase = "loot"
-	_loot_view = _ctrl._reward_system.build_loot_offer(_current_source(), _current_act(), {"growth_only": true})
+	# T1.4 正式收口：精英房战后走强化专项 Draft（3 张高价值强化，替代自动护符，无双发）
+	if _ctrl.current_room != null and String(_ctrl.current_room.kind) == "elite":
+		_loot_view = _ctrl._reward_system.build_elite_draft_view()
+	else:
+		_loot_view = _ctrl._reward_system.build_loot_offer(_current_source(), _current_act(), {"growth_only": true})
 	if not bool(_loot_view.get("ok", false)):
 		_ctrl._reward_system.settle_loot_skip()
 		_ctrl._post_battle.clear_pending_choices()
@@ -199,7 +184,7 @@ func _settle_victory() -> void:
 # 与选择无关的清房收益：金币 / T8 掉落（S5-3 起不再发铁砧点）。
 func _award_victory(is_boss: bool) -> void:
 	_ctrl._meta_store.award_gold(is_boss)    # S6+S8：清房金币 + 利息
-	_ctrl._reward_system.apply_room_drops()   # T8：普通房 12% 掉消耗品 / 精英房保底护符（BOSS 走自身战利品）
+	_ctrl._reward_system.apply_room_drops()   # T8：普通房 12% 掉消耗品；精英护符已由强化 Draft 替代（BOSS 走自身战利品）
 	# G6-2：Boss 遗物胜利时保证入账（不再混入三选一候选）；grant 内部按 run_relics 去重，重复调用安全。
 	if is_boss:
 		_ctrl._reward_system.grant_boss_relic(_ctrl.current_room)
@@ -443,6 +428,8 @@ func on_next_room_pressed() -> void:
 	if _ctrl.node_mode:
 		_ctrl.board.return_to_board()   # 防御：棋盘模式下一房由棋盘选择，不线性递增
 		return
+	# T0-5：线性模式跨幕时触发对应锻魂（地图路径由 advance_act 负责，不双发）。
+	_ctrl._maybe_grant_linear_act_boon(_ctrl.room_index + 1)
 	_ctrl._start_room(_ctrl.room_index + 1)
 
 

@@ -219,7 +219,13 @@ func roll_ladder(act: int, tiers: Array, opts: Dictionary = {}) -> Array:
 		var want_cat := String(cats[i]) if i < cats.size() else ""
 		var cand := _ladder_candidates(act, quality, want_cat, used, opts)
 		if cand.is_empty() and want_cat != "":
-			cand = _ladder_candidates(act, quality, "", used, opts)
+			# T1.5 契约返工：商店非武器格空池回退时不得抽到武器——武器格由每幕配额显式控制，
+			# 若回退也出武器会让武器候选突破配额（如首房一次生成 2 把）。仅商店传 no_weapon_fallback=true，
+			# 其他 roll_ladder 调用方行为不变。
+			var fb_opts: Dictionary = opts.duplicate()
+			if bool(opts.get("no_weapon_fallback", false)) and want_cat != "weapon":
+				fb_opts["exclude_kind"] = "weapon"
+			cand = _ladder_candidates(act, quality, "", used, fb_opts)
 		if cand.is_empty():
 			out.append({"ok": false, "quality": quality, "path": "", "reason": "empty_tier"})
 			continue
@@ -241,6 +247,9 @@ func _ladder_candidates(act: int, quality: String, category: String, used: Dicti
 		if String(e["rarity"]) != quality:
 			continue
 		if category != "" and String(e["kind"]) != category:
+			continue
+		# T1.5：商店回退补位时排除指定类别（防非武器格回退抽到武器，突破武器配额）。
+		if not String(opts.get("exclude_kind", "")).is_empty() and String(e["kind"]) == String(opts["exclude_kind"]):
 			continue
 		if not (act >= int(e["act_min"]) and act <= int(e["act_max"])):
 			continue

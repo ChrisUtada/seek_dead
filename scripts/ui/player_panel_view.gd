@@ -140,14 +140,39 @@ func pulse_charm_card(paths: Array = []) -> void:
 		_charm_pulse_tweens.append(tw)
 
 
+# 武器 tooltip 的动态段落（熟练进度 / 铭印 / 铸式描述）。
+# 签名与 tooltip 共用此函数，避免「缓存 key 不含某字段、但展示读了该字段」再次脱节。
+# 注意保留原层级：imprint 仅在 progress_text 非空时展示（与修复前行为一致）。
+func _weapon_detail_text(path: String, mastery) -> String:
+	var lines: Array[String] = []
+	var prog: String = mastery.progress_text(path)
+	if prog != "":
+		lines.append(prog)
+		var imp: String = mastery.imprint_text(path)
+		if imp != "":
+			lines.append(imp)
+	if controller()._forge_styles != null:
+		var style_txt: String = controller()._forge_styles.describe(path)
+		if style_txt != "":
+			lines.append(style_txt)
+	return "\n".join(lines)
+
+
 func refresh_gear_icons() -> void:
 	if weapons_row == null or charms_row == null or skills_row == null:
 		return
 	# 🔴 每次 _refresh_meta 都会走到这里；无脑重建会让底栏武器/技能图标肉眼可见地「闪」一下。
-	# 只有装备内容真的变了才重建，其余情况直接返回。
+	# 只有「实际展示内容」真的变了才重建，其余情况直接返回。
+	# M2 稳定性修复：签名必须覆盖武器 tooltip 的全部动态来源（熟练进度/铭印/铸式），
+	# 否则熟练 R1→R2 这类只改 mastery 的变化会被缓存吞掉，tooltip 停留在旧等级。
 	var _st0 = controller().state
-	var _sig := "%s|%s|%s|%s" % [str(_st0.selected_loadout), str(_st0.selected_skills),
-		str(_st0.selected_charms), str(controller().growth.perk_ids)]
+	var _mastery = controller().mastery
+	var weapon_detail_sig: Array[String] = []
+	for path in _st0.selected_loadout:
+		weapon_detail_sig.append(String(path) + "::" + _weapon_detail_text(String(path), _mastery))
+	var _sig := "%s|%s|%s|%s|%s" % [str(_st0.selected_loadout), str(_st0.selected_skills),
+		str(_st0.selected_charms), str(controller().growth.perk_ids),
+		"~".join(weapon_detail_sig)]
 	if _sig == _gear_sig:
 		return
 	_gear_sig = _sig
@@ -167,16 +192,10 @@ func refresh_gear_icons() -> void:
 		var tip := name_txt
 		if elem != "" and elem != "none":
 			tip += " · " + ElementCounter.label(elem)
-		var prog: String = mastery.progress_text(path)
-		if prog != "":
-			tip += "\n" + prog
-			var imp: String = mastery.imprint_text(path)
-			if imp != "":
-				tip += "\n" + imp
-		if controller()._forge_styles != null:
-			var style_txt: String = controller()._forge_styles.describe(path)
-			if style_txt != "":
-				tip += "\n" + style_txt
+		# 与签名共用同一段文本生成，确保缓存 key 与实际展示不脱节。
+		var detail: String = _weapon_detail_text(String(path), mastery)
+		if detail != "":
+			tip += "\n" + detail
 		# 🔴 WeaponData 没有 art / icon_tex 字段（只有 weapon_name 等），
 		# 武器图标一律走 WeaponIcons 的 icon_<id>.png；原代码走 emoji 兜底所以永远不是真图。
 		var wico: Texture2D = WeaponIcons.icon_for_path(String(path))

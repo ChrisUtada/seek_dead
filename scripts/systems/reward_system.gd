@@ -116,6 +116,107 @@ func clear_skill_pity_room() -> void:
 # 全量注入同类别候选不改变类别分布；组内抽取仍按 base_weight 无放回 + used_ids 去重，
 # MAX_SAME_CATEGORY=2 同类上限与 _eligible 硬过滤均由 composer 统一执行。
 # 副作用：不再消耗 composer RNG 做注入选择（去同组重试仍用 composer RNG，不受影响）。
+# T1.4：精英强化的高价值候选（可选 Draft，替代自动护符入槽）。
+# 优先复用已验证的高价值引擎改造 def：符号权重 +3 / 符号效果 / 本局符号伤害 +N。
+# 保证 3 张合法候选；池不足时用固定高价值 def 兜底（明确空池处理，不造假卡）。
+func _make_elite_power_defs() -> Array[RewardDefinition]:
+	var out: Array[RewardDefinition] = []
+	var weights := _make_symbol_weight_defs()
+	var effects := _make_symbol_effect_defs()
+	if not weights.is_empty():
+		out.append(weights[0])
+	if not effects.is_empty():
+		out.append(effects[0])
+	# 本局符号伤害 +3（复用 run_power_bonus effect，Resolver 已支持）
+	var power := RewardDefinition.new()
+	power.id = "elite_run_power"
+	power.name = "精英锻造 · 本局符号伤害 +3"
+	power.desc = "精英强化：本局所有符号伤害 +3（立即生效，持续整局）"
+	power.rarity = "rare"
+	power.base_weight = 1.0
+	power.base_value = 3.0
+	power.tags = ["weapon", "power", "core_growth"]
+	power.effects = [{"effect_id": "run_power_bonus", "params": {"amount": 3}}]
+	power.category = "symbol_mod"
+	power.effect_family = "run_power_bonus"
+	out.append(power)
+	# 兜底：不足 3 张时用 run_power_bonus 变体（无 path 依赖，绝对合法，明确空池处理）
+	var fallback_idx: int = 0
+	while out.size() < 3:
+		var fb := RewardDefinition.new()
+		fb.id = "elite_power_fallback_%d" % fallback_idx
+		fb.name = "精英锻造 · 本局符号伤害 +2"
+		fb.desc = "精英强化：本局所有符号伤害 +2（确定性兜底候选）"
+		fb.rarity = "uncommon"
+		fb.base_weight = 1.0
+		fb.base_value = 2.0
+		fb.tags = ["weapon", "power", "core_growth"]
+		fb.effects = [{"effect_id": "run_power_bonus", "params": {"amount": 2}}]
+		fb.category = "symbol_mod"
+		fb.effect_family = "run_power_bonus"
+		out.append(fb)
+		fallback_idx += 1
+	return out.slice(0, 3)
+
+
+# T1.6 新结构：当前敌人的克制武器作为 Draft 候选（weapon_acquire effect，走完整替换预览）。
+# 复用 roll_elite_element_weapon 的克制选择，仅换「不自动发、改成候选」。
+# 已装备 / 本局仓库已有的武器跳过（不产生无效候选，符合现有持有规则）。
+func _make_elite_counter_weapon_def() -> Array[RewardDefinition]:
+	var out: Array[RewardDefinition] = []
+	var path: String = roll_elite_element_weapon(int(_ctrl.current_act))
+	if path.is_empty() or _ctrl.selected_loadout.has(path) or _ctrl.run_weapon_inventory.has(path):
+		return out
+	var weapon: Resource = ResourceLoader.load(path)
+	if weapon == null:
+		return out
+	var wname := _weapon_display_name(path)
+	var def := RewardDefinition.new()
+	def.id = "elite_counter_weapon"
+	def.name = "克制武器 · %s" % wname
+	def.desc = "针对本房敌人的克制武器「%s」：获得并加入本局仓库（槽满可替换）" % wname
+	var true_rarity := String(weapon.get("rarity")) if weapon.has_method("get") else ""
+	def.rarity = true_rarity if ["common", "uncommon", "rare", "epic"].has(true_rarity) else "common"
+	def.base_weight = 1.0
+	def.base_value = 2.0
+	def.tags = ["weapon", "acquire", "elite_counter", "core_growth"]
+	def.effects = [{"effect_id": "weapon_acquire", "params": {"weapon_path": path}}]
+	def.category = "weapon"
+	def.effect_family = "weapon_acquire"
+	out.append(def)
+	return out
+
+
+# T1.6 正式收口：精英三选一 = 1 张当前敌人克制武器 + 2 张高价值强化。
+# 克制武器已是当前敌人答案 → 机会成本 = 放弃一次强化；不再自动发放武器（T1.4 自动护符已移除）。
+# 直接构造 DraftResult 保证三张合法候选，不走普通池类别权重抽取；武器已持有/重复时由
+# _make_elite_counter_weapon_def 跳过，强化卡补足到 3 张，不产生无效候选。
+func build_elite_draft_view() -> Dictionary:
+	_loot_settled = false
+	_loot_rerolls = 0
+	var defs: Array[RewardDefinition] = []
+	defs.append_array(_make_elite_counter_weapon_def())
+	for d in _make_elite_power_defs():
+		if defs.size() >= 3:
+			break
+		defs.append(d)
+	# 独立确定性 ID，不调用 composer._make_draft_id()（避免消耗 composer RNG 影响后续重抽）
+	var draft := DraftResult.new(defs, "elite_draft_%d_%d" % [int(_ctrl.current_act), int(_ctrl.room_index)])
+	_draft_result = draft
+	_draft_active = true
+	_loot_view = RewardPresentation.draft_to_view(draft, "精英强化", _ctrl)
+	_loot_view["reroll_cost"] = _draft_composer.paid_reroll_cost if _draft_composer != null else 5
+	_loot_view["reroll_paid"] = 0
+	_loot_view["elite_draft"] = true
+	if _ctrl._telemetry != null:
+		var ids: Array = []
+		for d in defs:
+			ids.append(String(d.id))
+		_ctrl._telemetry.on_reward_draft_shown(draft.draft_id, ids, 1.0,
+			[], int(_ctrl.room_index), int(_ctrl.current_act), "elite", [])
+	return _loot_view
+
+
 func _draft_extra() -> Array:
 	var extra: Array = []
 	var growth = _ctrl.growth
@@ -582,7 +683,11 @@ func _make_weapon_defs() -> Array:
 		def.id = "weapon_" + p.get_file().get_basename()
 		def.name = "武器 · %s" % wname
 		def.desc = "换上「%s」，改变符号池与中奖引擎底盘" % wname
-		def.rarity = "uncommon"
+		# W-01A：旧换装路径同样继承真实品质（与 swap/acquire 三条路径口径一致）。
+		var replace_rarity: String = String(wd.get("rarity")) if wd.has_method("get") else ""
+		def.rarity = replace_rarity if ["common", "uncommon", "rare", "epic"].has(replace_rarity) else "common"
+		# W-01A：显示继承真实品质，但抽取权重保持原 uncommon 换装卡口径（显示/抽取解耦）。
+		def.draw_rarity_override = "uncommon"
 		def.base_weight = 1.0
 		def.base_value = 2.0
 		def.tags = ["weapon", "replacement", "core_growth"]
@@ -604,14 +709,20 @@ func _make_weapon_swap_defs() -> Array:
 		var p: String = String(path)
 		if p.is_empty() or _ctrl.selected_loadout.has(p):
 			continue
-		if ResourceLoader.load(p) == null:
+		var weapon: Resource = ResourceLoader.load(p)
+		if weapon == null:
 			continue
 		var wname := _weapon_display_name(p)
 		var def := RewardDefinition.new()
 		def.id = "weapon_swap_" + p.get_file().get_basename()
 		def.name = "本局仓库换装 · %s" % wname
 		def.desc = "换上本局仓库中的「%s」，不改变本局收藏（换下的武器仍在仓库）" % wname
-		def.rarity = "common"
+		# W-01A：武器卡继承真实稀有度（与 acquire 路径同口径，不再统一伪装成 common）。
+		# 只改卡面显示语义，不改出现率/权重/数值。
+		var swap_rarity: String = String(weapon.get("rarity")) if weapon.has_method("get") else ""
+		def.rarity = swap_rarity if ["common", "uncommon", "rare", "epic"].has(swap_rarity) else "common"
+		# W-01A：显示继承真实品质，但抽取权重保持原 common 换装卡口径（显示/抽取解耦）。
+		def.draw_rarity_override = "common"
 		def.base_weight = 1.0
 		def.base_value = 1.0
 		def.tags = ["weapon", "swap", "run_inventory", "core_growth"]
@@ -720,6 +831,12 @@ func loot_reroll_cost() -> int:
 func reroll_loot_offer() -> Dictionary:
 	if _loot_settled:
 		return {"ok": false, "reason": "already_settled", "quality": "", "options": [], "skip": {}}
+
+	# T1.4：精英强化 Draft 不可重抽——其 3 张高价值候选是固定的引擎改造选项，
+	# 重抽会绕过该语义。防守拒绝：不扣款、不换卡、不消耗 RNG（直接返回原 view）。
+	if bool(_loot_view.get("elite_draft", false)):
+		return {"ok": false, "reason": "elite_draft_no_reroll", "quality": "",
+			"options": [], "skip": {}, "reroll_disabled": true}
 
 	# P2 新路径：免费重抽优先于扣费（契约 §2.4）
 	if _draft_active:
@@ -1021,6 +1138,12 @@ func _apply_loot_option(opt: Dictionary) -> Dictionary:
 	return {"ok": false, "reason": "unknown_kind"}
 
 
+# T1.8 分来源治疗观测（只读，不改结算）：在 HP 写入前后调用，记录实际增量。
+func _note_heal_gain(before_hp: int, source: String) -> void:
+	if _ctrl._telemetry != null:
+		_ctrl._telemetry.on_heal(_ctrl.player_hp - before_hp, 0, source)
+
+
 func _apply_growth_option(opt: Dictionary) -> Dictionary:
 	var kind := String(opt.get("kind", ""))
 	match kind:
@@ -1066,8 +1189,10 @@ func _apply_growth_option(opt: Dictionary) -> Dictionary:
 			var amount := int(opt.get("amount", 0))
 			if amount <= 0:
 				return {"ok": false, "reason": "invalid_maxhp"}
+			var heal_before3: int = _ctrl.player_hp
 			_ctrl.player_hp_max += amount
 			_ctrl.player_hp = mini(_ctrl.player_hp_max, _ctrl.player_hp + amount)
+			_note_heal_gain(heal_before3, "reward")   # T1.8 观测
 			_ctrl.hud._log("坚韧：最大 HP +%d，并恢复 %d HP" % [amount, amount])
 			_ctrl.hud._popup("❤上限+%d" % amount, Palette.POP_HEAL, _ctrl.hud._player_sprite_anchor())
 			_ctrl.invalidate_state()
@@ -1085,7 +1210,9 @@ func _apply_growth_option(opt: Dictionary) -> Dictionary:
 			var amount := mini(int(_ctrl.player_hp_max * 0.35), _ctrl.player_hp_max - _ctrl.player_hp)
 			if amount <= 0:
 				return {"ok": false, "reason": "full_hp"}
+			var heal_before4: int = _ctrl.player_hp
 			_ctrl.player_hp += amount
+			_note_heal_gain(heal_before4, "reward")   # T1.8 观测
 			_ctrl.hud._log("休整：恢复 %d HP" % amount)
 			_ctrl.hud._popup("❤+%d" % amount, Palette.POP_HEAL, _ctrl.hud._player_sprite_anchor())
 			_ctrl.invalidate_state()
@@ -1218,20 +1345,20 @@ func roll_elite_rewards() -> Array:
 	return out
 
 
-# L3 P1：给精英战掉落「克制本房 element 的一把武器」的路径。
+# T1.6 正式收口：精英克制武器候选——按本房 element 的「克制元素」筛武器。
 # 武器 element 由其 family_tags 决定（如 ["fire","combo"]）；无元素/池空时退回 elite 通用抽取。
-# 供 room_flow._grant_elite_trim 调用（精英战后必给的专属奖励）。
-# L3 P1（克制版）：按本房 element 的「克制元素」筛武器——精英给一把能打它同类的武器。
-# 例：冰精英→火武器（克冰+毒）。修复原「同元素」版冰精英给冰武器反成×0.85劣势的缺陷。
-# 覆盖率实测：三幕精英可给的克制元素 100% 覆盖主流敌人需求。
+# 供 _make_elite_counter_weapon_def 调用（作为精英三选一的第 1 张候选，不再自动发放）。
+# 例：冰精英→火武器（克冰+毒）。覆盖率实测：三幕精英可给的克制元素 100% 覆盖主流敌人需求。
 func roll_elite_element_weapon(act: int) -> String:
+	var target_families: Array = []
 	var element := "none"
 	if _ctrl.room_index >= 0 and _ctrl.room_index < _ctrl.ROOMS.size():
 		var ev = _ctrl.ROOMS[_ctrl.room_index].get("element")
 		element = String(ev) if ev != null else "none"
+	if element != "none" and element != "":
+		target_families = ElementCounter.weakness(element)
 	var opts := {"category": "weapon", "exclude": _ctrl.selected_loadout}
-	var counters: Array = ElementCounter.weakness(element) if element != "none" and element != "" else []
-	if not counters.is_empty():
+	if not target_families.is_empty():
 		var themed: Array[String] = []
 		for p in _ctrl.WEAPON_POOL:
 			var wd: Resource = load(p)
@@ -1239,7 +1366,7 @@ func roll_elite_element_weapon(act: int) -> String:
 				continue
 			var fams: Array = wd.get("family_tags")
 			var hit := false
-			for ce in counters:
+			for ce in target_families:
 				if fams.has(String(ce)):
 					hit = true
 					break
@@ -1429,13 +1556,17 @@ func apply_reward(id: String, index: int = -1) -> void:
 	match id:
 		"heal":
 			var h = int(_ctrl.player_hp_max * float(rd.value) / 100.0)
+			var heal_before: int = _ctrl.player_hp
 			_ctrl.player_hp = min(_ctrl.player_hp_max, _ctrl.player_hp + h)
+			_note_heal_gain(heal_before, "reward")   # T1.8 观测
 			_ctrl.hud._log("奖励：治疗 +%d HP" % h)
 			if h > 0:
 				_ctrl.hud._popup("❤+%d" % h, Palette.POP_HEAL, _ctrl.hud._player_sprite_anchor())
 		"maxhp":
+			var maxhp_before: int = _ctrl.player_hp
 			_ctrl.player_hp_max += rd.value
 			_ctrl.player_hp = _ctrl.player_hp_max
+			_note_heal_gain(maxhp_before, "reward")   # T1.8 观测
 			_ctrl.hud._log("奖励：最大 HP +%d 并回满" % rd.value)
 			_ctrl.hud._popup("❤上限+%d 回满" % rd.value, Palette.POP_HEAL, _ctrl.hud._player_sprite_anchor())
 		# "purify" 净化上限奖励已删除（净化完全走消耗品）
@@ -1459,8 +1590,10 @@ func apply_reward(id: String, index: int = -1) -> void:
 		"weapon":
 			_grant_weapon_reward(index)
 		"maxhp_heal":
+			var heal_before2: int = _ctrl.player_hp
 			_ctrl.player_hp_max += rd.value
 			_ctrl.player_hp = mini(_ctrl.player_hp_max, _ctrl.player_hp + int(_ctrl.player_hp_max * 0.2))
+			_note_heal_gain(heal_before2, "reward")   # T1.8 观测
 			_ctrl.hud._log("奖励：最大 HP +%d 并恢复 20%%" % rd.value)
 			_ctrl.hud._popup("❤上限+%d 恢复20%%" % rd.value, Palette.POP_HEAL, _ctrl.hud._player_sprite_anchor())
 		# T6 精英房「战前补给」三类选项
@@ -1660,68 +1793,21 @@ func show_meta_choice() -> void:
 
 # ---------------------------------------------------------------------------
 # T8 掉落渠道（2026-08-24，docs/装备收集规划_200.md §12.1）：
-# 普通房 12% 掉 1 消耗品；精英房保底 1 护符。BOSS 房走自身战利品不经此处。
-# Step 3：两处品质都改由来源表决定（normal / elite），不再读 acquisition_weight。
-# 入口：room_flow.finish_room 在铁砧点/金币入账后调用。
+# 普通房 12% 掉 1 消耗品；精英房自 T1.4 起不再自动掉护符（改由战后精英强化 Draft 提供）。
+# BOSS 房走自身战利品不经此处。
+# 入口：room_flow 在 _award_victory 内、战后三选一之前调用。
 # ---------------------------------------------------------------------------
 func apply_room_drops() -> void:
 	if _ctrl.room_index < 0 or _ctrl.room_index >= _ctrl.ROOMS.size():
 		return
 	var kind: String = _ctrl.ROOMS[_ctrl.room_index].kind
-	# ⚠️ G6-1 曾尝试移除精英自动掉护符，但安全门实证未通过（ACT2 422→378 < 396 门槛），
-	# 已回退。方案 §7「去堆叠」需配合替代强度来源，不能在无补偿时直接删。
-	if kind == "elite":
-		_drop_elite_charm()
+	# T1.4 正式收口：精英不再自动掉护符——强度改由战后「精英强化 Draft」提供（见 room_flow._start_loot_phase）。
+	# 该替代方案已通过 18 预注册种子 A/B 安全门（ACT2 输出中位 594→605 ≥396，到达中位 15→17）。
+	# 普通房消耗品掉落、BOSS 自身战利品路径不受影响。
 	if kind == "normal" and randf() < BALANCE.drop_consumable_chance_normal:
 		var res: Dictionary = _loot.roll("normal", _current_act(), {"category": "active"})
 		if bool(res.get("ok", false)):
 			_grant_drop_consumable(String(res["path"]))
-
-
-# 精英保底护符：来源表（elite）定品质 → 同品质层抽一个非信物护符；
-# 护符槽未达天花板时免费开槽（先例：武器奖励自动开槽），已达 CHARM_CAP 天花板则折算金币（卖价），
-# 保底永不落空。排除 BOSS 信物（信物仅 BOSS 战利品可获）。
-# 同层为空（数据缺口/已持有过滤）时重抽品质，仍空则退回该来源的合法护符全集——保底不落空。
-func _drop_elite_charm() -> void:
-	var act := _current_act()
-	var opts := {"category": "passive", "include_relics": false, "exclude": _ctrl.selected_charms}
-	var path := ""
-	for _attempt in range(6):
-		var res: Dictionary = _loot.roll("elite", act, opts)
-		if bool(res.get("ok", false)):
-			path = String(res["path"])
-			break
-	if path == "":
-		path = _any_legal_charm(act, opts)
-	if path == "":
-		return
-	if sel_passive_size() >= _ctrl._loadout_system.cat_max("passive"):
-		if _ctrl._loadout_system.can_grow_slot("passive"):
-			_ctrl._loadout_system.grow_slot("passive")
-		else:
-			var refund: int = _ctrl._sell_price("passive", path)
-			_ctrl.gold += refund
-			var nm2: Resource = load(path)
-			_ctrl.hud._log("精英掉落：%s 但护符槽已满（3/3）→ 折算金币 +%d" % [(nm2.item_name if nm2 != null else path), refund])
-			_ctrl.hud._popup("💰+%d" % refund, Palette.POP_GOLD, _ctrl.hud._player_sprite_anchor())
-			return
-	_ctrl.selected_charms.append(path)
-	remember_charm(path)   # G2-01：精英掉落护符写入图鉴/来源
-	_ctrl._apply_charms()
-	var cd: Resource = load(path)
-	_ctrl.hud._log("精英掉落：获得护符 %s（按来源品质表，占护符槽）" % (cd.item_name if cd != null else path))
-	_ctrl.hud._popup("🎁 获得护符 %s" % (cd.icon if cd != null else "🛡"), Palette.ACCENT_GOLD, _ctrl.hud._player_sprite_anchor())
-
-
-# 精英掉落兜底：该来源合法护符全集里随机一个（仍走专用 RNG，不消耗地图 RNG）。
-func _any_legal_charm(act: int, opts: Dictionary) -> String:
-	var pool: Dictionary = _loot.candidates("elite", act, opts)
-	var items: Array = pool.get("items", [])
-	if items.is_empty():
-		return ""
-	var copy := items.duplicate()
-	_loot.shuffle_in_place(copy)
-	return String(copy[0])
 
 
 # 普通房消耗品掉落授予：腰带满（CONSUMABLE_CAP）→ 折算金币（卖价），保底语义不落空。

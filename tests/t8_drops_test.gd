@@ -144,17 +144,15 @@ func _part_b_normal_drop_rate(duel: DuelController) -> void:
 	_check(cat_violations == 0, "普通房授予必为消耗品且不越界（违规 %d）" % cat_violations)
 	_check(rate > 0.06 and rate < 0.18, "普通房掉落率 ≈12%%（实测 %.1f%%）" % [rate * 100.0])
 	_check(gold_converted > 0, "腰带满折算金币路径被覆盖（%d 次）" % gold_converted)
-# ③ 精英保底护符：同一局内连续清精英——首 3 次免费开槽入槽（CHARM_CAP=3），此后全部转金币；永不掉信物
-# ⚠️ G6-1 曾尝试移除，但安全门未通过（ACT2 输出跌破 90% 门槛），已回退；保留原精英保底机制。
+# ③ T1.4 收口：精英房不再自动掉护符——强度由战后「精英强化 Draft」提供（见 t14_elite_draft_test）。
+# 这里验证 apply_room_drops 对精英房零护符副作用（普通房消耗品与 BOSS 路径仍受各自测试覆盖）。
 func _part_c_elite_guarantee(duel: DuelController) -> void:
 	seed(8003)
 	var room := _room_of_kind(duel, "elite")
-	var relics: Array = duel._reward_system.relic_paths()
-	_setup_room(duel, room)   # 仅首试做整局重置：charm_max 随局保持，才能真实走到天花板分支
-	duel.selected_charms.clear()   # 清掉 T29 软默认预选占位（CHARM_CAP=3 全留给掉落测试）
+	_setup_room(duel, room)
+	duel.selected_charms.clear()
 	var charm_grants := 0
 	var gold_fallbacks := 0
-	var relic_violations := 0
 	for i in ELITE_TRIALS:
 		if i > 0:
 			duel._start_room(0)
@@ -163,16 +161,10 @@ func _part_c_elite_guarantee(duel: DuelController) -> void:
 		duel._reward_system.apply_room_drops()
 		if duel.selected_charms.size() > c0:
 			charm_grants += 1
-			var p: String = duel.selected_charms[duel.selected_charms.size() - 1]
-			if p in relics:
-				relic_violations += 1
 		elif int(duel.gold) > g0:
 			gold_fallbacks += 1
-		else:
-			_fail("精英保底落空（第%d次：无护符也无金币）" % (i + 1))
-	_check(relic_violations == 0, "精英掉落零信物（违规 %d）" % relic_violations)
-	_check(charm_grants == 3, "开槽阶段恰发 3 枚护符（CHARM_CAP=3，实测 %d）" % charm_grants)
-	_check(gold_fallbacks == ELITE_TRIALS - 3, "天花板后全部折算金币（%d/%d）" % [gold_fallbacks, ELITE_TRIALS - 3])
+	_check(charm_grants == 0, "精英房不再自动获得护符（实测 %d）" % charm_grants)
+	_check(gold_fallbacks == 0, "精英房不因护符满槽折算金币（实测 %d）" % gold_fallbacks)
 
 
 # ④ BOSS 房隔离：apply_room_drops 对 boss 房零副作用

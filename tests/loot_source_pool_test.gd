@@ -59,8 +59,8 @@ func _test_source_table() -> void:
 	var event_res: Dictionary = LootSourceTable.weights_for("event", 1)
 	_check(not bool(event_res["ok"]) and String(event_res["reason"]) == "not_random:event",
 		"特殊事件未配置返回 not_random（%s）" % event_res["reason"])
-	_check(LootSourceTable.shop_tiers(1).size() == 6 and LootSourceTable.shop_tiers(3).size() == 6,
-		"商店阶梯 act1/act3 各 6 格")
+	_check(LootSourceTable.shop_tiers(1).size() == 4 and LootSourceTable.shop_tiers(3).size() == 4,
+		"商店阶梯 act1/act3 各 4 格（T1.5 返工 6→4）")
 	_check(LootSourceTable.shop_tiers(4).is_empty(), "商店阶梯非法幕次返回空")
 
 
@@ -280,7 +280,7 @@ func _test_shop_ladder() -> void:
 	for act in [1, 2, 3]:
 		var tiers: Array = LootSourceTable.shop_tiers(act)
 		var out: Array = pool.roll_ladder(act, tiers)
-		_check(out.size() == 6, "act%d 阶梯返回 6 格（%d）" % [act, out.size()])
+		_check(out.size() == 4, "act%d 阶梯返回 4 格（T1.5 返工 6→4；实测 %d）" % [act, out.size()])
 		var want := {}
 		for q in tiers:
 			want[String(q)] = int(want.get(String(q), 0)) + 1
