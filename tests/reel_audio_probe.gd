@@ -32,9 +32,7 @@ func _ready() -> void:
 	_ok(rs._sfx_land != null, "落定播放器存在")
 	_ok(rs._sfx_win != null and rs._sfx_lose != null, "胜负播放器存在")
 	_ok(rs._sfx_coin_players.size() == 2, "金币闪烁 2 个轮换播放器")
-	_ok(rs._sfx_elem_players.size() == 5, "元素闪烁 5 个播放器（火冰毒光暗）")
-	for e in ["fire", "ice", "poison", "light", "dark"]:
-		_ok(rs._sfx_elem_players.has(e), "元素 %s 播放器存在" % e)
+	_ok(rs._sfx_sym_attack != null and rs._sfx_sym_boost != null, "符号闪烁两类播放器存在（攻击/增益）")
 	_ok(rs._sfx_start.stream != null and rs._sfx_land.stream != null, "音效 stream 已加载")
 	for p in rs._sfx_tick_players:
 		_ok(p.stream != null, "tick stream 已加载")
@@ -45,9 +43,9 @@ func _ready() -> void:
 	rs.play_result_sfx(true)
 	rs.play_result_sfx(false)
 	rs.play_coin_sfx()
-	for e in ["fire", "ice", "poison", "light", "dark"]:
-		rs.play_element_sfx(e)
-	_ok(true, "胜负/金币/元素音效方法可调用")
+	for k in ["damage", "special", "shield", "heal", "buff", "status", "trash"]:
+		rs.play_symbol_sfx(k)
+	_ok(true, "胜负/金币/符号音效方法可调用（trash 静默）")
 
 	# 铁律10：begin_spin + on_spin_tick 的 tick 音高抖动走独立 RNG，不碰全局 RNG。
 	# 验证：相同全局种子下两次 begin_spin 后的全局 RNG 状态一致。

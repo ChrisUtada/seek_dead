@@ -39,15 +39,11 @@ const SFX_LOSE: AudioStream = preload("res://assets/audio/reel/lose.ogg")
 # 金币图标闪烁：RPG Audio handleCoins（850ms）；逐格间隔 420ms，用 2 player 轮换
 const SFX_COIN: AudioStream = preload("res://assets/audio/reel/coin_flash.ogg")
 const SFX_COIN_DB := -6.0
-# 元素符号格闪烁：Mixkit CC0 魔法音（每元素取 380ms 有效段，fade 防爆音）
-const ELEM_SFX: Dictionary = {
-	"fire": preload("res://assets/audio/reel/elem_fire.wav"),
-	"ice": preload("res://assets/audio/reel/elem_ice.wav"),
-	"poison": preload("res://assets/audio/reel/elem_poison.wav"),
-	"light": preload("res://assets/audio/reel/elem_light.wav"),
-	"dark": preload("res://assets/audio/reel/elem_dark.wav"),
-}
-const SFX_ELEM_DB := -8.0
+# 符号格闪烁：按 kind 分两类（经典 Audio Hierarchy：声音表达功能，不按元素细分）。
+# 元素留给战斗场景的命中演出表达。素材均 Kenney CC0，不与其它事件重复。
+const SFX_SYM_ATTACK: AudioStream = preload("res://assets/audio/reel/sym_attack.ogg")   # knifeSlice
+const SFX_SYM_BOOST: AudioStream = preload("res://assets/audio/reel/sym_boost.ogg")    # pluck_001
+const SFX_SYM_DB := -8.0
 const SFX_START_DB := -6.0
 const SFX_TICK_DB := -12.0
 const SFX_LAND_DB := -4.0
@@ -82,7 +78,8 @@ var _sfx_win: AudioStreamPlayer
 var _sfx_lose: AudioStreamPlayer
 var _sfx_coin_players: Array[AudioStreamPlayer] = []
 var _sfx_coin_index := 0
-var _sfx_elem_players: Dictionary = {}   # elem -> AudioStreamPlayer
+var _sfx_sym_attack: AudioStreamPlayer
+var _sfx_sym_boost: AudioStreamPlayer
 var _sfx_tick_index := 0
 # 演出随机用独立 RNG（工程铁律10：绝不碰全局 RNG）
 var _sfx_rng := RandomNumberGenerator.new()
@@ -259,8 +256,8 @@ func _build_sfx() -> void:
 	_sfx_lose = _make_sfx_player(SFX_LOSE, SFX_LOSE_DB)
 	for i in range(2):
 		_sfx_coin_players.append(_make_sfx_player(SFX_COIN, SFX_COIN_DB))
-	for elem in ELEM_SFX.keys():
-		_sfx_elem_players[elem] = _make_sfx_player(ELEM_SFX[elem], SFX_ELEM_DB)
+	_sfx_sym_attack = _make_sfx_player(SFX_SYM_ATTACK, SFX_SYM_DB)
+	_sfx_sym_boost = _make_sfx_player(SFX_SYM_BOOST, SFX_SYM_DB)
 
 
 func _play_one(p: AudioStreamPlayer) -> void:
@@ -797,10 +794,15 @@ func play_coin_sfx() -> void:
 	p.play()
 
 
-# 元素符号格闪烁：按元素播对应魔法音（fire/ice/poison/light/dark）。
-func play_element_sfx(elem: String) -> void:
-	if _sfx_elem_players.has(elem):
-		(_sfx_elem_players[elem] as AudioStreamPlayer).play()
+# 符号格闪烁：按 kind 分两类。damage/special=攻击音，shield/heal/buff/status=增益音，
+# trash(MISS)=静默。元素交给战斗演出表达。
+func play_symbol_sfx(kind: String) -> void:
+	match kind:
+		"damage", "special":
+			_play_one(_sfx_sym_attack)
+		"shield", "heal", "buff", "status":
+			_play_one(_sfx_sym_boost)
+		# trash / MISS：静默（失败不庆祝，行业规范）
 
 
 # 房间开局 / 精华注入后重建落子：清空角标，逐格从新带子随机落子（先于旋转的初始画面）。
