@@ -44,6 +44,7 @@ const SFX_COIN_DB := -6.0
 # 声音只留给有打击感、低频次的攻击 + 金币 + 胜负。避免 10,000 次 spin 下的听觉疲劳。
 const SFX_SYM_ATTACK: AudioStream = preload("res://assets/audio/reel/sym_attack.wav")   # Mixkit 1487 Dagger woosh 280ms
 const SFX_SYM_DB := -8.0
+const SFX_SYM_DB_SOFT := -20.0   # 增益符号：同一素材压低音量，攻击重/增益轻（Feedback scale）
 const SFX_START_DB := -6.0
 const SFX_TICK_DB := -12.0
 const SFX_LAND_DB := -4.0
@@ -79,6 +80,7 @@ var _sfx_lose: AudioStreamPlayer
 var _sfx_coin_players: Array[AudioStreamPlayer] = []
 var _sfx_coin_index := 0
 var _sfx_sym_attack: AudioStreamPlayer
+var _sfx_sym_soft: AudioStreamPlayer
 var _sfx_tick_index := 0
 # 演出随机用独立 RNG（工程铁律10：绝不碰全局 RNG）
 var _sfx_rng := RandomNumberGenerator.new()
@@ -256,6 +258,7 @@ func _build_sfx() -> void:
 	for i in range(2):
 		_sfx_coin_players.append(_make_sfx_player(SFX_COIN, SFX_COIN_DB))
 	_sfx_sym_attack = _make_sfx_player(SFX_SYM_ATTACK, SFX_SYM_DB)
+	_sfx_sym_soft = _make_sfx_player(SFX_SYM_ATTACK, SFX_SYM_DB_SOFT)
 
 
 func _play_one(p: AudioStreamPlayer) -> void:
@@ -792,13 +795,17 @@ func play_coin_sfx() -> void:
 	p.play()
 
 
-# 符号格闪烁：仅真攻击（damage/special）发声。
-# status（燃烧/中毒等上状态）与 heal/buff/shield/trash 一律静默——
-# 静默由视觉接管：图标亮起 + 飘字已充分表达，无需占用声音频道。
+# 符号格闪烁：按反馈比例分三级——
+#   攻击(damage/special) = 正常音量(Dagger woosh -8dB)
+#   增益(heal/buff)      = 同素材压低音量(-20dB)，高频但不张扬
+#   其余(status/shield/trash) = 静默，交给视觉
+# 依据经典 Audio Hierarchy：Feedback scale with outcome + 高频音 least assertive。
 func play_symbol_sfx(kind: String) -> void:
 	match kind:
 		"damage", "special":
 			_play_one(_sfx_sym_attack)
+		"heal", "buff":
+			_play_one(_sfx_sym_soft)
 
 
 # 房间开局 / 精华注入后重建落子：清空角标，逐格从新带子随机落子（先于旋转的初始画面）。

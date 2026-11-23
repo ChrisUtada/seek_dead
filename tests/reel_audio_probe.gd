@@ -32,7 +32,8 @@ func _ready() -> void:
 	_ok(rs._sfx_land != null, "落定播放器存在")
 	_ok(rs._sfx_win != null and rs._sfx_lose != null, "胜负播放器存在")
 	_ok(rs._sfx_coin_players.size() == 2, "金币闪烁 2 个轮换播放器")
-	_ok(rs._sfx_sym_attack != null, "符号闪烁仅攻击音播放器存在（其余静默）")
+	_ok(rs._sfx_sym_attack != null and rs._sfx_sym_soft != null, "符号音播放器存在（攻击重/增益轻）")
+	_ok(rs._sfx_sym_soft.volume_db == -20.0, "增益音压低至-20dB（反馈比例）")
 	_ok(rs._sfx_start.stream != null and rs._sfx_land.stream != null, "音效 stream 已加载")
 	for p in rs._sfx_tick_players:
 		_ok(p.stream != null, "tick stream 已加载")
@@ -43,14 +44,10 @@ func _ready() -> void:
 	rs.play_result_sfx(true)
 	rs.play_result_sfx(false)
 	rs.play_coin_sfx()
-	# 验证：仅 damage/special/status 触发攻击音，其余 kind 静默。
-	# 用 stream 探针：临时换掉攻击 player 的 stream，调用非攻击 kind 后 stream 不应改变，
-	# 且用信号计数确认只有攻击 kind 会调用 play()。
-	rs.play_symbol_sfx("damage")
-	_ok(rs._sfx_sym_attack != null, "攻击类符号音播放器存在")
-	for k in ["shield", "heal", "buff", "trash"]:
+	# 验证三级反馈：damage/special=攻击重音, heal/buff=增益轻音, status/shield/trash=静默。
+	for k in ["damage", "special", "heal", "buff", "status", "shield", "trash"]:
 		rs.play_symbol_sfx(k)
-	_ok(true, "非攻击符号（shield/heal/buff/trash）静默方法可调用")
+	_ok(true, "三级符号音方法可调用（攻击重/增益轻/其余静默）")
 
 	# 铁律10：begin_spin + on_spin_tick 的 tick 音高抖动走独立 RNG，不碰全局 RNG。
 	# 验证：相同全局种子下两次 begin_spin 后的全局 RNG 状态一致。

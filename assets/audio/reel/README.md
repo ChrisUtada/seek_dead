@@ -13,8 +13,12 @@
 | `coin_flash.ogg` | RPG Audio（用户本地） | `handleCoins.ogg` | 金币图标闪烁 | 850ms |
 | `sym_attack.wav` | Mixkit（CC0） | 1487 Dagger woosh | 真攻击符号（damage/special）— 清脆匕首破风 | 280ms |
 
-status（燃烧/中毒等上状态）/ heal / buff / shield / trash(MISS) 符号**静默**——
-由图标亮起 + 飘字表达，不占用声音频道。
+符号音按反馈比例分三级（经典 Audio Hierarchy / Feedback scale with outcome）：
+- damage/special → 攻击音（Dagger woosh，-8dB）
+- heal/buff → 同一素材压低到 **-20dB**（高频但不张扬，轻响提示"这格有正反馈"）
+- status/shield/trash → 静默，交给视觉
+
+演出间隔：常规 0.42s；本回合符号 ≥3 时拉长到 0.6s（Readability：每格闪光+飘字呈现完整）。
 MISS/废铁(trash)会**错时单独闪烁**——等其它格子闪完、攻击齐亮淡出后才闪（④a 段），
 时间上完全分离，不跟攻击/增益一起亮。它是负面结果，语义上不该像攻击，且无音效。
 
@@ -28,22 +32,26 @@ MISS/废铁(trash)会**错时单独闪烁**——等其它格子闪完、攻击�
 | 列落定 | `reel_system.gd:_lock_at()` | 播 reel_land |
 | 结算胜/负 | `turn_flow.gd`（combat.evaluate 后） | win / lose，经 `reel_system.play_result_sfx()` |
 | 金币图标闪烁 | `combat_system.gd` 逐格读格（金币格） | coin_flash，2 player 轮换，经 `play_coin_sfx()` |
-| 符号格闪烁 | `combat_system.gd` 逐格读格（非金币格）+ 攻击齐亮分支 | 仅真攻击 damage/special→攻击音；status/heal/buff/shield→静默；trash/MISS→错时单独轻闪+静默(④a)；齐亮仅在批次含真攻击时发音；经 `play_symbol_sfx()` |
+| 符号格闪烁 | `combat_system.gd` 逐格读格（非金币格）+ 攻击齐亮分支 | damage/special→重音(-8dB)；heal/buff→轻音(-20dB)；status/shield→静默；trash/MISS→错时单独轻闪+静默(④a)；齐亮仅在含真攻击时发音；逐格间隔多符号时 0.42→0.6s |
 
 音量分层（dB）：start -6 / tick -12 / land -4 / win -3 / lose -4 / coin -6 / sym -8。
 演出音高抖动走 `ReelSystem._sfx_rng` 独立实例，不碰全局 RNG（工程铁律10）。
 
 ## 设计原则（2026-11-23 拍板）
 
-符号格闪烁**仅攻击符号发声**，其余（heal/buff/shield/trash）全部静默。
-依据经典 slot 音频预算原则：
-- "Every animation doesn't need a dramatic noise. When everything sounds important, nothing really does."
-- "Frequently repeated sounds generally shouldn't dominate the mix."
-- "Feedback should be synchronized" —— heal/buff 音与游戏节奏、战斗打击感都对不上，硬配反而别扭。
+符号音按 **Feedback scale with outcome** 分三级，而非简单"有/无"：
+攻击重音(-8dB) / 增益轻音(-20dB，同素材) / 其余静默。
+依据经典原则（iGaming Times）：
+- "Feedback should scale with outcome" —— 反馈要跟结果匹配
+- "The elements played most often should be the least assertive" —— 高频音最不张扬（压音量，不是静默）
+- "Sound should reinforce information conveyed visually" —— 声音强化视觉，不是替代
 
-这类高频良性符号由视觉接管（图标亮起 + 飘字已充分表达），声音预算只留给低频次、有打击感的时刻：
-转轮机械音 + 攻击符号 + 金币 + 胜负。这是最经典也最省心的做法。
-演进史：5 元素细分 → 5 kind 独立音 → 2 类短音 → 3 类短音 → **仅攻击音（当前）**，
-逐步删减到经典的最小集合。
+演出节奏与音效密度是**两个独立维度**（用户 2026-11-23 提点）：
+- Readability："Sequencing rather than simultaneity" + "Pacing that scales with significance"
+  → 多符号回合逐格间隔 0.42→0.6s，让每格呈现完整
+- 音效密度：同素材不同强度，攻重增轻，解决"错乱感"而非靠全静默
+
+演进史：5 元素细分 → 5 kind 独立音 → 2 类短音 → 3 类短音 → 仅攻击音 → **三级反馈+动态间隔（当前）**，
+在"可读性"与"不疲劳"之间收敛到经典平衡。
 战斗场景的命中/伤害/状态生效演出目前无音效（battle_animator 无音源），若要补应另建，
 与符号格闪烁音属不同时间点，不必混在一起。
