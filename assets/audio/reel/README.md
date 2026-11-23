@@ -11,7 +11,7 @@ Kenney 免费音效包，**CC0 许可**（Creative Commons Zero，可商用、�
 | `win.ogg` | Interface Sounds | `confirmation_001.ogg` | 结算胜 | 290ms |
 | `lose.ogg` | Impact Sounds | `impactPunch_heavy_000.ogg` | 结算负闷响 | 650ms |
 | `coin_flash.ogg` | RPG Audio（用户本地） | `handleCoins.ogg` | 金币图标闪烁 | 850ms |
-| `sym_attack.ogg` | RPG Audio（Kenney） | `knifeSlice.ogg` | 攻击符号格闪烁（damage/special） | 600ms |
+| `sym_attack.ogg` | RPG Audio（Kenney） | `drawKnife1.ogg` | 攻击符号格闪烁（damage/special）— 拔剑声 | 400ms |
 | `sym_boost.ogg` | Interface Sounds（Kenney） | `pluck_001.ogg` | 增益符号格闪烁（shield/heal/buff/status） | 100ms |
 
 ## 事件映射（用户规格）
