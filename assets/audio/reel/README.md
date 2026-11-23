@@ -27,9 +27,10 @@
 治疗链路（2026-11-23 修正）：
 - **格子闪时**：静默（用户不要操作确认音）
 - **血条增长帧**：专用治愈音 sym_heal(1.0s)，仅 `heal_gain>0`（血条真涨）时播——"音随结果走"
-🔴 关键：播放条件**只看 heal_gain>0，不依赖收益文本 g**。
-原因：regen 持续回复会抬高 heal_gain（血条真涨），但不计入 source_heal，
-导致治疗格的 g 可能为空——若按 g 判断就会"血条涨了却没声"。满血(heal_gain=0)则不播。
+🔴 播放条件：**heal 格演出时总是播治愈音**（不看 heal_gain / g）。
+- 满血摇到治疗格也响——"像没发生作用"会让玩家困惑（用户 2026-11-23 拍板）。
+- 血条释放仍只在真涨时（无锁自动跳过），溢出转盾时盾涨也配音。
+演进：曾按 g 判断→血条涨却没声；曾按 heal_gain>0 判断→满血无声；现改为格闪即响。
 
 🔴 血条增长时机（2026-11-23 修正）：治疗 HP 在结算阶段(_phase_defense)就落地，
 但血条此前在 hold_enemy_preview/_refresh_meta 提前涨——"一按停就涨了"，与治愈音错位。
@@ -51,7 +52,7 @@ MISS/废铁(trash)会**错时单独闪烁**——等其它格子闪完、攻击�
 | 列落定 | `reel_system.gd:_lock_at()` | 播 reel_land |
 | 结算胜/负 | `turn_flow.gd`（combat.evaluate 后） | win / lose，经 `reel_system.play_result_sfx()` |
 | 金币图标闪烁 | `combat_system.gd` 逐格读格（金币格） | coin_flash，2 player 轮换，经 `play_coin_sfx()` |
-| 符号格闪烁 | `combat_system.gd` 逐格读格（非金币格）+ 攻击齐亮分支 | damage/special→重音(-8dB)；buff格闪→轻确认音(-20dB)；heal格闪→静默,血条涨→专用治愈音(1.0s,仅heal_gain>0)；status/shield→静默；trash/MISS→错时单独轻闪+静默(④a)；齐亮仅在含真攻击时发音；逐格间隔多符号时 0.42→0.6s |
+| 符号格闪烁 | `combat_system.gd` 逐格读格（非金币格）+ 攻击齐亮分支 | damage/special→重音(-8dB)；buff格闪→轻确认音(-20dB)；heal格演出→专用治愈音(1.0s,总是播含满血,血条真涨则同帧释放)；status/shield→静默；trash/MISS→错时单独轻闪+静默(④a)；齐亮仅在含真攻击时发音；逐格间隔多符号时 0.42→0.6s |
 
 音量分层（dB）：start -6 / tick -12 / land -4 / win -3 / lose -4 / coin -6 / sym -8。
 演出音高抖动走 `ReelSystem._sfx_rng` 独立实例，不碰全局 RNG（工程铁律10）。

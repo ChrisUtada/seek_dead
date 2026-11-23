@@ -1007,16 +1007,14 @@ func _present_turn(acc: Dictionary, counts: Dictionary) -> void:
 		if not g.is_empty():
 			_ctrl.hud._popup(String(g["text"]), g["color"], _ctrl.hud._player_sprite_anchor())
 			_ctrl.hud._refresh_meta()   # 血条在这一帧增长
-		# 治愈音：只看「血条真涨了」(heal_gain>0)，不依赖收益文本 g——
-		# regen 持续回复会抬高 heal_gain 但不计入 source_heal，导致 g 可能为空而血条仍涨。
-		# 满血(heal_gain=0)则不播。
-		var heal_sfx_played: bool = _cell_kind(reel) == "heal" and int(acc.get("heal_gain", 0)) > 0
-		if heal_sfx_played:
-			# 血条增长与治愈音同帧：先释放显示锁（血条涨），再播音。
-			_ctrl.hud.release_heal_display()
+		# 2026-11-23：heal 格演出时总是播治愈音——满血摇到治疗格也要有反馈，
+		# 否则"像没发生作用"。血条释放仍只在真涨时(内部无锁会跳过)，音画各自正确。
+		var is_heal: bool = _cell_kind(reel) == "heal"
+		if is_heal:
+			_ctrl.hud.release_heal_display()   # 血条真涨才有效，满血无锁直接跳过
 			_ctrl.reel_system.play_heal_sfx()
 		# 治愈音(1.0s)比逐格间隔长，播完再进下一格，避免与上一段治愈音重叠。
-		var step: float = maxf(present_step, HEAL_SFX_HOLD) if heal_sfx_played else present_step
+		var step: float = maxf(present_step, HEAL_SFX_HOLD) if is_heal else present_step
 		await _present_wait(tree, step)
 
 	# ②b 无格子归属的玩家侧飘字（增益授予）——放在读格之后，避免抢在转轮前面
