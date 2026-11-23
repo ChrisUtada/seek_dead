@@ -45,7 +45,7 @@ var _pending_damage_charms: Array = []
 # 播报节奏
 const CELL_PRESENT_STEP := 0.42      # 逐格播报：每格亮起 + 出数后的停留（默认/常规回合）
 const CELL_PRESENT_STEP_BUSY := 0.60 # 多符号回合的逐格间隔——给每格留足呈现时间（Readability）
-const HEAL_SFX_HOLD := 1.05           # 治愈音(1.0s)播完所需的停留，避免与下一格重叠
+const HEAL_SFX_HOLD := 1.55           # 治愈音(1.5s)播完所需的停留，避免与下一格重叠
 const ATTACK_FLASH_HOLD := 0.36     # 攻击格齐亮后、总伤害数字出现前的停顿
 const TURN_TAIL_HOLD := 0.85        # 播报结束到敌方回合之间的留白
 # N-04（2026-11-21）：牌谱提示时序——只在牌谱实际触发时增加短停顿，普通 SPIN 零额外等待。

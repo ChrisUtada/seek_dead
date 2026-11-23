@@ -12,21 +12,21 @@
 | `lose.ogg` | Impact Sounds | `impactPunch_heavy_000.ogg` | 结算负闷响 | 650ms |
 | `coin_flash.ogg` | RPG Audio（用户本地） | `handleCoins.ogg` | 金币图标闪烁 | 850ms |
 | `sym_attack.wav` | Mixkit（CC0） | 1487 Dagger woosh | 真攻击符号（damage/special）— 清脆匕首破风 | 280ms |
-| `sym_heal.wav` | Mixkit（CC0） | 2830 Video game magic potion | 治疗符号（heal）— 魔法药剂（截取 0-1.0s，血条增长帧播） | 1.0s |
+| `sym_heal.wav` | Mixkit（CC0） | 2830 Video game magic potion | 治疗符号（heal）— 魔法药剂（截取 0-1.5s，尾部 200ms 余弦淡出） | 1.5s |
 
 符号音按反馈比例分三级（经典 Audio Hierarchy / Feedback scale with outcome）：
 - damage/special → 攻击音（Dagger woosh，-8dB）
 - buff / heal 格子闪时 → Dagger woosh 压低到 **-20dB** 的轻确认音（高频但不张扬）
-- heal 血条真增长时 → 另有专用治愈音 **sym_heal.wav（1.0s 魔法药剂）**（见下）
+- heal 格演出时 → 专用治愈音 **sym_heal.wav（1.5s 魔法药剂，尾部平滑淡出）**（见下）
 - status/shield/trash → 静默，交给视觉
 
 演出间隔：常规 0.42s；本回合符号 ≥3 时拉长到 0.6s（Readability：每格闪光+飘字呈现完整）。
-治愈音播完再进下一格：heal 格触发治愈音时，该格停留拉到 1.05s（>1.0s 音长），避免相邻治愈音重叠。
+治愈音播完再进下一格：heal 格触发治愈音时，该格停留拉到 1.55s（>1.5s 音长），避免相邻治愈音重叠。
 （快速跳过时 `_present_wait` 仍会把等待压到最小一帧。）
 
 治疗链路（2026-11-23 修正）：
 - **格子闪时**：静默（用户不要操作确认音）
-- **血条增长帧**：专用治愈音 sym_heal(1.0s)，仅 `heal_gain>0`（血条真涨）时播——"音随结果走"
+- **heal 格演出帧**：专用治愈音 sym_heal(1.5s)，总是播（含满血）；血条真涨则同帧释放——"音随结果走"
 🔴 播放条件：**heal 格演出时总是播治愈音**（不看 heal_gain / g）。
 - 满血摇到治疗格也响——"像没发生作用"会让玩家困惑（用户 2026-11-23 拍板）。
 - 血条释放仍只在真涨时（无锁自动跳过），溢出转盾时盾涨也配音。
@@ -52,7 +52,7 @@ MISS/废铁(trash)会**错时单独闪烁**——等其它格子闪完、攻击�
 | 列落定 | `reel_system.gd:_lock_at()` | 播 reel_land |
 | 结算胜/负 | `turn_flow.gd`（combat.evaluate 后） | win / lose，经 `reel_system.play_result_sfx()` |
 | 金币图标闪烁 | `combat_system.gd` 逐格读格（金币格） | coin_flash，2 player 轮换，经 `play_coin_sfx()` |
-| 符号格闪烁 | `combat_system.gd` 逐格读格（非金币格）+ 攻击齐亮分支 | damage/special→重音(-8dB)；buff格闪→轻确认音(-20dB)；heal格演出→专用治愈音(1.0s,总是播含满血,血条真涨则同帧释放)；status/shield→静默；trash/MISS→错时单独轻闪+静默(④a)；齐亮仅在含真攻击时发音；逐格间隔多符号时 0.42→0.6s |
+| 符号格闪烁 | `combat_system.gd` 逐格读格（非金币格）+ 攻击齐亮分支 | damage/special→重音(-8dB)；buff格闪→轻确认音(-20dB)；heal格演出→专用治愈音(1.5s尾部淡出,总是播含满血,血条真涨则同帧释放)；status/shield→静默；trash/MISS→错时单独轻闪+静默(④a)；齐亮仅在含真攻击时发音；逐格间隔多符号时 0.42→0.6s |
 
 音量分层（dB）：start -6 / tick -12 / land -4 / win -3 / lose -4 / coin -6 / sym -8。
 演出音高抖动走 `ReelSystem._sfx_rng` 独立实例，不碰全局 RNG（工程铁律10）。
