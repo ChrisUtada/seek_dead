@@ -39,6 +39,15 @@ const SFX_LOSE: AudioStream = preload("res://assets/audio/reel/lose.ogg")
 # 金币图标闪烁：RPG Audio handleCoins（850ms）；逐格间隔 420ms，用 2 player 轮换
 const SFX_COIN: AudioStream = preload("res://assets/audio/reel/coin_flash.ogg")
 const SFX_COIN_DB := -6.0
+# 元素符号格闪烁：Mixkit CC0 魔法音（每元素取 380ms 有效段，fade 防爆音）
+const ELEM_SFX: Dictionary = {
+	"fire": preload("res://assets/audio/reel/elem_fire.wav"),
+	"ice": preload("res://assets/audio/reel/elem_ice.wav"),
+	"poison": preload("res://assets/audio/reel/elem_poison.wav"),
+	"light": preload("res://assets/audio/reel/elem_light.wav"),
+	"dark": preload("res://assets/audio/reel/elem_dark.wav"),
+}
+const SFX_ELEM_DB := -8.0
 const SFX_START_DB := -6.0
 const SFX_TICK_DB := -12.0
 const SFX_LAND_DB := -4.0
@@ -73,6 +82,7 @@ var _sfx_win: AudioStreamPlayer
 var _sfx_lose: AudioStreamPlayer
 var _sfx_coin_players: Array[AudioStreamPlayer] = []
 var _sfx_coin_index := 0
+var _sfx_elem_players: Dictionary = {}   # elem -> AudioStreamPlayer
 var _sfx_tick_index := 0
 # 演出随机用独立 RNG（工程铁律10：绝不碰全局 RNG）
 var _sfx_rng := RandomNumberGenerator.new()
@@ -249,6 +259,8 @@ func _build_sfx() -> void:
 	_sfx_lose = _make_sfx_player(SFX_LOSE, SFX_LOSE_DB)
 	for i in range(2):
 		_sfx_coin_players.append(_make_sfx_player(SFX_COIN, SFX_COIN_DB))
+	for elem in ELEM_SFX.keys():
+		_sfx_elem_players[elem] = _make_sfx_player(ELEM_SFX[elem], SFX_ELEM_DB)
 
 
 func _play_one(p: AudioStreamPlayer) -> void:
@@ -783,6 +795,12 @@ func play_coin_sfx() -> void:
 	var p: AudioStreamPlayer = _sfx_coin_players[_sfx_coin_index % _sfx_coin_players.size()]
 	_sfx_coin_index += 1
 	p.play()
+
+
+# 元素符号格闪烁：按元素播对应魔法音（fire/ice/poison/light/dark）。
+func play_element_sfx(elem: String) -> void:
+	if _sfx_elem_players.has(elem):
+		(_sfx_elem_players[elem] as AudioStreamPlayer).play()
 
 
 # 房间开局 / 精华注入后重建落子：清空角标，逐格从新带子随机落子（先于旋转的初始画面）。

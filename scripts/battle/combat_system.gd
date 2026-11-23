@@ -977,6 +977,13 @@ func _present_turn(acc: Dictionary, counts: Dictionary) -> void:
 		_ctrl.hud.sweep_light_cell(reel)
 		if _cell_is_gold(reel):
 			_ctrl.reel_system.play_coin_sfx()   # 金币图标闪烁：RPG Audio handleCoins
+		else:
+			# 元素符号格闪烁：按该格元素播对应魔法音（fire/ice/poison/light/dark）
+			var elem: String = ""
+			if reel < _ctrl.grid_elem.size() and not _ctrl.grid_elem[reel].is_empty():
+				elem = String(_ctrl.grid_elem[reel][0])
+			if elem != "" and elem != "none":
+				_ctrl.reel_system.play_element_sfx(elem)
 		var g := _gain_text_of_reel(reel, acc)
 		if not g.is_empty():
 			_ctrl.hud._popup(String(g["text"]), g["color"], _ctrl.hud._player_sprite_anchor())

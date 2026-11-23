@@ -11,6 +11,7 @@ Kenney 免费音效包，**CC0 许可**（Creative Commons Zero，可商用、�
 | `win.ogg` | Interface Sounds | `confirmation_001.ogg` | 结算胜 | 290ms |
 | `lose.ogg` | Impact Sounds | `impactPunch_heavy_000.ogg` | 结算负闷响 | 650ms |
 | `coin_flash.ogg` | RPG Audio（用户本地） | `handleCoins.ogg` | 金币图标闪烁 | 850ms |
+| `elem_fire/ice/poison/light/dark.wav` | Mixkit（CC0） | 1345/2352/327/873/2345 | 元素符号格闪烁 | 各 380ms |
 
 ## 事件映射（用户规格）
 
@@ -22,6 +23,7 @@ Kenney 免费音效包，**CC0 许可**（Creative Commons Zero，可商用、�
 | 列落定 | `reel_system.gd:_lock_at()` | 播 reel_land |
 | 结算胜/负 | `turn_flow.gd`（combat.evaluate 后） | win / lose，经 `reel_system.play_result_sfx()` |
 | 金币图标闪烁 | `combat_system.gd` 逐格读格（金币格） | coin_flash，2 player 轮换，经 `play_coin_sfx()` |
+| 元素符号格闪烁 | `combat_system.gd` 逐格读格（非金币格） | 按 `grid_elem` 元素播 elem_*.wav，经 `play_element_sfx()` |
 
 音量分层（dB）：start -6 / tick -12 / land -4 / win -3 / lose -4 / coin -6。
 演出音高抖动走 `ReelSystem._sfx_rng` 独立实例，不碰全局 RNG（工程铁律10）。
