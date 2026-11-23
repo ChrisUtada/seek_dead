@@ -800,14 +800,13 @@ func play_coin_sfx() -> void:
 
 # 符号格闪烁（格子亮起那一刻的确认音）——
 #   攻击(damage/special) = 重音(Dagger woosh -8dB)
-#   buff / heal          = 同素材压低音量(-20dB)的轻确认音，高频但不张扬
-#   其余(status/shield/trash) = 静默，交给视觉
-# 注意：heal 格另有「血条增长帧」的治愈音 play_heal_sfx()，两者时机不同。
+#   buff                 = 同素材压低音量(-20dB)的轻确认音
+#   heal / status / shield / trash = 静默（heal 的治愈音在血条增长帧由 play_heal_sfx() 播）
 func play_symbol_sfx(kind: String) -> void:
 	match kind:
 		"damage", "special":
 			_play_one(_sfx_sym_attack)
-		"buff", "heal":
+		"buff":
 			_play_one(_sfx_sym_soft)
 
 
