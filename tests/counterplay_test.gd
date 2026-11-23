@@ -36,6 +36,7 @@ var _save_backup := {}
 var _have_save := false
 var _meta_backup := {}
 var _room_results: Array[String] = []
+var _p3_turns: int = 0   # P3 和解尝试回合计数（每房重置，>10 显式失败）
 
 
 func _ready() -> void:
@@ -378,6 +379,7 @@ func _start_probe(r: RoomData) -> void:
 func _start_room(r: RoomData) -> void:
 	if r == null:
 		return
+	_p3_turns = 0
 	_duel.ROOMS.clear()
 	_duel.ROOMS.append(r)
 	_duel.start_room_data(r, 0, 0, false)
@@ -407,16 +409,121 @@ func _clear_room() -> Dictionary:
 
 
 func _play_one_turn() -> String:
+	# P3（真·最终和解）：优先消耗品；否则定向锁列凑三连。
+	if _p3_active():
+		if _p3_try_consumable():
+			await get_tree().process_frame
+			return "OK"
+		_p3_turns += 1
+		if _p3_turns > 10:
+			_check(false, "P3 无可达和解通路（无消耗品且无法凑三连）")
+			return "P3_NO_RECONCILE"
+	# 普通路径：SPIN + 逐列按停；P3 时替换为定向锁列
 	_duel._on_spin_pressed()
+	var target = null
 	var guard := 0
+	var p3_wait := 0
 	while guard < TURN_FRAME_GUARD:
 		if _duel.reel_system.spinning:
-			_duel._on_spin_button_pressed()
-		elif not _duel._busy:
+			if _p3_active() and target == null:
+				target = _p3_pick_target()   # strip 在 spin 启动后才 build
+			if target != null:
+				p3_wait += 1
+				_p3_lock_targets(target, p3_wait)
+			else:
+				_duel._on_spin_button_pressed()
+		elif not _duel._busy and not _any_absorbing():
 			return "OK"
 		guard += 1
 		await get_tree().process_frame
 	return "TURN_TIMEOUT"
+
+
+func _any_absorbing() -> bool:
+	for r in DuelController.REELS:
+		if _duel.reel_system.is_absorbing(r):
+			return true
+	return false
+
+
+# ---- P3 和解（bot 能力，不改生产机制）----
+func _p3_active() -> bool:
+	var g = _duel.current_gimmick
+	return g != null and g.get("_phase3") == true
+
+
+func _p3_try_consumable() -> bool:
+	for it in _duel.consumable_slots:
+		var res: Resource = load(String(it.get("path", "")))
+		if res != null and String(res.effect) in ["heal", "purify", "cleanse"]:
+			_duel.consumable_system.use(String(it.get("uid", "")))
+			if _duel.game_state == DuelController.FlowState.WON:
+				return true
+	return false
+
+
+# 三列是同一 base 的洗牌，选一个在首列出现次数最多的非废铁符号作为三连目标。
+# 返回 [sym, elem]：三连 key = resource_path + "|" + elem，必须连元素也对齐。
+func _p3_pick_target():
+	var rs = _duel.reel_system
+	if rs.reel_strips.is_empty():
+		return null
+	var strip: Array = rs.reel_strips[0]
+	var tally := {}
+	for cell in strip:
+		var sym = cell[0] if cell is Array else cell
+		# 三连钩子只在 damage/special/heal 分支设置 acc["triple"]；status 符号不设置，
+		# 因此目标必须选能触发三连的符号类型，否则三列同符号也不触发 P3 和解。
+		if sym == null or String(sym.kind) not in ["damage", "special", "heal"]:
+			continue
+		var key := String(sym.resource_path) + "|" + String(cell[1]) if cell is Array else String(sym.resource_path)
+		tally[key] = int(tally.get(key, 0)) + 1
+	var best_key := ""
+	var best_n := 0
+	for k in tally:
+		if int(tally[k]) > best_n:
+			best_key = k
+			best_n = int(tally[k])
+	if best_key == "":
+		return null
+	for cell in strip:
+		var sym = cell[0] if cell is Array else cell
+		if sym == null:
+			continue
+		var key := String(sym.resource_path) + "|" + String(cell[1]) if cell is Array else String(sym.resource_path)
+		if key == best_key:
+			return [sym, String(cell[1]) if cell is Array else "none"]
+	return null
+
+
+# 旋转中：把每列的逻辑游标对到目标符号并锁定（凑三列同符号 = P3 和解条件 a）。
+# 测试 bot 直接写 reel_cursor（不新增 RNG、不改落点映射、不改伤害），只是"精确目押"的等价物。
+# 兜底：目标不在某列 strip 时锁当前位置，保证回合一定能结束。
+func _p3_lock_targets(target, waited: int) -> void:
+	var rs = _duel.reel_system
+	for r in DuelController.REELS:
+		if r < 0 or r >= rs.reel_stopped.size() or rs.reel_stopped[r]:
+			continue
+		if r >= rs.reel_strips.size() or rs.reel_strips[r].is_empty():
+			continue
+		if rs.is_absorbing(r) or rs.has_pending_stop(r):
+			continue
+		var strip: Array = rs.reel_strips[r]
+		var target_path: String = String(target[0].resource_path)
+		var target_elem: String = String(target[1])
+		var target_idx: int = -1
+		for i in range(strip.size()):
+			var cell = strip[i]
+			var sym = cell[0] if cell is Array else cell
+			if sym != null and String(sym.resource_path) == target_path \
+				and (not (cell is Array) or String(cell[1]) == target_elem):
+				target_idx = i
+				break
+		if target_idx >= 0:
+			rs.reel_cursor[r] = target_idx   # 精确对位（不消耗 RNG）
+		elif waited <= 240:
+			continue   # 还没到兜底时机，继续等
+		rs.lock_reel(r, false, "forced")
 
 
 func _leave_post_battle() -> void:

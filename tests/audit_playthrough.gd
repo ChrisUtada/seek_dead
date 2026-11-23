@@ -12,6 +12,7 @@ const SEEDS := [11, 22, 33]
 
 var _fails := 0
 var _checks := 0
+var _p3_turns := 0   # P3 和解尝试回合（每房重置）
 
 
 func _ready() -> void:
@@ -117,6 +118,7 @@ func _one_run(duel: DuelController, seed_v: int) -> void:
 					break
 			else:
 				just_won = false
+				_p3_turns = 0   # 新房间重置 P3 和解尝试计数
 				# 商店货架稀有度采样
 				shop_visits += 1
 				for offer in duel._shop_system.shop_offers:
@@ -124,6 +126,10 @@ func _one_run(duel: DuelController, seed_v: int) -> void:
 					shop_rarity[r] = int(shop_rarity.get(r, 0)) + 1
 				duel._on_next_room_pressed()
 				await get_tree().process_frame
+				# M-02b：跨幕首房前章节头会拦截进房，bot 需确认继续
+				if duel._chapter_intro != null and duel._chapter_intro.visible:
+					duel._chapter_intro.continue_btn.pressed.emit()
+					await get_tree().process_frame
 				_god_hp(duel)
 			continue
 		# PLAYING
@@ -166,22 +172,119 @@ func _one_run(duel: DuelController, seed_v: int) -> void:
 		seed_v, terminal, rooms_won, shop_visits, str(shop_rarity), str(intent_tally),
 		duel.selected_charms.size(), int(duel.meta.get("anvil_points", 0))])
 	bal.player_dmg_mult = orig
-	# 2026-11-20 更新：本测试目的是"全流程逐房遥测采集"，非验证 bot 400回合内打穿最终BOSS。
-	# 神血 bot 在最终房（room25，深渊监视者184护甲+P3攻击×1.3）输出不足会 STUCK@25，
-	# 但前24房遥测已采集完整。改判定为"走完前24房或通关"，STUCK@最终房记为观察项。
-	var reached_final: bool = rooms_won >= 24 or terminal == "WON_GAME"
-	_check(reached_final, "seed%d 走完全程采集（%s，胜%d房）" % [seed_v, terminal, rooms_won])
+	# B 批：真·最终 P3 和解已补进 bot，整局必须真通关，不再用"前24房采集"掩盖 STUCK@25。
+	_check(terminal == "WON_GAME" and rooms_won >= 25,
+		"seed%d 真最终必须 WON_GAME（%s，胜%d房）" % [seed_v, terminal, rooms_won])
 
 
 func _play_one_turn(duel: DuelController) -> String:
-	duel._on_spin_pressed()
-	while not _deadline():
-		if duel.reel_system.spinning:
-			duel._on_spin_button_pressed()
-		elif not duel._busy:
+	# P3（真·最终和解）：优先消耗品；否则定向锁列凑三连（damage/special/heal 符号）
+	if _p3_active(duel):
+		if _p3_try_consumable(duel):
+			await get_tree().process_frame
 			return "OK"
+		_p3_turns += 1
+		if _p3_turns > 10:
+			_check(false, "P3 无可达和解通路（无消耗品且无法凑三连）")
+			return "P3_NO_RECONCILE"
+	duel._on_spin_pressed()
+	var target = null
+	var guard := 0
+	var p3_wait := 0
+	while not _deadline() and guard < 900:
+		if duel.reel_system.spinning:
+			if _p3_active(duel) and target == null:
+				target = _p3_pick_target(duel)
+			if target != null:
+				p3_wait += 1
+				_p3_lock_targets(duel, target, p3_wait)
+			else:
+				duel._on_spin_button_pressed()
+		elif not duel._busy and not _any_absorbing(duel):
+			return "OK"
+		guard += 1
 		await get_tree().process_frame
 	return "DEADLINE"
+
+
+# ---- P3 和解（bot 能力，三个脚本同构；不改生产机制/数值/和解条件）----
+func _p3_active(duel: DuelController) -> bool:
+	var g = duel.current_gimmick
+	return g != null and g.get("_phase3") == true
+
+
+func _p3_try_consumable(duel: DuelController) -> bool:
+	for it in duel.consumable_slots:
+		var res: Resource = load(String(it.get("path", "")))
+		if res != null and String(res.effect) in ["heal", "purify", "cleanse"]:
+			duel.consumable_system.use(String(it.get("uid", "")))
+			if duel.game_state == DuelController.FlowState.WON:
+				return true
+	return false
+
+
+func _p3_pick_target(duel: DuelController):
+	var rs = duel.reel_system
+	if rs.reel_strips.is_empty():
+		return null
+	var strip: Array = rs.reel_strips[0]
+	var tally := {}
+	for cell in strip:
+		var sym = cell[0] if cell is Array else cell
+		if sym == null or String(sym.kind) not in ["damage", "special", "heal"]:
+			continue
+		var key := String(sym.resource_path) + "|" + String(cell[1]) if cell is Array else String(sym.resource_path)
+		tally[key] = int(tally.get(key, 0)) + 1
+	var best_key := ""
+	var best_n := 0
+	for k in tally:
+		if int(tally[k]) > best_n:
+			best_key = k
+			best_n = int(tally[k])
+	if best_key == "":
+		return null
+	for cell in strip:
+		var sym = cell[0] if cell is Array else cell
+		if sym == null:
+			continue
+		var key := String(sym.resource_path) + "|" + String(cell[1]) if cell is Array else String(sym.resource_path)
+		if key == best_key:
+			return [sym, String(cell[1]) if cell is Array else "none"]
+	return null
+
+
+func _p3_lock_targets(duel: DuelController, target, waited: int) -> void:
+	var rs = duel.reel_system
+	for r in DuelController.REELS:
+		if r < 0 or r >= rs.reel_stopped.size() or rs.reel_stopped[r]:
+			continue
+		if r >= rs.reel_strips.size() or rs.reel_strips[r].is_empty():
+			continue
+		if rs.is_absorbing(r) or rs.has_pending_stop(r):
+			continue
+		var strip: Array = rs.reel_strips[r]
+		var tpath: String = String(target[0].resource_path)
+		var telem: String = String(target[1])
+		var tidx: int = -1
+		for i in range(strip.size()):
+			var cell = strip[i]
+			var sym = cell[0] if cell is Array else cell
+			if sym != null and String(sym.resource_path) == tpath \
+				and (not (cell is Array) or String(cell[1]) == telem):
+				tidx = i
+				break
+		if tidx >= 0:
+			rs.reel_cursor[r] = tidx
+		elif waited <= 240:
+			continue
+		rs.lock_reel(r, false, "forced")
+
+
+func _any_absorbing(duel: DuelController) -> bool:
+	for r in DuelController.REELS:
+		if duel.reel_system.is_absorbing(r):
+			return true
+	return false
 
 
 func _auto_consume(duel: DuelController) -> void:
