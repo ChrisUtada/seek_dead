@@ -404,6 +404,7 @@ func _build_state() -> BattleState:
 const BATTLE_HUD = preload("res://scenes/ui/battle_hud.tscn")
 var hud: BattleHud
 var reel_system: ReelSystem             # 2026-08-09 拆分：转轮带/旋转/按停逻辑（reel_system.gd）
+var bgm_system: BgmSystem              # 2026-11-23：战斗 BGM（单曲循环+淡入淡出，bgm_system.gd）
 var combat: CombatSystem                # 2026-08-09 拆分：回合结算/符号贡献/敌我攻防（combat_system.gd）
 var status_system: StatusSystem         # 2026-08-09 拆分：意图/状态定义与查询（status_system.gd）
 var debuffs                             # 2026-11-12 Step 1：玩家侧共用减益模块（debuff_system.gd；怪物经 apply_debuff 施加）
@@ -460,6 +461,7 @@ func _ready() -> void:
 	readability = preload("res://scripts/systems/readability_system.gd").new(self)
 	# 2026-08-09 拆分：转轮系统独立（ReelSystem）
 	reel_system = ReelSystem.new(self)
+	bgm_system = BgmSystem.new(self)   # 2026-11-23：BGM 系统（进入战斗房时启动）
 	combat = CombatSystem.new(self)
 	status_system = StatusSystem.new(self)
 	debuffs = preload("res://scripts/battle/debuff_system.gd").new()   # Step 1：玩家侧减益（不注册全局 class_name，避免 headless 类缓存）
@@ -1264,6 +1266,8 @@ func start_room_data(r: RoomData, idx: int, ria_override: int = -1, is_final: bo
 		onboarding.hint("weapon")
 	room_element_mult = {}                # 元素精华：新房间失效（须在 _build_pool 之前清，否则旧房精华注入新房池）
 	peaceful_win = false                  # 勇者的阴影：和解标志每房复位
+	if bgm_system != null:
+		bgm_system.start()   # 2026-11-23：进入战斗房 → BGM 淡入（营地/宝箱/事件房已提前分流，不会触发）
 	if readability != null:
 		readability.begin_room()   # 废铁改判：每房1次机会重置
 	if hud != null:
