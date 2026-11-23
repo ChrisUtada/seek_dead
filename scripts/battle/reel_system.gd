@@ -28,11 +28,11 @@ const _REEL_CLOCK = preload("res://scripts/battle/reel_clock.gd")
 
 # 2026-11-23 转轮音效：Kenney CC0 素材（可商用无需署名）。事件映射见方法内注释。
 const SFX_SPIN_START: AudioStream = preload("res://assets/audio/reel/spin_start.ogg")
-const SFX_TICKS: Array[AudioStream] = [
-	preload("res://assets/audio/reel/tick_1.ogg"),
-	preload("res://assets/audio/reel/tick_2.ogg"),
-	preload("res://assets/audio/reel/tick_3.ogg"),
-]
+# 2026-11-23：用户拍板改用 Kenney RPG Audio 的 metalClick（450ms，比 chips 更"金属"）。
+# 单文件 + 6 个 player 轮换（最快 83ms/格，450ms 音需 ≥6 个 player 才不叠音），
+# 每颗 ±3% 音高抖动制造变化。
+const SFX_TICK: AudioStream = preload("res://assets/audio/reel/tick_metal.ogg")
+const SFX_TICK_PLAYERS := 6
 const SFX_REEL_LAND: AudioStream = preload("res://assets/audio/reel/reel_land.ogg")
 const SFX_WIN: AudioStream = preload("res://assets/audio/reel/win.ogg")
 const SFX_LOSE: AudioStream = preload("res://assets/audio/reel/lose.ogg")
@@ -237,8 +237,8 @@ func _make_sfx_player(stream: AudioStream, db: float) -> AudioStreamPlayer:
 
 func _build_sfx() -> void:
 	_sfx_start = _make_sfx_player(SFX_SPIN_START, SFX_START_DB)
-	for s in SFX_TICKS:
-		_sfx_tick_players.append(_make_sfx_player(s, SFX_TICK_DB))
+	for i in range(SFX_TICK_PLAYERS):
+		_sfx_tick_players.append(_make_sfx_player(SFX_TICK, SFX_TICK_DB))
 	_sfx_land = _make_sfx_player(SFX_REEL_LAND, SFX_LAND_DB)
 	_sfx_win = _make_sfx_player(SFX_WIN, SFX_WIN_DB)
 	_sfx_lose = _make_sfx_player(SFX_LOSE, SFX_LOSE_DB)

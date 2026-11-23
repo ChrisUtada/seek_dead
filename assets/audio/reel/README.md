@@ -6,7 +6,7 @@ Kenney 免费音效包，**CC0 许可**（Creative Commons Zero，可商用、�
 | 文件 | 来源包 | 原始文件 | 用途 | 时长 |
 |---|---|---|---|---|
 | `spin_start.ogg` | Interface Sounds | `select_001.ogg` | 启动轻咔 | 40ms |
-| `tick_1/2/3.ogg` | Casino Audio | `chips-collide-1/2/3.ogg` | 每格推进短齿感，随机轮换 ±3% 音高 | 230-260ms |
+| `tick_metal.ogg` | RPG Audio（用户本地） | `metalClick.ogg` | 每格推进金属咔，6 player 轮换 + ±3% 音高 | 450ms |
 | `reel_land.ogg` | Impact Sounds | `impactSoft_medium_000.ogg` | 列落定 | 120ms |
 | `win.ogg` | Interface Sounds | `confirmation_001.ogg` | 结算胜 | 290ms |
 | `lose.ogg` | Impact Sounds | `impactPunch_heavy_000.ogg` | 结算负闷响 | 650ms |

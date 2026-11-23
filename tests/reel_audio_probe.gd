@@ -28,7 +28,7 @@ func _ready() -> void:
 	var rs: ReelSystem = duel.reel_system as ReelSystem
 
 	_ok(rs._sfx_start != null, "启动播放器存在")
-	_ok(rs._sfx_tick_players.size() == 3, "每格音 3 个轮换播放器")
+	_ok(rs._sfx_tick_players.size() == 6, "每格音 6 个轮换播放器（metalClick 450ms 需 ≥6）")
 	_ok(rs._sfx_land != null, "落定播放器存在")
 	_ok(rs._sfx_win != null and rs._sfx_lose != null, "胜负播放器存在")
 	_ok(rs._sfx_start.stream != null and rs._sfx_land.stream != null, "音效 stream 已加载")
