@@ -15,7 +15,8 @@
 
 status（燃烧/中毒等上状态）/ heal / buff / shield / trash(MISS) 符号**静默**——
 由图标亮起 + 飘字表达，不占用声音频道。
-MISS/废铁(trash)还会**单独闪烁**，不跟攻击符号一起齐亮——它是负面结果，语义上不该像攻击。
+MISS/废铁(trash)会**错时单独闪烁**——等其它格子闪完、攻击齐亮淡出后才闪（④a 段），
+时间上完全分离，不跟攻击/增益一起亮。它是负面结果，语义上不该像攻击，且无音效。
 
 ## 事件映射（用户规格）
 
@@ -27,7 +28,7 @@ MISS/废铁(trash)还会**单独闪烁**，不跟攻击符号一起齐亮——�
 | 列落定 | `reel_system.gd:_lock_at()` | 播 reel_land |
 | 结算胜/负 | `turn_flow.gd`（combat.evaluate 后） | win / lose，经 `reel_system.play_result_sfx()` |
 | 金币图标闪烁 | `combat_system.gd` 逐格读格（金币格） | coin_flash，2 player 轮换，经 `play_coin_sfx()` |
-| 符号格闪烁 | `combat_system.gd` 逐格读格（非金币格）+ 攻击齐亮分支 | 仅真攻击 damage/special→攻击音；status/heal/buff/shield→静默；trash/MISS→单独轻闪+静默；齐亮仅在批次含真攻击时发音；经 `play_symbol_sfx()` |
+| 符号格闪烁 | `combat_system.gd` 逐格读格（非金币格）+ 攻击齐亮分支 | 仅真攻击 damage/special→攻击音；status/heal/buff/shield→静默；trash/MISS→错时单独轻闪+静默(④a)；齐亮仅在批次含真攻击时发音；经 `play_symbol_sfx()` |
 
 音量分层（dB）：start -6 / tick -12 / land -4 / win -3 / lose -4 / coin -6 / sym -8。
 演出音高抖动走 `ReelSystem._sfx_rng` 独立实例，不碰全局 RNG（工程铁律10）。

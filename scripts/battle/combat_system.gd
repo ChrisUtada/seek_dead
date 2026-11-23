@@ -972,12 +972,13 @@ func _present_turn(acc: Dictionary, counts: Dictionary) -> void:
 
 	# ② 读格：左 → 右，逐个亮起并出数；攻击格跳过（留给 ④）
 	var attack_reels: Array = []
+	var trash_reels: Array = []   # MISS/废铁：收集起来，等其它格子都闪完后单独错时闪（见 ④b）
 	for reel in DuelController.REELS:
 		if not _cell_is_player_gain(reel):
-			# 2026-11-23：MISS/废铁(trash)不跟攻击符号一起齐亮——它是负面结果，
-			# 语义上不该像攻击。单独单格轻闪，不播音（静默由视觉接管）。
+			# 2026-11-23：MISS/废铁(trash)是负面结果，不与攻击/增益同时闪。
+			# 此处只收集，不立即闪——真正的闪烁放在 ④b，错开时间避免视觉重叠。
 			if _cell_kind(reel) == "trash":
-				_ctrl.hud.sweep_light_cell(reel)
+				trash_reels.append(reel)
 			else:
 				attack_reels.append(reel)
 			continue
@@ -1025,6 +1026,12 @@ func _present_turn(acc: Dictionary, counts: Dictionary) -> void:
 		if has_real_attack:
 			_ctrl.reel_system.play_symbol_sfx("damage")
 		await _present_wait(tree, ATTACK_FLASH_HOLD)
+	# ④a MISS/废铁(trash)错时单独闪：等收益格逐格闪完、攻击格齐亮淡出后才闪，
+	# 时间上与其它格子完全分离，避免看起来"跟攻击/增益一起亮"。无音效。
+	if not trash_reels.is_empty():
+		await _present_wait(tree, POPUP_BEAT)
+		for rr in trash_reels:
+			_ctrl.hud.sweep_light_cell(int(rr))
 	# —— 牌谱名称短提示（先看清牌型）——
 	if has_banners:
 		await _present_banners(tree, banners)
