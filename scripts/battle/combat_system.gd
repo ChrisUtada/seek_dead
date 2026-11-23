@@ -43,8 +43,7 @@ var _charm_pulsed_this_turn: bool = false
 var _pending_defense_charms: Array = []
 var _pending_damage_charms: Array = []
 # 播报节奏
-const CELL_PRESENT_STEP := 0.42      # 逐格播报：每格亮起 + 出数后的停留（默认/常规回合）
-const CELL_PRESENT_STEP_BUSY := 0.60 # 多符号回合的逐格间隔——给每格留足呈现时间（Readability）
+const CELL_PRESENT_STEP := 0.42      # 逐格播报：每格亮起 + 出数后的停留（所有回合统一）
 const HEAL_SFX_HOLD := 1.55           # 治愈音(1.5s)播完所需的停留，避免与下一格重叠
 const ATTACK_FLASH_HOLD := 0.36     # 攻击格齐亮后、总伤害数字出现前的停顿
 const TURN_TAIL_HOLD := 0.85        # 播报结束到敌方回合之间的留白
@@ -958,14 +957,8 @@ func _present_banners(tree: SceneTree, banners: Array) -> void:
 func _present_turn(acc: Dictionary, counts: Dictionary) -> void:
 	var tree: SceneTree = _ctrl.get_tree()
 
-	# 2026-11-23：Readability——多符号回合拉长逐格间隔，让每格的闪光+飘字呈现完整，
-	# 避免"看不清哪一格给了什么"。常规回合保持快节奏（经典：重要时刻慢、常规快）。
-	var symbol_count: int = 0
-	for key in counts.keys():
-		var v = counts[key]
-		if v is Array and v.size() >= 3:
-			symbol_count += int(v[2])
-	var present_step: float = CELL_PRESENT_STEP_BUSY if symbol_count >= 3 else CELL_PRESENT_STEP
+	# 2026-11-23：逐格间隔统一 0.42s（用户拍板——多符号回合也回到原始节奏，不再动态拉长）。
+	const PRESENT_STEP := CELL_PRESENT_STEP
 
 	# ⓪ 牌型横幅结算时已入队；按「合并表现」口径推迟到 ④，与挥砍、伤害数字同帧出现，
 	# 让牌型身份读作「这一次攻击的名号」，而不是先弹横幅、再单独来一次攻击。
@@ -1014,7 +1007,7 @@ func _present_turn(acc: Dictionary, counts: Dictionary) -> void:
 			_ctrl.hud.release_heal_display()   # 血条真涨才有效，满血无锁直接跳过
 			_ctrl.reel_system.play_heal_sfx()
 		# 治愈音(1.0s)比逐格间隔长，播完再进下一格，避免与上一段治愈音重叠。
-		var step: float = maxf(present_step, HEAL_SFX_HOLD) if is_heal else present_step
+		var step: float = maxf(PRESENT_STEP, HEAL_SFX_HOLD) if is_heal else PRESENT_STEP
 		await _present_wait(tree, step)
 
 	# ②b 无格子归属的玩家侧飘字（增益授予）——放在读格之后，避免抢在转轮前面
@@ -1074,7 +1067,7 @@ func _present_turn(acc: Dictionary, counts: Dictionary) -> void:
 		_ctrl.hud.release_enemy_preview()
 		_ctrl.hud._popup("-%d%s" % [total, String(acc.get("elem_tag", ""))], Palette.POP_DAMAGE, _ctrl.hud._enemy_sprite_anchor())
 		_ctrl.hud._refresh_meta()
-		await _present_wait(tree, present_step)
+		await _present_wait(tree, PRESENT_STEP)
 	elif has_banners:
 		# 纯增益/防御牌谱（本回合无攻击伤害）：横幅 + 贡献已播，留一个短收尾
 		await _present_wait(tree, POPUP_BEAT)
