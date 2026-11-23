@@ -32,8 +32,8 @@ func _ready() -> void:
 	_ok(rs._sfx_land != null, "落定播放器存在")
 	_ok(rs._sfx_win != null and rs._sfx_lose != null, "胜负播放器存在")
 	_ok(rs._sfx_coin_players.size() == 2, "金币闪烁 2 个轮换播放器")
-	_ok(rs._sfx_sym_attack != null and rs._sfx_sym_soft != null, "符号音播放器存在（攻击重/增益轻）")
-	_ok(rs._sfx_sym_soft.volume_db == -20.0, "增益音压低至-20dB（反馈比例）")
+	_ok(rs._sfx_sym_attack != null and rs._sfx_sym_soft != null and rs._sfx_heal != null, "符号音播放器存在（攻击/增益/治愈）")
+	_ok(rs._sfx_sym_soft.volume_db == -20.0, "buff音压低至-20dB（反馈比例）")
 	_ok(rs._sfx_start.stream != null and rs._sfx_land.stream != null, "音效 stream 已加载")
 	for p in rs._sfx_tick_players:
 		_ok(p.stream != null, "tick stream 已加载")
