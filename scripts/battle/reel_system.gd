@@ -39,15 +39,12 @@ const SFX_LOSE: AudioStream = preload("res://assets/audio/reel/lose.ogg")
 # 金币图标闪烁：RPG Audio handleCoins（850ms）；逐格间隔 420ms，用 2 player 轮换
 const SFX_COIN: AudioStream = preload("res://assets/audio/reel/coin_flash.ogg")
 const SFX_COIN_DB := -6.0
-# 符号格闪烁：按 kind 分两类（经典 Audio Hierarchy：声音表达功能，不按元素细分）。
-# 元素留给战斗场景的命中演出表达。素材 Mixkit CC0 / Kenney，不与其它事件重复。
-# 每类取短有效段 + 首尾淡化，避免逐格闪烁时拖尾叠加。
+# 符号格闪烁：3 类短音——攻击 / 护盾（物理金属）/ 非攻击增益。
+# 全部 ≤280ms 与逐格间隔 420ms 匹配，避免重叠成噪音。
 const SYM_SFX: Dictionary = {
-	"attack": preload("res://assets/audio/reel/sym_attack.wav"),   # Mixkit 1487 Dagger woosh
-	"shield": preload("res://assets/audio/reel/sym_shield.wav"),   # Mixkit 2765 Sword strikes armor
-	"heal": preload("res://assets/audio/reel/sym_heal.wav"),       # Mixkit 2628 Relaxing harp sweep
-	"buff": preload("res://assets/audio/reel/sym_buff.wav"),       # Mixkit 883 Fast magic game spell
-	"status": preload("res://assets/audio/reel/sym_status.wav"),   # Mixkit 2345 Magic spell mystery whoosh
+	"attack": preload("res://assets/audio/reel/sym_attack.wav"),    # Mixkit 1487 Dagger woosh 280ms
+	"shield": preload("res://assets/audio/reel/sym_shield.wav"),    # Mixkit 2765 Sword strikes armor 220ms
+	"support": preload("res://assets/audio/reel/sym_support.wav"),  # Mixkit 255 Fantasy game sweep notification 280ms
 }
 const SFX_SYM_DB := -8.0
 const SFX_START_DB := -6.0
@@ -799,15 +796,14 @@ func play_coin_sfx() -> void:
 	p.play()
 
 
-# 符号格闪烁：按 kind 分 5 类，每类独立音。元素交给战斗演出表达。
+# 符号格闪烁：3 类短音。damage/special/status=攻击，shield=护盾（物理金属），
+# heal/buff=魔法增益。trash/MISS 静默。元素交给战斗演出表达。
 func play_symbol_sfx(kind: String) -> void:
 	var cat: String = ""
 	match kind:
-		"damage", "special": cat = "attack"
+		"damage", "special", "status": cat = "attack"
 		"shield": cat = "shield"
-		"heal": cat = "heal"
-		"buff": cat = "buff"
-		"status": cat = "status"
+		"heal", "buff": cat = "support"
 		# trash / MISS：cat 保持空 → 静默（失败不庆祝，行业规范）
 	if cat != "" and _sfx_sym_players.has(cat):
 		_play_one(_sfx_sym_players[cat] as AudioStreamPlayer)
