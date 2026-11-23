@@ -618,13 +618,26 @@ func lock_reel(r: int, use_visual: bool = true, reason: String = "player") -> vo
 						if _ctrl.hud != null:
 							var src_name := String(sym_now.name) if sym_now != null else "无效格"
 							_ctrl.hud._log("🔁 废铁改判：第 %d 列%s（无效格） → 相邻有效符号（每房1次）" % [r + 1, src_name])
-				elif _ctrl.readability.mercy_ready():
+				elif _ctrl.readability.mercy_ready() and _mercy_source_allowed(sym_now):
 					_ctrl.gold += TRASH_TO_GOLD
 					_ctrl.readability.consume_mercy()
 					if _ctrl.hud != null:
 						var src_name := String(sym_now.name) if sym_now != null else "无效格"
 						_ctrl.hud._log("♻️ 废铁转化：第 %d 列%s（无效格） → +%d 金（不抵消空转）" % [r + 1, src_name, TRASH_TO_GOLD])
 	_begin_absorb(r, idx, reason)
+
+
+# T1.9 第三档来源过滤（默认 mercy_enemy_jam_enabled=false → 恒 true，生产行为不变）。
+# 开启后：只放行敌人注入废铁(trash.tres)，精度未命中(miss.tres)不触发该档。
+# 判据用 resource_path（资源对象在建带/落点链保真，见 t19 身份探针），不依赖对象引用相等。
+func _mercy_source_allowed(sym) -> bool:
+	if _ctrl == null or _ctrl.readability == null:
+		return false
+	if not _ctrl.readability.mercy_enemy_jam_enabled:
+		return true   # 正式默认：所有无效格一视同仁
+	if sym == null:
+		return false
+	return String(sym.resource_path) != String(MISS_SYMBOL.resource_path)
 
 
 # 从 idx 向两侧找最近的非废铁格（含 idx 自身之外的相邻格）；全废铁返回 -1。
@@ -709,6 +722,14 @@ func _lock_at(r: int, idx: int, reason: String) -> void:
 		sym = DuelController.TRASH_SYMBOL
 		reason = "jam"
 		_ctrl.hud._log("⚠ 干扰列作废：第 %d 列被废铁占据（红框列，按停即废）" % (r + 1))   # 2026-08-14 UX：替换即时提示
+		# T1.9 第三档（默认关闭）：仅当试验开关开启时，敌人注废 jam 落点才纳入 mercy 补偿。
+		# 不改落点、不改伤害、不额外消耗 RNG；次数由 mercy_ready/consume_mercy 统一约束，
+		# 与 trash_reroll 各自独立（jam 走早退路径，本就不进 trash_reroll 判定，互不绕过）。
+		if _ctrl.readability != null and _ctrl.readability.mercy_enemy_jam_enabled and _ctrl.readability.mercy_ready():
+			_ctrl.gold += TRASH_TO_GOLD
+			_ctrl.readability.consume_mercy()
+			if _ctrl.hud != null:
+				_ctrl.hud._log("♻️ 废铁转化（敌人注废·试验档）：第 %d 列 → +%d 金（不抵消空转）" % [r + 1, TRASH_TO_GOLD])
 	elif r == _ctrl.pending_lock_reel:
 		_ctrl.grid[r][0] = _locked_prev_sym[r]
 		_ctrl.grid_elem[r][0] = _locked_prev_elem[r]

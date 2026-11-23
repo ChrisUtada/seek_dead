@@ -51,7 +51,20 @@ var buffer_enabled := false
 var feedback_enabled := false
 # 操控卡次数计数。
 var mercy_used := 0             # 废铁转化：本回合已用次数（+2金）
+var mercy_total_used := 0       # T1.9 只读观测：本局 mercy 累计触发次数（不参与结算）
 var trash_reroll_used := 0      # 废铁改判：本房已用次数（废铁→相邻有效符号，每房1次）
+# ============================================================================
+# TEST-ONLY / T1.9 评审遗留（2026-11-23）：以下两项仅供 A/B 探针与契约测试切换，
+# 属回归证据开关，不得在正常游玩配置（存档/设置/生产入口）中暴露或启用。
+# T1.9 已评审收口：正式默认恒为「每回合一次」，第三档「仅敌人注废」不启用、不扩样。
+# 任何正常游玩路径都不得写入这两个字段；仅测试代码可直接赋值。
+# ----------------------------------------------------------------------------
+# mercy_frequency = "turn"（正式默认，每回合1次）| "room"（测试专用试验档，每房1次）。
+var mercy_frequency: String = "turn"
+# 第三档「仅敌人注废」测试专用，默认恒 false：开启后只处理 trash.tres(jam/注入)，
+# 精度 miss.tres 不触发 mercy；且 jam 落点才纳入 mercy 补偿（关闭时 jam 仍走独立路径）。
+var mercy_enemy_jam_enabled: bool = false
+# ============================================================================
 
 var target_symbol_path := ""
 var target_reason := "输出窗口"
@@ -128,6 +141,7 @@ func reset_run() -> void:
 	forced_stops = 0
 	buffer_queues = 0
 	mercy_used = 0
+	mercy_total_used = 0
 	trash_reroll_used = 0
 	situation = ""
 	situation_detail = ""
@@ -138,13 +152,18 @@ func reset_run() -> void:
 
 
 # 新一房：重置废铁改判次数（每房1次）；由 controller._start_room 调用。
+# T1.9 试验档：frequency=="room" 时 mercy 也每房重置（每房1次）；默认 "turn" 不受影响。
 func begin_room() -> void:
 	trash_reroll_used = 0
+	if mercy_frequency == "room":
+		mercy_used = 0
 
 
 func begin_spin() -> void:
 	stop_results.clear()
-	mercy_used = 0   # 废铁转化每回合重置；废铁改判每房重置（见 begin_room）
+	# T1.9 试验档：仅 "turn"（正式默认）每回合重置；"room" 档跨回合累计，由 begin_room 重置。
+	if mercy_frequency != "room":
+		mercy_used = 0
 	if _ctrl.hud != null and _ctrl.hud.has_method("_clear_stop_feedback"):
 		_ctrl.hud._clear_stop_feedback()
 
@@ -170,6 +189,7 @@ func mercy_ready() -> bool:
 
 func consume_mercy() -> void:
 	mercy_used += 1
+	mercy_total_used += 1   # T1.9 只读观测
 
 
 func finish_spin() -> void:
