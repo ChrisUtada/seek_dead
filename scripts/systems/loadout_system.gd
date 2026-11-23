@@ -305,6 +305,7 @@ func full_reset() -> void:
 	if _ctrl._journal != null:
 		_ctrl._journal.start_run()   # G5 工具：本局自动记录开始（线性模式）
 	_ctrl._start_room(0)
+	_ctrl.show_chapter_intro_at_run_start()   # M-02b：ACT1 开幕公开（不阻塞）
 	_ctrl.invalidate_state()
 
 

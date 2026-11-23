@@ -65,6 +65,9 @@ func _advance_linear_from(idx: int) -> void:
 	_duel._busy = false
 	_duel.in_interroom = false
 	_duel.room_flow.on_next_room_pressed()
+	# M-02b：跨幕首房前会显示章节头，模拟玩家确认继续（锻魂/进房在回调里完成）
+	if _duel._chapter_intro != null and _duel._chapter_intro.visible:
+		_duel._chapter_intro.continue_btn.pressed.emit()
 	await get_tree().process_frame
 
 

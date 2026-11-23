@@ -1,0 +1,103 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/chapter_intro.gd" id="1_script"]
+[ext_resource type="FontFile" path="res://assets/fonts/VonwaonBitmap-12px.tres" id="2_font"]
+
+[sub_resource type="StyleBoxFlat" id="sb_dlg"]
+bg_color = Color(0.06, 0.05, 0.08, 1)
+border_color = Color(0.85, 0.72, 0.32, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+corner_radius_top_left = 0
+corner_radius_top_right = 0
+corner_radius_bottom_left = 0
+corner_radius_bottom_right = 0
+
+[node name="ChapterIntro" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+z_index = 90
+script = ExtResource("1_script")
+
+[node name="Dimmer" type="ColorRect" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 0
+color = Color(0, 0, 0, 0.72)
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="Dialog" type="PanelContainer" parent="Center"]
+layout_mode = 2
+custom_minimum_size = Vector2(320, 210)
+theme_override_styles/panel = SubResource("sb_dlg")
+
+[node name="Margin" type="MarginContainer" parent="Center/Dialog"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 10
+
+[node name="Content" type="VBoxContainer" parent="Center/Dialog/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 7
+
+[node name="ChapterLabel" type="Label" parent="Center/Dialog/Margin/Content"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 10
+theme_override_colors/font_color = Color(0.886275, 0.843137, 0.741176, 1)
+horizontal_alignment = 1
+
+[node name="AmbienceLabel" type="Label" parent="Center/Dialog/Margin/Content"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 8
+theme_override_colors/font_color = Color(0.66, 0.61, 0.54, 1)
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="FlowLabel" type="Label" parent="Center/Dialog/Margin/Content"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 8
+theme_override_colors/font_color = Color(0.55, 0.52, 0.48, 1)
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="BossRow" type="HBoxContainer" parent="Center/Dialog/Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="BossArt" type="TextureRect" parent="Center/Dialog/Margin/Content/BossRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(64, 64)
+expand_mode = 1
+stretch_mode = 5
+
+[node name="BossInfo" type="VBoxContainer" parent="Center/Dialog/Margin/Content/BossRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 3
+
+[node name="ContinueRow" type="HBoxContainer" parent="Center/Dialog/Margin/Content"]
+layout_mode = 2
+
+[node name="ContinueBtn" type="Button" parent="Center/Dialog/Margin/Content/ContinueRow"]
+layout_mode = 2
+text = "继续 ▶"
+custom_minimum_size = Vector2(320, 28)

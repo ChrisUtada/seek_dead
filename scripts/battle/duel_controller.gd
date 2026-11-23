@@ -15,6 +15,9 @@ extends Control
 
 const TRASH_SYMBOL = preload("res://resources/symbols/trash.tres")
 const GOLD_SYMBOL = preload("res://resources/symbols/gold.tres")
+# M-02b：章节头 UI 与章节数据（只读）
+const CHAPTER_INTRO_SCENE = preload("res://scenes/ui/chapter_intro.tscn")
+const ChapterInfo = preload("res://scripts/systems/chapter_info.gd")
 # 元素精华（消耗品）：使用后向当前房间转轮池注入对应元素的攻击符号（多一种攻击方式，新房间失效）
 const ESSENCE_SYMBOLS: Dictionary = {
 	"fire":   preload("res://resources/symbols/essence_fire.tres"),
@@ -314,6 +317,11 @@ var game_state: FlowState = FlowState.PLAYING
 var peaceful_win := false              # 勇者的阴影 P3：和解通关标志（_start_room 复位；spin 流程检测早退）
 var turn_count = 1
 
+# M-02b：章节头（每幕首个战斗房前显示一次）。仅线性模式；地图模式 advance_act 另行处理。
+var _chapter_intro: ChapterIntro = null  # 章节头覆盖屏（挂 hud）
+var _chapter_shown_acts: Dictionary = {}  # act -> true，跨局由 _reset_run_state 清空
+var _chapter_pending_next_idx: int = -1  # 章节头确认后要进入的房间下标；-1 = 无待办
+
 # M4 本局（Run）加成层（run_symbol_bonus / run_power_bonus / run_shield_next）已抽至
 # RewardSystem（步骤4，见 _reward_system）；reward_choices / reward_is_boss 仍由本 controller 持有（HUD 直读写）
 var reward_choices: Array = []         # 当前展示的 3 个奖励
@@ -437,6 +445,10 @@ func _ready() -> void:
 	hud = BATTLE_HUD.instantiate()
 	add_child(hud)
 	hud.controller = self
+	# M-02b：章节头覆盖屏（挂 hud，默认隐藏；确认回调推进跨幕流程）
+	_chapter_intro = CHAPTER_INTRO_SCENE.instantiate()
+	hud.add_child(_chapter_intro)
+	_chapter_intro.continue_requested.connect(_on_chapter_intro_continued)
 	_meta_store = preload("res://scripts/systems/meta_store.gd").new(self, meta)
 	_shop_system = preload("res://scripts/systems/shop_system.gd").new(self)
 	_reward_system = preload("res://scripts/systems/reward_system.gd").new(self)
@@ -1101,6 +1113,62 @@ func _on_next_room_pressed() -> void:
 	room_flow.on_next_room_pressed()
 
 
+# M-02b：ACT1 开幕信息公开。房间已经开起来（_start_room(0) 不自动 spin），
+# 因此这里不设 pending、不阻断流程；确认只关屏。
+func show_chapter_intro_at_run_start() -> bool:
+	if node_mode or _chapter_intro == null or _chapter_shown_acts.has(1):
+		return false
+	var data: Dictionary = ChapterInfo.for_run(ROOMS, 1)
+	if data.is_empty():
+		return false
+	if not _chapter_intro.show_for_run(data):
+		return false
+	_chapter_shown_acts[1] = true
+	invalidate_state()
+	return true
+
+
+# M-02b：线性模式跨幕时，在首个战斗房前显示章节头。
+# 返回 true = 已显示并拦截本次进房（锻魂/进房延到章节头确认回调）；
+# 返回 false = 无需显示，调用方照常推进。
+# 仅当 next 房 act > current_act（真正的跨幕首房）且该幕未显示过时触发；真·最终 Boss 房不触发。
+func maybe_show_chapter_intro(next_idx: int) -> bool:
+	# 已有一屏挂着：拦住本次进房，等确认回调推进（否则会绕过章节头直接开房）
+	if _chapter_pending_next_idx >= 0:
+		return true
+	if node_mode or _chapter_intro == null or next_idx <= 0 or next_idx >= ROOMS.size():
+		return false
+	var next_room: RoomData = ROOMS[next_idx]
+	var next_act: int = int(next_room.act)
+	if next_act <= int(current_act):
+		return false
+	if bool(next_room.final_boss):   # 真·最终不插普通幕章节头
+		return false
+	if _chapter_shown_acts.has(next_act):
+		return false
+	var data: Dictionary = ChapterInfo.for_run(ROOMS, next_act)
+	if data.is_empty():
+		return false
+	_chapter_pending_next_idx = next_idx
+	if not _chapter_intro.show_for_run(data):
+		_chapter_pending_next_idx = -1
+		return false
+	_chapter_shown_acts[next_act] = true
+	invalidate_state()
+	return true
+
+
+# 章节头确认/快速跳过回调：只跳过展示，不跳过锻魂与房间初始化。
+# 顺序与原来一致：先锻魂、后进房；用 pending 置 -1 防重入/双发。
+func _on_chapter_intro_continued(_act: int) -> void:
+	var idx: int = _chapter_pending_next_idx
+	_chapter_pending_next_idx = -1
+	if idx < 0:
+		return
+	_maybe_grant_linear_act_boon(idx)   # 确认后照常走幕间锻魂（幂等，不双发）
+	_start_room(idx)                    # 再进入本幕第一房
+
+
 # T0-5：线性模式幕间锻魂——进入下一房前检测即将进入的真实 ACT 变化。
 # 触发依据是 RoomData.act 相对当前 current_act 变大（不是房间下标），沿用 granted_acts 幂等。
 # ACT1 开局 act 不变大不触发；最终 Boss 追加房 act 与 ACT3 相同，幂等守卫挡住不双发。
@@ -1126,6 +1194,12 @@ func _full_reset() -> void:
 func _reset_run_state() -> void:
 	_loadout_system.reset_run_state()
 	_linear_camp_op_granted = false   # T0-1：跨局防御，避免上局中途退出的营地挂起标记污染新局
+	# M-02b：新局清空章节头显示记录与待办，防止跨局污染
+	_chapter_shown_acts.clear()
+	_chapter_pending_next_idx = -1
+	if _chapter_intro != null:
+		_chapter_intro.reset_shown()
+		_chapter_intro.hide()
 	shop_run_seed = maxi(1, Time.get_ticks_msec())   # 每局固定一次，不消耗 RNG；供特殊房 RNG 播种（固定目录价后不再用于定价）
 	if weapon_slots != null:
 		weapon_slots.reset_run()   # 只清本局槽位成长，不动图鉴 / 历史最高熟练 / 横向铸式
@@ -2145,6 +2219,9 @@ func _status_def(st: String) -> StatusDef:
 # ---------------------------------------------------------------------------
 func _input(event) -> void:
 	if in_loadout:
+		return
+	# M-02b：章节头期间吞掉全局快捷键（空格/回车/F8），避免隔着屏开转
+	if _chapter_intro != null and _chapter_intro.visible:
 		return
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F8:
 		if readability != null:

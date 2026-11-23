@@ -225,6 +225,10 @@ func _drive_run(duel: DuelController, assist: bool, god: bool) -> Dictionary:
 				just_won = false
 				duel._on_next_room_pressed()
 				await get_tree().process_frame
+				# M-02b：跨幕首房前章节头会拦截进房，bot 需确认继续（真人路径由玩家点击/按键）
+				if duel._chapter_intro != null and duel._chapter_intro.visible:
+					duel._chapter_intro.continue_btn.pressed.emit()
+					await get_tree().process_frame
 				room_turns = 0
 				last_room = -999
 				phase_track.clear()

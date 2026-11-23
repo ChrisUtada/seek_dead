@@ -428,6 +428,12 @@ func on_next_room_pressed() -> void:
 	if _ctrl.node_mode:
 		_ctrl.board.return_to_board()   # 防御：棋盘模式下一房由棋盘选择，不线性递增
 		return
+	# M-02b：挂起期间直接 return（双保险，防绕过章节头进房）；跨幕首房前先显示章节头。
+	# 确认后由回调继续锻魂+进房（此处 return 防止提前进房/双发）。
+	if _ctrl._chapter_pending_next_idx >= 0:
+		return
+	if _ctrl.maybe_show_chapter_intro(_ctrl.room_index + 1):
+		return
 	# T0-5：线性模式跨幕时触发对应锻魂（地图路径由 advance_act 负责，不双发）。
 	_ctrl._maybe_grant_linear_act_boon(_ctrl.room_index + 1)
 	_ctrl._start_room(_ctrl.room_index + 1)
