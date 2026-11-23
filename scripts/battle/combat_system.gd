@@ -995,16 +995,18 @@ func _present_turn(acc: Dictionary, counts: Dictionary) -> void:
 		_ctrl.hud.sweep_light_cell(reel)
 		if _cell_is_gold(reel):
 			_ctrl.reel_system.play_coin_sfx()   # 金币图标闪烁：RPG Audio handleCoins
-		elif _cell_kind(reel) != "heal":
-			# heal 的音延后到血条增长那一刻播（见下方 _refresh_meta 之后），保证音画同步。
+		else:
+			# 格子闪时的确认音：所有非金币符号都给极轻确认音（含 heal）——
+			# 满血摇到治疗格血条不涨，但格子闪了仍要有反馈，否则玩家以为没接好音。
+			# 血条真增长时另有治愈音（见下方 _refresh_meta 之后）。
 			_ctrl.reel_system.play_symbol_sfx(_cell_kind(reel))
 		var g := _gain_text_of_reel(reel, acc)
 		if not g.is_empty():
 			_ctrl.hud._popup(String(g["text"]), g["color"], _ctrl.hud._player_sprite_anchor())
 			_ctrl.hud._refresh_meta()   # 血条在这一帧增长
 			if _cell_kind(reel) == "heal":
-				# 2026-11-23：治疗音与血条增长同步——"音随结果走"，而非跟着格子闪。
-				_ctrl.reel_system.play_symbol_sfx("heal")
+				# 2026-11-23：治愈音与血条增长同步——"音随结果走"，仅血条真增长时响。
+				_ctrl.reel_system.play_heal_sfx()
 		await _present_wait(tree, present_step)
 
 	# ②b 无格子归属的玩家侧飘字（增益授予）——放在读格之后，避免抢在转轮前面

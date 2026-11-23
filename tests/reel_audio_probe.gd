@@ -47,7 +47,8 @@ func _ready() -> void:
 	# 验证三级反馈：damage/special=攻击重音, heal/buff=增益轻音, status/shield/trash=静默。
 	for k in ["damage", "special", "heal", "buff", "status", "shield", "trash"]:
 		rs.play_symbol_sfx(k)
-	_ok(true, "三级符号音方法可调用（攻击重/增益轻/其余静默）")
+	rs.play_heal_sfx()
+	_ok(true, "符号确认音 + 治愈结果音方法可调用")
 
 	# 铁律10：begin_spin + on_spin_tick 的 tick 音高抖动走独立 RNG，不碰全局 RNG。
 	# 验证：相同全局种子下两次 begin_spin 后的全局 RNG 状态一致。

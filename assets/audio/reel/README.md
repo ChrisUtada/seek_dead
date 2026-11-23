@@ -16,15 +16,17 @@
 
 符号音按反馈比例分三级（经典 Audio Hierarchy / Feedback scale with outcome）：
 - damage/special → 攻击音（Dagger woosh，-8dB）
-- buff → Dagger woosh 压低到 **-20dB**（高频但不张扬）
-- heal → 专用治愈音 **sym_heal.wav（1.0s 魔法药剂）**，在血条增长帧播（见下）
+- buff / heal 格子闪时 → Dagger woosh 压低到 **-20dB** 的轻确认音（高频但不张扬）
+- heal 血条真增长时 → 另有专用治愈音 **sym_heal.wav（1.0s 魔法药剂）**（见下）
 - status/shield/trash → 静默，交给视觉
 
 演出间隔：常规 0.42s；本回合符号 ≥3 时拉长到 0.6s（Readability：每格闪光+飘字呈现完整）。
 
-治疗链路音画同步：治疗音（1.0s 魔法药剂）**不在格子闪时播，而在 `_refresh_meta()` 血条增长那一帧播**
-（"音随结果走"——玩家看到血条变长的同时听到治愈音，而不是提前在格子闪时响）。
-音长 1.0s 覆盖血条增长过程；多个治疗格因逐格间隔拉开不会严重叠加。
+治疗链路两级音（2026-11-23 修正）：
+- **格子闪时**：轻确认音(-20dB)，满血摇到治疗格也有反馈，不会"闪了却一片寂静"
+- **血条增长帧**：专用治愈音 sym_heal(1.0s)，仅 `heal_gain>0`（血条真涨）时播——"音随结果走"
+两者时机不同：确认音回应"摇到了治疗格"，治愈音回应"血真的涨了"。
+之前只保留治愈音导致满血时完全无声，已补回确认音。
 护符治疗（① 段）暂不配音，仅转轮治疗格链路有此同步音。
 MISS/废铁(trash)会**错时单独闪烁**——等其它格子闪完、攻击齐亮淡出后才闪（④a 段），
 时间上完全分离，不跟攻击/增益一起亮。它是负面结果，语义上不该像攻击，且无音效。
@@ -39,7 +41,7 @@ MISS/废铁(trash)会**错时单独闪烁**——等其它格子闪完、攻击�
 | 列落定 | `reel_system.gd:_lock_at()` | 播 reel_land |
 | 结算胜/负 | `turn_flow.gd`（combat.evaluate 后） | win / lose，经 `reel_system.play_result_sfx()` |
 | 金币图标闪烁 | `combat_system.gd` 逐格读格（金币格） | coin_flash，2 player 轮换，经 `play_coin_sfx()` |
-| 符号格闪烁 | `combat_system.gd` 逐格读格（非金币格）+ 攻击齐亮分支 | damage/special→重音(-8dB)；buff→轻音(-20dB,格闪时)；heal→专用治愈音(1.0s,血条增长帧)；status/shield→静默；trash/MISS→错时单独轻闪+静默(④a)；齐亮仅在含真攻击时发音；逐格间隔多符号时 0.42→0.6s |
+| 符号格闪烁 | `combat_system.gd` 逐格读格（非金币格）+ 攻击齐亮分支 | damage/special→重音(-8dB)；buff/heal格闪→轻确认音(-20dB)；heal血条涨→专用治愈音(1.0s)；status/shield→静默；trash/MISS→错时单独轻闪+静默(④a)；齐亮仅在含真攻击时发音；逐格间隔多符号时 0.42→0.6s |
 
 音量分层（dB）：start -6 / tick -12 / land -4 / win -3 / lose -4 / coin -6 / sym -8。
 演出音高抖动走 `ReelSystem._sfx_rng` 独立实例，不碰全局 RNG（工程铁律10）。

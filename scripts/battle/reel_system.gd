@@ -798,19 +798,22 @@ func play_coin_sfx() -> void:
 	p.play()
 
 
-# 符号格闪烁：按反馈比例分级——
+# 符号格闪烁（格子亮起那一刻的确认音）——
 #   攻击(damage/special) = 重音(Dagger woosh -8dB)
-#   buff                 = 同素材压低音量(-20dB)，高频但不张扬
-#   heal                 = 专用治愈音(sym_heal 1.0s)，且由 combat_system 在血条增长帧调用
+#   buff / heal          = 同素材压低音量(-20dB)的轻确认音，高频但不张扬
 #   其余(status/shield/trash) = 静默，交给视觉
+# 注意：heal 格另有「血条增长帧」的治愈音 play_heal_sfx()，两者时机不同。
 func play_symbol_sfx(kind: String) -> void:
 	match kind:
 		"damage", "special":
 			_play_one(_sfx_sym_attack)
-		"buff":
+		"buff", "heal":
 			_play_one(_sfx_sym_soft)
-		"heal":
-			_play_one(_sfx_heal)
+
+
+# 治疗结果音：血条真实增长那一帧播（音随结果走）。满血无增长时不调用。
+func play_heal_sfx() -> void:
+	_play_one(_sfx_heal)
 
 
 # 房间开局 / 精华注入后重建落子：清空角标，逐格从新带子随机落子（先于旋转的初始画面）。
