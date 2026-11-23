@@ -52,6 +52,7 @@ func _run() -> void:
 	await _test_skip_settles_once()
 	await _test_esc_no_settle()
 	await _test_replace_flow()
+	await _test_weapon_reward_changes_loadout()
 	_test_rng_isolation()
 	_test_boss_quality_badge()
 
@@ -250,6 +251,26 @@ func _pick_settleable(opts: Array) -> int:
 	return -1
 
 
+# 只选纯成长候选：排除本来就会改装备的 weapon_replace/swap/acquire。
+# 判据用 option 的 weapon_effect / effect_id / id 三类字段，避免依赖单一字段缺失。
+func _pick_non_weapon_growth(opts: Array) -> int:
+	for i in range(opts.size()):
+		var o: Dictionary = opts[i]
+		if bool(o.get("needs_replace", false)):
+			continue
+		if String(o.get("kind", "")) == "queued_growth":
+			continue
+		var wid := String(o.get("id", ""))
+		var eid := String(o.get("effect_id", ""))
+		var weff := String(o.get("weapon_effect", ""))
+		if weff in ["weapon_replace", "weapon_swap", "weapon_acquire"] \
+			or eid in ["weapon_replace", "weapon_swap", "weapon_acquire"] \
+			or wid.begins_with("weapon_"):
+			continue
+		return i
+	return -1
+
+
 func _test_click_settles_once() -> void:
 	_fresh()
 	# 留 1 个武器空位，保证至少有一项能直接授予
@@ -285,19 +306,23 @@ func _snapshot() -> String:
 	# 2026-11-20 更新：新奖励效果多样（符文/调律/回路/技艺/护盾等），快照需覆盖更多状态，
 	# 否则点了奖励但快照不变会被误判为"未结算"。
 	var cir := ""
+	var cir_inv := ""
 	if _duel.circuit_system != null:
 		cir = str(_duel.circuit_system.equipped)
+		cir_inv = str(_duel.circuit_system.inventory)
+	# 2026-11-23：回路类奖励(circuit_*)结算写入 circuit_system.inventory 而非 equipped，
+	# 旧快照只看 equipped → "第一次点击产生结算变化"间歇假失败。补入 inventory 覆盖该路径。
 	# 2026-11-21：一次补全 reward_definition 新效果写入的本局状态字段，
 	# 避免"点了确实结算但旧快照看不到"的假失败（reel_control / symbol_weight /
 	# symbol_effect / pattern_bonus / flame_affinity / 既有治疗均未覆盖）。
-	return "%d|%d|%s|%s|%s|%d|%d|%s|%s|%s|%s|%s|%s|%s|%s" % [
+	return "%d|%d|%s|%s|%s|%d|%d|%s|%s|%s|%s|%s|%s|%s|%s|%s" % [
 		_duel.gold, _duel.player_hp, str(_duel.selected_loadout), str(_duel.selected_charms),
 		str(_duel.consumable_slots.size()),
 		_duel._reward_system.run_power_bonus, _duel._reward_system.run_shield_next,
 		str(_duel.mastery.imprints), str(_duel.growth.perk_ids), cir,
 		str(_duel.reel_controls), str(_duel._reward_system.run_symbol_bonus),
 		str(_duel.symbol_effect_overrides), str(_duel.pattern_param_overrides),
-		str(_duel.element_affinity)]
+		str(_duel.element_affinity), cir_inv]
 
 
 func _test_skip_settles_once() -> void:
@@ -357,12 +382,66 @@ func _test_replace_flow() -> void:
 	_check(bool(view.get("growth_only", false)) and not has_item, "成长三选一直接不含装备候选")
 	_check(not needs_replace, "成长候选不要求替换武器")
 	var before: Array = _duel.selected_loadout.duplicate()
-	var idx := _pick_settleable(opts)
+	# 只选「不改变装备」的纯成长候选：过滤 weapon_replace/swap/acquire。
+	# 这些本来就会改装备，不能拿它们去断言"装备不变"（那会误伤合法换装）。
+	var idx := _pick_non_weapon_growth(opts)
 	if idx >= 0:
 		_duel._on_loot_offer_chosen(idx)
 	else:
 		_duel._on_loot_offer_skip()
-	_check(_duel.selected_loadout == before, "成长结算不改变双武器配装")
+	_check(_duel.selected_loadout == before, "成长结算（非换装项）不改变双武器配装")
+	_duel.room_flow.reset_flow()
+	_duel.hud.hide_reward_screen()
+
+
+# 独立验收：合法换装奖励确实改变装备（不与 _test_replace_flow 的"非换装项不改装备"混写）。
+# 优先从真实 loot 三选一里找 weapon_effect 候选；若当前 Draft 未出武器，则用生产 resolver
+# 结算一个 weapon_replace def，走同一套换装代码，断言装备真实改变。
+func _test_weapon_reward_changes_loadout() -> void:
+	_fresh()
+	# 选一个 act>=2 的普通房，让武器有机会进池
+	for i in range(_duel.ROOMS.size()):
+		if int(_duel.ROOMS[i].act) >= 2 and String(_duel.ROOMS[i].kind) == "normal":
+			_duel.room_index = i
+			break
+	_duel.room_flow.begin_post_battle()
+	await _frames(3)
+	var opts: Array = _duel.room_flow.loot_view().get("options", [])
+	var weapon_idx := -1
+	for i in range(opts.size()):
+		var o: Dictionary = opts[i]
+		var weff := String(o.get("weapon_effect", ""))
+		var eid := String(o.get("effect_id", ""))
+		if weff in ["weapon_replace", "weapon_swap", "weapon_acquire"] \
+			or eid in ["weapon_replace", "weapon_swap", "weapon_acquire"]:
+			weapon_idx = i
+			break
+	if weapon_idx >= 0:
+		# 留一个空位，避免触发 needs_replace 弹层；武器直接装备
+		if _duel.selected_loadout.size() >= 2:
+			_duel.selected_loadout.resize(1)
+			_duel._build_pool(_duel.selected_loadout)
+		var before: Array = _duel.selected_loadout.duplicate()
+		_duel._on_loot_offer_chosen(weapon_idx)
+		_check(_duel.selected_loadout != before, "合法换装奖励确实改变双武器配装（真实 loot 候选）")
+	else:
+		# 当前 Draft 无武器候选：用生产 resolver 结算一个 weapon_replace def
+		var wp := _first_unowned_weapon()
+		if wp == "":
+			_duel.room_flow.reset_flow()
+			_duel.hud.hide_reward_screen()
+			return
+		var def := RewardDefinition.new()
+		def.id = "test_weapon_replace"
+		def.name = "测试换装"
+		def.rarity = "common"
+		def.effects = [{"effect_id": "weapon_replace", "params": {"weapon_path": wp}}]
+		var before2: Array = _duel.selected_loadout.duplicate()
+		if _duel.selected_loadout.size() >= 2:
+			_duel.selected_loadout.resize(1)
+		var res = _duel._reward_system._draft_resolver.resolve(def)
+		_check(bool(res.ok), "合法换装 def 结算成功（%s）" % String(res.reason))
+		_check(_duel.selected_loadout != before2, "合法换装奖励确实改变双武器配装（resolver 路径）")
 	_duel.room_flow.reset_flow()
 	_duel.hud.hide_reward_screen()
 
