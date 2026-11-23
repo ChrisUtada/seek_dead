@@ -792,11 +792,12 @@ func play_coin_sfx() -> void:
 	p.play()
 
 
-# 符号格闪烁：仅 damage/special/status 发声，其余（heal/buff/shield/trash）静默。
-# 静默由视觉接管：图标亮起 + 飘字已充分表达增益/护盾，无需占用声音频道。
+# 符号格闪烁：仅真攻击（damage/special）发声。
+# status（燃烧/中毒等上状态）与 heal/buff/shield/trash 一律静默——
+# 静默由视觉接管：图标亮起 + 飘字已充分表达，无需占用声音频道。
 func play_symbol_sfx(kind: String) -> void:
 	match kind:
-		"damage", "special", "status":
+		"damage", "special":
 			_play_one(_sfx_sym_attack)
 
 

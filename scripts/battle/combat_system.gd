@@ -1014,9 +1014,16 @@ func _present_turn(acc: Dictionary, counts: Dictionary) -> void:
 	var has_banners: bool = not banners.is_empty()
 	if not attack_reels.is_empty():
 		_ctrl.hud.sweep_light_cells_together(attack_reels)
-		# 2026-11-23：攻击格「齐亮」也需音效——之前只在逐格收益循环接了 play_symbol_sfx，
-		# damage/special 符号走此分支，导致攻击音永远不响。齐亮播一次代表本批攻击（避免同帧叠音）。
-		_ctrl.reel_system.play_symbol_sfx("damage")
+		# 齐亮音效只在真攻击（damage/special）时播一次，代表本批攻击（避免同帧叠音）。
+		# status（燃烧/中毒）虽在 attack_reels 里一起亮，但不算真攻击，不发音。
+		var has_real_attack: bool = false
+		for rr in attack_reels:
+			var kk := _cell_kind(int(rr))
+			if kk == "damage" or kk == "special":
+				has_real_attack = true
+				break
+		if has_real_attack:
+			_ctrl.reel_system.play_symbol_sfx("damage")
 		await _present_wait(tree, ATTACK_FLASH_HOLD)
 	# —— 牌谱名称短提示（先看清牌型）——
 	if has_banners:
