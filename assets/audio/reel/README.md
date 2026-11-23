@@ -14,6 +14,7 @@
 | `sym_attack.wav` | Mixkit（CC0） | 1487 Dagger woosh | 攻击符号（damage/special/status）— 清脆匕首破风 | 280ms |
 
 heal / buff / shield / trash(MISS) 符号**静默**——由图标亮起 + 飘字表达，不占用声音频道。
+MISS/废铁(trash)还会**单独闪烁**，不跟攻击符号一起齐亮——它是负面结果，语义上不该像攻击。
 
 ## 事件映射（用户规格）
 
@@ -25,7 +26,7 @@ heal / buff / shield / trash(MISS) 符号**静默**——由图标亮起 + 飘�
 | 列落定 | `reel_system.gd:_lock_at()` | 播 reel_land |
 | 结算胜/负 | `turn_flow.gd`（combat.evaluate 后） | win / lose，经 `reel_system.play_result_sfx()` |
 | 金币图标闪烁 | `combat_system.gd` 逐格读格（金币格） | coin_flash，2 player 轮换，经 `play_coin_sfx()` |
-| 符号格闪烁 | `combat_system.gd` 逐格读格（非金币格）+ 攻击齐亮分支 | 仅 damage/special/status→攻击音；heal/buff/shield/trash→静默；经 `play_symbol_sfx()` |
+| 符号格闪烁 | `combat_system.gd` 逐格读格（非金币格）+ 攻击齐亮分支 | 仅 damage/special/status→攻击音；heal/buff/shield→静默；trash/MISS→单独轻闪+静默（不跟攻击齐亮）；经 `play_symbol_sfx()` |
 
 音量分层（dB）：start -6 / tick -12 / land -4 / win -3 / lose -4 / coin -6 / sym -8。
 演出音高抖动走 `ReelSystem._sfx_rng` 独立实例，不碰全局 RNG（工程铁律10）。

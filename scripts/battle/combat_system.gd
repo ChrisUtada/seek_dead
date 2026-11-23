@@ -974,13 +974,18 @@ func _present_turn(acc: Dictionary, counts: Dictionary) -> void:
 	var attack_reels: Array = []
 	for reel in DuelController.REELS:
 		if not _cell_is_player_gain(reel):
-			attack_reels.append(reel)
+			# 2026-11-23：MISS/废铁(trash)不跟攻击符号一起齐亮——它是负面结果，
+			# 语义上不该像攻击。单独单格轻闪，不播音（静默由视觉接管）。
+			if _cell_kind(reel) == "trash":
+				_ctrl.hud.sweep_light_cell(reel)
+			else:
+				attack_reels.append(reel)
 			continue
 		_ctrl.hud.sweep_light_cell(reel)
 		if _cell_is_gold(reel):
 			_ctrl.reel_system.play_coin_sfx()   # 金币图标闪烁：RPG Audio handleCoins
 		else:
-			# 符号格闪烁：按 kind 分攻击/增益两类（元素交给战斗演出表达）
+			# 符号格闪烁：仅 attack 类发声，其余 kind 静默（元素交给战斗演出表达）
 			_ctrl.reel_system.play_symbol_sfx(_cell_kind(reel))
 		var g := _gain_text_of_reel(reel, acc)
 		if not g.is_empty():
