@@ -45,6 +45,7 @@ var _pending_damage_charms: Array = []
 # 播报节奏
 const CELL_PRESENT_STEP := 0.42      # 逐格播报：每格亮起 + 出数后的停留（默认/常规回合）
 const CELL_PRESENT_STEP_BUSY := 0.60 # 多符号回合的逐格间隔——给每格留足呈现时间（Readability）
+const HEAL_SFX_HOLD := 1.05           # 治愈音(1.0s)播完所需的停留，避免与下一格重叠
 const ATTACK_FLASH_HOLD := 0.36     # 攻击格齐亮后、总伤害数字出现前的停顿
 const TURN_TAIL_HOLD := 0.85        # 播报结束到敌方回合之间的留白
 # N-04（2026-11-21）：牌谱提示时序——只在牌谱实际触发时增加短停顿，普通 SPIN 零额外等待。
@@ -1005,9 +1006,12 @@ func _present_turn(acc: Dictionary, counts: Dictionary) -> void:
 		# 治愈音：只看「血条真涨了」(heal_gain>0)，不依赖收益文本 g——
 		# regen 持续回复会抬高 heal_gain 但不计入 source_heal，导致 g 可能为空而血条仍涨。
 		# 满血(heal_gain=0)则不播。
-		if _cell_kind(reel) == "heal" and int(acc.get("heal_gain", 0)) > 0:
+		var heal_sfx_played: bool = _cell_kind(reel) == "heal" and int(acc.get("heal_gain", 0)) > 0
+		if heal_sfx_played:
 			_ctrl.reel_system.play_heal_sfx()
-		await _present_wait(tree, present_step)
+		# 治愈音(1.0s)比逐格间隔长，播完再进下一格，避免与上一段治愈音重叠。
+		var step: float = maxf(present_step, HEAL_SFX_HOLD) if heal_sfx_played else present_step
+		await _present_wait(tree, step)
 
 	# ②b 无格子归属的玩家侧飘字（增益授予）——放在读格之后，避免抢在转轮前面
 	for pp in acc["pending_player_pops"]:
