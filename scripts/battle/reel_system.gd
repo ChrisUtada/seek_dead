@@ -26,6 +26,22 @@ const TRASH_TO_GOLD := 2
 # 避免 --script / 未打开编辑器的环境读不到 global_script_class_cache。
 const _REEL_CLOCK = preload("res://scripts/battle/reel_clock.gd")
 
+# 2026-11-23 转轮音效：Kenney CC0 素材（可商用无需署名）。事件映射见方法内注释。
+const SFX_SPIN_START: AudioStream = preload("res://assets/audio/reel/spin_start.ogg")
+const SFX_TICKS: Array[AudioStream] = [
+	preload("res://assets/audio/reel/tick_1.ogg"),
+	preload("res://assets/audio/reel/tick_2.ogg"),
+	preload("res://assets/audio/reel/tick_3.ogg"),
+]
+const SFX_REEL_LAND: AudioStream = preload("res://assets/audio/reel/reel_land.ogg")
+const SFX_WIN: AudioStream = preload("res://assets/audio/reel/win.ogg")
+const SFX_LOSE: AudioStream = preload("res://assets/audio/reel/lose.ogg")
+const SFX_START_DB := -6.0
+const SFX_TICK_DB := -12.0
+const SFX_LAND_DB := -4.0
+const SFX_WIN_DB := -3.0
+const SFX_LOSE_DB := -4.0
+
 const _SPIN_BASE_WAIT := 1.0 / 9.0     # 巡航每跳间隔（秒）——9 格/秒（Step 3）
 const _SPIN_MIN_WAIT := 1.0 / 12.0     # 最快每跳间隔——12 格/秒封顶（Step 3）
 const STARTUP_CPS := 5.0               # 起转初速：给首轮观察留出时间，不改变巡航/封顶
@@ -46,6 +62,15 @@ const AUTO_STOP_STEP_WAIT := 0.07      # 后续每列递增（方案 0.06–0.08
 
 var _ctrl                                # DuelController
 var _timer: Timer
+# 音效播放器：三个 tick 轮换（短音效重播需独立 player，避免叠音），其余各一个
+var _sfx_start: AudioStreamPlayer
+var _sfx_tick_players: Array[AudioStreamPlayer] = []
+var _sfx_land: AudioStreamPlayer
+var _sfx_win: AudioStreamPlayer
+var _sfx_lose: AudioStreamPlayer
+var _sfx_tick_index := 0
+# 演出随机用独立 RNG（工程铁律10：绝不碰全局 RNG）
+var _sfx_rng := RandomNumberGenerator.new()
 
 var reel_strips: Array = []            # [reel] -> Array[ [SymbolData, element, source_weapon_id] ]
 var reel_cursor: Array[int] = []       # [reel] -> 当前带子索引（旋转时递增，取模长度）
@@ -197,6 +222,32 @@ func _init(ctrl) -> void:
 	_timer.one_shot = false
 	_timer.timeout.connect(on_spin_tick)
 	_ctrl.add_child(_timer)
+	_sfx_rng.randomize()
+	_build_sfx()
+
+
+func _make_sfx_player(stream: AudioStream, db: float) -> AudioStreamPlayer:
+	var p := AudioStreamPlayer.new()
+	p.stream = stream
+	p.volume_db = db
+	p.bus = &"Master"
+	_ctrl.add_child(p)
+	return p
+
+
+func _build_sfx() -> void:
+	_sfx_start = _make_sfx_player(SFX_SPIN_START, SFX_START_DB)
+	for s in SFX_TICKS:
+		_sfx_tick_players.append(_make_sfx_player(s, SFX_TICK_DB))
+	_sfx_land = _make_sfx_player(SFX_REEL_LAND, SFX_LAND_DB)
+	_sfx_win = _make_sfx_player(SFX_WIN, SFX_WIN_DB)
+	_sfx_lose = _make_sfx_player(SFX_LOSE, SFX_LOSE_DB)
+
+
+func _play_one(p: AudioStreamPlayer) -> void:
+	if p != null:
+		p.play()
+
 
 
 # 开始一次旋转：构建转轮带、随机起点、启动节拍器。结果在 spin_finished 后结算。
@@ -249,6 +300,8 @@ func begin_spin() -> void:
 	_last_spin_seconds = 0.0
 	_timer.wait_time = _spin_wait_at(0.0, 0, 0)
 	_timer.start()
+	_play_one(_sfx_start)   # 启动：Interface select_001 轻咔
+	_sfx_tick_index = 0
 	_start_startup_tween()
 	if _ctrl.readability != null:
 		_ctrl.readability.begin_spin()
@@ -399,6 +452,12 @@ func on_spin_tick() -> void:
 	if not _spinning:
 		return
 	_spin_ticks += 1
+	# 每格推进：Casino chips 短齿感，三音随机轮换 + ±3% 音高抖动（独立 RNG，铁律10）
+	if not _sfx_tick_players.is_empty():
+		var p: AudioStreamPlayer = _sfx_tick_players[_sfx_tick_index % _sfx_tick_players.size()]
+		_sfx_tick_index += 1
+		p.pitch_scale = 1.0 + _sfx_rng.randf_range(-0.03, 0.03)
+		p.play()
 	# 模型耗时：本拍间隔 = 上一拍设置的 wait_time（冻结/吸附时也计入真实等待）。
 	if _spin_model_seconds < STARTUP_RAMP_SECONDS:
 		_startup_ticks += 1
@@ -619,6 +678,7 @@ func _clear_absorbs() -> void:
 func _lock_at(r: int, idx: int, reason: String) -> void:
 	if r < 0 or r >= DuelController.REELS or reel_stopped[r]:
 		return
+	_play_one(_sfx_land)   # 列落定：Impact hit_thud / impactSoft_medium
 	_pending_stops.erase(r)
 	var sym = DuelController.TRASH_SYMBOL
 	if r == _ctrl.pending_jam_reel:
@@ -702,6 +762,11 @@ func finish_spin() -> void:
 		_ctrl.readability.finish_spin()
 	_ctrl.hud._refresh_p1_previews()
 	spin_finished.emit()
+
+
+# 结算音效：由 turn_flow 在 combat.evaluate() 判定胜负后调用（spin_finished 之后才知道胜负）。
+func play_result_sfx(win: bool) -> void:
+	_play_one(_sfx_win if win else _sfx_lose)
 
 
 # 房间开局 / 精华注入后重建落子：清空角标，逐格从新带子随机落子（先于旋转的初始画面）。

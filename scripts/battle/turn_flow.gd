@@ -20,6 +20,7 @@ func _settle_kill_async(log_msg: String) -> void:
 	if _ctrl.game_state == _ctrl.FlowState.WON:
 		return
 	_ctrl.hud._log(log_msg)
+	_ctrl.reel_system.play_result_sfx(true)   # 结算胜：confirmation_001
 	_ctrl.game_state = _ctrl.FlowState.WON
 	_ctrl.invalidate_state()
 	_ctrl.hud._refresh_meta()   # 敌人 HP/血条明确归零（真实值），死亡溶解叠在其上
@@ -68,6 +69,7 @@ func begin_player_turn() -> void:
 	# 若致死立即判负——否则玩家已经死了还能完整转一轮，敌人照常出手。
 	if _ctrl.player_hp <= 0:
 		_ctrl.hud._log("✖ 你被状态伤害击倒。")
+		_ctrl.reel_system.play_result_sfx(false)   # 结算负：impactPunch_heavy
 		_ctrl.game_state = _ctrl.FlowState.LOST
 		if _ctrl._telemetry != null:
 			_ctrl.room_flow.log_telemetry()
@@ -151,6 +153,7 @@ func on_spin_pressed() -> void:
 			await _ctrl.get_tree().create_timer(fx_time).timeout
 	if _ctrl.player_hp <= 0:
 		_ctrl.hud._log("✖ 你被 %s 击倒。" % _ctrl.enemy_name)
+		_ctrl.reel_system.play_result_sfx(false)   # 结算负：impactPunch_heavy
 		_ctrl.game_state = _ctrl.FlowState.LOST
 		if _ctrl._telemetry != null:
 			_ctrl.room_flow.log_telemetry()   # M1-06：战败局也记录遥测
