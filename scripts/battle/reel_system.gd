@@ -792,7 +792,6 @@ func play_coin_sfx() -> void:
 	p.play()
 
 
-# 符号格闪烁：3 类短音。damage/special/status=攻击，shield=护盾（物理金属），
 # 符号格闪烁：仅 damage/special/status 发声，其余（heal/buff/shield/trash）静默。
 # 静默由视觉接管：图标亮起 + 飘字已充分表达增益/护盾，无需占用声音频道。
 func play_symbol_sfx(kind: String) -> void:
