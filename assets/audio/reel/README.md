@@ -12,8 +12,8 @@
 | `lose.ogg` | Impact Sounds | `impactPunch_heavy_000.ogg` | 结算负闷响 | 650ms |
 | `coin_flash.ogg` | RPG Audio（用户本地） | `handleCoins.ogg` | 金币图标闪烁 | 850ms |
 | `sym_attack.wav` | Mixkit（CC0） | 1487 Dagger woosh | 攻击符号（damage/special/status）— 清脆匕首破风 | 280ms |
-| `sym_shield.wav` | Mixkit（CC0） | 2765 Sword strikes armor | 护盾符号（shield）— 剑击金属盔甲（物理） | 220ms |
-| `sym_support.wav` | Mixkit（CC0） | 255 Fantasy game sweep notification | 增益符号（heal/buff）— 奇幻魔法 | 280ms |
+
+heal / buff / shield / trash(MISS) 符号**静默**——由图标亮起 + 飘字表达，不占用声音频道。
 
 ## 事件映射（用户规格）
 
@@ -25,19 +25,22 @@
 | 列落定 | `reel_system.gd:_lock_at()` | 播 reel_land |
 | 结算胜/负 | `turn_flow.gd`（combat.evaluate 后） | win / lose，经 `reel_system.play_result_sfx()` |
 | 金币图标闪烁 | `combat_system.gd` 逐格读格（金币格） | coin_flash，2 player 轮换，经 `play_coin_sfx()` |
-| 符号格闪烁 | `combat_system.gd` 逐格读格（非金币格）+ 攻击齐亮分支 | 按 kind 分 3 类短音：damage/special/status→攻击音，shield→护盾音，heal/buff→增益音；trash/MISS→静默；经 `play_symbol_sfx()` |
+| 符号格闪烁 | `combat_system.gd` 逐格读格（非金币格）+ 攻击齐亮分支 | 仅 damage/special/status→攻击音；heal/buff/shield/trash→静默；经 `play_symbol_sfx()` |
 
 音量分层（dB）：start -6 / tick -12 / land -4 / win -3 / lose -4 / coin -6 / sym -8。
 演出音高抖动走 `ReelSystem._sfx_rng` 独立实例，不碰全局 RNG（工程铁律10）。
 
 ## 设计原则（2026-11-23 拍板）
 
-符号格闪烁收敛为 **3 类短音**（攻击 / 护盾 / 魔法增益），不按元素或具体符号细分。
-依据行业原则（Dolce & Forte「Design for the thousandth spin」）：高频音必须短、不张扬、
-留 headroom。逐格间隔只有 420ms，长音（heal 900ms / status 850ms）会重叠成噪音，
-故全部收到 ≤280ms，与攻击音同长同方式，天然有间隔。
-护盾单独保留物理金属音（用户拍板：盾是金属实体，不是魔法）；heal/buff 用短促奇幻魔法音。
-MISS/trash 静默——失败不庆祝，静音是有效的对比工具。
-演进史：5 元素细分 → 5 kind 独立音 → 2 类短音 → 3 类短音（当前），逐步收敛到经典做法。
+符号格闪烁**仅攻击符号发声**，其余（heal/buff/shield/trash）全部静默。
+依据经典 slot 音频预算原则：
+- "Every animation doesn't need a dramatic noise. When everything sounds important, nothing really does."
+- "Frequently repeated sounds generally shouldn't dominate the mix."
+- "Feedback should be synchronized" —— heal/buff 音与游戏节奏、战斗打击感都对不上，硬配反而别扭。
+
+这类高频良性符号由视觉接管（图标亮起 + 飘字已充分表达），声音预算只留给低频次、有打击感的时刻：
+转轮机械音 + 攻击符号 + 金币 + 胜负。这是最经典也最省心的做法。
+演进史：5 元素细分 → 5 kind 独立音 → 2 类短音 → 3 类短音 → **仅攻击音（当前）**，
+逐步删减到经典的最小集合。
 战斗场景的命中/伤害/状态生效演出目前无音效（battle_animator 无音源），若要补应另建，
 与符号格闪烁音属不同时间点，不必混在一起。

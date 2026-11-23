@@ -39,13 +39,10 @@ const SFX_LOSE: AudioStream = preload("res://assets/audio/reel/lose.ogg")
 # 金币图标闪烁：RPG Audio handleCoins（850ms）；逐格间隔 420ms，用 2 player 轮换
 const SFX_COIN: AudioStream = preload("res://assets/audio/reel/coin_flash.ogg")
 const SFX_COIN_DB := -6.0
-# 符号格闪烁：3 类短音——攻击 / 护盾（物理金属）/ 非攻击增益。
-# 全部 ≤280ms 与逐格间隔 420ms 匹配，避免重叠成噪音。
-const SYM_SFX: Dictionary = {
-	"attack": preload("res://assets/audio/reel/sym_attack.wav"),    # Mixkit 1487 Dagger woosh 280ms
-	"shield": preload("res://assets/audio/reel/sym_shield.wav"),    # Mixkit 2765 Sword strikes armor 220ms
-	"support": preload("res://assets/audio/reel/sym_support.wav"),  # Mixkit 255 Fantasy game sweep notification 280ms
-}
+# 符号格闪烁：仅攻击符号发声，其余（heal/buff/shield/trash）静默。
+# 依据经典 slot 音频预算：高频良性事件交给视觉（图标亮起/飘字）表达，
+# 声音只留给有打击感、低频次的攻击 + 金币 + 胜负。避免 10,000 次 spin 下的听觉疲劳。
+const SFX_SYM_ATTACK: AudioStream = preload("res://assets/audio/reel/sym_attack.wav")   # Mixkit 1487 Dagger woosh 280ms
 const SFX_SYM_DB := -8.0
 const SFX_START_DB := -6.0
 const SFX_TICK_DB := -12.0
@@ -81,7 +78,7 @@ var _sfx_win: AudioStreamPlayer
 var _sfx_lose: AudioStreamPlayer
 var _sfx_coin_players: Array[AudioStreamPlayer] = []
 var _sfx_coin_index := 0
-var _sfx_sym_players: Dictionary = {}   # 类别 -> AudioStreamPlayer
+var _sfx_sym_attack: AudioStreamPlayer
 var _sfx_tick_index := 0
 # 演出随机用独立 RNG（工程铁律10：绝不碰全局 RNG）
 var _sfx_rng := RandomNumberGenerator.new()
@@ -258,8 +255,7 @@ func _build_sfx() -> void:
 	_sfx_lose = _make_sfx_player(SFX_LOSE, SFX_LOSE_DB)
 	for i in range(2):
 		_sfx_coin_players.append(_make_sfx_player(SFX_COIN, SFX_COIN_DB))
-	for cat in SYM_SFX.keys():
-		_sfx_sym_players[cat] = _make_sfx_player(SYM_SFX[cat], SFX_SYM_DB)
+	_sfx_sym_attack = _make_sfx_player(SFX_SYM_ATTACK, SFX_SYM_DB)
 
 
 func _play_one(p: AudioStreamPlayer) -> void:
@@ -797,16 +793,12 @@ func play_coin_sfx() -> void:
 
 
 # 符号格闪烁：3 类短音。damage/special/status=攻击，shield=护盾（物理金属），
-# heal/buff=魔法增益。trash/MISS 静默。元素交给战斗演出表达。
+# 符号格闪烁：仅 damage/special/status 发声，其余（heal/buff/shield/trash）静默。
+# 静默由视觉接管：图标亮起 + 飘字已充分表达增益/护盾，无需占用声音频道。
 func play_symbol_sfx(kind: String) -> void:
-	var cat: String = ""
 	match kind:
-		"damage", "special", "status": cat = "attack"
-		"shield": cat = "shield"
-		"heal", "buff": cat = "support"
-		# trash / MISS：cat 保持空 → 静默（失败不庆祝，行业规范）
-	if cat != "" and _sfx_sym_players.has(cat):
-		_play_one(_sfx_sym_players[cat] as AudioStreamPlayer)
+		"damage", "special", "status":
+			_play_one(_sfx_sym_attack)
 
 
 # 房间开局 / 精华注入后重建落子：清空角标，逐格从新带子随机落子（先于旋转的初始画面）。
