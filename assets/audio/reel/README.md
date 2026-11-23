@@ -36,6 +36,10 @@
 但血条此前在 hold_enemy_preview/_refresh_meta 提前涨——"一按停就涨了"，与治愈音错位。
 解法（借鉴 N-03 敌人幽灵值）：结算时 hud.hold_heal_display(旧血值) 锁住显示，
 HP 数据照常落地；heal 格演出帧 hud.release_heal_display() 释放 → 血条涨与治愈音同帧。
+🔴 血条增长动画（2026-11-23）：此前血条是瞬间跳变（refresh 直设 ratio），音 1.5s 慢慢响、
+血条"啪"一下到位 → 感觉不在"播音效期间涨"。现 VitalBar 加 display_ratio + grow_tween，
+治疗时(HEAL_BAR_GROW=1.25s)红色段从旧值平滑长到新值，对齐治愈音播放期。
+refresh() 在 tween 有效时不重置 display_ratio——否则后续 _refresh_meta 会打断动画（实测踩过）。
 兜底：无 heal 符号格的治疗（纯 regen/护符）在演出末尾统一释放，避免跨回合残留锁。
 经典依据（Questbe）："sound, animation, and game state should remain synchronized"。
 护符治疗（① 段）暂不配音，仅转轮治疗格链路有此同步音。

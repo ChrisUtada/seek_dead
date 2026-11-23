@@ -91,7 +91,11 @@ func _test_heal_display_hold() -> void:
 	_duel.hud.release_heal_display()
 	_refresh()
 	_ok(_duel.hud.player_hp_label.text == "70/100", "治疗锁释放后：标签=70/100（实测 %s）" % _duel.hud.player_hp_label.text)
-	_ok(absf(_duel.hud.player_hp_bar.ratio - 0.7) < 0.01, "治疗锁释放后：血条=0.7（实测 %.3f）" % _duel.hud.player_hp_bar.ratio)
+	_ok(absf(_duel.hud.player_hp_bar.ratio - 0.7) < 0.01, "治疗锁释放后：ratio=0.7（实测 %.3f）" % _duel.hud.player_hp_bar.ratio)
+	# 增长动画：ratio 已=0.7，但 display_ratio 从旧值0.3开始渐变（动画期间 < ratio）
+	_ok(_duel.hud.player_hp_bar.display_ratio < 0.7,
+		"治疗增长动画：display_ratio 从旧值渐变（实测 %.3f < 0.7）" % _duel.hud.player_hp_bar.display_ratio)
+	_ok(_duel.hud.player_hp_bar.grow_tween != null, "治疗增长 tween 存在")
 
 
 func _finish() -> void:

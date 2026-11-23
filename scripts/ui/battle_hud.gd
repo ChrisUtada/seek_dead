@@ -1392,6 +1392,7 @@ const VITAL_W := 46.0           # 血条（红段）宽度
 const VITAL_HP_H := 8.0
 const VITAL_CELLS := 6
 const VITAL_FLASH := 0.34
+const HEAL_BAR_GROW := 1.25   # 治疗血条增长动画时长，对齐治愈音(1.5s)播放期
 # 盾段与血条同尺：满盾（盾量 = 生命上限）延伸一段「与血段等长」的宽度。
 # 血段内宽 = VITAL_W - 2 = 44px，于是 1 点盾 = 44/hp_max px，和 1 点血用同一把尺量，
 # 蓝段多长就直接读作「能挡多少血」。旧实现用 24px 上限 + 4px 下限，常见盾 6~15 全被
@@ -1422,6 +1423,12 @@ class VitalBar:
 	var frame_flash := 0.0
 	var spark_t := 0.0
 	var spark_at := 0.0
+	var grow_tween: Tween = null
+	var display_ratio := 1.0   # 实际绘制用的比例，增长动画期间从旧值渐变到 ratio
+
+	func set_display_ratio(v: float) -> void:
+		display_ratio = v
+		queue_redraw()
 
 	func _ramp(row: int, h: float, c0: Color) -> Color:
 		var r := float(row) / maxf(1.0, h - 1.0)
@@ -1459,6 +1466,9 @@ class VitalBar:
 	# 盾紧贴当前血量末端；只有「血量末端 + 盾长」超出满血内宽时才把外框撑长
 	func refresh(r: float, pr: float, sl: float = 0.0) -> void:
 		ratio = clampf(r, 0.0, 1.0)
+		# 增长动画进行中时不要重置 display_ratio，否则后续 _refresh_meta 会打断动画。
+		if grow_tween == null or not grow_tween.is_valid():
+			display_ratio = ratio
 		prev_ratio = clampf(pr, 0.0, 1.0)
 		shield_len = maxf(0.0, sl)
 		var iw_hp: float = bar_w - 2.0
@@ -1492,7 +1502,7 @@ class VitalBar:
 		draw_rect(Rect2(ix, iy, iw_all, 1), EMPTY_TOP, true)
 
 		# 血段填充
-		var filled_w: float = iw_hp * ratio
+		var filled_w: float = iw_hp * display_ratio
 		if filled_w > 0.0:
 			for row in int(ih):
 				draw_rect(Rect2(ix, iy + row, filled_w, 1), _ramp(row, ih, base), true)
@@ -1640,6 +1650,18 @@ func _apply_hp_bar(bar: VitalBar, root: Control, new_ratio: float, prev_ratio: f
 			var jolt := root.create_tween()
 			jolt.tween_property(root, "position:y", base_y + 1.0, 0.06)
 			jolt.tween_property(root, "position:y", base_y, 0.10)
+	elif new_ratio > prev_ratio + 0.001:
+		# 2026-11-23：治疗血条增长动画——在治愈音播放期间(1.25s)平滑填入红色段，
+		# 实现"音画同步"：玩家看着血条涨的同时听到药剂音（经典 sound/animation synchronized）。
+		# refresh() 会把 ratio/display_ratio 设为新值、外框撑到位；这里把 display_ratio
+		# 拉回旧值再用 tween 渐变到新值，血段内容就会慢慢长出来。
+		bar.refresh(new_ratio, prev_ratio, shield_len)
+		if bar.grow_tween != null and bar.grow_tween.is_valid():
+			bar.grow_tween.kill()
+		bar.set_display_ratio(prev_ratio)
+		bar.grow_tween = bar.create_tween()
+		bar.grow_tween.tween_method(bar.set_display_ratio, prev_ratio, new_ratio, HEAL_BAR_GROW)
+		return
 	bar.refresh(new_ratio, prev_ratio, shield_len)
 
 
