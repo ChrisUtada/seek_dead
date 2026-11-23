@@ -1,7 +1,7 @@
 extends Node
 
 # 转轮音效接线诊断（2026-11-23）：按事件规格验证播放器配置 + RNG 不变量。
-# 事件映射：启动 select_001 / 每格 chips 轮换±3% / 吸附静默 / 落定 impactSoft / 胜负 confirmation/impactPunch
+# 事件映射：启动 chop / 每格 metalClick 轮换±3% / 吸附静默 / 落定 impactSoft / 胜负 confirmation/impactPunch
 const FIRE := "res://resources/weapon_templates/fire_sword.tres"
 const ICE := "res://resources/weapon_templates/ice_staff.tres"
 

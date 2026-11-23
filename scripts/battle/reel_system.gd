@@ -300,7 +300,7 @@ func begin_spin() -> void:
 	_last_spin_seconds = 0.0
 	_timer.wait_time = _spin_wait_at(0.0, 0, 0)
 	_timer.start()
-	_play_one(_sfx_start)   # 启动：Interface select_001 轻咔
+	_play_one(_sfx_start)   # 启动：RPG Audio chop
 	_sfx_tick_index = 0
 	_start_startup_tween()
 	if _ctrl.readability != null:
