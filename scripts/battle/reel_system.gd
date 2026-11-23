@@ -41,7 +41,7 @@ const SFX_COIN: AudioStream = preload("res://assets/audio/reel/coin_flash.ogg")
 const SFX_COIN_DB := -6.0
 # 符号格闪烁：按 kind 分两类（经典 Audio Hierarchy：声音表达功能，不按元素细分）。
 # 元素留给战斗场景的命中演出表达。素材均 Kenney CC0，不与其它事件重复。
-const SFX_SYM_ATTACK: AudioStream = preload("res://assets/audio/reel/sym_attack.ogg")   # drawKnife1 拔剑
+const SFX_SYM_ATTACK: AudioStream = preload("res://assets/audio/reel/sym_attack.wav")   # Mixkit 1487 Dagger woosh
 const SFX_SYM_BOOST: AudioStream = preload("res://assets/audio/reel/sym_boost.ogg")    # pluck_001
 const SFX_SYM_DB := -8.0
 const SFX_START_DB := -6.0

@@ -1,7 +1,7 @@
 # 转轮音效素材（2026-11-23）
 
-Kenney 免费音效包，**CC0 许可**（Creative Commons Zero，可商用、无需署名）。
-下载自 kenney.nl，已随项目入库。
+素材来自 Kenney（kenney.nl）与 Mixkit（mixkit.co），均为**CC0 / 免费商用无需署名**。
+已随项目入库。
 
 | 文件 | 来源包 | 原始文件 | 用途 | 时长 |
 |---|---|---|---|---|
@@ -11,7 +11,7 @@ Kenney 免费音效包，**CC0 许可**（Creative Commons Zero，可商用、�
 | `win.ogg` | Interface Sounds | `confirmation_001.ogg` | 结算胜 | 290ms |
 | `lose.ogg` | Impact Sounds | `impactPunch_heavy_000.ogg` | 结算负闷响 | 650ms |
 | `coin_flash.ogg` | RPG Audio（用户本地） | `handleCoins.ogg` | 金币图标闪烁 | 850ms |
-| `sym_attack.ogg` | RPG Audio（Kenney） | `drawKnife1.ogg` | 攻击符号格闪烁（damage/special）— 拔剑声 | 400ms |
+| `sym_attack.wav` | Mixkit（CC0） | 1487 Dagger woosh | 攻击符号格闪烁（damage/special）— 清脆匕首破风 | 280ms |
 | `sym_boost.ogg` | Interface Sounds（Kenney） | `pluck_001.ogg` | 增益符号格闪烁（shield/heal/buff/status） | 100ms |
 
 ## 事件映射（用户规格）
