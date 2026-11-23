@@ -864,7 +864,9 @@ func _cell_is_player_gain(reel: int) -> bool:
 	if _cell_is_gold(reel):
 		return true
 	var k := _cell_kind(reel)
-	return k == "heal" or k == "shield" or k == "buff"
+	# 2026-11-23：status（施加状态层）属增益，应与 heal/shield/buff 一起逐格闪烁，
+	# 不能归入 attack_reels 走「攻击齐亮」——否则会和攻击符号同时闪且播错音。
+	return k == "heal" or k == "shield" or k == "buff" or k == "status"
 
 
 func _reels_of_source(src: String) -> Array:
@@ -1007,6 +1009,9 @@ func _present_turn(acc: Dictionary, counts: Dictionary) -> void:
 	var has_banners: bool = not banners.is_empty()
 	if not attack_reels.is_empty():
 		_ctrl.hud.sweep_light_cells_together(attack_reels)
+		# 2026-11-23：攻击格「齐亮」也需音效——之前只在逐格收益循环接了 play_symbol_sfx，
+		# damage/special 符号走此分支，导致攻击音永远不响。齐亮播一次代表本批攻击（避免同帧叠音）。
+		_ctrl.reel_system.play_symbol_sfx("damage")
 		await _present_wait(tree, ATTACK_FLASH_HOLD)
 	# —— 牌谱名称短提示（先看清牌型）——
 	if has_banners:
