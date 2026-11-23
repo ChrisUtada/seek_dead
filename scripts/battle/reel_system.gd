@@ -40,9 +40,15 @@ const SFX_LOSE: AudioStream = preload("res://assets/audio/reel/lose.ogg")
 const SFX_COIN: AudioStream = preload("res://assets/audio/reel/coin_flash.ogg")
 const SFX_COIN_DB := -6.0
 # 符号格闪烁：按 kind 分两类（经典 Audio Hierarchy：声音表达功能，不按元素细分）。
-# 元素留给战斗场景的命中演出表达。素材均 Kenney CC0，不与其它事件重复。
-const SFX_SYM_ATTACK: AudioStream = preload("res://assets/audio/reel/sym_attack.wav")   # Mixkit 1487 Dagger woosh
-const SFX_SYM_BOOST: AudioStream = preload("res://assets/audio/reel/sym_boost.ogg")    # pluck_001
+# 元素留给战斗场景的命中演出表达。素材 Mixkit CC0 / Kenney，不与其它事件重复。
+# 每类取短有效段 + 首尾淡化，避免逐格闪烁时拖尾叠加。
+const SYM_SFX: Dictionary = {
+	"attack": preload("res://assets/audio/reel/sym_attack.wav"),   # Mixkit 1487 Dagger woosh
+	"shield": preload("res://assets/audio/reel/sym_shield.wav"),   # Mixkit 2765 Sword strikes armor
+	"heal": preload("res://assets/audio/reel/sym_heal.wav"),       # Mixkit 2628 Relaxing harp sweep
+	"buff": preload("res://assets/audio/reel/sym_buff.wav"),       # Mixkit 883 Fast magic game spell
+	"status": preload("res://assets/audio/reel/sym_status.wav"),   # Mixkit 2345 Magic spell mystery whoosh
+}
 const SFX_SYM_DB := -8.0
 const SFX_START_DB := -6.0
 const SFX_TICK_DB := -12.0
@@ -78,8 +84,7 @@ var _sfx_win: AudioStreamPlayer
 var _sfx_lose: AudioStreamPlayer
 var _sfx_coin_players: Array[AudioStreamPlayer] = []
 var _sfx_coin_index := 0
-var _sfx_sym_attack: AudioStreamPlayer
-var _sfx_sym_boost: AudioStreamPlayer
+var _sfx_sym_players: Dictionary = {}   # 类别 -> AudioStreamPlayer
 var _sfx_tick_index := 0
 # 演出随机用独立 RNG（工程铁律10：绝不碰全局 RNG）
 var _sfx_rng := RandomNumberGenerator.new()
@@ -256,8 +261,8 @@ func _build_sfx() -> void:
 	_sfx_lose = _make_sfx_player(SFX_LOSE, SFX_LOSE_DB)
 	for i in range(2):
 		_sfx_coin_players.append(_make_sfx_player(SFX_COIN, SFX_COIN_DB))
-	_sfx_sym_attack = _make_sfx_player(SFX_SYM_ATTACK, SFX_SYM_DB)
-	_sfx_sym_boost = _make_sfx_player(SFX_SYM_BOOST, SFX_SYM_DB)
+	for cat in SYM_SFX.keys():
+		_sfx_sym_players[cat] = _make_sfx_player(SYM_SFX[cat], SFX_SYM_DB)
 
 
 func _play_one(p: AudioStreamPlayer) -> void:
@@ -794,15 +799,18 @@ func play_coin_sfx() -> void:
 	p.play()
 
 
-# 符号格闪烁：按 kind 分两类。damage/special=攻击音，shield/heal/buff/status=增益音，
-# trash(MISS)=静默。元素交给战斗演出表达。
+# 符号格闪烁：按 kind 分 5 类，每类独立音。元素交给战斗演出表达。
 func play_symbol_sfx(kind: String) -> void:
+	var cat: String = ""
 	match kind:
-		"damage", "special":
-			_play_one(_sfx_sym_attack)
-		"shield", "heal", "buff", "status":
-			_play_one(_sfx_sym_boost)
-		# trash / MISS：静默（失败不庆祝，行业规范）
+		"damage", "special": cat = "attack"
+		"shield": cat = "shield"
+		"heal": cat = "heal"
+		"buff": cat = "buff"
+		"status": cat = "status"
+		# trash / MISS：cat 保持空 → 静默（失败不庆祝，行业规范）
+	if cat != "" and _sfx_sym_players.has(cat):
+		_play_one(_sfx_sym_players[cat] as AudioStreamPlayer)
 
 
 # 房间开局 / 精华注入后重建落子：清空角标，逐格从新带子随机落子（先于旋转的初始画面）。

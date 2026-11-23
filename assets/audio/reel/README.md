@@ -11,8 +11,11 @@
 | `win.ogg` | Interface Sounds | `confirmation_001.ogg` | 结算胜 | 290ms |
 | `lose.ogg` | Impact Sounds | `impactPunch_heavy_000.ogg` | 结算负闷响 | 650ms |
 | `coin_flash.ogg` | RPG Audio（用户本地） | `handleCoins.ogg` | 金币图标闪烁 | 850ms |
-| `sym_attack.wav` | Mixkit（CC0） | 1487 Dagger woosh | 攻击符号格闪烁（damage/special）— 清脆匕首破风 | 280ms |
-| `sym_boost.ogg` | Interface Sounds（Kenney） | `pluck_001.ogg` | 增益符号格闪烁（shield/heal/buff/status） | 100ms |
+| `sym_attack.wav` | Mixkit（CC0） | 1487 Dagger woosh | 攻击符号（damage/special）— 清脆匕首破风 | 280ms |
+| `sym_shield.wav` | Mixkit（CC0） | 2765 Sword strikes armor | 护盾符号（shield）— 剑击金属盔甲 | 220ms |
+| `sym_heal.wav` | Mixkit（CC0） | 2628 Relaxing harp sweep | 治疗符号（heal）— 竖琴（截取 1.7-2.6s） | 900ms |
+| `sym_buff.wav` | Mixkit（CC0） | 883 Fast magic game spell | 增益符号（buff）— 快速魔法 | 450ms |
+| `sym_status.wav` | Mixkit（CC0） | 2345 Magic spell mystery whoosh | 状态符号（status）— 神秘魔法（截取 1.15-2.0s） | 850ms |
 
 ## 事件映射（用户规格）
 
@@ -24,7 +27,7 @@
 | 列落定 | `reel_system.gd:_lock_at()` | 播 reel_land |
 | 结算胜/负 | `turn_flow.gd`（combat.evaluate 后） | win / lose，经 `reel_system.play_result_sfx()` |
 | 金币图标闪烁 | `combat_system.gd` 逐格读格（金币格） | coin_flash，2 player 轮换，经 `play_coin_sfx()` |
-| 符号格闪烁 | `combat_system.gd` 逐格读格（非金币格） | 按符号 kind：damage/special→攻击音，shield/heal/buff/status→增益音，trash/MISS→静默；经 `play_symbol_sfx()` |
+| 符号格闪烁 | `combat_system.gd` 逐格读格（非金币格）+ 攻击齐亮分支 | 按 kind 分 5 类：damage/special→攻击，shield→护盾，heal→治疗，buff→增益，status→状态；trash/MISS→静默；经 `play_symbol_sfx()` |
 
 音量分层（dB）：start -6 / tick -12 / land -4 / win -3 / lose -4 / coin -6 / sym -8。
 演出音高抖动走 `ReelSystem._sfx_rng` 独立实例，不碰全局 RNG（工程铁律10）。
