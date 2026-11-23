@@ -678,7 +678,7 @@ func _clear_absorbs() -> void:
 func _lock_at(r: int, idx: int, reason: String) -> void:
 	if r < 0 or r >= DuelController.REELS or reel_stopped[r]:
 		return
-	_play_one(_sfx_land)   # 列落定：Impact hit_thud / impactSoft_medium
+	_play_one(_sfx_land)   # 列落定：RPG Audio metalLatch
 	_pending_stops.erase(r)
 	var sym = DuelController.TRASH_SYMBOL
 	if r == _ctrl.pending_jam_reel:
