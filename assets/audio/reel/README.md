@@ -30,6 +30,13 @@
 🔴 关键：播放条件**只看 heal_gain>0，不依赖收益文本 g**。
 原因：regen 持续回复会抬高 heal_gain（血条真涨），但不计入 source_heal，
 导致治疗格的 g 可能为空——若按 g 判断就会"血条涨了却没声"。满血(heal_gain=0)则不播。
+
+🔴 血条增长时机（2026-11-23 修正）：治疗 HP 在结算阶段(_phase_defense)就落地，
+但血条此前在 hold_enemy_preview/_refresh_meta 提前涨——"一按停就涨了"，与治愈音错位。
+解法（借鉴 N-03 敌人幽灵值）：结算时 hud.hold_heal_display(旧血值) 锁住显示，
+HP 数据照常落地；heal 格演出帧 hud.release_heal_display() 释放 → 血条涨与治愈音同帧。
+兜底：无 heal 符号格的治疗（纯 regen/护符）在演出末尾统一释放，避免跨回合残留锁。
+经典依据（Questbe）："sound, animation, and game state should remain synchronized"。
 护符治疗（① 段）暂不配音，仅转轮治疗格链路有此同步音。
 MISS/废铁(trash)会**错时单独闪烁**——等其它格子闪完、攻击齐亮淡出后才闪（④a 段），
 时间上完全分离，不跟攻击/增益一起亮。它是负面结果，语义上不该像攻击，且无音效。

@@ -31,6 +31,7 @@ func _ready() -> void:
 	_test_plain_heal()
 	_test_heal_during_enemy_hit_shadow()
 	_test_shadow_still_masks_before_hit()
+	_test_heal_display_hold()
 
 	_finish()
 
@@ -73,6 +74,25 @@ func _test_shadow_still_masks_before_hit() -> void:
 	_refresh()
 	_ok(_duel.hud.player_hp_label.text == "40/100", "扣血未到命中帧：仍显示影子 40（实测 %s）" % _duel.hud.player_hp_label.text)
 	_ok(absf(_duel.hud.player_hp_bar.ratio - 0.4) < 0.01, "扣血未到命中帧：血条仍 0.4（实测 %.3f）" % _duel.hud.player_hp_bar.ratio)
+
+# 2026-11-23：治疗显示锁——结算落地 HP 后血条保持旧值，直到演出帧释放才涨（与治愈音同步）。
+func _test_heal_display_hold() -> void:
+	_duel.hud.reset_enemy_hit_hold()
+	_duel.player_hp = 30
+	_duel.player_hp_max = 100
+	_refresh()
+	# 模拟结算：锁住旧血值 30，然后 HP 数据涨到 70
+	_duel.hud.hold_heal_display(30)
+	_duel.player_hp = 70
+	_refresh()
+	_ok(_duel.hud.player_hp_label.text == "30/100", "治疗锁生效期：标签仍显示旧值 30（实测 %s）" % _duel.hud.player_hp_label.text)
+	_ok(absf(_duel.hud.player_hp_bar.ratio - 0.3) < 0.01, "治疗锁生效期：血条仍 0.3（实测 %.3f）" % _duel.hud.player_hp_bar.ratio)
+	# 演出帧释放：血条涨到真实 70（与治愈音同帧）
+	_duel.hud.release_heal_display()
+	_refresh()
+	_ok(_duel.hud.player_hp_label.text == "70/100", "治疗锁释放后：标签=70/100（实测 %s）" % _duel.hud.player_hp_label.text)
+	_ok(absf(_duel.hud.player_hp_bar.ratio - 0.7) < 0.01, "治疗锁释放后：血条=0.7（实测 %.3f）" % _duel.hud.player_hp_bar.ratio)
+
 
 func _finish() -> void:
 	print("C01 RESULT: %d checks, %d fails" % [_checks, _fails])

@@ -215,6 +215,9 @@ var fx = null         # 战斗特效层（属性攻击的像素特效），_buil
 # 数值在闸口同步结算（判定/测试不变），但血条与 HP 数字暂时显示扣血前的影子值，
 # 等前摇命中帧（普通 0.231s / 冰系 0.95s）才释放：血条掉 + 飘字 + 屏震同拍发生。
 var _hp_display_hold: int = -1   # >=0 时血条/数字显示此值；-1 = 跟随真实 player_hp
+# 2026-11-23：治疗显示锁——结算时锁住治疗前的血值，直到 heal 格演出帧释放，
+# 让血条增长与治愈音同帧发生（经典：sound/animation/game state synchronized）。
+var _heal_display_hold: int = -1   # >=0 时强制显示此血值（优先于 _hp_display_hold）
 var _hit_release_token: int = 0  # 多段伤害聚合 + 防止旧 timer 误释放
 var _hit_pending_text: String = ""
 
@@ -1653,7 +1656,7 @@ func _refresh_vitals() -> void:
 	# 幽灵值只在「真实 HP 尚未超过影子」（敌人攻击扣血尚未到命中帧）时显示；
 	# 一旦治疗使真实 HP 高于影子，就跟随真实值——否则治疗会被延迟表现遮蔽（血条不涨）。
 	var real_hp: int = int(controller.state.player_hp)
-	var shown_hp: int = _hp_display_hold if (_hp_display_hold >= 0 and real_hp <= _hp_display_hold) else real_hp
+	var shown_hp: int = _shown_player_hp(real_hp)
 	var pv_r: float = float(shown_hp) / float(hp_max)
 	var pv_sl: float = _shield_len_of(int(controller.state.player_shield), hp_max)
 	_apply_hp_bar(player_hp_bar, player_vitals, pv_r, _pv_hp_prev, pv_sl)
@@ -1729,10 +1732,34 @@ func _release_enemy_hit() -> void:
 		animator.enemy_hit_shake()
 
 
+# 玩家血条显示值：治疗锁 > 受击锁 > 真实值。
+func _shown_player_hp(real_hp: int) -> int:
+	if _heal_display_hold >= 0:
+		return _heal_display_hold
+	if _hp_display_hold >= 0 and real_hp <= _hp_display_hold:
+		return _hp_display_hold
+	return real_hp
+
+
+# 治疗显示锁：结算落地 HP 前锁住旧血值，heal 格演出帧释放 → 血条涨与治愈音同帧。
+func hold_heal_display(hp_before: int) -> void:
+	_heal_display_hold = hp_before
+	_refresh_meta()
+
+
+# 释放治疗锁：血条显示真实值（已在演出帧，与治愈音同步）。
+func release_heal_display() -> void:
+	if _heal_display_hold < 0:
+		return
+	_heal_display_hold = -1
+	_refresh_meta()
+
+
 # 房间重置/读档时清空影子值，避免跨房残留旧 HP 显示。
 func reset_enemy_hit_hold() -> void:
 	_hit_release_token += 1
 	_hp_display_hold = -1
+	_heal_display_hold = -1
 	_hit_pending_text = ""
 	_ev_hp_display_hold = -1
 	_ev_armor_display_hold = -1
@@ -1932,7 +1959,7 @@ func _refresh_meta() -> void:
 	weapons_title.text = "武器 %d/%d" % [controller.state.selected_loadout.size(), controller._loadout_system.cat_cap("weapon")]
 	# Step 5 信息层级：HP 是左栏第一重点（生命绿；≤35% 转危险红）；护盾有值才单独占一行（护盾蓝）
 	var real_hp: int = int(controller.state.player_hp)
-	var hp_now: int = _hp_display_hold if (_hp_display_hold >= 0 and real_hp <= _hp_display_hold) else real_hp
+	var hp_now: int = _shown_player_hp(real_hp)
 	var hp_max: int = max(1, controller.state.player_hp_max)
 	var hp_color: Color = Palette.POP_DAMAGE if float(hp_now) / float(hp_max) <= 0.35 else Palette.POP_HEAL
 	player_hp_label.text = "%d/%d" % [hp_now, controller.state.player_hp_max]

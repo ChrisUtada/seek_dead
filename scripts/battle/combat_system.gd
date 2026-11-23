@@ -689,6 +689,10 @@ func _phase_defense(acc: Dictionary) -> void:
 	if acc["heal"] > 0:
 		var missing: int = _ctrl.player_hp_max - _ctrl.player_hp
 		var hp_gain: int = mini(int(acc["heal"]), missing)
+		# 2026-11-23：治疗显示锁——先锁住旧血值，HP 数据照常落地，
+		# 但血条保持旧值，直到 heal 格演出帧释放（与治愈音同帧）。音画/数据同步。
+		if hp_gain > 0:
+			_ctrl.hud.hold_heal_display(int(_ctrl.player_hp))
 		_ctrl.player_hp += hp_gain
 		acc["heal_gain"] = hp_gain
 		var overflow_shield := 0
@@ -1008,6 +1012,8 @@ func _present_turn(acc: Dictionary, counts: Dictionary) -> void:
 		# 满血(heal_gain=0)则不播。
 		var heal_sfx_played: bool = _cell_kind(reel) == "heal" and int(acc.get("heal_gain", 0)) > 0
 		if heal_sfx_played:
+			# 血条增长与治愈音同帧：先释放显示锁（血条涨），再播音。
+			_ctrl.hud.release_heal_display()
 			_ctrl.reel_system.play_heal_sfx()
 		# 治愈音(1.0s)比逐格间隔长，播完再进下一格，避免与上一段治愈音重叠。
 		var step: float = maxf(present_step, HEAL_SFX_HOLD) if heal_sfx_played else present_step
@@ -1085,6 +1091,9 @@ func _present_turn(acc: Dictionary, counts: Dictionary) -> void:
 	# N-03 兜底：若本回合有破甲但无伤害（total=0，上面 total>0 分支未释放），
 	# 或纯增益/空转导致幽灵值残留，统一在此释放，保证任何路径都不跨帧残留幽灵值。
 	_ctrl.hud.release_enemy_preview()
+	# 治疗锁兜底：本回合治疗若全来自 regen/护符（无 heal 符号格），锁不会在逐格演出中释放，
+	# 在此统一释放，保证血条不跨回合残留旧值。
+	_ctrl.hud.release_heal_display()
 	# ⑤ 收尾：底部短反馈 → 留出阅读时间
 	_ctrl.hud._show_turn_feedback(counts, total, bool(acc.get("triple", false)), _ctrl._elem_triple,
 		int(acc.get("shield_gain", 0)), int(acc.get("heal_gain", 0)), int(acc.get("heal_overflow_shield", 0)),
