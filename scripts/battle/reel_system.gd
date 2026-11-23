@@ -36,6 +36,9 @@ const SFX_TICK_PLAYERS := 6
 const SFX_REEL_LAND: AudioStream = preload("res://assets/audio/reel/reel_land.ogg")
 const SFX_WIN: AudioStream = preload("res://assets/audio/reel/win.ogg")
 const SFX_LOSE: AudioStream = preload("res://assets/audio/reel/lose.ogg")
+# 金币图标闪烁：RPG Audio handleCoins（850ms）；逐格间隔 420ms，用 2 player 轮换
+const SFX_COIN: AudioStream = preload("res://assets/audio/reel/coin_flash.ogg")
+const SFX_COIN_DB := -6.0
 const SFX_START_DB := -6.0
 const SFX_TICK_DB := -12.0
 const SFX_LAND_DB := -4.0
@@ -68,6 +71,8 @@ var _sfx_tick_players: Array[AudioStreamPlayer] = []
 var _sfx_land: AudioStreamPlayer
 var _sfx_win: AudioStreamPlayer
 var _sfx_lose: AudioStreamPlayer
+var _sfx_coin_players: Array[AudioStreamPlayer] = []
+var _sfx_coin_index := 0
 var _sfx_tick_index := 0
 # 演出随机用独立 RNG（工程铁律10：绝不碰全局 RNG）
 var _sfx_rng := RandomNumberGenerator.new()
@@ -242,6 +247,8 @@ func _build_sfx() -> void:
 	_sfx_land = _make_sfx_player(SFX_REEL_LAND, SFX_LAND_DB)
 	_sfx_win = _make_sfx_player(SFX_WIN, SFX_WIN_DB)
 	_sfx_lose = _make_sfx_player(SFX_LOSE, SFX_LOSE_DB)
+	for i in range(2):
+		_sfx_coin_players.append(_make_sfx_player(SFX_COIN, SFX_COIN_DB))
 
 
 func _play_one(p: AudioStreamPlayer) -> void:
@@ -767,6 +774,15 @@ func finish_spin() -> void:
 # 结算音效：由 turn_flow 在 combat.evaluate() 判定胜负后调用（spin_finished 之后才知道胜负）。
 func play_result_sfx(win: bool) -> void:
 	_play_one(_sfx_win if win else _sfx_lose)
+
+
+# 金币图标闪烁音：由 combat_system 在读格播报金币格时调用（2 player 轮换防叠音）。
+func play_coin_sfx() -> void:
+	if _sfx_coin_players.is_empty():
+		return
+	var p: AudioStreamPlayer = _sfx_coin_players[_sfx_coin_index % _sfx_coin_players.size()]
+	_sfx_coin_index += 1
+	p.play()
 
 
 # 房间开局 / 精华注入后重建落子：清空角标，逐格从新带子随机落子（先于旋转的初始画面）。

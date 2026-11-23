@@ -975,6 +975,8 @@ func _present_turn(acc: Dictionary, counts: Dictionary) -> void:
 			attack_reels.append(reel)
 			continue
 		_ctrl.hud.sweep_light_cell(reel)
+		if _cell_is_gold(reel):
+			_ctrl.reel_system.play_coin_sfx()   # 金币图标闪烁：RPG Audio handleCoins
 		var g := _gain_text_of_reel(reel, acc)
 		if not g.is_empty():
 			_ctrl.hud._popup(String(g["text"]), g["color"], _ctrl.hud._player_sprite_anchor())

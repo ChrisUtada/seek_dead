@@ -31,6 +31,7 @@ func _ready() -> void:
 	_ok(rs._sfx_tick_players.size() == 6, "每格音 6 个轮换播放器（metalClick 450ms 需 ≥6）")
 	_ok(rs._sfx_land != null, "落定播放器存在")
 	_ok(rs._sfx_win != null and rs._sfx_lose != null, "胜负播放器存在")
+	_ok(rs._sfx_coin_players.size() == 2, "金币闪烁 2 个轮换播放器")
 	_ok(rs._sfx_start.stream != null and rs._sfx_land.stream != null, "音效 stream 已加载")
 	for p in rs._sfx_tick_players:
 		_ok(p.stream != null, "tick stream 已加载")
@@ -40,7 +41,8 @@ func _ready() -> void:
 	# 事件方法可调用不报错（实际听感靠 F6）
 	rs.play_result_sfx(true)
 	rs.play_result_sfx(false)
-	_ok(true, "胜负音效方法可调用")
+	rs.play_coin_sfx()
+	_ok(true, "胜负/金币音效方法可调用")
 
 	# 铁律10：begin_spin + on_spin_tick 的 tick 音高抖动走独立 RNG，不碰全局 RNG。
 	# 验证：相同全局种子下两次 begin_spin 后的全局 RNG 状态一致。
