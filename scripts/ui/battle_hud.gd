@@ -1657,16 +1657,21 @@ func play_damage_events(events: Array, hp_max: int, skip: bool) -> void:
 		var ratio: float = clampf(float(after) / mx, 0.0, 1.0)
 		var kind: String = String(e.get("kind", ""))
 		var elem: String = String(e.get("element", "none"))
+		var tag: String = String(e.get("tag", ""))
 		if not skip:
 			_apply_hp_bar(enemy_hp_bar, enemy_vitals, ratio, prev_ratio, 0.0)
 			var color: Color = ElementCounter.color(elem) if elem != "none" else Palette.POP_DAMAGE
-			_popup("-%d" % amount, color, _enemy_sprite_anchor(), kind == "dot" or kind == "dot_burst")
+			var text: String = ("%s -%d" % [tag, amount]) if tag != "" else ("-%d" % amount)
+			_popup(text, color, _enemy_sprite_anchor(), kind == "dot" or kind == "dot_burst")
 			await get_tree().create_timer(0.12).timeout
 		prev_ratio = ratio
 		last_ratio = ratio
-	# skip 与正常路径都落到真实比例；段间等待只压缩演出，不影响终值。
-	_apply_hp_bar(enemy_hp_bar, enemy_vitals, last_ratio, _ev_hp_prev, 0.0)
-	_ev_hp_prev = clampf(float(int(controller.state.enemy_hp)) / mx, 0.0, 1.0) if controller != null else last_ratio
+	# A4：非 skip 路径循环里已画完最后一段，再刷一次会二次触发 ghost / 抖动；
+	# 只有 skip（循环内不画）才需要一次性收尾刷新。
+	if skip:
+		_apply_hp_bar(enemy_hp_bar, enemy_vitals, last_ratio, _ev_hp_prev, 0.0)
+	# A5：用 controller.enemy_hp 原始字段，不读惰性缓存 controller.state.enemy_hp（可能过期）。
+	_ev_hp_prev = clampf(float(int(controller.enemy_hp)) / mx, 0.0, 1.0) if controller != null else last_ratio
 
 
 # 盾段长度：盾量 / 生命上限 × 血段满宽（与红段同尺）；有一点盾就至少 2px 可见

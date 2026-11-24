@@ -1067,9 +1067,12 @@ func _present_turn(acc: Dictionary, counts: Dictionary) -> void:
 			_ctrl.hud.animator.play_attack("player", "enemy", true)
 		# N-03：命中帧一到才把敌人幽灵值切成真实值 + 弹分项飘字（护甲/HP/穿透）。
 		_ctrl.hud.release_enemy_preview()
-		# T4：命中帧后按账本顺序逐段回放（只读事件，不改结算值）。
-		await _ctrl.hud.play_damage_events(_ctrl.damage_ledger.drain(), _ctrl.enemy_hp_max, _ctrl.presentation_skip)
-		_ctrl.hud._popup("-%d%s" % [total, String(acc.get("elem_tag", ""))], Palette.POP_DAMAGE, _ctrl.hud._enemy_sprite_anchor())
+		# T4：命中帧后按账本顺序逐段回放（只读事件，不改结算值）。只 drain 一次，
+		# 事件数 >1 时每段已有独立飘字，不再叠总伤害；单段时保留总伤害大数字。
+		var dmg_events: Array = _ctrl.damage_ledger.drain()
+		await _ctrl.hud.play_damage_events(dmg_events, _ctrl.enemy_hp_max, _ctrl.presentation_skip)
+		if dmg_events.size() <= 1:
+			_ctrl.hud._popup("-%d%s" % [total, String(acc.get("elem_tag", ""))], Palette.POP_DAMAGE, _ctrl.hud._enemy_sprite_anchor())
 		_ctrl.hud._refresh_meta()
 		await _present_wait(tree, PRESENT_STEP)
 	elif has_banners:
@@ -1374,11 +1377,8 @@ func tick_status() -> int:
 			_ctrl.damage_ledger.record(kind, one, before, hp_now, pop_tag, pop_elem, "tick_status")
 		if _ctrl._career != null:
 			_ctrl._career.note_status_damage(dot)   # G6-01：仅记录 BOSS 房状态伤害（不改结算）
-		# P0/P2：敌人侧 DoT 每类状态一条飘字——元素色（火橙/毒绿/冰蓝）+ 慢速档，与攻击红字快弹分开
-		for pop in dot_pops:
-			var pop_elem: String = String(pop[2])
-			var pop_color: Color = ElementCounter.color(pop_elem) if pop_elem != "none" else Palette.POP_STATUS
-			_ctrl.hud._popup("%s -%d" % [String(pop[0]), int(pop[1])], pop_color, _ctrl.hud._enemy_sprite_anchor(), true)
+		# T4 表现去重：DoT 标签/元素已随事件进账本，飘字统一由 play_damage_events 按 tag 弹出，
+		# 这里不再 _popup，避免同一段被弹两次。
 		_ctrl.hud._log("状态结算 %d 伤害（灼烧/毒·含克制）" % dot)
 	return dot
 

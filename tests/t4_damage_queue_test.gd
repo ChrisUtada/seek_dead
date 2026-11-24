@@ -93,6 +93,34 @@ func _run() -> void:
 	await _case5_lethal_order()
 	await _case6_fixed_seed()
 	await _case7_skip_bar()
+	await _case8_tag_and_purity()
+
+
+# A6-① 每条 dot/dot_burst 事件 tag 非空；hit/pierce 允许为空
+func _case8_tag_and_purity() -> void:
+	_fresh(300)
+	_duel.combat.apply_enemy_damage(17, false)
+	_duel.enemy_status["burn"] = 3
+	_duel.enemy_status["poison"] = 4
+	_duel.combat.tick_status()
+	var tags_ok := true
+	for e in _duel.damage_ledger.events:
+		var k: String = String(e["kind"])
+		if (k == "dot" or k == "dot_burst") and String(e["tag"]) == "":
+			tags_ok = false
+	_check(tags_ok, "A6-① dot/dot_burst 事件 tag 均非空（%s）" % _samples(""))
+
+	# A6-② 回放前后 HP / 护甲 / game_state / 战利品 RNG seed 完全不变
+	var hp_before: int = _duel.enemy_hp
+	var armor_before: int = _duel.enemy_armor
+	var state_before = _duel.game_state
+	var seed_before: int = _duel._reward_system._loot.seed_value()
+	var ev: Array = _duel.damage_ledger.drain()
+	await _duel.hud.play_damage_events(ev, _duel.enemy_hp_max, true)
+	_check(_duel.enemy_hp == hp_before, "A6-② 回放不改 enemy_hp（%d）" % hp_before)
+	_check(_duel.enemy_armor == armor_before, "A6-② 回放不改 enemy_armor（%d）" % armor_before)
+	_check(_duel.game_state == state_before, "A6-② 回放不改 game_state")
+	_check(_duel._reward_system._loot.seed_value() == seed_before, "A6-② 回放不改战利品 RNG seed（%d）" % seed_before)
 
 
 # 1 单段攻击：1 条事件，before/after 与实际 HP 差一致
