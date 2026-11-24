@@ -138,8 +138,8 @@ func apply_victory_perks(kind: String) -> void:
 		_ctrl.invalidate_state()
 
 
-# G7-A S5 后续（2026-11-09）：幕间锻魂。advance_act() 在换幕成功后调用一次；
-# 仅 act >= 2 生效，因此 ACT I 开局与单幕局（advance_act 永不被调用）行为不变。
+# G7-A S5 后续（2026-11-09）：幕间锻魂。线性换幕由 DuelController._maybe_grant_linear_act_boon()
+# 在进入下一幕首个房间时调用一次；仅 act >= 2 生效，因此 ACT I 开局与单幕局行为不变。
 # 复用 reward_system.run_power_bonus（与「攻击研磨」同一本局加成层），不新增状态字段。
 func grant_act_boon(act: int) -> void:
 	if not enabled or act < 2:

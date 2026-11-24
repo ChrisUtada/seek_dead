@@ -39,10 +39,8 @@ func grant(n: int = 1) -> void:
 	granted += maxi(0, n)
 
 
-# 当前幕（棋盘模式读棋盘幕号，线性模式恒为 1）。
+# 当前幕：线性流程的全局精简次数按单本账记录，恒为 1。
 func current_act() -> int:
-	if _ctrl != null and _ctrl.node_mode and _ctrl.board != null:
-		return int(_ctrl.board.act)
 	return 1
 
 

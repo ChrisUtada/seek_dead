@@ -14,17 +14,18 @@ extends RefCounted
 
 const SCHEMA := 2   # S3-2a：新增 reward_drafts 完整事件流；schema 1 老 JSON 仍由汇总器兼容读取
 const OUT_DIR := "user://runs"
-const SPECIAL_TYPES := ["treasure", "shrine", "armory"]
-const RUN_SUMMARY := preload("res://scripts/systems/run_summary.gd")
 const KIND_LABEL := {"normal": "普通", "elite": "精英", "boss": "BOSS"}
+# 仅供历史 mode=board 的 JSON/TXT 再渲染，不参与新局生成。
+const HISTORY_SHAPE_LABEL := {
+	"map14x9": "14×9 地图", "standard": "标准", "long_tail": "长尾", "long_share": "延展"}
+const HISTORY_TEMPLATE_LABEL := {"standard": "常规", "mirror": "镜像", "elite_first": "精英前置",
+	"elite_upper": "上路精英前置", "elite_lower": "下路精英前置"}
 
 var _ctrl
 var _active := false
 var _finished := false
 var _data: Dictionary = {}
 var _started_ms := 0
-var _board_shown_ms := -1
-var _first_pick_open := false
 var _pending_battle: Dictionary = {}
 var _json_path := ""
 var _txt_path := ""
@@ -43,23 +44,20 @@ func reset() -> void:
 	_finished = false
 	_data = {}
 	_started_ms = 0
-	_board_shown_ms = -1
-	_first_pick_open = false
 	_pending_battle = {}
 	_json_path = ""
 	_txt_path = ""
 
 
-# 新一局开始（full_reset 完成棋盘生成 / 线性房间构建后调用）。
+# 新一局开始（full_reset 完成线性房间构建后调用）。
 func start_run() -> void:
 	reset()
 	_active = true
 	_started_ms = Time.get_ticks_msec()
 	var size := DisplayServer.window_get_size()
-	var mode := "board" if _is_board() else "linear"
 	_data = {
 		"schema": SCHEMA,
-		"mode": mode,
+		"mode": "linear",
 		"started_at": Time.get_datetime_string_from_system(),
 		"act": int(_ctrl.current_act),
 		"acts": [],
@@ -76,50 +74,7 @@ func start_run() -> void:
 		"special": [],
 		"first_pick": {},
 	}
-	if _is_board():
-		var b = _ctrl.board
-		_data["board"] = {
-			"shape": String(b.shape_id),
-			"template": String(b.template_id),
-			"nodes": b.node_count(),
-			"cells": b.route_length(),
-		}
-		# G7-A S4：按幕分段——第一幕先记一条，幕间由 note_act_start 续上。
-		_data["acts"].append(_act_entry(b.summary()))
-		# 起点也计入路线（与 board.visited_count() 口径一致：起点在生成时即已消耗）
-		_data["route"].append({"id": String(b.current_id), "type": "start", "depth": 0, "act": int(b.act)})
 	_stamp_paths()
-	_flush()
-
-
-# 棋盘首次展示：10 秒找落点的计时起点（只在每局第一次展示时启动）。
-func note_board_shown() -> void:
-	if not _active or _board_shown_ms >= 0:
-		return
-	_board_shown_ms = Time.get_ticks_msec()
-	_first_pick_open = true
-
-
-# 一次落点选择（玩家点击，不含唯一去路的自动前进）。
-func note_first_pick(node_id: String) -> void:
-	if not _first_pick_open or _board_shown_ms < 0:
-		return
-	_first_pick_open = false
-	_data["first_pick"] = {
-		"seconds": snappedf(float(Time.get_ticks_msec() - _board_shown_ms) / 1000.0, 0.1),
-		"node": node_id,
-	}
-
-
-# 幕间推进（G7-A S4）：收口上一幕的 BOSS 名，开始记录新一幕的棋盘参数。
-func note_act_start(act: int, summary: Dictionary = {}, prev: Dictionary = {}) -> void:
-	if not _active:
-		return
-	if not prev.is_empty() and not _data["acts"].is_empty():
-		var last: Dictionary = _data["acts"][-1]
-		last["boss"] = String(prev.get("boss", ""))
-	_data["act"] = int(act)
-	_data["acts"].append(_act_entry(summary))
 	_flush()
 
 
@@ -129,29 +84,6 @@ func note_act_boon(act: int, power: int, hp: int) -> void:
 		return
 	_data["act_boons"].append({"act": int(act), "power": int(power), "hp": int(hp)})
 	_flush()
-
-
-func _act_entry(summary: Dictionary) -> Dictionary:
-	return {
-		"act": int(summary.get("act", _ctrl.current_act)),
-		"shape": String(summary.get("shape", "")),
-		"template": String(summary.get("template", "")),
-		"boss": String(summary.get("boss", "")),
-		"nodes": int(summary.get("nodes", 0)),
-		"cells": int(summary.get("cells", 0)),
-	}
-
-
-# 进入一个棋盘节点（路线记录；战斗节点的确认框不改变路线）。
-func note_node(node: Dictionary) -> void:
-	if not _active or node.is_empty():
-		return
-	var t := String(node.get("type", ""))
-	var act: int = int(_ctrl.board.act) if _is_board() else int(_ctrl.current_act)
-	_data["route"].append({"id": String(node.get("id", "")), "type": t,
-		"depth": int(node.get("depth", 0)), "act": act})
-	if t in SPECIAL_TYPES:
-		_data["special"].append({"type": t, "node": String(node.get("id", "")), "outcome": ""})
 
 
 # 战斗开始：记录房型/敌人与当前 HP；同一场重复调用以最后一次为准。
@@ -232,7 +164,6 @@ func finish(reason: String = "") -> void:
 		_finalize_pending("loss")
 		var room: RoomData = _ctrl.current_room
 		_data["death"] = {
-			"node": String(_ctrl.board.current_id) if _is_board() and _ctrl.board != null else "",
 			"room": String(room.name) if room != null else String(_ctrl.enemy_name),
 			"kind": String(room.kind) if room != null else "",
 			"hp": int(_ctrl.player_hp),
@@ -242,17 +173,8 @@ func finish(reason: String = "") -> void:
 	_data["duration_sec"] = snappedf(float(Time.get_ticks_msec() - _started_ms) / 1000.0, 0.1)
 	_data["loadout_end"] = _loadout_names()
 	_data["battles_count"] = _data["battles"].size()
-	# G7-A S4：三幕局的「总节点」= 各幕节点数之和（route 已跨幕累计）。
-	var nodes_total := 0
-	if _is_board() and _ctrl.board != null:
-		for a in _data.get("acts", []):
-			nodes_total += int(a.get("nodes", 0))
-		if nodes_total <= 0:
-			nodes_total = _ctrl.board.node_count()
-	else:
-		nodes_total = _ctrl.ROOMS.size()
-	_data["nodes_total"] = nodes_total
-	_data["nodes_visited"] = _data["route"].size() if _is_board() else _data["battles"].size()
+	_data["nodes_total"] = _ctrl.ROOMS.size()
+	_data["nodes_visited"] = _data["battles"].size()
 	if _ctrl._telemetry != null:
 		# G7-5 §11.3：辅助来源与奖励遥测分开记录
 		if _ctrl.onboarding != null:
@@ -278,10 +200,6 @@ func _finalize_pending(result: String) -> void:
 	_flush()
 
 
-func _is_board() -> bool:
-	return bool(_ctrl.node_mode) and _ctrl.board != null and bool(_ctrl.board.generated)
-
-
 func _loadout_names() -> Array:
 	var out: Array = []
 	for p in _ctrl.selected_loadout:
@@ -296,8 +214,6 @@ func _file_logging() -> bool:
 
 func _stamp_paths() -> void:
 	var stamp := Time.get_datetime_string_from_system().replace(":", "-")
-	if _is_board():
-		stamp += "_" + String(_ctrl.board.shape_id)
 	_json_path = "%s/run_%s.json" % [OUT_DIR, stamp]
 	_txt_path = "%s/run_%s.txt" % [OUT_DIR, stamp]
 	var n := 1
@@ -343,13 +259,13 @@ func _record_text() -> String:
 	lines.append("")
 	lines.append("一、本局概况")
 	lines.append("------------")
-	if _is_board():
-		var b: Dictionary = _data.get("board", {})
-		var shape := String(b.get("shape", ""))
-		var tpl := String(b.get("template", ""))
+	var legacy_board: Dictionary = _data.get("board", {})
+	if not legacy_board.is_empty():
+		var shape := String(HISTORY_SHAPE_LABEL.get(String(legacy_board.get("shape", "")), String(legacy_board.get("shape", ""))))
+		var tpl := String(HISTORY_TEMPLATE_LABEL.get(String(legacy_board.get("template", "")), String(legacy_board.get("template", ""))))
 		lines.append("骨架：%s（%s / %d 节点 / %d 格）" % [
-			String(RUN_SUMMARY.SHAPE_LABEL.get(shape, shape)), shape, int(b.get("nodes", 0)), int(b.get("cells", 0))])
-		lines.append("模板：%s（%s）" % [String(RUN_SUMMARY.TEMPLATE_LABEL.get(tpl, tpl)), tpl])
+			shape, String(legacy_board.get("shape", "")), int(legacy_board.get("nodes", 0)), int(legacy_board.get("cells", 0))])
+		lines.append("模板：%s（%s）" % [tpl, String(legacy_board.get("template", ""))])
 	lines.append("最终 BOSS：%s" % String(_data.get("final_boss", "无")))
 	lines.append("特殊格：%s" % _special_text())
 	lines.append("战斗场次：%d" % int(_data.get("battles_count", 0)))
@@ -423,7 +339,7 @@ func _acts_text() -> String:
 		var bits: Array[String] = [Palette.act_name(int(a.get("act", 1)))]
 		var shape := String(a.get("shape", ""))
 		if shape != "":
-			bits.append(String(RUN_SUMMARY.SHAPE_LABEL.get(shape, shape)))
+			bits.append(String(HISTORY_SHAPE_LABEL.get(shape, shape)))
 		out.append(" ".join(bits))
 	if out.size() <= 1:
 		return "%s（单幕）" % out[0]

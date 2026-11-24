@@ -248,15 +248,6 @@ func _after_victory() -> void:
 	if _ctrl._is_run_final(_ctrl.room_index):
 		log_telemetry()                               # M1-06：整局结束打印遥测
 		_ctrl._reward_system.show_meta_choice()        # 通关整局（最终 BOSS）→元进度结算（持久生效）→回整备
-	elif _ctrl.node_mode:
-		# M2：棋盘模式胜利后回棋盘待机；下一房预告由可见棋盘替代，不进入线性间歇态。
-		# G7-A S4：幕 BOSS 通关 → 开下一幕棋盘（状态全部保留）；生成失败按通关收口，不软锁。
-		if _ctrl.board.current_is_boss() and _ctrl.board.act < _ctrl.run_act_count():
-			if not _ctrl.advance_act():
-				log_telemetry()
-				_ctrl._reward_system.show_meta_choice()
-		else:
-			_ctrl.board.return_to_board()
 	else:
 		enter_interroom()   # opt-in 商店：进入房间歇态（🛒 可选，▶ 下一房继续）
 	_ctrl.hud._refresh_meta()   # 幂等兜底：各子系统方法已自包含刷新，防编排层遗漏
@@ -393,9 +384,6 @@ func log_telemetry() -> void:
 
 
 func enter_interroom(roll_shop: bool = true) -> void:
-	if _ctrl.node_mode:
-		_ctrl.board.return_to_board()   # M2：棋盘模式没有线性间歇态
-		return
 	_ctrl.in_interroom = true
 	_ctrl._shop_system.reroll_used = 0   # 2026-08-09：刷新次数随房间歇期清零（价格重新从 reroll_base 起）
 	_ctrl.hud._hide_overlay()    # 防御性：确保胜利弹层已关闭，避免其遮挡/重触发
@@ -425,16 +413,13 @@ func on_next_room_pressed() -> void:
 		_ctrl.hud.set_shop_button_text("🛒 商店")
 	_ctrl.in_interroom = false
 	_ctrl.hud.set_interroom_enabled(false)
-	if _ctrl.node_mode:
-		_ctrl.board.return_to_board()   # 防御：棋盘模式下一房由棋盘选择，不线性递增
-		return
 	# M-02b：挂起期间直接 return（双保险，防绕过章节头进房）；跨幕首房前先显示章节头。
 	# 确认后由回调继续锻魂+进房（此处 return 防止提前进房/双发）。
 	if _ctrl._chapter_pending_next_idx >= 0:
 		return
 	if _ctrl.maybe_show_chapter_intro(_ctrl.room_index + 1):
 		return
-	# T0-5：线性模式跨幕时触发对应锻魂（地图路径由 advance_act 负责，不双发）。
+	# T0-5：线性模式跨幕时触发对应锻魂。
 	_ctrl._maybe_grant_linear_act_boon(_ctrl.room_index + 1)
 	_ctrl._start_room(_ctrl.room_index + 1)
 
@@ -442,10 +427,6 @@ func on_next_room_pressed() -> void:
 func on_shop_leave_pressed() -> void:
 	_ctrl.hud.hide_shop_screen()
 	_ctrl.hud.set_shop_button_text("🛒 商店")
-	if _ctrl.node_mode:
-		_ctrl.in_interroom = false
-		_ctrl.board.return_to_board()   # M2：商店格离开后回棋盘，节点已消耗
-		return
 	enter_interroom(false)   # 离开商店回房间歇态：不重滚货架（每房一次，防刷商店）
 
 
@@ -479,7 +460,6 @@ func return_to_loadout() -> void:
 	_ctrl.selected_consumables.clear()
 	_ctrl.consumable_slots.clear()
 	_ctrl.game_state = _ctrl.FlowState.PLAYING   # 解除 lost 终态，避免整备/铁砧界面误读终局
-	_ctrl.hud.hide_board_screen(false)           # M2：战败 / 通关回整备时收起棋盘
 	_ctrl.hud._show_loadout_screen()
 	_ctrl.invalidate_state()
 

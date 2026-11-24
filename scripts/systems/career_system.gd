@@ -55,7 +55,6 @@ var _directed_claimed: Array[String] = []
 const MIGRATION_FLAG := "directed_v1"
 
 # 每局临时状态（不落盘）
-var _elite_route_seen := false
 var _boss_armor_break := false
 var _boss_status_damage := 0
 
@@ -433,14 +432,10 @@ func _candidate_entry(path: String) -> Dictionary:
 # ---------------------------------------------------------------------------
 
 func reset_run() -> void:
-	_elite_route_seen = false
 	_boss_armor_break = false
 	_boss_status_damage = 0
 	_new_unlocks.clear()
 
-
-func note_elite_route() -> void:
-	_elite_route_seen = true
 
 
 func note_armor_break() -> void:
@@ -455,6 +450,7 @@ func note_status_damage(amount: int) -> void:
 		_boss_status_damage += amount
 
 
+# 仅老档目录兼容（board_treasure 仍可展示），禁止新增调用方。
 func note_board_weapon() -> void:
 	if _unlock("board_treasure"):
 		_announce("board_treasure")
@@ -489,8 +485,6 @@ func on_boss_cleared() -> void:
 		_unlock("status_apostle")
 	if _ctrl._telemetry != null and _ctrl._telemetry.damage_blocked >= GUARD_TARGET:
 		_unlock("guardian")
-	if _ctrl.node_mode and _elite_route_seen:
-		_unlock("elite_route")
 	if _ctrl.peaceful_win:
 		_unlock("peaceful")
 
@@ -499,7 +493,7 @@ func on_boss_cleared() -> void:
 		_announce(id)
 		# S5-1：里程碑额度由 _unlock() 内 earn_directed 统一发放，不再独立 +1（消灭双写）
 
-	# 每场 BOSS 的临时标记只对本场有效；精英路线是本局标记，留给 reset_run。
+	# 每场 BOSS 的临时标记只对本场有效。
 	_boss_armor_break = false
 	_boss_status_damage = 0
 	_save()

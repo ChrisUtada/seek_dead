@@ -68,15 +68,13 @@ func use(uid: String) -> void:
 # 净化药剂（2026-08-09 职责收敛）：只抵消敌人干扰意图（T20：IntentData.purifiable）。
 # 玩家侧状态（frost 冻结 / DoT 毒层）改由清净药剂（cleanse）解——净化不再跨「BOSS 侧 / 玩家侧」双职责。
 # 精简剪：授予 1 次精简（符号 -1 格 / 卸除技能）。
-# 具体减哪一格在棋盘「精简」入口选择；次数记在本局账上，取消对话框不损失次数。
+# 具体减哪一格在线性营地「整理」入口选择；次数记在本局账上，取消对话框不损失次数。
 func use_trim_belt(data: Resource) -> void:
 	if _ctrl._trim == null:
 		return
 	var n: int = maxi(1, int(data.value))
 	_ctrl._trim.grant(n)
-	_ctrl.hud._log("✂ 精简剪：获得 %d 次精简（在棋盘点「精简」使用）" % n)
-	if _ctrl.board != null:
-		_ctrl.board._refresh_trim_btn()
+	_ctrl.hud._log("✂ 精简剪：获得 %d 次精简（在营地「整理」使用）" % n)
 
 
 func use_purify(data: Resource) -> void:

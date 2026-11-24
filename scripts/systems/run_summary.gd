@@ -7,10 +7,6 @@ extends RefCounted
 # - 收藏基线在每局 _reset_run_state 时快照，只存在内存。
 # - 任一行返回空串表示该项没有可展示内容；展示顺序固定。
 
-const SHAPE_LABEL := {
-	"map14x9": "14×9 地图","standard": "标准", "long_tail": "长尾", "long_share": "延展"}
-const TEMPLATE_LABEL := {"standard": "常规", "mirror": "镜像", "elite_first": "精英前置",
-	"elite_upper": "上路精英前置", "elite_lower": "下路精英前置"}
 const MAX_NAMES := 3
 
 var _ctrl
@@ -53,33 +49,8 @@ func machine_line() -> String:
 	return "机器摘要｜" + " · ".join(parts)
 
 
-# 本局路线：棋盘模式给骨架/模板/尾路主题/各节点计数；线性模式给房型计数与终局 BOSS。
+# 本局路线：线性房型计数与终局 BOSS。
 func route_line() -> String:
-	if _ctrl.node_mode and _ctrl.board != null and _ctrl.board.generated:
-		var b = _ctrl.board
-		var bits: Array[String] = []
-		if not b.act_summaries.is_empty():
-			# G7-A S4：三幕局按幕列出骨架（局末总结显示完整三幕路线）。
-			var segs: Array[String] = []
-			for s in b.act_summaries:
-				segs.append(_act_seg(s))
-			segs.append(_act_seg(b.summary()))
-			bits.append(" → ".join(segs))
-		else:
-			var shape := String(SHAPE_LABEL.get(String(b.shape_id), String(b.shape_id)))
-			var tpl := String(TEMPLATE_LABEL.get(String(b.template_id), String(b.template_id)))
-			if shape != "":
-				bits.append(shape)
-			if tpl != "":
-				bits.append(tpl)
-		var theme := _boss_element()
-		if theme != "":
-			bits.append(theme + "尾路")
-		var counts := _board_count_text(b)
-		if counts != "":
-			bits.append(counts)
-		return "路线：棋盘 · " + " · ".join(bits)
-
 	var normal := 0
 	var elite := 0
 	var boss := 0
@@ -180,50 +151,6 @@ func _paths(key: String) -> Array[String]:
 	return out
 
 
-# G7-A S4：一幕的短标（ACT II 长尾），用于局末三幕路线。
-func _act_seg(summary: Dictionary) -> String:
-	var act := int(summary.get("act", 1))
-	var shape := String(summary.get("shape", ""))
-	if shape == "":
-		return Palette.act_name(act)
-	return "%s %s" % [Palette.act_name(act), String(SHAPE_LABEL.get(shape, shape))]
-
-
-func _board_count_text(b) -> String:
-	var normal := 0
-	var elite := 0
-	var shop := 0
-	var rest := 0
-	var special := 0
-	for id in b.consumed:
-		var n: Dictionary = b.by_id.get(String(id), {})
-		var t := String(n.get("type", ""))
-		# 14×9 地图的节点类型：battle / elite / boss / chest / armory / shop / rest / event。
-		# 旧类型名保留兼容，避免历史记录解析失败。
-		if t == "normal" or t == "battle":
-			normal += 1
-		elif t == "elite":
-			elite += 1
-		elif t == "shop":
-			shop += 1
-		elif t == "rest":
-			rest += 1
-		elif t in ["chest", "event", "armory", "weapon", "charm", "treasure", "shrine"]:
-			special += 1
-	var parts: Array[String] = []
-	if normal > 0:
-		parts.append("战斗%d" % normal)
-	if elite > 0:
-		parts.append("精英%d" % elite)
-	if shop > 0:
-		parts.append("商店%d" % shop)
-	if rest > 0:
-		parts.append("休整%d" % rest)
-	if special > 0:
-		parts.append("特殊%d" % special)
-	return " ".join(parts)
-
-
 func _mastery_text() -> String:
 	if _ctrl.mastery == null:
 		return ""
@@ -256,16 +183,6 @@ func _boss_room() -> RoomData:
 func _boss_name() -> String:
 	var r := _boss_room()
 	return String(r.name) if r != null else ""
-
-
-func _boss_element() -> String:
-	var r := _boss_room()
-	if r == null:
-		return ""
-	var e := ElementCounter.label(String(r.element))
-	if e == "" or e == "无":
-		return ""
-	return e
 
 
 func _display_name(path: String) -> String:

@@ -24,7 +24,7 @@ var paid_price: Dictionary = {}        # path/uid -> 实际购入价（卖出返
 
 # T1.5 / N-09：每幕武器候选机会配额。
 # 按「实际生成的武器候选」计数，不是购买次数——玩家跳过/买不起也算该次机会已出现。
-# 计数按 current_act 自动分段（换幕时配额自动重置），无需改动 advance_act / 线性换幕路径。
+# 计数按 current_act 自动分段（线性换幕时配额自动重置），无需改动线性换幕路径。
 const ACT_WEAPON_QUOTA := 2
 var quota_act: int = -1             # 当前计数所属的幕（-1=未初始化）
 var quota_room: int = -1            # 上次计入配额的房间（同房重复 roll/reroll 不重复计数）

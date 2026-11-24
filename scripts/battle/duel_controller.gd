@@ -32,12 +32,8 @@ const BALANCE = preload("res://resources/config/balance_config.tres")
 # M4-01：ACT1 Demo 开关 + 内容白名单（resources/config/demo_config.tres，enabled 或导出 custom_features 启用）
 const DEMO_CONFIG = preload("res://resources/config/demo_config.tres")
 var demo_config = DEMO_CONFIG   # 无 class_name：避免 headless 首次加载的全局类缓存依赖
-# M2：ACT1 棋盘灰盒开关（resources/config/board_config.tres，enabled 或命令行 --board 启用）
-const BOARD_CONFIG = preload("res://resources/config/board_config.tres")
 # N-03：只读伤害分解账本类（不注册 class_name，避免 headless 类缓存）
 const DAMAGE_PREVIEW = preload("res://scripts/battle/damage_preview.gd")
-var board_config = BOARD_CONFIG
-const NODE_START_FEEDBACK := "起点：掷骰前进"
 
 # Phase 1 组件化：UI 复用场景与脚手架（按钮/面板/卡片构建均在 battle_hud 与各 screen，本控制器不再持有）
 
@@ -103,16 +99,10 @@ var ELITE_REWARD_POOL: Array[RewardData] = []
 var ALL_ROOMS: Array[RoomData] = []          # 全量房间池（扫描收集；_build_run 从中按幕抽 24 房 + 真·最终槽）
 var ROOMS: Array[RoomData] = []             # 当前一局的房序列（每局 _full_reset 时由 _build_run 重建：24 房 + 真·最终）
 
-# M2 棋盘模式状态。棋盘模式下 ROOMS = 本局全部战斗房（按路径顺序），room_index 仍是其在 ROOMS 中的下标，
-# 因此既有 ROOMS[room_index] 消费者（奖励 / 铁砧 / gimmick / HUD）保持不变。
-# current_room / current_act / current_room_ria / run_final 是线性强索引之外的第二状态源，
-# 供棋盘入口显式传入当前 RoomData 与幕内难度位置，不再用 ROOMS.size() 混合表达进度。
-var node_mode := false                      # 本局是否棋盘模式（BoardConfig 开关）
-var board                                   # M2 棋盘运行状态（board_system.gd，preload 实例化）
+# 当前线性房间入口状态。RoomData 提供房型/幕次，ROOMS + room_index 提供正式进度。
 var current_room: RoomData = null
 var current_act: int = 1
-var current_room_ria: int = -1              # -1 = 线性模式按 ROOMS 扫描计算
-var run_final := false                      # 棋盘模式：当前是否本局最终战
+var current_room_ria: int = -1              # -1 = 按 ROOMS 扫描计算幕内难度位置
 
 # grid[reel][row] = SymbolData 引用
 var grid = []
@@ -229,8 +219,6 @@ var player_shield = 0
 
 # 敌人 / 房间状态
 var room_index = 0
-# 地图破甲陷阱：只作用于紧接着的这一场战斗，进房时消费并复位，不写存档、不跨房。
-var pending_armor_break := false
 var enemy_name = "敌人"
 var enemy_hp = 120
 var enemy_hp_max = 120
@@ -317,7 +305,7 @@ var game_state: FlowState = FlowState.PLAYING
 var peaceful_win := false              # 勇者的阴影 P3：和解通关标志（_start_room 复位；spin 流程检测早退）
 var turn_count = 1
 
-# M-02b：章节头（每幕首个战斗房前显示一次）。仅线性模式；地图模式 advance_act 另行处理。
+# M-02b：章节头（每幕首个战斗房前显示一次）。线性模式由进房流程按幕号触发。
 var _chapter_intro: ChapterIntro = null  # 章节头覆盖屏（挂 hud）
 var _chapter_shown_acts: Dictionary = {}  # act -> true，跨局由 _reset_run_state 清空
 var _chapter_pending_next_idx: int = -1  # 章节头确认后要进入的房间下标；-1 = 无待办
@@ -453,7 +441,6 @@ func _ready() -> void:
 	_shop_system = preload("res://scripts/systems/shop_system.gd").new(self)
 	_reward_system = preload("res://scripts/systems/reward_system.gd").new(self)
 	_post_battle = preload("res://scripts/systems/post_battle_system.gd").new(self)
-	board = preload("res://scripts/board/board_system.gd").new(self)   # M2：棋盘状态（默认关闭，线性模式不使用）
 	_loadout_system = preload("res://scripts/systems/loadout_system.gd").new(self)
 	_synergy_system = preload("res://scripts/systems/synergy_system.gd").new(self)
 	growth = preload("res://scripts/systems/growth_system.gd").new(self)
@@ -751,15 +738,9 @@ func _weapon_info(p: String, assume_slot: int = -1) -> String:
 
 
 func _item_source(loot_source: String = "") -> Dictionary:
-	var d := {"act": current_act, "mode": "board" if node_mode else "linear"}
+	var d := {"act": current_act, "mode": "linear"}
 	if loot_source != "":
 		d["loot_source"] = loot_source
-	if node_mode and board != null:
-		var node: Dictionary = board.current_node()
-		d["node_id"] = String(board.current_id)
-		d["node_type"] = String(node.get("type", ""))
-		if current_room == null:
-			d["item"] = String(node.get("title", ""))
 	if current_room != null:
 		d["room"] = String(current_room.name)
 		d["room_kind"] = String(current_room.kind)
@@ -767,19 +748,6 @@ func _item_source(loot_source: String = "") -> Dictionary:
 
 
 # G2-01：替换预览的「旧武器卸下」行——只描述本局当前贡献；熟练/铭印按规则保留。
-# 本幕 BOSS 的元素（棋盘上 BOSS 位置与信息本来就公开，用于替换弹层的克制对照）。
-# 没有棋盘或取不到房间时返回空串，调用方据此不显示这一行。
-func board_boss_element() -> String:
-	if board == null or not board.generated:
-		return ""
-	var node: Dictionary = {}
-	if board.current_is_boss():
-		node = board.current_node()
-	elif not board.boss_ids.is_empty():
-		node = board.node_by_id(String(board.boss_ids[0]))
-	var r: RoomData = node.get("room")
-	return "" if r == null else String(r.element)
-
 
 # G2-4：替换预览的「构筑得失」只读对比（旧武器 → 新武器）。
 # 输出：新增/失去的装备牌谱、签名、元素覆盖；改造休眠由弹层的卸下说明覆盖（保留但暂停贡献）。
@@ -1116,7 +1084,7 @@ func _on_next_room_pressed() -> void:
 # M-02b：ACT1 开幕信息公开。房间已经开起来（_start_room(0) 不自动 spin），
 # 因此这里不设 pending、不阻断流程；确认只关屏。
 func show_chapter_intro_at_run_start() -> bool:
-	if node_mode or _chapter_intro == null or _chapter_shown_acts.has(1):
+	if _chapter_intro == null or _chapter_shown_acts.has(1):
 		return false
 	var data: Dictionary = ChapterInfo.for_run(ROOMS, 1)
 	if data.is_empty():
@@ -1136,7 +1104,7 @@ func maybe_show_chapter_intro(next_idx: int) -> bool:
 	# 已有一屏挂着：拦住本次进房，等确认回调推进（否则会绕过章节头直接开房）
 	if _chapter_pending_next_idx >= 0:
 		return true
-	if node_mode or _chapter_intro == null or next_idx <= 0 or next_idx >= ROOMS.size():
+	if _chapter_intro == null or next_idx <= 0 or next_idx >= ROOMS.size():
 		return false
 	var next_room: RoomData = ROOMS[next_idx]
 	var next_act: int = int(next_room.act)
@@ -1172,9 +1140,8 @@ func _on_chapter_intro_continued(_act: int) -> void:
 # T0-5：线性模式幕间锻魂——进入下一房前检测即将进入的真实 ACT 变化。
 # 触发依据是 RoomData.act 相对当前 current_act 变大（不是房间下标），沿用 granted_acts 幂等。
 # ACT1 开局 act 不变大不触发；最终 Boss 追加房 act 与 ACT3 相同，幂等守卫挡住不双发。
-# 地图模式由 advance_act() 负责锻魂，这里不介入，避免双发。
 func _maybe_grant_linear_act_boon(next_idx: int) -> void:
-	if node_mode or next_idx <= 0 or next_idx >= ROOMS.size():
+	if next_idx <= 0 or next_idx >= ROOMS.size():
 		return
 	var next_act: int = int((ROOMS[next_idx] as RoomData).act)
 	if next_act <= int(current_act):
@@ -1233,61 +1200,13 @@ func _is_boss_room(idx: int) -> bool:
 
 # 是否为本局最后一间房（=通关整局）。S10 起一局有 3 个幕 BOSS，只有最后一个才结束 run：
 # 幕一/幕二 BOSS 通关后照常进商店并推进下一房，否则幕二幕三永远进不去。
-# M2：棋盘模式由节点 final 标记显式传入（不再用 ROOMS.size() 表达棋盘总进度）。
 func _is_run_final(idx: int) -> bool:
-	if node_mode:
-		return run_final
 	return idx >= ROOMS.size() - 1
 
 
-# 是否还有下一场战斗（M1 成长位「下一房对策」判定）。棋盘模式看是否已到 BOSS 终局。
+# 是否还有下一场战斗（M1 成长位「下一房对策」判定）。
 func has_next_battle() -> bool:
-	if node_mode:
-		return not run_final
 	return room_index + 1 < ROOMS.size()
-
-
-# G7-A S4：本局幕数（试玩包 act_only 时强制 1 幕——ALL_ROOMS 已收窄成 ACT1，第二幕会无房可分）。
-func run_act_count() -> int:
-	var n: int = maxi(1, int(board_config.acts))
-	if demo_active() and demo_config.act_only:
-		n = 1
-	return n
-
-
-# G7-A S4：幕间推进——只换棋盘与幕号，本局状态（HP/上限/金币/装备/成长/技艺/铭印/消耗品）全部保留，
-# 不走 reset_run。返回 false 表示无法进入下一幕（非棋盘 / 已是最后一幕 / 生成失败），调用方负责收口。
-func advance_act() -> bool:
-	if not node_mode or board == null or not board.generated:
-		return false
-	var next_act: int = int(board.act) + 1
-	var total: int = run_act_count()
-	if next_act > total:
-		return false
-	var prev: Dictionary = board.summary()
-	# 按幕生成：不动共享 BoardConfig（否则本局结束后 act 会残留成 2/3）。
-	if not board.generate(board_config, next_act):
-		push_error("G7-A：ACT%d 棋盘生成失败，本局按通关收口" % next_act)
-		hud._log("⚠ ACT%d 棋盘生成失败，本局按通关收口" % next_act)
-		return false
-	board.act_summaries.append(prev)
-	# ROOMS 仍是「本幕全部战斗房、room_index 为其下标」的口径：换幕后同步重建。
-	ROOMS.clear()
-	for r in board.battle_rooms:
-		ROOMS.append(r)
-	run_final = false                 # 只有进入最后一幕的 BOSS 节点时才会再置真
-	current_act = next_act
-	growth.grant_act_boon(next_act)   # G7-A S5 后续：幕间锻魂（符号伤害 +8 / 最大 HP +20）
-	if _journal != null:
-		_journal.note_act_start(next_act, board.summary(), prev)
-	board.set_feedback("%s 完成 → 进入 %s（第 %d/%d 幕）" % [
-		Palette.act_name(next_act - 1), board.act_label(), next_act, total])
-	hud._log("◆ 幕间：%s 完成 → 进入 %s（HP %d/%d · 金 %d · 装备 %d）" % [
-		Palette.act_name(next_act - 1), board.act_label(), player_hp, player_hp_max, gold,
-		selected_loadout.size()])
-	board.return_to_board()   # 收起战斗态（WON → PLAYING）并展示新一幕棋盘
-	invalidate_state()
-	return true
 
 
 # T25 对局构建 / BOSS 加权抽取 / 房间语义排序：已迁至 RunSetup（P2 架构还债，2026-08-24）——单行转发。
@@ -1310,8 +1229,8 @@ func _start_room(idx: int) -> void:
 	start_room_data(ROOMS[idx], idx, -1, false)
 
 
-# M2：统一战斗入口——显式接收当前 RoomData 与幕内难度位置（棋盘不再依赖线性强索引推断最终 BOSS）。
-# ria_override >= 0 时跳过「按 ROOMS 位置扫描同幕房数」的旧口径；线性路径传 -1 保持零行为变化。
+# 统一线性战斗入口：显式接收当前 RoomData 与幕内难度位置。
+# ria_override >= 0 时跳过「按 ROOMS 位置扫描同幕房数」的默认口径。
 func start_room_data(r: RoomData, idx: int, ria_override: int = -1, is_final: bool = false) -> void:
 	if r == null:
 		return
@@ -1355,8 +1274,6 @@ func start_room_data(r: RoomData, idx: int, ria_override: int = -1, is_final: bo
 	current_room = r
 	current_act = int(r.act)
 	current_room_ria = ria_override
-	if node_mode:
-		run_final = is_final
 	if _telemetry != null:
 		_telemetry.on_room_start()   # M1-06：TTK 观测起点
 	enemy_name = r.name
@@ -1374,13 +1291,6 @@ func start_room_data(r: RoomData, idx: int, ria_override: int = -1, is_final: bo
 	var base_armor: int = r.armor if r.armor > 0 else (r.archetype.armor_base if r.archetype != null else 0)
 	enemy_armor_max = int(round(float(base_armor) * s["hp_scale"])) if base_armor > 0 else 0
 	enemy_armor = enemy_armor_max
-	# 地图破甲陷阱：预告写「护甲 X → 0」，这里让它真的归零，并立刻复位保证只作用一场。
-	if pending_armor_break:
-		if enemy_armor_max > 0 and hud != null:
-			hud._log("破甲陷阱：敌方护甲 %d → 0" % enemy_armor_max)
-		enemy_armor_max = 0
-		enemy_armor = 0
-		pending_armor_break = false
 	# 抗干扰（T20）：抗扰护符 降低干扰类意图（purifiable）权重，每级 -12%，最低保留 25%
 	var total_resist = charm_interf_resist
 	_interf_resist_rf = max(0.25, 1.0 - total_resist * 0.12) if total_resist > 0 else 1.0
@@ -1435,75 +1345,13 @@ func start_room_data(r: RoomData, idx: int, ria_override: int = -1, is_final: bo
 	_refresh_consumable_panel()           # 双重保险：同步按钮禁用状态与当前战斗状态
 	hud._refresh_meta()
 	hud._update_enemy_element()
-	if node_mode and board != null:
-		hud._log("▶ 进入节点 %d/%d：%s（HP %d，攻击 %d）" % [
-			board.visited_count(), board.route_length(), enemy_name, enemy_hp_max, enemy_atk])
-	else:
-		hud._log("▶ 进入房间 %d/%d：%s（HP %d，攻击 %d）" % [idx + 1, ROOMS.size(), enemy_name, enemy_hp_max, enemy_atk])
+	hud._log("▶ 进入房间 %d/%d：%s（HP %d，攻击 %d）" % [idx + 1, ROOMS.size(), enemy_name, enemy_hp_max, enemy_atk])
 	invalidate_state()
 
 
 # Ante 难度曲线纯函数：已迁至 RunSetup.ante_scale（P2 架构还债，2026-08-24）——单行转发。
 func _ante_scale(r: RoomData, idx: int, ria_override: int = -1) -> Dictionary:
 	return run_setup.ante_scale(r, idx, ria_override)
-
-
-# ---------------------------------------------------------------------------
-# M2 棋盘节点效果（由 BoardScreen 在移动动画结束后调用一次）
-# ---------------------------------------------------------------------------
-
-func _on_board_node_entered(node: Dictionary) -> void:
-	if node.is_empty():
-		return
-	# 14×9 地图的节点类型是 battle / chest / event；旧名（normal / treasure / shrine）
-	# 保留在同一分支里，历史存档与旧骨架不会走进默认分支被弹回地图。
-	match String(node.get("type", "")):
-		"battle", "normal", "elite", "boss":
-			if String(node.get("type", "")) == "elite" and _career != null:
-				_career.note_elite_route()   # G6-01：高危路线标记（击败 BOSS 时结算）
-			_start_board_battle(node)
-		"shop":
-			_board_shop()
-		"rest":
-			_board_rest()
-		"chest", "treasure":
-			_board_treasure(node)
-		"event", "shrine":
-			_board_shrine(node)
-		"armory":
-			_board_armory(node)
-		"weapon":
-			_board_weapon(node)
-		"charm":
-			_board_charm(node)
-		_:
-			board.set_feedback(NODE_START_FEEDBACK)
-			board.return_to_board()
-
-
-func _start_board_battle(node: Dictionary) -> void:
-	var r: RoomData = node.get("room")
-	if r == null:
-		board.set_feedback("战斗节点缺少 RoomData，已返回棋盘")
-		board.return_to_board()
-		return
-	hud.hide_camp_supply()   # 防御：任何残留营地弹层都不得盖在战斗上
-	hud.hide_board_screen(true)
-	hud.set_interroom_enabled(false)
-	# 巡逻踩过破甲陷阱时，接触节点带 armor_break：本次战斗敌方护甲归零。
-	pending_armor_break = bool(node.get("armor_break", false))
-	start_room_data(r, int(node.get("battle_index", -1)), int(node.get("ria", -1)),
-		bool(node.get("final", false)))
-
-
-# 商店格：复用现有货架 / 刷新 / 价格；离开后回棋盘，节点已在进入时消耗。
-func _board_shop() -> void:
-	in_interroom = true
-	hud.hide_board_screen(true)
-	hud.set_interroom_enabled(false)
-	_roll_shop()
-	hud._show_shop_screen()
-	hud._log("🛒 棋盘商店：离开后节点消耗")
 
 
 # ---------------------------------------------------------------------------
@@ -1571,7 +1419,7 @@ func _linear_chest_open(_ignored = null) -> void:
 		_reward_system.remember_weapon(p)   # 只进本局仓库，不强制装备
 		msg = "宝箱：获得 %s（已入本局武器仓库）" % _shop_name(p, "weapon")
 	elif cat == "passive":
-		# 与棋盘护符格/正常获取路径同口径：按当前可用槽位（cat_max）判断，未到硬天花板才扩槽；
+		# 与正常获取路径同口径：按当前可用槽位（cat_max）判断，未到硬天花板才扩槽；
 		# append 后写来源并 _apply_charms() 刷新被动，避免「卡面持有/槽位上限/实际效果」不一致。
 		if selected_charms.has(p):
 			gold += _sell_price("passive", p)
@@ -1726,7 +1574,7 @@ func _start_linear_camp(idx: int) -> void:
 	invalidate_state()
 
 
-# 休整：恢复 25% 最大 HP（复用棋盘 _board_rest 的同一公式），满血显示无需恢复。
+# 休整：恢复 25% 最大 HP，满血显示无需恢复。
 func _linear_camp_rest() -> void:
 	if _linear_camp_done:
 		return
@@ -1789,29 +1637,6 @@ func _linear_camp_settle() -> void:
 	hud._log("营地结束：可开商店，或进入本幕 Boss")
 
 
-func _board_rest() -> void:
-	var heal := int(ceil(float(player_hp_max) * 0.25))
-	var before := player_hp
-	player_hp = mini(player_hp_max, player_hp + heal)
-	if _telemetry != null:
-		_telemetry.on_heal(player_hp - before, 0, "camp")   # T1.8 分来源观测
-	var msg := ""
-	if player_hp == before:
-		msg = "休整：HP 已满，无需休整"
-	else:
-		msg = "休整：HP %d/%d → %d/%d（+%d）" % [before, player_hp_max, player_hp, player_hp_max, player_hp - before]
-	hud._log(msg)
-	invalidate_state()
-	hud._refresh_meta()
-	# G2-01：休整后开营地补给（最多买 1 件，离开不扣费）。
-	_camp_offers = _roll_camp_offers()
-	if _camp_offers.is_empty():
-		board.set_feedback(msg)
-		board.return_to_board()
-		return
-	hud.request_camp_supply(_camp_offers, _camp_buy, _camp_leave)
-
-
 # 营地货架：武器 / 护符 / 消耗品各 1（护符排除信物与本局已带）。
 func _roll_camp_offers() -> Array:
 	var out: Array = []
@@ -1854,8 +1679,6 @@ func _camp_buy(offer: Dictionary) -> void:
 	var kind := String(offer.get("kind", ""))
 	if kind == "weapon" and selected_loadout.size() >= _loadout_system.cat_cap("weapon") and not selected_loadout.has(p):
 		hud.hide_camp_supply()
-		# 替换弹层挂在战斗 HUD 下：棋盘视图正把 HUD 藏着，先切回 HUD 再弹，取消时回棋盘营地。
-		hud.hide_board_screen(true)
 		hud.request_weapon_replace("营地补给：替换武器", _weapon_info(p),
 			func(old_path: String) -> void: _camp_buy_replace(offer, old_path), p,
 			func() -> void: _camp_reopen())
@@ -1872,8 +1695,7 @@ func _camp_buy_replace(offer: Dictionary, old_path: String) -> void:
 
 
 func _camp_reopen() -> void:
-	# 替换取消：回棋盘视图再弹营地（营地面板与 board_screen 同级，不依赖 HUD 可见）。
-	board.return_to_board()
+	# 替换取消：重新打开同一份营地补给，不重新抽取。
 	hud.request_camp_supply(_camp_offers, _camp_buy, _camp_leave)
 
 
@@ -1883,259 +1705,9 @@ func _camp_leave() -> void:
 
 func _camp_finish(msg: String = "营地：补给结束") -> void:
 	hud.hide_camp_supply()
-	board.set_feedback(msg)
 	hud._log(msg)
 	invalidate_state()
 	hud._refresh_meta()
-	board.return_to_board()
-
-
-# 神龛（G4-04）：效果生成时冻结并公开；数值沿用既有奖励效果
-# （恢复 35% 最大 HP / 最大 HP +12 并回 20% / 下一场 +15 护盾）。
-func _board_shrine(node: Dictionary) -> void:
-	var kind := String(node.get("shrine_kind", ""))
-	var before_hp := player_hp
-	var before_max := player_hp_max
-	var msg := ""
-	match kind:
-		"heal":
-			var heal := int(ceil(float(player_hp_max) * 0.35))
-			player_hp = mini(player_hp_max, player_hp + heal)
-			if player_hp == before_hp:
-				msg = "神龛：HP 已满（%d/%d），无需恢复" % [before_hp, before_max]
-			else:
-				msg = "神龛：恢复 %d HP（%d/%d → %d/%d）" % [
-					player_hp - before_hp, before_hp, before_max, player_hp, player_hp_max]
-		"maxhp":
-			player_hp_max += 12
-			var heal2 := int(ceil(float(player_hp_max) * 0.2))
-			player_hp = mini(player_hp_max, player_hp + heal2)
-			msg = "神龛：最大 HP +12（%d → %d）并恢复 %d" % [
-				before_max, player_hp_max, player_hp - before_hp]
-		"ward":
-			_reward_system.run_shield_next += 15
-			msg = "神龛：下一场战斗开局 +15 护盾（累计 %d）" % _reward_system.run_shield_next
-		_:
-			if _journal != null:
-				_journal.note_special("shrine", "金币 +15")
-			_board_node_gold(15, "神龛：金币")
-			return
-	if _telemetry != null:
-		_telemetry.on_heal(player_hp - before_hp, 0, "shrine")   # T1.8 分来源观测
-	if _journal != null:
-		_journal.note_special("shrine", msg.trim_prefix("神龛："))
-	board.set_feedback(msg)
-	hud._log(msg)
-	invalidate_state()
-	hud._refresh_meta()
-	board.return_to_board()
-
-
-# 武器藏库（G4-04）：两把可见武器二选一；满槽沿用替换流程，跳过则节点消耗。
-func _board_armory(node: Dictionary) -> void:
-	var paths: Array = node.get("armory_paths", [])
-	if paths.is_empty():
-		_board_node_gold(15, "武器藏库：已空，折算金币")
-		return
-	# 弹层挂在 duel 根节点，棋盘保持可见作为背景（不切到战斗 HUD）。
-	hud.request_armory(paths,
-		func(p: String) -> void: _board_armory_pick(p),
-		func() -> void: _board_armory_skip())
-
-
-func _board_armory_pick(p: String) -> void:
-	if p == "" or selected_loadout.has(p):
-		if _journal != null:
-			_journal.note_special("armory", "已持有，折算金币")
-		_board_node_gold(15, "武器藏库：已持有，折算金币")
-		return
-	if selected_loadout.size() >= _loadout_system.cat_cap("weapon"):
-		# 替换弹层挂在 HUD 上：先切到战斗 HUD 视图，否则面板不可见。
-		hud.hide_board_screen(true)
-		hud.request_weapon_replace("武器藏库：替换武器", _weapon_info(p),
-			func(old_path: String) -> void: _board_weapon_replace(p, old_path, "武器藏库"), p,
-			func() -> void: _board_weapon_cancel(p, "武器藏库"))
-		return
-	selected_loadout.append(p)
-	_reward_system.remember_weapon(p)
-	if _journal != null:
-		_journal.note_weapon_change("", _shop_name(p, "weapon"), "武器藏库")
-		_journal.note_special("armory", "选择：" + _shop_name(p, "weapon"))
-	_build_pool(selected_loadout)
-	var msg := "武器藏库：获得 %s（已加入转轮带）" % _shop_name(p, "weapon")
-	board.set_feedback(msg)
-	hud._log(msg)
-	invalidate_state()
-	hud._refresh_meta()
-	board.return_to_board()
-
-
-func _board_armory_skip() -> void:
-	if _journal != null:
-		_journal.note_special("armory", "跳过")
-	var msg := "武器藏库：放弃选择（节点已消耗）"
-	board.set_feedback(msg)
-	hud._log(msg)
-	board.return_to_board()
-
-
-# 宝箱（G4-04）：类别与具体物品在生成时冻结；武器/护符复用节点授予与替换流程。
-func _board_treasure(node: Dictionary) -> void:
-	var kind := String(node.get("treasure_kind", ""))
-	var p := String(node.get("item_path", ""))
-	if p == "" or kind == "gold":
-		_board_node_gold(15, "宝箱：金币")
-		return
-	match kind:
-		"weapon":
-			_board_weapon(node, "宝箱")
-		"charm":
-			_board_charm(node, "宝箱")
-		"active":
-			_board_treasure_active(p)
-		_:
-			_board_node_gold(15, "宝箱：金币")
-
-
-func _board_treasure_active(p: String) -> void:
-	var cd = load(p)
-	if cd == null:
-		_board_node_gold(15, "宝箱：物品缺失，折算金币")
-		return
-	var nm := String(cd.item_name)
-	var msg := ""
-	if consumable_slots.size() >= CONSUMABLE_CAP:
-		var refund := _sell_price("active", p)
-		gold += refund
-		msg = "宝箱：%s 但腰带已满 → 折算金币 +%d" % [nm, refund]
-	else:
-		_consumable_uid += 1
-		consumable_slots.append({"path": p, "item_id": cd.item_id, "charges": cd.charges,
-			"uid": "c%d" % _consumable_uid})
-		msg = "宝箱：获得 %s（入腰带）" % nm
-	if _journal != null:
-		_journal.note_special("treasure", msg.trim_prefix("宝箱："))
-	board.set_feedback(msg)
-	hud._log(msg)
-	invalidate_state()
-	hud._refresh_meta()
-	_refresh_consumable_panel()
-	board.return_to_board()
-
-
-func _board_weapon(node: Dictionary, label: String = "武器格") -> void:
-	var p := String(node.get("item_path", ""))
-	if p == "" or selected_loadout.has(p):
-		_board_node_gold(15, "%s：无可用候选，折算金币" % label)
-		return
-	if selected_loadout.size() >= _loadout_system.cat_cap("weapon"):
-		hud.hide_board_screen(true)
-		hud.request_weapon_replace("棋盘武器：替换", _weapon_info(p),
-			func(old_path: String) -> void: _board_weapon_replace(p, old_path, label), p,
-			func() -> void: _board_weapon_cancel(p, label))
-		return
-	selected_loadout.append(p)
-	_reward_system.remember_weapon(p)
-	if _career != null:
-		_career.note_board_weapon()   # G6-01：棋盘寻宝（主动获得武器格）
-	if _journal != null:
-		_journal.note_weapon_change("", _shop_name(p, "weapon"), label)
-		if label == "宝箱":
-			_journal.note_special("treasure", "武器：" + _shop_name(p, "weapon"))
-	_build_pool(selected_loadout)
-	var msg := "%s：获得 %s（已加入转轮带）" % [label, _shop_name(p, "weapon")]
-	board.set_feedback(msg)
-	hud._log(msg)
-	invalidate_state()
-	hud._refresh_meta()
-	board.return_to_board()
-
-
-func _board_weapon_replace(p: String, old_path: String, label: String = "武器格") -> void:
-	if p == "" or not selected_loadout.has(old_path) or selected_loadout.has(p):
-		_board_weapon_cancel(p, label)
-		return
-	var old_name := _shop_name(old_path, "weapon")
-	var slot4: int = selected_loadout.find(old_path)
-	if slot4 < 0 or not replace_weapon_at_slot(slot4, p):
-		_board_weapon_cancel(p, label)
-		return
-	_reward_system.remember_weapon(p)
-	if _career != null:
-		_career.note_board_weapon()   # G6-01：替换获得同样算主动获得武器格
-	if _telemetry != null:
-		_telemetry.on_weapon_swap()
-	if _journal != null:
-		_journal.note_weapon_change(String(old_name), _shop_name(p, "weapon"), label)
-		if label == "宝箱":
-			_journal.note_special("treasure", "武器替换：" + _shop_name(p, "weapon"))
-		elif label == "武器藏库":
-			_journal.note_special("armory", "替换：" + _shop_name(p, "weapon"))
-	_build_pool(selected_loadout)
-	var msg := "%s：%s → %s" % [label, old_name, _shop_name(p, "weapon")]
-	board.set_feedback(msg)
-	hud._log(msg)
-	invalidate_state()
-	hud._refresh_meta()
-	board.return_to_board()
-
-
-func _board_weapon_cancel(p: String, label: String = "武器格") -> void:
-	if _journal != null:
-		if label == "宝箱":
-			_journal.note_special("treasure", "跳过")
-		elif label == "武器藏库":
-			_journal.note_special("armory", "取消替换：" + _shop_name(p, "weapon"))
-	var msg := "%s：跳过 %s（节点已消耗）" % [label, _shop_name(p, "weapon")]
-	board.set_feedback(msg)
-	hud._log(msg)
-	board.return_to_board()
-
-
-func _board_charm(node: Dictionary, label: String = "护符格") -> void:
-	var p := String(node.get("item_path", ""))
-	if p == "" or selected_charms.has(p):
-		_board_node_gold(15, "%s：无可用候选，折算金币" % label)
-		return
-	var cap: int = int(_loadout_system.cat_cap("passive"))
-	if selected_charms.size() >= _loadout_system.cat_max("passive"):
-		# 未到硬天花板才开槽；已到天花板（或已越界）则折算金币，绝不突破 CHARM_CAP。
-		if selected_charms.size() < cap and _loadout_system.can_grow_slot("passive"):
-			_loadout_system.grow_slot("passive")
-		else:
-			var refund := _sell_price("passive", p)
-			gold += refund
-			var full_msg := "%s：%s 但护符槽已满 → 折算金币 +%d" % [
-				label, _shop_name(p, "passive"), refund]
-			if _journal != null and label == "宝箱":
-				_journal.note_special("treasure", "护符槽满，折算金币 +%d" % refund)
-			board.set_feedback(full_msg)
-			hud._log(full_msg)
-			invalidate_state()
-			hud._refresh_meta()
-			board.return_to_board()
-			return
-	selected_charms.append(p)
-	_reward_system.remember_charm(p)   # G2-01：棋盘护符格也写入图鉴/来源
-	_apply_charms()
-	var msg := "%s：获得 %s（已生效）" % [label, _shop_name(p, "passive")]
-	if _journal != null and label == "宝箱":
-		_journal.note_special("treasure", "护符：" + _shop_name(p, "passive"))
-	board.set_feedback(msg)
-	hud._log(msg)
-	invalidate_state()
-	hud._refresh_meta()
-	board.return_to_board()
-
-
-func _board_node_gold(n: int, reason: String) -> void:
-	gold += n
-	var msg := "%s +%d" % [reason, n]
-	board.set_feedback(msg)
-	hud._log(msg)
-	invalidate_state()
-	hud._refresh_meta()
-	board.return_to_board()
 
 
 func _begin_player_turn() -> void:

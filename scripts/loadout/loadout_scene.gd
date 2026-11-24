@@ -29,9 +29,6 @@ var _preview_btn: Button = null
 var _preview_panel: PanelContainer = null
 var _preview_box: VBoxContainer = null
 
-# ---- M2 棋盘试玩开关（灰盒期免命令行；只改本进程的 board_config，不写存档）----
-var _board_btn: Button = null
-
 # ---- G6-01 生涯成就面板（只读 meta，不改配装/存档）----
 var _career_btn: Button = null
 var _career_panel: PanelContainer = null
@@ -120,7 +117,6 @@ func configure(ctrl, h: BattleHud) -> void:
 	confirm_btn.text = "确认开战 ▶"
 	confirm_btn.pressed.connect(controller._confirm_loadout)
 	_build_preview_ui()
-	_build_board_toggle()
 	_build_career_ui()
 	_build_forge_ui()
 	_update_loadout_anvil()
@@ -361,43 +357,6 @@ func _toggle_preview() -> void:
 	_preview_panel.visible = not _preview_panel.visible
 	if _preview_panel.visible:
 		_refresh_preview()
-
-
-# ---------------------------------------------------------------------------
-# 地图模式开关：整备底栏入口，线性 ↔ 分岔路线图（2026-11-19 网格已删）。
-# 只改 board_config.enabled 的本进程值，不写存档；确认开战后由 full_reset 读取。
-# ---------------------------------------------------------------------------
-func _build_board_toggle() -> void:
-	if _board_btn != null:
-		return
-	var bar: Node = confirm_btn.get_parent()
-	var idx: int = _preview_btn.get_index() if _preview_btn != null else confirm_btn.get_index()
-	_board_btn = Button.new()
-	_board_btn.add_theme_font_size_override("font_size", 9)
-	_board_btn.pressed.connect(_toggle_board_mode)
-	bar.add_child(_board_btn)
-	bar.move_child(_board_btn, idx)
-	_refresh_board_toggle()
-
-
-# 二态切换：线性 ↔ 分岔路线图
-func _toggle_board_mode() -> void:
-	var cfg = controller.board_config
-	cfg.enabled = not cfg.enabled
-	_refresh_board_toggle()
-	hud._log("地图模式：%s（确认开战后生效）" % _board_mode_name())
-
-
-func _board_mode_name() -> String:
-	return "分岔路线图" if controller.board_config.enabled else "线性"
-
-
-func _refresh_board_toggle() -> void:
-	if _board_btn != null:
-		var active: bool = controller.board_config.enabled
-		_board_btn.text = "🗺 分岔✓" if active else "🗺 线性"
-		_board_btn.modulate = Color(0.72, 0.88, 1.0, 1.0) if active else Color(1, 1, 1, 0.65)
-		_board_btn.tooltip_text = "点击切换：线性 ↔ 分岔路线图（当前：%s）" % _board_mode_name()
 
 
 # ---------------------------------------------------------------------------

@@ -14,7 +14,13 @@ extends RefCounted
 # - 使用统计只在整备确认（装备）与消耗品实际使用、BOSS 结算/战败时写入。
 
 const META_KEY := "codex"
-const NODE = preload("res://scripts/board/board_node_data.gd")
+# 历史 item_sources 里 mode=board 的老档条目仍带 node_type，按静态标签表渲染；
+# 该表从已删除的 board_node_data.gd 迁入，只保留来源展示所需语义。
+const LEGACY_NODE_TYPE_LABEL := {
+	"start": "起点", "normal": "普通", "elite": "精英", "boss": "BOSS",
+	"weapon": "武器", "charm": "护符", "shop": "商店", "rest": "休整",
+	"treasure": "宝箱", "shrine": "神龛", "armory": "武器藏库",
+}
 
 const KIND_LABEL := {"weapon": "武器", "passive": "护符", "active": "消耗品", "skill": "技能"}
 const KIND_ICON := {"weapon": "🗡", "passive": "📿", "active": "🧪", "skill": "✨"}
@@ -427,7 +433,7 @@ func _source_text(e: Dictionary) -> String:
 		bits.append(String(LOOT_SOURCE_LABEL.get(loot, loot)))
 	var nt := String(e.get("node_type", ""))
 	if nt != "":
-		bits.append(String(NODE.label(nt)))
+		bits.append(String(LEGACY_NODE_TYPE_LABEL.get(nt, nt)))
 	else:
 		var rk := String(e.get("room_kind", ""))
 		if rk == "boss":
