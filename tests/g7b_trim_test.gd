@@ -356,5 +356,18 @@ func _test_replace_keeps_shelf(duel: DuelController) -> void:
 	var after: Array[String] = []
 	for o in shop.shop_offers:
 		after.append(String(o.get("path", "")))
-	_check(before == after, "换装不再改写货架（%s → %s）" % [old_path, new_path])
+	# 诊断：打印 before / after 两个货架数组，而不是换装的武器路径——
+	# 失败时需要看到被改写的格，而不是已经成功发生的替换。
+	var removed: Array[String] = []
+	var added: Array[String] = []
+	for p in before:
+		if not after.has(p):
+			removed.append(p.get_file())
+	for p in after:
+		if not before.has(p):
+			added.append(p.get_file())
+	_check(before == after, "换装不再改写货架（before=%s, after=%s, -%s +%s）" % [
+		str(before.map(func(p): return p.get_file())),
+		str(after.map(func(p): return p.get_file())),
+		str(removed), str(added)])
 	_check(not after.has("res://resources/consumables/trim_scissors.tres"), "换装不再强制补货精简剪")
