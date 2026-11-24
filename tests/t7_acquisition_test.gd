@@ -101,7 +101,22 @@ func _part_a_shop_ladder(duel: DuelController) -> void:
 					selected_violations += 1
 			if duel._shop_system.shop_offers.size() != 4:
 				size_bad += 1
-			if not _same_counts(_quality_counts(paths), want):
+			# T4/商店空池回退收口：配置品质该类别无候选时允许「同类别换品质」（相邻档位），
+			# 不再要求多重集严格等于 ladder；但仍禁止跨类别硬塞与任意品质漂移。
+			var cats: Array = LootSourceTable.shop_categories(act)
+			var slot_bad := 0
+			for ci in range(duel._shop_system.shop_offers.size()):
+				var o: Dictionary = duel._shop_system.shop_offers[ci]
+				var got_q: String = _rarity_of(String(o["path"]))
+				var want_q: String = String(ladder[ci]) if ci < ladder.size() else ""
+				if got_q == want_q:
+					continue
+				var want_cat: String = String(cats[ci]) if ci < cats.size() else ""
+				if want_cat != "" and String(o.get("kind", "")) == want_cat \
+						and absi(LootSourceTable.rank(got_q) - LootSourceTable.rank(want_q)) == 1:
+					continue
+				slot_bad += 1
+			if slot_bad > 0:
 				mismatches += 1
 		_check(mismatches == 0, "act%d 货架品质构成 == 阶梯（%d 轮偏差 %d）" % [act, SHOP_ROLLS, mismatches])
 		_check(size_bad == 0, "act%d 货架恒为 4 格（异常 %d 轮）" % [act, size_bad])
