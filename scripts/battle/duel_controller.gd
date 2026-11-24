@@ -228,6 +228,8 @@ var mirror_dmg_mult: float = 1.0       # 迷面诡匠镜面夺盾的无盾兜底
 var enemy_atk = 14
 # N-03（2026-11-21）：本回合只读伤害分解账本。结算层顺带产出，HUD/测试只读，不重算、不反写数值。
 var damage_preview = DAMAGE_PREVIEW.new()
+# T4（2026-11-24）：统一伤害表现事件账本。结算层记录真实 before/after，表现层只读回放。
+var damage_ledger := DamageLedger.new()
 # N-04（2026-11-21）：演出快速跳过标志。仅压缩 _present_turn 的等待，不改结算/RNG；
 # 玩家演出中按回车置位（每次结算开始自动清零）。
 var presentation_skip: bool = false
@@ -1160,6 +1162,7 @@ func _full_reset() -> void:
 # 新一局公共状态重置（不含开战）：已迁至 LoadoutSystem.reset_run_state（P2 架构还债，2026-08-24）——单行转发。
 func _reset_run_state() -> void:
 	_loadout_system.reset_run_state()
+	damage_ledger.begin(0, 0)   # T4：新局清空伤害事件账本
 	_linear_camp_op_granted = false   # T0-1：跨局防御，避免上局中途退出的营地挂起标记污染新局
 	# M-02b：新局清空章节头显示记录与待办，防止跨局污染
 	_chapter_shown_acts.clear()

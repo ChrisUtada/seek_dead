@@ -249,6 +249,8 @@ func evaluate() -> void:
 	# 账本的唯一产出点在 _capture_enemy_preview —— 用 before/after 真实差，保证「预览 = 结算」。
 	var enemy_hp_before: int = int(_ctrl.enemy_hp)
 	var enemy_armor_before: int = int(_ctrl.enemy_armor)
+	# T4：伤害表现账本从本回合真实起始 HP 开局（不与 damage_preview 混用，二者职责不同）。
+	_ctrl.damage_ledger.begin(int(_ctrl.turn_count), enemy_hp_before)
 	# 2026-11-16 顺序优化：结算与表现彻底分离。
 	# 先跑完全部结算（不产生任何飘字/等待），再交给 _present_turn 按「读格 → 攻击齐亮」回放。
 	# 三连/连线倍率依赖整行，必须先算完才知道每格的分量，所以只能「先算后放」。
@@ -1065,6 +1067,8 @@ func _present_turn(acc: Dictionary, counts: Dictionary) -> void:
 			_ctrl.hud.animator.play_attack("player", "enemy", true)
 		# N-03：命中帧一到才把敌人幽灵值切成真实值 + 弹分项飘字（护甲/HP/穿透）。
 		_ctrl.hud.release_enemy_preview()
+		# T4：命中帧后按账本顺序逐段回放（只读事件，不改结算值）。
+		await _ctrl.hud.play_damage_events(_ctrl.damage_ledger.drain(), _ctrl.enemy_hp_max, _ctrl.presentation_skip)
 		_ctrl.hud._popup("-%d%s" % [total, String(acc.get("elem_tag", ""))], Palette.POP_DAMAGE, _ctrl.hud._enemy_sprite_anchor())
 		_ctrl.hud._refresh_meta()
 		await _present_wait(tree, PRESENT_STEP)
@@ -1082,6 +1086,8 @@ func _present_turn(acc: Dictionary, counts: Dictionary) -> void:
 	# N-03 兜底：若本回合有破甲但无伤害（total=0，上面 total>0 分支未释放），
 	# 或纯增益/空转导致幽灵值残留，统一在此释放，保证任何路径都不跨帧残留幽灵值。
 	_ctrl.hud.release_enemy_preview()
+	# T4 兜底：破甲无伤害 / 空转路径也要把账本取空，避免残留到下个表现阶段。
+	await _ctrl.hud.play_damage_events(_ctrl.damage_ledger.drain(), _ctrl.enemy_hp_max, _ctrl.presentation_skip)
 	# 治疗锁兜底：本回合治疗若全来自 regen/护符（无 heal 符号格），锁不会在逐格演出中释放，
 	# 在此统一释放，保证血条不跨回合残留旧值。
 	_ctrl.hud.release_heal_display()
@@ -1248,7 +1254,10 @@ func apply_enemy_damage(amount: float, pierce: bool) -> float:
 	if dmg <= 0:
 		return 0.0
 	if pierce:
+		var hp_before: int = int(_ctrl.enemy_hp)
 		_ctrl.enemy_hp -= dmg
+		# T4：穿透段——before 为加之前真实 HP，after 为扣除后真实 HP（账本不重算）。
+		_ctrl.damage_ledger.record("pierce", dmg, hp_before, int(_ctrl.enemy_hp), "", "none", "apply_enemy_damage")
 		_turn_enemy_pierce_damage += dmg   # 穿透伤害（直击 HP，不吃护甲）
 		_turn_enemy_hp_direct += dmg
 		return float(dmg)
@@ -1256,7 +1265,11 @@ func apply_enemy_damage(amount: float, pierce: bool) -> float:
 	_ctrl.enemy_armor -= to_armor
 	_turn_enemy_armor_consumed += int(to_armor)   # 非穿透伤害真正吃掉的护甲
 	var to_hp = dmg - to_armor
+	var hp_before: int = int(_ctrl.enemy_hp)
 	_ctrl.enemy_hp -= to_hp
+	# T4：破甲后真正进 HP 的部分才记账（amount=to_hp，不是总伤害），保证飘字与血条一致。
+	if to_hp > 0:
+		_ctrl.damage_ledger.record("hit", int(to_hp), hp_before, int(_ctrl.enemy_hp), "", "none", "apply_enemy_damage")
 	_turn_enemy_hp_direct += int(to_hp)
 	return float(dmg)
 
@@ -1345,7 +1358,20 @@ func tick_status() -> int:
 	for st in restored.keys():
 		_ctrl.enemy_status[st] = int(_ctrl.enemy_status.get(st, 0)) + int(restored[st])
 	if dot > 0:
-		_ctrl.enemy_hp -= dot
+		# T4：按 dot_pops 顺序逐条扣血并逐条记账（原先一次性 enemy_hp -= dot）。
+		# 总数 dot 不变、_career.note_status_damage(dot) 仍用总数；允许中途为负，UI 端 clamp。
+		var hp_now: int = int(_ctrl.enemy_hp)
+		for pop in dot_pops:
+			var one: int = int(pop[1])
+			if one <= 0:
+				continue
+			var pop_tag: String = String(pop[0])
+			var pop_elem: String = String(pop[2])
+			var before: int = hp_now
+			hp_now -= one
+			_ctrl.enemy_hp = hp_now
+			var kind: String = "dot_burst" if pop_tag.contains("爆发") else "dot"
+			_ctrl.damage_ledger.record(kind, one, before, hp_now, pop_tag, pop_elem, "tick_status")
 		if _ctrl._career != null:
 			_ctrl._career.note_status_damage(dot)   # G6-01：仅记录 BOSS 房状态伤害（不改结算）
 		# P0/P2：敌人侧 DoT 每类状态一条飘字——元素色（火橙/毒绿/冰蓝）+ 慢速档，与攻击红字快弹分开
