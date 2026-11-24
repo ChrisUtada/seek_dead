@@ -13,23 +13,29 @@ const SEEDS := [11, 22, 33]
 var _fails := 0
 var _checks := 0
 var _p3_turns := 0   # P3 和解尝试回合（每房重置）
+var _p3_drift_reported := false   # 4a：探测字段漂移闩锁，整场只报一次
 
 
 func _ready() -> void:
-	_run()
+	await _run()
 
 
 func _run() -> void:
 	await get_tree().process_frame
 	var duel: DuelController = await _boot()
 	if duel == null:
-		get_tree().quit(2)
+		# 交由下方 checks<=0 守卫打印 FAIL（退出码 1），不在此 quit 掩盖成 DONE。
 		return
 
 	for seed_v in SEEDS:
 		await _one_run(duel, int(seed_v))
 
-	print("AUD|DONE")
+	# 假绿通道收口：零断言时禁止打印 DONE，显式 FAIL + 退出码 1。
+	if _checks <= 0:
+		print("AUD|RESULT FAIL (no checks: boot failed or aborted)")
+		get_tree().quit(1)
+		return
+	print("AUD|RESULT %s (checks=%d fails=%d)" % ["PASS" if _fails == 0 else "FAIL", _checks, _fails])
 	get_tree().quit(1 if _fails > 0 else 0)
 
 
@@ -112,6 +118,8 @@ func _one_run(duel: DuelController, seed_v: int) -> void:
 					just_won = true
 				elif duel._is_run_final(duel.room_index):
 					terminal = "WON_GAME"
+					# 真·最终必须走非暴力和解（peaceful_win），不能靠击杀跳过 P3。
+					_check(bool(duel.peaceful_win), "seed%d 最终房为非暴力和解（peaceful_win=true）" % seed_v)
 					break
 				else:
 					terminal = "BROKEN"
@@ -168,17 +176,18 @@ func _one_run(duel: DuelController, seed_v: int) -> void:
 
 	# 掉落统计：整局结束后对比「理论无掉落基线」——直接重放计数不可行，改由 ROOM 行间 gold/belt 推断已在上文省略；
 	# 此处输出整局终态资产 + 意图分布 + 商店直方图
-	print("AUD|SUMMARY|seed=%d|terminal=%s|rooms=%d|shop_visits=%d|shop_rarity=%s|intents=%s|charms=%d|anvil=%d" % [
+	print("AUD|SUMMARY|seed=%d|terminal=%s|rooms=%d|shop_visits=%d|shop_rarity=%s|intents=%s|charms=%d|anvil=%d%s" % [
 		seed_v, terminal, rooms_won, shop_visits, str(shop_rarity), str(intent_tally),
-		duel.selected_charms.size(), int(duel.meta.get("anvil_points", 0))])
+		duel.selected_charms.size(), int(duel.meta.get("anvil_points", 0)),
+		"|peaceful" if duel.peaceful_win else ""])
 	bal.player_dmg_mult = orig
 	# B 批：真·最终 P3 和解已补进 bot，整局必须真通关，不再用"前24房采集"掩盖 STUCK@25。
-	_check(terminal == "WON_GAME" and rooms_won >= 25,
-		"seed%d 真最终必须 WON_GAME（%s，胜%d房）" % [seed_v, terminal, rooms_won])
+	_check(terminal == "WON_GAME" and rooms_won == 25 and duel.ROOMS.size() == 25,
+		"seed%d 真最终必须 WON_GAME 且恰好25房（%s，胜%d房，ROOMS=%d）" % [seed_v, terminal, rooms_won, duel.ROOMS.size()])
 
 
 func _play_one_turn(duel: DuelController) -> String:
-	# P3（真·最终和解）：优先消耗品；否则定向锁列凑三连（damage/special/heal 符号）
+	# P3（真·最终和解）：优先消耗品；否则定向锁列凑三连（任意非废铁符号，含 status）
 	if _p3_active(duel):
 		if _p3_try_consumable(duel):
 			await get_tree().process_frame
@@ -204,13 +213,24 @@ func _play_one_turn(duel: DuelController) -> String:
 			return "OK"
 		guard += 1
 		await get_tree().process_frame
-	return "DEADLINE"
+	# 5a：帧预算耗尽用独立标签，打印消耗帧数（区别于真正 deadline）。
+	print("AUD|TURN_FRAME_GUARD frames=%d room=%d" % [guard, duel.room_index + 1])
+	return "TURN_FRAME_GUARD"
 
 
 # ---- P3 和解（bot 能力，三个脚本同构；不改生产机制/数值/和解条件）----
 func _p3_active(duel: DuelController) -> bool:
 	var g = duel.current_gimmick
-	return g != null and g.get("_phase3") == true
+	if g == null:
+		return false
+	# 5b：仅「勇者的阴影」要求 _phase3 字段存在，防止探测字段漂移被静默当 false。
+	if String(g.get_script().resource_path).ends_with("shadow_projection_gimmick.gd"):
+		if g.get("_phase3") == null:
+			if not _p3_drift_reported:
+				_p3_drift_reported = true
+				_check(false, "P3 探测字段漂移：勇者的阴影 gimmick 无 _phase3 字段")
+			return false
+	return g.get("_phase3") == true
 
 
 func _p3_try_consumable(duel: DuelController) -> bool:
@@ -231,7 +251,8 @@ func _p3_pick_target(duel: DuelController):
 	var tally := {}
 	for cell in strip:
 		var sym = cell[0] if cell is Array else cell
-		if sym == null or String(sym.kind) not in ["damage", "special", "heal"]:
+		# P3 和解口径 a 收口后 status(poison) 三列同符号也能和解，纳入候选；排除废铁/金币/未命中。
+		if sym == null or String(sym.kind) in ["trash", "gold", "miss"]:
 			continue
 		var key := String(sym.resource_path) + "|" + String(cell[1]) if cell is Array else String(sym.resource_path)
 		tally[key] = int(tally.get(key, 0)) + 1

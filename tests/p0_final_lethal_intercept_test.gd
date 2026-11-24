@@ -7,6 +7,7 @@ extends Node
 # 隔离 APPDATA 运行。
 
 const HEAL := "res://resources/symbols/heal.tres"
+const POISON := "res://resources/symbols/poison.tres"   # kind=status，唯一无核心符号武器的三连和解通路
 
 var _checks := 0
 var _fails := 0
@@ -115,6 +116,24 @@ func _run() -> void:
 	_to_p3(duel, g)
 	g.on_consumable_used(duel, "cleanse")
 	_check(bool(duel.peaceful_win), "和解路径 c：净化消耗品通关")
+	# 5b) 三列同符号即和解（口径 a 收口）——poison(status) 三列，走 on_turn_resolved。
+	# 修前：on_turn_resolved 只认 heal，且 on_special_triple 仅在 acc[triple] 为真时回调
+	#（status 三连不设 acc[triple]），故 poison_dagger 进 P3 无解 → 此例应为红。
+	_start_room(duel, "勇者的阴影")
+	g = duel.current_gimmick
+	_to_p3(duel, g)
+	for r in duel.REELS:
+		duel.grid[r][0] = load(POISON)
+	g.on_turn_resolved(duel)
+	_check(bool(duel.peaceful_win), "和解口径 a：三列 poison(status) 同符号即和解")
+	# 5c) 三列废铁不算和解（排除 trash/gold/miss）
+	_start_room(duel, "勇者的阴影")
+	g = duel.current_gimmick
+	_to_p3(duel, g)
+	for r in duel.REELS:
+		duel.grid[r][0] = duel.TRASH_SYMBOL
+	g.on_turn_resolved(duel)
+	_check(not bool(duel.peaceful_win), "和解口径 a：三列废铁不触发和解")
 	# 非恢复类不触发
 	_start_room(duel, "勇者的阴影")
 	g = duel.current_gimmick
@@ -149,6 +168,73 @@ func _run() -> void:
 		duel.apply_enemy_hp_floor()
 		_check(duel.enemy_hp <= 0, "其他 Boss：直接击杀有效（不受 P0-FINAL 影响）")
 		_check(int(g2.hp_floor(duel)) == -1, "其他 Boss：无血锁下限")
+
+	# 场景8（P3 建池做实）：poison_dagger 单武器建池 → build_strips → 真实三列锁定 → 结算和解。
+	# 负向三废铁已由 5c 覆盖，不再重复。此处验证"无核心符号武器也能靠 status 三连和解"的真实链路。
+	var pd := ""
+	for p in duel.WEAPON_POOL:
+		if String(p).ends_with("poison_dagger.tres"):
+			pd = String(p)
+			break
+	_check(pd != "", "poison_dagger 在武器池中存在")
+	if pd != "":
+		duel.selected_loadout.assign([pd])
+		duel.selected_consumables.clear()
+		duel.selected_charms.clear()
+		duel.selected_skills.clear()
+		duel._confirm_loadout()
+		g = _start_room(duel, "勇者的阴影")
+		# 建池做实：_start_room 内 _build_pool 已填 pool_items，这里显式重建带子。
+		duel.reel_system.build_strips()
+		var rs = duel.reel_system
+		var status_cells := 0
+		var core_cells := 0
+		for r in duel.REELS:
+			var strip: Array = rs.reel_strips[r] if r < rs.reel_strips.size() else []
+			for cell in strip:
+				var sym = cell[0] if cell is Array else cell
+				if sym == null:
+					continue
+				var k := String(sym.kind)
+				if k == "status":
+					status_cells += 1
+				elif k in ["damage", "special", "heal"]:
+					core_cells += 1
+		_check(status_cells >= 3, "poison_dagger 建池：三条 strip 合计 status 格 >=3（实测 %d）" % status_cells)
+		_check(core_cells == 0, "poison_dagger 建池：不含 damage/special/heal 核心符号格（实测 %d）" % core_cells)
+		# 打到 P3
+		duel.enemy_hp_max = 100
+		duel.enemy_hp = 66
+		g.on_damaged(duel, 0)
+		duel.enemy_hp = 19
+		g.on_damaged(duel, 0)
+		duel.enemy_hp = 1
+		_check(bool(g._phase3), "poison_dagger 单武器：敌人被打到 P3")
+		# 真实 spin → 目押锁定：走 begin_spin 正确初始化 cursor/stopped（既有 RNG，不在测试里新增），
+		# 再把每列 cursor 对到 poison 格并 forced 锁定，spin_finished 后真实结算触发 on_turn_resolved。
+		duel._busy = false
+		duel._on_spin_pressed()
+		await get_tree().process_frame
+		for r in duel.REELS:
+			var strip: Array = rs.reel_strips[r]
+			var idx := -1
+			for i in range(strip.size()):
+				var cell = strip[i]
+				var sym = cell[0] if cell is Array else cell
+				if sym != null and String(sym.kind) == "status":   # poison_dagger 只出 status 格
+					idx = i
+					break
+			_check(idx >= 0, "第 %d 列 strip 含 poison(status) 格" % (r + 1))
+			if idx >= 0:
+				rs.reel_cursor[r] = idx
+			rs.lock_reel(r, false, "forced")
+		# 等 spin_finished → 真实 evaluate（含演出等待）→ on_turn_resolved 全部跑完。
+		# 以 game_state 离开 PLAYING 为完成信号，上限 180 帧（3s）兜底，避免固定帧数临界。
+		for _i in range(180):
+			await get_tree().process_frame
+			if duel.peaceful_win or duel.game_state != duel.FlowState.PLAYING:
+				break
+		_check(bool(duel.peaceful_win), "poison_dagger P3：建池三列 poison 真实 spin+结算后和解（无死局）")
 
 	duel.queue_free()
 	await get_tree().process_frame

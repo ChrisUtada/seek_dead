@@ -18,27 +18,31 @@ var _t0 := 0
 var _fails := 0
 var _checks := 0
 var _p3_turns := 0   # P3 和解尝试回合（每房重置）
+var _p3_drift_reported := false   # 4a：探测字段漂移闩锁，整场只报一次
 
 
 func _ready() -> void:
 	_t0 = Time.get_ticks_msec()
-	_run()
+	await _run()
+	# 假绿通道收口：boot 失败或零断言时禁止打印 PASS，显式 FAIL + 退出码 1。
+	if _checks <= 0:
+		print("BASE|RESULT FAIL (no checks: boot failed or aborted)")
+		get_tree().quit(1)
+		return
+	print("---")
+	print("BASE|RESULT %s (checks=%d fails=%d)" % ["PASS" if _fails == 0 else "FAIL", _checks, _fails])
+	get_tree().quit(1 if _fails > 0 else 0)
 
 
 func _run() -> void:
 	await get_tree().process_frame
 	var duel: DuelController = await _boot()
 	if duel == null:
-		print("BASE|RESULT FAIL (boot)")
-		get_tree().quit(2)
+		# 不在此 quit —— 交由 _ready 的 checks<=0 守卫打印 FAIL。
 		return
 
 	await _part_a_static_curves(duel)
 	await _part_b_fair_telemetry(duel)
-
-	print("---")
-	print("BASE|RESULT %s (checks=%d fails=%d)" % ["PASS" if _fails == 0 else "FAIL", _checks, _fails])
-	get_tree().quit(1 if _fails > 0 else 0)
 
 
 func _boot() -> DuelController:
@@ -138,8 +142,9 @@ func _part_b_fair_telemetry(duel: DuelController) -> void:
 	_god_hp(duel)
 	var res := await _drive_run(duel)
 	# B 批：真·最终 P3 和解已补进 bot，遥测局必须 ≥25 房且真通关，不再用 24 房门槛掩盖 P3 卡死。
-	_check(int(res["rooms_won"]) >= 25 and res["terminal"] == "WON_GAME",
-		"遥测局 ≥25 房且 terminal=WON_GAME（terminal=%s won=%d）" % [res["terminal"], int(res["rooms_won"])])
+	# 4e：peaceful 断言已在 _drive_run 的最终房即时断言（见该函数内），此处不重复，只校验房数与终态。
+	_check(int(res["rooms_won"]) == 25 and duel.ROOMS.size() == 25 and res["terminal"] == "WON_GAME",
+		"遥测局恰好25房(ROOMS=%d)且 terminal=WON_GAME（terminal=%s won=%d）" % [duel.ROOMS.size(), res["terminal"], int(res["rooms_won"])])
 
 
 func _drive_run(duel: DuelController) -> Dictionary:
@@ -169,6 +174,8 @@ func _drive_run(duel: DuelController) -> Dictionary:
 					just_won = true
 				elif duel._is_run_final(duel.room_index):
 					out["terminal"] = "WON_GAME"
+					out["peaceful"] = bool(duel.peaceful_win)
+					_check(bool(duel.peaceful_win), "最终房必须非暴力和解（peaceful_win=true）")
 					break
 				else:
 					out["terminal"] = "BROKEN"
@@ -251,13 +258,24 @@ func _play_one_turn(duel: DuelController) -> String:
 			return "OK"
 		guard += 1
 		await get_tree().process_frame
-	return "DEADLINE"
+	# 5a：帧预算耗尽用独立标签，打印消耗帧数（区别于真正 deadline）。
+	print("BASE|TURN_FRAME_GUARD frames=%d room=%d" % [guard, duel.room_index + 1])
+	return "TURN_FRAME_GUARD"
 
 
 # ---- P3 和解（bot 能力，三个脚本同构；不改生产机制/数值/和解条件）----
 func _p3_active(duel: DuelController) -> bool:
 	var g = duel.current_gimmick
-	return g != null and g.get("_phase3") == true
+	if g == null:
+		return false
+	# 5b：仅「勇者的阴影」要求 _phase3 字段存在，防止探测字段漂移被静默当 false。
+	if String(g.get_script().resource_path).ends_with("shadow_projection_gimmick.gd"):
+		if g.get("_phase3") == null:
+			if not _p3_drift_reported:
+				_p3_drift_reported = true
+				_check(false, "P3 探测字段漂移：勇者的阴影 gimmick 无 _phase3 字段")
+			return false
+	return g.get("_phase3") == true
 
 
 func _p3_try_consumable(duel: DuelController) -> bool:
@@ -278,7 +296,8 @@ func _p3_pick_target(duel: DuelController):
 	var tally := {}
 	for cell in strip:
 		var sym = cell[0] if cell is Array else cell
-		if sym == null or String(sym.kind) not in ["damage", "special", "heal"]:
+		# P3 和解口径 a 收口后 status(poison) 三列同符号也能和解，纳入候选；排除废铁/金币/未命中。
+		if sym == null or String(sym.kind) in ["trash", "gold", "miss"]:
 			continue
 		var key := String(sym.resource_path) + "|" + String(cell[1]) if cell is Array else String(sym.resource_path)
 		tally[key] = int(tally.get(key, 0)) + 1

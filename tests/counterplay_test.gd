@@ -37,6 +37,8 @@ var _have_save := false
 var _meta_backup := {}
 var _room_results: Array[String] = []
 var _p3_turns: int = 0   # P3 和解尝试回合计数（每房重置，>10 显式失败）
+var _p3_drift_reported := false   # 4a：探测字段漂移闩锁，整场只报一次
+var _peaceful_assert_count := 0   # 4b：peaceful 断言执行计数，确保该断言真的跑到过
 
 
 func _ready() -> void:
@@ -45,6 +47,11 @@ func _ready() -> void:
 	seed(SEED)
 	await _run()
 	_restore_save()
+	# 假绿通道收口：boot 失败或零断言时禁止打印 PASS，显式 FAIL + 退出码 1。
+	if _checks <= 0:
+		print("COUNTER|RESULT FAIL (no checks: boot failed or aborted)")
+		get_tree().quit(1)
+		return
 	print("---")
 	print("COUNTER|RESULT %s (checks=%d fails=%d)"
 		% ["PASS" if _fails == 0 else "FAIL", _checks, _fails])
@@ -55,8 +62,7 @@ func _run() -> void:
 	await _frames(2)
 	_duel = await _boot()
 	if _duel == null:
-		print("COUNTER|RESULT FAIL (boot)")
-		get_tree().quit(2)
+		# 不在此 quit —— 交由 _ready 的 checks<=0 守卫打印 FAIL（退出码 1），避免掩盖成 PASS。
 		return
 	_meta_backup = _duel.meta.duplicate(true)
 
@@ -329,11 +335,16 @@ func _test_bare_build_all_rooms() -> void:
 		if won:
 			won_count += 1
 			worst_turns = maxi(worst_turns, turns)
+			# 真·最终房必须走非暴力和解——按 gimmick_script 判定，不靠房间名字符串。
+			if room.gimmick_script != null and String(room.gimmick_script.resource_path).ends_with("shadow_projection_gimmick.gd"):
+				_peaceful_assert_count += 1
+				_check(bool(_duel.peaceful_win), "真·最终房（万象投影）为非暴力和解")
 		_check(won, "无装备通关「%s」（%d 回合 / 预算 %d）" % [String(room.name), turns, ROOM_TURN_BUDGET])
-		_room_results.append("%s:%s%d" % [String(room.name), "win" if won else "stuck", turns])
+		_room_results.append("%s:%s%d%s" % [String(room.name), "win" if won else "stuck", turns, "|peaceful" if bool(_duel.peaceful_win) else ""])
 		await _leave_post_battle()
 	print("COUNTER|ROOMS won=%d/%d worst_turns=%d" % [won_count, rooms.size(), worst_turns])
 	_check(won_count == rooms.size(), "61/61 房间无装备可通关（装备不是门票）")
+	_check(_peaceful_assert_count >= 1, "peaceful 断言至少执行过一次（实测 %d）" % _peaceful_assert_count)
 
 
 # ---------------------------------------------------------------------------
@@ -436,7 +447,9 @@ func _play_one_turn() -> String:
 			return "OK"
 		guard += 1
 		await get_tree().process_frame
-	return "TURN_TIMEOUT"
+	# 5a：帧预算耗尽用独立标签，和 P3 无解/真正超时区分开，并打印消耗帧数。
+	print("COUNTER|TURN_FRAME_GUARD frames=%d room=%d" % [guard, _duel.room_index + 1])
+	return "TURN_FRAME_GUARD"
 
 
 func _any_absorbing() -> bool:
@@ -449,7 +462,17 @@ func _any_absorbing() -> bool:
 # ---- P3 和解（bot 能力，不改生产机制）----
 func _p3_active() -> bool:
 	var g = _duel.current_gimmick
-	return g != null and g.get("_phase3") == true
+	if g == null:
+		return false
+	# 5b：探测字段漂移守卫——仅对「勇者的阴影」要求 _phase3 字段存在；
+	# 其它 BOSS gimmick 本就没有该字段，不能误报。
+	if String(g.get_script().resource_path).ends_with("shadow_projection_gimmick.gd"):
+		if g.get("_phase3") == null:
+			if not _p3_drift_reported:
+				_p3_drift_reported = true
+				_check(false, "P3 探测字段漂移：勇者的阴影 gimmick 无 _phase3 字段")
+			return false
+	return g.get("_phase3") == true
 
 
 func _p3_try_consumable() -> bool:
@@ -472,9 +495,10 @@ func _p3_pick_target():
 	var tally := {}
 	for cell in strip:
 		var sym = cell[0] if cell is Array else cell
-		# 三连钩子只在 damage/special/heal 分支设置 acc["triple"]；status 符号不设置，
-		# 因此目标必须选能触发三连的符号类型，否则三列同符号也不触发 P3 和解。
-		if sym == null or String(sym.kind) not in ["damage", "special", "heal"]:
+		# P3 和解条件 a 已收口：gimmick.on_turn_resolved 直接读 grid 三列同符号，
+		# 不再依赖 acc["triple"]（那只由 damage/special 设置）——status(poison) 等符号
+		# 三列同符号也能和解，故候选纳入 status。排除 trash/gold/miss（不算符号三连）。
+		if sym == null or String(sym.kind) in ["trash", "gold", "miss"]:
 			continue
 		var key := String(sym.resource_path) + "|" + String(cell[1]) if cell is Array else String(sym.resource_path)
 		tally[key] = int(tally.get(key, 0)) + 1
