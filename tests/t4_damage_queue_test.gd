@@ -110,6 +110,18 @@ func _case9_single_popup() -> void:
 	# 总伤害大数字：恰好 1 段时不得再弹（A1 的判定接缝）。
 	_check(not _duel.combat._should_show_total_popup(1), "A3 单段时不再弹总伤害大数字")
 	_check(_duel.combat._should_show_total_popup(0), "A3 0 段（纯破甲/空转）仍弹总伤害")
+	# B2：多段（2 段）时判定为 false，且回放飘字总数 == 事件数（不叠总伤害）
+	_check(not _duel.combat._should_show_total_popup(2), "B2 2 段时不叠总伤害")
+	_fresh(200)
+	_duel.combat.apply_enemy_damage(17, false)
+	_duel.enemy_status["burn"] = 1
+	_duel.combat.tick_status()
+	var multi: Array = _duel.damage_ledger.events.duplicate(true)
+	_check(multi.size() == 2, "B2 构造双段事件（实测 %d）" % multi.size())
+	var before2: int = _duel.hud.damage_pop_count
+	await _duel.hud.play_damage_events(multi, _duel.enemy_hp_max, false)
+	var multi_pops: int = _duel.hud.damage_pop_count - before2
+	_check(multi_pops == multi.size(), "B2 双段回放飘字总数 == 事件数（实测 %d）" % multi_pops)
 
 
 # A6-① 每条 dot/dot_burst 事件 tag 非空；hit/pierce 允许为空
