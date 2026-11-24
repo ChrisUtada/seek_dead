@@ -48,6 +48,7 @@ func _run() -> void:
 	_test_state_boundary(duel, meta_backup, mtime_before)
 	_test_ui_entry(duel)
 	_test_no_forced_trim_offer(duel)
+	_test_replace_keeps_shelf(duel)
 
 	duel._trim.reset_run()
 	print("---")
@@ -305,16 +306,55 @@ func _test_no_forced_trim_offer(duel: DuelController) -> void:
 		return
 	# 反向：强制补货方法已移除（改前 has_method 为 true，本断言会红）。
 	_check(not shop.has_method("_ensure_trim_offer"), "换装后不再强制补货精简剪")
-	# 货架快照：无购买动作时保持原样；替换路径的驱动由 Step 2 的集成用例覆盖。
-	var before: Array[String] = []
-	for o in shop.shop_offers:
-		before.append(String(o.get("path", "")))
-	var after: Array[String] = []
-	for o in shop.shop_offers:
-		after.append(String(o.get("path", "")))
-	_check(before == after, "无购买动作时货架快照不变（替换路径由 Step 2 集成用例覆盖）")
 	# 正向：营地精简通道（grant / trims_left）仍可用，复用本文件既有的授予语义。
 	duel._trim.reset_run()
 	duel._trim.grant(1)
 	_check(duel._trim.trims_left() == 1, "营地精简仍可用：授予精简剪后次数 +1")
 	duel._trim.reset_run()
+
+
+# ---------------------------------------------------------------------------
+# ⑩ M-05：真实换装路径不改写货架（旧 bug：_ensure_trim_offer 在 camp 来源时覆盖货架）
+# ---------------------------------------------------------------------------
+
+func _test_replace_keeps_shelf(duel: DuelController) -> void:
+	var shop = duel._shop_system
+	if shop == null:
+		return
+	duel.gold = 999
+	shop.reset_run()
+	duel.current_act = 1
+	duel.room_index = 0
+	shop.roll_shop()
+	_check(shop.shop_offers.size() > 0, "货架已生成")
+	# 测试夹具：自然池可能已含精简剪（方案 C 随机供给）。先移除它，
+	# 让「换装是否强制补货」成为可观测差异，而不是被自然供给掩盖。
+	for i in range(shop.shop_offers.size() - 1, -1, -1):
+		if String(shop.shop_offers[i].get("path", "")) == "res://resources/consumables/trim_scissors.tres":
+			shop.shop_offers.remove_at(i)
+	var before: Array[String] = []
+	for o in shop.shop_offers:
+		before.append(String(o.get("path", "")))
+	# 找一个未持有、未装备的新武器
+	var new_path := ""
+	for p in duel.WEAPON_POOL:
+		var wp := String(p)
+		if duel.run_weapon_inventory.has(wp) or duel.selected_loadout.has(wp):
+			continue
+		new_path = wp
+		break
+	_check(new_path != "", "找到可替换的新武器")
+	if new_path == "":
+		return
+	var old_path := String(duel.selected_loadout[0])
+	var offer := {"path": new_path, "kind": "weapon", "name": shop.shop_name(new_path, "weapon"),
+		"price": shop.shop_price("weapon", -1, new_path), "sold": false}
+	# 必须用 camp：旧 bug 就在营地来源的换装分支
+	shop.on_shop_buy_replace_pressed(offer, old_path, "camp")
+	# 正向先做，否则下面两条货架断言是空断言
+	_check(duel.selected_loadout.has(new_path) and not duel.selected_loadout.has(old_path), "替换确实发生")
+	var after: Array[String] = []
+	for o in shop.shop_offers:
+		after.append(String(o.get("path", "")))
+	_check(before == after, "换装不再改写货架（%s → %s）" % [old_path, new_path])
+	_check(not after.has("res://resources/consumables/trim_scissors.tres"), "换装不再强制补货精简剪")
