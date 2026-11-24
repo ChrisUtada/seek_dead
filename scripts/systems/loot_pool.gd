@@ -219,22 +219,19 @@ func roll_ladder(act: int, tiers: Array, opts: Dictionary = {}) -> Array:
 		var want_cat := String(cats[i]) if i < cats.size() else ""
 		var cand := _ladder_candidates(act, quality, want_cat, used, opts)
 		var via := "本层"
-		# ① 同类别、换品质：按品质档位距离由近到远试（不跨类别，保住货架类别契约）。
+		# ① 同类别、换品质：只试相邻 1 档（与 t7 的 absi(...) == 1 口径一致）。
 		if cand.is_empty() and want_cat != "":
 			var qi: int = LootSourceTable.QUALITIES.find(quality)
-			for dist in range(1, LootSourceTable.QUALITIES.size()):
-				for dq in [qi - dist, qi + dist]:
-					if dq < 0 or dq >= LootSourceTable.QUALITIES.size():
-						continue
-					var alt_q: String = LootSourceTable.QUALITIES[dq]
-					if alt_q == quality:
-						continue
-					var alt := _ladder_candidates(act, alt_q, want_cat, used, opts)
-					if not alt.is_empty():
-						cand = alt
-						via = "同类别换品质(%s→%s)" % [quality, alt_q]
-						break
-				if not cand.is_empty():
+			for dq in [qi - 1, qi + 1]:
+				if dq < 0 or dq >= LootSourceTable.QUALITIES.size():
+					continue
+				var alt_q: String = LootSourceTable.QUALITIES[dq]
+				if alt_q == quality:
+					continue
+				var alt := _ladder_candidates(act, alt_q, want_cat, used, opts)
+				if not alt.is_empty():
+					cand = alt
+					via = "同类别换品质(%s→%s)" % [quality, alt_q]
 					break
 		# ② 仍空 → 同品质、换类别（保留 no_weapon_fallback 的 exclude_kind=weapon）。
 		if cand.is_empty():
@@ -244,8 +241,9 @@ func roll_ladder(act: int, tiers: Array, opts: Dictionary = {}) -> Array:
 			cand = _ladder_candidates(act, quality, "", used, fb_opts)
 			if not cand.is_empty():
 				via = "同品质换类别(%s→任意)" % quality
-		# ③ 候选不足 2 条视为空池：不用唯一一件道具硬塞异类别格（ ACT1 trim_scissors 8/8 的根因）。
-		if cand.size() < 2:
+		# ③ 候选不足 2 条仅在回退路径上视为空池：主路径的合法单候选照常上架；
+		# 回退时才不用唯一一件道具硬塞异类别格（ACT1 trim_scissors 8/8 的根因）。
+		if cand.size() < 2 and via != "本层":
 			Debug.log("SHOP_FALLBACK act=%d 品质=%s 类别=%s → 实际=%s 候选数=%d（空池留格）" % [
 				act, quality, want_cat if want_cat != "" else "(任意)", "empty_tier", cand.size()])
 			out.append({"ok": false, "quality": quality, "path": "", "reason": "empty_tier"})
