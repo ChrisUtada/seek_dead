@@ -1643,6 +1643,32 @@ func _apply_hp_bar(bar: VitalBar, root: Control, new_ratio: float, prev_ratio: f
 	bar.refresh(new_ratio, prev_ratio, shield_len)
 
 
+# T4（2026-11-24）：按账本顺序逐段回放敌人掉血。
+# 只读事件：不改 enemy_hp / enemy_armor / game_state / RNG；段间 0.12s；skip 时只压缩演出。
+func play_damage_events(events: Array, hp_max: int, skip: bool) -> void:
+	if events.is_empty():
+		return
+	var mx: float = float(maxi(1, hp_max))
+	var prev_ratio: float = _ev_hp_prev
+	var last_ratio: float = prev_ratio
+	for e in events:
+		var amount: int = int(e.get("amount", 0))
+		var after: int = int(e.get("after", 0))
+		var ratio: float = clampf(float(after) / mx, 0.0, 1.0)
+		var kind: String = String(e.get("kind", ""))
+		var elem: String = String(e.get("element", "none"))
+		if not skip:
+			_apply_hp_bar(enemy_hp_bar, enemy_vitals, ratio, prev_ratio, 0.0)
+			var color: Color = ElementCounter.color(elem) if elem != "none" else Palette.POP_DAMAGE
+			_popup("-%d" % amount, color, _enemy_sprite_anchor(), kind == "dot" or kind == "dot_burst")
+			await get_tree().create_timer(0.12).timeout
+		prev_ratio = ratio
+		last_ratio = ratio
+	# skip 与正常路径都落到真实比例；段间等待只压缩演出，不影响终值。
+	_apply_hp_bar(enemy_hp_bar, enemy_vitals, last_ratio, _ev_hp_prev, 0.0)
+	_ev_hp_prev = clampf(float(int(controller.state.enemy_hp)) / mx, 0.0, 1.0) if controller != null else last_ratio
+
+
 # 盾段长度：盾量 / 生命上限 × 血段满宽（与红段同尺）；有一点盾就至少 2px 可见
 func _shield_len_of(value: int, hp_max: int) -> float:
 	if value <= 0:
