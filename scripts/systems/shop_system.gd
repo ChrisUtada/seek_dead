@@ -178,15 +178,18 @@ func roll_shop(keep_weapons: bool = false) -> void:
 			continue
 		var p := String(slot["path"])
 		var kind := _shop_kind(p)
+		var slot_tier := String(slot.get("quality", ""))
 		if kind == "":
 			continue
 		# 报价在货架生成时锁定（offer["price"]）——显示与购买统一读它；
 		# 固定目录价下 shop_price 已是确定性纯函数，锁定报价仍保留，避免显示/结算走两套取值。
 		if kind == "weapon" and frozen_idx < frozen_weapons.size():
-			shop_offers.append(frozen_weapons[frozen_idx])   # 冻结对象：reroll 不换武器
+			var fw: Dictionary = (frozen_weapons[frozen_idx] as Dictionary).duplicate()
+			fw["tier"] = slot_tier   # B3：槽位 tier 随 offer 走，空槽跳位也不会错位
+			shop_offers.append(fw)
 			frozen_idx += 1
 		else:
-			shop_offers.append({"path": p, "kind": kind, "name": shop_name(p, kind), "price": shop_price(kind, -1, p), "sold": false})
+			shop_offers.append({"path": p, "kind": kind, "name": shop_name(p, kind), "price": shop_price(kind, -1, p), "sold": false, "tier": slot_tier})
 	# 仅「新房首次 roll」计入配额；跳过/买不起也算该次机会已出现
 	var fresh_weapons: int = 0
 	for o in shop_offers:

@@ -108,7 +108,9 @@ func _part_a_shop_ladder(duel: DuelController) -> void:
 			for ci in range(duel._shop_system.shop_offers.size()):
 				var o: Dictionary = duel._shop_system.shop_offers[ci]
 				var got_q: String = _rarity_of(String(o["path"]))
-				var want_q: String = String(ladder[ci]) if ci < ladder.size() else ""
+				# B3：空槽会被 roll_shop 跳过，不能用 offers[ci] 对 ladder[ci]；
+				# 用 offer 自带的 tier（槽位品质）做期望，避免错位。
+				var want_q: String = String(o.get("tier", "")) if String(o.get("tier", "")) != "" else (String(ladder[ci]) if ci < ladder.size() else "")
 				if got_q == want_q:
 					continue
 				var want_cat: String = String(cats[ci]) if ci < cats.size() else ""

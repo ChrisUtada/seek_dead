@@ -84,6 +84,9 @@ func _run() -> void:
 				mismatch = "offer 数 %d > 类别数 %d" % [kinds.size(), expected.size()]
 			_check(mismatch == "", "B1 ACT%d 第 %d 次 roll kind 序列合法（%s，期望 %s）%s" % [
 				act, _i + 1, _kinds_text(kinds), str(expected), mismatch])
+			# B4：三幕 8 roll 空槽数 == 0（roll_shop 跳过 ok:false 槽会让 offers 变短）
+			_check(_duel._shop_system.shop_offers.size() == 4,
+				"B4 ACT%d 第 %d 次 roll 空槽数 0（实测 %d 格）" % [act, _i + 1, _duel._shop_system.shop_offers.size()])
 			# B3：至少一条 rare 格填满（按 tiers 中的 rare 下标检查对应 offer 存在且 kind 非空）
 			for ti in tiers.size():
 				if String(tiers[ti]) == "rare" and ti < kinds.size() and kinds[ti] != "":
