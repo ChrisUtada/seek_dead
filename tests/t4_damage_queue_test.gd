@@ -94,6 +94,22 @@ func _run() -> void:
 	await _case6_fixed_seed()
 	await _case7_skip_bar()
 	await _case8_tag_and_purity()
+	await _case9_single_popup()
+
+
+# A3：单段攻击只弹一次飘字，不得叠加第二条总伤害
+func _case9_single_popup() -> void:
+	_fresh(100)
+	_duel.combat.apply_enemy_damage(17, false)
+	var ev: Array = _duel.damage_ledger.events.duplicate(true)
+	_check(ev.size() == 1, "A3 构造单段事件（实测 %d）" % ev.size())
+	var before: int = _duel.hud.damage_pop_count
+	await _duel.hud.play_damage_events(ev, _duel.enemy_hp_max, false)
+	var replay_pops: int = _duel.hud.damage_pop_count - before
+	_check(replay_pops == ev.size(), "A3 单段回放飘字次数 == 事件数（实测 %d）" % replay_pops)
+	# 总伤害大数字：恰好 1 段时不得再弹（A1 的判定接缝）。
+	_check(not _duel.combat._should_show_total_popup(1), "A3 单段时不再弹总伤害大数字")
+	_check(_duel.combat._should_show_total_popup(0), "A3 0 段（纯破甲/空转）仍弹总伤害")
 
 
 # A6-① 每条 dot/dot_burst 事件 tag 非空；hit/pierce 允许为空
