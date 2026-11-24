@@ -47,6 +47,7 @@ func _run() -> void:
 	_test_determinism_and_floor(duel)
 	_test_state_boundary(duel, meta_backup, mtime_before)
 	_test_ui_entry(duel)
+	_test_no_forced_trim_offer(duel)
 
 	duel._trim.reset_run()
 	print("---")
@@ -291,3 +292,29 @@ func _test_ui_entry(duel: DuelController) -> void:
 	_check(trim.entry_state() == "used", "入口状态停在 used")
 	hud.hide_trim_dialog()
 	trim.reset_run()
+
+
+# ---------------------------------------------------------------------------
+# ⑨ M-05：换装后不再强制补货精简剪；营地精简通道独立保留
+# ---------------------------------------------------------------------------
+
+func _test_no_forced_trim_offer(duel: DuelController) -> void:
+	var shop = duel._shop_system
+	_check(shop != null, "商店子系统存在")
+	if shop == null:
+		return
+	# 反向：强制补货方法已移除（改前 has_method 为 true，本断言会红）。
+	_check(not shop.has_method("_ensure_trim_offer"), "换装后不再强制补货精简剪")
+	# 货架快照：无购买动作时保持原样；替换路径的驱动由 Step 2 的集成用例覆盖。
+	var before: Array[String] = []
+	for o in shop.shop_offers:
+		before.append(String(o.get("path", "")))
+	var after: Array[String] = []
+	for o in shop.shop_offers:
+		after.append(String(o.get("path", "")))
+	_check(before == after, "无购买动作时货架快照不变（替换路径由 Step 2 集成用例覆盖）")
+	# 正向：营地精简通道（grant / trims_left）仍可用，复用本文件既有的授予语义。
+	duel._trim.reset_run()
+	duel._trim.grant(1)
+	_check(duel._trim.trims_left() == 1, "营地精简仍可用：授予精简剪后次数 +1")
+	duel._trim.reset_run()

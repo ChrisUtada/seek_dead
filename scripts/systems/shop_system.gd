@@ -87,25 +87,8 @@ func on_shop_buy_replace_pressed(offer: Dictionary, old_path: String, source: St
 		_ctrl._journal.note_weapon_change(String(old_name), String(offer["name"]), "营地" if source == "camp" else "商店")
 	_ctrl._build_pool(_ctrl.selected_loadout)   # 换装立即重建符号池
 	_ctrl.hud._log("替换：%s → %s（-%d 金，余 %d）" % [old_name, offer["name"], buy_price, _ctrl.gold])
-	_ensure_trim_offer()
+	# 2026-11-24 M-05：移除换装后强制补货，精简剪改由自然货架与营地整理提供；此处不再覆盖货架。
 	_ctrl.invalidate_state()
-
-
-# B 方案：精简剪每幕常驻一格 —— 它是带子变胖的唯一解药，不能靠掉落运气。
-const TRIM_ITEM_PATH := "res://resources/consumables/trim_scissors.tres"
-
-
-func _ensure_trim_offer() -> void:
-	for o in shop_offers:
-		if String(o.get("path", "")) == TRIM_ITEM_PATH:
-			return
-	if shop_offers.is_empty():
-		return
-	var k := _shop_kind(TRIM_ITEM_PATH)
-	shop_offers[shop_offers.size() - 1] = {
-		"path": TRIM_ITEM_PATH, "kind": k, "name": shop_name(TRIM_ITEM_PATH, k),
-		"price": shop_price(k, -1, TRIM_ITEM_PATH), "sold": false,
-	}
 
 
 # G5 工具：自动记录购买（source 只区分商店/营地，不改变购买逻辑）。
