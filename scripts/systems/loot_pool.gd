@@ -218,17 +218,41 @@ func roll_ladder(act: int, tiers: Array, opts: Dictionary = {}) -> Array:
 		var quality := String(tiers[i])
 		var want_cat := String(cats[i]) if i < cats.size() else ""
 		var cand := _ladder_candidates(act, quality, want_cat, used, opts)
+		var via := "本层"
+		# ① 同类别、换品质：按品质档位距离由近到远试（不跨类别，保住货架类别契约）。
 		if cand.is_empty() and want_cat != "":
-			# T1.5 契约返工：商店非武器格空池回退时不得抽到武器——武器格由每幕配额显式控制，
-			# 若回退也出武器会让武器候选突破配额（如首房一次生成 2 把）。仅商店传 no_weapon_fallback=true，
-			# 其他 roll_ladder 调用方行为不变。
+			var qi: int = LootSourceTable.QUALITIES.find(quality)
+			for dist in range(1, LootSourceTable.QUALITIES.size()):
+				for dq in [qi - dist, qi + dist]:
+					if dq < 0 or dq >= LootSourceTable.QUALITIES.size():
+						continue
+					var alt_q: String = LootSourceTable.QUALITIES[dq]
+					if alt_q == quality:
+						continue
+					var alt := _ladder_candidates(act, alt_q, want_cat, used, opts)
+					if not alt.is_empty():
+						cand = alt
+						via = "同类别换品质(%s→%s)" % [quality, alt_q]
+						break
+				if not cand.is_empty():
+					break
+		# ② 仍空 → 同品质、换类别（保留 no_weapon_fallback 的 exclude_kind=weapon）。
+		if cand.is_empty():
 			var fb_opts: Dictionary = opts.duplicate()
 			if bool(opts.get("no_weapon_fallback", false)) and want_cat != "weapon":
 				fb_opts["exclude_kind"] = "weapon"
 			cand = _ladder_candidates(act, quality, "", used, fb_opts)
-		if cand.is_empty():
+			if not cand.is_empty():
+				via = "同品质换类别(%s→任意)" % quality
+		# ③ 候选不足 2 条视为空池：不用唯一一件道具硬塞异类别格（ ACT1 trim_scissors 8/8 的根因）。
+		if cand.size() < 2:
+			Debug.log("SHOP_FALLBACK act=%d 品质=%s 类别=%s → 实际=%s 候选数=%d（空池留格）" % [
+				act, quality, want_cat if want_cat != "" else "(任意)", "empty_tier", cand.size()])
 			out.append({"ok": false, "quality": quality, "path": "", "reason": "empty_tier"})
 			continue
+		if via != "本层":
+			Debug.log("SHOP_FALLBACK act=%d 品质=%s 类别=%s → 实际=%s 候选数=%d" % [
+				act, quality, want_cat if want_cat != "" else "(任意)", via, cand.size()])
 		var path := String(cand[rng.randi_range(0, cand.size() - 1)])
 		used[path] = true
 		out.append({"ok": true, "quality": quality, "path": path, "reason": ""})
