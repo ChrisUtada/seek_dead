@@ -1,0 +1,3 @@
+# Markdown 文档用「行尾两个空格」表示引用块/段落内的硬换行，这是合法语法。
+# 关闭该文件类型的 blank-at-eol 空白检查，避免 git diff --check 报错后被人误删换行。
+*.md whitespace=-blank-at-eol
