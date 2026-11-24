@@ -101,8 +101,25 @@ func on_turn_begin(ctrl) -> void:
 func on_turn_resolved(ctrl) -> void:
 	if not _phase3:
 		return
-	# 和解条件 b)：本回合转轮打出治疗（heal）符号
 	var g: Array = ctrl.grid
+	# 和解条件 a) 口径收口（2026-11-24）：任意三列同符号即和解，不再依赖 on_special_triple。
+	# 原 on_special_triple 仅在 acc["triple"] 为真时回调，而 acc["triple"] 只由 damage/special
+	# 三连设置——status(poison) / heal / buff 三连都不覆盖，poison_dagger 这类无核心符号武器
+	# 进 P3 会死局。此处直接读 grid 三列，补上「任意三连」的基线口径（§5 T1 / gimmick:17）。
+	# 排除 trash/gold：废铁/金币的三列不算「符号三连」，不可和解。
+	# 4c：三列同符号按 resource_path 比较而非对象引用——同一符号的多份实例也应算三连。
+	if g.size() >= 3 and g[0].size() > 0 and g[1].size() > 0 and g[2].size() > 0:
+		var s0 = g[0][0]
+		var s1 = g[1][0]
+		var s2 = g[2][0]
+		if s0 != null and s1 != null and s2 != null:
+			var p0 := String(s0.resource_path)
+			if p0 != "" and p0 == String(s1.resource_path) and p0 == String(s2.resource_path):
+				var kind := String(s0.kind)
+				if kind not in ["trash", "gold"]:
+					ctrl.resolve_peaceful_win()
+					return
+	# 和解条件 b)：本回合转轮打出治疗（heal）符号
 	for reel in g:
 		if reel.size() > 0 and reel[0] != null and reel[0].kind == "heal":
 			ctrl.resolve_peaceful_win()
