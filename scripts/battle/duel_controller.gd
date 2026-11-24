@@ -1565,7 +1565,7 @@ func _start_linear_camp(idx: int) -> void:
 	# 整理可用性：授予 1 次后有合法候选（符号可减或技能可卸）才算可整理，不给假选项。
 	_trim.grant(1)
 	_linear_camp_op_granted = true   # T0-1：本次机会已入池；整理消耗或结算回收前保持挂起
-	var can_trim: bool = _trim.trims_left() > 0 and not _trim.candidates().is_empty()
+	var can_trim: bool = not _trim.candidates().is_empty()
 	if not can_trim:
 		_trim.granted = maxi(0, _trim.granted - 1)   # 无候选则收回授予，避免残留次数
 		_linear_camp_op_granted = false              # 授予已撤回，无需再回收
