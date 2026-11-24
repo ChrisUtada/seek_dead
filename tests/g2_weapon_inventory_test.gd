@@ -131,9 +131,16 @@ func _test_g2g2_generation_split(duel: DuelController) -> void:
 	var aw := load(awp)
 	_ok(aw != null and String(ad.rarity) == String(aw.get("rarity")),
 		"F-01 acquire rarity 与武器真实稀有度一致（%s，实测 %s）" % [String(aw.get("rarity")) if aw != null else "?", String(ad.rarity)])
-	# F-01：swap 是仓库服务，统一 common，不冒充新品质掉落
+	# W-01A：swap 卡面继承真实稀有度（非法值回退 common）；抽取权重仍走 common 口径。
 	for d in swap_defs:
-		_ok(String(d.rarity) == "common", "F-01 swap 标为 common（仓库服务非新品质掉落）")
+		var wp := String(d.effects[0].get("params", {}).get("weapon_path", ""))
+		var w := load(wp)
+		var real_rarity := String(w.get("rarity")) if w != null and w.has_method("get") else "common"
+		if not ["common", "uncommon", "rare", "epic"].has(real_rarity):
+			real_rarity = "common"
+		_ok(String(d.rarity) == real_rarity,
+			"F-01 swap 卡面 rarity == 真实稀有度（%s，实测 %s）" % [real_rarity, String(d.rarity)])
+		_ok(String(d.draw_rarity_override) == "common", "F-01 swap draw_rarity_override == common")
 	# _draft_extra 两池都含
 	var extra: Array = rs._draft_extra()
 	var has_swap := false
