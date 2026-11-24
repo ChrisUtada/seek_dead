@@ -120,6 +120,8 @@ func on_spin_pressed() -> void:
 		_ctrl._busy = false
 		return
 	if _ctrl.enemy_hp <= 0:
+		# T4/C1 顺序锁：evaluate() 内已 await 完 attack 段的 play_damage_events，
+		# 此处才允许进死亡演出；禁止把死亡判定移到回放之前。
 		# T0-4A：统一死亡收口——播放死亡溶解、等演出完成再开奖励。
 		await _settle_kill_async("★ 击败 %s！" % _ctrl.enemy_name)
 		return
@@ -130,6 +132,8 @@ func on_spin_pressed() -> void:
 	# 再让敌人执行意图——否则 DoT 飘字与敌人攻击前摇同帧冒出，会被误读成攻击伤害。
 	const DOT_LEAD := 0.16
 	var dot_dmg: int = _ctrl.combat.tick_status()
+	# T4：DoT 段在真实扣血后、死亡判定前按账本顺序逐段回放（bar 走到 0 后才允许进死亡演出）。
+	await _ctrl.hud.play_damage_events(_ctrl.damage_ledger.drain(), _ctrl.enemy_hp_max, _ctrl.presentation_skip)
 	_ctrl.invalidate_state()
 	if dot_dmg > 0 and _ctrl.enemy_hp > 0:
 		await _ctrl.get_tree().create_timer(DOT_LEAD).timeout
@@ -140,6 +144,7 @@ func on_spin_pressed() -> void:
 	# 2026-11-16 P0：DoT 已前置到敌人回合开始。若敌人被状态伤害击倒，
 	# 先判胜利再播演出——否则会出现「尸体还在放攻击特效」。
 	if _ctrl.enemy_hp <= 0:
+		# T4/C2 顺序锁：上方已 await DoT 回放（含致死段 bar 走到 0），此处才进死亡演出。
 		# T0-4A：DoT 击杀同样走统一死亡收口。
 		await _settle_kill_async("★ 击败 %s！（状态结算）" % _ctrl.enemy_name)
 		return
