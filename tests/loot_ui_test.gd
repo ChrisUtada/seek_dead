@@ -462,14 +462,13 @@ func _first_unowned_weapon() -> String:
 # ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
-# ⑦ RNG / 地图隔离
+# ⑦ RNG / 房间表隔离
 # ---------------------------------------------------------------------------
 
 func _test_rng_isolation() -> void:
 	_fresh()
 	var seed0: int = int(_duel._reward_system._loot.seed_value())
 	var rooms0 := _rooms_signature()
-	var board0 := _board_signature()
 	_duel.room_flow.begin_post_battle()
 	_duel._on_loot_offer_reroll()
 	_duel._on_loot_offer_reroll()
@@ -477,7 +476,6 @@ func _test_rng_isolation() -> void:
 	_duel.room_flow.reset_flow()
 	_check(int(_duel._reward_system._loot.seed_value()) == seed0, "开关奖励屏不改战利品 RNG 种子")
 	_check(_rooms_signature() == rooms0, "开关奖励屏不改房间表")
-	_check(_board_signature() == board0, "开关奖励屏不改棋盘内容")
 
 
 func _rooms_signature() -> String:
@@ -485,15 +483,6 @@ func _rooms_signature() -> String:
 	for r in _duel.ROOMS:
 		bits.append("%s:%d" % [String(r.kind), int(r.act)])
 	return ",".join(bits)
-
-
-func _board_signature() -> String:
-	if _duel.board == null:
-		return "no_board"
-	var bits: Array[String] = []
-	for n in _duel.board.nodes:
-		bits.append(str(n))
-	return "|".join(bits)
 
 
 # ---------------------------------------------------------------------------

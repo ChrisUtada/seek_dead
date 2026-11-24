@@ -137,7 +137,6 @@ func _run_match(build_key: String, room_key: String, run_seed: int) -> Dictionar
 	add_child(duel)
 	await _wait(0.35)
 	seed(run_seed)
-	duel.board_config.enabled = false
 	duel.selected_loadout.assign(build["weapons"])
 	duel.selected_skills.assign(build["skills"])
 	duel.selected_charms.clear()

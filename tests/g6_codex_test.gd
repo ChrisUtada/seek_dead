@@ -133,7 +133,13 @@ func _test_sources(duel: DuelController) -> void:
 	duel._meta_store.record_source(DAGGER, {"act": 1, "mode": "linear", "room_kind": "boss", "room": "测试 BOSS"})
 	var srcs: Array = duel._codex.source_lines(DAGGER)
 	_check(srcs.size() == 2, "两个不同来源各留一条")
-	_check(_joined(srcs).contains("棋盘") and _joined(srcs).contains("测试武器格"), "棋盘来源带节点类型与房间")
+	# 老档 mode=board 的来源记录仍能正常渲染（读路径回归，棋盘系统已删除）。
+	var board_line := ""
+	for s in srcs:
+		if String(s).contains("棋盘"):
+			board_line = String(s)
+	_check(board_line.contains("棋盘") and board_line.contains("武器") and board_line.contains("测试武器格"),
+		"老档 mode=board 来源记录仍能正常渲染（棋盘 + 节点类型 + 房间）")
 	_check(_joined(srcs).contains("BOSS 房"), "线性来源带 BOSS 房标记")
 
 

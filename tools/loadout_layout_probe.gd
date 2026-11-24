@@ -94,10 +94,9 @@ func _run() -> void:
 
 	get_window().size = Vector2i(960, 540)
 	await _wait(0.4)
-	_duel.board_config.enabled = true
 	_duel._confirm_loadout()
 	await _wait(1.2)
-	await _shot("board_960x540")
+	await _shot("battle_960x540")
 	var f := FileAccess.open("%s/probe_data.txt" % OUT_DIR, FileAccess.WRITE)
 	if f != null:
 		f.store_string("\n".join(_lines) + "\n")

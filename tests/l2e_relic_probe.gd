@@ -33,9 +33,6 @@ func _ready() -> void:
 	_duel = scene_res.instantiate()
 	add_child(_duel)
 	await _frames(3)
-	# 禁用地图/存档干扰，专注遗物逻辑
-	if "node_mode" in _duel:
-		_duel.node_mode = false
 
 	var room: Resource = load(ROOM)
 	var relic_path: String = String(room.boss_relic_path)

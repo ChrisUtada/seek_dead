@@ -34,7 +34,6 @@ func _boot() -> void:
 		await get_tree().process_frame
 	_duel.demo_config.enabled = false
 	_duel.demo_config.act_only = false
-	_duel.board_config.enabled = false
 	_duel._confirm_loadout()
 	for i in 3:
 		await get_tree().process_frame

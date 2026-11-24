@@ -34,7 +34,6 @@ func _run() -> void:
 	_duel = load(DUEL_SCENE).instantiate() as DuelController
 	add_child(_duel)
 	await _frames(8)
-	_duel.board_config.enabled = false
 	_duel._confirm_loadout()
 	await _frames(4)
 	_lines.append("# G7-A S5 · ACT2/ACT3 机制房逐个开打 %s" % Time.get_datetime_string_from_system())

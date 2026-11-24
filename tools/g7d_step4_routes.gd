@@ -72,7 +72,6 @@ func _run() -> void:
 	_duel = load(DUEL_SCENE).instantiate() as DuelController
 	add_child(_duel)
 	await _frames(8)
-	_duel.board_config.enabled = false
 	await _frames(2)
 	Engine.time_scale = 8.0   # 夹具加速：回合演出计时器按 8× 走，不改变结算逻辑
 	print("G7D_STEP4|boot ok")

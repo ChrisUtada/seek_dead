@@ -3,6 +3,8 @@ extends Node
 # S4-2/3 回整备字段级清理测试（2026-11-21）
 # 验证：回整备清整备页可见残留（扩槽/预览/临时字段）、局外收藏不变、
 # 再配装不产生双重发奖或双重日志、新局状态合规。
+# M-04（2026-11-24）：棋盘专用字段 pending_armor_break 已随地图层删除而移除
+# （改动前仅由棋盘节点的 armor_break 赋值），本用例不再覆盖该字段。
 
 var _fails := 0
 var _checks := 0
@@ -36,7 +38,6 @@ func _ready() -> void:
 	duel.deprived_level = 2
 	duel.room_element_mult["fire"] = 2.0
 	duel.pending_chaos = true
-	duel.pending_armor_break = true
 	duel.boss_trash = 3
 	duel.mastery.mastery["res://resources/weapon_templates/dagger.tres"] = 50
 
@@ -57,7 +58,6 @@ func _ready() -> void:
 	_ok(duel.deprived_level == 0, "deprived_level cleared")
 	_ok(duel.room_element_mult.is_empty(), "room_element_mult cleared")
 	_ok(not duel.pending_chaos, "pending_chaos cleared")
-	_ok(not duel.pending_armor_break, "pending_armor_break cleared")
 	_ok(duel.boss_trash == 0, "boss_trash cleared")
 	_ok(duel.mastery.mastery.is_empty(), "mastery cleared on return")
 

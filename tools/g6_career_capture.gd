@@ -37,11 +37,7 @@ func _run() -> void:
 	add_child(_duel)
 	await _wait_frames(8)
 	await _wait(0.4)
-	# G6-03：用固定棋盘骨架与特殊格，让局末总结展示真实棋盘路线（只影响本进程）。
-	_duel.board_config.enabled = true
-	_duel.board_config.shape_id = "standard"
-	_duel.board_config.special_id = "treasure"
-	# 先确认开战以构建本局 ROOMS（否则 room_index 无 BOSS 可指），再回整备截图。
+	# 先确认开战以构建本局线性 ROOMS（否则 room_index 无 BOSS 可指），再回整备截图。
 	_duel._confirm_loadout()
 	await _wait(0.4)
 
@@ -51,7 +47,6 @@ func _run() -> void:
 	career.record_boss("res://resources/rooms/a1_bulwark_poison.tres")
 	career.record_boss("res://resources/rooms/a1_striker_light.tres")
 	career.record_boss("res://resources/rooms/a1_trickster_dark.tres")
-	career.note_board_weapon()
 	for i in range(_duel.ROOMS.size()):
 		if _duel.ROOMS[i].kind == "boss":
 			_duel.room_index = i

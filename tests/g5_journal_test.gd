@@ -17,7 +17,6 @@ func _ready() -> void:
 func _run() -> void:
 	var duel: DuelController = load(DUEL_SCENE).instantiate() as DuelController
 	duel.demo_config.enabled = true
-	duel.board_config.enabled = true   # 本用例断言棋盘字段，固定走棋盘局
 	add_child(duel)
 	await _frames(6)
 	duel._confirm_loadout()
@@ -26,9 +25,6 @@ func _run() -> void:
 	_check(duel._journal != null, "journal 已实例化")
 	if duel._journal != null:
 		_check(duel._journal.is_active(), "start_run 已激活记录")
-		duel._journal.note_board_shown()
-		duel._journal.note_first_pick("n1")
-		duel._journal.note_node({"id": "n1", "type": "normal", "depth": 1})
 		var room: RoomData = load("res://resources/rooms/acid_ghoul.tres")
 		duel.enemy_hp_max = 123
 		duel.enemy_atk = 7
@@ -78,17 +74,34 @@ func _run() -> void:
 			var d = JSON.parse_string(js)
 			_check(d is Dictionary, "JSON 可解析")
 			if d is Dictionary:
-				_check(String(d.get("mode", "")) == "board", "mode=board")
+				_check(String(d.get("mode", "")) == "linear", "新局固定 mode=linear")
 				_check(String(d.get("result", "")) == "clear", "result=clear")
-				_check(int(d.get("battles_count", 0)) == 1, "战斗计数=1")
+				# 线性模式确认配装即自动开第一房，测试再手动记一场 BOSS → 共 2 场。
+				var bc := int(d.get("battles_count", 0))
+				_check(bc == 2, "战斗计数=2（线性确认配装自动开首房 + 手动记录 1 场 BOSS）")
 				_check(float(d.get("duration_sec", 0.0)) > 0.0, "时长已记录")
-				var fp: Dictionary = d.get("first_pick", {})
-				_check(String(fp.get("node", "")) == "n1", "首次落点已记录")
+				_check((d.get("first_pick", {}) as Dictionary).is_empty(), "线性局不记录棋盘落点")
 		if txt_files.size() > 0:
 			var txt := _read(txt_files[0])
-			for k in ["骨架", "模板", "10 秒找落点", "用时", "自动记录"]:
+			for k in ["模式：线性", "无棋盘路线", "未记录（本局没有手动点击落点）", "自动记录"]:
 				_check(txt.contains(k), "记录表包含「%s」" % k)
 			_check(txt.contains("主观项"), "记录表声明不含主观项")
+
+	# 历史 mode=board 的老档记录仍可再渲染（读路径回归，棋盘系统已删除）。
+	if duel._journal != null:
+		var history := {
+			"mode": "board",
+			"board": {"shape": "map14x9", "template": "standard", "nodes": 61, "cells": 126},
+			"acts": [{"act": 1, "shape": "map14x9"}],
+			"route": [{"act": 1, "id": "b0_start", "type": "start", "depth": 0}],
+			"first_pick": {"seconds": 6.5, "node": "b1_n1"},
+		}
+		duel._journal._data = history
+		var old_txt: String = String(duel._journal._record_text())
+		_check(old_txt.contains("模式：棋盘"), "老档 mode=board 渲染为棋盘")
+		_check(old_txt.contains("骨架：14×9 地图"), "老档骨架标签可读")
+		_check(old_txt.contains("模板：常规"), "老档模板标签可读")
+		_check(old_txt.contains("b1_n1") and old_txt.contains("用时：6.5 秒"), "老档落点计时可读")
 
 	print("G5_JOURNAL|RESULT %s (%d/%d)" % ["PASS" if _fail == 0 else "FAIL", _pass, _pass + _fail])
 	get_tree().quit(0 if _fail == 0 else 1)

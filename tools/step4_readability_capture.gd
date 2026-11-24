@@ -47,7 +47,6 @@ func _run() -> void:
 	await _wait(0.4)
 
 	_set_window(Vector2i(960, 540))
-	_duel.board_config.enabled = false
 	_select_loadout()
 	_duel._confirm_loadout()
 	await _wait(0.5)

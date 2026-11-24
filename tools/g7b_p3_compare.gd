@@ -78,7 +78,6 @@ func _run() -> void:
 	_duel = load(DUEL_SCENE).instantiate() as DuelController
 	add_child(_duel)
 	await _frames(8)
-	_duel.board_config.enabled = false
 	_duel._confirm_loadout()
 	await _frames(6)
 	_base_skills = _duel.selected_skills.duplicate()

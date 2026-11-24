@@ -35,7 +35,6 @@ func _run() -> void:
 		await get_tree().process_frame
 	duel.demo_config.enabled = false
 	duel.demo_config.act_only = false
-	duel.board_config.enabled = false
 	duel._confirm_loadout()   # 构建本局 ROOMS（F6：数据源必须是本局 ROOMS）
 	for i in 2:
 		await get_tree().process_frame

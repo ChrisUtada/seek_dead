@@ -88,7 +88,7 @@ func _ready() -> void:
 		if String(c.get("kind", "")) == "boss_anvil": no_anvil = false
 	_ok(no_anvil, "Boss空池无铁砧结晶卡")
 
-	# ⑥ 三幕推进与返回整备（简化：验证 advance_act 与 return_to_loadout 不崩）
+	# ⑥ 三幕推进与返回整备（简化：验证线性换幕入口 _maybe_grant_linear_act_boon 与 return_to_loadout 不崩）
 	d1.room_flow.return_to_loadout()
 	await get_tree().process_frame
 	_ok(d1.hud.meta_screen != null, "返回整备后界面正常")

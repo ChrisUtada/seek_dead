@@ -8,7 +8,7 @@ extends Node
 # ① 新档/老档缺 career 键：默认空、不崩溃、下一目标可读；
 # ② 首次 BOSS 通关解锁「初次深入」；同 BOSS 不重复解锁；
 # ③ 四席猎手按不同 BOSS 数累计；同 ID 不重复计数；
-# ④ 同素/异素配装判定；破甲、状态伤害、格挡、精英路线、棋盘武器格、和解；
+# ④ 同素/异素配装判定；破甲、状态伤害、格挡、历史棋盘成就只读兼容、和解；
 # ⑤ 解锁跨局落盘（新 CareerSystem 从同一 meta 载入）；新解锁队列只取一次；
 # ⑥ 整备页生涯面板可构建并列出全部条目；
 # ⑦ G6-03 局末路线总结：路线 / 成长 / 新收藏 / 下一局建议与元进度屏集成。
@@ -204,19 +204,19 @@ func _test_combat_marks(duel: DuelController) -> void:
 
 func _test_board_marks(duel: DuelController) -> void:
 	_reset_career(duel)
-	duel._career.note_board_weapon()
-	_check(duel._career.has("board_treasure"), "棋盘武器格解锁棋盘寻宝")
-	var before: int = duel._career.unlocked_count()
-	duel._career.note_board_weapon()
-	_check(duel._career.unlocked_count() == before, "棋盘寻宝不重复解锁")
+	_enter_boss(duel)
+	duel._career.on_boss_cleared()
+	_check(not duel._career.has("board_treasure"), "新局线性通关不再发放棋盘寻宝")
+	_check(not duel._career.has("elite_route"), "新局线性通关不再发放高危路线")
 
 	_reset_career(duel)
-	var old_mode: bool = duel.node_mode
-	duel.node_mode = true
-	duel._career.note_elite_route()
-	duel._career.on_boss_cleared()
-	_check(duel._career.has("elite_route"), "经过精英分支并击败 BOSS 解锁高危路线")
-	duel.node_mode = old_mode
+	duel.meta["career"]["unlocked"] = ["elite_route"]
+	var loaded = preload("res://scripts/systems/career_system.gd").new(duel)
+	_check(loaded.has("elite_route"), "老档已解锁 elite_route 仍保持解锁")
+	_enter_boss(duel)
+	loaded.on_boss_cleared()
+	_check(loaded.has("elite_route"), "老档 elite_route 线性通关后仍有效")
+	_check(not loaded.has("board_treasure"), "读取老档不会重新发放棋盘寻宝")
 
 
 func _test_peaceful(duel: DuelController) -> void:
@@ -304,29 +304,12 @@ func _test_run_summary(duel: DuelController) -> void:
 	var gl: String = rs.growth_line()
 	_check(gl.contains("匕首") and gl.contains("R2"), "局末总结显示熟练与 R 等级")
 
-	# 棋盘路线：骨架/模板 + 已走节点分类计数。
-	var old_mode: bool = duel.node_mode
-	duel.node_mode = true
-	duel.board.clear_summaries()
-	_check(duel.board.generate(duel.board_config), "测试棋盘可生成")
-	var marked := {"battle": false, "elite": false, "shop": false, "rest": false, "special": false}
-	for n in duel.board.nodes:
-		var t := String(n.get("type", ""))
-		if marked.has(t) and not bool(marked[t]):
-			duel.board.consumed[String(n["id"])] = true
-			marked[t] = true
-		elif t in ["chest", "event", "armory"] and not bool(marked["special"]):
-			duel.board.consumed[String(n["id"])] = true
-			marked["special"] = true
-	var rl: String = rs.route_line()
-	_check(rl.contains("棋盘") and rl.contains("14×9"), "局末总结显示 14×9 地图标识")
-	_check(rl.contains("战斗1") and rl.contains("精英1") and rl.contains("特殊1"), "局末总结按节点类型计数")
-	duel.board.reset()
-	duel.node_mode = old_mode
-
-	# 线性路线：房型计数 + 终局 BOSS。
+	# 线性路线：ROOMS 房型计数 + 终局 BOSS，不再生成棋盘结构。
 	var ll: String = rs.route_line()
-	_check(ll.contains("线性") and ll.contains("BOSS"), "线性模式给房型计数")
+	_check(ll.contains("路线：线性"), "局末总结标识线性路线")
+	_check(ll.contains("战斗") and ll.contains("精英") and ll.contains("BOSS"), "局末总结按线性房型计数")
+	_check(ll.contains("终局") and ll.contains("BOSS"), "局末总结显示终局 BOSS")
+	_check(not ll.contains("棋盘") and not ll.contains("14×9"), "局末总结不再输出棋盘结构")
 
 	# 下一局建议：生涯目标 + 剩余解锁机会。
 	duel._career._directed_balance = 1

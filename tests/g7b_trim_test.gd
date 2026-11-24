@@ -7,7 +7,7 @@ extends Node
 # 覆盖（对应 docs/P0_转轮目押基线_2026-11-03.md §7.4 六项 + G7-B 一期口径）：
 # ① 候选合法：只在 ≥2 格的符号里出候选；金币/MISS/废铁不进候选；
 # ② 应用后带子真的少 1 格（保底 1 格），预览的实际带长（含平铺）与正式建带一致；
-# ③ 每幕 1 次：同一幕再点被拒；换幕后恢复；符号精简与技能卸除共享次数；
+# ③ 次数按本局道具账本供给：用尽后不再恢复；符号精简与技能卸除共享次数；
 # ④ 不可逆 + 不可刷：应用后候选里不再有该符号，重开界面/重建带不会复活；
 # ⑤ 技能卸除：符号与 MISS 贡献按现有规则移除，不改拥有列表；
 # ⑥ 状态边界：本局重置后精简状态为空；meta 与 .tres 文件未被写入；同种子两次建带逐格相同。
@@ -34,7 +34,6 @@ func _run() -> void:
 		return
 	var meta_backup: Dictionary = duel.meta.duplicate(true)
 	var mtime_before: int = FileAccess.get_modified_time(WEAPON_PROBE)
-	var board_was: bool = bool(duel.board_config.enabled)
 
 	duel._trim.reset_run()
 	if duel.selected_skills.is_empty():
@@ -49,7 +48,6 @@ func _run() -> void:
 	_test_state_boundary(duel, meta_backup, mtime_before)
 	_test_ui_entry(duel)
 
-	duel.board_config.enabled = board_was
 	duel._trim.reset_run()
 	print("---")
 	print("PASSED %d / FAILED %d" % [_checks - _fails, _fails])
@@ -62,7 +60,6 @@ func _boot() -> DuelController:
 	add_child(duel)
 	await get_tree().process_frame
 	await get_tree().process_frame
-	duel.board_config.enabled = false
 	duel._confirm_loadout()
 	await get_tree().process_frame
 	return duel
@@ -150,26 +147,20 @@ func _test_symbol_trim(duel: DuelController) -> void:
 
 
 # ---------------------------------------------------------------------------
-# ③ 每幕 1 次：换幕恢复，线性模式恒为 1 幕
+# ③ 线性模式恒为 1 幕；次数供给完全由精简剪道具决定
 # ---------------------------------------------------------------------------
 
 func _test_act_reset(duel: DuelController) -> void:
 	var trim = duel._trim
-	_check(trim.current_act() == 1, "线性模式幕号为 1")
-	duel.node_mode = true
-	duel.board.act = 2
-	_check(trim.current_act() == 2, "棋盘模式读棋盘幕号（ACT II）")
-	# 2026-11-20 更新：供给由精简剪道具决定，换幕不再自动赠送次数（granted 未 grant → 0）
-	_check(trim.trims_left() == 0, "换幕不自动重置次数（供给由道具决定）")
+	_check(trim.current_act() == 1, "线性模式幕号恒为 1")
+	_check(trim.trims_left() == 0, "本局次数用尽后不自动重置（供给由道具决定）")
 	trim.grant(1)
 	_check(trim.trims_left() == 1, "授予精简剪后次数 +1")
 	trim.used = trim.granted
 	_check(trim.trims_left() == 0, "用尽后为 0")
-	duel.board.act = 3
-	_check(trim.trims_left() == 0, "换幕不再自动重置（供给完全由道具决定）")
-	trim.used = 0
-	duel.node_mode = false
-	duel.board.act = 1
+	_check(trim.trims_left() == 0, "继续游戏不自动恢复次数")
+	trim.reset_run()
+	_check(trim.granted == 0 and trim.used == 0, "仅新局 reset_run 清空次数账本")
 
 
 # ---------------------------------------------------------------------------

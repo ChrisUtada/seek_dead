@@ -92,7 +92,6 @@ func _boot() -> DuelController:
 	var duel: DuelController = scene_res.instantiate() as DuelController
 	add_child(duel)
 	await _frames(3)
-	duel.board_config.enabled = false
 	_bare_build(duel)
 	return duel
 

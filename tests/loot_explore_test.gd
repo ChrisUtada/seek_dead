@@ -8,8 +8,8 @@ extends Node
 # ① 探索资源标签：武器 / 非信物护符 / 消耗品带 chest，BOSS 信物与技能不带；
 # ② 探索抽取合法性：类别、幕次、品质、来源标签均合法，永不返回信物；
 # ③ 探索品质只读 chest 来源表（武器 act1 分布 ≈ 35/40/22/3，不是普通战表）；
-# ④ 同种子可复现：专用 RNG 序列与棋盘冻结物品路径完全一致；
-# ⑤ 棋盘内容生成时冻结：宝箱 / 武器格 / 护符格 / 武器藏库路径在重生成前不变；
+# ④ 同种子可复现：专用 RNG 序列与线性房间构建结果一致；
+# ⑤ 线性探索内容冻结：宝箱房型与物品路径在重建前不变；
 # ⑥ 探索抽取不消耗全局 RNG；空类别明确返回 ""；
 # ⑦ 商店类别序列按幕次确定，且与品质阶梯逐格对齐。
 # ============================================================================
@@ -20,7 +20,7 @@ const CONSUMABLE_DIR := "res://resources/consumables"
 const SKILL_DIR := "res://resources/skills"
 const PICKS := 300
 const DIST_TRIALS := 10000
-const BOARD_SEEDS := 60
+const ROOM_SEEDS := 60
 
 var _checks := 0
 var _fails := 0
@@ -41,22 +41,14 @@ func _run() -> void:
 		print("LOOTEXPLORE|RESULT FAIL (boot)")
 		get_tree().quit(2)
 		return
-	var cfg = duel.board_config
-	var was_enabled: bool = bool(cfg.enabled)
-	var was_seed: int = int(cfg.map_seed)
-	cfg.enabled = true
-
 	_test_tag_coverage()
 	_test_pick_legality(duel)
 	_test_chest_distribution(duel)
 	_test_same_seed_repro(duel)
-	_test_frozen_board_content(duel)
+	_test_frozen_linear_content(duel)
 	_test_rng_isolation(duel)
 	_test_empty_category(duel)
 	_test_shop_category_config()
-
-	cfg.enabled = was_enabled
-	cfg.map_seed = was_seed
 
 
 func _boot() -> DuelController:
@@ -217,7 +209,7 @@ func _test_chest_distribution(duel: DuelController) -> void:
 
 
 # ---------------------------------------------------------------------------
-# ④ 同种子可复现（专用 RNG + 棋盘冻结内容）
+# ④ 同种子可复现（专用 RNG + 线性房间构建）
 # ---------------------------------------------------------------------------
 
 func _pick_sequence(duel: DuelController, seed_value: int) -> Array:
@@ -230,18 +222,12 @@ func _pick_sequence(duel: DuelController, seed_value: int) -> Array:
 	return out
 
 
-func _board_item_sig(duel: DuelController) -> String:
-	# 2026-11-14 收敛：14×9 地图的探索节点类型为 chest / armory / shop。
+func _linear_item_sig(duel: DuelController) -> String:
 	var parts: Array[String] = []
-	for n in duel.board.nodes:
-		var t := String(n["type"])
-		if t == "chest":
-			parts.append("%s=%s|%s" % [String(n["id"]), String(n.get("treasure_kind", "")),
-				String(n.get("item_path", ""))])
-		elif t == "armory":
-			parts.append("%s=%s" % [String(n["id"]), str(n.get("armory_paths", []))])
-		elif t == "shop":
-			parts.append("%s=%s" % [String(n["id"]), str(n.get("shop_stock", []))])
+	for room in duel.ROOMS:
+		if String(room.kind) == "chest":
+			parts.append("%s:%d:%s:%s" % [String(room.name), int(room.act),
+				String(room.gimmick_params.get("category", "")), String(room.gimmick_params.get("item_path", ""))])
 	return "|".join(parts)
 
 
@@ -252,63 +238,57 @@ func _test_same_seed_repro(duel: DuelController) -> void:
 	var b := _pick_sequence(duel, 777)
 	_check(a == b and not a.is_empty(), "探索专用 RNG 同种子可复现（%d 次）" % a.size())
 
-	var cfg = duel.board_config
-	cfg.map_seed = 44004
-	duel.board.generate(cfg)
-	var sig1 := _board_item_sig(duel)
-	duel.board.generate(cfg)
-	var sig2 := _board_item_sig(duel)
-	_check(sig1 != "" and sig1 == sig2, "同种子棋盘探索物品完全可复现")
-	cfg.map_seed = 44005
-	duel.board.generate(cfg)
-	_check(_board_item_sig(duel) != sig1, "换种子探索内容随之变化")
+	duel.shop_run_seed = 44004
+	duel.ROOMS = duel._build_run()
+	var sig1 := _linear_item_sig(duel)
+	duel.shop_run_seed = 44004
+	duel.ROOMS = duel._build_run()
+	var sig2 := _linear_item_sig(duel)
+	_check(sig1 != "" and sig1 == sig2, "同种子线性探索物品完全可复现")
+	duel.shop_run_seed = 44005
+	duel.ROOMS = duel._build_run()
+	_check(_linear_item_sig(duel) != sig1, "换种子探索内容随之变化")
 
 
 # ---------------------------------------------------------------------------
-# ⑤ 棋盘内容生成时冻结
+# ⑤ 线性内容构建后冻结
 # ---------------------------------------------------------------------------
 
-func _test_frozen_board_content(duel: DuelController) -> void:
-	var cfg = duel.board_config
+func _test_frozen_linear_content(duel: DuelController) -> void:
 	var bad_path := 0
 	var relic_leak := 0
 	var unstable := 0
 	var seen_treasure := 0
-	var seen_armory := 0
-	for i in BOARD_SEEDS:
+	var gold_fallback := 0
+	for i in ROOM_SEEDS:
 		var s := 45000 + i
-		cfg.map_seed = s
-		duel.board.generate(cfg)
-		var sig1 := _board_item_sig(duel)
-		for n in duel.board.nodes:
-			var t := String(n["type"])
-			var paths: Array = []
-			if t == "weapon" or t == "charm":
-				paths.append(String(n.get("item_path", "")))
-			elif t == "chest":
-				seen_treasure += 1
-				if String(n.get("treasure_kind", "")) != "gold":
-					paths.append(String(n.get("item_path", "")))
-			elif t == "armory":
-				seen_armory += 1
-				paths = n.get("armory_paths", [])
-			for p in paths:
-				var sp := String(p)
-				if sp == "":
-					bad_path += 1
-					continue
-				if sp.get_file().contains("_relic"):
-					relic_leak += 1
-				if not ("chest" in _tags(sp)):
-					bad_path += 1
-		duel.board.generate(cfg)
-		if _board_item_sig(duel) != sig1:
+		duel.shop_run_seed = s
+		duel.ROOMS = duel._build_run()
+		var sig1 := _linear_item_sig(duel)
+		var frozen: Array = duel.ROOMS.duplicate()
+		for room in frozen:
+			if String(room.kind) != "chest":
+				continue
+			seen_treasure += 1
+			# run_setup.gd 会产出 category=gold / item_path="" 的兜底宝箱，旧用例同样跳过。
+			var cat := String(room.gimmick_params.get("category", ""))
+			if cat == "gold" or bool(room.gimmick_params.get("fallback", false)):
+				gold_fallback += 1
+				continue
+			var path := String(room.gimmick_params.get("item_path", ""))
+			if String(room.gimmick_params.get("special_kind", "")) != "chest" or path.is_empty() or not ("chest" in _tags(path)):
+				bad_path += 1
+			if path.get_file().contains("_relic"):
+				relic_leak += 1
+		duel.shop_run_seed = s
+		duel.ROOMS = duel._build_run()
+		if _linear_item_sig(duel) != sig1:
 			unstable += 1
-	_check(bad_path == 0, "棋盘探索物品全部来自 chest 来源（异常 %d）" % bad_path)
-	_check(relic_leak == 0, "棋盘探索永不冻结 BOSS 信物（泄漏 %d）" % relic_leak)
-	_check(unstable == 0, "同种子重生成物品路径不变（不稳定 %d / %d）" % [unstable, BOARD_SEEDS])
-	_check(seen_treasure > 0 and seen_armory > 0,
-		"样本覆盖宝箱与武器藏库（宝箱 %d / 藏库 %d）" % [seen_treasure, seen_armory])
+	_check(bad_path == 0, "线性探索物品全部来自 chest 来源（异常 %d）" % bad_path)
+	_check(relic_leak == 0, "线性探索永不冻结 BOSS 信物（泄漏 %d）" % relic_leak)
+	_check(unstable == 0, "同种子重建物品路径不变（不稳定 %d / %d）" % [unstable, ROOM_SEEDS])
+	_check(seen_treasure > 0, "样本覆盖线性宝箱房（%d）" % seen_treasure)
+	print("LOOTEXPLORE|info|金币兜底宝箱已跳过 %d 个（不计入物品路径断言）" % gold_fallback)
 
 
 # ---------------------------------------------------------------------------

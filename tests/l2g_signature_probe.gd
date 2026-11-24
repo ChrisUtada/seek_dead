@@ -48,7 +48,6 @@ func _ready() -> void:
 	_duel = scene_res.instantiate()
 	add_child(_duel)
 	await _frames(3)
-	_duel.node_mode = false
 
 	var ps = _duel._pattern_system
 	var cards := _make_cards()

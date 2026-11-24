@@ -37,7 +37,6 @@ func _boot() -> DuelController:
 	add_child(duel)
 	await get_tree().process_frame
 	await get_tree().process_frame
-	duel.board_config.enabled = false
 	duel.selected_consumables.clear()
 	duel.selected_charms.clear()
 	duel.selected_skills.clear()

@@ -38,7 +38,6 @@ func _ready() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	_duel.demo_config.enabled = false
-	_duel.board_config.enabled = false
 	_duel.shop_run_seed = 20261123
 	_duel._confirm_loadout()
 	await get_tree().process_frame

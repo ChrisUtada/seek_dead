@@ -1,7 +1,7 @@
 extends Node
 
 # S5-5 双式军刀可获得性实测探针（2026-11-21）
-# 新档、默认 board_config.enabled=false、无 AnvilSystem。
+# 新档、线性房间、无 AnvilSystem。
 # 分别核查：战斗武器奖励路径、商店、主题掉落、生涯定向候选、领取后装配。
 
 const SABER := "res://resources/weapon_templates/dueling_saber.tres"
@@ -21,7 +21,6 @@ func _ready() -> void:
 	await get_tree().process_frame
 
 	var loot = duel._reward_system._loot
-	print("=== BOARD enabled=", duel.board_config.enabled, " node_mode=", duel.node_mode)
 
 	# ① 各来源候选池是否含双式军刀（category=weapon）
 	for source in ["normal", "elite", "boss", "shop", "chest"]:

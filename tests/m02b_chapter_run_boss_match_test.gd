@@ -35,7 +35,6 @@ func _run() -> void:
 			await get_tree().process_frame
 		duel.demo_config.enabled = false
 		duel.demo_config.act_only = false
-		duel.board_config.enabled = false
 		duel.shop_run_seed = 1000 + i   # 工单：每局不同固定 shop_run_seed
 		duel._confirm_loadout()
 		for f in 2:

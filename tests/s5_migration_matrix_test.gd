@@ -114,6 +114,28 @@ func _ready() -> void:
 	_ok(d11._career.available_directed() == before11 + 1, "earn via old API = +1 only (no double write)")
 	_ok(int(d11.meta.get("directed_unlocks", 0)) == 1, "legacy balance field not updated")
 
+	# ⑫ 真实 lobby_data.json 老档：mode=board 来源记录 + elite_route 已解锁，加载全程不报错。
+	var dagger := "res://resources/weapon_templates/dagger.tres"
+	var old_save := {
+		"anvil_points": 0,
+		"directed_unlocks": 0,
+		"career": {"unlocked": ["elite_route"], "bosses": [], "directed_v1": true},
+		"item_sources": {
+			dagger: [
+				{"act": 1, "mode": "board", "node_type": "weapon", "room": "老档武器格"}
+			]
+		}
+	}
+	var d12 := _make_duel(old_save)
+	_ok(d12 != null and d12._codex != null, "老档 lobby_data 加载不报错")
+	var src12: Array = d12._codex.source_lines(dagger)
+	var rendered := ""
+	for s in src12:
+		rendered += String(s)
+	_ok(rendered.contains("棋盘") and rendered.contains("武器") and rendered.contains("老档武器格"),
+		"老档 mode=board + node_type 来源记录 codex 可读")
+	_ok(d12._career.has("elite_route"), "老档已解锁 elite_route 保持有效")
+
 	_flush_duels()
 	print("S5 MIGRATION RESULT: %d checks, %d fails" % [_checks, _fails])
 	get_tree().quit(1 if _fails > 0 else 0)

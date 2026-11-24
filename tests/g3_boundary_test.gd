@@ -27,7 +27,6 @@ func _ready() -> void:
 	add_child(duel)
 	await get_tree().process_frame
 	await get_tree().process_frame
-	duel.board_config.enabled = false
 	duel._confirm_loadout()
 	await get_tree().process_frame
 

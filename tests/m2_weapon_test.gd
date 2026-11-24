@@ -367,13 +367,11 @@ func _test_forge_applies(duel: DuelController) -> void:
 	duel.reel_system.build_pool(duel.selected_loadout)
 
 
-# G2-01：来源记录（ACT / 模式 / 房间 / 节点）与去重、封顶；护符获得写入图鉴。
+# G2-01：来源记录（ACT / 模式 / 房间）与去重、封顶；护符获得写入图鉴。
 func _test_sources(duel: DuelController) -> void:
 	var act_before: int = duel.current_act
-	var node_before: bool = duel.node_mode
 	duel.meta["item_sources"] = {}
 	duel.current_act = 2
-	duel.node_mode = false
 	duel._reward_system.remember_weapon(FIRE)
 	var arr: Array = duel.meta["item_sources"].get(FIRE, [])
 	_check(arr.size() == 1, "武器获得写入来源记录")
@@ -389,7 +387,6 @@ func _test_sources(duel: DuelController) -> void:
 	_check(duel.meta["owned_charms"].has(charm), "护符获得写入图鉴")
 	_check(duel.meta["item_sources"].has(charm), "护符获得写入来源记录")
 	duel.current_act = act_before
-	duel.node_mode = node_before
 
 
 # G0-02：UI 显示的真实攻击 / 成长状态与结算同一口径，且不写回共享 .tres。
