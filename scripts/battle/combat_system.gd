@@ -231,6 +231,13 @@ func push_dmg_line(acc: Dictionary, sym: SymbolData, elem: String, flat, bonus, 
 	acc["lines"].append(line)
 
 
+# T4 A3 测试接缝：是否需要在逐段回放之外再弹总伤害大数字。
+# 0 段（纯破甲/空转）没有逐段飘字，需要补总伤害；>=2 段已有逐段飘字；
+# 恰好 1 段时回放已弹过，不再叠总伤害。
+func _should_show_total_popup(event_count: int) -> bool:
+	return event_count != 1
+
+
 # 结算：分四阶段（符号计数 → 防御/增益/状态 → 反制 → 攻击），接单向属性克制与强袭药剂。
 # 2026-08-07：重转机制移除，单次结算（chain_mult 参数退役）
 # 2026-11-08（G8）：原单函数按阶段拆分；执行顺序、RNG 调用与 await 时序与拆分前逐行一致。
@@ -1068,10 +1075,10 @@ func _present_turn(acc: Dictionary, counts: Dictionary) -> void:
 		# N-03：命中帧一到才把敌人幽灵值切成真实值 + 弹分项飘字（护甲/HP/穿透）。
 		_ctrl.hud.release_enemy_preview()
 		# T4：命中帧后按账本顺序逐段回放（只读事件，不改结算值）。只 drain 一次，
-		# 事件数 >1 时每段已有独立飘字，不再叠总伤害；单段时保留总伤害大数字。
+		# 事件数 0 段（纯破甲/空转）补总伤害大数字；>=2 段已有逐段飘字；恰好 1 段回放已弹过，不叠第二条。
 		var dmg_events: Array = _ctrl.damage_ledger.drain()
 		await _ctrl.hud.play_damage_events(dmg_events, _ctrl.enemy_hp_max, _ctrl.presentation_skip)
-		if dmg_events.size() <= 1:
+		if _should_show_total_popup(dmg_events.size()):
 			_ctrl.hud._popup("-%d%s" % [total, String(acc.get("elem_tag", ""))], Palette.POP_DAMAGE, _ctrl.hud._enemy_sprite_anchor())
 		_ctrl.hud._refresh_meta()
 		await _present_wait(tree, PRESENT_STEP)

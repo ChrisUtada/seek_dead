@@ -1206,9 +1206,14 @@ func _update_enemy_element() -> void:
 		enemy_resist_label.add_theme_color_override("font_color", ElementCounter.color(ers[0]))
 
 
+# 测试可读的飘字计数：每次 _popup 调用自增（含回放逐段飘字与总伤害飘字）。
+# 用于 t4_damage_queue 断言「单段攻击只弹一次」，不参与任何结算。
+var damage_pop_count: int = 0
+
 # 飘字：在 anchor 面板顶部中央弹出并上浮淡出（对象池实现见 scripts/ui/popup_pool.gd）
 # slow=true 走 DoT 慢速档（上浮更慢、驻留更久），与攻击红字快弹区分。
 func _popup(text: String, color: Color, anchor: Control, slow: bool = false) -> void:
+	damage_pop_count += 1
 	if popup_layer == null:
 		return
 	popup_layer.popup(text, color, anchor, slow)
@@ -1794,6 +1799,13 @@ func reset_enemy_hit_hold() -> void:
 	_hit_pending_text = ""
 	_ev_hp_display_hold = -1
 	_ev_armor_display_hold = -1
+	# 换房时敌人必为满血：把上一房的血条比例基准一并重置，
+	# 否则首次 _refresh_vitals 会拿旧残血当 prev、新房满血当 new，
+	# 误触 _apply_hp_bar 的"治疗增长动画"，表现为进新怪时血条从残血爬升（假回血）。
+	_ev_hp_prev = 1.0
+	if enemy_hp_bar != null and is_instance_valid(enemy_hp_bar):
+		if enemy_hp_bar.grow_tween != null and enemy_hp_bar.grow_tween.is_valid():
+			enemy_hp_bar.grow_tween.kill()
 
 
 # ---------------------------------------------------------------------------
