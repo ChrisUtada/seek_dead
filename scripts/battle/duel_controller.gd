@@ -501,6 +501,7 @@ func _ready() -> void:
 	hud.reward_skip_requested.connect(_on_reward_skip_pressed)
 	hud.shop_requested.connect(_on_shop_requested)
 	hud.next_room_requested.connect(_on_next_room_pressed)
+	hud.combo_requested.connect(_on_combo_requested)
 	hud.card_toggled.connect(_loadout_system.on_card_toggled)
 	hud.meta_choice_chosen.connect(_on_meta_choice_chosen)
 	hud.career_unlock_chosen.connect(_on_career_unlock_chosen)
@@ -1084,6 +1085,16 @@ func _on_shop_requested() -> void:
 
 func _on_next_room_pressed() -> void:
 	room_flow.on_next_room_pressed()
+
+
+# T3-3 C 轮：组合面板入口（只在房间歇态开放）。只读 build_rows 输出，不消耗 RNG、不推进回合。
+func _on_combo_requested() -> void:
+	if not in_interroom:
+		return
+	var tag_cb := Callable(self, "_pattern_tag_of")
+	var rows: Array[Dictionary] = ComboCatalog.build_rows(
+		_pattern_system, selected_loadout, tag_cb, last_settlement_acc)
+	hud.show_combo_panel(rows)
 
 
 # M-02b：ACT1 开幕信息公开。房间已经开起来（_start_room(0) 不自动 spin），

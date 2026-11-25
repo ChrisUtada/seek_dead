@@ -5,5 +5,31 @@
 [node name="ComboPanel" type="PanelContainer"]
 script = ExtResource("1")
 
-[node name="VBox" type="VBoxContainer" parent="."]
+[node name="Root" type="VBoxContainer" parent="."]
 layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="Header" type="HBoxContainer" parent="Root"]
+layout_mode = 2
+
+[node name="HeaderTitle" type="Label" parent="Root/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 10
+text = "组合图鉴"
+
+[node name="CloseBtn" type="Button" parent="Root/Header"]
+custom_minimum_size = Vector2(22, 18)
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text = "✕"
+
+[node name="Scroll" type="ScrollContainer" parent="Root"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="VBox" type="VBoxContainer" parent="Root/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 1
