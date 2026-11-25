@@ -81,6 +81,8 @@ func _run() -> void:
 			other_main += 1
 	_check(other_main == 0, "其余 main 行 matched_now=false（实测 %d 条误命中）" % other_main)
 	_check(String(_row(rows_m, "W07").get("condition_text", "")) != "", "W07 condition_text 非空")
+	_check(String(_row(rows_m, "W07").get("condition_text", "")) == "blade×1 + flame×2",
+		"W07 condition_text 折叠为 blade×1 + flame×2（实测 %s）" % String(_row(rows_m, "W07").get("condition_text", "")))
 	_check(String(_row(rows_m, "W07").get("contribution_text", "")).contains("强化燃刃"),
 		"W07 contribution_text 含名称（实测 %s）" % String(_row(rows_m, "W07").get("contribution_text", "")))
 
@@ -91,6 +93,25 @@ func _run() -> void:
 			all_false = false
 			break
 	_check(all_false, "B2 空 acc 时所有 matched_now=false")
+
+	# G 系命中接线：acc.pattern_match.patterns（同源刻）
+	var acc_g: Dictionary = {"pattern_match": {"patterns": [{"id": "G01", "name": "同源刻"}]}}
+	var rows_g: Array[Dictionary] = _rows(loadout, acc_g)
+	_check(bool(_row(rows_g, "G01").get("matched_now", false)), "G01 命中（来自 acc.pattern_match）")
+	_check(not bool(_row(rows_g, "G02").get("matched_now", false)), "G02 未命中")
+	_check(not bool(_row(rows_g, "G03").get("matched_now", false)), "G03 未命中")
+	var resource_hits := 0
+	for r in rows_g:
+		if String(r["group"]) != "base" and bool(r["matched_now"]):
+			resource_hits += 1
+	_check(resource_hits == 0, "G 命中时资源行全部 false（实测 %d）" % resource_hits)
+
+	# G01+G02 可并存（同源刻与同族刻互不排斥）
+	var acc_gg: Dictionary = {"pattern_match": {"patterns": [
+		{"id": "G01", "name": "同源刻"}, {"id": "G02", "name": "同族刻"}]}}
+	var rows_gg: Array[Dictionary] = _rows(loadout, acc_gg)
+	_check(bool(_row(rows_gg, "G01").get("matched_now", false)) and bool(_row(rows_gg, "G02").get("matched_now", false)),
+		"G01+G02 同时命中（同源+同族并存）")
 
 	# 只读证明：seed / enemy_hp / enemy_armor 不变
 	var seed0: int = _duel._reward_system._loot.seed_value()
