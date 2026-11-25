@@ -10,6 +10,11 @@ const PANEL_SCENE := "res://scenes/ui/combo_panel.tscn"
 var _fails := 0
 var _checks := 0
 var _panel: ComboPanel
+var _closed := 0
+
+
+func _on_closed() -> void:
+	_closed += 1
 
 
 func _ready() -> void:
@@ -109,4 +114,31 @@ func _run() -> void:
 	for _i in 4:
 		seq1.append(randf())
 	_check(seq0 == seq1, "B3 open() 不消耗 RNG（randf 序列不变）")
+	_panel.close()
+
+	# A4-1 同帧连续 open 两次：旧行立即清理，只渲染第二批（A1 remove_child+free）
+	_panel.open([rows[1]])
+	_panel.open([rows[2]])
+	var t3: Array[String] = _panel.rendered_texts
+	_check(t3.size() == 2 and t3[0] == "主组合" and t3[1].contains("强化燃刃"),
+		"同帧 open 两次只渲染第二批（实测 %s）" % str(t3))
+	_panel.close()
+
+	# A4-2 未知 group：落到通用区渲染，行尾标「（未分组）」，不静默丢弃（A2）
+	var unknown := _row("Z99", "weird", "未知组", false, true)
+	_panel.open([unknown])
+	var t4: Array[String] = _panel.rendered_texts
+	_check(t4.size() == 2 and t4[0] == "通用", "未知 group 落到通用区（实测 %s）" % str(t4))
+	_check(t4.size() == 2 and t4[1].ends_with("（未分组）"),
+		"未知 group 行尾标「（未分组）」（实测 %s）" % str(t4))
+	_panel.close()
+
+	# A4-3 点 ✕：发出 closed 信号并关闭面板（A3）
+	var close_btn := _panel.find_child("CloseBtn", true, false) as Button
+	_check(close_btn != null, "✕ 关闭按钮存在")
+	_panel.closed.connect(_on_closed)
+	_panel.open([rows[1]])
+	if close_btn != null:
+		close_btn.pressed.emit()
+	_check(_closed == 1 and not _panel.visible, "点 ✕ 后发出 closed 且 visible == false（closed=%d）" % _closed)
 	_panel.close()
