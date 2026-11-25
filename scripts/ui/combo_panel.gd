@@ -19,8 +19,11 @@ const SECTION_TITLES := {
 
 # 只读快照：供测试核对，不依赖场景树遍历。open() 里以 duplicate(true) 写入。
 var last_rendered_rows: Array[Dictionary] = []
+var last_rendered_sources: Array[Dictionary] = []
 # 测试可读的行文本（按渲染顺序，含区段标题与每一行文本），便于结构断言。
 var rendered_texts: Array[String] = []
+# 「本轮来源」区段的行文本（不含标题/分隔），供行数断言。
+var rendered_source_texts: Array[String] = []
 
 
 func _ready() -> void:
@@ -31,16 +34,21 @@ func _ready() -> void:
 	_clear()
 
 
-func open(rows: Array[Dictionary]) -> void:
+func open(rows: Array[Dictionary], sources: Array[Dictionary] = []) -> void:
 	_clear()
 	# A4：不修改传入数组；保存深拷贝快照供只读核对。
 	last_rendered_rows = []
 	for r in rows:
 		last_rendered_rows.append((r as Dictionary).duplicate(true))
+	last_rendered_sources = []
+	for s in sources:
+		last_rendered_sources.append((s as Dictionary).duplicate(true))
 
 	var root: VBoxContainer = _vbox()
 	if root == null:
 		return
+	# C1/C2：来源区在组合区段之前，仅 sources 非空时显示；与组合区用一条「—」分隔。
+	_render_sources(root)
 	for group in SECTION_ORDER:
 		var g := String(group)
 		var group_rows: Array[Dictionary] = []
@@ -82,6 +90,30 @@ func _vbox() -> VBoxContainer:
 	return find_child("VBox", true, false) as VBoxContainer
 
 
+# 本轮来源：标题 + 每行「标签  数值 单位」+ 一条「—」分隔（轻量，不引入新主题）。
+func _render_sources(root: VBoxContainer) -> void:
+	if last_rendered_sources.is_empty():
+		return
+	var title := Label.new()
+	title.text = "本轮来源"
+	root.add_child(title)
+	rendered_texts.append(title.text)
+	for s in last_rendered_sources:
+		var line := Label.new()
+		line.text = ("%s  %d %s" % [
+			String(s.get("label", "")),
+			int(s.get("value", 0)),
+			String(s.get("unit", "")),
+		]).strip_edges()
+		root.add_child(line)
+		rendered_texts.append(line.text)
+		rendered_source_texts.append(line.text)
+	var sep := Label.new()
+	sep.text = "—"
+	root.add_child(sep)
+	rendered_texts.append(sep.text)
+
+
 func _row_text(row: Dictionary) -> String:
 	var name_text: String = String(row.get("name", ""))
 	var cond: String = String(row.get("condition_text", ""))
@@ -102,6 +134,8 @@ func _row_text(row: Dictionary) -> String:
 
 func _clear() -> void:
 	rendered_texts = []
+	rendered_source_texts = []
+	last_rendered_sources = []
 	var root: VBoxContainer = _vbox()
 	if root == null:
 		return

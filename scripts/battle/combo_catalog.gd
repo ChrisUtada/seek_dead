@@ -150,3 +150,105 @@ static func build_rows(pattern_system, loadout_paths: Array, tag_of: Callable,
 			"contribution_text": gline,
 		})
 	return rows
+
+
+# 状态键 → 展示名（与工单示例一致；未收录的键回退原文）。
+const STATUS_LABELS := {
+	"burn": "燃烧",
+	"frost": "霜冻",
+	"poison": "中毒",
+	"holy_burn": "圣灼",
+	"shadow_blight": "蚀影",
+}
+
+
+# T3-3 C 轮第 3 步（2026-11-26）：本轮来源分解（只读）。
+# 消费 evaluate() 的只读快照 last_acc，不改任何字段。
+# 键形态实测：source_dmg / source_heal / source_shield 的 key = 武器或符号的 source_id
+# （如 "iron_sword"，无 source_id 时为符号资源路径）；value 为 float。
+static func build_sources(last_acc: Dictionary) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	if last_acc.is_empty():
+		return out
+	_append_source_rows(out, last_acc.get("source_dmg", {}), "damage", "点")
+	_append_source_rows(out, last_acc.get("source_heal", {}), "heal", "点")
+	_append_source_rows(out, last_acc.get("source_shield", {}), "shield", "点")
+
+	# 牌谱追加的状态层（pattern_status），如 {"burn": 1} → 燃烧 +1 层。
+	var pst = last_acc.get("pattern_status", {})
+	if pst is Dictionary:
+		for key in (pst as Dictionary):
+			var n := int((pst as Dictionary)[key])
+			if n <= 0:
+				continue
+			var sk := String(key)
+			out.append({
+				"kind": "status",
+				"label": String(STATUS_LABELS.get(sk, sk)),
+				"value": n,
+				"unit": "层",
+			})
+
+	# 牌谱行：优先 pending_banners（形如 "<icon> <id> <名字>"），无 banner 时回退 lines。
+	var seen: Array[String] = []
+	for b in (last_acc.get("pending_banners", []) as Array):
+		if not (b is Dictionary):
+			continue
+		var nm := _banner_pattern_name(String((b as Dictionary).get("text", "")))
+		if nm != "" and not seen.has(nm):
+			seen.append(nm)
+			out.append({"kind": "pattern", "label": nm, "value": 1, "unit": "条"})
+	if seen.is_empty():
+		for line in (last_acc.get("lines", []) as Array):
+			var nm2 := _line_pattern_name(String(line))
+			if nm2 != "" and not seen.has(nm2):
+				seen.append(nm2)
+				out.append({"kind": "pattern", "label": nm2, "value": 1, "unit": "条"})
+	return out
+
+
+static func _append_source_rows(out: Array[Dictionary], by_source, kind: String, unit: String) -> void:
+	if not (by_source is Dictionary):
+		return
+	for key in (by_source as Dictionary):
+		var value := int(roundf(float((by_source as Dictionary)[key])))
+		if value == 0:
+			continue   # B5：不产生 "0 伤害" 这类噪声行
+		out.append({
+			"kind": kind,
+			"label": _source_label(String(key)),
+			"value": value,
+			"unit": unit,
+		})
+
+
+# source_id 原文（"iron_sword"）或资源路径 → 短标签。
+static func _source_label(key: String) -> String:
+	var base := key.get_file().get_basename()
+	return base if base != "" else key
+
+
+# banner 形如 "<icon> <id> <name>[·signature]" → 取牌谱名（名字不含空格）。
+static func _banner_pattern_name(text: String) -> String:
+	var parts := text.strip_edges().split(" ", false)
+	if parts.size() < 3:
+		return ""
+	var nm := String(parts[2]).strip_edges()
+	var dot := nm.find("·")
+	if dot >= 0:
+		nm = nm.substr(0, dot)
+	return nm
+
+
+# lines 回退：只认「牌谱「name」」行，避免把伤害分解行误当牌谱。
+static func _line_pattern_name(text: String) -> String:
+	var t := text.strip_edges()
+	if not t.contains("牌谱"):
+		return ""
+	var open := t.find("「")
+	var close := t.find("」", open + 1)
+	if open >= 0 and close > open:
+		return t.substr(open + 1, close - open - 1)
+	return ""
+
+

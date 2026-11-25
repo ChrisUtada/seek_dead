@@ -1094,7 +1094,8 @@ func _on_combo_requested() -> void:
 	var tag_cb := Callable(self, "_pattern_tag_of")
 	var rows: Array[Dictionary] = ComboCatalog.build_rows(
 		_pattern_system, selected_loadout, tag_cb, last_settlement_acc)
-	hud.show_combo_panel(rows)
+	var sources: Array[Dictionary] = ComboCatalog.build_sources(last_settlement_acc)
+	hud.show_combo_panel(rows, sources)
 
 
 # M-02b：ACT1 开幕信息公开。房间已经开起来（_start_room(0) 不自动 spin），
