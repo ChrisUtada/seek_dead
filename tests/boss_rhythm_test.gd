@@ -125,6 +125,15 @@ func _recovery_check(duel: DuelController, g, nm: String, title: String) -> void
 			_check(g.recovery_window(duel), "茧居石雕：第4回合开合窗口")
 			_check(int(duel.enemy_armor) == 0, "茧居石雕：开合甲归零")
 			_check(String(duel.enemy_intent.get("type", "")) == "heavy", "茧居石雕：开合强制重击")
+			# 第5回合：闭合期休养（开合期为第4回合，已在上方断言）
+			duel.enemy_hp_max = 100
+			duel.enemy_hp = 50
+			g.on_turn_begin(duel)
+			_check(int(duel.enemy_hp) == 56, "茧居石雕：闭合期休养回血 +6（50→56）")
+			_check(int(duel.enemy_hp) <= int(duel.enemy_hp_max), "茧居石雕：休养不超过上限")
+			duel.enemy_hp = 99
+			g.on_turn_begin(duel)
+			_check(int(duel.enemy_hp) == 100, "茧居石雕：休养溢出按上限截断")
 		"呓语教徒":
 			g.on_turn_begin(duel)
 			_check(int(duel.pending_lock_reel) >= 0, "呓语教徒：第2回合先锁1列（D6 与迷宫错位）")

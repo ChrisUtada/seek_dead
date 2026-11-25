@@ -56,8 +56,12 @@ func on_turn_begin(ctrl) -> void:
 	ctrl.enemy_armor = _shell_armor
 	_show_phase(ctrl, false)
 	if _heal_per_turn > 0 and ctrl.enemy_hp > 0 and ctrl.enemy_hp < ctrl.enemy_hp_max:
+		var before: int = int(ctrl.enemy_hp)
 		ctrl.enemy_hp = mini(ctrl.enemy_hp + _heal_per_turn, ctrl.enemy_hp_max)
-		ctrl.hud._log("🐚 茧壳内休养 +%d（HP %d/%d）" % [_heal_per_turn, int(ctrl.enemy_hp), int(ctrl.enemy_hp_max)])
+		var gained: int = int(ctrl.enemy_hp) - before
+		ctrl.hud._log("🐚 茧壳内休养 +%d（HP %d/%d）" % [gained, int(ctrl.enemy_hp), int(ctrl.enemy_hp_max)])
+		if gained > 0:
+			ctrl.hud._popup("🐚+%d" % gained, Palette.POP_HEAL, ctrl.hud._enemy_sprite_anchor())
 
 # 相变立绘：只改敌方 TextureRect，不触碰护甲、回血、意图或 RNG。
 func _show_phase(ctrl, is_open: bool) -> void:
