@@ -13,3 +13,4 @@ base = 4.0
 element = "fire"
 status_type = "burn"
 color = Color(1.0, 0.50, 0.20, 1)
+symbol_category = "flame"

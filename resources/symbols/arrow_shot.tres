@@ -13,3 +13,4 @@ base = 9.0
 element = "none"
 status_type = ""
 color = Color(0.75, 0.78, 0.82, 1)
+symbol_category = "projectile"

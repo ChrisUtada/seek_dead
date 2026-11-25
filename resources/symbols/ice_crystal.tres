@@ -14,3 +14,4 @@ base = 11.0
 element = "ice"
 status_type = ""
 color = Color(0.60, 0.85, 0.95, 1)
+symbol_category = "frost"

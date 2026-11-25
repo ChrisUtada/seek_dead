@@ -16,6 +16,10 @@ extends Resource
 @export var color: Color = Color(0.7, 0.7, 0.75, 1)
 @export var pierce_armor: bool = false   # 穿透护甲：该符号伤害直接扣 HP，不先扣敌人护甲（RPG 式破甲）
 
+# T3-3B：组合类别标记（只给试点四类符号打标，其余保持 none）。
+# blade | flame | frost | guard | projectile | arcane | none
+@export var symbol_category: String = "none"
+
 # Phase C — 仅 kind=="buff"：主动技能符号自带效果，符号自描述。
 # 结算时 _evaluate 直接读这三个字段，无需从 SkillData 回查，保持零查表。
 @export var buff_effect: String = ""        # power | shield | regen | damage_mult

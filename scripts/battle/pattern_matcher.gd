@@ -141,6 +141,15 @@ static func _card_satisfies(card: Dictionary, cond: Dictionary) -> bool:
 		return false
 	if cond.has("skill_role") and String(card.get("skill_role", "")) != String(cond["skill_role"]):
 		return false
+	if cond.has("symbol_category"):
+		var sym_obj = card["sym"]
+		var cat: String = ""
+		if sym_obj is Dictionary:
+			cat = String((sym_obj as Dictionary).get("symbol_category", "none"))
+		else:
+			cat = String(sym_obj.symbol_category)
+		if cat != String(cond["symbol_category"]):
+			return false
 	return true
 
 
