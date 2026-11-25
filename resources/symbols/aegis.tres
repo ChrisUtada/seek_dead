@@ -11,3 +11,4 @@ base = 10.0
 element = "light"
 status_type = ""
 color = Color(0.80, 0.90, 1.00, 1)
+symbol_category = "guard"

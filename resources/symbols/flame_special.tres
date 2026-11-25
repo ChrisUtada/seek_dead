@@ -13,3 +13,4 @@ base = 25.0
 element = "none"
 status_type = ""
 color = Color(1.0, 0.50, 0.20, 1)
+symbol_category = "flame"

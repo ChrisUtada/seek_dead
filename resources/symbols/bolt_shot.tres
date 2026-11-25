@@ -14,3 +14,4 @@ element = "none"
 status_type = ""
 pierce_armor = true
 color = Color(0.75, 0.75, 0.82, 1)
+symbol_category = "projectile"
