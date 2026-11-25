@@ -48,6 +48,18 @@ static func _matched_ids(last_acc: Dictionary) -> Array[String]:
 		var uid: String = String(u.id) if u is Resource else String(u.get("id", ""))
 		if uid != "" and not out.has(uid):
 			out.append(uid)
+	# G 系命中来自 acc["pattern_match"]["patterns"]（matcher 的 {id,name} 列表）。
+	# pattern_match 可能为空字典或缺 patterns 键，必须安全跳过。
+	var pm = last_acc.get("pattern_match", null)
+	if pm is Dictionary:
+		var pats = (pm as Dictionary).get("patterns", [])
+		if pats is Array:
+			for p in (pats as Array):
+				if not (p is Dictionary):
+					continue
+				var pid: String = String((p as Dictionary).get("id", ""))
+				if pid != "" and not out.has(pid):
+					out.append(pid)
 	return out
 
 
@@ -63,10 +75,26 @@ static func _condition_text(pattern) -> String:
 		var text: String = MATCHER.describe_condition(c as Dictionary)
 		var cat: String = String((c as Dictionary).get("symbol_category", ""))
 		if cat != "":
-			parts.append("%s符号" % cat)
+			parts.append(cat)
 		elif text != "":
 			parts.append(text)
-	return " + ".join(parts)
+	# 相邻相同描述折叠为「描述×N」；没有重复时保留原描述（W01 三条不同描述用 " + " 拼接）。
+	var has_dup := false
+	for i in range(1, parts.size()):
+		if parts[i] == parts[i - 1]:
+			has_dup = true
+			break
+	if not has_dup:
+		return " + ".join(parts)
+	var folded: Array[String] = []
+	for text in parts:
+		if not folded.is_empty() and folded[folded.size() - 1].begins_with(text + "×"):
+			var prev: String = folded[folded.size() - 1]
+			var n: int = int(prev.substr(text.length() + 1))
+			folded[folded.size() - 1] = "%s×%d" % [text, n + 1]
+		else:
+			folded.append(text + "×1")
+	return " + ".join(folded)
 
 
 # contribution_text：只从 acc["lines"] 里按牌谱名匹配，取不到留空。
@@ -102,7 +130,7 @@ static func build_rows(pattern_system, loadout_paths: Array, tag_of: Callable,
 			"contribution_text": _contribution_text(p, last_acc),
 		})
 
-	# G 系三行（合成、非资源、恒定 unlocked，matched_now 看通用位）。
+	# G 系三行（合成、非资源、恒定 unlocked，matched_now 读 acc["pattern_match"]）
 	for g in G_ROWS:
 		var gid: String = String(g["id"])
 		var gname: String = String(g["name"])
