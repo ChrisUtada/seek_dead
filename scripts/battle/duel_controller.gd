@@ -364,6 +364,9 @@ var mastery                            # M2-02 武器熟练 R1–R4 与铭印（
 var weapon_slots
 # 2026-11-15 转轮凑牌：牌谱系统（装备解锁集 + 优先级）。Step 2 起效果真正生效。
 var _pattern_system
+# T3-3 C 轮（2026-11-25）：上一 SPIN 的只读结算快照（evaluate 内 duplicate(true) 写入）。
+# 唯一写入点是 combat_system.evaluate()；组合面板等只读消费者不得写入。
+var last_settlement_acc: Dictionary = {}
 var circuit_system                     # G4 本局回路系统（2槽/触发限制/来源日志；与装备牌谱分开）
 var machine_summary                    # G7-4 统一机器摘要（整备/换装/战后/局末同一口径；纯查询）
 var onboarding                         # G7-5 新手引导与辅助选项（首局四件事 + 辅助来源标注）
@@ -1162,6 +1165,7 @@ func _full_reset() -> void:
 # 新一局公共状态重置（不含开战）：已迁至 LoadoutSystem.reset_run_state（P2 架构还债，2026-08-24）——单行转发。
 func _reset_run_state() -> void:
 	_loadout_system.reset_run_state()
+	last_settlement_acc = {}   # T3-3 C 轮：新局清空上一 SPIN 的只读结算快照
 	damage_ledger.begin(0, 0)   # T4：新局清空伤害事件账本
 	_linear_camp_op_granted = false   # T0-1：跨局防御，避免上局中途退出的营地挂起标记污染新局
 	# M-02b：新局清空章节头显示记录与待办，防止跨局污染
