@@ -233,8 +233,8 @@ func push_dmg_line(acc: Dictionary, sym: SymbolData, elem: String, flat, bonus, 
 
 # T4 A3 测试接缝：是否需要在逐段回放之外再弹总伤害大数字。
 # 0 段（纯破甲/空转）补总伤害；>=1 段已有逐段飘字，不再叠总伤害。
-# 护甲反馈不丢：release_enemy_preview()（battle_hud.gd:1841）在上游已弹
-# "甲-X / 血-Y / 穿-Z" 分项（:1853/:1855/:1857），与此处总伤害数字职责不同。
+# 护甲反馈不丢：hud.release_enemy_preview() 在上游已弹
+# "甲-X / 血-Y / 穿-Z" 分项（位于 release_enemy_preview 内），与此处总伤害数字职责不同。
 func _should_show_total_popup(event_count: int) -> bool:
 	return event_count == 0
 

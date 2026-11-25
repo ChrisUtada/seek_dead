@@ -1612,7 +1612,7 @@ func _recenter_vitals(root: Control, bar: VitalBar) -> void:
 	root.offset_right = total * 0.5
 
 
-func _apply_hp_bar(bar: VitalBar, root: Control, new_ratio: float, prev_ratio: float, shield_len: float) -> void:
+func _apply_hp_bar(bar: VitalBar, root: Control, new_ratio: float, prev_ratio: float, shield_len: float, allow_growth: bool = true) -> void:
 	if bar == null or not is_instance_valid(bar):
 		return
 	if new_ratio < prev_ratio - 0.001:
@@ -1633,7 +1633,7 @@ func _apply_hp_bar(bar: VitalBar, root: Control, new_ratio: float, prev_ratio: f
 			var jolt := root.create_tween()
 			jolt.tween_property(root, "position:y", base_y + 1.0, 0.06)
 			jolt.tween_property(root, "position:y", base_y, 0.10)
-	elif new_ratio > prev_ratio + 0.001:
+	elif allow_growth and new_ratio > prev_ratio + 0.001:
 		# 2026-11-23：治疗血条增长动画——在治愈音播放期间(1.25s)平滑填入红色段，
 		# 实现"音画同步"：玩家看着血条涨的同时听到药剂音（经典 sound/animation synchronized）。
 		# refresh() 会把 ratio/display_ratio 设为新值、外框撑到位；这里把 display_ratio
@@ -1645,6 +1645,12 @@ func _apply_hp_bar(bar: VitalBar, root: Control, new_ratio: float, prev_ratio: f
 		bar.grow_tween = bar.create_tween()
 		bar.grow_tween.tween_method(bar.set_display_ratio, prev_ratio, new_ratio, HEAL_BAR_GROW)
 		return
+	elif not allow_growth and new_ratio > prev_ratio + 0.001:
+		# 敌人侧禁止增长动画：换房满血 / 幽灵值交错时，倍率上升只是表现层快照切换，
+		# 不是治疗；若沿用增长 tween 会被误画成"敌人在回血"。直接拍平显示值。
+		if bar.grow_tween != null and bar.grow_tween.is_valid():
+			bar.grow_tween.kill()
+		bar.set_display_ratio(new_ratio)
 	bar.refresh(new_ratio, prev_ratio, shield_len)
 
 
@@ -1664,7 +1670,7 @@ func play_damage_events(events: Array, hp_max: int, skip: bool) -> void:
 		var elem: String = String(e.get("element", "none"))
 		var tag: String = String(e.get("tag", ""))
 		if not skip:
-			_apply_hp_bar(enemy_hp_bar, enemy_vitals, ratio, prev_ratio, 0.0)
+			_apply_hp_bar(enemy_hp_bar, enemy_vitals, ratio, prev_ratio, 0.0, false)
 			var color: Color = ElementCounter.color(elem) if elem != "none" else Palette.POP_DAMAGE
 			var text: String = ("%s -%d" % [tag, amount]) if tag != "" else ("-%d" % amount)
 			_popup(text, color, _enemy_sprite_anchor(), kind == "dot" or kind == "dot_burst")
@@ -1674,7 +1680,7 @@ func play_damage_events(events: Array, hp_max: int, skip: bool) -> void:
 	# A4：非 skip 路径循环里已画完最后一段，再刷一次会二次触发 ghost / 抖动；
 	# 只有 skip（循环内不画）才需要一次性收尾刷新。
 	if skip:
-		_apply_hp_bar(enemy_hp_bar, enemy_vitals, last_ratio, _ev_hp_prev, 0.0)
+		_apply_hp_bar(enemy_hp_bar, enemy_vitals, last_ratio, _ev_hp_prev, 0.0, false)
 	# A5：用 controller.enemy_hp 原始字段，不读惰性缓存 controller.state.enemy_hp（可能过期）。
 	_ev_hp_prev = clampf(float(int(controller.enemy_hp)) / mx, 0.0, 1.0) if controller != null else last_ratio
 
@@ -1705,7 +1711,7 @@ func _refresh_vitals() -> void:
 	var ev_shown_armor: int = _ev_armor_display_hold if _ev_armor_display_hold >= 0 else int(controller.state.enemy_armor)
 	var ev_r: float = float(ev_shown_hp) / float(ev_max)
 	var ev_sl: float = _shield_len_of(ev_shown_armor, ev_max)
-	_apply_hp_bar(enemy_hp_bar, enemy_vitals, ev_r, _ev_hp_prev, ev_sl)
+	_apply_hp_bar(enemy_hp_bar, enemy_vitals, ev_r, _ev_hp_prev, ev_sl, false)
 	_ev_hp_prev = ev_r
 	_recenter_vitals(enemy_vitals, enemy_hp_bar)
 
