@@ -67,6 +67,10 @@ func _apply(syms: Array, with_sword: bool = true) -> Dictionary:
 
 # 只跑牌谱层（不跑 _phase_symbols，避免其 RNG/洗牌干扰 A/B 对照）
 func _apply_patterns_only(syms: Array) -> Dictionary:
+	for rr in 3:
+		_duel.grid[rr][0] = load(String(syms[rr]))
+		_duel.grid_elem[rr][0] = "none"
+		_duel.reel_system._set_grid_src(rr, 0, "iron_sword")
 	var acc: Dictionary = _duel.combat._new_acc()
 	_duel.combat._reset_turn_state()
 	_duel.combat._apply_patterns(acc)
@@ -143,18 +147,29 @@ func _run() -> void:
 	_check(dmg_pierce == 7.0 and _duel.enemy_armor == _before_armor - 7,
 		"T7 铁剑破甲口径不变（护甲 %d→%d）" % [_before_armor, _duel.enemy_armor])
 
-	# T8 A/B：对照组不注册 W07，实验组注册 W07；同落线同种子
+	# T8 A/B（无竞争落线）：iron_slash + burn + burn；对照组不注册 W07，实验组注册 W07。
+	# burn+burn 不满足 W06（需要两张 damage），也不满足 W01（需要 damage/fire），
+	# 因此对照组应零 equipment 牌谱命中，W07 是唯一变量。
 	var ps_orig = _duel._pattern_system
 	var ps_ctrl = preload("res://scripts/battle/pattern_system.gd").new()
 	for p in ps_orig.all_patterns():
 		if String(p.id) != "W07":
 			ps_ctrl.register(p)
-	_duel._pattern_system = ps_ctrl
+	var ab_syms: Array = [SY_BLADE, SY_FLAME_A, SY_FLAME_A]
 	var seed_ab: int = _duel._reward_system._loot.seed_value()
-	var ctrl: Dictionary = _apply_patterns_only([SY_BLADE, SY_FLAME_A, SY_FLAME_B])
+	_duel._pattern_system = ps_ctrl
+	var ctrl: Dictionary = _apply_patterns_only(ab_syms)
 	_duel._pattern_system = ps_orig
 	_duel._reward_system._loot.reset_run(seed_ab)
-	var exp: Dictionary = _apply_patterns_only([SY_BLADE, SY_FLAME_A, SY_FLAME_B])
+	var exp: Dictionary = _apply_patterns_only(ab_syms)
+	# A2 无竞争前提：对照组零命中、实验组 W07 命中（必须显式断言）
+	_check(String(ctrl.get("pattern_weapon", "")) == "",
+		"T8 对照组无 equipment 牌谱命中（pattern_weapon=%s）" % String(ctrl.get("pattern_weapon", "")))
+	_check(String(exp.get("pattern_weapon", "")) == "W07",
+		"T8 实验组命中 W07（pattern_weapon=%s）" % String(exp.get("pattern_weapon", "")))
+	# A3 burn +1，其余字段相同
+	_check(_burn(exp) == _burn(ctrl) + 1,
+		"T8 实验组 burn == 对照组 +1（A=%d B=%d）" % [_burn(ctrl), _burn(exp)])
 	var keys: Array = ["dmg", "shield", "heal", "charge_points", "triple", "pattern_skill"]
 	var same := true
 	var diff_txt: Array[String] = []
@@ -162,19 +177,82 @@ func _run() -> void:
 		if str(ctrl.get(k)) != str(exp.get(k)):
 			same = false
 			diff_txt.append("%s: %s→%s" % [k, str(ctrl.get(k)), str(exp.get(k))])
-	_check(same, "T8 A/B 伤害/护盾/治疗/充能/三连完全一致（差异 %s）" % str(diff_txt))
-	_check(_burn(ctrl) == 0 and _burn(exp) == 1,
-		"T8 实验组仅多 1 层燃烧（A=%d B=%d）" % [_burn(ctrl), _burn(exp)])
+	_check(same, "T8 其余字段（dmg/shield/heal/charge/triple/skill）相同（差异 %s）" % str(diff_txt))
 	var banners_b: Array = exp.get("pending_banners", []) as Array
 	_check(banners_b.size() == 1 and String((banners_b[0] as Dictionary).get("text", "")).contains("强化燃刃"),
-		"T8 实验组说明行恰为 W07 一条（实测 %d 条，%s）" % [banners_b.size(), str(banners_b)])
-	# A/B 差值表打印供回报
-	Debug.log("T3BCOM|BANNERS A=%s B=%s" % [str(ctrl.get("pending_banners", [])), str(exp.get("pending_banners", []))])
-	Debug.log("T3BCOM|AB dmg=%s→%s armor=%s→%s charge=%s→%s burn=%d→%d lines=%d→%d" % [
+		"T8 实验组说明行恰为 W07 一条（实测 %d 条）" % banners_b.size())
+	Debug.log("T3BCOM|AB burn+burn: pattern_weapon A=%s B=%s dmg=%s→%s armor=%s→%s charge=%s→%s burn=%d→%d banners A=%d B=%d" % [
+		String(ctrl.get("pattern_weapon", "")), String(exp.get("pattern_weapon", "")),
 		str(ctrl.get("dmg")), str(exp.get("dmg")),
 		str(_duel.enemy_armor), str(_duel.enemy_armor),
 		str(ctrl.get("charge_points")), str(exp.get("charge_points")),
 		_burn(ctrl), _burn(exp), (ctrl.get("pending_banners", []) as Array).size(), banners_b.size()])
+
+	await _t9_full_settle(ps_orig, ps_ctrl, seed_ab)
+
+
+# T9：同种子、同落线，各跑一次完整 evaluate()；比较终态，唯一差异应为敌人 burn +1。
+func _t9_full_settle(ps_orig, ps_ctrl, seed_ab: int) -> void:
+	var syms: Array = [SY_BLADE, SY_FLAME_A, SY_FLAME_A]
+	var setup := func() -> void:
+		seed(12345)   # 全局 RNG 与 loot RNG 都固定，保证两次 evaluate 的落线/洗牌同序列
+		_duel.selected_loadout.clear()
+		_duel.selected_loadout.append(IRON_SWORD)
+		_duel.selected_loadout.append("res://resources/weapon_templates/dagger.tres")
+		_duel._build_pool(_duel.selected_loadout)
+		_duel._sync_pattern_source_meta()
+		_duel.frozen_cols.clear()
+		for rr in 3:
+			_duel.grid[rr][0] = load(String(syms[rr]))
+			_duel.grid_elem[rr][0] = "none"
+			_duel.reel_system._set_grid_src(rr, 0, "iron_sword")
+		_duel.enemy_hp = 300
+		_duel.enemy_hp_max = 300
+		_duel.enemy_armor = 10
+		_duel.enemy_status.clear()
+		_duel.player_hp = _duel.player_hp_max
+		_duel.player_shield = 0
+		_duel.charge_points = 0
+		_duel.turn_count = 1
+		_duel.enemy_intent.clear()
+		_duel._reward_system._loot.reset_run(seed_ab)
+
+	setup.call()
+	_duel._pattern_system = ps_ctrl
+	var seed_a0: int = _duel._reward_system._loot.seed_value()
+	await _duel.combat.evaluate()
+	var a := {
+		"hp": _duel.enemy_hp, "armor": _duel.enemy_armor, "charge": _duel.charge_points,
+		"shield": _duel.player_shield, "heal": _duel.player_hp,
+		"burn": int(_duel.enemy_status.get("burn", 0)),
+	}
+	var seed_a1: int = _duel._reward_system._loot.seed_value()
+
+	setup.call()
+	_duel._pattern_system = ps_orig
+	var seed_b0: int = _duel._reward_system._loot.seed_value()
+	await _duel.combat.evaluate()
+	var b := {
+		"hp": _duel.enemy_hp, "armor": _duel.enemy_armor, "charge": _duel.charge_points,
+		"shield": _duel.player_shield, "heal": _duel.player_hp,
+		"burn": int(_duel.enemy_status.get("burn", 0)),
+	}
+	var seed_b1: int = _duel._reward_system._loot.seed_value()
+
+	_check(seed_a0 == seed_a1 and seed_b0 == seed_b1 and seed_a0 == seed_b0,
+		"T9 战利品 RNG seed 前后一致（A %d→%d，B %d→%d）" % [seed_a0, seed_a1, seed_b0, seed_b1])
+	var keys: Array = ["hp", "armor", "charge", "shield", "heal"]
+	var diffs: Array[String] = []
+	for k in keys:
+		if str(a[k]) != str(b[k]):
+			diffs.append("%s: %s→%s" % [k, str(a[k]), str(b[k])])
+	_check(diffs.is_empty(), "T9 全量结算除燃烧外零差异（差异 %s）" % str(diffs))
+	_check(int(b["burn"]) == int(a["burn"]) + 1,
+		"T9 实验组敌人 burn == 对照组 +1（A=%d B=%d）" % [int(a["burn"]), int(b["burn"])])
+	Debug.log("T3BCOM|T9 hp=%s→%s armor=%s→%s charge=%s→%s shield=%s→%s hp_player=%s→%s burn=%d→%d seed=%d" % [
+		str(a["hp"]), str(b["hp"]), str(a["armor"]), str(b["armor"]),
+		str(a["charge"]), str(b["charge"]), str(a["shield"]), str(b["shield"]),
+		str(a["heal"]), str(b["heal"]), int(a["burn"]), int(b["burn"]), seed_a0])
 
 
 const PATTERN_LIB = preload("res://scripts/battle/pattern_matcher.gd")
