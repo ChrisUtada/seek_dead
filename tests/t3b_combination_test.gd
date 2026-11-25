@@ -170,25 +170,59 @@ func _run() -> void:
 	# A3 burn +1，其余字段相同
 	_check(_burn(exp) == _burn(ctrl) + 1,
 		"T8 实验组 burn == 对照组 +1（A=%d B=%d）" % [_burn(ctrl), _burn(exp)])
-	var keys: Array = ["dmg", "shield", "heal", "charge_points", "triple", "pattern_skill"]
+	# T8 清理：armor/charge 曾作为「从上个用例继承的值」出现在比较里，不具判别力。
+	# 现在比较字段只保留牌谱层真实写入的键；真实 enemy_armor / charge_points 在 T9 全量对照里验证。
+	_duel.enemy_armor = 10
+	_duel.charge_points = 0
+	var keys: Array = ["dmg", "shield", "heal", "triple", "pattern_skill"]
 	var same := true
 	var diff_txt: Array[String] = []
 	for k in keys:
 		if str(ctrl.get(k)) != str(exp.get(k)):
 			same = false
 			diff_txt.append("%s: %s→%s" % [k, str(ctrl.get(k)), str(exp.get(k))])
-	_check(same, "T8 其余字段（dmg/shield/heal/charge/triple/skill）相同（差异 %s）" % str(diff_txt))
+	_check(same, "T8 牌谱层字段（dmg/shield/heal/triple/skill）相同（差异 %s）" % str(diff_txt))
 	var banners_b: Array = exp.get("pending_banners", []) as Array
 	_check(banners_b.size() == 1 and String((banners_b[0] as Dictionary).get("text", "")).contains("强化燃刃"),
 		"T8 实验组说明行恰为 W07 一条（实测 %d 条）" % banners_b.size())
-	Debug.log("T3BCOM|AB burn+burn: pattern_weapon A=%s B=%s dmg=%s→%s armor=%s→%s charge=%s→%s burn=%d→%d banners A=%d B=%d" % [
+	Debug.log("T3BCOM|AB burn+burn: pattern_weapon A=%s B=%s dmg=%s→%s burn=%d→%d banners A=%d B=%d" % [
 		String(ctrl.get("pattern_weapon", "")), String(exp.get("pattern_weapon", "")),
 		str(ctrl.get("dmg")), str(exp.get("dmg")),
-		str(_duel.enemy_armor), str(_duel.enemy_armor),
-		str(ctrl.get("charge_points")), str(exp.get("charge_points")),
 		_burn(ctrl), _burn(exp), (ctrl.get("pending_banners", []) as Array).size(), banners_b.size()])
 
 	await _t9_full_settle(ps_orig, ps_ctrl, seed_ab)
+	_guard_w07_beats_w06(ps_orig)
+	_guard_unlock_paths(ps_orig)
+
+
+# B1：W07 与 W06 同时满足的落线（iron_slash + burn + fire_slash，来源全 iron_sword）：
+# resolve_equipment 必须选 W07，且 W06 不生效（§5 设计后果的回归锁）。
+func _guard_w07_beats_w06(ps) -> void:
+	_duel._pattern_system = ps
+	_duel.selected_loadout.clear()
+	_duel.selected_loadout.append(IRON_SWORD)
+	_duel.selected_loadout.append("res://resources/weapon_templates/dagger.tres")
+	_duel._build_pool(_duel.selected_loadout)
+	_duel._sync_pattern_source_meta()
+	var syms: Array = [SY_BLADE, SY_FLAME_A, SY_FLAME_B]
+	var acc: Dictionary = _apply_patterns_only(syms)
+	_check(String(acc.get("pattern_weapon", "")) == "W07",
+		"B1 W07/W06 同层时选中 W07（实测 %s）" % String(acc.get("pattern_weapon", "")))
+	# W06 的 effect_params.damage_mult=1.2 不得出现：其专属说明行不存在
+	var w06_line := false
+	for ln in (acc.get("lines", []) as Array):
+		if String(ln).contains("无锋磨砺") or String(ln).contains("+20%"):
+			w06_line = true
+	_check(not w06_line, "B1 W06 未生效（无其说明行）")
+
+
+# B2：未装备 iron_sword 时即使三符号类别凑齐，W07 也不命中（unlock_paths 生效）
+func _guard_unlock_paths(ps) -> void:
+	_duel._pattern_system = ps
+	var a: Dictionary = _apply([SY_BLADE, SY_FLAME_A, SY_FLAME_B], false)
+	_check(not _duel.selected_loadout.has(IRON_SWORD), "B2 配装确实不含 iron_sword")
+	_check(String(a.get("pattern_weapon", "")) != "W07",
+		"B2 未装备 iron_sword 时 W07 不命中（实测 %s）" % String(a.get("pattern_weapon", "")))
 
 
 # T9：同种子、同落线，各跑一次完整 evaluate()；比较终态，唯一差异应为敌人 burn +1。
