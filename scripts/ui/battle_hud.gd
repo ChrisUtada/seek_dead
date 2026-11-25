@@ -119,10 +119,11 @@ func shop_screen_is_open() -> bool:
 	if shop_screen == null:
 		return false
 	return shop_screen.is_shown()
-func show_combo_panel(rows: Array[Dictionary], sources: Array[Dictionary] = []) -> void:
+func show_combo_panel(rows: Array[Dictionary], sources: Array[Dictionary] = [],
+		preview: Array[Dictionary] = []) -> void:
 	if combo_panel == null:
 		return
-	combo_panel.open(rows, sources)
+	combo_panel.open(rows, sources, preview)
 func _on_combo_panel_closed() -> void:
 	# 面板自身已 close()；这里只收口遮罩与交互（隐藏后鼠标事件回到 HUD）。
 	if combo_panel != null:

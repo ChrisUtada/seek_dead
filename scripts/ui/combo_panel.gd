@@ -20,10 +20,13 @@ const SECTION_TITLES := {
 # 只读快照：供测试核对，不依赖场景树遍历。open() 里以 duplicate(true) 写入。
 var last_rendered_rows: Array[Dictionary] = []
 var last_rendered_sources: Array[Dictionary] = []
+var last_rendered_preview: Array[Dictionary] = []
 # 测试可读的行文本（按渲染顺序，含区段标题与每一行文本），便于结构断言。
 var rendered_texts: Array[String] = []
 # 「本轮来源」区段的行文本（不含标题/分隔），供行数断言。
 var rendered_source_texts: Array[String] = []
+# 「第三格预览」区段的行文本（不含标题/分隔），供行数断言。
+var rendered_preview_texts: Array[String] = []
 
 
 func _ready() -> void:
@@ -34,7 +37,16 @@ func _ready() -> void:
 	_clear()
 
 
-func open(rows: Array[Dictionary], sources: Array[Dictionary] = []) -> void:
+func open(rows: Array[Dictionary], sources: Array[Dictionary] = [], preview: Array[Dictionary] = []) -> void:
+	_open_impl(rows, sources, preview)
+
+
+# 单独刷新「第三格预览」区段：沿用当前 rows/sources 快照重绘（只读，不触发任何战斗逻辑）。
+func open_preview(preview_rows: Array[Dictionary]) -> void:
+	_open_impl(last_rendered_rows, last_rendered_sources, preview_rows)
+
+
+func _open_impl(rows: Array[Dictionary], sources: Array[Dictionary], preview: Array[Dictionary]) -> void:
 	_clear()
 	# A4：不修改传入数组；保存深拷贝快照供只读核对。
 	last_rendered_rows = []
@@ -43,12 +55,17 @@ func open(rows: Array[Dictionary], sources: Array[Dictionary] = []) -> void:
 	last_rendered_sources = []
 	for s in sources:
 		last_rendered_sources.append((s as Dictionary).duplicate(true))
+	last_rendered_preview = []
+	for p in preview:
+		last_rendered_preview.append((p as Dictionary).duplicate(true))
 
 	var root: VBoxContainer = _vbox()
 	if root == null:
 		return
 	# C1/C2：来源区在组合区段之前，仅 sources 非空时显示；与组合区用一条「—」分隔。
 	_render_sources(root)
+	# C1：第三格预览独立区段，位于来源区之后、组合区之前；仅 preview 非空时显示。
+	_render_preview(root)
 	for group in SECTION_ORDER:
 		var g := String(group)
 		var group_rows: Array[Dictionary] = []
@@ -114,6 +131,34 @@ func _render_sources(root: VBoxContainer) -> void:
 	rendered_texts.append(sep.text)
 
 
+# 第三格预览：每候选一行「符号名：命中组合1、命中组合2」；无命中显示「无组合」。
+func _render_preview(root: VBoxContainer) -> void:
+	if last_rendered_preview.is_empty():
+		return
+	var title := Label.new()
+	title.text = "第三格预览"
+	root.add_child(title)
+	rendered_texts.append(title.text)
+	for p in last_rendered_preview:
+		var names: Array[String] = []
+		for m in (p.get("matched", []) as Array):
+			if not (m is Dictionary):
+				continue
+			var nm := String((m as Dictionary).get("name", ""))
+			if nm != "" and not names.has(nm):
+				names.append(nm)
+		var hits := "、".join(names) if not names.is_empty() else "无组合"
+		var line := Label.new()
+		line.text = "%s：%s" % [String(p.get("candidate_name", "")), hits]
+		root.add_child(line)
+		rendered_texts.append(line.text)
+		rendered_preview_texts.append(line.text)
+	var sep := Label.new()
+	sep.text = "—"
+	root.add_child(sep)
+	rendered_texts.append(sep.text)
+
+
 func _row_text(row: Dictionary) -> String:
 	var name_text: String = String(row.get("name", ""))
 	var cond: String = String(row.get("condition_text", ""))
@@ -135,7 +180,9 @@ func _row_text(row: Dictionary) -> String:
 func _clear() -> void:
 	rendered_texts = []
 	rendered_source_texts = []
+	rendered_preview_texts = []
 	last_rendered_sources = []
+	last_rendered_preview = []
 	var root: VBoxContainer = _vbox()
 	if root == null:
 		return

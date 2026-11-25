@@ -152,6 +152,57 @@ static func build_rows(pattern_system, loadout_paths: Array, tag_of: Callable,
 	return rows
 
 
+# T3-3 C 轮第 4 步（2026-11-26）：第三格只读预览（纯函数）。
+# base_cards 为已锁两格的真实牌卡（与 cards_from_grid 同构）；candidates 为候选符号路径。
+# 对每个候选拼出三张卡，跑 weapon_attack / skill_support 牌谱的 solve_rule；
+# G01–G03 用 PatternMatcher.match(cards).patterns 一并记。每个候选都出一行（无命中也出）。
+# 铁律：不读 _ctrl、不写状态、不调用结算、不消耗 RNG。
+static func preview_third_slot(base_cards: Array, candidates: Array[String],
+		pattern_system, tag_of) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	if base_cards.size() != 2:
+		return out   # 未锁两格不产出预览
+	var patterns: Array = []
+	if pattern_system != null:
+		for p in (pattern_system.all_patterns() as Array):
+			if p == null:
+				continue
+			var track := String(p.track)
+			if track == "weapon_attack" or track == "skill_support":
+				patterns.append(p)
+	for c in candidates:
+		var path := String(c)
+		var sym = load(path)
+		var cname := path.get_file().get_basename()
+		if sym != null and String(sym.name) != "":
+			cname = String(sym.name)
+		var cards: Array = base_cards.duplicate()
+		cards.append({
+			"sym": sym, "element": "none", "source": "",
+			"source_kind": "resource", "source_element": "none",
+			"skill_role": "", "valid": true,
+		})
+		var matched: Array[Dictionary] = []
+		if sym != null:
+			for p in patterns:
+				if MATCHER.solve_rule(cards, p.match_rule):
+					matched.append({
+						"id": String(p.id),
+						"name": String(p.name),
+						"group": _group_of(p),
+					})
+			for g in (MATCHER.match(cards).get("patterns", []) as Array):
+				if not (g is Dictionary):
+					continue
+				matched.append({
+					"id": String((g as Dictionary).get("id", "")),
+					"name": String((g as Dictionary).get("name", "")),
+					"group": "base",
+				})
+		out.append({"candidate": path, "candidate_name": cname, "matched": matched})
+	return out
+
+
 # 状态键 → 展示名（与工单示例一致；未收录的键回退原文）。
 const STATUS_LABELS := {
 	"burn": "燃烧",

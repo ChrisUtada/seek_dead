@@ -1095,7 +1095,46 @@ func _on_combo_requested() -> void:
 	var rows: Array[Dictionary] = ComboCatalog.build_rows(
 		_pattern_system, selected_loadout, tag_cb, last_settlement_acc)
 	var sources: Array[Dictionary] = ComboCatalog.build_sources(last_settlement_acc)
-	hud.show_combo_panel(rows, sources)
+	var preview: Array[Dictionary] = _combo_preview_rows()
+	hud.show_combo_panel(rows, sources, preview)
+
+
+# T3-3 C 轮第 4 步：第三格只读预览（纯匹配，不模拟结算）。
+# 「已锁两格」= 前两列均已停（reel_stopped[0]/[1]）；预览对象是第三列（reel 2）的候选符号。
+# 不读结算、不改 frozen_cols / grid、不消耗 RNG；未锁两格时返回空，面板不显示该区段。
+const PREVIEW_REEL := 2
+
+func _combo_preview_rows() -> Array[Dictionary]:
+	if reel_system == null or reel_system.reel_stopped.size() <= PREVIEW_REEL:
+		return []
+	if not bool(reel_system.reel_stopped[0]) or not bool(reel_system.reel_stopped[1]):
+		return []
+	var all_cards: Array = ComboCatalog.MATCHER.cards_from_grid(self)
+	var base: Array = []
+	for i in all_cards.size():
+		var col: int = int(PAYLINES[0][i][0])
+		if col != PREVIEW_REEL:
+			base.append(all_cards[i])
+	if base.size() != 2:
+		return []
+	return ComboCatalog.preview_third_slot(
+		base, _pool_symbol_paths(), _pattern_system, Callable(self, "_pattern_tag_of"))
+
+
+# 当前武器池里的候选符号路径（去重；不含 MISS / 金币，它们不来自 pool_items）。
+func _pool_symbol_paths() -> Array[String]:
+	var out: Array[String] = []
+	for it in pool_items:
+		for s in (it.get("syms", []) as Array):
+			if s.size() <= 0:
+				continue
+			var sym = s[0]
+			if not (sym is Resource):
+				continue
+			var path := String((sym as Resource).resource_path)
+			if path != "" and not out.has(path):
+				out.append(path)
+	return out
 
 
 # M-02b：ACT1 开幕信息公开。房间已经开起来（_start_room(0) 不自动 spin），
