@@ -94,6 +94,8 @@ static func match(cards: Array) -> Dictionary:
 #   {"any": true}                 任意有效牌
 #   {"source": "武器路径"}        来自指定来源
 #   {"symbol_category": "flame"}  符号类别（SymbolData.symbol_category，默认 none 不误命中）
+# 条件值必须与 SymbolData.symbol_category 严格相等；"none" 是可匹配类别（命中未分类符号），
+# 不是通配；未打标类别（blade/arcane）写进来会永不命中。
 static func solve_rule(cards: Array, rule: Dictionary) -> bool:
 	var conds: Array = rule.get("all", [])
 	if conds.is_empty():
