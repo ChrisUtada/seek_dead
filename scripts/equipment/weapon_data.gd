@@ -32,7 +32,7 @@ enum WeaponType { MELEE, RANGED }
 # 未迁移武器（status_migrated=false）行为与改前完全一致——符号照常入池、照常按格数结算状态。
 @export var status_migrated := false        # true 时状态符号离池（reel_system.weapon_syms 门控），改攻击后概率触发
 @export var status_family: String = ""      # burn / poison / frost / holy_burn / shadow_blight
-@export var status_chance: float = 0.0      # 每次攻击后触发概率（0..1）
+@export var status_chance: float = 0.0      # 每次攻击后触发概率（0..1）；试点 poison_dagger 当前 0.35 为占位初值，待平衡验证
 @export var status_stacks: int = 1          # 触发时施加层数
 
 # -- 远程专属 --
