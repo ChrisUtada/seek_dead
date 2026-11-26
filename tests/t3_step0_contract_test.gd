@@ -11,10 +11,13 @@ extends Node
 #   0A-5 普通非共享符号判定不变
 #   0B 牌卡来源路径（T3-0A Q1）：武器牌 source_path = WeaponData.resource_path，
 #       技能 / 金币 / MISS / 废铁 / 精华一律空串；实盘与预览同源；同武器两格同路径。
+#   0C 基础攻击契约（T3-0A Q2）：熟练不入 weapon_power；槽位锻造 / 铸式按公式进入；
+#       不读取遗留字段 WeaponData.damage。
 # ============================================================================
 
 const MACE := "res://resources/weapon_templates/mace.tres"
 const IRON_SWORD := "res://resources/weapon_templates/iron_sword.tres"
+const FIRE_SWORD := "res://resources/weapon_templates/fire_sword.tres"
 const HOLY_SWORD := "res://resources/weapon_templates/holy_sword.tres"
 const IRON_WALL_SKILL := "res://resources/skills/iron_wall.tres"
 const HOLY_VERDICT_SKILL := "res://resources/skills/holy_verdict.tres"
@@ -52,6 +55,7 @@ func _ready() -> void:
 	_test_0a_holy_verdict()
 	_test_0a_normal()
 	_test_0b_source_path()
+	_test_0c_weapon_power()
 
 	print("T3STEP0|RESULT %s (checks=%d fails=%d)" % [
 		"PASS" if _fails == 0 else "FAIL", _checks, _fails])
@@ -262,3 +266,87 @@ func _find_cand(cands: Array[Dictionary], path: String) -> Dictionary:
 func _spath(card: Dictionary) -> String:
 	return "kind=%s path=%s" % [
 		String(card.get("source_kind", "")), String(card.get("source_path", ""))]
+
+
+# 0C：基础攻击契约（T3-0A Q2）。
+# weapon_power = WeaponData.base_power + 槽位锻造 + 铸式攻击；不含熟练，不读 damage。
+func _test_0c_weapon_power() -> void:
+	_setup([IRON_SWORD], [])
+	_duel.weapon_slots.reset_run()
+	var slot := int(_duel.slot_of(IRON_SWORD))
+	var p0: int = _duel.weapon_power(IRON_SWORD)
+	_duel.mastery.mastery[IRON_SWORD] = 100
+	var p1: int = _duel.weapon_power(IRON_SWORD)
+	_check(p1 == p0, "0C-1 熟练 0→100 不改变 weapon_power（%d / %d）" % [p0, p1])
+	_duel.mastery.mastery.erase(IRON_SWORD)
+
+	_check(bool(_duel.weapon_slots.choose(slot, "forge")), "0C-2 槽位锻造第 1 次可选")
+	var p2: int = _duel.weapon_power(IRON_SWORD)
+	_check(p2 == p0 + 2, "0C-2 槽位锻造 +1 次 → 基础攻击 +2（%d → %d）" % [p0, p2])
+	_check(bool(_duel.weapon_slots.choose(slot, "forge")), "0C-2 槽位锻造第 2 次可选")
+	var p3: int = _duel.weapon_power(IRON_SWORD)
+	_check(p3 == p0 + 4, "0C-2 槽位锻造 +2 次 → 基础攻击 +4（%d → %d）" % [p0, p3])
+	_check(p3 == _formula(IRON_SWORD),
+		"0C-2 weapon_power == base_power + 槽位锻造 + 铸式（实测 %d / 公式 %d）" % [
+			p3, _formula(IRON_SWORD)])
+
+	_duel.weapon_slots.reset_run()
+	_setup([FIRE_SWORD], [])
+	var base: int = int((load(FIRE_SWORD) as WeaponData).base_power)
+	var before: int = _duel.weapon_power(FIRE_SWORD)
+	_check(before == base, "0C-3 铸式前 weapon_power == base_power（%d / %d）" % [before, base])
+	_unlock_codex(FIRE_SWORD)
+	_check(bool(_duel._forge_styles.set_style(FIRE_SWORD, "lie_ren")), "0C-3 铸式「烈刃」可选")
+	var style_power: int = int(_duel._forge_styles.style_def(FIRE_SWORD).get("power", 0))
+	var after: int = _duel.weapon_power(FIRE_SWORD)
+	_check(style_power == 2 and after == before + style_power,
+		"0C-3 铸式攻击加成进入 weapon_power（%d → %d，铸式 +%d）" % [before, after, style_power])
+	_check(after == _formula(FIRE_SWORD),
+		"0C-3 weapon_power == base_power + 槽位锻造 + 铸式（实测 %d / 公式 %d）" % [
+			after, _formula(FIRE_SWORD)])
+	_duel._forge_styles.set_style(FIRE_SWORD, "")
+
+	_duel.weapon_slots.reset_run()
+	_setup([HOLY_SWORD], [])
+	var wd: WeaponData = load(HOLY_SWORD)
+	_check(int(wd.base_power) == 18 and is_equal_approx(float(wd.damage), 45.0),
+		"0C-4 前提：圣辉长剑 base_power=%d / damage=%s" % [int(wd.base_power), str(wd.damage)])
+	var p4: int = _duel.weapon_power(HOLY_SWORD)
+	_check(p4 == 18, "0C-4 weapon_power 不读 WeaponData.damage（实测 %d，damage=45）" % p4)
+	_check(p4 == _formula(HOLY_SWORD),
+		"0C-4 weapon_power == base_power + 槽位锻造 + 铸式（实测 %d / 公式 %d）" % [
+			p4, _formula(HOLY_SWORD)])
+	_restore_meta()
+
+
+func _formula(path: String) -> int:
+	var wd: WeaponData = load(path)
+	if wd == null:
+		return 0
+	var slot := int(_duel.slot_of(path))
+	var forge: int = _duel.weapon_slots.forge_bonus(slot) if slot >= 0 else 0
+	var style: int = _duel._forge_styles.power_bonus(path)
+	return int(wd.base_power) + forge + style
+
+
+# 铸式解锁按图鉴历史：只在本测试内存里注入 R2 记录，结束后整体还原 meta。
+var _meta_backup: Dictionary = {}
+
+
+func _unlock_codex(path: String) -> void:
+	if _meta_backup.is_empty():
+		_meta_backup = _duel.meta.duplicate(true)
+	if not (_duel.meta.get("codex") is Dictionary):
+		_duel.meta["codex"] = {}
+	_duel.meta["codex"][path] = {"uses": 1, "best_rank": 2, "best_mastery": 3, "forge": 0, "tune": {}}
+	_duel._codex = preload("res://scripts/systems/codex_system.gd").new(_duel)
+
+
+func _restore_meta() -> void:
+	if _meta_backup.is_empty():
+		return
+	_duel.meta.clear()
+	for k in _meta_backup:
+		_duel.meta[k] = _meta_backup[k]
+	_duel._codex = preload("res://scripts/systems/codex_system.gd").new(_duel)
+	_duel._meta_store.save_meta()
