@@ -89,6 +89,8 @@ func build_all() -> void:
 func set_reel_enabled(reel: int, enabled: bool) -> void:
 	if cells.size() > reel and cells[reel].size() > 0:
 		cells[reel][0].disabled = not enabled
+	# 锁列落定/起转都会经过这里：战斗内预览入口的可见性在此同步。
+	_sync_battle_combo_entry()
 
 
 func set_interroom_enabled(on: bool) -> void:
@@ -102,6 +104,10 @@ func set_interroom_enabled(on: bool) -> void:
 	if interroom_combo_btn != null:
 		interroom_combo_btn.visible = on
 		interroom_combo_btn.disabled = not on
+	# 间歇态不是战斗：战斗内预览入口一并收起（第三格已定，预览无意义）。
+	if on and battle_combo_btn != null:
+		battle_combo_btn.visible = false
+		battle_combo_btn.disabled = true
 	_interroom_on = on
 	_refresh_trim_entry()
 	# 间歇时战斗已结束，隐藏中央 BOSS 名称/意图
@@ -124,6 +130,43 @@ func show_combo_panel(rows: Array[Dictionary], sources: Array[Dictionary] = [],
 	if combo_panel == null:
 		return
 	combo_panel.open(rows, sources, preview)
+	# 面板上若有按钮持有焦点，空格会被当成「按停」以外的第二次按键（同一事件双触发），
+	# 打开面板即释放焦点，把键盘交回战斗输入。
+	get_viewport().gui_release_focus()
+
+
+# T3-3 C 轮：战斗内预览入口（停第三列之前可见）。与间歇期组合入口共用 combo_requested。
+func set_battle_combo_available(on: bool) -> void:
+	if battle_combo_btn == null:
+		return
+	# 第三列一旦开始吸附（落点已定），窗口就结束了——夺轮/自动停也会走到这里。
+	if on and _third_reel_settling():
+		on = false
+	battle_combo_btn.visible = on
+	battle_combo_btn.disabled = not on
+	if on:
+		battle_combo_btn.release_focus()
+
+
+# 第三列是否已定：吸附中或已落定（reel_stopped[2]）。被缠绕/缓冲拒绝的不算。
+func _third_reel_settling() -> bool:
+	var rs = controller.reel_system if controller != null else null
+	if rs == null or rs.reel_stopped.size() <= 2:
+		return false
+	return bool(rs.reel_stopped[2]) or rs.is_absorbing(2)
+
+
+# 战斗内入口的可见性只由控制器判定（战斗窗口 = 前两列已停、第三列未停）。
+func _sync_battle_combo_entry() -> void:
+	if controller == null or not controller.has_method("is_battle_combo_window"):
+		return
+	var can := bool(controller.is_battle_combo_window()) and not _third_reel_settling()
+	set_battle_combo_available(can)
+	# 窗口一关就收面板：覆盖夺轮/自动停等不经过输入钩子的路径
+	if not can and not controller.in_interroom and combo_panel != null and combo_panel.visible:
+		combo_panel.close()
+
+
 func _on_combo_panel_closed() -> void:
 	# 面板自身已 close()；这里只收口遮罩与交互（隐藏后鼠标事件回到 HUD）。
 	if combo_panel != null:
@@ -170,6 +213,8 @@ var shop_screen                         # 商店覆盖层（shop_screen.tscn 实
 var interroom_trim_btn = null
 # T3-3 C 轮：组合面板入口（房间歇态 opt-in）。与精简同一套动态按钮写法。
 var interroom_combo_btn = null
+# T3-3 C 轮第 5 步：战斗内预览入口（停第三列之前）。默认隐藏，窗口期由 controller 点亮。
+var battle_combo_btn = null
 var combo_panel: ComboPanel = null   # 只读组合面板（挂 duel 根节点，与武器藏库同级）
 var _interroom_on := false
 # 下一房预告为根节点浮层：不参与 Content 高度计算，避免间歇态把 HUD 顶出 480×270
@@ -452,6 +497,17 @@ func _build_ui() -> void:
 	interroom_combo_btn.pressed.connect(combo_requested.emit)
 	info_bar.add_child(interroom_combo_btn)
 	info_bar.move_child(interroom_combo_btn, interroom_trim_btn.get_index())
+
+	# T3-3 C 轮第 5 步：战斗内预览入口。插在「组合」左边；只在停第三列之前的窗口期出现。
+	battle_combo_btn = UI_BUTTON.instantiate()
+	battle_combo_btn.text = "🗂 预览"
+	battle_combo_btn.custom_minimum_size = Vector2(52, 18)
+	battle_combo_btn.add_theme_font_size_override("font_size", 9)
+	battle_combo_btn.disabled = true
+	battle_combo_btn.visible = false
+	battle_combo_btn.pressed.connect(combo_requested.emit)
+	info_bar.add_child(battle_combo_btn)
+	info_bar.move_child(battle_combo_btn, interroom_combo_btn.get_index())
 
 	# T3-3 C 轮：组合面板遮罩（与武器藏库同级，挂 duel 根节点；棋盘隐藏 HUD 时仍可显示）。
 	combo_panel = COMBO_PANEL_SCENE.instantiate() as ComboPanel

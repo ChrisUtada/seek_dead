@@ -1087,16 +1087,34 @@ func _on_next_room_pressed() -> void:
 	room_flow.on_next_room_pressed()
 
 
-# T3-3 C 轮：组合面板入口（只在房间歇态开放）。只读 build_rows 输出，不消耗 RNG、不推进回合。
+# T3-3 C 轮：组合面板入口。间歇期给整本组合；战斗内只给第三格预览（停第三列之前）。
+# 只读 build_rows 输出，不消耗 RNG、不推进回合。
 func _on_combo_requested() -> void:
-	if not in_interroom:
+	var battle := is_battle_combo_window()
+	if not in_interroom and not battle:
 		return
-	var tag_cb := Callable(self, "_pattern_tag_of")
-	var rows: Array[Dictionary] = ComboCatalog.build_rows(
-		_pattern_system, selected_loadout, tag_cb, last_settlement_acc)
-	var sources: Array[Dictionary] = ComboCatalog.build_sources(last_settlement_acc)
-	var preview: Array[Dictionary] = _combo_preview_rows()
+	# 战斗中不给「本轮来源 / 组合」：那是上一轮结算的复盘，第三列未停时看会误导。
+	var rows: Array[Dictionary] = []
+	var sources: Array[Dictionary] = []
+	if in_interroom:
+		var tag_cb := Callable(self, "_pattern_tag_of")
+		rows.assign(ComboCatalog.build_rows(
+			_pattern_system, selected_loadout, tag_cb, last_settlement_acc))
+		sources.assign(ComboCatalog.build_sources(last_settlement_acc))
+	var preview: Array[Dictionary] = []
+	if battle:
+		preview = _combo_preview_rows()
 	hud.show_combo_panel(rows, sources, preview)
+
+
+# 战斗内预览窗口：前两列已停、第三列仍在转（此时第三格未定，预览才有意义）。
+func is_battle_combo_window() -> bool:
+	if in_interroom or reel_system == null or not reel_system.spinning:
+		return false
+	if reel_system.reel_stopped.size() <= PREVIEW_REEL:
+		return false
+	return bool(reel_system.reel_stopped[0]) and bool(reel_system.reel_stopped[1]) \
+		and not bool(reel_system.reel_stopped[PREVIEW_REEL])
 
 
 # T3-3 C 轮第 4 步：第三格只读预览（纯匹配，不模拟结算）。
@@ -1809,22 +1827,53 @@ func _roll_intent(room: RoomData) -> Dictionary:
 
 
 func _on_spin_pressed() -> void:
+	hud.set_battle_combo_available(false)   # 起转后第三列未定，先收起战斗内预览入口
 	turn_flow.on_spin_pressed()   # 协程体在 TurnFlow（fire-and-forget，调用方不 await——语义同前）
 
 
 # SPIN 按钮：旋转中=停止下一列，否则开始旋转。
 func _on_spin_button_pressed() -> void:
 	if reel_system.spinning:
-		reel_system.stop_next_reel()
+		_stop_next_column()
 	else:
 		_on_spin_pressed()
+	hud.set_battle_combo_available(is_battle_combo_window())
+
+
+# 停下一列（SPIN 按钮与空格共用）：窗口内若真停住第三列，预览面板随之收起。
+func _stop_next_column() -> void:
+	var third_was_open := is_battle_combo_window()
+	reel_system.stop_next_reel()
+	if third_was_open and _third_reel_stopping():
+		_close_combo_panel_if_open()
+	hud.set_battle_combo_available(is_battle_combo_window())
+
+
+# 第三列是否已进入停止（吸附中或已落定；被缠绕/缓冲拒绝的不算）。
+func _third_reel_stopping() -> bool:
+	if reel_system.reel_stopped.size() <= PREVIEW_REEL:
+		return false
+	return bool(reel_system.reel_stopped[PREVIEW_REEL]) \
+		or reel_system.is_absorbing(PREVIEW_REEL)
+
+
+# T3-3 C 轮：战斗内预览面板随窗口关闭（吸附落定前先收，避免看到已定格的第三列）。
+func _close_combo_panel_if_open() -> void:
+	if hud == null or hud.combo_panel == null:
+		return
+	if hud.combo_panel.visible:
+		hud.combo_panel.close()
 
 
 # 点击某列直接锁定该列（旋转中有效）。
 func _on_reel_clicked(r: int) -> void:
 	if not reel_system.spinning or reel_system.reel_stopped[r]:
 		return
+	var was_battle_window := is_battle_combo_window()
 	reel_system.lock_reel(r)
+	if was_battle_window and r == PREVIEW_REEL and _third_reel_stopping():
+		_close_combo_panel_if_open()
+	hud.set_battle_combo_available(is_battle_combo_window())
 
 
 # 重转卷轴：免费重转一次（不触发敌人回合）
@@ -1885,7 +1934,7 @@ func _input(event) -> void:
 		return
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_SPACE:
 		if reel_system.spinning:
-			reel_system.stop_next_reel()
+			_stop_next_column()
 		else:
 			_on_spin_pressed()
 	# N-04：演出中按回车快速跳过（只跳演出等待，不跳结算/RNG）。_busy 期间才响应，

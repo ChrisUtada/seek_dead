@@ -48,6 +48,7 @@ func _ready() -> void:
 	_test_candidate_dedupe()
 	_test_panel()
 	await _test_wiring()
+	await _test_wiring_battle()
 
 	print("T3CPREVIEW|RESULT %s (checks=%d fails=%d)" % ["PASS" if _fails == 0 else "FAIL", _checks, _fails])
 	SaveSystem.reset_lobby_data()
@@ -249,7 +250,7 @@ func _test_panel() -> void:
 	_panel.close()
 
 
-# C3：真实入口接线（前两列已停 → 预览；未锁两格 → 不显示）
+# 4.3 真实入口接线：间歇期 → 整本组合（本轮来源 + 组合区段），不含第三格预览。
 func _test_wiring() -> void:
 	_duel.selected_loadout.clear()
 	_duel.selected_loadout.append(IRON_SWORD)
@@ -262,25 +263,112 @@ func _test_wiring() -> void:
 		_duel.grid[c][0] = load(sym)
 		_duel.grid_elem[c][0] = "none"
 		_duel.reel_system._set_grid_src(c, 0, "iron_sword")
+	# 让「本轮来源」区段有内容（只读快照注入，不触碰结算/RNG）。
+	_duel.last_settlement_acc = {"source_dmg": {"iron_sword": 7.0}}
 	_duel._enter_interroom(false)
 	await get_tree().process_frame
 
-	# 未锁两格：第三列为开放列 → 不显示预览区
-	_duel.reel_system.reel_stopped = [true, false, false]
-	_duel.hud.interroom_combo_btn.pressed.emit()
-	await get_tree().process_frame
-	_check(not _duel.hud.combo_panel.rendered_texts.has("第三格预览"),
-		"未锁两格时面板不显示「第三格预览」")
-	_duel.hud.combo_panel.close()
-
-	# 已锁两格：前两列已停 → 第三列候选预览
+	# 即使前两列已停，间歇期也不给预览：第三格早已定格。
 	_duel.reel_system.reel_stopped = [true, true, false]
-	var expect := _duel._preview_candidate_cards()
+	_check(not _duel.hud.battle_combo_btn.visible, "4.3 间歇期战斗内预览入口不出现")
+
 	_duel.hud.interroom_combo_btn.pressed.emit()
 	await get_tree().process_frame
-	_check(_duel.hud.combo_panel.rendered_texts.has("第三格预览"),
-		"已锁两格时面板出现「第三格预览」")
-	_check(_duel.hud.combo_panel.rendered_preview_texts.size() == expect.size(),
-		"接线预览行数 == 当前池候选数（%d/%d）" % [
-			_duel.hud.combo_panel.rendered_preview_texts.size(), expect.size()])
-	_duel.hud.combo_panel.close()
+	var panel = _duel.hud.combo_panel
+	_check(panel.rendered_texts.has("本轮来源"), "4.3 间歇期面板出现「本轮来源」区段")
+	var has_group := false
+	for t in panel.rendered_texts:
+		if String(t).ends_with("组合"):
+			has_group = true
+	_check(has_group, "4.3 间歇期面板出现组合区段")
+	_check(not panel.rendered_texts.has("第三格预览"), "4.3 间歇期面板不含「第三格预览」")
+	panel.close()
+
+	_duel.last_settlement_acc = {}
+
+
+# 4.1 战斗期正例（可达状态）：前两列已停、第三列仍在转，点战斗内预览入口。
+# 刷新点是 reel_system._lock_at() 落地时的 hud.set_reel_enabled(r, false)；
+# 这里用同一条调用模拟「第二列刚落定」，不直接改按钮状态。
+func _test_wiring_battle() -> void:
+	_setup_case([IRON_SWORD, DAGGER], [], [SY_BLADE, SY_BURN, SY_BLADE], "iron_sword")
+	_duel.in_interroom = false
+	# 真实起转（建 reel_cursor/strips），再模拟前两列已落定。
+	_duel.reel_system.begin_spin()
+	_duel.reel_system._timer.stop()
+	_duel.reel_system.reel_stopped = [true, true, false]
+	_duel.hud.set_reel_enabled(1, false)
+
+	var btn = _duel.hud.get("battle_combo_btn")
+	var state := "null" if btn == null else "visible=%s disabled=%s" % [
+		str(btn.visible), str(btn.disabled)]
+	_check(btn != null and bool(btn.visible) and not bool(btn.disabled),
+		"4.1 战斗中前两列已停：预览按钮可见且可用（实测 %s）" % state)
+	if btn == null:
+		return
+
+	btn.pressed.emit()
+	await get_tree().process_frame
+	var panel = _duel.hud.combo_panel
+	_check(panel.rendered_texts.has("第三格预览"),
+		"4.1 战斗中点预览入口出现「第三格预览」")
+	var has_sources := false
+	var has_group := false
+	for t in panel.rendered_texts:
+		if String(t) == "本轮来源":
+			has_sources = true
+		if String(t).ends_with("组合"):
+			has_group = true
+	_check(not has_sources and not has_group,
+		"4.1 战斗中只给预览区（本轮来源=%s 组合区=%s）" % [str(has_sources), str(has_group)])
+
+	# 4.4 打开面板后焦点不在面板按钮上（空格不会被面板二次消费）。
+	var fo = _duel.hud.get_viewport().gui_get_focus_owner()
+	var focus_in_panel := fo != null and panel.is_ancestor_of(fo)
+	_check(not focus_in_panel, "4.4 打开面板后焦点不在面板内（焦点=%s）" % (
+		"null" if fo == null else str(fo.name)))
+	panel.close()
+
+	# 4.2 战斗期反例：只停了一列（第三列仍开放）→ 入口不出现。
+	_duel.reel_system.reel_stopped = [true, false, false]
+	_duel.hud.set_reel_enabled(0, false)
+	_check(not _duel.hud.battle_combo_btn.visible,
+		"4.2 只停一列时战斗内预览入口不出现")
+
+	# 补充（2.4）：战斗中按停第三列时，已打开的预览面板自动收起。
+	_duel.reel_system.reel_stopped = [true, true, false]
+	_duel.hud.set_reel_enabled(1, false)
+	_duel.hud.battle_combo_btn.pressed.emit()
+	await get_tree().process_frame
+	_check(panel.visible, "补充 停第三列前面板可打开")
+	_duel._on_spin_button_pressed()
+	_check(not panel.visible, "补充 停第三列时预览面板自动收起")
+	_duel.reel_system._clear_absorbs()
+
+	# 空格路径同样收起：直接投递按键到 _input（空格不消费事件，与真实入口同一分支）。
+	_duel.reel_system.reel_stopped = [true, true, false]
+	_duel.hud.set_reel_enabled(1, false)
+	_duel.hud.battle_combo_btn.pressed.emit()
+	await get_tree().process_frame
+	_check(panel.visible, "补充 空格停轮前面板可再次打开")
+	var ev := InputEventKey.new()
+	ev.keycode = KEY_SPACE
+	ev.pressed = true
+	# 章节头期间 _input 会吞掉空格（测试默认仍停在章节头，先收掉）。
+	if _duel._chapter_intro != null:
+		_duel._chapter_intro.visible = false
+	_duel._input(ev)
+	_check(not panel.visible, "补充 空格停第三列时预览面板自动收起")
+	_duel.reel_system._clear_absorbs()
+
+	# 补充：敌人夺轮（内部 forced 停列，不经过输入钩子）也要收面板
+	_duel.reel_system.begin_spin()
+	_duel.reel_system._timer.stop()
+	_duel.reel_system.reel_stopped = [true, true, false]
+	_duel.hud.set_reel_enabled(1, false)
+	_duel.hud.battle_combo_btn.pressed.emit()
+	await get_tree().process_frame
+	_check(_duel.hud.combo_panel.visible, "夺轮前：面板已打开")
+	_duel.reel_system.stop_next_reel(false, "forced")
+	await get_tree().process_frame
+	_check(not _duel.hud.combo_panel.visible, "夺轮/机制强停第三列时预览面板自动收起")
