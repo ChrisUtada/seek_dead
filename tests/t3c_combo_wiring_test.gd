@@ -4,7 +4,7 @@ extends Node
 # T3-3 C 轮第 2 步：组合面板接线验收（D1 + B3）
 # 运行：Godot --headless --fixed-fps 60 --path <项目> res://tests/t3c_combo_wiring_test.tscn
 # 覆盖：
-#   D1 入口按钮只在间歇期出现；点击后 open(25 行)；首行「基础组合」、主组合区有 W07；
+#   D1 入口按钮只在间歇期出现；点击后 open(24 行)；首行「基础组合」、主组合区有 W07；
 #      点 ✕ 关闭且按钮仍在；开/关前后 seed / enemy_hp / charge_points / turn_count 不变。
 #   B3 evaluate 后 last_settlement_acc 非空且含 pattern_match / pattern_weapon；新局清空。
 # ============================================================================
@@ -81,7 +81,9 @@ func _run() -> void:
 	await get_tree().process_frame
 	_check(hud.combo_panel.visible, "点击入口后 panel.visible == true")
 	var rows: Array[Dictionary] = hud.combo_panel.last_rendered_rows
-	_check(rows.size() == 25, "面板行数 == 25（实测 %d）" % rows.size())
+	# 行数 24 = 21 张 PatternData（SIG_W01_EMBER 已归档不展示）+ 3 条合成 G 行；
+	# 与 t3c_combo_catalog_test 同口径（T3 阶段 1 归档后的目录行数）。
+	_check(rows.size() == 24, "面板行数 == 24（实测 %d）" % rows.size())
 	var texts: Array[String] = hud.combo_panel.rendered_texts
 	_check(not texts.is_empty() and texts[0] == "基础组合",
 		"面板首行是「基础组合」区段标题（实测 %s）" % (texts[0] if not texts.is_empty() else "<empty>"))

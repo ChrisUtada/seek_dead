@@ -10,9 +10,9 @@ extends Node
 # 运行：Godot --headless --fixed-fps 60 --path . res://tests/weapon_slot_growth_test.tscn
 
 const DUEL_SCENE := "res://scenes/duel/duel.tscn"
-const SLOT_A := "res://resources/weapon_templates/cinder_cleaver.tres"   # arch1 锋铸/调律
-const SLOT_B := "res://resources/weapon_templates/blight_spear.tres"     # arch1 锋铸/调律
-const SWAP_C := "res://resources/weapon_templates/cinder_hatchet.tres"   # arch1 锋铸/调律
+const SLOT_A := "res://resources/weapon_templates/holy_sword.tres"   # T3 阶段 1：归档件不可用于新增熟练，改正式池
+const SLOT_B := "res://resources/weapon_templates/ice_gun.tres"
+const SWAP_C := "res://resources/weapon_templates/fire_sword.tres"   # 火系，替换后 fire_slash 仍在带上
 
 var _pass := 0
 var _fail := 0

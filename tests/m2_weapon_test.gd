@@ -131,51 +131,59 @@ func _test_mastery_gain(duel: DuelController) -> void:
 
 
 # G2-01：局中新换上的武器追赶；开局配装不追赶；不复制铭印；卸下再装保留。
+# T3 阶段 1：dagger 已归档（不新增熟练），追赶夹具改用正式池 poison_dagger + 其毒牙符号。
 func _test_catchup(duel: DuelController) -> void:
 	var m = duel.mastery
-	# 开局只有火焰剑，匕首为本局中途换上的新武器
+	var catchup_w := "res://resources/weapon_templates/poison_dagger.tres"
+	var catchup_sym := "res://resources/symbols/venom_bite.tres"
+	# 开局只有火焰剑，毒匕首为本局中途换上的新武器
 	duel.selected_loadout.clear()
 	duel.selected_loadout.append(FIRE)
 	m.reset_run()
-	duel.selected_loadout.append(DAGGER)
+	duel.selected_loadout.append(catchup_w)
 	m.mastery[FIRE] = 5
 	m.reset_room()
-	m.note_settle(DAGGER_SLASH)
+	m.note_settle(catchup_sym)
 	m.settle_room("normal")
-	_check(int(m.mastery.get(DAGGER, 0)) == 2, "新武器普通房：基础 +1 + 追赶 +1")
-	_check(m.catchup_target(DAGGER) == 5, "追赶目标 = 本局其它武器最高熟练")
-	_check(duel._weapon_info(DAGGER).find("追赶") >= 0, "替换/获得预览展示追赶目标")
+	_check(int(m.mastery.get(catchup_w, 0)) == 2, "新武器普通房：基础 +1 + 追赶 +1")
+	_check(m.catchup_target(catchup_w) == 5, "追赶目标 = 本局其它武器最高熟练")
+	_check(duel._weapon_info(catchup_w).find("追赶") >= 0, "替换/获得预览展示追赶目标")
 
 	m.reset_room()
-	m.note_settle(DAGGER_SLASH)
+	m.note_settle(catchup_sym)
 	m.settle_room("elite")
-	_check(int(m.mastery.get(DAGGER, 0)) == 5, "精英房 +3（2 基础 +1 追赶），受每房上限 3")
+	_check(int(m.mastery.get(catchup_w, 0)) == 5, "精英房 +3（2 基础 +1 追赶），受每房上限 3")
 
 	m.reset_room()
-	m.note_settle(DAGGER_SLASH)
+	m.note_settle(catchup_sym)
 	m.settle_room("normal")
-	_check(int(m.mastery.get(DAGGER, 0)) == 6, "追平后按正常 +1，不再追赶")
+	_check(int(m.mastery.get(catchup_w, 0)) == 6, "追平后按正常 +1，不再追赶")
 
-	# 开局配装不追赶
-	_equip(duel)
+	# 开局配装不追赶（两把都在开局配装内）
+	duel.selected_loadout.clear()
+	duel.selected_loadout.append(FIRE)
+	duel.selected_loadout.append(catchup_w)
+	m.reset_run()
+	m.reset_room()
 	m.mastery[FIRE] = 5
-	m.reset_room()
-	m.note_settle(DAGGER_SLASH)
+	m.mastery[catchup_w] = 0
+	m.owed.clear()
+	m.note_settle(catchup_sym)
 	m.settle_room("normal")
-	_check(int(m.mastery.get(DAGGER, 0)) == 1, "开局配装武器不触发追赶")
+	_check(int(m.mastery.get(catchup_w, 0)) == 1, "开局配装武器不触发追赶")
 
 	# 追赶只补基础熟练，跨过 R2 仍进入现有铭印队列
 	duel.selected_loadout.clear()
 	duel.selected_loadout.append(FIRE)
 	m.reset_run()
-	duel.selected_loadout.append(DAGGER)
+	duel.selected_loadout.append(catchup_w)
 	m.mastery[FIRE] = 5
-	m.mastery[DAGGER] = 2
+	m.mastery[catchup_w] = 2
 	m.reset_room()
-	m.note_settle(DAGGER_SLASH)
+	m.note_settle(catchup_sym)
 	m.settle_room("normal")
-	_check(int(m.mastery.get(DAGGER, 0)) == 4, "追赶可跨过 R2 门槛")
-	_check(m.owed.has(DAGGER), "追赶跨过 R2 时进入现有铭印队列（不自动补发铭印）")
+	_check(int(m.mastery.get(catchup_w, 0)) == 4, "追赶可跨过 R2 门槛")
+	_check(m.owed.has(catchup_w), "追赶跨过 R2 时进入现有铭印队列（不自动补发铭印）")
 
 	# 卸下再装：熟练保留；通用锋铸跟槽位，不再跟随武器路径（2026-11-15 归属迁移）
 	m.mastery[FIRE] = 4

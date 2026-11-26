@@ -303,10 +303,10 @@ func _test_consumable_prepick(duel: DuelController) -> void:
 func _test_starter_seed(duel: DuelController) -> void:
 	var ms = duel._meta_store
 	var starters: Array = ms._starter_weapons()
-	_check(starters.size() == 4 and starters.has("res://resources/weapon_templates/dagger.tres")
+	_check(starters.size() == 4 and starters.has("res://resources/weapon_templates/iron_sword.tres")
 		and starters.has("res://resources/weapon_templates/fire_sword.tres")
 		and starters.has("res://resources/weapon_templates/battle_axe.tres")
-		and starters.has("res://resources/weapon_templates/ice_staff.tres"), "初始武器子集 = 匕首/火焰剑/战斧/霜晶法杖")
+		and starters.has("res://resources/weapon_templates/ice_staff.tres"), "初始武器子集 = 铁剑/火焰剑/战斧/霜晶法杖")
 	var charms: Array = ms._starter_charms()
 	_check(charms.size() == 4, "初始护符子集 4 件")
 	# M6-C4：只给纯增益的防御向 common（混合/诅咒护符不得成为新档默认）。
@@ -339,7 +339,7 @@ func _test_starter_seed(duel: DuelController) -> void:
 	duel.meta["owned_consumables"] = []
 	ms.seed_default_owned()
 	_check(duel.meta["owned_weapons"].has("res://resources/weapon_templates/iron_sword.tres"), "老档已获得的武器不被删除")
-	_check(duel.meta["owned_weapons"].has("res://resources/weapon_templates/dagger.tres"), "老档补足基础武器子集")
+	_check(duel.meta["owned_weapons"].has("res://resources/weapon_templates/fire_sword.tres"), "老档补足基础武器子集")
 	_check(duel.meta["owned_consumables"].size() > 0, "基础消耗品已播种")
 	var pct: float = duel._career.collection_pct()
 	_check(pct < 0.5, "新档初始图鉴完成度 < 50%（存在真实未解锁内容）")

@@ -12,9 +12,9 @@ extends Node
 #       只修显示与语义，不调出现率或数值。
 # ============================================================================
 
-const W_COMMON := "res://resources/weapon_templates/dagger.tres"
-const W_UNCOMMON := "res://resources/weapon_templates/cinder_cleaver.tres"
-const W_RARE := "res://resources/weapon_templates/frost_blade.tres"   # 需确认存在
+const W_COMMON := "res://resources/weapon_templates/iron_sword.tres"        # T3 阶段 1：dagger 已归档，改用正式池 common
+const W_UNCOMMON := "res://resources/weapon_templates/poison_dagger.tres"    # 正式池 uncommon（cinder_cleaver 已归档）
+const W_RARE := "res://resources/weapon_templates/holy_sword.tres"           # 正式池 rare（frost_blade 已归档）
 const W_EPIC := "res://resources/weapon_templates/absolute_zero.tres"
 
 var _fails := 0

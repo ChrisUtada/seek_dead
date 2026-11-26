@@ -30,7 +30,7 @@ const MECHANIC_CONSUMABLE_EFFECTS: Array[String] = [
 ]
 
 const STARTER_PATHS: Array[String] = [
-	"res://resources/weapon_templates/dagger.tres",
+	"res://resources/weapon_templates/iron_sword.tres",
 	"res://resources/weapon_templates/fire_sword.tres",
 	"res://resources/weapon_templates/battle_axe.tres",
 	"res://resources/weapon_templates/ice_staff.tres",

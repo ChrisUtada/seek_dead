@@ -172,9 +172,9 @@ func _part_b_boss_source(duel: DuelController) -> void:
 	duel.selected_loadout.clear()
 	var theme := [
 		"res://resources/weapon_templates/iron_sword.tres",      # common
-		"res://resources/weapon_templates/abyss_scythe.tres",    # uncommon
-		"res://resources/weapon_templates/dawn_blade.tres",      # uncommon
-		"res://resources/weapon_templates/holy_sword.tres",      # uncommon
+		"res://resources/weapon_templates/poison_dagger.tres",   # uncommon（T3：原 abyss_scythe/dawn_blade 已归档）
+		"res://resources/weapon_templates/dawn_bow.tres",        # uncommon
+		"res://resources/weapon_templates/holy_sword.tres",      # rare
 		"res://resources/weapon_templates/fire_sword.tres",      # rare
 		"res://resources/weapon_templates/ice_gun.tres",         # rare
 		"res://resources/weapon_templates/flame_staff.tres",     # epic

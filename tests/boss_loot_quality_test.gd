@@ -263,12 +263,16 @@ func _test_real_entry() -> void:
 	_check(total_missing == 0, "12 个 BOSS × 20 次都没有空武器（缺 %d 次）" % total_missing)
 
 
-# Step 4 完成标准：全覆盖 BOSS 的 10,000 次抽样应为 uncommon 10% / rare 60% / epic 30%（±2pp）。
+# Step 4 完成标准：每个 BOSS 的抽样分布 = boss 来源表权重在「该主题当前仍可掉落品质」上的
+# 重新归一化（与 LootPool.roll_n 的空层回退同口径）。
+# T3 阶段 1 归档后，部分 BOSS 主题池不再包含 uncommon 档，实际分布相应归一化为 rare/epic
+# 两档（不再是固定 10/60/30）；主题仍含三档时仍应等于 10/60/30。
 func _test_distribution() -> void:
 	var rooms: Array = _boss_rooms()
 	var bad: Array[String] = []
 	for r in rooms:
 		var opts := {"category": "weapon", "theme": r.boss_reward_weapons}
+		var want_by_q := _expected_shares(r)
 		var counts := {"common": 0, "uncommon": 0, "rare": 0, "epic": 0}
 		var total := 0
 		for i in range(10000):
@@ -281,8 +285,8 @@ func _test_distribution() -> void:
 		var ok_all := true
 		for q in ["uncommon", "rare", "epic"]:
 			var pct: float = 100.0 * float(counts[q]) / maxf(1.0, float(total))
-			var want: float = {"uncommon": 10.0, "rare": 60.0, "epic": 30.0}[q]
-			line += "%s %.1f%%(期望%.0f) " % [q, pct, want]
+			var want: float = float(want_by_q.get(q, 0.0))
+			line += "%s %.1f%%(期望%.1f) " % [q, pct, want]
 			if absf(pct - want) > 2.0:
 				ok_all = false
 		if int(counts["common"]) != 0:
@@ -291,7 +295,30 @@ func _test_distribution() -> void:
 		print("  [分布] " + line)
 		if not ok_all:
 			bad.append(String(r.name))
-	_check(bad.is_empty(), "12 个 BOSS 的分布都是 10/60/30（不符：%s）" % str(bad))
+	_check(bad.is_empty(), "12 个 BOSS 的分布与来源表（按可用品质归一化）一致（不符：%s）" % str(bad))
+
+
+# 该 BOSS 主题池在归档过滤后仍可掉落的品质 → 来源表权重归一化百分比。
+func _expected_shares(room) -> Dictionary:
+	var out := {"common": 0.0, "uncommon": 0.0, "rare": 0.0, "epic": 0.0}
+	var opts := {"category": "weapon", "theme": room.boss_reward_weapons}
+	var pool: Dictionary = _pool.candidates("boss", int(room.act), opts)
+	var present := {}
+	for p in (pool.get("items", []) as Array):
+		var rarity := String(_pool._entry(String(p)).get("rarity", ""))
+		if rarity != "":
+			present[rarity] = true
+	var weights: Dictionary = SOURCE_TABLE.weights_for("boss", int(room.act)).get("weights", {})
+	var total := 0
+	for q in ["uncommon", "rare", "epic"]:
+		if present.has(q):
+			total += int(weights.get(q, 0))
+	if total <= 0:
+		return out
+	for q in ["uncommon", "rare", "epic"]:
+		if present.has(q):
+			out[q] = 100.0 * float(weights.get(q, 0)) / float(total)
+	return out
 
 
 func _finish() -> void:

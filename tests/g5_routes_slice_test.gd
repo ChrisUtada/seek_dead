@@ -66,10 +66,11 @@ func _ready() -> void:
 		var fired: Array = c.try_trigger(ev)
 		_ok(fired.size() == 1 and String(fired[0]) == cid, "%s 核心事件可触发（%s）" % [route, ev])
 
-	# ④ 路线弱点记录（方案要求"每条有真实弱点"）——结构性弱点是可达性不保证
-	# 例：默认配装无破甲机制 → 破甲路线不可达（需专门配装），这就是它的代价。
-	var armor: Dictionary = report["circuits"]["circuit_armor_break"]
-	_ok(not bool(armor["reachable"]), "破甲路线有明确弱点：默认配装不可达，需专门破甲配装")
+	# ④ 路线弱点记录（方案要求"每条有真实弱点"）——结构性弱点是可达性不保证。
+	# T3 阶段 1：starter 由 dagger 改为 iron_sword（铁斩带破甲），破甲路线在默认配装下变为可达；
+	# 异色覆盖仍缺稳定三色来源，作为默认配装的真实弱点记录。
+	var tri: Dictionary = report["circuits"]["circuit_tri_color"]
+	_ok(not bool(tri["reachable"]), "异色覆盖有明确弱点：默认配装不可达，需专门三色配装")
 
 	print("G5-4 ROUTES SLICE RESULT: %d checks, %d fails" % [_checks, _fails])
 	get_tree().quit(1 if _fails > 0 else 0)
