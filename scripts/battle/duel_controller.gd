@@ -1118,12 +1118,15 @@ func _combo_preview_rows() -> Array[Dictionary]:
 	if base.size() != 2:
 		return []
 	return ComboCatalog.preview_third_slot(
-		base, _pool_symbol_paths(), _pattern_system, Callable(self, "_pattern_tag_of"))
+		base, _preview_candidate_cards(), _pattern_system, Callable(self, "_pattern_tag_of"))
 
 
-# 当前武器池里的候选符号路径（去重；不含 MISS / 金币，它们不来自 pool_items）。
-func _pool_symbol_paths() -> Array[String]:
-	var out: Array[String] = []
+# 当前武器池里的候选符号（按 path 去重；不含 MISS / 金币，它们不来自 pool_items）。
+# 每项 {"path","element","source"}：元素取池段 s[2]（武器继承后），来源取 s[3]（武器 id；
+# 技能/精华段没有来源 id，留空串）。供 PatternMatcher.card_meta 重建与实盘同源的候选卡。
+func _pool_symbol_candidates() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	var seen := {}
 	for it in pool_items:
 		for s in (it.get("syms", []) as Array):
 			if s.size() <= 0:
@@ -1132,8 +1135,31 @@ func _pool_symbol_paths() -> Array[String]:
 			if not (sym is Resource):
 				continue
 			var path := String((sym as Resource).resource_path)
-			if path != "" and not out.has(path):
-				out.append(path)
+			if path == "" or seen.has(path):
+				continue
+			seen[path] = true
+			out.append({
+				"path": path,
+				"element": String(s[2]) if s.size() > 2 else "none",
+				"source": String(s[3]) if s.size() > 3 else "",
+			})
+	return out
+
+
+# 候选卡（真实元数据）：由 duel 侧用 PatternMatcher.card_meta 构造后交给 catalog，
+# catalog 只做 solve_rule 判定，保持纯函数、不读 _ctrl。
+# 额外带 path/name 两个展示键（求解器只读固定字段，会忽略它们）。
+func _preview_candidate_cards() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for c in _pool_symbol_candidates():
+		var path := String(c.get("path", ""))
+		var sym = load(path)
+		var card: Dictionary = ComboCatalog.MATCHER.card_meta(
+			self, sym, String(c.get("element", "none")), String(c.get("source", "")))
+		card["path"] = path
+		card["name"] = String(sym.name) if sym != null and String(sym.name) != "" \
+			else path.get_file().get_basename()
+		out.append(card)
 	return out
 
 

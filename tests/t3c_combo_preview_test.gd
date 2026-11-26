@@ -13,10 +13,14 @@ extends Node
 const PANEL_SCENE := "res://scenes/ui/combo_panel.tscn"
 const IRON_SWORD := "res://resources/weapon_templates/iron_sword.tres"
 const DAGGER := "res://resources/weapon_templates/dagger.tres"
+const FIRE_SWORD := "res://resources/weapon_templates/fire_sword.tres"
+const DUELING_SABER := "res://resources/weapon_templates/dueling_saber.tres"
+const GUARD_SKILL := "res://resources/skills/guard.tres"
 const SY_BLADE := "res://resources/symbols/iron_slash.tres"
 const SY_BURN := "res://resources/symbols/burn.tres"
 const SY_FIRE := "res://resources/symbols/fire_slash.tres"
 const SY_GUARD := "res://resources/symbols/guard.tres"
+const SY_DAGGER_SLASH := "res://resources/symbols/dagger_slash.tres"
 
 var _fails := 0
 var _checks := 0
@@ -39,6 +43,9 @@ func _ready() -> void:
 	await get_tree().process_frame
 
 	_test_pure()
+	_test_fire_loadout()
+	_test_skill_candidate()
+	_test_candidate_dedupe()
 	_test_panel()
 	await _test_wiring()
 
@@ -64,7 +71,18 @@ func _card(path: String, source: String = "iron_sword") -> Dictionary:
 	}
 
 
-func _preview(base: Array, candidates: Array[String]) -> Array[Dictionary]:
+# 候选卡：与实盘同源（card_meta 解析 source_kind/source_element/skill_role），
+# 额外带展示用 path/name。
+func _candidate_card(path: String, element: String, source: String) -> Dictionary:
+	var sym = load(path)
+	var card: Dictionary = ComboCatalog.MATCHER.card_meta(_duel, sym, element, source)
+	card["path"] = path
+	card["name"] = String(sym.name) if sym != null and String(sym.name) != "" \
+		else path.get_file().get_basename()
+	return card
+
+
+func _preview(base: Array, candidates: Array[Dictionary]) -> Array[Dictionary]:
 	return ComboCatalog.preview_third_slot(
 		base, candidates, _duel._pattern_system, Callable(_duel, "_pattern_tag_of"))
 
@@ -86,8 +104,14 @@ func _matched_ids(row: Dictionary) -> Array[String]:
 
 # D1：纯函数契约 + 只读证明
 func _test_pure() -> void:
+	# 先固定配装（铁剑），让 candidate 的 card_meta 能解析 weapon 来源；
+	# 同时清掉技能，避免守备被误判成 skill 来源。
+	_setup_case([IRON_SWORD], [], [SY_BLADE, SY_BURN, SY_BLADE], "iron_sword")
 	var base: Array = [_card(SY_BLADE), _card(SY_BURN)]
-	var candidates: Array[String] = [SY_FIRE, SY_GUARD]
+	var candidates: Array[Dictionary] = [
+		_candidate_card(SY_FIRE, "none", "iron_sword"),
+		_candidate_card(SY_GUARD, "none", ""),
+	]
 
 	var seed0: int = _duel._reward_system._loot.seed_value()
 	var hp0: int = int(_duel.enemy_hp)
@@ -104,6 +128,9 @@ func _test_pure() -> void:
 	_check(not fire_row.is_empty(), "候选 fire_slash 有行")
 	_check(_matched_ids(fire_row).has("W07"),
 		"base[铁斩,燃] + 火斩 → 命中 W07（实测 %s）" % str(_matched_ids(fire_row)))
+	# C3 铁剑/中性来源回归：火斩作为候选仍命中 W06（与修复前一致）
+	_check(_matched_ids(fire_row).has("W06"),
+		"base[铁斩,燃] + 火斩 → 命中 W06（实测 %s）" % str(_matched_ids(fire_row)))
 	var w07 := {}
 	for m in (fire_row.get("matched", []) as Array):
 		if m is Dictionary and String((m as Dictionary).get("id", "")) == "W07":
@@ -118,7 +145,7 @@ func _test_pure() -> void:
 	_check((guard_row.get("matched", []) as Array).is_empty(),
 		"base + 守备 → 无组合（实测 %s）" % str(_matched_ids(guard_row)))
 
-	var empty_cands: Array[String] = []
+	var empty_cands: Array[Dictionary] = []
 	var empty_rows: Array[Dictionary] = _preview(base, empty_cands)
 	_check(empty_rows.is_empty(), "候选列表为空 → 空结果")
 
@@ -133,6 +160,65 @@ func _test_pure() -> void:
 	_check(grid_same, "纯函数不改 grid（%s）" % str(grid0))
 
 
+# 重建配装池并铺三格：前两格为已锁真卡（来源 src），第三格为预览列占位。
+func _setup_case(weapons: Array, skills: Array, base: Array, src: String) -> void:
+	_duel.selected_loadout.clear()
+	for w in weapons:
+		_duel.selected_loadout.append(String(w))
+	_duel.selected_skills.clear()
+	for s in skills:
+		_duel.selected_skills.append(String(s))
+	_duel._build_pool(_duel.selected_loadout)
+	_duel.frozen_cols.clear()
+	for c in 3:
+		var path := String(base[mini(c, base.size() - 1)])
+		_duel.grid[c][0] = load(path)
+		_duel.grid_elem[c][0] = "none"
+		_duel.reel_system._set_grid_src(c, 0, src if c < 2 else "")
+	_duel.reel_system.reel_stopped = [true, true, false]
+
+
+# C1：火焰武器配装——候选火斩应按真实来源（fire_sword/fire）命中 W01，而非误报 W06。
+func _test_fire_loadout() -> void:
+	_setup_case([FIRE_SWORD, IRON_SWORD], [], [SY_BLADE, SY_BURN, SY_BLADE], "iron_sword")
+	var rows: Array[Dictionary] = _duel._combo_preview_rows()
+	var row: Dictionary = _find_candidate(rows, SY_FIRE)
+	var ids := _matched_ids(row)
+	print("  C1 ids=%s" % str(ids))
+	_check(ids.has("W01"), "C1 火焰配装：候选火斩命中 W01（实测 %s）" % str(ids))
+	_check(not ids.has("W06"), "C1 火焰配装：候选火斩不误报 W06（实测 %s）" % str(ids))
+
+
+# C2：技能符号候选——守备应判为 source_kind=skill / skill_role=shield，命中 T02。
+func _test_skill_candidate() -> void:
+	_setup_case([IRON_SWORD], [GUARD_SKILL], [SY_BLADE, SY_BURN, SY_BLADE], "iron_sword")
+	var rows: Array[Dictionary] = _duel._combo_preview_rows()
+	var row: Dictionary = _find_candidate(rows, SY_GUARD)
+	var ids := _matched_ids(row)
+	print("  C2 ids=%s" % str(ids))
+	_check(ids.has("T02"), "C2 技能候选：守备（skill/shield）命中 T02（实测 %s）" % str(ids))
+
+
+# C5：候选去重——同一符号来自两把武器时只出一行。
+func _test_candidate_dedupe() -> void:
+	_setup_case([DAGGER, DUELING_SABER], [], [SY_BLADE, SY_BURN, SY_BLADE], "iron_sword")
+	var rows: Array[Dictionary] = _duel._combo_preview_rows()
+	var n := 0
+	for r in rows:
+		if String(r.get("candidate", "")) == SY_DAGGER_SLASH:
+			n += 1
+	_check(n == 1, "C5 同一符号来自两把武器只出一行（dagger_slash 行数=%d）" % n)
+	# 池级去重：候选元数据列表里同一 path 只出现一次。
+	var seen := {}
+	var dup := ""
+	for c in _duel._pool_symbol_candidates():
+		var path := String(c.get("path", ""))
+		if seen.has(path):
+			dup = path
+		seen[path] = true
+	_check(dup == "", "C5 候选元数据按 path 去重（重复=%s / 共 %d 条）" % [dup, seen.size()])
+
+
 # D2：面板「第三格预览」区段
 func _test_panel() -> void:
 	var rows: Array[Dictionary] = [
@@ -140,7 +226,7 @@ func _test_panel() -> void:
 			"unlocked": true, "matched_now": false, "condition_text": "火焰×2", "contribution_text": ""},
 	]
 	var preview: Array[Dictionary] = _preview([_card(SY_BLADE), _card(SY_BURN)],
-		[SY_FIRE, SY_GUARD])
+		[_candidate_card(SY_FIRE, "none", "iron_sword"), _candidate_card(SY_GUARD, "none", "")])
 	_panel.open(rows, [], preview)
 	_check(_panel.rendered_texts.has("第三格预览"), "给 preview_rows 时出现「第三格预览」区段")
 	_check(_panel.rendered_preview_texts.size() == preview.size(),
@@ -189,7 +275,7 @@ func _test_wiring() -> void:
 
 	# 已锁两格：前两列已停 → 第三列候选预览
 	_duel.reel_system.reel_stopped = [true, true, false]
-	var expect := _duel._pool_symbol_paths()
+	var expect := _duel._preview_candidate_cards()
 	_duel.hud.interroom_combo_btn.pressed.emit()
 	await get_tree().process_frame
 	_check(_duel.hud.combo_panel.rendered_texts.has("第三格预览"),

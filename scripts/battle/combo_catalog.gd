@@ -153,11 +153,14 @@ static func build_rows(pattern_system, loadout_paths: Array, tag_of: Callable,
 
 
 # T3-3 C 轮第 4 步（2026-11-26）：第三格只读预览（纯函数）。
-# base_cards 为已锁两格的真实牌卡（与 cards_from_grid 同构）；candidates 为候选符号路径。
+# base_cards 为已锁两格的真实牌卡（与 cards_from_grid 同构）。
+# candidates 为调用方（DuelController）用 PatternMatcher.card_meta 构造好的候选牌卡：
+#   7 个判定字段（sym/element/source/source_kind/source_element/skill_role/valid）
+#   + 展示用 "path" / "name"。元数据与实盘同源，因此元素/来源类条件与结算一致。
 # 对每个候选拼出三张卡，跑 weapon_attack / skill_support 牌谱的 solve_rule；
 # G01–G03 用 PatternMatcher.match(cards).patterns 一并记。每个候选都出一行（无命中也出）。
 # 铁律：不读 _ctrl、不写状态、不调用结算、不消耗 RNG。
-static func preview_third_slot(base_cards: Array, candidates: Array[String],
+static func preview_third_slot(base_cards: Array, candidates: Array[Dictionary],
 		pattern_system, tag_of) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	if base_cards.size() != 2:
@@ -171,17 +174,13 @@ static func preview_third_slot(base_cards: Array, candidates: Array[String],
 			if track == "weapon_attack" or track == "skill_support":
 				patterns.append(p)
 	for c in candidates:
-		var path := String(c)
-		var sym = load(path)
-		var cname := path.get_file().get_basename()
-		if sym != null and String(sym.name) != "":
-			cname = String(sym.name)
+		var path := String(c.get("path", ""))
+		var sym = c.get("sym")
+		var cname := String(c.get("name", ""))
+		if cname == "":
+			cname = path.get_file().get_basename()
 		var cards: Array = base_cards.duplicate()
-		cards.append({
-			"sym": sym, "element": "none", "source": "",
-			"source_kind": "resource", "source_element": "none",
-			"skill_role": "", "valid": true,
-		})
+		cards.append(c)
 		var matched: Array[Dictionary] = []
 		if sym != null:
 			for p in patterns:
