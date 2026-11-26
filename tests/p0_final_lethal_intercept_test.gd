@@ -169,7 +169,7 @@ func _run() -> void:
 		_check(int(g2.hp_floor(duel)) == -1, "其他 Boss：无血锁下限")
 
 	# 场景8（P3 建池做实）：poison_dagger 单武器建池 → build_strips → 真实三列锁定 → 结算和解。
-	# 负向三废铁已由 5c 覆盖，不再重复。W-01B（2026-11-26）起 poison_dagger 已迁移：
+	# 负向三废铁已由 5c 覆盖，不再重复。T3-1（2026-11-26）起 poison_dagger 已迁移：
 	# 状态符号 poison 离池、核心符号为毒牙（venom_bite，damage）。此处验证"迁移后仍可用三列同符号和解"的真实链路。
 	var pd := ""
 	for p in duel.WEAPON_POOL:

@@ -1,7 +1,7 @@
 extends Node
 
 # ============================================================================
-# W-01B：poison_dagger 试点迁移验收（2026-11-26）
+# T3-1：poison_dagger 试点迁移验收（2026-11-26；对应基线 §5 T3-1，DoT 代表武器试点）
 # 运行：Godot --headless --fixed-fps 60 --path <项目> res://tests/w01_status_migration_test.tscn
 #
 # 覆盖 7 条：

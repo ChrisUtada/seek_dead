@@ -25,7 +25,7 @@ enum WeaponType { MELEE, RANGED }
 @export var status_effect_damage: float = 0.0
 @export var status_effect_duration: float = 3.0
 
-# -- 状态迁移管道（W-01A，2026-11-26）--
+# -- 状态迁移管道（T3-1，对应基线 §5 T3-1，2026-11-26）--
 # 设计目标：武器附带的燃烧/中毒等命中特性不额外生成可瞄准的 Buff 格，
 # 改为「实际攻击造成伤害后按概率触发，每把武器每次 SPIN 最多判定一次」。
 # 这里只装管道，不迁移任何武器：全部字段默认惰性（false / "" / 0.0 / 1），

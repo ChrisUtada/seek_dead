@@ -73,7 +73,7 @@ var _turn_enemy_armor_consumed := 0
 var _turn_enemy_pierce_damage := 0
 var _turn_enemy_hp_direct := 0
 
-# W-01A（2026-11-26）：已迁移武器的状态触发去重集合——每把武器每次 SPIN 至多判定一次。
+# T3-1（对应基线 §5 T3-1，2026-11-26）：已迁移武器的状态触发去重集合——每把武器每次 SPIN 至多判定一次。
 # 键 = 武器 id（acc["source_dmg"] 的键）。未迁移武器不会写入这里，故空集是常态。
 var _migrated_status_done := {}
 
@@ -272,7 +272,7 @@ func evaluate() -> void:
 	_apply_patterns(acc)
 	_apply_circuits(acc, counts)   # G4-3/G4-6：本局回路（牌谱后、攻击前，读本回合已收集事件）
 	_phase_attack(counts, acc)
-	_phase_migrated_status(acc)   # W-01A：已迁移武器在此（已造成伤害后）按概率挂状态；未迁移武器无操作
+	_phase_migrated_status(acc)   # T3-1：已迁移武器在此（已造成伤害后）按概率挂状态；未迁移武器无操作
 	# N-03：玩家结算链全部结束（含 hp_floor 血锁收口）后，写入敌人侧分解账本。
 	_capture_enemy_preview(enemy_hp_before, enemy_armor_before)
 	# N-03：结算值已落地，但命中帧前先压幽灵快照（显示旧 HP/护甲），命中帧才切真实值。
@@ -339,7 +339,7 @@ func _reset_turn_state() -> void:
 	_turn_enemy_armor_consumed = 0
 	_turn_enemy_pierce_damage = 0
 	_turn_enemy_hp_direct = 0
-	_migrated_status_done.clear()   # W-01A：每回合（含 free_spin）重新允许每把武器判定一次
+	_migrated_status_done.clear()   # T3-1：每回合（含 free_spin）重新允许每把武器判定一次
 	if _ctrl != null:
 		_ctrl._pattern_enemy_atk_mult = 1.0   # W02 的敌方攻击乘区每回合重置
 
@@ -767,7 +767,7 @@ func _phase_counter(counts: Dictionary, acc: Dictionary) -> void:
 		on_counter("special", pierce_need, acc)
 
 
-# —— 阶段 5：已迁移武器的状态触发（W-01A）——
+# —— 阶段 5：已迁移武器的状态触发（T3-1）——
 # 设计：武器状态从「轮上符号按格数结算」改为「实际攻击造成伤害后按概率触发，每把武器每次 SPIN 至多一次」。
 # 只处理 status_migrated=true 的武器；其余武器走不到 randf()，行为与改前逐行一致。
 # acc["source_dmg"] 的键 = 武器 id（source_id 非空）或符号路径（技能），后者查不到 WeaponData 直接跳过。
