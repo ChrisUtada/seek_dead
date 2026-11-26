@@ -591,11 +591,10 @@ func _test_s04_venom() -> void:
 	var poison_weapon := "res://resources/weapon_templates/blight_spear.tres"
 	var poison_weapon2 := "res://resources/weapon_templates/corrosive_bow.tres"
 	var sym_venom := "res://resources/symbols/venom_bite.tres"
-	var sym_poison := "res://resources/symbols/poison.tres"
 	_equip([poison_weapon, poison_weapon2])
 	_duel.enemy_status.clear()
 	_duel.enemy_status["poison"] = 4          # 先有 4 层
-	var acc: Dictionary = _settle_cards([sym_venom, sym_poison, sym_venom],
+	var acc: Dictionary = _settle_cards([sym_venom, sym_venom, sym_venom],
 		["poison", "poison", "poison"], ["blight_spear", "blight_spear", "blight_spear"])
 	_duel.combat._apply_patterns(acc)
 	_check(String(acc.get("pattern_equipment", "")) == "W03",
@@ -665,7 +664,7 @@ func _test_param_signatures() -> void:
 	_equip([W+"plague_reaper.tres", W+"corrosive_bow.tres"])
 	_duel.enemy_status.clear()
 	_duel.enemy_status["poison"] = 4
-	var d: Dictionary = _settle_cards(["res://resources/symbols/venom_bite.tres", "res://resources/symbols/poison.tres", "res://resources/symbols/venom_bite.tres"],
+	var d: Dictionary = _settle_cards(["res://resources/symbols/venom_bite.tres", "res://resources/symbols/venom_bite.tres", "res://resources/symbols/venom_bite.tres"],
 		["poison", "poison", "poison"], ["plague_reaper", "plague_reaper", "corrosive_bow"])
 	_duel.combat._apply_patterns(d)
 	_check(String(d.get("pattern_signature", "")) == "SIG_W03_REAPER",

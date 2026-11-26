@@ -169,7 +169,8 @@ func _run() -> void:
 		_check(int(g2.hp_floor(duel)) == -1, "其他 Boss：无血锁下限")
 
 	# 场景8（P3 建池做实）：poison_dagger 单武器建池 → build_strips → 真实三列锁定 → 结算和解。
-	# 负向三废铁已由 5c 覆盖，不再重复。此处验证"无核心符号武器也能靠 status 三连和解"的真实链路。
+	# 负向三废铁已由 5c 覆盖，不再重复。W-01B（2026-11-26）起 poison_dagger 已迁移：
+	# 状态符号 poison 离池、核心符号为毒牙（venom_bite，damage）。此处验证"迁移后仍可用三列同符号和解"的真实链路。
 	var pd := ""
 	for p in duel.WEAPON_POOL:
 		if String(p).ends_with("poison_dagger.tres"):
@@ -187,7 +188,7 @@ func _run() -> void:
 		duel.reel_system.build_strips()
 		var rs = duel.reel_system
 		var status_cells := 0
-		var core_cells := 0
+		var venom_cells := 0
 		for r in duel.REELS:
 			var strip: Array = rs.reel_strips[r] if r < rs.reel_strips.size() else []
 			for cell in strip:
@@ -197,10 +198,10 @@ func _run() -> void:
 				var k := String(sym.kind)
 				if k == "status":
 					status_cells += 1
-				elif k in ["damage", "special", "heal"]:
-					core_cells += 1
-		_check(status_cells >= 3, "poison_dagger 建池：三条 strip 合计 status 格 >=3（实测 %d）" % status_cells)
-		_check(core_cells == 0, "poison_dagger 建池：不含 damage/special/heal 核心符号格（实测 %d）" % core_cells)
+				if String(sym.resource_path).ends_with("venom_bite.tres"):
+					venom_cells += 1
+		_check(status_cells == 0, "poison_dagger 建池：status 格已离池（实测 %d）" % status_cells)
+		_check(venom_cells >= 3, "poison_dagger 建池：三条 strip 合计毒牙(damage) 格 >=3（实测 %d）" % venom_cells)
 		# 打到 P3
 		duel.enemy_hp_max = 100
 		duel.enemy_hp = 66
@@ -210,7 +211,7 @@ func _run() -> void:
 		duel.enemy_hp = 1
 		_check(bool(g._phase3), "poison_dagger 单武器：敌人被打到 P3")
 		# 真实 spin → 目押锁定：走 begin_spin 正确初始化 cursor/stopped（既有 RNG，不在测试里新增），
-		# 再把每列 cursor 对到 poison 格并 forced 锁定，spin_finished 后真实结算触发 on_turn_resolved。
+		# 再把每列 cursor 对到毒牙格并 forced 锁定，spin_finished 后真实结算触发 on_turn_resolved。
 		duel._busy = false
 		duel._on_spin_pressed()
 		await get_tree().process_frame
@@ -220,10 +221,10 @@ func _run() -> void:
 			for i in range(strip.size()):
 				var cell = strip[i]
 				var sym = cell[0] if cell is Array else cell
-				if sym != null and String(sym.kind) == "status":   # poison_dagger 只出 status 格
+				if sym != null and String(sym.resource_path).ends_with("venom_bite.tres"):   # 迁移后 poison_dagger 的核心符号
 					idx = i
 					break
-			_check(idx >= 0, "第 %d 列 strip 含 poison(status) 格" % (r + 1))
+			_check(idx >= 0, "第 %d 列 strip 含毒牙(damage) 格" % (r + 1))
 			if idx >= 0:
 				rs.reel_cursor[r] = idx
 			rs.lock_reel(r, false, "forced")
@@ -233,7 +234,7 @@ func _run() -> void:
 			await get_tree().process_frame
 			if duel.peaceful_win or duel.game_state != duel.FlowState.PLAYING:
 				break
-		_check(bool(duel.peaceful_win), "poison_dagger P3：建池三列 poison 真实 spin+结算后和解（无死局）")
+		_check(bool(duel.peaceful_win), "poison_dagger P3：建池三列毒牙 真实 spin+结算后和解（无死局）")
 
 	duel.queue_free()
 	await get_tree().process_frame
