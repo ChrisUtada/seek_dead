@@ -241,11 +241,13 @@ static func match_rules(cards: Array, patterns: Array) -> Array:
 # sym 为符号资源，elem 为该格有效元素，src 为来源 id（武器 id / 空串）。
 # source_kind/source_element/skill_role 由 ctrl 的来源元数据解析；valid 恒为 true，
 # 冻结列由 cards_from_grid 按列覆盖（预览候选格不冻结）。
+# source_path 仅武器牌填完整 res:// 路径（T3-0A Q1），其余来源一律空串。
 static func card_meta(ctrl, sym, elem: String, src: String) -> Dictionary:
 	var entry := {
 		"sym": sym,
 		"element": String(elem),
 		"source": String(src),
+		"source_path": "",
 		"source_kind": "resource",
 		"source_element": "none",
 		"skill_role": "",
@@ -272,6 +274,9 @@ static func card_meta(ctrl, sym, elem: String, src: String) -> Dictionary:
 				and ctrl._source_element_map.has(String(entry["source"])):
 			entry["source_kind"] = "weapon"
 			entry["source_element"] = String(ctrl._source_element_map[String(entry["source"])])
+			# T3-0A Q1：武器牌同时记录完整资源路径（"基础攻击和"按此去重并读 weapon_power）。
+			if ctrl._weapon_data_by_id != null and ctrl._weapon_data_by_id.has(String(entry["source"])):
+				entry["source_path"] = String(ctrl._weapon_data_by_id[String(entry["source"])].resource_path)
 	return entry
 
 

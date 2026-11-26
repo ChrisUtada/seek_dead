@@ -9,6 +9,8 @@ extends Node
 #   0A-3 W09：mace + 铁剑下「任意武器牌」条件成立
 #   0A-4 圣裁共享符号：武器牌与技能牌不可互相顶替
 #   0A-5 普通非共享符号判定不变
+#   0B 牌卡来源路径（T3-0A Q1）：武器牌 source_path = WeaponData.resource_path，
+#       技能 / 金币 / MISS / 废铁 / 精华一律空串；实盘与预览同源；同武器两格同路径。
 # ============================================================================
 
 const MACE := "res://resources/weapon_templates/mace.tres"
@@ -21,6 +23,10 @@ const SY_IRON_WALL := "res://resources/symbols/iron_wall.tres"
 const SY_IRON_SLASH := "res://resources/symbols/iron_slash.tres"
 const SY_HOLY_VERDICT := "res://resources/symbols/holy_verdict.tres"
 const SY_GUARD := "res://resources/symbols/guard.tres"
+const SY_GOLD := "res://resources/symbols/gold.tres"
+const SY_MISS := "res://resources/symbols/miss.tres"
+const SY_TRASH := "res://resources/symbols/trash.tres"
+const SY_ESSENCE_FIRE := "res://resources/symbols/essence_fire.tres"
 
 const MATCHER := preload("res://scripts/battle/pattern_matcher.gd")
 
@@ -45,6 +51,7 @@ func _ready() -> void:
 	_test_0a_w09()
 	_test_0a_holy_verdict()
 	_test_0a_normal()
+	_test_0b_source_path()
 
 	print("T3STEP0|RESULT %s (checks=%d fails=%d)" % [
 		"PASS" if _fails == 0 else "FAIL", _checks, _fails])
@@ -69,6 +76,13 @@ func _setup(weapons: Array, skills: Array) -> void:
 	_duel.selected_skills.clear()
 	for s in skills:
 		_duel.selected_skills.append(String(s))
+	_duel._sync_pattern_source_meta()
+
+
+# 建池（预览候选需要 pool_items）+ 来源元数据。
+func _setup_pool(weapons: Array, skills: Array) -> void:
+	_setup(weapons, skills)
+	_duel._build_pool(_duel.selected_loadout)
 	_duel._sync_pattern_source_meta()
 
 
@@ -170,3 +184,81 @@ func _test_0a_normal() -> void:
 	_check(String(ns.get("source_kind", "")) == "skill" \
 			and String(ns.get("skill_role", "")) == "shield",
 		"0A-5 守备：技能牌判定不变（%s）" % _desc(ns))
+
+
+# 0B：牌卡来源路径（T3-0A Q1）。
+func _test_0b_source_path() -> void:
+	_setup_pool([IRON_SWORD], [GUARD_SKILL])
+	_duel.frozen_cols.clear()
+	# 三格：铁斩（铁剑）/ 守备（技能位）/ 铁斩（铁剑第二格）
+	var syms := [SY_IRON_SLASH, SY_GUARD, SY_IRON_SLASH]
+	var srcs := ["iron_sword", "", "iron_sword"]
+	for c in 3:
+		_duel.grid[c][0] = load(String(syms[c]))
+		_duel.grid_elem[c][0] = "none"
+		_duel.reel_system._set_grid_src(c, 0, String(srcs[c]))
+	var cards: Array = MATCHER.cards_from_grid(_duel)
+	_check(cards.size() == 3, "0B 实盘取 3 张牌（实测 %d）" % cards.size())
+	if cards.size() != 3:
+		return
+	var c0: Dictionary = cards[0]
+	var c1: Dictionary = cards[1]
+	var c2: Dictionary = cards[2]
+	_check(String(c0.get("source_path", "")) == IRON_SWORD \
+			and load(String(c0.get("source_path", ""))) is WeaponData,
+		"0B 武器牌 source_path = WeaponData.resource_path（%s）" % String(c0.get("source_path", "")))
+	_check(String(c0.get("source_path", "")) == String(c2.get("source_path", "")),
+		"0B 同一武器两格 → 同一 source_path（%s / %s）" % [
+			String(c0.get("source_path", "")), String(c2.get("source_path", ""))])
+	_check(String(c1.get("source_kind", "")) == "skill" \
+			and String(c1.get("source_path", "")) == "",
+		"0B 技能牌 source_path 为空串（%s）" % _spath(c1))
+
+	var all_weapon_ok := true
+	var all_skill_ok := true
+	for card in cards:
+		var d: Dictionary = card
+		if String(d.get("source_kind", "")) == "weapon":
+			var sp := String(d.get("source_path", ""))
+			if sp == "" or not (load(sp) is WeaponData):
+				all_weapon_ok = false
+		elif String(d.get("source_kind", "")) == "skill":
+			if String(d.get("source_path", "")) != "":
+				all_skill_ok = false
+	_check(all_weapon_ok, "0B 所有武器牌 source_path 非空且可载入 WeaponData")
+	_check(all_skill_ok, "0B 所有技能牌 source_path 为空串")
+
+	# 预览候选与实盘同源：同一符号的 source_kind / source_path 必须一致。
+	var cands: Array[Dictionary] = _duel._preview_candidate_cards()
+	var wcand := _find_cand(cands, SY_IRON_SLASH)
+	var scand := _find_cand(cands, SY_GUARD)
+	_check(not wcand.is_empty(), "0B 预览候选含铁斩")
+	_check(not scand.is_empty(), "0B 预览候选含守备")
+	if not wcand.is_empty():
+		_check(String(wcand.get("source_kind", "")) == String(c0.get("source_kind", "")) \
+				and String(wcand.get("source_path", "")) == String(c0.get("source_path", "")),
+			"0B 实盘与预览武器牌一致（实盘 %s / 预览 %s）" % [
+				_spath(c0), _spath(wcand)])
+	if not scand.is_empty():
+		_check(String(scand.get("source_kind", "")) == String(c1.get("source_kind", "")) \
+				and String(scand.get("source_path", "")) == String(c1.get("source_path", "")),
+			"0B 实盘与预览技能牌一致（实盘 %s / 预览 %s）" % [
+				_spath(c1), _spath(scand)])
+
+	# 非武器来源：金币 / MISS / 废铁 / 精华一律空串。
+	for p in [SY_GOLD, SY_MISS, SY_TRASH, SY_ESSENCE_FIRE]:
+		var m := _meta(String(p), "none", "")
+		_check(String(m.get("source_path", "")) == "",
+			"0B 非武器牌 source_path 为空串（%s → %s）" % [String(p).get_file(), _spath(m)])
+
+
+func _find_cand(cands: Array[Dictionary], path: String) -> Dictionary:
+	for c in cands:
+		if String(c.get("path", "")) == path:
+			return c
+	return {}
+
+
+func _spath(card: Dictionary) -> String:
+	return "kind=%s path=%s" % [
+		String(card.get("source_kind", "")), String(card.get("source_path", ""))]
