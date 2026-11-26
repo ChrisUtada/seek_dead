@@ -368,6 +368,11 @@ func _test_esc_no_settle() -> void:
 
 func _test_replace_flow() -> void:
 	_fresh()
+	# 先留出武器空位：满配时成长候选里的 weapon_* 会被标 needs_replace——
+	# 那是「槽位满」的 UI 状态，不是「成长候选要求替换」，与本文件另一处同源口径。
+	if _duel.selected_loadout.size() >= 2:
+		_duel.selected_loadout.resize(1)
+		_duel._build_pool(_duel.selected_loadout)
 	_duel.room_flow.begin_post_battle()
 	await _frames(3)
 	var view: Dictionary = _duel.room_flow.loot_view()
@@ -399,6 +404,10 @@ func _test_replace_flow() -> void:
 # 结算一个 weapon_replace def，走同一套换装代码，断言装备真实改变。
 func _test_weapon_reward_changes_loadout() -> void:
 	_fresh()
+	# 先留一个空位再生成 Draft：否则候选与实际结算配装不一致（偶发红的根因之一）
+	if _duel.selected_loadout.size() >= 2:
+		_duel.selected_loadout.resize(1)
+		_duel._build_pool(_duel.selected_loadout)
 	# 选一个 act>=2 的普通房，让武器有机会进池
 	for i in range(_duel.ROOMS.size()):
 		if int(_duel.ROOMS[i].act) >= 2 and String(_duel.ROOMS[i].kind) == "normal":
@@ -410,6 +419,9 @@ func _test_weapon_reward_changes_loadout() -> void:
 	var weapon_idx := -1
 	for i in range(opts.size()):
 		var o: Dictionary = opts[i]
+		var p := String(o.get("path", ""))
+		if p == "" or _duel.selected_loadout.has(p) or _duel.run_weapon_inventory.has(p):
+			continue        # 已拥有 → acquire 会 no-op，不能用来断言"配装改变"
 		var weff := String(o.get("weapon_effect", ""))
 		var eid := String(o.get("effect_id", ""))
 		if weff in ["weapon_replace", "weapon_swap", "weapon_acquire"] \
@@ -417,10 +429,6 @@ func _test_weapon_reward_changes_loadout() -> void:
 			weapon_idx = i
 			break
 	if weapon_idx >= 0:
-		# 留一个空位，避免触发 needs_replace 弹层；武器直接装备
-		if _duel.selected_loadout.size() >= 2:
-			_duel.selected_loadout.resize(1)
-			_duel._build_pool(_duel.selected_loadout)
 		var before: Array = _duel.selected_loadout.duplicate()
 		_duel._on_loot_offer_chosen(weapon_idx)
 		_check(_duel.selected_loadout != before, "合法换装奖励确实改变双武器配装（真实 loot 候选）")
