@@ -95,7 +95,7 @@ static func match(cards: Array) -> Dictionary:
 #   {"source": "武器路径"}        来自指定来源
 #   {"symbol_category": "flame"}  符号类别（SymbolData.symbol_category，默认 none 不误命中）
 # 条件值必须与 SymbolData.symbol_category 严格相等；"none" 是可匹配类别（命中未分类符号），
-# 不是通配；未打标类别（blade/arcane）写进来会永不命中。
+# 不是通配；已打标 blade/flame/frost/guard/projectile，arcane 尚未打标（写进来会永不命中）。
 static func solve_rule(cards: Array, rule: Dictionary) -> bool:
 	var conds: Array = rule.get("all", [])
 	if conds.is_empty():
@@ -144,10 +144,17 @@ static func _card_satisfies(card: Dictionary, cond: Dictionary) -> bool:
 		return false
 	if cond.has("skill_role") and String(card.get("skill_role", "")) != String(cond["skill_role"]):
 		return false
-	# T3-3 B 轮：类别相等才命中；sym == null 或空值/未知类别不回退成「任意」。
 	if cond.has("symbol_category"):
-		var sym = card.get("sym")
-		if sym == null or String(sym.symbol_category) != String(cond["symbol_category"]):
+		# T3-3 B 轮：类别相等才命中；sym 为空或未知类别不回退成「任意」。
+		var sym_obj = card.get("sym")
+		if sym_obj == null:
+			return false
+		var cat: String = ""
+		if sym_obj is Dictionary:
+			cat = String((sym_obj as Dictionary).get("symbol_category", "none"))
+		else:
+			cat = String(sym_obj.symbol_category)
+		if cat != String(cond["symbol_category"]):
 			return false
 	return true
 

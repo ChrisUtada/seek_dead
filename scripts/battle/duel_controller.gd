@@ -364,6 +364,9 @@ var mastery                            # M2-02 武器熟练 R1–R4 与铭印（
 var weapon_slots
 # 2026-11-15 转轮凑牌：牌谱系统（装备解锁集 + 优先级）。Step 2 起效果真正生效。
 var _pattern_system
+# T3-3 C 轮（2026-11-25）：上一 SPIN 的只读结算快照（evaluate 内 duplicate(true) 写入）。
+# 唯一写入点是 combat_system.evaluate()；组合面板等只读消费者不得写入。
+var last_settlement_acc: Dictionary = {}
 var circuit_system                     # G4 本局回路系统（2槽/触发限制/来源日志；与装备牌谱分开）
 var machine_summary                    # G7-4 统一机器摘要（整备/换装/战后/局末同一口径；纯查询）
 var onboarding                         # G7-5 新手引导与辅助选项（首局四件事 + 辅助来源标注）
@@ -498,6 +501,7 @@ func _ready() -> void:
 	hud.reward_skip_requested.connect(_on_reward_skip_pressed)
 	hud.shop_requested.connect(_on_shop_requested)
 	hud.next_room_requested.connect(_on_next_room_pressed)
+	hud.combo_requested.connect(_on_combo_requested)
 	hud.card_toggled.connect(_loadout_system.on_card_toggled)
 	hud.meta_choice_chosen.connect(_on_meta_choice_chosen)
 	hud.career_unlock_chosen.connect(_on_career_unlock_chosen)
@@ -1083,6 +1087,56 @@ func _on_next_room_pressed() -> void:
 	room_flow.on_next_room_pressed()
 
 
+# T3-3 C 轮：组合面板入口（只在房间歇态开放）。只读 build_rows 输出，不消耗 RNG、不推进回合。
+func _on_combo_requested() -> void:
+	if not in_interroom:
+		return
+	var tag_cb := Callable(self, "_pattern_tag_of")
+	var rows: Array[Dictionary] = ComboCatalog.build_rows(
+		_pattern_system, selected_loadout, tag_cb, last_settlement_acc)
+	var sources: Array[Dictionary] = ComboCatalog.build_sources(last_settlement_acc)
+	var preview: Array[Dictionary] = _combo_preview_rows()
+	hud.show_combo_panel(rows, sources, preview)
+
+
+# T3-3 C 轮第 4 步：第三格只读预览（纯匹配，不模拟结算）。
+# 「已锁两格」= 前两列均已停（reel_stopped[0]/[1]）；预览对象是第三列（reel 2）的候选符号。
+# 不读结算、不改 frozen_cols / grid、不消耗 RNG；未锁两格时返回空，面板不显示该区段。
+const PREVIEW_REEL := 2
+
+func _combo_preview_rows() -> Array[Dictionary]:
+	if reel_system == null or reel_system.reel_stopped.size() <= PREVIEW_REEL:
+		return []
+	if not bool(reel_system.reel_stopped[0]) or not bool(reel_system.reel_stopped[1]):
+		return []
+	var all_cards: Array = ComboCatalog.MATCHER.cards_from_grid(self)
+	var base: Array = []
+	for i in all_cards.size():
+		var col: int = int(PAYLINES[0][i][0])
+		if col != PREVIEW_REEL:
+			base.append(all_cards[i])
+	if base.size() != 2:
+		return []
+	return ComboCatalog.preview_third_slot(
+		base, _pool_symbol_paths(), _pattern_system, Callable(self, "_pattern_tag_of"))
+
+
+# 当前武器池里的候选符号路径（去重；不含 MISS / 金币，它们不来自 pool_items）。
+func _pool_symbol_paths() -> Array[String]:
+	var out: Array[String] = []
+	for it in pool_items:
+		for s in (it.get("syms", []) as Array):
+			if s.size() <= 0:
+				continue
+			var sym = s[0]
+			if not (sym is Resource):
+				continue
+			var path := String((sym as Resource).resource_path)
+			if path != "" and not out.has(path):
+				out.append(path)
+	return out
+
+
 # M-02b：ACT1 开幕信息公开。房间已经开起来（_start_room(0) 不自动 spin），
 # 因此这里不设 pending、不阻断流程；确认只关屏。
 func show_chapter_intro_at_run_start() -> bool:
@@ -1162,6 +1216,7 @@ func _full_reset() -> void:
 # 新一局公共状态重置（不含开战）：已迁至 LoadoutSystem.reset_run_state（P2 架构还债，2026-08-24）——单行转发。
 func _reset_run_state() -> void:
 	_loadout_system.reset_run_state()
+	last_settlement_acc = {}   # T3-3 C 轮：新局清空上一 SPIN 的只读结算快照
 	damage_ledger.begin(0, 0)   # T4：新局清空伤害事件账本
 	_linear_camp_op_granted = false   # T0-1：跨局防御，避免上局中途退出的营地挂起标记污染新局
 	# M-02b：新局清空章节头显示记录与待办，防止跨局污染

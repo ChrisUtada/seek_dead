@@ -16,8 +16,8 @@ extends Resource
 @export var color: Color = Color(0.7, 0.7, 0.75, 1)
 @export var pierce_armor: bool = false   # 穿透护甲：该符号伤害直接扣 HP，不先扣敌人护甲（RPG 式破甲）
 # T3-3 B 轮（Q4 裁决）：符号类别，match_rule 的 symbol_category 条件读此字段。
-# 已实现：flame|frost|guard|projectile|none；blade/arcane 尚未打标，牌谱请勿使用（会静默不命中）。
-# 默认 none，老 .tres 不写该字段也能加载。
+# 枚举：blade | flame | frost | guard | projectile | arcane | none（试点已打标 blade/flame/frost/guard/projectile，
+# arcane 尚未打标，牌谱请勿使用，否则静默不命中）。默认 none，老 .tres 不写该字段也能加载。
 @export var symbol_category: String = "none"
 
 # Phase C — 仅 kind=="buff"：主动技能符号自带效果，符号自描述。

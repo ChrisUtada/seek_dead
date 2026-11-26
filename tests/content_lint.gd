@@ -22,8 +22,8 @@ const DIRS := [
 const SYMBOL_KINDS := ["damage", "shield", "heal", "status", "special", "buff", "trash", "gold"]
 const ELEMENTS := ["fire", "ice", "poison", "light", "dark", "none"]
 const BUFF_EFFECTS := ["", "power", "shield", "regen", "damage_mult"]
-# T3-3 B 轮：symbol_category 取值（已实现 4 类 + 未实现占位 + 默认 none）
-const SYMBOL_CATEGORIES := ["none", "flame", "frost", "guard", "projectile", "blade", "arcane"]
+# T3-3 B 轮：symbol_category 取值（已打标 5 类 blade/flame/frost/guard/projectile + 未实现占位 arcane + 默认 none）
+const SYMBOL_CATEGORIES := ["none", "blade", "flame", "frost", "guard", "projectile", "arcane"]
 # StatusSystem.STATUS_DEFS 的键（状态 id，非元素）
 const STATUS_TYPES := ["", "burn", "frost", "poison", "frozen", "holy_burn", "shadow_blight"]
 const RARITIES := ["common", "uncommon", "rare", "epic", "relic"]
@@ -124,7 +124,8 @@ func _check_enums(all: Array[String]) -> void:
 			_ok(BUFF_EFFECTS.has(String(res.buff_effect)), "SymbolData.buff_effect 合法 %s (%s)" % [res.buff_effect, resname])
 			_ok(SYMBOL_CATEGORIES.has(String(res.symbol_category)),
 				"SymbolData.symbol_category 合法 %s (%s)" % [res.symbol_category, resname])
-			_warn(not (String(res.symbol_category) in ["blade", "arcane"]),
+			# arcane 尚未打标（无符号使用）；一旦有符号写 arcane 就软提示，避免静默永不命中。
+			_warn(String(res.symbol_category) != "arcane",
 				"SymbolData.symbol_category 已声明未实现 %s (%s)" % [res.symbol_category, resname])
 		elif res is WeaponData:
 			_ok(int(res.archetype) >= 0 and int(res.archetype) <= 3, "WeaponData.archetype 合法 (%s)" % resname)

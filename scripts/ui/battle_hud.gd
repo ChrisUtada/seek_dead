@@ -19,6 +19,7 @@ const META_SCENE = preload("res://scenes/ui/meta_screen.tscn")
 const REWARD_SCENE = preload("res://scenes/ui/reward_screen.tscn")
 const SHOP_SCENE = preload("res://scenes/ui/shop_screen.tscn")
 const LOADOUT_SCENE = preload("res://scenes/ui/loadout_scene.tscn")
+const COMBO_PANEL_SCENE = preload("res://scenes/ui/combo_panel.tscn")   # T3-3 C 轮：组合面板（只读）
 const CARD_FACTORY = preload("res://scripts/ui/card_factory.gd")   # G8 第二切片：卡片构造外迁
 
 var controller   # DuelController 引用（运行时由 _ready 设置）
@@ -52,6 +53,7 @@ signal boss_reward_chosen(cand: Dictionary)  # BOSS 战利品三选一
 signal reward_skip_requested                 # 跳过房奖励
 signal shop_requested                          # 🛒 打开商店（房间歇态 opt-in）
 signal next_room_requested                     # ▶ 下一房（房间歇态）
+signal combo_requested                         # 🗂 打开组合面板（房间歇态 opt-in，只读）
 @warning_ignore("unused_signal")
 signal card_toggled(card: Dictionary)         # 整备卡片勾选
 @warning_ignore("unused_signal")
@@ -97,6 +99,9 @@ func set_interroom_enabled(on: bool) -> void:
 	if interroom_next_btn != null:
 		interroom_next_btn.visible = on
 		interroom_next_btn.disabled = not on
+	if interroom_combo_btn != null:
+		interroom_combo_btn.visible = on
+		interroom_combo_btn.disabled = not on
 	_interroom_on = on
 	_refresh_trim_entry()
 	# 间歇时战斗已结束，隐藏中央 BOSS 名称/意图
@@ -114,6 +119,15 @@ func shop_screen_is_open() -> bool:
 	if shop_screen == null:
 		return false
 	return shop_screen.is_shown()
+func show_combo_panel(rows: Array[Dictionary], sources: Array[Dictionary] = [],
+		preview: Array[Dictionary] = []) -> void:
+	if combo_panel == null:
+		return
+	combo_panel.open(rows, sources, preview)
+func _on_combo_panel_closed() -> void:
+	# 面板自身已 close()；这里只收口遮罩与交互（隐藏后鼠标事件回到 HUD）。
+	if combo_panel != null:
+		combo_panel.visible = false
 func set_shop_button_text(t: String) -> void:
 	if interroom_shop_btn != null:
 		interroom_shop_btn.text = t
@@ -154,6 +168,9 @@ var shop_screen                         # 商店覆盖层（shop_screen.tscn 实
 @onready var interroom_next_btn = $Margin/Content/TopBar/NextRoomBtn
 # G7-B B3：主动减带入口（线性间歇态）。代码内建在 TopBar 上，与棋盘屏按钮共用同一弹层。
 var interroom_trim_btn = null
+# T3-3 C 轮：组合面板入口（房间歇态 opt-in）。与精简同一套动态按钮写法。
+var interroom_combo_btn = null
+var combo_panel: ComboPanel = null   # 只读组合面板（挂 duel 根节点，与武器藏库同级）
 var _interroom_on := false
 # 下一房预告为根节点浮层：不参与 Content 高度计算，避免间歇态把 HUD 顶出 480×270
 
@@ -424,6 +441,25 @@ func _build_ui() -> void:
 	var info_bar = $Margin/Content/TopBar
 	info_bar.add_child(interroom_trim_btn)
 	info_bar.move_child(interroom_trim_btn, interroom_shop_btn.get_index())
+
+	# T3-3 C 轮：组合面板入口。插在「精简」左边（同属间歇态 opt-in，默认隐藏）。
+	interroom_combo_btn = UI_BUTTON.instantiate()
+	interroom_combo_btn.text = "🗂 组合"
+	interroom_combo_btn.custom_minimum_size = Vector2(58, 18)
+	interroom_combo_btn.add_theme_font_size_override("font_size", 9)
+	interroom_combo_btn.disabled = true
+	interroom_combo_btn.visible = false
+	interroom_combo_btn.pressed.connect(combo_requested.emit)
+	info_bar.add_child(interroom_combo_btn)
+	info_bar.move_child(interroom_combo_btn, interroom_trim_btn.get_index())
+
+	# T3-3 C 轮：组合面板遮罩（与武器藏库同级，挂 duel 根节点；棋盘隐藏 HUD 时仍可显示）。
+	combo_panel = COMBO_PANEL_SCENE.instantiate() as ComboPanel
+	combo_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	combo_panel.z_index = 96
+	combo_panel.visible = false
+	combo_panel.closed.connect(_on_combo_panel_closed)
+	get_parent().add_child(combo_panel)
 
 	# P4：战斗动画器挂在 hud 下，setup 时缓存 PlayerSprite/EnemySprite 节点
 	animator = BattleAnimator.new()
@@ -1633,11 +1669,12 @@ func _apply_hp_bar(bar: VitalBar, root: Control, new_ratio: float, prev_ratio: f
 			var jolt := root.create_tween()
 			jolt.tween_property(root, "position:y", base_y + 1.0, 0.06)
 			jolt.tween_property(root, "position:y", base_y, 0.10)
-	elif allow_growth and new_ratio > prev_ratio + 0.001:
+	elif new_ratio > prev_ratio + 0.001 and allow_growth:
 		# 2026-11-23：治疗血条增长动画——在治愈音播放期间(1.25s)平滑填入红色段，
 		# 实现"音画同步"：玩家看着血条涨的同时听到药剂音（经典 sound/animation synchronized）。
-		# refresh() 会把 ratio/display_ratio 设为新值、外框撑到位；这里把 display_ratio
-		# 拉回旧值再用 tween 渐变到新值，血段内容就会慢慢长出来。
+		# 仅用于玩家血条（allow_growth=true）。敌人血条禁止此动画：敌人不会"治疗"，
+		# 任何比例上升（换房满血 / 幽灵值交错 / 敌人自愈）都必须瞬时反映，
+		# 否则 tween 存活期间 refresh() 不更新 display_ratio，视觉上表现为血条卡住/回弹。
 		bar.refresh(new_ratio, prev_ratio, shield_len)
 		if bar.grow_tween != null and bar.grow_tween.is_valid():
 			bar.grow_tween.kill()
@@ -1645,13 +1682,17 @@ func _apply_hp_bar(bar: VitalBar, root: Control, new_ratio: float, prev_ratio: f
 		bar.grow_tween = bar.create_tween()
 		bar.grow_tween.tween_method(bar.set_display_ratio, prev_ratio, new_ratio, HEAL_BAR_GROW)
 		return
-	elif not allow_growth and new_ratio > prev_ratio + 0.001:
-		# 敌人侧禁止增长动画：换房满血 / 幽灵值交错时，倍率上升只是表现层快照切换，
-		# 不是治疗；若沿用增长 tween 会被误画成"敌人在回血"。直接拍平显示值。
+	# 敌人血条比例上升（allow_growth=false）或比例不变：确保杀死可能残留的增长 tween，
+	# 让 refresh() 真正把 display_ratio 更新到 new_ratio（否则上一段动画会继续画）。
+	if not allow_growth:
 		if bar.grow_tween != null and bar.grow_tween.is_valid():
 			bar.grow_tween.kill()
+		bar.refresh(new_ratio, prev_ratio, shield_len)
+		# 敌人血条一律瞬时落位：refresh() 内部可能因残留 tween 跳过 display_ratio 更新，
+		# 这里显式拍平，保证掉血/回升都即时反映，杜绝视觉回弹。
 		bar.set_display_ratio(new_ratio)
-	bar.refresh(new_ratio, prev_ratio, shield_len)
+	else:
+		bar.refresh(new_ratio, prev_ratio, shield_len)
 
 
 # T4（2026-11-24）：按账本顺序逐段回放敌人掉血。

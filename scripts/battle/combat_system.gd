@@ -272,6 +272,8 @@ func evaluate() -> void:
 	_capture_enemy_preview(enemy_hp_before, enemy_armor_before)
 	# N-03：结算值已落地，但命中帧前先压幽灵快照（显示旧 HP/护甲），命中帧才切真实值。
 	_ctrl.hud.hold_enemy_preview()
+	# T3-3 C 轮：结算完成、表现回放之前落只读快照（duplicate(true)，表现层改动不回写）。
+	_ctrl.last_settlement_acc = acc.duplicate(true)
 	await _present_turn(acc, counts)
 
 
