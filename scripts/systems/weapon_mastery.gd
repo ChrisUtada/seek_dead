@@ -84,6 +84,9 @@ func settle_room(kind: String) -> void:
 		return
 	var gain_base := 1 + (1 if kind == "elite" else 0) + (1 if kind == "boss" else 0)
 	for path in _ctrl.selected_loadout:
+		# T3 阶段 1：归档武器不新增熟练成长；已有熟练仅展示，不回收。
+		if _is_archived(path):
+			continue
 		if not _weapon_settled(path):
 			continue
 		var room_so_far: int = int(_room_gain.get(path, 0))
@@ -114,6 +117,9 @@ func grant_points(path: String, amount: int, label: String = "重复转化") -> 
 	if not enabled or amount <= 0 or path == "":
 		return 0
 	if not (load(path) is WeaponData):
+		return 0
+	# T3 阶段 1：归档武器不新增熟练成长。
+	if _is_archived(path):
 		return 0
 	var before: int = r_level(path)
 	mastery[path] = int(mastery.get(path, 0)) + amount
@@ -350,6 +356,12 @@ func summary_line() -> String:
 func display_name(path: String) -> String:
 	var wd: WeaponData = load(path)
 	return wd.weapon_name if wd != null else path
+
+
+# T3 阶段 1：归档武器（不新增熟练；已有熟练仅展示）。
+func _is_archived(path: String) -> bool:
+	var res: Resource = load(path)
+	return res != null and res.get("archived") == true
 
 
 func _tune_count(path: String) -> int:

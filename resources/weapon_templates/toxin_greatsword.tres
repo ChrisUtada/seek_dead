@@ -38,3 +38,4 @@ act_min = 1
 act_max = 3
 source_tags = Array[String](["normal", "elite", "shop", "chest"])
 unique_group = "weapon_poison_poison_triple"
+archived = true

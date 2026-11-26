@@ -68,10 +68,11 @@ func save_meta() -> void:
 
 # M1-03 新档初始收藏（M0-02 已确认）：4 把初始武器 + 4 个基础护符 + 全部基础消耗品。
 # 目的：新档保留真实未解锁内容，铁砧/图鉴有成长空间（旧行为播种全池 → 图鉴一步到 76%，里程碑集中补发）。
+# T3 阶段 1（2026-11-27）：dagger 已归档，起始位改由 iron_sword 承担（带 start 标签）。
 const STARTER_WEAPONS: Array[String] = [
-	"res://resources/weapon_templates/dagger.tres",
-	"res://resources/weapon_templates/fire_sword.tres",
 	"res://resources/weapon_templates/battle_axe.tres",
+	"res://resources/weapon_templates/iron_sword.tres",
+	"res://resources/weapon_templates/fire_sword.tres",
 	"res://resources/weapon_templates/ice_staff.tres",
 ]
 const STARTER_CHARM_COUNT := 4

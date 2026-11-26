@@ -86,6 +86,10 @@ func candidates(source: String, act: int, opts: Dictionary = {}) -> Dictionary:
 			continue
 		if not (source in (e["tags"] as Array)):
 			continue
+		# T3 阶段 1：归档内容只保留在资源与图鉴里，不进入任何新获取路径
+		# （掉落 / 奖励 / 商店 / BOSS 主题池 / 宝箱 / 探索）。
+		if bool(e.get("archived", false)):
+			continue
 		if not _demo_allows(e):
 			continue
 		out.append(String(e["path"]))
@@ -264,6 +268,9 @@ func _ladder_candidates(act: int, quality: String, category: String, used: Dicti
 	for e in _index:
 		if bool(e["relic"]) and not bool(opts.get("include_relics", false)):
 			continue
+		# T3 阶段 1：商店阶梯与普通候选同口径，归档内容不上架。
+		if bool(e.get("archived", false)):
+			continue
 		if used.has(String(e["path"])):
 			continue
 		if String(e["rarity"]) != quality:
@@ -420,6 +427,8 @@ func _build_index() -> void:
 				"kind": String(kind),
 				"rarity": String(res.get("rarity")) if res.get("rarity") != null else "common",
 				"tags": tags,
+				# T3 阶段 1：归档标记进索引，候选层统一剔除（不改来源表/品质权重）。
+				"archived": res.get("archived") == true,
 				# Step 8：unique_group 必须进索引——LootOffer 的「同机制不重复」贪心读的是
 				# entry_of(...).unique_group；此前缺字段导致三项可能只是换皮。
 				"unique_group": String(res.get("unique_group")) if res.get("unique_group") != null else "",

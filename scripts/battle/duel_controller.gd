@@ -1755,6 +1755,10 @@ func _roll_camp_offers() -> Array:
 	var out: Array = []
 	var weapons: Array = []
 	for p in WEAPON_POOL:
+		# T3 阶段 1：营地补给属于新获取路径，归档武器不上架。
+		var wd0 = load(String(p))
+		if wd0 != null and wd0.get("archived") == true:
+			continue
 		weapons.append(String(p))
 	if not weapons.is_empty():
 		out.append(_camp_offer(String(_reward_system.acq_weighted_pick(weapons)), "weapon"))

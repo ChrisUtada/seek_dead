@@ -671,7 +671,7 @@ func _make_weapon_defs() -> Array:
 	var owned: Array = _ctrl.meta.get("owned_weapons", [])
 	for path in owned:
 		var p: String = String(path)
-		if p.is_empty() or _ctrl.selected_loadout.has(p):
+		if p.is_empty() or _ctrl.selected_loadout.has(p) or _archived_path(p):
 			continue
 		var wd: Resource = ResourceLoader.load(p)
 		if wd == null:
@@ -707,7 +707,7 @@ func _make_weapon_swap_defs() -> Array:
 	var out: Array = []
 	for path in _ctrl.run_weapon_inventory:
 		var p: String = String(path)
-		if p.is_empty() or _ctrl.selected_loadout.has(p):
+		if p.is_empty() or _ctrl.selected_loadout.has(p) or _archived_path(p):
 			continue
 		var weapon: Resource = ResourceLoader.load(p)
 		if weapon == null:
@@ -743,7 +743,7 @@ func _make_weapon_acquire_defs() -> Array:
 	var owned_out: Array = _ctrl.meta.get("owned_weapons", [])
 	for path in owned_out:
 		var p: String = String(path)
-		if p.is_empty() or _ctrl.run_weapon_inventory.has(p):
+		if p.is_empty() or _ctrl.run_weapon_inventory.has(p) or _archived_path(p):
 			continue
 		var weapon: Resource = ResourceLoader.load(p)
 		if weapon == null:
@@ -773,6 +773,12 @@ func _weapon_display_name(p: String) -> String:
 	var wd: Resource = ResourceLoader.load(p)
 	var wname: String = String(wd.get("weapon_name")) if wd != null and wd.has_method("get") else ""
 	return wname if not wname.is_empty() else p.get_file().get_basename()
+
+
+# T3 阶段 1：归档内容不进新获取/换装候选（老档已装备/已持有仍可完成当前跑局）。
+func _archived_path(p: String) -> bool:
+	var res: Resource = ResourceLoader.load(p)
+	return res != null and res.get("archived") == true
 
 
 # 重抽沿用同一品质层；每组首次 5 金，之后每次 +5 金。跳过免费且不发奖励。
@@ -1478,7 +1484,7 @@ func _slot_build_pool(kind: String, act: int) -> Array:
 # 是否还有未装备武器可给（避免「新武器」卡没有具体对象）。
 func has_weapon_candidate() -> bool:
 	for p in _ctrl.WEAPON_POOL:
-		if not _ctrl.selected_loadout.has(p):
+		if not _ctrl.selected_loadout.has(p) and not _archived_path(String(p)):
 			return true
 	return false
 

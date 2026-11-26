@@ -31,6 +31,9 @@ extends Resource
 @export var act_min: int = 1                     # 合法幕次下限（不是品质替代）
 @export var act_max: int = 3                     # 合法幕次上限
 @export var source_tags: Array[String] = []      # normal/elite/boss/chest/event/shop/anvil/start
+# T3 阶段 1（2026-11-27）：归档内容。资源保留、图鉴可查并标注，但不进入新获取路径；
+# 已装备/已持有的归档内容仍可完成当前跑局（战斗建池不过滤）。
+@export var archived: bool = false
 @export var unique_group: String = ""            # 同机制分组：三选一避免三项换皮
 @export var base_power: float = 10.0      # 攻击力 / 效能（升级主通道；P3 结算改读此字段取代 weapon.damage 缝合）
 @export var hit_rate: float = 0.85        # 命中率（1 - hit_rate = 废铁 miss 格占比；P2 按此注入转轮）

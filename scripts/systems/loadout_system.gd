@@ -147,6 +147,16 @@ func owned_arr(kind: String) -> Array:
 			"passive": return _ctrl.demo_config.filter_items(arr)
 			"active":  return _ctrl.demo_config.filter_items(arr)
 			"skill":   return _ctrl.demo_config.filter_skills(arr)
+	# T3 阶段 1：整备换装候选不展示归档装备（新装备选择路径）；已装备的归档装备
+	# 仍留在 selected_* 里完成当前跑局，不从这里删除。
+	if kind == "weapon" or kind == "skill":
+		var out: Array = []
+		for p in arr:
+			var res: Resource = load(String(p))
+			if res != null and res.get("archived") == true:
+				continue
+			out.append(p)
+		return out
 	return arr
 
 

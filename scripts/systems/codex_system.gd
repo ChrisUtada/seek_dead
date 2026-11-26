@@ -211,6 +211,7 @@ func list_entries(kind: String) -> Array:
 			"uses": uses_of(path),
 			"rank": best_rank_of(path),
 			"rarity": String(res.get("rarity")),
+			"archived": res.get("archived") == true,
 		})
 	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
 		if bool(a["owned"]) != bool(b["owned"]):
@@ -243,6 +244,9 @@ func detail_lines(path: String) -> Array[String]:
 	var out: Array[String] = []
 	out.append("类别：%s · 稀有度 %s" % [
 		String(KIND_LABEL.get(kind, kind)), String(RARITY_LABEL.get(String(res.get("rarity")), String(res.get("rarity"))))])
+	# T3 阶段 1：归档内容保留在图鉴，明确标注，不隐藏。
+	if res.get("archived") == true:
+		out.append("状态：已归档（不进入新获取与匹配；已装备可完成当前跑局）")
 	out.append("路线：" + _route_text(res, kind))
 	out.append("机制：" + _mechanism_text(res, kind))
 	var srcs := source_lines(path)
