@@ -418,6 +418,32 @@ func _test_replace_flow() -> void:
 			_duel.selected_loadout.append(s)
 	_check(_duel.selected_loadout.size() >= cap,
 		"满槽夹具：配装填满真武器（%d/%d）" % [_duel.selected_loadout.size(), cap])
+	# 确定性覆盖（不依赖 Draft 抽样）：同一个武器 def，满槽必须标 needs_replace，空槽必须不标。
+	# 两向断言互为反证——常量实现无法同时满足。
+	var wpath := ""
+	for p in _duel.WEAPON_POOL:
+		var s := String(p)
+		if s.get_file().contains("_relic"):
+			continue
+		var d2: Resource = load(s)
+		if d2 is WeaponData:
+			wpath = s
+			break
+	_check(wpath != "", "确定性覆盖：找到可用武器路径（%s）" % wpath)
+	var def_w := RewardDefinition.new()
+	def_w.id = "test_needs_replace"
+	def_w.name = "测试换装标记"
+	def_w.rarity = "common"
+	def_w.effects = [{"effect_id": "weapon_swap", "params": {"weapon_path": wpath}}]
+	var slot_before := _duel.selected_loadout.size()
+	var opt_full: Dictionary = RewardPresentation.definition_to_option(def_w, _duel)
+	_check(slot_before >= cap and bool(opt_full.get("needs_replace", false)),
+		"满槽（%d/%d）时武器卡必须标 needs_replace" % [slot_before, cap])
+	_duel.selected_loadout.resize(cap - 1)
+	var opt_spare: Dictionary = RewardPresentation.definition_to_option(def_w, _duel)
+	_check(not bool(opt_spare.get("needs_replace", false)),
+		"空槽（%d/%d）时武器卡不得标 needs_replace" % [_duel.selected_loadout.size(), cap])
+	_duel.selected_loadout.resize(slot_before)   # 复原，别影响后续断言/清理
 	_duel._build_pool(_duel.selected_loadout)
 	_duel.room_flow.begin_post_battle()
 	await _frames(3)
