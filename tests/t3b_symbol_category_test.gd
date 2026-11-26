@@ -134,7 +134,9 @@ func _run() -> void:
 	_check(PatternMatcher.solve_rule([skill_card], {"all": [{"source_kind": "skill", "skill_role": "shield"}]}), "旧 skill_role 正例")
 	_check(not PatternMatcher.solve_rule([_card("guard")], {"all": [{"source_kind": "skill", "skill_role": "shield"}]}), "旧 skill_role 反例")
 	# 多条件组合语义不变（同一张牌承担两个条件）
-	_check(PatternMatcher.solve_rule([_card("burn"), _card("fire_slash")],
+	var slash_fire := _card("fire_slash")
+	slash_fire["element"] = "fire"   # 牌面元素（与 source_element 不同口径）
+	_check(PatternMatcher.solve_rule([_card("burn"), slash_fire],
 		{"all": [{"sym": DIR + "burn.tres"}, {"element": "fire"}]}), "旧条件 sym+element 组合仍成立")
 
 	# ⑤ 全部 PatternData 的 match_rule 仍能 solve（W07 加入后共 22 条）
