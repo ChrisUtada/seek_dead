@@ -237,6 +237,41 @@ static func match_rules(cards: Array, patterns: Array) -> Array:
 	return out
 
 
+# 单格 → 牌卡元数据（T3-3 C 轮修正：预览与实盘共用同一构造口径）。
+# sym 为符号资源，elem 为该格有效元素，src 为来源 id（武器 id / 空串）。
+# source_kind/source_element/skill_role 由 ctrl 的来源元数据解析；valid 恒为 true，
+# 冻结列由 cards_from_grid 按列覆盖（预览候选格不冻结）。
+static func card_meta(ctrl, sym, elem: String, src: String) -> Dictionary:
+	var entry := {
+		"sym": sym,
+		"element": String(elem),
+		"source": String(src),
+		"source_kind": "resource",
+		"source_element": "none",
+		"skill_role": "",
+		"valid": true,
+	}
+	if sym != null:
+		var sp := String(sym.resource_path)
+		if ctrl != null and ctrl._skill_sym_kind != null and ctrl._skill_sym_kind.has(sp):
+			entry["source_kind"] = "skill"
+			entry["source_element"] = String(ctrl._skill_sym_kind[sp])
+			# 技能能力角色：三个术式各认一种，避免用「两张增益」这类凑不出的条件
+			var b := String(sym.buff_effect)
+			var k := String(sym.kind)
+			if b == "power" or b == "damage_mult":
+				entry["skill_role"] = "power"
+			elif k == "shield" or b == "shield":
+				entry["skill_role"] = "shield"
+			elif k == "heal" or b == "regen":
+				entry["skill_role"] = "heal"
+		elif String(entry["source"]) != "" and ctrl != null and ctrl._source_element_map != null \
+				and ctrl._source_element_map.has(String(entry["source"])):
+			entry["source_kind"] = "weapon"
+			entry["source_element"] = String(ctrl._source_element_map[String(entry["source"])])
+	return entry
+
+
 # 从 DuelController 的 grid 构造输入（供战斗与测试共用同一份口径）。
 # 冻结列按「无效牌」处理：不参与牌型，与 combat_system 跳过 frozen_cols 一致。
 static func cards_from_grid(ctrl, reel: int = 0) -> Array:
@@ -246,39 +281,14 @@ static func cards_from_grid(ctrl, reel: int = 0) -> Array:
 		var col: int = int(p[0])
 		var row: int = int(p[1])
 		var sym = ctrl.grid[col][row]
-		var entry := {
-			"sym": sym,
-			"element": "none",
-			"source": "",
-			"source_kind": "resource",
-			"source_element": "none",
-			"skill_role": "",
-			"valid": not (col in ctrl.frozen_cols),
-		}
 		# 先取元素与来源，再判来源类别（顺序错了会永远判成 resource）
+		var elem := "none"
 		if ctrl.grid_elem.size() > col and ctrl.grid_elem[col].size() > row:
-			entry["element"] = String(ctrl.grid_elem[col][row])
+			elem = String(ctrl.grid_elem[col][row])
+		var src := ""
 		if ctrl.grid_src.size() > col and ctrl.grid_src[col].size() > row:
-			entry["source"] = String(ctrl.grid_src[col][row])
-		# 来源类别：技能牌按「符号归属」判（技能符号段在 pool 里没有来源 id），
-		# 武器牌按 grid_src 的武器 id 判，其余（精华/金币）算 resource。
-		if sym != null:
-			var sp := String(sym.resource_path)
-			if ctrl._skill_sym_kind != null and ctrl._skill_sym_kind.has(sp):
-				entry["source_kind"] = "skill"
-				entry["source_element"] = String(ctrl._skill_sym_kind[sp])
-				# 技能能力角色：三个术式各认一种，避免用「两张增益」这类凑不出的条件
-				var b := String(sym.buff_effect)
-				var k := String(sym.kind)
-				if b == "power" or b == "damage_mult":
-					entry["skill_role"] = "power"
-				elif k == "shield" or b == "shield":
-					entry["skill_role"] = "shield"
-				elif k == "heal" or b == "regen":
-					entry["skill_role"] = "heal"
-			elif String(entry["source"]) != "" and ctrl._source_element_map != null \
-					and ctrl._source_element_map.has(String(entry["source"])):
-				entry["source_kind"] = "weapon"
-				entry["source_element"] = String(ctrl._source_element_map[String(entry["source"])])
+			src = String(ctrl.grid_src[col][row])
+		var entry := card_meta(ctrl, sym, elem, src)
+		entry["valid"] = not (col in ctrl.frozen_cols)
 		cards.append(entry)
 	return cards
