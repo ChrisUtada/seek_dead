@@ -622,18 +622,20 @@ func _test_param_signatures() -> void:
 	for pd in _duel._pattern_system.by_track("signature"):
 		sig_ids.append(String(pd.id))
 	_check(sig_ids.size() >= 11, "签名资源全部注册（%d 个：%s）" % [sig_ids.size(), str(sig_ids)])
-	# —— 余烬长剑 × W01：火伤 25% → 35%，燃烧 +2 ——
+	# —— 火焰剑 × W01：余烬处决（+30%，燃烧 +1）。
+	# 余烬长剑签名 SIG_W01_EMBER 已随 ember_sword 归档，不再参与匹配（T3 阶段 1）；
+	# 同装两把武器时由火焰剑签名接管，避免本条参数签名用例失效。
 	_equip([W+"ember_sword.tres", W+"fire_sword.tres"])
 	var a: Dictionary = _settle_cards([SYM_BURN, SYM_FIRE_SLASH, SYM_FIRE_SLASH],
 		["fire", "none", "none"], ["ember_sword", "ember_sword", "fire_sword"])
 	var fire_a: float = float((a["dmg_by_elem"] as Dictionary).get("fire", 0.0))
 	var d_a: float = float(a["dmg"]) + float(a["special"])
 	_duel.combat._apply_patterns(a)
-	_check(String(a.get("pattern_signature", "")) == "SIG_W01_EMBER",
-		"余烬长剑签名生效（%s）" % String(a.get("pattern_signature", "")))
-	_check(absf(((float(a["dmg"]) + float(a["special"])) - d_a) - fire_a * 0.35) < 1.0,
-		"余烬长剑把火伤加成提到 +35%%")
-	_check(int((a.get("pattern_status", {}) as Dictionary).get("burn", 0)) == 2, "燃烧 +2")
+	_check(String(a.get("pattern_signature", "")) == "SIG_W01_FIRESWORD",
+		"火焰剑签名生效、已归档的余烬长剑签名不参与（%s）" % String(a.get("pattern_signature", "")))
+	_check(absf(((float(a["dmg"]) + float(a["special"])) - d_a) - fire_a * 0.30) < 1.0,
+		"火焰剑把火伤加成提到 +30%%")
+	_check(int((a.get("pattern_status", {}) as Dictionary).get("burn", 0)) == 1, "燃烧 +1")
 
 	# —— 冰霜枪 × W02：霜冻 +3，阈值 3 ——
 	_equip([W+"ice_gun.tres", W+"ice_staff.tres"])

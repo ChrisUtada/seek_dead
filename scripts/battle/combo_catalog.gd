@@ -114,8 +114,9 @@ static func build_rows(pattern_system, loadout_paths: Array, tag_of: Callable,
 	var matched: Array[String] = _matched_ids(last_acc)
 
 	# 资源牌谱行：unlocked 直接复用 PatternData.unlocked()，不另写判定。
+	# T3 阶段 1：归档牌谱资源保留，但目录不展示（SIG_W01_EMBER 等）。
 	for p in (pattern_system.all_patterns() as Array):
-		if p == null:
+		if p == null or bool(p.get("archived")):
 			continue
 		var id: String = String(p.id)
 		var unlocked: bool = bool(p.unlocked(loadout_paths, tag_of))
@@ -168,7 +169,7 @@ static func preview_third_slot(base_cards: Array, candidates: Array[Dictionary],
 	var patterns: Array = []
 	if pattern_system != null:
 		for p in (pattern_system.all_patterns() as Array):
-			if p == null:
+			if p == null or bool(p.get("archived")):
 				continue
 			var track := String(p.track)
 			if track == "weapon_attack" or track == "skill_support":

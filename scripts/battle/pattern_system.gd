@@ -30,6 +30,13 @@ func all_patterns() -> Array:
 	return _all
 
 
+# T3 阶段 1：归档牌谱资源保留，但不进入目录、不参与匹配 / 解锁 / 补牌。
+# 只在消费点过滤，注册表（all_patterns / by_track / get_pattern）仍可查询，
+# 供图鉴标注「已归档」与测试核对资源存在。
+static func is_archived(p) -> bool:
+	return p != null and bool(p.get("archived"))
+
+
 # 按轨取牌谱（weapon_public / weapon_attack / skill_support）。
 func by_track(track: String) -> Array:
 	var out: Array = []
@@ -48,6 +55,8 @@ func get_pattern(id: String):
 func unlocked_patterns(loadout_paths: Array, tag_of: Callable) -> Array:
 	var out: Array = []
 	for p in _all:
+		if is_archived(p):
+			continue
 		if bool(p.unlocked(loadout_paths, tag_of)):
 			out.append(p)
 	return out
@@ -71,11 +80,13 @@ func sort_by_priority(patterns: Array) -> Array:
 func resolve_equipment(matched_ids: Array, unlocked: Array, assist_id: String = "") -> Variant:
 	if assist_id != "":
 		for p in unlocked:
+			if is_archived(p):
+				continue
 			if String(p.id) == assist_id and matched_ids.has(assist_id):
 				return p
 	var candidates: Array = []
 	for p in unlocked:
-		if bool(p.is_universal()):
+		if is_archived(p) or bool(p.is_universal()):
 			continue
 		if matched_ids.has(String(p.id)):
 			candidates.append(p)
@@ -107,6 +118,9 @@ func find_signature(base_id: String, loadout: Array, cards: Array) -> Variant:
 	var best = null
 	for p in _all:
 		if String(p.track) != "signature":
+			continue
+		# T3 阶段 1：归档签名即使绑定的武器被直接构造，也不参与匹配。
+		if is_archived(p):
 			continue
 		if String(p.base_pattern_id) != base_id:
 			continue
@@ -158,7 +172,7 @@ static func _tier_rank(p) -> int:
 func assist_candidates(unlocked: Array, matched_ids: Array) -> Array:
 	var out: Array = []
 	for p in unlocked:
-		if bool(p.is_universal()) or not bool(p.assist_allowed):
+		if is_archived(p) or bool(p.is_universal()) or not bool(p.assist_allowed):
 			continue
 		if not matched_ids.has(String(p.id)):
 			out.append(p)

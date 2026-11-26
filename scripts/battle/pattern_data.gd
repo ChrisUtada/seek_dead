@@ -44,6 +44,9 @@ class_name PatternData
 @export var assist_allowed: bool = true
 # 顺子用（G04 及序列类牌谱）：同 sequence_id、rank 1/2/3
 @export var sequence_id: String = ""
+# T3 阶段 1（2026-11-27）：归档牌谱。资源保留，但目录不展示、匹配不参与。
+# 绑定的武器不可获取时置 true（如 SIG_W01_EMBER ↔ 已归档的 ember_sword）。
+@export var archived: bool = false
 
 
 func is_universal() -> bool:

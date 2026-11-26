@@ -13,12 +13,15 @@ extends Node
 #       技能 / 金币 / MISS / 废铁 / 精华一律空串；实盘与预览同源；同武器两格同路径。
 #   0C 基础攻击契约（T3-0A Q2）：熟练不入 weapon_power；槽位锻造 / 铸式按公式进入；
 #       不读取遗留字段 WeaponData.damage。
+#   0F 归档牌谱（T3-0A Q3）：SIG_W01_EMBER archived=true；目录不含它、匹配不命中它；
+#       其它 10 个签名仍在目录中。
 # ============================================================================
 
 const MACE := "res://resources/weapon_templates/mace.tres"
 const IRON_SWORD := "res://resources/weapon_templates/iron_sword.tres"
 const FIRE_SWORD := "res://resources/weapon_templates/fire_sword.tres"
 const HOLY_SWORD := "res://resources/weapon_templates/holy_sword.tres"
+const EMBER_SWORD := "res://resources/weapon_templates/ember_sword.tres"
 const IRON_WALL_SKILL := "res://resources/skills/iron_wall.tres"
 const HOLY_VERDICT_SKILL := "res://resources/skills/holy_verdict.tres"
 const GUARD_SKILL := "res://resources/skills/guard.tres"
@@ -26,6 +29,8 @@ const SY_IRON_WALL := "res://resources/symbols/iron_wall.tres"
 const SY_IRON_SLASH := "res://resources/symbols/iron_slash.tres"
 const SY_HOLY_VERDICT := "res://resources/symbols/holy_verdict.tres"
 const SY_GUARD := "res://resources/symbols/guard.tres"
+const SY_BURN := "res://resources/symbols/burn.tres"
+const SY_FIRE_SLASH := "res://resources/symbols/fire_slash.tres"
 const SY_GOLD := "res://resources/symbols/gold.tres"
 const SY_MISS := "res://resources/symbols/miss.tres"
 const SY_TRASH := "res://resources/symbols/trash.tres"
@@ -55,6 +60,7 @@ func _ready() -> void:
 	_test_0a_holy_verdict()
 	_test_0a_normal()
 	_test_0b_source_path()
+	_test_0f_archived()
 	_test_0c_weapon_power()
 
 	print("T3STEP0|RESULT %s (checks=%d fails=%d)" % [
@@ -113,6 +119,8 @@ func _test_0a_iron_wall() -> void:
 
 
 # 0A-2：T04 = 铁誓技能牌 + 任意武器攻击牌 + 任意武器牌（此处按设计行本地构造规则）。
+# TODO(阶段 4)：T04 / W09 的真实 .tres 建好后，必须把下面的合成规则替换为真实资源，
+# 并保留同一组断言（见 docs/T3_阶段1_冻结表_2026-11-26.md）。
 func _test_0a_t04() -> void:
 	_setup([MACE], [IRON_WALL_SKILL])
 	var rule := {"all": [
@@ -266,6 +274,46 @@ func _find_cand(cands: Array[Dictionary], path: String) -> Dictionary:
 func _spath(card: Dictionary) -> String:
 	return "kind=%s path=%s" % [
 		String(card.get("source_kind", "")), String(card.get("source_path", ""))]
+
+
+# 0F：归档牌谱（T3 阶段 1 裁决）。
+# SIG_W01_EMBER 绑定已归档的 ember_sword：资源保留、目录隐藏、匹配跳过。
+const SIG_EMBER := "SIG_W01_EMBER"
+const SIG_KEPT := [
+	"SIG_W01_FIRESWORD", "SIG_W01_FLAMESTAFF", "SIG_W02_ZERO", "SIG_W02_ICEGUN",
+	"SIG_W02_GLACIER", "SIG_W03_REAPER", "SIG_W04_HOLYSWORD", "SIG_W05_ECLIPSE",
+	"SIG_W05_NIGHT", "SIG_W06_EXECAXE",
+]
+
+
+func _test_0f_archived() -> void:
+	_setup_pool([EMBER_SWORD], [])
+	var ember = _duel._pattern_system.get_pattern(SIG_EMBER)
+	_check(ember != null and bool(ember.archived),
+		"0F SIG_W01_EMBER 资源保留且 archived=true")
+	var rows: Array[Dictionary] = ComboCatalog.build_rows(
+		_duel._pattern_system, _duel.selected_loadout, Callable(_duel, "_pattern_tag_of"), {})
+	var ids := {}
+	for r in rows:
+		ids[String(r.get("id", ""))] = true
+	_check(not ids.has(SIG_EMBER), "0F 组合目录不含已归档 SIG_W01_EMBER")
+	var missing: Array[String] = []
+	for sid in SIG_KEPT:
+		if not ids.has(String(sid)):
+			missing.append(String(sid))
+	_check(missing.is_empty(),
+		"0F 其它 10 个签名仍在目录（缺 %s）" % str(missing))
+
+	# 即使直接构造 ember_sword 与满足条件的牌，签名也不得参与匹配。
+	var cards := [
+		_meta(SY_FIRE_SLASH, "fire", "ember_sword"),
+		_meta(SY_BURN, "fire", "ember_sword"),
+		_meta(SY_FIRE_SLASH, "fire", "ember_sword"),
+	]
+	var sig = _duel._pattern_system.find_signature("W01", [EMBER_SWORD], cards)
+	_check(sig == null,
+		"0F 直接构造 ember_sword 时 SIG_W01_EMBER 不参与匹配（%s）" % (
+			"null" if sig == null else String(sig.id)))
 
 
 # 0C：基础攻击契约（T3-0A Q2）。

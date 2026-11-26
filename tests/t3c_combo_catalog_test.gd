@@ -50,9 +50,10 @@ func _run() -> void:
 	var loadout: Array = [IRON_SWORD, "res://resources/weapon_templates/dagger.tres"]
 	var rows: Array[Dictionary] = _rows(loadout, {})
 
-	# 行数 25 = 22 PatternData（含本轮 W07）+ 3 合成 G 行。
-	# 工单写的 24/21/11 是 W07 入库前的数字；本轮按实际资源数校验（main 由 6→7）。
-	_check(rows.size() == 25, "行数 == 25（22 PatternData + 3 G，实测 %d）" % rows.size())
+	# 行数 24 = 21 PatternData（含 W07，且已归档的 SIG_W01_EMBER 不展示）+ 3 合成 G 行。
+	# 历史：工单写的 24/21/11 是 W07 入库前的数字；W07 入库后 main 由 6→7、总数 25；
+	# T3 阶段 1 归档 SIG_W01_EMBER 后 signature 12→11、总数回到 24。
+	_check(rows.size() == 24, "行数 == 24（21 PatternData + 3 G，实测 %d）" % rows.size())
 
 	# 分组计数
 	var counts := {"main": 0, "aux": 0, "signature": 0, "base": 0, "universal": 0}
@@ -61,7 +62,7 @@ func _run() -> void:
 		counts[g] = int(counts.get(g, 0)) + 1
 	_check(int(counts["main"]) == 7, "main 7（W01–W07，实测 %d）" % int(counts["main"]))
 	_check(int(counts["aux"]) == 3, "aux 3（T01–T03，实测 %d）" % int(counts["aux"]))
-	_check(int(counts["signature"]) == 12, "signature 12（11 sig_* + s02，实测 %d）" % int(counts["signature"]))
+	_check(int(counts["signature"]) == 11, "signature 11（10 sig_* + s02，归档 EMBER 不展示，实测 %d）" % int(counts["signature"]))
 	_check(int(counts["base"]) == 3, "base 3（G01–G03，实测 %d）" % int(counts["base"]))
 	Debug.log("T3CCAT|GROUPS " + str(counts))
 
