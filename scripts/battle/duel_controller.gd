@@ -1104,7 +1104,7 @@ func _on_combo_requested() -> void:
 	var preview: Array[Dictionary] = []
 	if battle:
 		preview = _combo_preview_rows()
-	hud.show_combo_panel(rows, sources, preview)
+	hud.show_combo_panel(rows, sources, preview, battle)
 
 
 # 战斗内预览窗口：前两列已停、第三列仍在转（此时第三格未定，预览才有意义）。
@@ -1844,13 +1844,14 @@ func _on_spin_button_pressed() -> void:
 func _stop_next_column() -> void:
 	var third_was_open := is_battle_combo_window()
 	reel_system.stop_next_reel()
-	if third_was_open and _third_reel_stopping():
+	if third_was_open and is_third_reel_settling():
 		_close_combo_panel_if_open()
 	hud.set_battle_combo_available(is_battle_combo_window())
 
 
-# 第三列是否已进入停止（吸附中或已落定；被缠绕/缓冲拒绝的不算）。
-func _third_reel_stopping() -> bool:
+# 第三列是否已进入落定（吸附中或已落定；被缠绕/缓冲拒绝的不算）。
+# 唯一实现：HUD 也读这一份，不再各自维护。
+func is_third_reel_settling() -> bool:
 	if reel_system.reel_stopped.size() <= PREVIEW_REEL:
 		return false
 	return bool(reel_system.reel_stopped[PREVIEW_REEL]) \
@@ -1871,7 +1872,7 @@ func _on_reel_clicked(r: int) -> void:
 		return
 	var was_battle_window := is_battle_combo_window()
 	reel_system.lock_reel(r)
-	if was_battle_window and r == PREVIEW_REEL and _third_reel_stopping():
+	if was_battle_window and r == PREVIEW_REEL and is_third_reel_settling():
 		_close_combo_panel_if_open()
 	hud.set_battle_combo_available(is_battle_combo_window())
 

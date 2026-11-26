@@ -126,10 +126,10 @@ func shop_screen_is_open() -> bool:
 		return false
 	return shop_screen.is_shown()
 func show_combo_panel(rows: Array[Dictionary], sources: Array[Dictionary] = [],
-		preview: Array[Dictionary] = []) -> void:
+		preview: Array[Dictionary] = [], battle := false) -> void:
 	if combo_panel == null:
 		return
-	combo_panel.open(rows, sources, preview)
+	combo_panel.open(rows, sources, preview, battle)
 	# 面板上若有按钮持有焦点，空格会被当成「按停」以外的第二次按键（同一事件双触发），
 	# 打开面板即释放焦点，把键盘交回战斗输入。
 	get_viewport().gui_release_focus()
@@ -140,7 +140,8 @@ func set_battle_combo_available(on: bool) -> void:
 	if battle_combo_btn == null:
 		return
 	# 第三列一旦开始吸附（落点已定），窗口就结束了——夺轮/自动停也会走到这里。
-	if on and _third_reel_settling():
+	if on and controller != null and controller.has_method("is_third_reel_settling") \
+			and bool(controller.is_third_reel_settling()):
 		on = false
 	battle_combo_btn.visible = on
 	battle_combo_btn.disabled = not on
@@ -148,19 +149,12 @@ func set_battle_combo_available(on: bool) -> void:
 		battle_combo_btn.release_focus()
 
 
-# 第三列是否已定：吸附中或已落定（reel_stopped[2]）。被缠绕/缓冲拒绝的不算。
-func _third_reel_settling() -> bool:
-	var rs = controller.reel_system if controller != null else null
-	if rs == null or rs.reel_stopped.size() <= 2:
-		return false
-	return bool(rs.reel_stopped[2]) or rs.is_absorbing(2)
-
-
 # 战斗内入口的可见性只由控制器判定（战斗窗口 = 前两列已停、第三列未停）。
 func _sync_battle_combo_entry() -> void:
 	if controller == null or not controller.has_method("is_battle_combo_window"):
 		return
-	var can := bool(controller.is_battle_combo_window()) and not _third_reel_settling()
+	var can := bool(controller.is_battle_combo_window()) \
+		and not bool(controller.is_third_reel_settling())
 	set_battle_combo_available(can)
 	# 窗口一关就收面板：覆盖夺轮/自动停等不经过输入钩子的路径
 	if not can and not controller.in_interroom and combo_panel != null and combo_panel.visible:
@@ -510,8 +504,8 @@ func _build_ui() -> void:
 	info_bar.move_child(battle_combo_btn, interroom_combo_btn.get_index())
 
 	# T3-3 C 轮：组合面板遮罩（与武器藏库同级，挂 duel 根节点；棋盘隐藏 HUD 时仍可显示）。
+	# 锚点不再在这里写死：ComboPanel.open(battle_layout) 按战斗/间歇自己定（战斗=右侧抽屉）。
 	combo_panel = COMBO_PANEL_SCENE.instantiate() as ComboPanel
-	combo_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	combo_panel.z_index = 96
 	combo_panel.visible = false
 	combo_panel.closed.connect(_on_combo_panel_closed)

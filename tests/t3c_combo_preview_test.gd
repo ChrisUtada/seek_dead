@@ -282,6 +282,7 @@ func _test_wiring() -> void:
 			has_group = true
 	_check(has_group, "4.3 间歇期面板出现组合区段")
 	_check(not panel.rendered_texts.has("第三格预览"), "4.3 间歇期面板不含「第三格预览」")
+	_check(not bool(panel.last_battle_layout), "间歇期预览保持全屏布局")
 	panel.close()
 
 	_duel.last_settlement_acc = {}
@@ -321,6 +322,10 @@ func _test_wiring_battle() -> void:
 			has_group = true
 	_check(not has_sources and not has_group,
 		"4.1 战斗中只给预览区（本轮来源=%s 组合区=%s）" % [str(has_sources), str(has_group)])
+	_check(bool(panel.last_battle_layout), "战斗内预览使用非全屏布局")
+	_check(panel.size.x <= panel.get_viewport_rect().size.x * 0.9,
+		"战斗内预览不占满整屏（%d/%d）" % [
+			int(panel.size.x), int(panel.get_viewport_rect().size.x)])
 
 	# 4.4 打开面板后焦点不在面板按钮上（空格不会被面板二次消费）。
 	var fo = _duel.hud.get_viewport().gui_get_focus_owner()

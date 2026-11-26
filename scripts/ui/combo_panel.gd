@@ -27,6 +27,8 @@ var rendered_texts: Array[String] = []
 var rendered_source_texts: Array[String] = []
 # 「第三格预览」区段的行文本（不含标题/分隔），供行数断言。
 var rendered_preview_texts: Array[String] = []
+# 最近一次 open() 是否用了战斗内抽屉布局（测试与排查可读；open_preview 不改它）。
+var last_battle_layout := false
 
 
 func _ready() -> void:
@@ -37,7 +39,26 @@ func _ready() -> void:
 	_clear()
 
 
-func open(rows: Array[Dictionary], sources: Array[Dictionary] = [], preview: Array[Dictionary] = []) -> void:
+func open(rows: Array[Dictionary], sources: Array[Dictionary] = [], preview: Array[Dictionary] = [],
+		battle_layout := false) -> void:
+	last_battle_layout = battle_layout
+	# 战斗内用左侧抽屉：三列转轮与敌方 HP/意图都保持可见；间歇期仍全屏（信息量大，且棋盘已不在看）。
+	# 注意用 set_anchors_preset + 显式 offsets：set_anchors_and_offsets_preset 默认按最小尺寸
+	# 落位，会把抽屉压成一条窄缝。
+	offset_top = 0
+	offset_bottom = 0
+	if battle_layout:
+		set_anchors_preset(Control.PRESET_LEFT_WIDE)
+		offset_left = 0
+		offset_top = 0
+		offset_right = 150
+		offset_bottom = 0
+	else:
+		set_anchors_preset(Control.PRESET_FULL_RECT)
+		offset_left = 0
+		offset_top = 0
+		offset_right = 0
+		offset_bottom = 0
 	_open_impl(rows, sources, preview)
 
 
