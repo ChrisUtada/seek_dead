@@ -22,3 +22,4 @@ act_min = 1
 act_max = 3
 source_tags = Array[String](["shop"])
 unique_group = "skill_ice_status"
+archived = true

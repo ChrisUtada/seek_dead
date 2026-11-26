@@ -999,6 +999,9 @@ func _apply_skill_strength() -> void:
 		var sd: SkillData = load(path)
 		if sd == null or sd.symbol == null:
 			continue
+		# 与 _collect_skill_items 同口径：归档/状态技能不参与强度聚合。
+		if sd.archived or String(sd.symbol.kind) == "status":
+			continue
 		var eff2: float = sd.base_power
 		var sp2 = sd.symbol.resource_path
 		_ctrl._weapon_power_map[sp2] = max(_ctrl._weapon_power_map.get(sp2, 0.0), eff2)
@@ -1043,6 +1046,10 @@ func _collect_skill_items() -> void:
 	for path in _ctrl.selected_skills:
 		var sd: SkillData = load(path)
 		if sd == null or sd.symbol == null:
+			continue
+		# T3 阶段 1（0E）：归档技能不产生转轮牌；状态类技能符号整体离池。
+		# 只跳过入池，不改 skill_pool_item 的池元组结构，也不自动替换装备位。
+		if sd.archived or String(sd.symbol.kind) == "status":
 			continue
 		_ctrl.pool_items.append(skill_pool_item(sd))
 

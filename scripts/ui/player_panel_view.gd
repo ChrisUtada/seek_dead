@@ -237,6 +237,10 @@ func refresh_gear_icons() -> void:
 			var s_name: String = String(sd.get("buff_name")) if sd != null and sd.get("buff_name") != null else sp.get_file().get_basename()
 			var s_desc: String = String(sd.get("description")) if sd != null and sd.get("description") != null else ""
 			var s_tip: String = s_name + (" · " + s_desc if s_desc != "" else "")
+			# T3 阶段 1（0E）：归档技能保留装备位，只提示不参与当前转轮；不自动替换、不禁用槽位。
+			if sd != null and (sd.get("archived") == true \
+					or (sd.get("symbol") != null and String(sd.get("symbol").kind) == "status")):
+				s_tip += "\n该技能已归档，不参与当前转轮"
 			if si == 0 and perk_tip != "":
 				s_tip += "\n" + perk_tip
 			# SkillData 继承 ItemData，自带 icon_tex（48px，与武器同规格）→ 显示 24 = 0.5× 清晰。
