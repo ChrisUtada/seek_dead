@@ -227,9 +227,9 @@ const FREQ_SEEDS := [20261115, 20261116, 20261117, 20261118, 20261119]
 # W04「黎明圣辉」是圣辉长剑+破晓之弓的指定组合赔付，不是六条主路线的基础引擎。
 # 它要求两件指定武器 + holy_slash/dawn_bolt/光元素牌，组成率天然低于普通牌谱——
 # 这是保留组合身份的合理代价（放宽 match_rule 会削弱这对武器的身份）。
-# 因此 W04 单独按「组合高潮」区间验收：14.3%–20%（5 回合一次 = 20%，7 回合一次 = 14.3%）；
+# 因此 W04 单独按「组合高潮」区间验收：15%–20%（约 5–7 回合一次；7 回合一次 ≈ 14.3% 仅作量级参考，规格仍以 15% 为准）；
 # 其余基础 W 仍按「中频高潮」3–5.5 回合一次（20%–33%）验收。
-const FREQ_COMBO_MIN := 14.3   # W04 组合高潮下界：14.3% = 7 回合一次，与「5–7 回合一次」口径一致
+const FREQ_COMBO_MIN := 15.0   # W04 组合高潮下界：设计定稿 15%–20%（G0_任务追踪:398）
 const FREQ_COMBO_MAX := 20.0   # W04 组合高潮上界（组成率 %）
 const FREQ_BASE_MIN_EVERY := 3.0
 const FREQ_BASE_MAX_EVERY := 5.5
@@ -318,9 +318,9 @@ func _test_composition_stats() -> void:
 			"%s：组成后都能生效（组成 %d / 生效 %d）" % [String(b["name"]), composed_all, fired_all])
 
 		if is_combo:
-			# W04 组合高潮：14.3%–20%（5 回合一次 = 20%，7 回合一次 = 14.3%）。保留跨武器条件，不放宽 match_rule。
+			# W04 组合高潮：15%–20%（约 5–7 回合一次）。保留跨武器条件，不放宽 match_rule。
 			_check(med_rate >= FREQ_COMBO_MIN and med_rate <= FREQ_COMBO_MAX,
-				"%s：组合高潮组成率中位 %.1f%% 落在 14.3%%–20%%（区间 5–7 回合/次；%s）" % [
+				"%s：组合高潮组成率中位 %.1f%% 落在 15%%–20%%（区间 5–7 回合/次；%s）" % [
 					String(b["name"]), med_rate, _join_floats(rates)])
 			# 防止种子数将来被改回 3：统计样本必须与 FREQ_SEEDS 数量一致。
 			_check(rates.size() == FREQ_SEEDS.size(),
