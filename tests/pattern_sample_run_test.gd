@@ -17,6 +17,9 @@ const MATCHER := preload("res://scripts/battle/pattern_matcher.gd")
 const FIRE_SWORD := "res://resources/weapon_templates/fire_sword.tres"
 const FLAME_STAFF := "res://resources/weapon_templates/flame_staff.tres"
 const ICE_STAFF := "res://resources/weapon_templates/ice_staff.tres"
+const GLACIER_GREATSWORD := "res://resources/weapon_templates/glacier_greatsword.tres"
+const ICE_GUN := "res://resources/weapon_templates/ice_gun.tres"
+const ABSOLUTE_ZERO := "res://resources/weapon_templates/absolute_zero.tres"
 const HOLY_SWORD := "res://resources/weapon_templates/holy_sword.tres"
 const DAWN_BOW := "res://resources/weapon_templates/dawn_bow.tres"
 const BLIGHT_SPEAR := "res://resources/weapon_templates/blight_spear.tres"
@@ -46,8 +49,16 @@ const SEED := 20261115
 # 属于 Step 5 的范围，本套不再统计（它在 signature 轨，武器轨不结算）。
 const BUILDS := [
 	{"name": "烈焰共鸣", "expect": "W01", "weapons": [FIRE_SWORD, FLAME_STAFF], "charms": []},
+	{"name": "霜封连携", "expect": "W02", "weapons": [ICE_STAFF, GLACIER_GREATSWORD], "charms": []},
 	{"name": "黎明圣辉", "expect": "W04", "weapons": [HOLY_SWORD, DAWN_BOW], "charms": []},
 	{"name": "毒爆连携", "expect": "W03", "weapons": [BLIGHT_SPEAR, CORROSIVE_BOW], "charms": []},
+]
+
+# 仅报告、不设门禁：这两条冰系构筑在本批迁移前就超过 33%（34.9% / 42.4%），
+# 属既有偏差，待平衡；不写成断言，避免把已知问题伪装成新回归。
+const OVER_LINES := [
+	{"name": "绝对零度线", "weapons": [ABSOLUTE_ZERO, ICE_STAFF]},
+	{"name": "冰杖+冰霜枪", "weapons": [ICE_STAFF, ICE_GUN]},
 ]
 
 var _checks := 0
@@ -81,6 +92,8 @@ func _run() -> void:
 
 	print("=== C 探针正确性：三档敌人真实 SPIN 流程（async 调用/结算链路）===")
 	await _test_three_enemies()
+	# A3 的只读报告放在 C 段之后：不改变 C 段使用的最终构筑（原为 W03 线）。
+	_report_known_over_lines()
 
 	for line in _report:
 		print("  [样板] " + String(line))
@@ -331,6 +344,36 @@ func _test_composition_stats() -> void:
 			_check(med_every >= FREQ_BASE_MIN_EVERY and med_every <= FREQ_BASE_MAX_EVERY,
 				"%s：中频高潮每 %.1f 回合一次（区间 3–5.5；波动 %.1f–%.1f）" % [
 					String(b["name"]), med_every, min_every, max_every])
+
+
+# A3：仅报告、不设门禁的已知超额线（迁移前即超，待平衡）。
+func _report_known_over_lines() -> void:
+	var w02: PatternData = load("res://resources/patterns/w02_frost_seal.tres")
+	for b in OVER_LINES:
+		_equip(b["weapons"], [])
+		var rates: Array = []
+		var evens: Array = []
+		for seed in FREQ_SEEDS:
+			_rng.seed = int(seed)
+			var composed := 0
+			for i in range(STATS_ROUNDS):
+				_draw_from_strips()
+				_duel.enemy_element = "none"
+				_duel.enemy_armor = 0
+				var acc: Dictionary = _duel.combat._new_acc()
+				_duel.combat._reset_turn_state()
+				acc["counts"] = _duel.combat._phase_symbols(acc)
+				_duel.combat._apply_patterns(acc)
+				var weapon_cards: Array = []
+				for c in MATCHER.cards_from_grid(_duel):
+					if String(c.get("source_kind", "")) == "weapon":
+						weapon_cards.append(c)
+				if MATCHER.solve_rule(weapon_cards, w02.match_rule):
+					composed += 1
+			rates.append(100.0 * float(composed) / float(STATS_ROUNDS))
+			evens.append(float(STATS_ROUNDS) / maxf(1.0, float(composed)))
+		_report.append("%s（仅报告，不设门禁；迁移前即超，待平衡）：组成率中位 %.1f%%｜每 %.1f 回合一次" % [
+			String(b["name"]), _median(rates), _median(evens)])
 
 
 func _median(values: Array) -> float:
