@@ -270,6 +270,9 @@ func _weapon_has_mechanic(w: WeaponData) -> bool:
 		return false
 	if w.triple_pierce:
 		return true
+	# T3-1：状态迁移后符号离池，机制改为「命中后概率触发」，同样属于非数值机制。
+	if w.status_migrated:
+		return true
 	for sw in w.symbols:
 		if sw == null or sw.symbol == null:
 			continue

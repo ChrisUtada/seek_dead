@@ -53,6 +53,7 @@ func _load_weapons() -> void:
 				"sym": String(sw.symbol.resource_path),
 				"kind": String(sw.symbol.kind),
 				"elem": String(sw.symbol.element),
+				"cat": String(sw.symbol.symbol_category),
 			})
 		var fams: Array = []
 		if wd.family_tags is Array:
@@ -141,7 +142,12 @@ func _card(sym_entry: Dictionary, src_weapon: Dictionary) -> Dictionary:
 # solve_rule 只需要 sym.kind 与 resource_path，这里造一个轻量替身，避免反复 load。
 var _sym_cache := {}
 func _fake_sym(entry: Dictionary) -> Dictionary:
-	return {"kind": String(entry["kind"]), "resource_path": String(entry["sym"]), "base": 1.0}
+	return {
+		"kind": String(entry["kind"]),
+		"resource_path": String(entry["sym"]),
+		"symbol_category": String(entry.get("cat", "none")),
+		"base": 1.0,
+	}
 
 
 # 某个组合能否满足某条 match_rule
