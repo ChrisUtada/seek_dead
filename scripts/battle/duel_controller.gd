@@ -147,6 +147,9 @@ var _pattern_enemy_atk_mult: float = 1.0   # 牌谱对「本次敌方攻击」�
 var _source_element_map: Dictionary = {}   # 武器id -> 武器元素
 var _skill_sym_kind: Dictionary = {}       # 技能符号 resource_path -> 该符号元素
 var _source_weapon_type_map: Dictionary = {} # 武器id -> WeaponData.WeaponType，用于远程穿透
+# W-01A（2026-11-26）：武器 id -> WeaponData，供攻击后的状态概率触发查询（combat_system._phase_migrated_status）。
+# 只在池重建时刷新，结算路径不遍历它之外的资源，因此不改变既有伤害语义。
+var _weapon_data_by_id: Dictionary = {}
 var pool_items: Array[Dictionary] = []              # 装备自洽：每件装备一段 [ {name, hit, syms:[[SymbolData, weight, element]]} ]，_build_strips 据此生成各自的转轮子带
 
 var _busy: bool = false                 # 旋转序列进行中，防重入
@@ -584,18 +587,26 @@ func _apply_reward_weapon_replace(p: String, old_path: String) -> void:
 # 只在池重建时刷新，结算路径不读它，所以不会改变既有伤害语义。
 func _sync_pattern_source_meta() -> void:
 	_source_element_map.clear()
+	_weapon_data_by_id.clear()
 	for path in selected_loadout:
 		var wd: WeaponData = load(path)
 		if wd == null:
 			continue
 		var wid: String = str(wd.resource_path).get_file().get_basename()
 		_source_element_map[wid] = String(wd.element)
+		_weapon_data_by_id[wid] = wd
 	_skill_sym_kind.clear()
 	for path in selected_skills:
 		var sd = load(path)
 		if sd == null or sd.symbol == null:
 			continue
 		_skill_sym_kind[String(sd.symbol.resource_path)] = String(sd.symbol.element)
+
+
+# W-01A：按武器 id 取 WeaponData（未装备 / 非武器来源返回 null）。
+# 供 combat_system._phase_migrated_status 读取 status_migrated / status_family / status_chance / status_stacks。
+func weapon_data_by_id(id: String) -> WeaponData:
+	return _weapon_data_by_id.get(id, null)
 
 
 # 载入 resources/patterns 下的全部牌谱（Step 2 起 S01–S06 生效；后续扩展只加资源）。

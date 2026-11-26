@@ -1072,6 +1072,10 @@ static func weapon_syms(wd: WeaponData, weight_bonus: Dictionary) -> Array:
 	for sw in wd.symbols:
 		if sw == null or sw.symbol == null:
 			continue
+		# W-01A：已迁移武器（status_migrated=true）的状态符号不再入池，改由攻击后概率触发；
+		# 未迁移武器（默认 false）原样展开，90 把武器行为不变。
+		if wd.status_migrated and String(sw.symbol.kind) == "status":
+			continue
 		var sp: String = sw.symbol.resource_path
 		syms.append([sw.symbol, float(sw.weight) + float(weight_bonus.get(sp, 0.0)),
 			effective_element(sw.symbol, wd.element, wd.reel_element), wid, float(wd.base_power)])

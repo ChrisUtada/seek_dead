@@ -25,6 +25,16 @@ enum WeaponType { MELEE, RANGED }
 @export var status_effect_damage: float = 0.0
 @export var status_effect_duration: float = 3.0
 
+# -- 状态迁移管道（W-01A，2026-11-26）--
+# 设计目标：武器附带的燃烧/中毒等命中特性不额外生成可瞄准的 Buff 格，
+# 改为「实际攻击造成伤害后按概率触发，每把武器每次 SPIN 最多判定一次」。
+# 这里只装管道，不迁移任何武器：全部字段默认惰性（false / "" / 0.0 / 1），
+# 未迁移武器（status_migrated=false）行为与改前完全一致——符号照常入池、照常按格数结算状态。
+@export var status_migrated := false        # true 时状态符号离池（reel_system.weapon_syms 门控），改攻击后概率触发
+@export var status_family: String = ""      # burn / poison / frost / holy_burn / shadow_blight
+@export var status_chance: float = 0.0      # 每次攻击后触发概率（0..1）
+@export var status_stacks: int = 1          # 触发时施加层数
+
 # -- 远程专属 --
 @export var bullet_speed: float = 600.0
 @export var max_ammo: int = 0
