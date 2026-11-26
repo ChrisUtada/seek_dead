@@ -253,7 +253,10 @@ static func card_meta(ctrl, sym, elem: String, src: String) -> Dictionary:
 	}
 	if sym != null:
 		var sp := String(sym.resource_path)
-		if ctrl != null and ctrl._skill_sym_kind != null and ctrl._skill_sym_kind.has(sp):
+		# T3-0A Q5：source 非空一律判 weapon，即使该符号也属于某个技能；
+		# 仅 source 为空（技能位 / 精华位）才判 skill。
+		if String(entry["source"]) == "" and ctrl != null and ctrl._skill_sym_kind != null \
+				and ctrl._skill_sym_kind.has(sp):
 			entry["source_kind"] = "skill"
 			entry["source_element"] = String(ctrl._skill_sym_kind[sp])
 			# 技能能力角色：三个术式各认一种，避免用「两张增益」这类凑不出的条件
