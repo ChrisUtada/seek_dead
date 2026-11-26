@@ -91,7 +91,12 @@ func _check_weapon_content() -> void:
 		const STATUS_OF := {"fire": "burn", "ice": "frost", "poison": "poison",
 			"light": "holy_burn", "dark": "shadow_blight"}
 		if wd.element in ["fire", "ice", "poison"]:
-			_check(statuses.has(STATUS_OF[wd.element]), "元素武器带本系状态 %s (%s)" % [fp, wd.element])
+			if wd.status_migrated:
+				# T3-1：已迁移武器的状态符号离池，改由攻击后概率触发；
+				# 数据里不再保留本系状态符号，这里反向断言它确实已离池。
+				_check(not statuses.has(STATUS_OF[wd.element]), "已迁移武器本系状态符号已离池 %s (%s)" % [fp, wd.element])
+			else:
+				_check(statuses.has(STATUS_OF[wd.element]), "元素武器带本系状态 %s (%s)" % [fp, wd.element])
 		elif wd.element in ["light", "dark"]:
 			if not statuses.is_empty():
 				var alien := false

@@ -20,7 +20,7 @@ const POISON_DAGGER := "res://resources/weapon_templates/poison_dagger.tres"
 const HOLY_SWORD := "res://resources/weapon_templates/holy_sword.tres"
 const FLAME_STAFF := "res://resources/weapon_templates/flame_staff.tres"
 const OUT_OF_POOL_WEAPON := "res://resources/weapon_templates/holy_lance.tres"
-const POISON := "res://resources/symbols/poison.tres"
+const VENOM_BITE := "res://resources/symbols/venom_bite.tres"   # T3-1：poison_dagger 迁移后毒符号离池，熟练结算改用毒牙
 
 var _fails := 0
 var _checks := 0
@@ -84,14 +84,16 @@ func _test_run_end_returns_to_loadout(duel: DuelController) -> void:
 	# 试玩者要能花铁砧点、看图鉴、换配装；同时 demo 标题写成试玩收束口径。
 	# G6-02：存档若残留生涯解锁机会，局末会先弹三选一；本项只测试玩收束文案，先归零。
 	if duel._career != null:
-		duel._career._unlock_charges = 0
+		duel._career._directed_balance = 0   # S5-1 起旧 _unlock_charges 已并入统一余额
 	duel.hud._show_meta_choice()
 	_check(duel.hud.meta_screen.visible, "局末弹出元进度结算屏")
 	_check(String(duel.hud.meta_screen.title_label.text).find("试玩结束") >= 0, "demo 局末标题为「ACT1 试玩结束」")
-	var opt: Dictionary = duel._reward_system.roll_meta_choices()[0]
+	# S5-3 起局末不再产生点数卡（roll_meta_choices 返回空）；仍要验证「确认 → 回整备」链路。
+	var opts: Array = duel._reward_system.roll_meta_choices()
 	var before: int = int(duel.meta.get("anvil_points", 0))
-	duel._on_meta_choice_chosen(opt)
-	_check(int(duel.meta.get("anvil_points", 0)) == before + int(duel.BALANCE.meta_anvil_bonus), "元进度结算：铁砧点数入账")
+	_check(opts.is_empty(), "局末无铁砧点数卡（S5-3 停用）")
+	duel._on_meta_choice_chosen({"kind": "none"})
+	_check(int(duel.meta.get("anvil_points", 0)) == before, "局末确认不发放铁砧点数（S5-3 停用）")
 	_check(not duel.hud.meta_screen.visible, "结算后关闭元进度屏")
 	_check(duel.hud.loadout_screen != null and duel.hud.loadout_screen.visible, "一局结束回整备（可换配装 / 花铁砧点 / 看图鉴）")
 
@@ -275,14 +277,14 @@ func _test_non_sample_mastery(duel: DuelController, label: String) -> void:
 	duel.selected_loadout.append(POISON_DAGGER)
 	duel.selected_loadout.append(HOLY_SWORD)
 	duel.mastery.reset_run()
-	duel.mastery.note_settle(POISON)
+	duel.mastery.note_settle(VENOM_BITE)
 	duel.mastery.settle_room("normal")
 	_check(int(duel.mastery.mastery.get(POISON_DAGGER, 0)) == 1, label + "：毒匕首获得 +1 熟练")
 	_check(duel.mastery.progress_text(POISON_DAGGER) != "", label + "：毒匕首显示 R 进度")
 	_check(duel.mastery.imprint_choices(POISON_DAGGER).size() > 0, label + "：毒匕首可选择铭印")
 	duel.mastery.reset_room()
 	duel.mastery.mastery[POISON_DAGGER] = 2
-	duel.mastery.note_settle(POISON)
+	duel.mastery.note_settle(VENOM_BITE)
 	duel.mastery.settle_room("normal")
 	_check(duel.mastery.r_level(POISON_DAGGER) == 2 and duel.mastery.owed.count(POISON_DAGGER) == 1,
 		label + "：累计 3 → R2 并欠一次铭印")
