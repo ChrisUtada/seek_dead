@@ -378,14 +378,20 @@ func _test_replace_flow() -> void:
 	var view: Dictionary = _duel.room_flow.loot_view()
 	var opts: Array = view.get("options", [])
 	var has_item := false
-	var needs_replace := false
 	for opt in opts:
 		if String(opt.get("kind", "")) == "item":
 			has_item = true
-		if bool(opt.get("needs_replace", false)):
-			needs_replace = true
-	_check(bool(view.get("growth_only", false)) and not has_item, "成长三选一直接不含装备候选")
-	_check(not needs_replace, "成长候选不要求替换武器")
+	_check(bool(view.get("growth_only", false)) and not has_item,
+		"成长三选一不含 kind=item 的装备直给卡")
+	# 成长 Draft 允许 weapon_* 候选；needs_replace 只跟「槽位是否满」有关，与成长/换装无关。
+	var cap := int(_duel._loadout_system.cat_cap("weapon"))
+	var full := _duel.selected_loadout.size() >= cap
+	for opt in opts:
+		if String(opt.get("weapon_effect", "")) == "":
+			continue
+		_check(bool(opt.get("needs_replace", false)) == full,
+			"武器候选 needs_replace 与槽位状态一致（槽位 %d/%d → needs_replace=%s）" % [
+				_duel.selected_loadout.size(), cap, str(opt.get("needs_replace", false))])
 	var before: Array = _duel.selected_loadout.duplicate()
 	# 只选「不改变装备」的纯成长候选：过滤 weapon_replace/swap/acquire。
 	# 这些本来就会改装备，不能拿它们去断言"装备不变"（那会误伤合法换装）。
@@ -395,6 +401,38 @@ func _test_replace_flow() -> void:
 	else:
 		_duel._on_loot_offer_skip()
 	_check(_duel.selected_loadout == before, "成长结算（非换装项）不改变双武器配装")
+
+	# 满槽时武器候选必须标 needs_replace（暴露式覆盖，避免靠"留空位"回避）。
+	# 注意：ITEM_POOL 是护符/消耗品池（charms+consumables），不含武器；武器候选来自
+	# WEAPON_POOL。逐条 load 判定与 _first_unowned_weapon 同口径，确认选进配装的是真武器。
+	_duel.room_flow.reset_flow()
+	_duel.selected_loadout.clear()
+	for p in _duel.WEAPON_POOL:
+		if _duel.selected_loadout.size() >= cap:
+			break
+		var s := String(p)
+		if s.get_file().contains("_relic"):
+			continue
+		var d: Resource = load(s)
+		if d is WeaponData:
+			_duel.selected_loadout.append(s)
+	_check(_duel.selected_loadout.size() >= cap,
+		"满槽夹具：配装填满真武器（%d/%d）" % [_duel.selected_loadout.size(), cap])
+	_duel._build_pool(_duel.selected_loadout)
+	_duel.room_flow.begin_post_battle()
+	await _frames(3)
+	var opts2: Array = _duel.room_flow.loot_view().get("options", [])
+	var seen_weapon := 0
+	for opt2 in opts2:
+		if String(opt2.get("weapon_effect", "")) == "":
+			continue
+		seen_weapon += 1
+		_check(bool(opt2.get("needs_replace", false)) == true,
+			"满槽时武器候选必须标 needs_replace（槽位 %d/%d）" % [
+				_duel.selected_loadout.size(), cap])
+	if seen_weapon == 0:
+		print("  LOOTUI|info|满槽样本未抽到武器候选（%d 个候选），本次跳过该覆盖" % opts2.size())
+
 	_duel.room_flow.reset_flow()
 	_duel.hud.hide_reward_screen()
 
