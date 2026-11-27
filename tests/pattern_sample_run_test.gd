@@ -22,8 +22,13 @@ const ICE_GUN := "res://resources/weapon_templates/ice_gun.tres"
 const ABSOLUTE_ZERO := "res://resources/weapon_templates/absolute_zero.tres"
 const HOLY_SWORD := "res://resources/weapon_templates/holy_sword.tres"
 const DAWN_BOW := "res://resources/weapon_templates/dawn_bow.tres"
-const BLIGHT_SPEAR := "res://resources/weapon_templates/blight_spear.tres"
-const CORROSIVE_BOW := "res://resources/weapon_templates/corrosive_bow.tres"
+# T3 阶段 2 门禁口径（2026-11-27）：频率门禁的构筑必须全部取自正式 30 把。
+# 原 W03 构筑 blight_spear + corrosive_bow 已软封存，改用正式池毒系：
+# plague_reaper（毒牙 5 / 中毒 1）+ poison_dagger（毒牙 5，状态已迁移、纯伤害）。
+# 实测 23.5%（4.3 回合/次，5 种子）；对照：venom_sickle+plague_reaper 仅 14.1%（毒牙跨武器
+# 合并至 8 格上限 + 收割者命中 0.75 的 MISS 稀释），venom_queen+plague_reaper 25.3%。
+const PLAGUE_REAPER := "res://resources/weapon_templates/plague_reaper.tres"
+const POISON_DAGGER := "res://resources/weapon_templates/poison_dagger.tres"
 const DAGGER := "res://resources/weapon_templates/dagger.tres"
 
 const CHARM_BULWARK := "res://resources/charms/bulwark_charm.tres"
@@ -51,7 +56,7 @@ const BUILDS := [
 	{"name": "烈焰共鸣", "expect": "W01", "weapons": [FIRE_SWORD, FLAME_STAFF], "charms": []},
 	{"name": "霜封连携", "expect": "W02", "weapons": [ICE_STAFF, GLACIER_GREATSWORD], "charms": []},
 	{"name": "黎明圣辉", "expect": "W04", "weapons": [HOLY_SWORD, DAWN_BOW], "charms": []},
-	{"name": "毒爆连携", "expect": "W03", "weapons": [BLIGHT_SPEAR, CORROSIVE_BOW], "charms": []},
+	{"name": "毒爆连携", "expect": "W03", "weapons": [PLAGUE_REAPER, POISON_DAGGER], "charms": []},
 ]
 
 # 仅报告、不设门禁：这两条冰系构筑在本批迁移前就超过 33%（34.9% / 42.4%），
