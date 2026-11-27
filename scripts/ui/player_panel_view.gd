@@ -237,10 +237,11 @@ func refresh_gear_icons() -> void:
 			var s_name: String = String(sd.get("buff_name")) if sd != null and sd.get("buff_name") != null else sp.get_file().get_basename()
 			var s_desc: String = String(sd.get("description")) if sd != null and sd.get("description") != null else ""
 			var s_tip: String = s_name + (" · " + s_desc if s_desc != "" else "")
-			# T3 阶段 1（0E）：归档技能保留装备位，只提示不参与当前转轮；不自动替换、不禁用槽位。
+			# T3 阶段 1（0E）：状态技能在归档后也不进池（「产状态」功能由阶段 2 取消），
+			# 与武器的归档待遇有意不同（武器已装备仍参与战斗）。保留装备位，只标注「已停用」。
 			if sd != null and (sd.get("archived") == true \
 					or (sd.get("symbol") != null and String(sd.get("symbol").kind) == "status")):
-				s_tip += "\n该技能已归档，不参与当前转轮"
+				s_tip += "\n该技能已停用：状态符号已离池，不参与当前转轮"
 			if si == 0 and perk_tip != "":
 				s_tip += "\n" + perk_tip
 			# SkillData 继承 ItemData，自带 icon_tex（48px，与武器同规格）→ 显示 24 = 0.5× 清晰。

@@ -18,6 +18,35 @@ const ACT := 1
 const DUEL_SCENE := "res://scenes/duel/duel.tscn"
 const ROOM_DIR := "res://resources/rooms"
 
+# T3 阶段 1 遗留收口（2026-11-27）：主题可用品质集合的显式期望表。
+#
+# 口径：「主题可用品质」= candidates() 在归档过滤后真实存在的品质，再与 boss 来源表
+# 权重大于 0 的品质（uncommon/rare/epic）取交集。boss 来源表 common=0，故 common
+# 不进入本表（铁剑只作为主题池的排除/覆盖项存在，永远不会被 BOSS 抽出）。
+#
+# 这张表是硬编码的人工期望，不得用实际结果反推：今后任何主题池退化（例如正式池
+# 某档最后一件被归档、或主题映射被改动），必须显式修改本表才可能重新变绿，
+# 不允许测试自证。键 = resources/rooms 下的文件名（去掉 .tres）。
+#
+# 当前缺口（2026-11-27 逐条核对）：9 个 BOSS 的 uncommon 档全部是已归档武器
+# （abyss_scythe / cinder_cleaver / sin_blade / frozen_spear / holy_mace /
+# radiant_saber / shadow_guillotine），过滤后该档为空，只剩 rare+epic；
+# 主题三档齐全的只有 acid_ghoul（dawn_bow）/ maze_whisperer / whispering_cultist。
+const BOSS_QUALITY_SETS := {
+	"abyss_watcher": ["rare", "epic"],       # abyss_scythe(uncommon) 已归档；eclipse(epic)/night_scythe(rare)
+	"acid_ghoul": ["uncommon", "rare", "epic"],      # dawn_bow(uncommon) 仍在池
+	"brittle_gargoyle": ["rare", "epic"],    # cinder_cleaver(uncommon) 已归档
+	"cocoon_sentinel": ["rare", "epic"],     # cinder_cleaver(uncommon) 已归档
+	"frozen_urn": ["rare", "epic"],          # cinder_cleaver(uncommon) 已归档
+	"grand_inquisitor": ["rare", "epic"],    # sin_blade(uncommon) 已归档
+	"manic_elementalist": ["rare", "epic"],  # frozen_spear(uncommon) 已归档
+	"maze_whisperer": ["uncommon", "rare", "epic"],  # dawn_bow(uncommon) 仍在池
+	"nameless_void": ["rare", "epic"],       # holy_mace / radiant_saber(uncommon) 均已归档
+	"scale_inquisitor": ["rare", "epic"],    # shadow_guillotine(uncommon) 已归档
+	"shattered_king": ["rare", "epic"],      # frozen_spear(uncommon) 已归档
+	"whispering_cultist": ["uncommon", "rare", "epic"],  # dawn_bow(uncommon) 仍在池
+}
+
 var _pass := 0
 var _fail := 0
 var _pool
@@ -62,6 +91,9 @@ func _run() -> void:
 
 	print("=== H Step 4 全品质覆盖后的实际分布 ===")
 	_test_distribution()
+
+	print("=== I 主题可用品质集合（显式期望表） ===")
+	_test_theme_quality_sets()
 
 	_finish()
 
@@ -321,11 +353,49 @@ func _expected_shares(room) -> Dictionary:
 	return out
 
 
+# 主题可用品质集合：candidates() 归档过滤后真实存在 ∩ boss 来源表权重 > 0 的品质。
+func _theme_quality_set(room) -> Array:
+	var opts := {"category": "weapon", "theme": room.boss_reward_weapons}
+	var pool: Dictionary = _pool.candidates("boss", int(room.act), opts)
+	var present := {}
+	for p in (pool.get("items", []) as Array):
+		var q := String(_pool._entry(String(p)).get("rarity", ""))
+		if q != "":
+			present[q] = true
+	var out: Array = []
+	for q in ["uncommon", "rare", "epic"]:
+		if present.has(q):
+			out.append(q)
+	return out
+
+
+# I：12 个 BOSS 的主题可用品质集合必须与 BOSS_QUALITY_SETS 完全相等。
+# 单条聚合断言：期望表缺项、多出项、集合不一致都算不符。
+func _test_theme_quality_sets() -> void:
+	var rooms: Array = _boss_rooms()
+	var seen := {}
+	var bad: Array[String] = []
+	for r in rooms:
+		var key := String(r.resource_path).get_file().get_basename()
+		seen[key] = true
+		if not BOSS_QUALITY_SETS.has(key):
+			bad.append("%s(期望表未登记)" % key)
+			continue
+		var want: Array = BOSS_QUALITY_SETS[key]
+		var got: Array = _theme_quality_set(r)
+		print("  [品质集合] %-18s 期望=%s 实测=%s" % [String(r.name), str(want), str(got)])
+		if got != want:
+			bad.append("%s 实测%s≠期望%s" % [key, str(got), str(want)])
+	for key in BOSS_QUALITY_SETS.keys():
+		if not seen.has(String(key)):
+			bad.append("%s(期望表多出，无对应 BOSS)" % String(key))
+	_check(bad.is_empty(), "12 个 BOSS 主题可用品质集合与显式期望表完全相等（不符：%s）" % str(bad))
+
+
 func _finish() -> void:
 	print("BOSSQUALITY|RESULT %s (checks=%d fails=%d)" % [
 		"PASS" if _fail == 0 else "FAIL", _pass, _fail])
 	get_tree().quit(0 if _fail == 0 else 1)
-
 
 func _check(ok: bool, what: String) -> void:
 	if ok:

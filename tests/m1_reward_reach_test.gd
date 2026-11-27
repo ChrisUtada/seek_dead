@@ -373,13 +373,16 @@ func _test_m6_c4_mixed_charms(duel: DuelController) -> void:
 	duel._apply_charms()
 
 
-# ⑪ M1-05 局末元进度：只有铁砧点一个真实结果，文案不再承诺线性成长
+# ⑪ M1-05 局末元进度：S5-3 起不再产生点数卡，文案不再承诺线性成长
 func _test_meta_single_result(duel: DuelController) -> void:
 	# G6-02：若存档里残留生涯解锁机会，show_choice 会先弹三选一；本项只测元进度文案，先归零。
+	# S5-1 起旧 _unlock_charges 已删除，统一余额为 _directed_balance（与 m4_demo_test.gd 同口径）。
 	if duel._career != null:
-		duel._career._unlock_charges = 0
+		duel._career._directed_balance = 0
 	var choices: Array = duel._reward_system.roll_meta_choices()
-	_check(choices.size() == 1 and String(choices[0].get("kind", "")) == "anvil", "局末元进度只有铁砧点一个结果")
+	# S5-3 起局末不再产生点数卡（与 m4_demo_test.gd 同口径）。
+	# 旧脚本错误曾让本函数整段提前中断，这条过时断言因此一直没被真正执行。
+	_check(choices.is_empty(), "局末无铁砧点数卡（S5-3 停用）")
 	duel.hud.meta_screen.configure(duel, duel.hud)
 	duel.hud.meta_screen.show_choice()
 	var sub: String = duel.hud.meta_screen.sub_label.text
