@@ -740,9 +740,10 @@ func _test_signatures() -> void:
 	_check(_duel.selected_loadout.size() == 2, "签名只需两把武器（%d）" % _duel.selected_loadout.size())
 
 	# —— 火焰法杖 × W01：需要炎爆出现；且比火焰剑签名优先 ——
+	# 阶段 2 第 1 批后火系签名不再依赖燃烧牌，改用两张火系伤害牌（火斩）＋炎爆凑牌。
 	_equip([FLAME_STAFF, FIRE_SWORD])
-	var fs: Dictionary = _settle_cards([SYM_BURN, SYM_FLAME_SPECIAL, SYM_FIRE_SLASH],
-		["fire", "fire", "none"], ["flame_staff", "flame_staff", "fire_sword"])
+	var fs: Dictionary = _settle_cards([SYM_FIRE_SLASH, SYM_FLAME_SPECIAL, SYM_FIRE_SLASH],
+		["fire", "fire", "fire"], ["fire_sword", "flame_staff", "fire_sword"])
 	var fire_before: float = float((fs["dmg_by_elem"] as Dictionary).get("fire", 0.0))
 	var dmg_before_fs: float = float(fs["dmg"]) + float(fs["special"])
 	_duel.combat._apply_patterns(fs)

@@ -22,10 +22,12 @@ const KIND_SAMPLES := {
 	"special": "flame_special",
 	"buff": "buff_rage",
 }
-# 类别合成样本：同类别多条件时按序轮换取牌，避免复用同一张卡
+# 类别合成样本：同类别多条件时按序轮换取牌，避免复用同一张卡。
+# 若条件同时带 kind，会在该类别样本里再按 kind 过滤（阶段 2 去状态后 W01 需要两张
+# flame+damage，而已归档的 ember_sword 签名仍需要一张 flame+status）。
 const CATEGORY_SAMPLES := {
 	"blade": ["iron_slash"],
-	"flame": ["burn", "fire_slash", "flame_special"],
+	"flame": ["fire_slash", "flame_special", "burn"],
 	"frost": ["frost", "ice_crystal"],
 	"guard": ["guard", "aegis", "iron_wall"],
 	"projectile": ["pistol_shot", "bolt_shot", "arrow_shot"],
@@ -184,10 +186,18 @@ func _card_from_cond(cond: Dictionary, rotations: Dictionary) -> Dictionary:
 			sym_name = String(path).get_file().trim_suffix(".tres")
 	elif cond.has("symbol_category"):
 		var cat := String(cond["symbol_category"])
-		var pool: Array = CATEGORY_SAMPLES.get(cat, ["iron_slash"])
-		var idx := int(rotations.get(cat, 0))
+		var pool: Array = CATEGORY_SAMPLES.get(cat, ["iron_slash"]).duplicate()
+		if cond.has("kind"):
+			var want := String(cond["kind"])
+			var filtered: Array = pool.filter(func(n):
+				var r = load(DIR + String(n) + ".tres")
+				return r != null and String(r.kind) == want)
+			if not filtered.is_empty():
+				pool = filtered
+		var rot_key := cat + "|" + String(cond.get("kind", ""))
+		var idx := int(rotations.get(rot_key, 0))
 		sym_name = String(pool[idx % pool.size()])
-		rotations[cat] = idx + 1
+		rotations[rot_key] = idx + 1
 	elif cond.has("kind"):
 		sym_name = String(KIND_SAMPLES.get(String(cond["kind"]), "iron_slash"))
 	var c := _card(sym_name)
