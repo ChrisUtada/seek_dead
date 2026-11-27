@@ -711,7 +711,7 @@ func _test_param_signatures() -> void:
 	_check(absf((float(f["dmg"]) - dmg_f) - none_f * 0.35) < 1.0, "处刑巨斧无元素伤害 +35%")
 
 
-# L：四条签名样板——绝对零度 × W02、火焰法杖 × W01、卸下即失效、不要求第三把武器。
+# L：四条签名样板——绝对零度 × W02、焚世法杖 × W01、卸下即失效、不要求第三把武器。
 func _test_signatures() -> void:
 	var AZ := "res://resources/weapon_templates/absolute_zero.tres"
 	var ICE_GUN := "res://resources/weapon_templates/ice_gun.tres"
@@ -739,7 +739,7 @@ func _test_signatures() -> void:
 	# 只带两把武器，不依赖第三个槽
 	_check(_duel.selected_loadout.size() == 2, "签名只需两把武器（%d）" % _duel.selected_loadout.size())
 
-	# —— 火焰法杖 × W01：需要炎爆出现；且比火焰剑签名优先 ——
+	# —— 焚世法杖 × W01：需要炎爆出现；且比火焰剑签名优先 ——
 	# 阶段 2 第 1 批后火系签名不再依赖燃烧牌，改用两张火系伤害牌（火斩）＋炎爆凑牌。
 	_equip([FLAME_STAFF, FIRE_SWORD])
 	var fs: Dictionary = _settle_cards([SYM_FIRE_SLASH, SYM_FLAME_SPECIAL, SYM_FIRE_SLASH],

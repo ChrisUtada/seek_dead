@@ -17,14 +17,16 @@ extends Node
 
 const PATTERN_DIR := "res://resources/patterns"
 
-# 当前仍依赖状态的牌谱 id。
-# 阶段 2 第 1 批（火系三条）已迁出：W01 / SIG_W01_FIRESWORD / SIG_W01_FLAMESTAFF。
-# 剩余 5 条（冰系 W02 + 三个冰签名 + 已归档的 SIG_W01_EMBER），下一批处理。
+# 当前仍依赖状态的牌谱 id（阶段 2 待清零）。清零 = 阶段 2「牌谱去状态」完成。
+# 第 1 批（火系三条）已迁出：W01 / SIG_W01_FIRESWORD / SIG_W01_FLAMESTAFF。
 const PENDING_STATUS_PATTERNS := [
 	"W02",
 	"SIG_W02_GLACIER",
-	"SIG_W02_ICEGUN",
 	"SIG_W02_ZERO",
+	"SIG_W02_ICEGUN",
+]
+# 已归档牌谱：老档继承装备时仍可触发，不设清零目标（保留其状态条件）。
+const LEGACY_STATUS_PATTERNS := [
 	"SIG_W01_EMBER",
 ]
 
@@ -54,6 +56,8 @@ func _run() -> void:
 
 	var want: Array[String] = []
 	for id in PENDING_STATUS_PATTERNS:
+		want.append(String(id))
+	for id in LEGACY_STATUS_PATTERNS:
 		want.append(String(id))
 	want.sort()
 

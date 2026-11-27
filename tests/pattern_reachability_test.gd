@@ -367,10 +367,10 @@ func _test_negatives() -> void:
 	_check(_weapons.size() > 2, "武器总数远大于槽位上限（%d > 2），但单局只能装 2 把" % _weapons.size())
 
 
-# F：语义审计 —— 可达 ≠ 语义正确，这几条要交给 Step 2 修正
+# F：语义审计 —— 火系武器的伤害符号多数不带 fire 元素（火斩是「无属性伤害」），
+# 2026-11-27 焚世法杖把状态位替换为 ember_spark（element=fire 的伤害符号）后，
+# 「按符号 element 判火系」会漏掉火斩，W01 仍必须按**来源武器元素**判定。
 func _audit_semantics() -> void:
-	# 火系武器的伤害符号 element 全是 none（火斩是「无属性伤害」），
-	# 所以 W01 的「火系武器伤害」若按符号 element 写，永远匹配到的是「燃」这种状态牌。
 	var fire_dmg_fire := 0
 	var fire_status := 0
 	for w in _weapons:
@@ -382,7 +382,9 @@ func _audit_semantics() -> void:
 			if String(s["kind"]) == "status":
 				fire_status += 1
 	_report.append("⚠ 火系武器：element=fire 的伤害符号 %d 个，状态符号 %d 个 → W01「火系伤害」必须按**来源武器元素**判定" % [fire_dmg_fire, fire_status])
-	_check(fire_dmg_fire == 0, "火系伤害符号确实不带 fire 元素（%d）——记录为语义修正项" % fire_dmg_fire)
+	var w01_rule_txt := JSON.stringify((load(PATTERN_DIR + "/w01_flame_resonance.tres") as PatternData).match_rule)
+	_check(w01_rule_txt.contains('"source_element":"fire"') and not w01_rule_txt.contains('"element":"fire"'),
+		"W01 按来源武器元素判定火系（不按符号 element；裸 element=fire 伤害符号 %d 个）" % fire_dmg_fire)
 
 	# 同理确认冰/毒系：这两个有元素伤害符号，语义没坑
 	var ice_dmg := 0
