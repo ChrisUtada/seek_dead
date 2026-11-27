@@ -27,15 +27,19 @@ func _ready() -> void:
 	await get_tree().process_frame
 	var c = duel.circuit_system
 
-	# ① 默认配装（fire_sword + dagger，燃=status w5 / 火斩=damage w3 / 匕斩=damage w5）
+	# ① 默认配装（2026-11-27 starter：fire_sword + battle_axe；燃=status w5 / 火斩=damage w3 /
+	#    斧斩=damage w5(element none) / 回复=light w1）。铁剑不在默认配装内，但战斧是重武器，
+	#    斧斩 5 格 ≥3 满足破甲兜底，故破甲回路在默认配装下**可达**；异色协奏仍不可达（非 none 元素只有 fire/light 两种）。
 	duel._build_pool(duel.selected_loadout)
 	var r_triple: Dictionary = c.is_reachable("circuit_triple_echo")
 	var r_status: Dictionary = c.is_reachable("circuit_status_react")
 	var r_pierce: Dictionary = c.is_reachable("circuit_armor_break")
+	var r_color: Dictionary = c.is_reachable("circuit_tri_color")
 	_ok(bool(r_triple["ok"]), "默认配装三连可达（w5 符号）")
 	_ok(bool(r_status["ok"]), "默认配装状态可达（燃=status）")
-	_ok(not bool(r_pierce["ok"]) and String(r_pierce["reason"]) == "event_unreachable:no_pierce_source",
-		"默认配装破甲不可达（无破甲机制，reason=%s）" % String(r_pierce["reason"]))
+	_ok(bool(r_pierce["ok"]), "默认配装破甲可达（战斧重武器三连兜底，reason=%s）" % String(r_pierce["reason"]))
+	_ok(not bool(r_color["ok"]) and String(r_color["reason"]) == "event_unreachable:no_tri_color_source",
+		"默认配装异色协奏不可达（非 none 元素不足 3 种，reason=%s）" % String(r_color["reason"]))
 
 	# ② 空池：全部不可达
 	duel.pool_items.clear()
@@ -43,24 +47,28 @@ func _ready() -> void:
 	_ok(not bool(r_empty["ok"]) and String(r_empty["reason"]) == "event_unreachable:empty_pool",
 		"空池时回路不可达")
 
-	# ③ 为什么未触发：可达性优先于等待事件
+	# ③ 为什么未触发：可达性优先于等待事件（用仍不可达的异色协奏做样本）
 	duel._build_pool(duel.selected_loadout)
 	c.reset_run()
-	c.acquire("circuit_armor_break")
-	c.equip("circuit_armor_break")
-	var why: String = c.why_not_triggered("circuit_armor_break")
+	c.acquire("circuit_tri_color")
+	c.equip("circuit_tri_color")
+	var why: String = c.why_not_triggered("circuit_tri_color")
 	_ok(why.begins_with("event_unreachable:"),
-		"破甲回路装备后 why_not_triggered 优先报事件源不可达（%s）" % why)
+		"异色协奏装备后 why_not_triggered 优先报事件源不可达（%s）" % why)
 	_ok(c.why_not_triggered("circuit_triple_echo") == "not_equipped", "未装备回路报 not_equipped")
 
-	# ④ 注入破甲机制后，破甲回路变可达
-	duel._item_pierce_map["fire_sword"] = true
-	var r_pierce2: Dictionary = c.is_reachable("circuit_armor_break")
-	_ok(bool(r_pierce2["ok"]), "有破甲机制武器后破甲回路可达")
-	_ok(c.why_not_triggered("circuit_armor_break").begins_with("waiting_for_event"),
+	# ④ 注入第三种元素后，异色协奏变可达
+	var ice_sym: SymbolData = load("res://resources/symbols/ice_crystal.tres")
+	duel.pool_items.append({"syms": [[ice_sym, 3.0, "ice", ""]]})
+	var r_color2: Dictionary = c.is_reachable("circuit_tri_color")
+	_ok(bool(r_color2["ok"]), "注入第三种元素后异色协奏可达（reason=%s）" % String(r_color2["reason"]))
+	_ok(c.why_not_triggered("circuit_tri_color").begins_with("waiting_for_event"),
 		"可达后 why_not_triggered 报等待事件")
 
 	# ⑤ reachability_report 结构（G4-6 升级：顶层 total/combo_classes + circuits 子字典）
+	# 报告需反映装备/拥有：补装备破甲回路（2 槽：异色协奏 + 破甲余波）。
+	c.acquire("circuit_armor_break")
+	c.equip("circuit_armor_break")
 	var report: Dictionary = c.reachability_report()
 	var circuits: Dictionary = report["circuits"]
 	_ok(int(report["total"]) == 6, "报告覆盖全部 6 个回路")
@@ -89,7 +97,7 @@ func _ready() -> void:
 	#    真实 _has_pair_damage = 「某 damage 族恰 2 格 + 另一个不同的有效符号族 ≥1 格（任意 kind）」。
 	#    可达性报告须与真实语义对齐：damage 族 + 任意不同第三族即视为可达。
 	var pair_cases := [
-		{"name": "伤害对子+状态(绝对零度)", "weapon": "res://resources/weapon_templates/absolute_zero.tres",
+		{"name": "伤害对子+状态(暴雪法杖)", "weapon": "res://resources/weapon_templates/blizzard_staff.tres",
 		 "dmg": "res://resources/symbols/ice_crystal.tres", "third": "res://resources/symbols/frost.tres", "third_kind": "status"},
 		{"name": "伤害对子+护盾(坚壁钉锤)", "weapon": "res://resources/weapon_templates/mace.tres",
 		 "dmg": "res://resources/symbols/iron_slash.tres", "third": "res://resources/symbols/iron_wall.tres", "third_kind": "shield"},
