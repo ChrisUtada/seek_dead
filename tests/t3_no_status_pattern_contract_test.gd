@@ -19,12 +19,9 @@ const PATTERN_DIR := "res://resources/patterns"
 
 # 当前仍依赖状态的牌谱 id（阶段 2 待清零）。清零 = 阶段 2「牌谱去状态」完成。
 # 第 1 批（火系三条）已迁出：W01 / SIG_W01_FIRESWORD / SIG_W01_FLAMESTAFF。
-const PENDING_STATUS_PATTERNS := [
-	"W02",
-	"SIG_W02_GLACIER",
-	"SIG_W02_ZERO",
-	"SIG_W02_ICEGUN",
-]
+# 第 2 批（冰系四条，2026-11-27）已迁出：W02 / SIG_W02_GLACIER / SIG_W02_ZERO / SIG_W02_ICEGUN。
+# 常量保留为空数组：清零状态由下方断言显式守护，不得靠删常量绕过。
+const PENDING_STATUS_PATTERNS := []
 # 已归档牌谱：老档继承装备时仍可触发，不设清零目标（保留其状态条件）。
 const LEGACY_STATUS_PATTERNS := [
 	"SIG_W01_EMBER",
@@ -72,6 +69,9 @@ func _run() -> void:
 	_check(actual == want,
 		"依赖状态的牌谱集合 == 白名单（多出 %s / 缺 %s / 实测 %s）" % [
 			str(missing), str(stale), str(actual)])
+	# 阶段 2「牌谱去状态」完成标记：PENDING 必须显式为空（常量不得删除，用断言替代删代码）。
+	_check(PENDING_STATUS_PATTERNS.is_empty(),
+		"PENDING_STATUS_PATTERNS 已清零（%d 条）" % PENDING_STATUS_PATTERNS.size())
 
 
 func _load_patterns() -> Array:

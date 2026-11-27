@@ -642,8 +642,9 @@ func _test_param_signatures() -> void:
 	_duel.enemy_status.clear()
 	_duel.enemy_status["frost"] = 0
 	_duel._pattern_enemy_atk_mult = 1.0
-	var b: Dictionary = _settle_cards(["res://resources/symbols/frost.tres", "res://resources/symbols/ice_crystal.tres", "res://resources/symbols/ice_crystal.tres"],
-		["ice", "ice", "ice"], ["ice_gun", "ice_gun", "ice_staff"])
+	# 阶段 2 冰系批（2026-11-27）：W02 要求两张冰伤 + 其中一张为冰霜晶弹（ice_crystal）。
+	var b: Dictionary = _settle_cards(["res://resources/symbols/ice_crystal.tres", "res://resources/symbols/ice_shot.tres", "res://resources/symbols/ice_crystal.tres"],
+		["ice", "none", "ice"], ["ice_staff", "ice_gun", "ice_gun"])
 	_duel.combat._apply_patterns(b)
 	_check(String(b.get("pattern_signature", "")) == "SIG_W02_ICEGUN",
 		"冰霜枪签名生效（%s）" % String(b.get("pattern_signature", "")))
@@ -655,8 +656,8 @@ func _test_param_signatures() -> void:
 	_duel.enemy_status.clear()
 	_duel.enemy_status["frost"] = 4
 	_duel._pattern_enemy_atk_mult = 1.0
-	var c: Dictionary = _settle_cards(["res://resources/symbols/frost.tres", "res://resources/symbols/ice_crystal.tres", "res://resources/symbols/ice_crystal.tres"],
-		["ice", "ice", "ice"], ["glacier_greatsword", "glacier_greatsword", "ice_staff"])
+	var c: Dictionary = _settle_cards(["res://resources/symbols/frost_slash.tres", "res://resources/symbols/ice_crystal.tres", "res://resources/symbols/ice_crystal.tres"],
+		["ice", "ice", "ice"], ["glacier_greatsword", "ice_staff", "ice_staff"])
 	_duel.combat._apply_patterns(c)
 	_check(String(c.get("pattern_signature", "")) == "SIG_W02_GLACIER",
 		"冰川巨剑签名生效（%s）" % String(c.get("pattern_signature", "")))
@@ -718,7 +719,6 @@ func _test_signatures() -> void:
 	var FROST_BLADE := "res://resources/weapon_templates/frost_blade.tres"
 	var ICE_STAFF := "res://resources/weapon_templates/ice_staff.tres"
 	var FLAME_STAFF := "res://resources/weapon_templates/flame_staff.tres"
-	var SYM_FROST := "res://resources/symbols/frost.tres"
 	var SYM_ICE := "res://resources/symbols/ice_crystal.tres"
 	var SYM_FLAME_SPECIAL := "res://resources/symbols/flame_special.tres"
 
@@ -727,7 +727,7 @@ func _test_signatures() -> void:
 	_duel.enemy_status.clear()
 	_duel.enemy_status["frost"] = 2
 	_duel._pattern_enemy_atk_mult = 1.0
-	var az: Dictionary = _settle_cards([SYM_FROST, SYM_ICE, SYM_ICE],
+	var az: Dictionary = _settle_cards([SYM_ICE, SYM_ICE, SYM_ICE],
 		["ice", "ice", "ice"], ["absolute_zero", "absolute_zero", "ice_gun"])
 	_duel.combat._apply_patterns(az)
 	_check(String(az.get("pattern_signature", "")) == "SIG_W02_ZERO",
@@ -852,7 +852,6 @@ func _test_w02_w05_w06() -> void:
 	var ICE_GUN := "res://resources/weapon_templates/ice_gun.tres"
 	var FROST_BLADE := "res://resources/weapon_templates/frost_blade.tres"
 	var ICE_STAFF := "res://resources/weapon_templates/ice_staff.tres"
-	var SYM_FROST := "res://resources/symbols/frost.tres"
 	var SYM_ICE := "res://resources/symbols/ice_crystal.tres"
 	var NIGHT := "res://resources/weapon_templates/night_scythe.tres"
 	var ABYSS := "res://resources/weapon_templates/abyss_scythe.tres"
@@ -864,7 +863,7 @@ func _test_w02_w05_w06() -> void:
 	_equip([ICE_STAFF, FROST_BLADE])
 	_duel.enemy_status.clear()
 	_duel.enemy_status["frost"] = 0
-	var a2: Dictionary = _settle_cards([SYM_FROST, SYM_ICE, SYM_ICE],
+	var a2: Dictionary = _settle_cards([SYM_ICE, SYM_ICE, "res://resources/symbols/frost_slash.tres"],
 		["ice", "ice", "ice"], ["ice_staff", "ice_staff", "frost_blade"])
 	_duel.combat._apply_patterns(a2)
 	_check(String(a2.get("pattern_equipment", "")) == "W02",
@@ -876,7 +875,7 @@ func _test_w02_w05_w06() -> void:
 	# 已有 2 层 + 本次 2 层 = 4 → 触发削弱
 	_duel.enemy_status["frost"] = 2
 	_duel._pattern_enemy_atk_mult = 1.0
-	var a2b: Dictionary = _settle_cards([SYM_FROST, SYM_ICE, SYM_ICE],
+	var a2b: Dictionary = _settle_cards([SYM_ICE, SYM_ICE, "res://resources/symbols/frost_slash.tres"],
 		["ice", "ice", "ice"], ["ice_staff", "ice_staff", "frost_blade"])
 	_duel.combat._apply_patterns(a2b)
 	_check(is_equal_approx(float(_duel._pattern_enemy_atk_mult), 0.8),

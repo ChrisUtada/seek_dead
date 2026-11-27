@@ -1,17 +1,17 @@
 extends Node
 
 # ============================================================================
-# T3-1 frost 批次 1：W02 / SIG_W02_GLACIER 条件改写 + glacier 迁移验收（2026-11-26）
+# T3-1 frost 批次 1：glacier 迁移验收 + 冰系牌谱去状态（2026-11-26 初版，2026-11-27 更新）
 # 运行：Godot --headless --fixed-fps 60 --path <项目> res://tests/t31_frost_batch1_test.tscn
 #
 # 覆盖 8 条：
 #   1. glacier 池过滤：frost 离池、冰刃在池
-#   2. W02 条件不含任何状态符号引用
-#   3. W02 新语义正例：冰伤 + frost + 任意武器牌（source_element=ice）
-#   4. 反例：+技能 / 双冰伤无 status / 单冰伤 / 双非伤害
-#   5. 反向守护：ice_gun 未迁移，frost 仍在池
+#   2. W02 条件不含状态符号/状态 kind，且保留一个特定符号约束（ice_crystal）
+#   3. W02 正例：两张冰伤武器牌 + 其中一张冰霜晶弹（source_element=ice）
+#   4. 反例：缺武器位 / 无冰霜晶弹 / 双非伤害 / 单冰伤
+#   5. ice_gun 迁移后 frost 离池，glacier_spear 在池
 #   6. 每 SPIN 至多一次：三冰刃 chance=1.0 → +1；chance=0.0 → 0
-#   7. 不外溢：glacier + ice_gun 同装，ice_gun 的 frost 仍在池
+#   7. 不外溢：glacier + ice_gun 同装，双方 frost 都不在池
 #   8. W03 不受影响：三张毒伤仍满足
 # ============================================================================
 
@@ -21,6 +21,7 @@ const ICE_STAFF := "res://resources/weapon_templates/ice_staff.tres"
 const FROST_SLASH := "res://resources/symbols/frost_slash.tres"
 const ICE_CRYSTAL := "res://resources/symbols/ice_crystal.tres"
 const ICE_SHOT := "res://resources/symbols/ice_shot.tres"
+const GLACIER_SPEAR := "res://resources/symbols/glacier_spear.tres"
 const FROST := "res://resources/symbols/frost.tres"
 const AEGIS_SYM := "res://resources/symbols/aegis.tres"
 const VENOM_BITE := "res://resources/symbols/venom_bite.tres"
@@ -48,7 +49,7 @@ func _ready() -> void:
 	_test_rule_has_no_status_sym()
 	_test_w02_new_semantics()
 	_test_w02_negatives()
-	_test_ice_gun_untouched()
+	_test_ice_gun_migrated()
 	_test_once_per_spin()
 	_test_no_overflow()
 	_test_w03_untouched()
@@ -97,59 +98,66 @@ func _test_pool_filter() -> void:
 		"1 池过滤：frost 离池=%s，冰刃在池=%s" % [str(not has_frost), str(has_slash)])
 
 
-# 2：W02 的 match_rule 不再包含 {"sym": ...} 条件。
+# 2：W02 不含状态符号/状态 kind；状态符号离开后必须保留一个特定符号约束。
 func _test_rule_has_no_status_sym() -> void:
 	var rule: Dictionary = (load(W02) as PatternData).match_rule
-	var has_sym := false
+	var has_status_sym := false
+	var has_status_kind := false
+	var has_crystal_sym := false
 	for c in rule.get("all", []):
-		if (c as Dictionary).has("sym"):
-			has_sym = true
-	_check(not has_sym and not JSON.stringify(rule).contains("frost.tres"),
-		"2 W02 条件无状态符号引用：has_sym=%s，含 frost=%s" % [
-			str(has_sym), str(JSON.stringify(rule).contains("frost.tres"))])
+		var cond := c as Dictionary
+		if String(cond.get("sym", "")).ends_with("frost.tres"):
+			has_status_sym = true
+		if String(cond.get("kind", "")) == "status":
+			has_status_kind = true
+		if String(cond.get("sym", "")).ends_with("ice_crystal.tres"):
+			has_crystal_sym = true
+	_check(not has_status_sym and not has_status_kind and has_crystal_sym,
+		"2 W02 无状态条件=%s，保留冰霜晶弹特定符号=%s" % [
+			str(not has_status_sym and not has_status_kind), str(has_crystal_sym)])
 
 
-# 3：W02 正例——冰伤 + frost + 任意武器牌（三张不同牌，source_element=ice）。
-#    冰弹符号 element=none 但来源武器是 ice，因此 source_element=ice 也应认。
+# 3：W02 正例——两张冰伤武器牌，其中一张是冰霜晶弹。
+#    冰弹 element=none 但来源武器是 ice，因此 source_element=ice 也应认。
 func _test_w02_new_semantics() -> void:
 	var rule: Dictionary = (load(W02) as PatternData).match_rule
-	var c_dmg := _card(FROST_SLASH, "glacier_greatsword")
-	var c_status := _card(FROST, "ice_gun")
-	var c_any := _card(ICE_CRYSTAL, "ice_staff")
+	var c_slash := _card(FROST_SLASH, "glacier_greatsword")
+	var c_crystal := _card(ICE_CRYSTAL, "ice_staff")
 	var c_shot := _card(ICE_SHOT, "ice_gun")
-	var c_dmg2 := _card(ICE_CRYSTAL, "ice_staff")
-	var pos_basic: bool = MATCHER.solve_rule([c_dmg, c_status, c_any], rule)
-	var pos_ice_shot: bool = MATCHER.solve_rule([c_shot, c_status, c_dmg2], rule)
-	_check(pos_basic and pos_ice_shot,
-		"3 W02 正例：冰刃+frost+武器=%s，冰弹+frost+武器=%s" % [
-			str(pos_basic), str(pos_ice_shot)])
+	var pos_basic: bool = MATCHER.solve_rule([c_slash, c_crystal, c_shot], rule)
+	var pos_crystal_second: bool = MATCHER.solve_rule([c_shot, c_crystal, c_slash], rule)
+	_check(pos_basic and pos_crystal_second,
+		"3 W02 正例：冰刃+晶弹+冰弹=%s，冰弹+晶弹+冰刃=%s" % [
+			str(pos_basic), str(pos_crystal_second)])
 
 
-# 4：W02 反例——第三张非武器 / 双冰伤无 status / 双非伤害 / 单冰伤。
+# 4：W02 反例——缺武器位 / 无冰霜晶弹 / 双非伤害 / 单冰伤。
 func _test_w02_negatives() -> void:
 	var rule: Dictionary = (load(W02) as PatternData).match_rule
-	var c_dmg := _card(FROST_SLASH, "glacier_greatsword")
-	var c_status := _card(FROST, "ice_gun")
+	var c_slash := _card(FROST_SLASH, "glacier_greatsword")
+	var c_crystal := _card(ICE_CRYSTAL, "ice_staff")
 	var c_shot := _card(ICE_SHOT, "ice_gun")
-	var c_dmg2 := _card(ICE_CRYSTAL, "ice_staff")
+	var c_status := _card(FROST, "ice_gun")
 	var c_skill := _card(AEGIS_SYM, "aegis", "none", "skill")
-	var neg_skill: bool = MATCHER.solve_rule([c_dmg, c_status, c_skill], rule)
-	var neg_dd: bool = MATCHER.solve_rule([c_dmg, c_shot, c_dmg2], rule)
+	var neg_skill: bool = MATCHER.solve_rule([c_slash, c_crystal, c_skill], rule)
+	var neg_no_crystal: bool = MATCHER.solve_rule([c_slash, c_shot, c_shot], rule)
 	var neg_two_non: bool = MATCHER.solve_rule([c_status, c_status, c_skill], rule)
-	var neg_single: bool = MATCHER.solve_rule([c_dmg], rule)
-	_check(not neg_skill and not neg_dd and not neg_two_non and not neg_single,
-		"4 W02 反例：+技能=%s，双冰伤=%s，双非伤害=%s，单冰伤=%s" % [
-			str(neg_skill), str(neg_dd), str(neg_two_non), str(neg_single)])
+	var neg_single: bool = MATCHER.solve_rule([c_slash], rule)
+	_check(not neg_skill and not neg_no_crystal and not neg_two_non and not neg_single,
+		"4 W02 反例：+技能=%s，无晶弹=%s，双非伤害=%s，单冰伤=%s" % [
+			str(neg_skill), str(neg_no_crystal), str(neg_two_non), str(neg_single)])
 
 
-# 5：ice_gun 本批不迁移，frost 仍在池（反向守护）。
-func _test_ice_gun_untouched() -> void:
+# 5：ice_gun 已迁移，frost 离池，霜棘（glacier_spear）在池。
+func _test_ice_gun_migrated() -> void:
 	var wd: WeaponData = load(ICE_GUN)
 	_equip([ICE_GUN])
 	var migrated := bool(wd.status_migrated)
 	var has_frost := _pool_has(FROST)
-	_check(not migrated and has_frost,
-		"5 ice_gun 未迁移：status_migrated=%s，frost 在池=%s" % [str(migrated), str(has_frost)])
+	var has_spear := _pool_has(GLACIER_SPEAR)
+	_check(migrated and not has_frost and has_spear,
+		"5 ice_gun 迁移：status_migrated=%s，frost 离池=%s，霜棘在池=%s" % [
+			str(migrated), str(not has_frost), str(has_spear)])
 
 
 # 6：每 SPIN 至多一次 + 概率门控。
@@ -174,13 +182,15 @@ func _test_once_per_spin() -> void:
 	wd.status_chance = 0.35
 
 
-# 7：同装 ice_gun 的 frost 仍在池。
+# 7：同装 glacier + ice_gun，双方 frost 都不在池，冰伤符号都在池。
 func _test_no_overflow() -> void:
 	_equip([GLACIER, ICE_GUN])
 	var has_slash := _pool_has(FROST_SLASH)
+	var has_spear := _pool_has(GLACIER_SPEAR)
 	var has_frost := _pool_has(FROST)
-	_check(has_slash and has_frost,
-		"7 不外溢：冰刃在池=%s，ice_gun 的 frost 在池=%s" % [str(has_slash), str(has_frost)])
+	_check(has_slash and has_spear and not has_frost,
+		"7 不外溢：冰刃在池=%s，霜棘在池=%s，frost 离池=%s" % [
+			str(has_slash), str(has_spear), str(not has_frost)])
 
 
 # 8：W03 毒伤三条件不受本批影响。

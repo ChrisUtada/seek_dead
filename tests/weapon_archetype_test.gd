@@ -4,6 +4,9 @@ extends Node
 const DAGGER := "res://resources/weapon_templates/dagger.tres"
 const BOW := "res://resources/weapon_templates/hunting_bow.tres"
 const ICE_STAFF := "res://resources/weapon_templates/ice_staff.tres"
+# 法术状态用例用一个仍带状态符号的未迁移法杖：ice_staff 2026-11-27 起 frost 已离池，
+# 直接用 frost 格会脱离真实带；blizzard_staff 同属法术原型且 frost 仍在池。
+const BLIZZARD_STAFF := "res://resources/weapon_templates/blizzard_staff.tres"
 const FORGE := "res://resources/weapon_templates/forge_greatsword.tres"
 const FIRE_SWORD := "res://resources/weapon_templates/fire_sword.tres"
 
@@ -93,8 +96,9 @@ func _run() -> void:
 	_check(bool(magic["element_resonance"]), "同元素3格标记元素共鸣而非自动必暴")
 
 	# 法术状态：3格×暴击2 = 6，法术+1，元素共鸣+1，最终8层。
+	_equip(duel, BLIZZARD_STAFF)
 	duel.enemy_status.clear()
-	var frost: Dictionary = _evaluate(duel, "res://resources/symbols/frost.tres", "ice_staff", "ice")
+	var frost: Dictionary = _evaluate(duel, "res://resources/symbols/frost.tres", "blizzard_staff", "ice")
 	_check(is_equal_approx(float(frost["status_stacks"].get("frost", 0)), 7.0), "法术同源状态在共鸣前为7层")
 	await duel.combat._phase_defense(frost)
 	_check(int(duel.enemy_status.get("frost", 0)) == 8, "元素共鸣使本回合状态再增加1层")

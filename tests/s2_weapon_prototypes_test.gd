@@ -78,8 +78,8 @@ func _test_existing_flagships() -> void:
 	var eclipse_blade: WeaponData = load(ECLIPSE_BLADE)
 	_ok(is_equal_approx(float(_weights(absolute_zero).get("res://resources/symbols/ice_crystal.tres", 0.0)), 5.0),
 		"集中旗舰绝对零度保留 5 格主伤害符号")
-	_ok(is_equal_approx(float(_weights(ice_gun).get("res://resources/symbols/frost.tres", 0.0)), 5.0),
-		"状态旗舰冰霜枪保留 5 格霜冻符号")
+	_ok(is_equal_approx(float(_weights(ice_gun).get("res://resources/symbols/glacier_spear.tres", 0.0)), 5.0),
+		"状态旗舰冰霜枪保留 5 格主伤害符号（霜棘）")
 	_ok(eclipse_blade.triple_pierce, "破甲旗舰蚀日之刃保留三连破甲")
 
 
