@@ -520,6 +520,13 @@ if errorlevel 1 (
   echo   ok
 )
 
+echo [logcheck] scanning %TEMP%\smoke_*.log for SCRIPT ERROR / RESULT FAIL ...
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_smoke_logs.ps1 -LogDir "%TEMP%"
+if errorlevel 1 (
+  set FAIL=1
+  echo   FAIL -- SCRIPT ERROR / RESULT FAIL found in smoke logs, see above
+)
+
 if "%FAIL%"=="1" (
   echo [smoke] RESULT: FAIL
   exit /b 1
