@@ -9,6 +9,7 @@ REM Save safety: user:// is redirected to %TEMP%\seek_dead_smoke_appdata so no
 REM             test can read or write the real lobby_data.json. Wiped each run.
 REM ============================================================================
 setlocal
+del /q "%TEMP%\smoke_*.log" 2>nul
 set "GODOT=%~1"
 if not defined SD_SMOKE_APPDATA set "SD_SMOKE_APPDATA=%TEMP%\seek_dead_smoke_appdata"
 if exist "%SD_SMOKE_APPDATA%" rmdir /s /q "%SD_SMOKE_APPDATA%" 2>nul
