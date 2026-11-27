@@ -176,7 +176,7 @@ func _test_build_pool(duel: DuelController) -> void:
 	_check(fire_item != null and is_equal_approx(float(fire_item.get("hit", 0.0)), 0.83), "烈刃入池：命中 88%→83%")
 	_check(is_equal_approx(float(duel._weapon_power_map.get(ICE_CRYSTAL, 0.0)), 12.0), "霜鸣入池：霜晶法杖攻击 14→12")
 	_check(int(duel._item_status_bonus.get(ICE_CRYSTAL, 0)) == 1, "霜鸣入池：冰霜晶弹带 +1 状态层")
-	_check(_weight_of(duel, ICE_CRYSTAL) == 3.0, "霜鸣入池：冰霜晶弹权重 4→3")
+	_check(_weight_of(duel, ICE_CRYSTAL) == 2.0, "霜鸣入池：冰霜晶弹权重 3→2")
 
 	duel.selected_loadout.clear()
 	duel.selected_loadout.append(DAGGER)
@@ -211,7 +211,7 @@ func _test_strip_diffs(duel: DuelController) -> void:
 		"稳手命中奖励在真实格数下被取整吞掉，无 MISS 格变化（diff=%s）" % (_joined(d_dagger) if not d_dagger.is_empty() else "空"))
 	# 破城：power +2 不改变格数，但 cast 削减使斧斩 5→3（-2格）
 	_check(not d_axe.is_empty() and _joined(d_axe).contains("5→3"), "破城真实带子差异：斧斩 5→3 格")
-	_check(not d_ice.is_empty() and _joined(d_ice).contains("4→3"), "霜鸣真实带子差异：冰霜晶弹 4→3 格")
+	_check(not d_ice.is_empty() and _joined(d_ice).contains("3→2"), "霜鸣真实带子差异：冰霜晶弹 3→2 格")
 	# 方向断言改为：若有 diff，应是减少（铸式代价不伪造 MISS 增减）
 	if not d_dagger.is_empty():
 		_check(not _joined(d_dagger).contains("MISS +"), "稳手方向：不增加 MISS")

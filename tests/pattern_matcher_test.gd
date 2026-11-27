@@ -642,9 +642,10 @@ func _test_param_signatures() -> void:
 	_duel.enemy_status.clear()
 	_duel.enemy_status["frost"] = 0
 	_duel._pattern_enemy_atk_mult = 1.0
-	# 阶段 2 冰系批（2026-11-27）：W02 要求两张冰伤 + 其中一张为冰霜晶弹（ice_crystal）。
-	var b: Dictionary = _settle_cards(["res://resources/symbols/ice_crystal.tres", "res://resources/symbols/ice_shot.tres", "res://resources/symbols/ice_crystal.tres"],
-		["ice", "none", "ice"], ["ice_staff", "ice_gun", "ice_gun"])
+	# 阶段 2 冰系批（2026-11-27）：W02 要求两张冰伤 + 其中一张为冰霜晶弹（ice_crystal）；
+	# 签名 SIG_W02_ICEGUN 额外要求出现霜棘（glacier_spear）。
+	var b: Dictionary = _settle_cards(["res://resources/symbols/glacier_spear.tres", "res://resources/symbols/ice_crystal.tres", "res://resources/symbols/ice_crystal.tres"],
+		["ice", "ice", "ice"], ["ice_gun", "ice_staff", "ice_staff"])
 	_duel.combat._apply_patterns(b)
 	_check(String(b.get("pattern_signature", "")) == "SIG_W02_ICEGUN",
 		"冰霜枪签名生效（%s）" % String(b.get("pattern_signature", "")))
@@ -727,7 +728,8 @@ func _test_signatures() -> void:
 	_duel.enemy_status.clear()
 	_duel.enemy_status["frost"] = 2
 	_duel._pattern_enemy_atk_mult = 1.0
-	var az: Dictionary = _settle_cards([SYM_ICE, SYM_ICE, SYM_ICE],
+	# 签名 SIG_W02_ZERO 额外要求出现冰弹（ice_shot，来自冰霜枪）。
+	var az: Dictionary = _settle_cards([SYM_ICE, SYM_ICE, "res://resources/symbols/ice_shot.tres"],
 		["ice", "ice", "ice"], ["absolute_zero", "absolute_zero", "ice_gun"])
 	_duel.combat._apply_patterns(az)
 	_check(String(az.get("pattern_signature", "")) == "SIG_W02_ZERO",

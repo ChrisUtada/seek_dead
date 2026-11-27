@@ -8,7 +8,7 @@
 [sub_resource type="Resource" id="sw0"]
 script = ExtResource("sw")
 symbol = ExtResource("s0")
-weight = 4.0
+weight = 3.0
 
 [sub_resource type="Resource" id="sw1"]
 script = ExtResource("sw")
@@ -35,7 +35,7 @@ reel_element = "ice"
 element = "ice"
 family_tags = Array[String](["ice", "combo"])
 role = "damage"
-mechanism_summary = "冰系施法远程：冰霜晶弹（4权重，冰伤害） + 霜裂（3权重，冰伤害）；寒霜改为命中后 35% 触发（每把武器每 SPIN 至多一次）；非三连暴击+5%；同源三连充能+1、状态+1；同源三连35%穿透；命中率89%，基础伤害14。符号需落线触发，未命中为废铁格。"
+mechanism_summary = "冰系施法远程：冰霜晶弹（3权重，冰伤害） + 霜裂（3权重，冰伤害）；寒霜改为命中后 35% 触发（每把武器每 SPIN 至多一次）；非三连暴击+5%；同源三连充能+1、状态+1；同源三连35%穿透；命中率89%，基础伤害14。符号需落线触发，未命中为废铁格。"
 status_migrated = true
 status_family = "frost"
 status_chance = 0.35
