@@ -78,8 +78,11 @@ func _boot():
 # A：一次 SPIN 结束 → 结算已发生、busy 复位、没有停在等待输入的状态
 func _test_spin_settles_once() -> void:
 	var turn_before: int = int(_duel.turn_count)
-	await _simulate_spin(_duel.turn_flow.on_spin_pressed())
-	_check(bool(_duel.turn_resolved), "最后一列停下后 turn_resolved 已置位（说明结算跑过）")
+	await _simulate_spin()
+	# turn_resolved 会在下一回合 begin_player_turn 时复位，流程结束后通常已为 false；
+	# 因此以「回合已推进」作为结算跑过的等价证据（同一条断言的意图：最后一列停下后确实结算了）。
+	_check(bool(_duel.turn_resolved) or int(_duel.turn_count) > turn_before,
+		"最后一列停下后结算已发生（turn_resolved 或回合推进）")
 	_check(not bool(_duel._busy), "流程结束后 _busy 复位，没有卡在中间态")
 	_check(_duel.game_state == _duel.FlowState.PLAYING, "流程结束后回到 PLAYING（%d）" % int(_duel.game_state))
 	_check(int(_duel.turn_count) >= turn_before, "回合计数不倒退（%d → %d）" % [turn_before, int(_duel.turn_count)])
@@ -112,14 +115,21 @@ func _test_single_entry() -> void:
 	_check(_duel.turn_flow._ctrl == _duel, "回合流转持有同一个 DuelController")
 
 
-# 当前实际条数（A4 + B3 + C4 + D2）。功能增加时同步上调：
+# 当前实际条数（A4 + B3 + C8 + D2 = 17）。功能增加时同步上调：
 # 一旦某处运行时错误中断了函数，检查数会低于这个值，从而判失败而不是假绿。
-const EXPECTED_CHECKS := 13
+const EXPECTED_CHECKS := 17
 
 
 # 转轮是「不停就一直转」：真实流程里玩家逐列按停。这里用 stop_next_reel(false)
 # 模拟三次按停（关掉视觉），让 spin_finished 正常发出。
-func _simulate_spin(task) -> void:
+# Godot 4.7 起直接调用协程而不 await 会报 SCRIPT ERROR；改用 call_deferred 启动，
+# 待 _busy 置位后再按停，最后等 _busy 复位（时序与原先「边转边按停、结束后收尾」一致）。
+func _simulate_spin() -> void:
+	_duel.turn_flow.call_deferred("on_spin_pressed")
+	var wait_start := 0
+	while not bool(_duel._busy) and wait_start < 60:
+		await get_tree().process_frame
+		wait_start += 1
 	for i in range(3):
 		await get_tree().process_frame
 		await get_tree().process_frame
@@ -127,7 +137,10 @@ func _simulate_spin(task) -> void:
 			return
 		_duel.reel_system.stop_next_reel(false)
 		await get_tree().process_frame
-	await task
+	var guard := 0
+	while bool(_duel._busy) and guard < 3600:
+		await get_tree().process_frame
+		guard += 1
 
 
 func _finish() -> void:

@@ -35,27 +35,27 @@ func _run() -> void:
 	duel.charm_element_boost = 0.0
 
 	duel.charge_points = 0
-	var acc := {"dmg": 0, "special": 0, "pierce": 0.0, "shield": 0, "heal": 0, "status_stacks": {}, "lines": [], "counter_triple": false, "triple": false, "heal_triple": false}
+	var acc: Dictionary = duel.combat._new_acc()
 	duel.combat.contribute(fire_sym, 1, acc, "fire")
 	_check(duel.charge_points == 0, "① 单格擦边克制不充能（实测 +%d）" % duel.charge_points)
 	_check(acc["counter_triple"] == false, "① 不计核爆标记")
 
 	duel.charge_points = 0
-	acc = {"dmg": 0, "special": 0, "pierce": 0.0, "shield": 0, "heal": 0, "status_stacks": {}, "lines": [], "counter_triple": false, "triple": false, "heal_triple": false}
+	acc = duel.combat._new_acc()
 	duel.combat.contribute(fire_sym, 2, acc, "fire")
 	_check(duel.charge_points == 1, "② 双连克制充能 +1")
 	_check(acc["counter_triple"] == true, "② 计核爆标记")
 
 	duel.charge_points = 0
 	duel._elem_triple = true
-	acc = {"dmg": 0, "special": 0, "pierce": 0.0, "shield": 0, "heal": 0, "status_stacks": {}, "lines": [], "counter_triple": false, "triple": false, "heal_triple": false}
+	acc = duel.combat._new_acc()
 	duel.combat.contribute(fire_sym, 1, acc, "fire")
 	_check(duel.charge_points == 0, "③ 单格贡献不冒充元素共鸣；共鸣改由完整停轮阶段结算")
 	duel._elem_triple = false
 
 	duel.enemy_element = "fire"
 	duel.charge_points = 0
-	acc = {"dmg": 0, "special": 0, "pierce": 0.0, "shield": 0, "heal": 0, "status_stacks": {}, "lines": [], "counter_triple": false, "triple": false, "heal_triple": false}
+	acc = duel.combat._new_acc()
 	duel.combat.contribute(fire_sym, 2, acc, "fire")
 	_check(duel.charge_points == 0, "④ 抵抗对不充能")
 

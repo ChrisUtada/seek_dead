@@ -71,6 +71,13 @@ func _boot() -> DuelController:
 	duel.selected_charms.clear()
 	duel.selected_skills.clear()
 	duel._confirm_loadout()
+	# 2026-11-17 底部反馈行已从场景移除（feedback_label 恒 null）；本套仍验证净化/清净
+	# 反馈文案，注入测试夹具 Label，不改任何断言。
+	if duel.hud.feedback_label == null:
+		var fb := Label.new()
+		fb.name = "TestFeedbackLabel"
+		fb.clip_text = true
+		duel.hud.feedback_label = fb
 	return duel
 
 
